@@ -17,7 +17,7 @@ Leitplanken:
 - Schreiben und lokale Datensouveränität haben Vorrang.
 - Cloud- und KI-Funktionen sind Opt-in; ohne ausdrückliche Freigabe findet keine Übertragung statt.
 - KI-Ergebnisse ersetzen niemals automatisch kanonische Texte oder Assets.
-- SQLite soll die autoritative lokale Datenquelle werden; Git erhält nur portable, deterministische
+- SQLite ist die autoritative lokale Datenquelle; Git erhält nur portable, deterministische
   Snapshots und ausdrücklich zulässige Assets.
 - Laufende SQLite-Dateien, Schlüssel, private Manuskripte und temporäre KI-Daten gehören nicht in
   Git.
@@ -36,13 +36,15 @@ Aktuell im Repository und verifiziert:
 - **Workspaces:** pnpm-Monorepo für TypeScript, Cargo-Workspace für Rust.
 - **Verträge:** versionierte Request-/Response-Hüllen, UUID-Typen und bereinigte IPC-Fehler in Rust
   und TypeScript.
+- **Persistenz:** SQLite mit atomarer Initialmigration, Fremdschlüsseln und FTS5 im
+  `kraqel-storage`-Crate; noch ohne fachliche Repository- und Projektmanager-Schicht.
 - **Qualität:** Prettier, ESLint, TypeScript-Checks, Vitest, Rust-Tests, rustfmt und Clippy mit
   Warnungen als Fehler; GitHub Actions unter Windows und Linux.
 
-Im Pflichtenheft vorgesehen, aber noch **nicht implementiert oder installiert**: SQLite/FTS5,
-Tiptap/ProseMirror, Tailwind, React Flow, dnd-kit, Playwright, Provider-Anbindungen und
-Bildgenerierung. Eine bloße Typdefinition oder ein leeres Crate ist keine fertige Funktion - auch
-wenn es sehr selbstbewusst kompiliert.
+Im Pflichtenheft vorgesehen, aber noch **nicht implementiert oder installiert**: Tiptap/ProseMirror,
+Tailwind, React Flow, dnd-kit, Playwright, Provider-Anbindungen und Bildgenerierung. Eine bloße
+Typdefinition oder ein leeres Crate ist keine fertige Funktion - auch wenn es sehr selbstbewusst
+kompiliert.
 
 ## Verzeichnisstruktur und Verantwortlichkeiten
 
@@ -56,7 +58,7 @@ wenn es sehr selbstbewusst kompiliert.
 | `packages/ai-contracts/`     | Provider-, Capability- und Freigabeverträge                  | Grundtypen, keine Provider      |
 | `packages/visual-contracts/` | Medien- und visuelle Profilverträge                          | Grundtypen, keine Persistenz    |
 | `crates/domain/`             | Rust-Domäne und versionierte Command-Verträge                | Grundmodell implementiert       |
-| `crates/storage/`            | SQLite, Migrationen, FTS5 und Repositories                   | Platzhalter, keine Datenbank    |
+| `crates/storage/`            | SQLite, Migrationen, FTS5 und Repositories                   | Schema v1; Repositories fehlen  |
 | `crates/git-service/`        | Deterministische Snapshots und Git-Operationen               | Nur Status-Enum                 |
 | `crates/export/`             | Markdown-, HTML-, DOCX- und PDF-Export                       | Nur Format-Enum                 |
 | `crates/continuity/`         | Regelbasierte Kontinuitätsprüfung                            | Nur Schweregrad-Enum            |
