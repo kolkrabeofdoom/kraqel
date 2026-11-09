@@ -3,6 +3,7 @@ members = [
   "apps/desktop/src-tauri",
   "crates/asset-service",
   "crates/continuity",
+  "crates/domain",
   "crates/export",
   "crates/git-service",
   "crates/storage",

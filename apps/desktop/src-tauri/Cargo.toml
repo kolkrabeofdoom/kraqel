@@ -14,8 +14,13 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+kraqel-domain = { path = "../../../crates/domain" }
 serde = { version = "1", features = ["derive"] }
 tauri = { version = "2", features = [] }
+uuid = { version = "1", features = ["serde"] }
+
+[dev-dependencies]
+serde_json = "1"
 
 [lints]
 workspace = true

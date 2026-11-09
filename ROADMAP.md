@@ -4,7 +4,7 @@
 
 - [x] Monorepo, Tauri-2-Shell, React, TypeScript und Rust-Workspace
 - [x] Grundlegende CI, Sicherheits- und Beitragsdokumentation
-- [ ] Domänenmodell und typisierte Tauri-Commands
+- [x] Domänenmodell und typisierte Tauri-Commands
 - [ ] SQLite-Schema, Migrationen und FTS5-Migrationstests
 - [ ] Lokaler Projektmanager, Backup, Path-Safety und Recovery
 
