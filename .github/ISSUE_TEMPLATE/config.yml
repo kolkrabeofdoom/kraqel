@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Sicherheitsproblem vertraulich melden
+    url: https://github.com/kolkrabeofdoom/kraqel/security/advisories/new
+    about: Bitte keine Sicherheitslücken oder sensiblen Daten öffentlich melden.

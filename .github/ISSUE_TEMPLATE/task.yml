@@ -1,0 +1,34 @@
+name: Umsetzungsaufgabe
+description: Eine klar abgrenzbare Anforderung planen und umsetzen.
+title: "[KQ-XXX] "
+labels: ["status: triage"]
+body:
+  - type: markdown
+    attributes:
+      value:
+        Danke! Kleine, überprüfbare Schritte verhindern, dass aus der Roadmap ein Teppichlabyrinth
+        wird.
+  - type: textarea
+    id: goal
+    attributes:
+      label: Ziel
+      description: Welches beobachtbare Ergebnis soll erreicht werden?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Akzeptanzkriterien
+      description: Bitte als prüfbare Liste formulieren.
+    validations:
+      required: true
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: Datenschutz, Offlinefähigkeit und Grenzen
+      description: Welche Daten- oder Vertrauensgrenzen sind betroffen?
+  - type: textarea
+    id: tests
+    attributes:
+      label: Testplan
+      description: Welche automatisierten und manuellen Prüfungen sind nötig?

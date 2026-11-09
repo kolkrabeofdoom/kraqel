@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
+  <title id="title">KRAQEL program icon</title>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#164a4b"/>
+      <stop offset="1" stop-color="#092b2d"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="220" fill="url(#background)"/>
+  <path d="M286 224v576h116V580l224 220h154L482 507l276-283H606L402 443V224H286Z" fill="#f7f2e5"/>
+  <circle cx="769" cy="757" r="66" fill="#ce7048"/>
+</svg>
