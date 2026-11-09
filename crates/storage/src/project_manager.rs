@@ -21,6 +21,15 @@ pub const BACKUP_DIRECTORY_NAME: &str = "backups";
 
 static TEMPORARY_NAME_COUNTER: AtomicU64 = AtomicU64::new(0);
 
+/// Kompakte Metadaten eines verwalteten Projekts.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProjectOverview {
+    /// Stabile Projektkennung und zugleich sicherer Verzeichnisname.
+    pub id: kraqel_domain::ProjectId,
+    /// Anzeigename des Projekts.
+    pub name: String,
+}
+
 /// Fehler des lokalen Projektlebenszyklus.
 #[derive(Debug)]
 pub enum ProjectError {
@@ -185,6 +194,57 @@ impl ProjectManager {
     #[must_use]
     pub fn root(&self) -> &Path {
         &self.root
+    }
+
+    /// Listet alle unmittelbar verwalteten Projekte stabil nach Name und UUID.
+    ///
+    /// # Errors
+    ///
+    /// Liefert einen Fehler, wenn ein als Projekt benanntes Verzeichnis unsicher, beschädigt oder
+    /// nicht lesbar ist.
+    pub fn list_projects(&self) -> Result<Vec<ProjectOverview>, ProjectError> {
+        let entries = fs::read_dir(&self.root).map_err(|source| ProjectError::Io {
+            operation: "Projektwurzel auflisten",
+            source,
+        })?;
+        let mut projects = Vec::new();
+
+        for entry in entries {
+            let entry = entry.map_err(|source| ProjectError::Io {
+                operation: "Projekteintrag lesen",
+                source,
+            })?;
+            let file_name = entry.file_name();
+            let Some(file_name) = file_name.to_str() else {
+                continue;
+            };
+            let Some(directory_id) = kraqel_domain::ProjectId::parse(file_name) else {
+                continue;
+            };
+            let opened = self.open_project(Path::new(file_name))?;
+            let (stored_id, name): (String, String) = opened.database().connection().query_row(
+                "SELECT id, name FROM project",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )?;
+            let stored_id =
+                kraqel_domain::ProjectId::parse(&stored_id).ok_or(ProjectError::InvalidDatabase)?;
+            if stored_id != directory_id {
+                return Err(ProjectError::InvalidDatabase);
+            }
+            projects.push(ProjectOverview {
+                id: stored_id,
+                name,
+            });
+        }
+
+        projects.sort_by(|left, right| {
+            left.name
+                .to_lowercase()
+                .cmp(&right.name.to_lowercase())
+                .then_with(|| left.id.to_string().cmp(&right.id.to_string()))
+        });
+        Ok(projects)
     }
 
     /// Erstellt ein Projekt vollständig in einem temporären Geschwisterverzeichnis und

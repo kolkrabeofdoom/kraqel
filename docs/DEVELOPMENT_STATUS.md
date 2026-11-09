@@ -2,7 +2,7 @@
 
 Stand: 9. November 2026
 
-Code-Referenz: KQ-004 (`feat/kq-004-project-manager`, dieser Stand)
+Code-Referenz: KQ-005 (`feat/kq-005-editor-autosave`, dieser Stand)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -12,15 +12,15 @@ als vollständige Fachfunktion.
 
 ## Status nach Pflichtenheft-Stufen
 
-| Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                                                      |
-| ------------ | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden. |
-| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Nicht implementiert.** Nur ein generischer Editor-Snapshot-Typ existiert.                                                                                                              |
-| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Nicht implementiert.** Keine UI, Persistenz oder Fachlogik.                                                                                                                            |
-| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Nicht implementiert.** Es existieren nur Enums/Vertragstypen und eine relative Pfadprüfung.                                                                                            |
-| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Nur Verträge vorbereitet:** Capability-, Kontextfreigabe-, Medien- und Profiltypen; keine Provider oder Fachabläufe.                                                                   |
-| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                            |
-| **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                   |
+| Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                                                                                                      |
+| ------------ | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                 |
+| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Teilweise umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, szenengebundenes Undo/Redo, Wortzählung, Fokusmodus, revisionsgeprüftes Autosave und SQLite-Backup vorhanden. Umbenennen, Umordnen, Löschen und E2E-Abnahme fehlen. |
+| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Nicht implementiert.** Keine UI, Persistenz oder Fachlogik.                                                                                                                                                                            |
+| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Nicht implementiert.** Es existieren nur Enums/Vertragstypen und eine relative Pfadprüfung.                                                                                                                                            |
+| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Nur Verträge vorbereitet:** Capability-, Kontextfreigabe-, Medien- und Profiltypen; keine Provider oder Fachabläufe.                                                                                                                   |
+| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                                                                            |
+| **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                   |
 
 Die funktionalen Anforderungen F01 bis F09 sind damit noch nicht abgenommen. Vorhandene Verträge und
 Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
@@ -33,7 +33,7 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Tauri-2-/React-/TypeScript-Desktop-Shell mit statischer, responsiver Startoberfläche.
 - Minimale Tauri-Berechtigung `core:default`, definierte CSP und Windows-Fensterkonfiguration.
 - GitHub-Actions-CI unter `windows-latest` und `ubuntu-latest`.
-- Letzter CI-Lauf für `main` bei `479d0b2`: erfolgreich unter Windows und Linux.
+- Letzter CI-Lauf für `main` bei `20f6b1b`: erfolgreich unter Windows und Linux.
 - Qualitätskette: Prettier, rustfmt, ESLint, Clippy mit `-D warnings`, TypeScript, Vitest,
   Rust-Tests sowie Frontend- und Workspace-Builds.
 - GPL-3.0-or-later, Beitrags-, Verhaltens- und Sicherheitsdokumentation vorhanden.
@@ -77,6 +77,22 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   Symlinks, fehlende und beschädigte Dateien, Backup-Konsistenz und unveränderte Recovery-Quellen
   ab.
 
+### Editor, Szenenbaum und Autosave (KQ-005)
+
+- Tiptap 3/ProseMirror mit versioniertem Editor-Dokumentvertrag v1 und grundlegender
+  Rich-Text-Formatierung.
+- Lokale Projektübersicht sowie Projekt-, Kapitel- und Szenenerstellung über versionierte
+  Tauri-Commands; Projekte liegen vorerst im lokalen App-Datenverzeichnis.
+- Stabil sortierter Kapitel-/Szenenbaum; Undo/Redo-Verlauf wird durch eine eigene Editorinstanz je
+  Szene begrenzt.
+- Entprelltes Autosave nach 700 Millisekunden mit sichtbaren Zuständen, serialisierten
+  Schreibvorgängen und optimistischer Revision. Konflikte überschreiben keinen neueren Stand.
+- Rust leitet Klartext aus Tiptap-JSON ab und aktualisiert Inhalt, Revision sowie FTS-Index
+  transaktional.
+- Automatisierte Tests für Editorvertrag, Baumordnung, Autosave, IPC-Roundtrip, Revisionskonflikt
+  sowie Backup/Recovery mit 100 Szenen. Tastatur- und Screenreader-Fälle sind als manueller Testplan
+  dokumentiert, aber noch nicht als E2E-Test ausgeführt.
+
 ### Begrenzte Hilfsfunktionen und Verträge
 
 - `asset-service`: relative Pfade werden akzeptiert, absolute Pfade und Elterntraversal abgelehnt.
@@ -87,11 +103,11 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 ## Offene Aufgaben
 
-### Unmittelbar: M1 beginnen
+### Unmittelbar: M1 erweitern
 
-1. **KQ-005 - Editor, Szenenbaum und Autosave** (`status: triage`)
-   - Tiptap-Vertrag und Dokument-Repository zuerst konkretisieren
-   - Szenen-/Kapitelbaum, transaktionales Autosave, Undo/Redo und Wortzählung umsetzen
+1. **KQ-006 - Story-Bibel** (GitHub-Issue noch anzulegen)
+   - Entitäten, freie Eigenschaften, gerichtete Relationen und Rückverweise
+   - Suche und nachvollziehbare Verknüpfung mit Szenen
 
 ### Danach gemäß Pflichtenheft
 
@@ -104,15 +120,14 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 
 ## Bekannte Fehler und Lücken
 
-- **Noch keine Dokument-Repository-Schicht:** Der Projektlebenszyklus ist implementiert, fachliche
-  CRUD-Operationen für Dokumente und Entitäten fehlen. Die sichtbare Anwendung öffnet noch keine
-  Projektdatenbank.
+- **Dokumentverwaltung noch unvollständig:** Erstellen, Listen, Laden und Speichern sind
+  implementiert; Umbenennen, Löschen und Umordnen fehlen.
+- **Feste Projektwurzel in der Desktopoberfläche:** Projekte liegen derzeit unter dem lokalen
+  App-Datenverzeichnis. Eine frei wählbare Projektwurzel ist noch nicht umgesetzt.
 - **Lokales Backup umfasst nur SQLite:** Assets sind noch nicht implementiert und daher nicht Teil
   der Sicherung. Portable Austausch- und Git-Snapshots sind ein späterer, getrennter Mechanismus.
 - **Nur Initialmigration:** Der Migrationspfad 0 -> 1 ist getestet; weitere Versionen benötigen je
   eine neue unveränderliche Vorwärtsmigration samt Test mit befüllter Vorgängerdatenbank.
-- **Startoberfläche ohne Funktion:** „Neues Projekt“ und „Projekt öffnen“ besitzen noch keine
-  Handler. Die vorhandenen Commands werden von der sichtbaren UI nicht aufgerufen.
 - **Keine End-to-End-Tests:** Playwright ist weder installiert noch konfiguriert.
 - **Dependency Review eingeschränkt:** Der GitHub-Job wird bei privaten Repositories ohne GitHub
   Advanced Security bewusst übersprungen. Lockfiles und reguläre CI bleiben aktiv.
@@ -128,6 +143,9 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 - **Kanonische Projektwurzel und nicht-destruktive Recovery:** Symlinks und unsichere relative Pfade
   werden abgelehnt; Projekte und Sicherungen werden erst nach Prüfung atomar veröffentlicht.
   Wiederherstellung schreibt ausschließlich in ein neues Ziel (ADR 0003).
+- **Versioniertes Tiptap-JSON und optimistische Revisionen:** Jede Szene besitzt eine eigene
+  Undo/Redo-Grenze; Autosave ist entprellt, serialisiert und konfliktbehaftete Schreibversuche
+  überschreiben nichts (ADR 0004).
 - **Privilegierte Operationen in Rust:** React kommuniziert ausschließlich über versionierte,
   typisierte Tauri-Commands mit Dateisystem, Storage, Git und späteren Providern.
 - **Verträge sind explizit versioniert:** Inkompatible Änderungen erfordern eine neue
@@ -145,33 +163,32 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 
 ## Abhängigkeiten und technische Risiken
 
-| Thema                        | Zustand / Risiko                                                          | Nächste Kontrolle                                         |
-| ---------------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------- |
-| SQLite und FTS5              | Schema, Migration, FTS5, Backup und Recovery getestet; Fach-CRUD fehlt    | KQ-005 mit Dokument-Repository und Autosave               |
-| Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                     | Gemeinsame Fixtures oder spätere Codegenerierung bewerten |
-| Datenformat                  | Manifest und JSON-Schemas fehlen                                          | Mit KQ-008 und Snapshotarbeit versionieren                |
-| Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen  |
-| Editorformat                 | Nur generischer Snapshot; Tiptap noch nicht eingebunden                   | Vor KQ-005 Versionierung festlegen                        |
-| Desktoptests                 | Keine E2E-Abdeckung                                                       | Playwright erst mit ersten nutzbaren Abläufen einführen   |
-| CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten             | Caching prüfen, ohne Reproduzierbarkeit zu schwächen      |
-| Abhängigkeitssicherheit      | GitHub Dependency Review privat nicht verfügbar                           | Alternative Audits oder Advanced Security später bewerten |
-| Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen  | Plattformmatrix je Release definieren                     |
+| Thema                        | Zustand / Risiko                                                             | Nächste Kontrolle                                         |
+| ---------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------- |
+| SQLite und FTS5              | Dokument-Repository, FTS5, Backup und Recovery getestet; Entitäts-CRUD fehlt | KQ-006 mit Story-Bibel-Repository                         |
+| Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                        | Gemeinsame Fixtures oder spätere Codegenerierung bewerten |
+| Datenformat                  | Manifest und JSON-Schemas fehlen                                             | Mit KQ-008 und Snapshotarbeit versionieren                |
+| Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt    | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen  |
+| Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version     | Bei jeder Erweiterung Fixtures und Migration prüfen       |
+| Desktoptests                 | Unit-/IPC-Tests vorhanden, aber keine Browser-/Tauri-E2E-Abdeckung           | Playwright für Projekt- und Schreibablauf einführen       |
+| CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                | Caching prüfen, ohne Reproduzierbarkeit zu schwächen      |
+| Abhängigkeitssicherheit      | GitHub Dependency Review privat nicht verfügbar                              | Alternative Audits oder Advanced Security später bewerten |
+| Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen     | Plattformmatrix je Release definieren                     |
 
 ## Nächste geplante Entwicklungsstufe
 
-**KQ-005: Editor, Szenenbaum und Autosave.**
+**KQ-006: Story-Bibel mit Entitäten, Relationen, Rückverweisen und Suche.**
 
 Empfohlener, überprüfbarer Scope:
 
-1. Persistenzvertrag für Kapitel, Szenen und Tiptap-JSON festziehen; Revisionen und
-   Konfliktverhalten explizit definieren.
-2. Transaktionale Repository-Operationen für Baumabfragen, Erstellen, Umordnen und Speichern bauen.
-3. Tiptap/ProseMirror integrieren und Autosave ausschließlich über versionierte Tauri-Commands
-   führen.
-4. Undo/Redo, Wortzählung und grundlegende Tastaturbedienung testen.
-5. Recovery-Test vom gespeicherten Szenenstand bis zur wiederhergestellten Oberfläche ergänzen.
-6. Story-Bibel und Plotboard noch nicht hineinziehen. Ein Editor wird nicht besser, wenn man ihm
-   vorsorglich drei Nebenberufe und einen Umhang gibt.
+1. GitHub-Issue mit konkreten Akzeptanzkriterien und Abhängigkeit zu KQ-005 anlegen.
+2. Versionierte Verträge für Figuren, Orte, Fraktionen und Gegenstände samt freien Eigenschaften
+   definieren.
+3. Repository für Entitäten, gerichtete Relationen und Szenenlinks transaktional implementieren.
+4. Story-Bibel-Oberfläche mit Suche, Rückverweisen und barrierearmer Navigation bauen.
+5. Tests für Relationstreue, Löschregeln, FTS-Suche und Backup/Recovery ergänzen.
+6. Plotboard und Timeline getrennt halten. Auch Geschichten profitieren gelegentlich davon, wenn
+   nicht jede Figur gleichzeitig die Bühne, die Beleuchtung und den Fahrplan verwaltet.
 
 ## Einstieg für die nächste Codex-Session
 
@@ -180,10 +197,9 @@ cd D:\kraqel
 git status
 git branch --show-current
 git log -5 --oneline
-gh issue view 5
+rg "KQ-006" docs ROADMAP.md
 ```
 
-Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0001 bis ADR 0003, `docs/data-format/README.md`,
-`packages/editor/`, `crates/domain/src/lib.rs` und `crates/storage/src/`. Für KQ-005 einen eigenen
-Branch wie `feat/kq-005-editor-autosave` verwenden und den Issue-Status erst bei tatsächlichem
-Arbeitsbeginn ändern.
+Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0001 bis ADR 0004, `docs/data-format/README.md`,
+`crates/storage/src/document_repository.rs` und den Editor-Testplan. Vor KQ-006 zuerst ein eigenes
+Issue anlegen und den Scope gegen F02 des Pflichtenhefts prüfen.

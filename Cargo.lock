@@ -1651,10 +1651,12 @@ name = "kraqel-desktop"
 version = "0.1.0"
 dependencies = [
  "kraqel-domain",
+ "kraqel-storage",
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
+ "tempfile",
  "uuid",
 ]
 
@@ -1681,6 +1683,7 @@ version = "0.1.0"
 dependencies = [
  "kraqel-domain",
  "rusqlite",
+ "serde_json",
  "tempfile",
 ]
 

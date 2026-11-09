@@ -4,8 +4,11 @@ import {
   COMMAND_CONTRACT_VERSION,
   KraqelCommandError,
   getApplicationStatus,
+  saveDocument,
   validateProjectName,
 } from "./commands";
+import type { EntityId, ProjectId } from "@kraqel/domain";
+import { EDITOR_DOCUMENT_VERSION } from "@kraqel/editor";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 
@@ -74,6 +77,45 @@ describe("typed Tauri commands", () => {
     const error = await getApplicationStatus().catch((reason: unknown) => reason);
 
     expect(error).toMatchObject({ code: "INVALID_REQUEST", retryable: false });
+    expect(String(error)).not.toContain("private");
+  });
+
+  it("sends versioned editor content with an optimistic revision", async () => {
+    mockedInvoke.mockResolvedValue({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: { revision: 8 },
+    });
+    const projectId = requestId as ProjectId;
+    const documentId = "018f47ea-9b2d-7cc1-98e8-b5f4f6b741a3" as EntityId;
+    const content = {
+      version: EDITOR_DOCUMENT_VERSION,
+      document: { type: "doc", content: [{ type: "paragraph" }] },
+    };
+
+    await expect(saveDocument(projectId, documentId, 7, content)).resolves.toBe(8);
+    expect(mockedInvoke).toHaveBeenCalledWith("save_document", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: { projectId, documentId, expectedRevision: 7, content },
+      },
+    });
+  });
+
+  it("maps revision conflicts to a stable local message", async () => {
+    mockedInvoke.mockRejectedValue({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      code: "CONFLICT",
+      message: "D:\\private\\draft.md",
+      retryable: false,
+    });
+
+    const error = await getApplicationStatus().catch((reason: unknown) => reason);
+
+    expect(error).toMatchObject({ code: "CONFLICT", retryable: false });
+    expect(String(error)).toContain("zwischenzeitlich");
     expect(String(error)).not.toContain("private");
   });
 });

@@ -1,9 +1,21 @@
 import { invoke } from "@tauri-apps/api/core";
-import { CURRENT_SCHEMA_VERSION, parseUuid, type SchemaVersion, type Uuid } from "@kraqel/domain";
+import {
+  CURRENT_SCHEMA_VERSION,
+  parseUuid,
+  type DocumentKind,
+  type DocumentNode,
+  type EntityId,
+  type Project,
+  type ProjectId,
+  type SchemaVersion,
+  type Uuid,
+} from "@kraqel/domain";
+import type { EditorDocument } from "@kraqel/editor";
 
 export const COMMAND_CONTRACT_VERSION = 1 as const;
 
-export type CommandErrorCode = "INVALID_REQUEST" | "UNSUPPORTED_CONTRACT_VERSION" | "INTERNAL";
+export type CommandErrorCode =
+  "INVALID_REQUEST" | "UNSUPPORTED_CONTRACT_VERSION" | "CONFLICT" | "INTERNAL";
 
 export interface CommandRequest<T> {
   readonly contractVersion: typeof COMMAND_CONTRACT_VERSION;
@@ -49,6 +61,29 @@ export interface ProjectNameValidation {
   readonly valid: boolean;
 }
 
+export interface ProjectOverview {
+  readonly id: ProjectId;
+  readonly name: string;
+}
+
+export interface Workspace {
+  readonly project: Project;
+  readonly documents: readonly DocumentNode[];
+}
+
+export interface StoredDocument {
+  readonly node: DocumentNode;
+  readonly content: EditorDocument;
+  readonly plainText: string;
+}
+
+export interface CreateDocumentInput {
+  readonly projectId: ProjectId;
+  readonly parentId: EntityId | null;
+  readonly kind: DocumentKind;
+  readonly title: string;
+}
+
 export async function getApplicationStatus(): Promise<ApplicationStatus> {
   const response = await callCommand<Record<string, never>, ApplicationStatus>(
     "application_status",
@@ -68,6 +103,63 @@ export async function validateProjectName(name: string): Promise<ProjectNameVali
     { name },
   );
   return response.data;
+}
+
+export async function listProjects(): Promise<readonly ProjectOverview[]> {
+  const response = await callCommand<Record<string, never>, readonly ProjectOverview[]>(
+    "list_projects",
+    {},
+  );
+  return response.data;
+}
+
+export async function createProject(name: string): Promise<Workspace> {
+  const response = await callCommand<{ readonly name: string }, Workspace>("create_project", {
+    name,
+  });
+  return response.data;
+}
+
+export async function openWorkspace(projectId: ProjectId): Promise<Workspace> {
+  const response = await callCommand<{ readonly projectId: ProjectId }, Workspace>(
+    "open_workspace",
+    { projectId },
+  );
+  return response.data;
+}
+
+export async function createDocument(input: CreateDocumentInput): Promise<DocumentNode> {
+  const response = await callCommand<CreateDocumentInput, DocumentNode>("create_document", input);
+  return response.data;
+}
+
+export async function loadDocument(
+  projectId: ProjectId,
+  documentId: EntityId,
+): Promise<StoredDocument> {
+  const response = await callCommand<
+    { readonly projectId: ProjectId; readonly documentId: EntityId },
+    StoredDocument
+  >("load_document", { projectId, documentId });
+  return response.data;
+}
+
+export async function saveDocument(
+  projectId: ProjectId,
+  documentId: EntityId,
+  expectedRevision: number,
+  content: EditorDocument,
+): Promise<number> {
+  const response = await callCommand<
+    {
+      readonly projectId: ProjectId;
+      readonly documentId: EntityId;
+      readonly expectedRevision: number;
+      readonly content: EditorDocument;
+    },
+    { readonly revision: number }
+  >("save_document", { projectId, documentId, expectedRevision, content });
+  return response.data.revision;
 }
 
 async function callCommand<TPayload, TData>(
@@ -124,7 +216,10 @@ function isCommandErrorContract(value: unknown, requestId: Uuid): value is Comma
 
 function isCommandErrorCode(value: unknown): value is CommandErrorCode {
   return (
-    value === "INVALID_REQUEST" || value === "UNSUPPORTED_CONTRACT_VERSION" || value === "INTERNAL"
+    value === "INVALID_REQUEST" ||
+    value === "UNSUPPORTED_CONTRACT_VERSION" ||
+    value === "CONFLICT" ||
+    value === "INTERNAL"
   );
 }
 
@@ -138,6 +233,8 @@ function safeMessageFor(code: CommandErrorCode): string {
       return "Die lokale Anwendung hat die Anfrage abgelehnt.";
     case "UNSUPPORTED_CONTRACT_VERSION":
       return "Die Command-Vertragsversion wird nicht unterstützt.";
+    case "CONFLICT":
+      return "Das Dokument wurde zwischenzeitlich verändert. Bitte neu laden.";
     case "INTERNAL":
       return "Die lokale Anwendung konnte die Anfrage nicht verarbeiten.";
   }

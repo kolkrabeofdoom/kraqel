@@ -1,6 +1,6 @@
 # Roadmap
 
-## M0 - Fundament (aktiv)
+## M0 - Fundament (abgeschlossen)
 
 - [x] Monorepo, Tauri-2-Shell, React, TypeScript und Rust-Workspace
 - [x] Grundlegende CI, Sicherheits- und Beitragsdokumentation
@@ -10,7 +10,7 @@
 
 ## M1 bis M5 - Version 0.1
 
-1. Editor, Szenenbaum, Autosave und Backup
+1. [x] Editor-Grundfunktionen, Szenenbaum, Autosave und Backup
 2. Story-Bibel, Plotboard und Timeline
 3. Git-Snapshots, Import/Export, Medienbibliothek und visuelle Profile
 4. Optionale Text-KI, Kontinuitätsprüfung, Prompt-Entwürfe und Bildverträge
