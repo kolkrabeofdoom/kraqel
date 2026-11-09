@@ -2,7 +2,7 @@
 
 Stand: 9. November 2026
 
-Code-Referenz: KQ-012 (`feat/kq-012-continuity-review`, Arbeitsstand)
+Code-Referenz: KQ-012 (`0fae3aa` auf `main`, PR #23)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
