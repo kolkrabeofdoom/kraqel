@@ -3,6 +3,7 @@ use kraqel_ai_service::{
     OsCredentialStore, ReleasedTextContext, TextGenerationRequest, TextModel, TextProvider,
     TextProviderDescriptor, TextProviderError, TextStreamEvent,
 };
+use kraqel_continuity::{Finding, SuggestionReview, review_suggestion};
 use kraqel_domain::{
     CURRENT_SCHEMA_VERSION, CommandError, CommandRequest, CommandResponse, DocumentKind,
     DocumentNode, EDITOR_DOCUMENT_VERSION, EditorDocument, EntityId, EntityKind, PlotBoard,
@@ -17,6 +18,7 @@ use kraqel_git_service::{
     CommitResult, GitService, GitServiceError, SnapshotSummary, VersionControlStatus,
 };
 use kraqel_storage::{
+    continuity_repository::{ContinuityError, ContinuityRepository},
     document_repository::{DocumentError, DocumentRepository},
     project_manager::{ProjectError, ProjectManager},
     story_bible_repository::{StoryBibleError, StoryBibleRepository},
@@ -153,6 +155,15 @@ struct StreamTextDraftRequest {
     context_approved: bool,
     provider_id: String,
     release_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ReviewTextSuggestionRequest {
+    project_id: String,
+    document_id: String,
+    expected_revision: u64,
+    proposed_text: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -659,6 +670,41 @@ async fn stream_text_draft(
             .map_err(|error| map_text_provider_error(request.request_id, &error))?;
     }
     Ok(CommandResponse::current(request.request_id, ()))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn analyze_continuity(
+    state: State<'_, AppState>,
+    request: CommandRequest<ProjectRequest>,
+) -> Result<CommandResponse<Vec<Finding>>, CommandError> {
+    require_current_contract(&request)?;
+    let project_id = parse_project_id(request.request_id, &request.payload.project_id)?;
+    let manager = manager(&state, request.request_id)?;
+    let opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request.request_id, &error))?;
+    let findings = ContinuityRepository::new(opened.database())
+        .analyze(project_id)
+        .map_err(|error| map_continuity_error(request.request_id, &error))?;
+    Ok(CommandResponse::current(request.request_id, findings))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn review_text_suggestion(
+    state: State<'_, AppState>,
+    request: CommandRequest<ReviewTextSuggestionRequest>,
+) -> Result<CommandResponse<SuggestionReview>, CommandError> {
+    require_current_contract(&request)?;
+    let review = review_text_suggestion_impl(&state, request.request_id, &request.payload)?;
+    Ok(CommandResponse::current(request.request_id, review))
 }
 
 #[tauri::command]
@@ -1521,6 +1567,29 @@ fn load_ai_scene(
     Ok(stored)
 }
 
+fn review_text_suggestion_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &ReviewTextSuggestionRequest,
+) -> Result<SuggestionReview, CommandError> {
+    if request.proposed_text.len() > 2 * 1024 * 1024 {
+        return Err(CommandError::invalid_request(
+            request_id,
+            "Der Textvorschlag ist zu groß.",
+        ));
+    }
+    let stored = load_ai_scene(state, request_id, &request.project_id, &request.document_id)?;
+    if stored.node.revision != request.expected_revision {
+        return Err(CommandError::conflict(request_id));
+    }
+    Ok(review_suggestion(
+        stored.node.id,
+        stored.node.revision,
+        &stored.plain_text,
+        &request.proposed_text,
+    ))
+}
+
 fn list_story_entities_impl(
     state: &AppState,
     request_id: uuid::Uuid,
@@ -1785,6 +1854,10 @@ fn map_structure_error(request_id: uuid::Uuid, error: &StructureError) -> Comman
     }
 }
 
+fn map_continuity_error(request_id: uuid::Uuid, _error: &ContinuityError) -> CommandError {
+    CommandError::internal(request_id)
+}
+
 fn map_git_error(request_id: uuid::Uuid, error: &GitServiceError) -> CommandError {
     match error {
         GitServiceError::InvalidInput | GitServiceError::NothingToCommit => {
@@ -1879,6 +1952,8 @@ pub fn run() {
             list_cloud_models,
             preview_ai_context,
             stream_text_draft,
+            analyze_continuity,
+            review_text_suggestion,
             list_story_entities,
             create_story_entity,
             update_story_entity,
@@ -1929,12 +2004,12 @@ mod tests {
     use super::{
         AiContextRequest, AppState, ApplicationStatusRequest, CreateProjectRequest,
         DocumentRequest, ExportProjectRequest, LinkStoryEntityRequest, ListStoryEntitiesRequest,
-        SaveDocumentRequest, StoryEntityRequest, StreamTextDraftRequest,
-        ValidateProjectNameRequest, WriteStoryEntityRequest, application_status,
-        create_project_impl, export_manuscript_impl, link_story_entity_impl, list_projects_impl,
-        list_story_entities_impl, load_document_impl, load_story_entity_impl,
-        prepare_text_generation, preview_ai_context_impl, save_document_impl,
-        validate_project_name, write_story_entity_impl,
+        ReviewTextSuggestionRequest, SaveDocumentRequest, StoryEntityRequest,
+        StreamTextDraftRequest, ValidateProjectNameRequest, WriteStoryEntityRequest,
+        application_status, create_project_impl, export_manuscript_impl, link_story_entity_impl,
+        list_projects_impl, list_story_entities_impl, load_document_impl, load_story_entity_impl,
+        prepare_text_generation, preview_ai_context_impl, review_text_suggestion_impl,
+        save_document_impl, validate_project_name, write_story_entity_impl,
     };
 
     const REQUEST_ID: Uuid = Uuid::from_u128(0x018f_47ea_9b2d_7cc1_98e8_b5f4_f6b7_41a2);
@@ -2069,6 +2144,69 @@ mod tests {
             },
         )
         .expect_err("stale revision should conflict");
+        assert_eq!(conflict.code, CommandErrorCode::Conflict);
+    }
+
+    #[test]
+    fn suggestion_review_is_revision_bound_and_does_not_write() {
+        let root = tempdir().expect("temporary root should exist");
+        let state = AppState {
+            project_root: root.path().to_path_buf(),
+            ai_releases: Mutex::new(HashMap::new()),
+        };
+        let workspace = create_project_impl(
+            &state,
+            REQUEST_ID,
+            CreateProjectRequest {
+                name: "Morgenrot".to_owned(),
+            },
+        )
+        .expect("project should be created");
+        let scene = workspace
+            .documents
+            .iter()
+            .find(|document| document.kind == kraqel_domain::DocumentKind::Scene)
+            .expect("initial scene should exist");
+        let request = ReviewTextSuggestionRequest {
+            project_id: workspace.project.id.to_string(),
+            document_id: scene.id.to_string(),
+            expected_revision: 0,
+            proposed_text: "Ein Vorschlag.".to_owned(),
+        };
+        let review = review_text_suggestion_impl(&state, REQUEST_ID, &request)
+            .expect("current revision should be reviewable");
+        assert!(review.changed);
+        let unchanged = load_document_impl(
+            &state,
+            REQUEST_ID,
+            DocumentRequest {
+                project_id: workspace.project.id.to_string(),
+                document_id: scene.id.to_string(),
+            },
+        )
+        .expect("scene should load");
+        assert_eq!(unchanged.node.revision, 0);
+        assert_eq!(unchanged.plain_text, "");
+
+        save_document_impl(
+            &state,
+            REQUEST_ID,
+            SaveDocumentRequest {
+                project_id: workspace.project.id.to_string(),
+                document_id: scene.id.to_string(),
+                expected_revision: 0,
+                content: EditorDocument {
+                    version: EDITOR_DOCUMENT_VERSION,
+                    document: json!({
+                        "type": "doc",
+                        "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Neuer Stand"}]}]
+                    }),
+                },
+            },
+        )
+        .expect("scene should save");
+        let conflict = review_text_suggestion_impl(&state, REQUEST_ID, &request)
+            .expect_err("stale review should conflict");
         assert_eq!(conflict.code, CommandErrorCode::Conflict);
     }
 

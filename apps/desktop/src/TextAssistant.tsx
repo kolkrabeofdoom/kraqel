@@ -14,7 +14,9 @@ import {
   previewAiContext,
   saveCloudCredential,
   streamTextDraft,
+  reviewTextSuggestion,
   type StreamTextDraftInput,
+  type SuggestionReview,
 } from "./commands";
 
 const OLLAMA_ID = "ollama";
@@ -37,6 +39,8 @@ export function TextAssistant({
   const [approved, setApproved] = useState(false);
   const [draft, setDraft] = useState("");
   const [provenance, setProvenance] = useState<string | null>(null);
+  const [draftRevision, setDraftRevision] = useState<number | null>(null);
+  const [review, setReview] = useState<SuggestionReview | null>(null);
   const [busy, setBusy] = useState(false);
   const [providerBusy, setProviderBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,6 +89,8 @@ export function TextAssistant({
     setApproved(false);
     setDraft("");
     setProvenance(null);
+    setDraftRevision(null);
+    setReview(null);
   }, [activeDocumentId, providerId, model, instruction]);
 
   const chooseProvider = (nextProviderId: string) => {
@@ -171,6 +177,8 @@ export function TextAssistant({
     setError(null);
     setDraft("");
     setProvenance(null);
+    setReview(null);
+    setDraftRevision(preview.revision);
     const currentGeneration = ++generationId.current;
     const input: StreamTextDraftInput = {
       projectId,
@@ -196,6 +204,19 @@ export function TextAssistant({
       setApproved(false);
       setPreview(null);
       setBusy(false);
+    }
+  };
+
+  const loadReview = async () => {
+    if (!activeDocumentId || draftRevision === null || !draft) return;
+    setError(null);
+    try {
+      setReview(await reviewTextSuggestion(projectId, activeDocumentId, draftRevision, draft));
+    } catch {
+      setReview(null);
+      setError(
+        "Der Szenenstand hat sich geändert oder der Vorschlag konnte nicht verglichen werden. Erzeuge bei Bedarf einen neuen Entwurf.",
+      );
     }
   };
 
@@ -339,6 +360,8 @@ export function TextAssistant({
               onClick={() => {
                 setDraft("");
                 setProvenance(null);
+                setDraftRevision(null);
+                setReview(null);
               }}
             >
               Verwerfen
@@ -346,6 +369,31 @@ export function TextAssistant({
           </div>
           <pre>{draft || "Noch kein Entwurf. Das Manuskript wartet gelassen."}</pre>
           {provenance ? <p className="muted">Herkunft: {provenance}</p> : null}
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy || !draft || draftRevision === null}
+            onClick={() => void loadReview()}
+          >
+            Gegen freigegebene Szenenrevision prüfen
+          </button>
+          {review ? (
+            <div className="suggestion-review">
+              <h4>Nur-Lese-Diff zu Revision {review.revision}</h4>
+              <p className="muted">
+                Dieser Vergleich besitzt absichtlich keine Übernehmen-Schaltfläche.
+              </p>
+              <pre aria-label="Vorschlagsvergleich">
+                {review.lines.map((line, index) => (
+                  <span className={`diff-${line.kind}`} key={`${index}-${line.kind}`}>
+                    {line.kind === "added" ? "+ " : line.kind === "removed" ? "− " : "  "}
+                    {line.text}
+                    {"\n"}
+                  </span>
+                ))}
+              </pre>
+            </div>
+          ) : null}
         </div>
       </div>
 

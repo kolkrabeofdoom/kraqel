@@ -2,7 +2,7 @@
 
 Stand: 9. November 2026
 
-Code-Referenz: KQ-011 (`feat/kq-011-cloud-providers`, Arbeitsstand)
+Code-Referenz: KQ-012 (`feat/kq-012-continuity-review`, Arbeitsstand)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -12,15 +12,15 @@ als vollständige Fachfunktion.
 
 ## Status nach Pflichtenheft-Stufen
 
-| Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                                                                                                              |
-| ------------ | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                         |
-| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Teilweise umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, szenengebundenes Undo/Redo, Wortzählung, Fokusmodus, revisionsgeprüftes Autosave und SQLite-Backup vorhanden. Umbenennen, Umordnen, Löschen und E2E-Abnahme fehlen.         |
-| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks vorhanden. Browser-/Screenreader-Abnahme fehlt.                                           |
-| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** deterministische Projektsnapshots, lokales Git sowie Manuskriptexport als Markdown, HTML, DOCX und PDF vorhanden. Import, schreibende Snapshot-Wiederherstellung, Medien und visuelle Profile fehlen.                   |
-| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Teilweise umgesetzt:** Ollama sowie Protokolladapter für OpenAI, Claude, Gemini und Mistral mit Modellwahl, Streaming, Schlüsselspeicher und Einmalfreigabe vorhanden. Echte Cloudabnahme, Kontinuität, Prompt-Builder und Bildabläufe fehlen. |
-| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                                                                                    |
-| **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                           |
+| Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                                                                                                                                  |
+| ------------ | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                                             |
+| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Teilweise umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, szenengebundenes Undo/Redo, Wortzählung, Fokusmodus, revisionsgeprüftes Autosave und SQLite-Backup vorhanden. Umbenennen, Umordnen, Löschen und E2E-Abnahme fehlen.                             |
+| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks vorhanden. Browser-/Screenreader-Abnahme fehlt.                                                               |
+| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** deterministische Projektsnapshots, lokales Git sowie Manuskriptexport als Markdown, HTML, DOCX und PDF vorhanden. Import, schreibende Snapshot-Wiederherstellung, Medien und visuelle Profile fehlen.                                       |
+| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Teilweise umgesetzt:** Ollama und vier Cloudprotokolle sowie deterministische Offline-Kontinuitätsregeln mit Quellenankern und revisionsgebundenem Nur-Lese-Diff vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise, Prompt-Builder und Bildabläufe fehlen. |
+| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                                                                                                        |
+| **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                               |
 
 Die funktionalen Anforderungen F01 bis F09 sind damit noch nicht abgenommen. Vorhandene Verträge und
 Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
@@ -33,7 +33,7 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Tauri-2-/React-/TypeScript-Desktop-Shell mit statischer, responsiver Startoberfläche.
 - Minimale Tauri-Berechtigung `core:default`, definierte CSP und Windows-Fensterkonfiguration.
 - GitHub-Actions-CI unter `windows-latest` und `ubuntu-latest`.
-- Letzter geprüfter CI-Lauf für `main` bei `a0684fe`: erfolgreich unter Windows und Linux.
+- Letzter geprüfter CI-Lauf für `main` bei `e7bdb8c`: erfolgreich unter Windows und Linux.
 - Qualitätskette: Prettier, rustfmt, ESLint, Clippy mit `-D warnings`, TypeScript, Vitest,
   Rust-Tests sowie Frontend- und Workspace-Builds.
 - GPL-3.0-or-later, Beitrags-, Verhaltens- und Sicherheitsdokumentation vorhanden.
@@ -185,6 +185,26 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   Cloudrequests ausgeführt; Anbieterkompatibilität und Betriebssystemdialoge benötigen manuelle
   Abnahme.
 
+### Deterministische Kontinuitätsprüfung und Vorschlagsreview (KQ-012)
+
+- `kraqel-continuity` wertet eine unveränderliche Faktenprojektion aus Dokumenten, Story-Bibel,
+  Plotboard und Timelines vollständig offline und ohne Provider aus.
+- Vier konservative Regeln erkennen doppelte normalisierte Story-Bibel-Namen, ungültige POV-Arten,
+  exakte nicht verknüpfte Namensnennungen und Mehrfachzuordnungen einer Szene auf derselben
+  Timeline. Nur der strukturell ungültige POV wird als Konflikt bezeichnet; mehrdeutige, aber
+  möglicherweise legitime Modellierungen bleiben Prüfhinweise oder Informationen.
+- Jeder Befund enthält eine stabile Regelkennung, einen Schweregrad und konkrete Quellenanker.
+  Dokumentfundstellen verwenden Unicode-Zeichenpositionen; Szenenquellen lassen sich aus der
+  Reviewansicht im Manuskript öffnen.
+- Die React-Ansicht **Kontinuität** löst die lokale Prüfung ausdrücklich aus und gruppiert die
+  reproduzierbaren Befunde. Sie verändert keine Projektdaten.
+- Ein erzeugter Textentwurf kann gegen genau die zuvor freigegebene Szenenrevision als Zeilendiff
+  geprüft werden. Rust lädt den Szenenstand erneut und lehnt veraltete Revisionen ab. Der Command
+  besitzt keinen Schreibpfad, die Oberfläche keine automatische Übernahme.
+- Unit-, Repository-, IPC- und TypeScript-Vertragstests prüfen Regelklassifikation, Quellenanker,
+  Read-only-Verhalten und Revisionskonflikte. KI-basierte Kontinuitätshinweise, persistente
+  Prüfläufe und ein interaktiver Teilübernahme-Editor sind nicht implementiert.
+
 ### Begrenzte Hilfsfunktionen und Verträge
 
 - `asset-service`: relative Pfade werden akzeptiert, absolute Pfade und Elterntraversal abgelehnt.
@@ -192,7 +212,8 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - `ai-contracts`: Capability-, Provider-, Streaming- und explizite Kontextfreigabetypen; aktiv für
   den lokalen Ollama-Ablauf genutzt.
 - `visual-contracts`: Grundtypen für Medienassets und visuelle Profile.
-- `continuity`: nur ein grundlegendes Enum; keine ausführbare Fachlogik.
+- `continuity`: ausführbare Offline-Regeln und Vorschlags-Diff; keine KI-Analyse oder
+  Laufpersistenz.
 
 ### Deterministische Snapshots und lokales Git (KQ-008)
 
@@ -216,20 +237,21 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 ## Offene Aufgaben
 
-### Unmittelbar: M4 fortsetzen
+### Unmittelbar: M3-Medienfundament ergänzen
 
-1. **KQ-012 - Kontinuitätsregeln, Quellenanker und KI-Diff-Review**
-   - deterministische Regeln mit konkreten Fundstellen und Schweregraden implementieren
-   - optionale KI-Hinweise strikt von regelbasierten Befunden unterscheiden
-   - Änderungsvorschläge nur als prüfbaren Diff, niemals automatisch, anbieten
+1. **KQ-013 - Medienbibliothek, sicherer Import und Metadaten**
+   - lokale Medien nur über die Rust-Grenze importieren und Inhalts-Hashes bilden
+   - sichere relative Pfade, Größen-/Typgrenzen und Thumbnail-Vertrag definieren
+   - Assets in Backup, portablem Snapshot und UI nachvollziehbar integrieren
 
 ### Danach gemäß Pflichtenheft
 
-- KQ-012 bis KQ-016: Kontinuität, Medienbibliothek, visuelle Profile, Prompt-Builder und
-  Bild-Capability-Verträge.
+- KQ-013 bis KQ-016: Medienbibliothek, visuelle Profile, Prompt-Builder und
+  Bild-Capability-Verträge. KI-basierte Kontinuitätshinweise bleiben eine spätere Erweiterung von
+  KQ-012.
 - KQ-017 und KQ-018 gehören zu Version 0.2 und sind kein Ziel für 0.1.
 
-Für KQ-012 bis KQ-018 sind noch nicht alle GitHub-Issues angelegt; die Aufgaben stehen im
+Für KQ-013 bis KQ-018 sind noch nicht alle GitHub-Issues angelegt; die Aufgaben stehen im
 Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkretisiert werden.
 
 ## Bekannte Fehler und Lücken
@@ -260,6 +282,10 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 - **Cloudprovider nur gegen Testserver geprüft:** Die vier Protokolle und der Schlüsselspeicher sind
   implementiert, aber ohne reale Schlüssel weder gegen Anbieterendpunkte noch hinsichtlich Kosten,
   Kontodialogen und serverseitiger Aufbewahrung abgenommen.
+- **Kontinuitätsregeln bewusst konservativ:** Namensnennungen werden nur exakt erkannt; Aliasse,
+  Pronomen und semantische Widersprüche bleiben unerkannt. Mehrfachpositionen auf einer Timeline
+  sind Prüfhinweise, keine behaupteten Fehler. Befunde werden bei jedem Lauf neu berechnet und noch
+  nicht als Prüfhistorie gespeichert.
 - **Entitätssuche nicht indexiert:** Die Unicode-korrekte Suche filtert derzeit alle Einträge eines
   Projekts in Rust. Vor sehr großen Story-Bibeln sind Messung und gegebenenfalls eine echte
   FTS-Migration nötig.
@@ -298,6 +324,9 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 - **Cloudprovider mit fester Ziel- und Einmalfreigabe:** Schlüssel liegen im nativen
   Betriebssystemspeicher; feste HTTPS-Ziele und ein kurzlebiger, verbrauchbarer Freigabebeleg binden
   Provider, Modell, Arbeitsauftrag und Dokumentrevision (ADR 0010).
+- **Deterministische Kontinuität und Nur-Lese-Review:** Regeln arbeiten auf einer lokalen
+  Faktenprojektion und formulieren Mehrdeutigkeiten nicht als Gewissheiten. Vorschlags-Diffs sind an
+  die Szenenrevision gebunden und besitzen keinen Schreibpfad (ADR 0011).
 - **Privilegierte Operationen in Rust:** React kommuniziert ausschließlich über versionierte,
   typisierte Tauri-Commands mit Dateisystem, Storage, Git und späteren Providern.
 - **Verträge sind explizit versioniert:** Inkompatible Änderungen erfordern eine neue
@@ -315,33 +344,34 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 
 ## Abhängigkeiten und technische Risiken
 
-| Thema                        | Zustand / Risiko                                                                                            | Nächste Kontrolle                                          |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert | Vor großen Projekten messen; Migration nur mit Evidenz     |
-| Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                       | Gemeinsame Fixtures oder spätere Codegenerierung bewerten  |
-| Datenformat                  | Snapshot v1 und vier Textexporte vorhanden; Import, Roundtrip und Assetreferenzen fehlen                    | Import/Roundtrip vor vollständiger F07/F08-Abnahme testen  |
-| Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                             | Freie eingebettete Schrift und Medienkonzept prüfen        |
-| Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                   | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen   |
-| Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                    | Bei jeder Erweiterung Fixtures und Migration prüfen        |
-| Desktoptests                 | Unit-/IPC-Tests vorhanden, aber keine Browser-/Tauri-E2E-Abdeckung                                          | Playwright für Projekt- und Schreibablauf einführen        |
-| CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                               | Caching prüfen, ohne Reproduzierbarkeit zu schwächen       |
-| Abhängigkeitssicherheit      | GitHub Dependency Review privat nicht verfügbar                                                             | Alternative Audits oder Advanced Security später bewerten  |
-| Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                    | Plattformmatrix je Release definieren                      |
-| Lokale Text-KI               | Protokoll gegen kontrollierten Loopback-Testserver geprüft; echter Ollama-/Modelllauf fehlt                 | Mit freiem Testmodell manuell prüfen und Abbruch entwerfen |
-| Cloudprovider                | Vier Protokolle lokal getestet; echte API-, Kosten-, Aufbewahrungs- und Kontodialog-Abnahme fehlt           | Mit separaten Testkonten und Minimalbudget manuell prüfen  |
-| Schlüsselspeicher            | Native Backends eingebunden; reale Windows-/Linux-Dialoge nicht automatisiert getestet                      | Manuelle Plattformabnahme ohne produktive Schlüssel        |
+| Thema                        | Zustand / Risiko                                                                                            | Nächste Kontrolle                                                     |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert | Vor großen Projekten messen; Migration nur mit Evidenz                |
+| Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                       | Gemeinsame Fixtures oder spätere Codegenerierung bewerten             |
+| Datenformat                  | Snapshot v1 und vier Textexporte vorhanden; Import, Roundtrip und Assetreferenzen fehlen                    | Import/Roundtrip vor vollständiger F07/F08-Abnahme testen             |
+| Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                             | Freie eingebettete Schrift und Medienkonzept prüfen                   |
+| Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                   | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen              |
+| Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                    | Bei jeder Erweiterung Fixtures und Migration prüfen                   |
+| Desktoptests                 | Unit-/IPC-Tests vorhanden, aber keine Browser-/Tauri-E2E-Abdeckung                                          | Playwright für Projekt- und Schreibablauf einführen                   |
+| CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                               | Caching prüfen, ohne Reproduzierbarkeit zu schwächen                  |
+| Abhängigkeitssicherheit      | GitHub Dependency Review privat nicht verfügbar                                                             | Alternative Audits oder Advanced Security später bewerten             |
+| Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                    | Plattformmatrix je Release definieren                                 |
+| Lokale Text-KI               | Protokoll gegen kontrollierten Loopback-Testserver geprüft; echter Ollama-/Modelllauf fehlt                 | Mit freiem Testmodell manuell prüfen und Abbruch entwerfen            |
+| Cloudprovider                | Vier Protokolle lokal getestet; echte API-, Kosten-, Aufbewahrungs- und Kontodialog-Abnahme fehlt           | Mit separaten Testkonten und Minimalbudget manuell prüfen             |
+| Schlüsselspeicher            | Native Backends eingebunden; reale Windows-/Linux-Dialoge nicht automatisiert getestet                      | Manuelle Plattformabnahme ohne produktive Schlüssel                   |
+| Kontinuitätsprüfung          | Vier Offline-Regeln getestet; exakte Nennungen und grober Zeilendiff begrenzen die Abdeckung                | Mit größeren künstlichen Projekten messen; KI-Kanal separat entwerfen |
 
 ## Nächste geplante Entwicklungsstufe
 
-**KQ-012: Kontinuitätsregeln, Quellenanker und KI-Diff-Review.**
+**KQ-013: Medienbibliothek, sicherer Import und Metadaten.**
 
 Empfohlener, überprüfbarer Scope:
 
-1. F06 und KQ-012 gegen vorhandene Story-Bibel-, Dokument- und Timeline-Verträge abgleichen.
-2. Ein kleines, deterministisches Regelset mit stabilen Quellenankern und Schweregraden definieren.
-3. Befunde in Rust erzeugen, persistieren und in einer zugänglichen Reviewansicht darstellen.
-4. KI-Hinweise als optionalen, gekennzeichneten zweiten Kanal entwerfen; vorgeschlagene Änderungen
-   ausschließlich als explizit prüfbaren Diff behandeln.
+1. F04, F07 und KQ-013 gegen `asset-service`, Backup- und Snapshot-Verträge abgleichen.
+2. Zulässige Dateitypen, Größenlimits, Hashverfahren und Thumbnail-Grenzen festlegen.
+3. Einen atomaren, pfadsicheren Import in Rust mit künstlichen Testassets implementieren.
+4. Medienmetadaten in SQLite, Backup und portablem Snapshot konsistent integrieren, bevor eine
+   Galerie als abgeschlossen gilt.
 
 ## Einstieg für die nächste Codex-Session
 
@@ -350,9 +380,10 @@ cd D:\kraqel
 git status
 git branch --show-current
 git log -5 --oneline
-rg "KQ-012" docs ROADMAP.md
+rg "KQ-013" docs ROADMAP.md
 ```
 
-Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0010, `docs/architecture/threat-model.md`,
-`crates/continuity/`, die Dokument-/Story-Bibel-Verträge und die Zugänglichkeitstestpläne. Vor
-KQ-012 zuerst ein eigenes Issue anlegen und den Scope gegen F06 und M4 prüfen.
+Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0011, `docs/architecture/threat-model.md`,
+`crates/asset-service/`, Backup-/Snapshot-Verträge und die Pflichtenheft-Abschnitte zu F04, F07 und
+KQ-013. Vor KQ-013 zuerst ein eigenes Issue anlegen und den Asset-Scope gegen Datenschutz,
+Portabilität und Größenlimits prüfen.
