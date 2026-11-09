@@ -16,6 +16,12 @@ protokollierte E2E-Abnahme.
 4. Fett, Kursiv, Rückgängig, Wiederholen und Fokusmodus über die Werkzeugleiste bedienen. Aktive
    Umschalter müssen ihren Zustand mit `aria-pressed` ausweisen.
 5. Zwischen zwei Szenen wechseln und prüfen, dass deren Undo-Verläufe getrennt bleiben.
+6. Über die Bereichsnavigation die Story-Bibel öffnen. Suche, Artfilter, Eintragsliste, Anlegen,
+   Bearbeiten sowie Löschen müssen vollständig über Tastatur erreichbar sein.
+7. Eine gerichtete Beziehung anlegen und entfernen; Quelle, Richtung und Ziel müssen im Text
+   verständlich bleiben und dürfen nicht nur durch Pfeilposition oder Farbe vermittelt werden.
+8. Den gewählten Story-Eintrag mit der aktiven Szene verknüpfen und den Rückverweis aktivieren. Der
+   Fokus muss in den Manuskriptbereich zurückkehren können.
 
 ## Wahrnehmbarkeit und Status
 
@@ -28,6 +34,9 @@ protokollierte E2E-Abnahme.
    verdecken.
 5. Betriebssystemoption „Bewegung reduzieren“ aktivieren; die Anwendung darf keine notwendige
    Information durch Animation allein vermitteln.
+6. Mit Screenreader die Beschriftungen freier Eigenschaften, der Beziehungsfelder, Ergebnisanzahl
+   und Rückverweise prüfen. Eingehende und ausgehende Beziehungen müssen unterscheidbar vorgelesen
+   werden.
 
 ## Noch zu automatisieren
 
@@ -35,3 +44,4 @@ protokollierte E2E-Abnahme.
 - zugängliche Namen und Zustände mit einer Accessibility-Prüfung
 - Szenenwechsel während eines laufenden Autosaves
 - Wiederherstellung eines gespeicherten Szenenstands bis in die sichtbare Oberfläche
+- Story-Bibel-CRUD, Relation und Rückverweis als browsergestützter E2E-Ablauf

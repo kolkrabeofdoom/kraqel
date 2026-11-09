@@ -1,14 +1,16 @@
 use kraqel_domain::{
     CURRENT_SCHEMA_VERSION, CommandError, CommandRequest, CommandResponse, DocumentKind,
-    DocumentNode, EDITOR_DOCUMENT_VERSION, EditorDocument, EntityId, Project, ProjectId,
-    is_valid_project_name, require_current_contract,
+    DocumentNode, EDITOR_DOCUMENT_VERSION, EditorDocument, EntityId, EntityKind, Project,
+    ProjectId, StoryEntity, StoryEntityDetails, StoryRelation, is_valid_project_name,
+    require_current_contract,
 };
 use kraqel_storage::{
     document_repository::{DocumentError, DocumentRepository},
     project_manager::{ProjectError, ProjectManager},
+    story_bible_repository::{StoryBibleError, StoryBibleRepository},
 };
 use serde::{Deserialize, Serialize};
-use std::{fs, path::PathBuf};
+use std::{collections::BTreeMap, fs, path::PathBuf};
 use tauri::{Manager as _, State};
 
 struct AppState {
@@ -99,6 +101,60 @@ struct StoredDocumentResponse {
 #[serde(rename_all = "camelCase")]
 struct SaveDocumentResponse {
     revision: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ListStoryEntitiesRequest {
+    project_id: String,
+    query: Option<String>,
+    kind: Option<EntityKind>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct StoryEntityRequest {
+    project_id: String,
+    entity_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WriteStoryEntityRequest {
+    project_id: String,
+    entity_id: Option<String>,
+    kind: EntityKind,
+    name: String,
+    properties: BTreeMap<String, String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CreateStoryRelationRequest {
+    project_id: String,
+    source_entity_id: String,
+    target_entity_id: String,
+    kind: String,
+    properties: BTreeMap<String, String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DeleteStoryRelationRequest {
+    project_id: String,
+    relation_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(
+    clippy::struct_field_names,
+    reason = "Feldnamen spiegeln den öffentlichen IPC-Vertrag"
+)]
+struct LinkStoryEntityRequest {
+    project_id: String,
+    document_id: String,
+    entity_id: String,
 }
 
 #[tauri::command]
@@ -218,6 +274,118 @@ fn save_document(
 ) -> Result<CommandResponse<SaveDocumentResponse>, CommandError> {
     require_current_contract(&request)?;
     let data = save_document_impl(&state, request.request_id, request.payload)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn list_story_entities(
+    state: State<'_, AppState>,
+    request: CommandRequest<ListStoryEntitiesRequest>,
+) -> Result<CommandResponse<Vec<StoryEntity>>, CommandError> {
+    require_current_contract(&request)?;
+    let data = list_story_entities_impl(&state, request.request_id, &request.payload)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn create_story_entity(
+    state: State<'_, AppState>,
+    request: CommandRequest<WriteStoryEntityRequest>,
+) -> Result<CommandResponse<StoryEntity>, CommandError> {
+    require_current_contract(&request)?;
+    let data = write_story_entity_impl(&state, request.request_id, &request.payload, false)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn update_story_entity(
+    state: State<'_, AppState>,
+    request: CommandRequest<WriteStoryEntityRequest>,
+) -> Result<CommandResponse<StoryEntity>, CommandError> {
+    require_current_contract(&request)?;
+    let data = write_story_entity_impl(&state, request.request_id, &request.payload, true)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn load_story_entity(
+    state: State<'_, AppState>,
+    request: CommandRequest<StoryEntityRequest>,
+) -> Result<CommandResponse<StoryEntityDetails>, CommandError> {
+    require_current_contract(&request)?;
+    let data = load_story_entity_impl(&state, request.request_id, &request.payload)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn delete_story_entity(
+    state: State<'_, AppState>,
+    request: CommandRequest<StoryEntityRequest>,
+) -> Result<CommandResponse<()>, CommandError> {
+    require_current_contract(&request)?;
+    delete_story_entity_impl(&state, request.request_id, &request.payload)?;
+    Ok(CommandResponse::current(request.request_id, ()))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn create_story_relation(
+    state: State<'_, AppState>,
+    request: CommandRequest<CreateStoryRelationRequest>,
+) -> Result<CommandResponse<StoryRelation>, CommandError> {
+    require_current_contract(&request)?;
+    let data = create_story_relation_impl(&state, request.request_id, &request.payload)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn delete_story_relation(
+    state: State<'_, AppState>,
+    request: CommandRequest<DeleteStoryRelationRequest>,
+) -> Result<CommandResponse<()>, CommandError> {
+    require_current_contract(&request)?;
+    delete_story_relation_impl(&state, request.request_id, &request.payload)?;
+    Ok(CommandResponse::current(request.request_id, ()))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn link_story_entity(
+    state: State<'_, AppState>,
+    request: CommandRequest<LinkStoryEntityRequest>,
+) -> Result<CommandResponse<StoryEntityDetails>, CommandError> {
+    require_current_contract(&request)?;
+    let data = link_story_entity_impl(&state, request.request_id, &request.payload)?;
     Ok(CommandResponse::current(request.request_id, data))
 }
 
@@ -390,6 +558,148 @@ fn save_document_impl(
     Ok(SaveDocumentResponse { revision })
 }
 
+fn list_story_entities_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &ListStoryEntitiesRequest,
+) -> Result<Vec<StoryEntity>, CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    StoryBibleRepository::new(opened.database_mut())
+        .list(project_id, request.query.as_deref(), request.kind)
+        .map_err(|error| map_story_bible_error(request_id, &error))
+}
+
+fn write_story_entity_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &WriteStoryEntityRequest,
+    updating: bool,
+) -> Result<StoryEntity, CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    let mut repository = StoryBibleRepository::new(opened.database_mut());
+    let result = if updating {
+        let entity_id = request.entity_id.as_deref().ok_or_else(|| {
+            CommandError::invalid_request(request_id, "Die Entitätskennung fehlt.")
+        })?;
+        repository.update_entity(
+            project_id,
+            parse_entity_id(request_id, entity_id)?,
+            request.kind,
+            &request.name,
+            &request.properties,
+        )
+    } else {
+        if request.entity_id.is_some() {
+            return Err(CommandError::invalid_request(
+                request_id,
+                "Neue Einträge dürfen keine Entitätskennung vorgeben.",
+            ));
+        }
+        repository.create_entity(project_id, request.kind, &request.name, &request.properties)
+    };
+    result.map_err(|error| map_story_bible_error(request_id, &error))
+}
+
+fn load_story_entity_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &StoryEntityRequest,
+) -> Result<StoryEntityDetails, CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let entity_id = parse_entity_id(request_id, &request.entity_id)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    StoryBibleRepository::new(opened.database_mut())
+        .load(project_id, entity_id)
+        .map_err(|error| map_story_bible_error(request_id, &error))
+}
+
+fn delete_story_entity_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &StoryEntityRequest,
+) -> Result<(), CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let entity_id = parse_entity_id(request_id, &request.entity_id)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    StoryBibleRepository::new(opened.database_mut())
+        .delete_entity(project_id, entity_id)
+        .map_err(|error| map_story_bible_error(request_id, &error))
+}
+
+fn create_story_relation_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &CreateStoryRelationRequest,
+) -> Result<StoryRelation, CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let source_entity_id = parse_entity_id(request_id, &request.source_entity_id)?;
+    let target_entity_id = parse_entity_id(request_id, &request.target_entity_id)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    StoryBibleRepository::new(opened.database_mut())
+        .create_relation(
+            project_id,
+            source_entity_id,
+            target_entity_id,
+            &request.kind,
+            &request.properties,
+        )
+        .map_err(|error| map_story_bible_error(request_id, &error))
+}
+
+fn delete_story_relation_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &DeleteStoryRelationRequest,
+) -> Result<(), CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let relation_id = parse_entity_id(request_id, &request.relation_id)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    StoryBibleRepository::new(opened.database_mut())
+        .delete_relation(project_id, relation_id)
+        .map_err(|error| map_story_bible_error(request_id, &error))
+}
+
+fn link_story_entity_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &LinkStoryEntityRequest,
+) -> Result<StoryEntityDetails, CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let document_id = parse_entity_id(request_id, &request.document_id)?;
+    let entity_id = parse_entity_id(request_id, &request.entity_id)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    let mut repository = StoryBibleRepository::new(opened.database_mut());
+    repository
+        .link_document(project_id, document_id, entity_id)
+        .map_err(|error| map_story_bible_error(request_id, &error))?;
+    repository
+        .load(project_id, entity_id)
+        .map_err(|error| map_story_bible_error(request_id, &error))
+}
+
 fn manager(state: &AppState, request_id: uuid::Uuid) -> Result<ProjectManager, CommandError> {
     ProjectManager::new(&state.project_root).map_err(|_| CommandError::internal(request_id))
 }
@@ -430,6 +740,17 @@ fn map_document_error(request_id: uuid::Uuid, error: &DocumentError) -> CommandE
     }
 }
 
+fn map_story_bible_error(request_id: uuid::Uuid, error: &StoryBibleError) -> CommandError {
+    match error {
+        StoryBibleError::InvalidInput | StoryBibleError::NotFound => {
+            CommandError::invalid_request(request_id, "Die Story-Bibel-Anfrage ist ungültig.")
+        }
+        StoryBibleError::InvalidStoredData
+        | StoryBibleError::Storage(_)
+        | StoryBibleError::InvalidSystemTime => CommandError::internal(request_id),
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 /// Startet die Desktop-Anwendung.
 ///
@@ -452,7 +773,15 @@ pub fn run() {
             open_workspace,
             create_document,
             load_document,
-            save_document
+            save_document,
+            list_story_entities,
+            create_story_entity,
+            update_story_entity,
+            load_story_entity,
+            delete_story_entity,
+            create_story_relation,
+            delete_story_relation,
+            link_story_entity
         ])
         .run(tauri::generate_context!())
         .expect("KRAQEL konnte nicht gestartet werden");
@@ -460,9 +789,11 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
     use kraqel_domain::{
         COMMAND_CONTRACT_VERSION, CommandErrorCode, CommandRequest, EDITOR_DOCUMENT_VERSION,
-        EditorDocument,
+        EditorDocument, EntityKind,
     };
     use serde_json::json;
     use tempfile::tempdir;
@@ -470,8 +801,11 @@ mod tests {
 
     use super::{
         AppState, ApplicationStatusRequest, CreateProjectRequest, DocumentRequest,
-        SaveDocumentRequest, ValidateProjectNameRequest, application_status, create_project_impl,
-        list_projects_impl, load_document_impl, save_document_impl, validate_project_name,
+        LinkStoryEntityRequest, ListStoryEntitiesRequest, SaveDocumentRequest, StoryEntityRequest,
+        ValidateProjectNameRequest, WriteStoryEntityRequest, application_status,
+        create_project_impl, link_story_entity_impl, list_projects_impl, list_story_entities_impl,
+        load_document_impl, load_story_entity_impl, save_document_impl, validate_project_name,
+        write_story_entity_impl,
     };
 
     const REQUEST_ID: Uuid = Uuid::from_u128(0x018f_47ea_9b2d_7cc1_98e8_b5f4_f6b7_41a2);
@@ -589,5 +923,75 @@ mod tests {
         )
         .expect_err("stale revision should conflict");
         assert_eq!(conflict.code, CommandErrorCode::Conflict);
+    }
+
+    #[test]
+    fn story_bible_commands_roundtrip_entity_search_and_backlink() {
+        let root = tempdir().expect("temporary root should exist");
+        let state = AppState {
+            project_root: root.path().to_path_buf(),
+        };
+        let workspace = create_project_impl(
+            &state,
+            REQUEST_ID,
+            CreateProjectRequest {
+                name: "Morgenrot".to_owned(),
+            },
+        )
+        .expect("project should be created");
+        let scene = workspace
+            .documents
+            .iter()
+            .find(|document| document.kind == kraqel_domain::DocumentKind::Scene)
+            .expect("scene should exist");
+        let entity = write_story_entity_impl(
+            &state,
+            REQUEST_ID,
+            &WriteStoryEntityRequest {
+                project_id: workspace.project.id.to_string(),
+                entity_id: None,
+                kind: EntityKind::Character,
+                name: "Rhea".to_owned(),
+                properties: BTreeMap::from([("Rolle".to_owned(), "Pilotin".to_owned())]),
+            },
+            false,
+        )
+        .expect("entity should be created");
+
+        let matches = list_story_entities_impl(
+            &state,
+            REQUEST_ID,
+            &ListStoryEntitiesRequest {
+                project_id: workspace.project.id.to_string(),
+                query: Some("pilotin".to_owned()),
+                kind: Some(EntityKind::Character),
+            },
+        )
+        .expect("entity should be found");
+        assert_eq!(matches, vec![entity.clone()]);
+
+        let linked = link_story_entity_impl(
+            &state,
+            REQUEST_ID,
+            &LinkStoryEntityRequest {
+                project_id: workspace.project.id.to_string(),
+                document_id: scene.id.to_string(),
+                entity_id: entity.id.to_string(),
+            },
+        )
+        .expect("scene should link");
+        assert_eq!(linked.backlinks.len(), 1);
+        assert_eq!(linked.backlinks[0].document_title, "Szene 1");
+
+        let loaded = load_story_entity_impl(
+            &state,
+            REQUEST_ID,
+            &StoryEntityRequest {
+                project_id: workspace.project.id.to_string(),
+                entity_id: entity.id.to_string(),
+            },
+        )
+        .expect("entity should load");
+        assert_eq!(loaded.entity, entity);
     }
 }

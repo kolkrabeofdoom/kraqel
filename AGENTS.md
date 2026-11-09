@@ -7,10 +7,10 @@ ihrem Unterbaum ergänzen. Vor jeder Änderung sind mindestens diese Datei und
 ## Projekt und aktueller Scope
 
 KRAQEL ist als quelloffenes, offlinefähiges Autorenstudio für Romane, Drehbücher und
-Rollenspielmodule geplant. Primärplattform ist Windows. Das Repository enthält das M0-Fundament und
-einen ersten M1-Schreibablauf, aber keine produktionsreife Anwendung. Verifizierte Implementierungen
-und geplante Funktionen sind strikt zu unterscheiden; der verbindliche Stand steht in
-`docs/DEVELOPMENT_STATUS.md`.
+Rollenspielmodule geplant. Primärplattform ist Windows. Das Repository enthält das M0-Fundament,
+einen ersten M1-Schreibablauf und die Story-Bibel aus M2, aber keine produktionsreife Anwendung.
+Verifizierte Implementierungen und geplante Funktionen sind strikt zu unterscheiden; der
+verbindliche Stand steht in `docs/DEVELOPMENT_STATUS.md`.
 
 Leitplanken:
 
@@ -40,6 +40,8 @@ Aktuell im Repository und verifiziert:
   und TypeScript.
 - **Persistenz:** SQLite mit atomarer Initialmigration, Fremdschlüsseln und FTS5 im
   `kraqel-storage`-Crate; sicherer lokaler Projektlebenszyklus mit Datenbankbackup und Recovery.
+- **Story-Bibel:** typisierte Figuren, Orte, Fraktionen und Gegenstände, freie Eigenschaften,
+  gerichtete Relationen, Unicode-Suche und Szenen-Rückverweise über das bestehende SQLite-Schema.
 - **Qualität:** Prettier, ESLint, TypeScript-Checks, Vitest, Rust-Tests, rustfmt und Clippy mit
   Warnungen als Fehler; GitHub Actions unter Windows und Linux.
 
@@ -51,15 +53,15 @@ ein leeres Crate ist keine fertige Funktion - auch wenn es sehr selbstbewusst ko
 
 | Pfad                         | Verantwortung                                                | Aktueller Reifegrad             |
 | ---------------------------- | ------------------------------------------------------------ | ------------------------------- |
-| `apps/desktop/`              | React-Oberfläche, Editor und typisierte IPC-Clientfunktionen | Projekt- und Schreiboberfläche  |
-| `apps/desktop/src-tauri/`    | Command-Handler, Tauri-Konfiguration und Berechtigungen      | Projekt-/Dokument-Commands      |
-| `packages/domain/`           | TypeScript-Domänentypen, UUID-/Schema-Validierung            | Grundmodell implementiert       |
+| `apps/desktop/`              | React-Oberfläche, Editor und typisierte IPC-Clientfunktionen | Schreiben und Story-Bibel       |
+| `apps/desktop/src-tauri/`    | Command-Handler, Tauri-Konfiguration und Berechtigungen      | Projekt-, Dokument-, Lore-IPC   |
+| `packages/domain/`           | TypeScript-Domänentypen, UUID-/Schema-Validierung            | Dokument- und Story-Modell      |
 | `packages/editor/`           | Editorvertrag, Baum, Autosave und Tiptap-Hilfsfunktionen     | M1-Grundfunktionen getestet     |
 | `packages/ui/`               | Geteilte zugängliche UI-Komponenten                          | Nur Platzhalterkonstante        |
 | `packages/ai-contracts/`     | Provider-, Capability- und Freigabeverträge                  | Grundtypen, keine Provider      |
 | `packages/visual-contracts/` | Medien- und visuelle Profilverträge                          | Grundtypen, keine Persistenz    |
-| `crates/domain/`             | Rust-Domäne und versionierte Command-Verträge                | Grundmodell implementiert       |
-| `crates/storage/`            | SQLite, Projektlebenszyklus und fachliche Repositories       | Dokument-CRUD und Autosave      |
+| `crates/domain/`             | Rust-Domäne und versionierte Command-Verträge                | Dokument- und Story-Modell      |
+| `crates/storage/`            | SQLite, Projektlebenszyklus und fachliche Repositories       | Dokumente und Story-Bibel       |
 | `crates/git-service/`        | Deterministische Snapshots und Git-Operationen               | Nur Status-Enum                 |
 | `crates/export/`             | Markdown-, HTML-, DOCX- und PDF-Export                       | Nur Format-Enum                 |
 | `crates/continuity/`         | Regelbasierte Kontinuitätsprüfung                            | Nur Schweregrad-Enum            |

@@ -30,6 +30,38 @@ export function parseSchemaVersion(value: number): SchemaVersion | null {
 }
 
 export type DocumentKind = "chapter" | "scene";
+export type EntityKind = "character" | "location" | "faction" | "item";
+
+export interface StoryEntity {
+  readonly id: EntityId;
+  readonly projectId: ProjectId;
+  readonly kind: EntityKind;
+  readonly name: string;
+  readonly properties: Readonly<Record<string, string>>;
+}
+
+export interface StoryRelation {
+  readonly id: EntityId;
+  readonly projectId: ProjectId;
+  readonly sourceEntityId: EntityId;
+  readonly targetEntityId: EntityId;
+  readonly kind: string;
+  readonly properties: Readonly<Record<string, string>>;
+}
+
+export interface StoryBacklink {
+  readonly documentId: EntityId;
+  readonly documentTitle: string;
+  readonly documentKind: DocumentKind;
+  readonly role: string;
+}
+
+export interface StoryEntityDetails {
+  readonly entity: StoryEntity;
+  readonly outgoingRelations: readonly StoryRelation[];
+  readonly incomingRelations: readonly StoryRelation[];
+  readonly backlinks: readonly StoryBacklink[];
+}
 
 export interface Project {
   readonly id: ProjectId;

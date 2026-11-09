@@ -52,6 +52,26 @@ Szeneninhalte stehen in `document.content_json` als versionierte Hülle:
 Klartext rekursiv ab und aktualisiert Inhalt, `plain_text`, Revision und FTS-Index transaktional.
 Autosave sendet die erwartete Revision; ein Konflikt überschreibt keinen neueren Stand.
 
+## Story-Bibel-Vertrag v1
+
+Einträge verwenden stabile UUIDs und genau eine Art: `character`, `location`, `faction` oder `item`.
+`properties_json` ist ein Objekt aus höchstens 50 frei benannten Zeichenkettenpaaren;
+Eigenschaftsnamen sind eindeutig und werden in den öffentlichen Verträgen deterministisch sortiert.
+Namen, Schlüssel, Werte und die serialisierte Gesamtgröße sind begrenzt.
+
+`relation` modelliert eine gerichtete Kante mit `source_entity_id`, `target_entity_id`, frei
+benannter Art und optionalen Eigenschaften. Selbstbeziehungen sind im ersten Vertrag unzulässig.
+Beim Löschen eines Eintrags entfernt SQLite seine ein- und ausgehenden Beziehungen sowie Links per
+Fremdschlüsselregel.
+
+`link` verbindet Dokumente und Einträge innerhalb desselben Projekts. Die aktuelle Rolle lautet
+`reference`; die Kombination aus Projekt, Dokument, Eintrag und Rolle ist eindeutig. Die Story-Bibel
+liefert diese Links als Rückverweise mit Dokumenttitel und -art aus. Links werden idempotent
+angelegt.
+
+Die aktuelle Entitätssuche prüft Namen, Eigenschaftsnamen und -werte Unicode-bewusst in Rust. Sie
+ist kein FTS-Index und deshalb für sehr große Story-Bibeln noch auf Skalierbarkeit zu prüfen.
+
 ## Lokaler Command-Vertrag v1
 
 Tauri-Commands verwenden eine einheitliche JSON-Hülle:

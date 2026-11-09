@@ -7,6 +7,7 @@ use rusqlite::{Connection, Transaction, TransactionBehavior};
 
 pub mod document_repository;
 pub mod project_manager;
+pub mod story_bible_repository;
 
 const INITIAL_SCHEMA: &str = include_str!("../migrations/0001_initial.sql");
 const BUSY_TIMEOUT: Duration = Duration::from_secs(5);
