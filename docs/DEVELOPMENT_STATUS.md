@@ -2,7 +2,7 @@
 
 Stand: 9. November 2026
 
-Code-Referenz: KQ-013 (`feat/kq-013-media-library`, Arbeitsstand)
+Code-Referenz: KQ-013 (PR #26)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -33,7 +33,7 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Tauri-2-/React-/TypeScript-Desktop-Shell mit statischer, responsiver Startoberfläche.
 - Minimale Tauri-Berechtigung `core:default`, definierte CSP und Windows-Fensterkonfiguration.
 - GitHub-Actions-CI unter `windows-latest` und `ubuntu-latest`.
-- Letzter geprüfter CI-Lauf für `main` bei `e7bdb8c`: erfolgreich unter Windows und Linux.
+- Letzter geprüfter CI-Lauf für `main` bei `2108e25`: erfolgreich unter Windows und Linux.
 - Qualitätskette: Prettier, rustfmt, ESLint, Clippy mit `-D warnings`, TypeScript, Vitest,
   Rust-Tests sowie Frontend- und Workspace-Builds.
 - GPL-3.0-or-later, Beitrags-, Verhaltens- und Sicherheitsdokumentation vorhanden.
