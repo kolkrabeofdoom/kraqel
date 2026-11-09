@@ -19,10 +19,15 @@
 ## Grundkontrollen
 
 - minimale Tauri-Capabilities und sämtliche Dateizugriffe in Rust
-- kanonische Pfadprüfung, Größenlimits, Typprüfung und atomare Schreibvorgänge
+- kanonische, komponentenweise Pfadprüfung ohne Symlinks; Größenlimits und Typprüfung bei Importen
+- atomare Projekt-, Backup- und Recovery-Veröffentlichung innerhalb desselben Dateisystems
 - explizite Kontextvorschau und Freigabe vor jedem Cloudlauf
 - Betriebssystem-Schlüsselspeicher statt Konfigurationsdateien
 - deterministische Snapshots, Prüfsummen und getestete Wiederherstellung
 - Abhängigkeitsprüfung und reproduzierbare CI
 
 Dieses Dokument wird mit jeder neuen Vertrauensgrenze aktualisiert.
+
+Verbleibendes Risiko: Die kanonische Vorabprüfung ist nicht vollständig gegen ein gleichzeitiges
+böswilliges Austauschen bereits geprüfter Verzeichnisse abgesichert. Vor der Unterstützung
+unvertrauenswürdiger Projektwurzeln sind handle-relative Betriebssystemzugriffe zu bewerten.

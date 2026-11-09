@@ -24,6 +24,16 @@ vorwärtsgerichtet und atomar; Datenbanken aus unbekannten neueren Versionen wer
 Die SQLite-Datei selbst ist kein Austauschformat und bleibt ebenso wie WAL-Nebenfiles aus Git
 ausgeschlossen.
 
+## Lokales Projektverzeichnis und Sicherungen
+
+Ein verwaltetes Projekt enthält derzeit die autoritative Datei `kraqel.sqlite3` und das Verzeichnis
+`backups/`. Sicherungen heißen `<name>.sqlite3`, werden mit der SQLite-Online-Backup-API erzeugt und
+erst nach Integritätsprüfung atomar veröffentlicht. Sie sind lokale Recovery-Artefakte, kein
+portables Austauschformat und kein Git-Snapshot.
+
+Recovery schreibt eine geprüfte Sicherung ausschließlich in ein neues Projektverzeichnis. Weder die
+Sicherungsdatei noch das ursprüngliche Projekt werden dabei verändert oder überschrieben.
+
 ## Lokaler Command-Vertrag v1
 
 Tauri-Commands verwenden eine einheitliche JSON-Hülle:

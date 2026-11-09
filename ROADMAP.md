@@ -6,7 +6,7 @@
 - [x] Grundlegende CI, Sicherheits- und Beitragsdokumentation
 - [x] Domänenmodell und typisierte Tauri-Commands
 - [x] SQLite-Schema, Migrationen und FTS5-Migrationstests
-- [ ] Lokaler Projektmanager, Backup, Path-Safety und Recovery
+- [x] Lokaler Projektmanager, Backup, Path-Safety und Recovery
 
 ## M1 bis M5 - Version 0.1
 

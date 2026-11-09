@@ -1,0 +1,888 @@
+//! Sicherer Lebenszyklus lokaler Projektverzeichnisse.
+
+use std::{
+    error::Error,
+    ffi::OsString,
+    fmt, fs, io,
+    path::{Component, Path, PathBuf},
+    sync::atomic::{AtomicU64, Ordering},
+    time::{SystemTime, UNIX_EPOCH},
+};
+
+use kraqel_domain::{CURRENT_SCHEMA_VERSION, Project, is_valid_project_name};
+use rusqlite::{Connection, MAIN_DB, OpenFlags, params};
+
+use crate::{Database, StorageError};
+
+/// Name der autoritativen Datenbank innerhalb eines Projektverzeichnisses.
+pub const DATABASE_FILE_NAME: &str = "kraqel.sqlite3";
+/// Verzeichnis für konsistente lokale Datenbanksicherungen.
+pub const BACKUP_DIRECTORY_NAME: &str = "backups";
+
+static TEMPORARY_NAME_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+/// Fehler des lokalen Projektlebenszyklus.
+#[derive(Debug)]
+pub enum ProjectError {
+    /// Ein Pfad ist nicht relativ, leer oder enthält unsichere Komponenten.
+    InvalidRelativePath,
+    /// Eine Pfadkomponente ist ein symbolischer Link.
+    SymlinkNotAllowed,
+    /// Ein kanonischer Pfad liegt außerhalb der erlaubten Projektwurzel.
+    OutsideProjectRoot,
+    /// Das angeforderte Projekt existiert bereits.
+    ProjectAlreadyExists,
+    /// Das angeforderte Projektverzeichnis fehlt.
+    ProjectMissing,
+    /// Die erwartete Projektdatenbank fehlt.
+    DatabaseMissing,
+    /// Die angeforderte Sicherung existiert bereits.
+    BackupAlreadyExists,
+    /// Die angeforderte Sicherung fehlt.
+    BackupMissing,
+    /// Projektkennung, Name oder Schema-Version sind ungültig.
+    InvalidProjectMetadata,
+    /// Die Datenbank oder Sicherung ist beschädigt beziehungsweise nicht lesbar.
+    InvalidDatabase,
+    /// Die Systemzeit liegt vor der Unix-Epoche.
+    InvalidSystemTime,
+    /// Eine Dateisystemoperation ist fehlgeschlagen.
+    Io {
+        /// Datenarme Beschreibung der fehlgeschlagenen Operation.
+        operation: &'static str,
+        /// Technische Ursache ohne zusätzlich gespeicherten Projektpfad.
+        source: io::Error,
+    },
+    /// Die SQLite-Speicherschicht hat die Operation abgelehnt.
+    Storage(StorageError),
+}
+
+impl fmt::Display for ProjectError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidRelativePath => formatter.write_str("Der Projektpfad ist ungültig."),
+            Self::SymlinkNotAllowed => {
+                formatter.write_str("Symbolische Links sind in Projektpfaden nicht erlaubt.")
+            }
+            Self::OutsideProjectRoot => {
+                formatter.write_str("Der Pfad liegt außerhalb der erlaubten Projektwurzel.")
+            }
+            Self::ProjectAlreadyExists => formatter.write_str("Das Projekt existiert bereits."),
+            Self::ProjectMissing => {
+                formatter.write_str("Das Projektverzeichnis wurde nicht gefunden.")
+            }
+            Self::DatabaseMissing => {
+                formatter.write_str("Die Projektdatenbank wurde nicht gefunden.")
+            }
+            Self::BackupAlreadyExists => formatter.write_str("Die Sicherung existiert bereits."),
+            Self::BackupMissing => formatter.write_str("Die Sicherung wurde nicht gefunden."),
+            Self::InvalidProjectMetadata => formatter.write_str("Die Projektdaten sind ungültig."),
+            Self::InvalidDatabase => {
+                formatter.write_str("Die Datenbank ist beschädigt oder nicht lesbar.")
+            }
+            Self::InvalidSystemTime => formatter.write_str("Die Systemzeit ist ungültig."),
+            Self::Io { operation, .. } => {
+                write!(
+                    formatter,
+                    "Dateisystemoperation fehlgeschlagen: {operation}."
+                )
+            }
+            Self::Storage(error) => error.fmt(formatter),
+        }
+    }
+}
+
+impl Error for ProjectError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Io { source, .. } => Some(source),
+            Self::Storage(error) => Some(error),
+            Self::InvalidRelativePath
+            | Self::SymlinkNotAllowed
+            | Self::OutsideProjectRoot
+            | Self::ProjectAlreadyExists
+            | Self::ProjectMissing
+            | Self::DatabaseMissing
+            | Self::BackupAlreadyExists
+            | Self::BackupMissing
+            | Self::InvalidProjectMetadata
+            | Self::InvalidDatabase
+            | Self::InvalidSystemTime => None,
+        }
+    }
+}
+
+impl From<StorageError> for ProjectError {
+    fn from(error: StorageError) -> Self {
+        Self::Storage(error)
+    }
+}
+
+impl From<rusqlite::Error> for ProjectError {
+    fn from(error: rusqlite::Error) -> Self {
+        Self::Storage(StorageError::from(error))
+    }
+}
+
+/// Geöffnetes lokales Projekt samt autoritativer Datenbank.
+pub struct ManagedProject {
+    directory: PathBuf,
+    database: Database,
+}
+
+impl ManagedProject {
+    /// Liefert den kanonischen Projektordner.
+    #[must_use]
+    pub fn directory(&self) -> &Path {
+        &self.directory
+    }
+
+    /// Liefert die verwaltete Datenbank.
+    #[must_use]
+    pub const fn database(&self) -> &Database {
+        &self.database
+    }
+
+    /// Liefert die verwaltete Datenbank veränderlich für transaktionale Schreibvorgänge.
+    #[must_use]
+    pub const fn database_mut(&mut self) -> &mut Database {
+        &mut self.database
+    }
+}
+
+/// Verwaltet Projekte ausschließlich unter einer kanonischen lokalen Wurzel.
+pub struct ProjectManager {
+    root: PathBuf,
+}
+
+impl ProjectManager {
+    /// Bindet den Manager an eine bereits vorhandene, echte Verzeichniswurzel.
+    ///
+    /// # Errors
+    ///
+    /// Liefert einen Fehler, wenn die Wurzel fehlt, kein Verzeichnis oder selbst ein Symlink ist.
+    pub fn new(root: impl AsRef<Path>) -> Result<Self, ProjectError> {
+        let root = root.as_ref();
+        let metadata = fs::symlink_metadata(root).map_err(|source| ProjectError::Io {
+            operation: "Projektwurzel lesen",
+            source,
+        })?;
+        if metadata.file_type().is_symlink() {
+            return Err(ProjectError::SymlinkNotAllowed);
+        }
+        if !metadata.is_dir() {
+            return Err(ProjectError::InvalidRelativePath);
+        }
+
+        let root = fs::canonicalize(root).map_err(|source| ProjectError::Io {
+            operation: "Projektwurzel kanonisieren",
+            source,
+        })?;
+        Ok(Self { root })
+    }
+
+    /// Liefert die kanonische Projektwurzel.
+    #[must_use]
+    pub fn root(&self) -> &Path {
+        &self.root
+    }
+
+    /// Erstellt ein Projekt vollständig in einem temporären Geschwisterverzeichnis und
+    /// veröffentlicht es anschließend atomar.
+    ///
+    /// # Errors
+    ///
+    /// Liefert einen Fehler bei unsicheren Pfaden, ungültigen Projektdaten, vorhandenen Zielen oder
+    /// fehlgeschlagenen Dateisystem- beziehungsweise SQLite-Operationen.
+    pub fn create_project(
+        &self,
+        relative_path: impl AsRef<Path>,
+        project: &Project,
+    ) -> Result<ManagedProject, ProjectError> {
+        if !is_valid_project_name(&project.name) || project.schema_version != CURRENT_SCHEMA_VERSION
+        {
+            return Err(ProjectError::InvalidProjectMetadata);
+        }
+
+        let (parent, destination) = self.prepare_new_destination(relative_path.as_ref())?;
+        if fs::symlink_metadata(&destination).is_ok() {
+            return Err(ProjectError::ProjectAlreadyExists);
+        }
+
+        let mut staging = TemporaryDirectory::create(&parent)?;
+        fs::create_dir(staging.path().join(BACKUP_DIRECTORY_NAME)).map_err(|source| {
+            ProjectError::Io {
+                operation: "Sicherungsverzeichnis anlegen",
+                source,
+            }
+        })?;
+
+        let database_path = staging.path().join(DATABASE_FILE_NAME);
+        let mut database = Database::open(&database_path)?;
+        let timestamp = current_timestamp()?;
+        let transaction = database.transaction()?;
+        transaction.execute(
+            "INSERT INTO project (id, name, schema_version, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?4)",
+            params![
+                project.id.to_string(),
+                project.name,
+                project.schema_version.0,
+                timestamp
+            ],
+        )?;
+        transaction.commit()?;
+        drop(database);
+
+        fs::rename(staging.path(), &destination).map_err(|source| ProjectError::Io {
+            operation: "Projekt atomar veröffentlichen",
+            source,
+        })?;
+        staging.keep();
+        self.open_project(relative_path)
+    }
+
+    /// Öffnet ein vorhandenes Projekt, ohne fehlende Datenbanken still anzulegen.
+    ///
+    /// # Errors
+    ///
+    /// Liefert einen Fehler bei unsicheren Pfaden, fehlenden Dateien oder ungültigen Datenbanken.
+    pub fn open_project(
+        &self,
+        relative_path: impl AsRef<Path>,
+    ) -> Result<ManagedProject, ProjectError> {
+        let directory =
+            self.resolve_existing_directory(relative_path.as_ref(), ProjectError::ProjectMissing)?;
+        let database_path = self.resolve_regular_child(
+            &directory,
+            DATABASE_FILE_NAME,
+            ProjectError::DatabaseMissing,
+        )?;
+        let database = Database::open(&database_path).map_err(map_open_error)?;
+        verify_connection(database.connection())?;
+        Ok(ManagedProject {
+            directory,
+            database,
+        })
+    }
+
+    /// Erzeugt eine konsistente Sicherung und veröffentlicht sie atomar unter `backups/`.
+    ///
+    /// `backup_name` ist ein einzelner Dateiname ohne Erweiterung. Eine vorhandene Sicherung wird
+    /// niemals überschrieben.
+    ///
+    /// # Errors
+    ///
+    /// Liefert einen Fehler bei unsicheren Namen, fehlenden Projekten, vorhandenen Zielen oder
+    /// fehlgeschlagenen SQLite- und Dateisystemoperationen.
+    pub fn backup_project(
+        &self,
+        relative_path: impl AsRef<Path>,
+        backup_name: &str,
+    ) -> Result<PathBuf, ProjectError> {
+        validate_single_name(backup_name)?;
+        let project = self.open_project(relative_path)?;
+        let backup_directory = self.resolve_existing_directory_from(
+            project.directory(),
+            Path::new(BACKUP_DIRECTORY_NAME),
+            ProjectError::BackupMissing,
+        )?;
+        let destination = backup_directory.join(format!("{backup_name}.sqlite3"));
+        if fs::symlink_metadata(&destination).is_ok() {
+            return Err(ProjectError::BackupAlreadyExists);
+        }
+
+        let temporary = TemporaryFile::reserve(&backup_directory)?;
+        project
+            .database()
+            .connection()
+            .backup(MAIN_DB, temporary.path(), None)?;
+        verify_database(temporary.path())?;
+        fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(temporary.path())
+            .and_then(|file| file.sync_all())
+            .map_err(|source| ProjectError::Io {
+                operation: "Sicherung synchronisieren",
+                source,
+            })?;
+
+        fs::hard_link(temporary.path(), &destination).map_err(|source| {
+            if source.kind() == io::ErrorKind::AlreadyExists {
+                ProjectError::BackupAlreadyExists
+            } else {
+                ProjectError::Io {
+                    operation: "Sicherung atomar veröffentlichen",
+                    source,
+                }
+            }
+        })?;
+        Ok(destination)
+    }
+
+    /// Stellt eine Sicherung in einem neuen Projektverzeichnis wieder her.
+    ///
+    /// Quellprojekt und Sicherungsdatei werden ausschließlich lesend geöffnet. Das Ziel darf noch
+    /// nicht existieren und wird erst nach erfolgreicher Integritätsprüfung atomar veröffentlicht.
+    ///
+    /// # Errors
+    ///
+    /// Liefert einen Fehler bei fehlenden oder beschädigten Sicherungen, unsicheren Pfaden,
+    /// vorhandenen Zielen oder fehlgeschlagenen SQLite- und Dateisystemoperationen.
+    pub fn restore_backup(
+        &self,
+        source_project: impl AsRef<Path>,
+        backup_name: &str,
+        destination_project: impl AsRef<Path>,
+    ) -> Result<ManagedProject, ProjectError> {
+        validate_single_name(backup_name)?;
+        let source_directory =
+            self.resolve_existing_directory(source_project.as_ref(), ProjectError::ProjectMissing)?;
+        let backup_directory = self.resolve_existing_directory_from(
+            &source_directory,
+            Path::new(BACKUP_DIRECTORY_NAME),
+            ProjectError::BackupMissing,
+        )?;
+        let backup_path = self.resolve_regular_child(
+            &backup_directory,
+            &format!("{backup_name}.sqlite3"),
+            ProjectError::BackupMissing,
+        )?;
+        verify_database(&backup_path)?;
+
+        let (parent, destination) = self.prepare_new_destination(destination_project.as_ref())?;
+        if fs::symlink_metadata(&destination).is_ok() {
+            return Err(ProjectError::ProjectAlreadyExists);
+        }
+
+        let mut staging = TemporaryDirectory::create(&parent)?;
+        fs::create_dir(staging.path().join(BACKUP_DIRECTORY_NAME)).map_err(|source| {
+            ProjectError::Io {
+                operation: "Sicherungsverzeichnis anlegen",
+                source,
+            }
+        })?;
+        let restored_database = staging.path().join(DATABASE_FILE_NAME);
+        let source = open_read_only(&backup_path)?;
+        source.backup(MAIN_DB, &restored_database, None)?;
+        verify_database(&restored_database)?;
+        drop(source);
+
+        fs::rename(staging.path(), &destination).map_err(|source| ProjectError::Io {
+            operation: "Wiederherstellung atomar veröffentlichen",
+            source,
+        })?;
+        staging.keep();
+        self.open_project(destination_project)
+    }
+
+    fn prepare_new_destination(&self, relative: &Path) -> Result<(PathBuf, PathBuf), ProjectError> {
+        let components = relative_components(relative)?;
+        let (name, parents) = components
+            .split_last()
+            .ok_or(ProjectError::InvalidRelativePath)?;
+        let mut parent = self.root.clone();
+
+        for component in parents {
+            let candidate = parent.join(component);
+            match fs::symlink_metadata(&candidate) {
+                Ok(metadata) => validate_directory_metadata(&metadata)?,
+                Err(error) if error.kind() == io::ErrorKind::NotFound => {
+                    fs::create_dir(&candidate).map_err(|source| ProjectError::Io {
+                        operation: "Projektpfad anlegen",
+                        source,
+                    })?;
+                    let metadata =
+                        fs::symlink_metadata(&candidate).map_err(|source| ProjectError::Io {
+                            operation: "Projektpfad prüfen",
+                            source,
+                        })?;
+                    validate_directory_metadata(&metadata)?;
+                }
+                Err(source) => {
+                    return Err(ProjectError::Io {
+                        operation: "Projektpfad prüfen",
+                        source,
+                    });
+                }
+            }
+            parent = canonical_within(&self.root, &candidate)?;
+        }
+
+        Ok((parent.clone(), parent.join(name)))
+    }
+
+    fn resolve_existing_directory(
+        &self,
+        relative: &Path,
+        missing: ProjectError,
+    ) -> Result<PathBuf, ProjectError> {
+        self.resolve_existing_directory_from(&self.root, relative, missing)
+    }
+
+    fn resolve_existing_directory_from(
+        &self,
+        base: &Path,
+        relative: &Path,
+        missing: ProjectError,
+    ) -> Result<PathBuf, ProjectError> {
+        let components = relative_components(relative)?;
+        let mut current = base.to_path_buf();
+        for component in components {
+            let candidate = current.join(component);
+            let metadata = match fs::symlink_metadata(&candidate) {
+                Ok(metadata) => metadata,
+                Err(error) if error.kind() == io::ErrorKind::NotFound => return Err(missing),
+                Err(source) => {
+                    return Err(ProjectError::Io {
+                        operation: "Projektpfad prüfen",
+                        source,
+                    });
+                }
+            };
+            validate_directory_metadata(&metadata)?;
+            current = canonical_within(&self.root, &candidate)?;
+        }
+        Ok(current)
+    }
+
+    fn resolve_regular_child(
+        &self,
+        directory: &Path,
+        name: &str,
+        missing: ProjectError,
+    ) -> Result<PathBuf, ProjectError> {
+        validate_single_name(name)?;
+        let candidate = directory.join(name);
+        let metadata = match fs::symlink_metadata(&candidate) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => return Err(missing),
+            Err(source) => {
+                return Err(ProjectError::Io {
+                    operation: "Projektdatei prüfen",
+                    source,
+                });
+            }
+        };
+        if metadata.file_type().is_symlink() {
+            return Err(ProjectError::SymlinkNotAllowed);
+        }
+        if !metadata.is_file() {
+            return Err(ProjectError::InvalidDatabase);
+        }
+        canonical_within(&self.root, &candidate)
+    }
+}
+
+fn map_open_error(error: StorageError) -> ProjectError {
+    match error {
+        StorageError::Sqlite(_) => ProjectError::InvalidDatabase,
+        other => ProjectError::Storage(other),
+    }
+}
+
+fn current_timestamp() -> Result<String, ProjectError> {
+    let seconds = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| ProjectError::InvalidSystemTime)?
+        .as_secs();
+    Ok(format!("unix:{seconds}"))
+}
+
+fn relative_components(path: &Path) -> Result<Vec<OsString>, ProjectError> {
+    if path.as_os_str().is_empty() || path.is_absolute() {
+        return Err(ProjectError::InvalidRelativePath);
+    }
+
+    path.components()
+        .map(|component| match component {
+            Component::Normal(value) => Ok(value.to_os_string()),
+            Component::Prefix(_)
+            | Component::RootDir
+            | Component::CurDir
+            | Component::ParentDir => Err(ProjectError::InvalidRelativePath),
+        })
+        .collect()
+}
+
+fn validate_single_name(name: &str) -> Result<(), ProjectError> {
+    let components = relative_components(Path::new(name))?;
+    if components.len() == 1 {
+        Ok(())
+    } else {
+        Err(ProjectError::InvalidRelativePath)
+    }
+}
+
+fn validate_directory_metadata(metadata: &fs::Metadata) -> Result<(), ProjectError> {
+    if metadata.file_type().is_symlink() {
+        return Err(ProjectError::SymlinkNotAllowed);
+    }
+    if metadata.is_dir() {
+        Ok(())
+    } else {
+        Err(ProjectError::InvalidRelativePath)
+    }
+}
+
+fn canonical_within(root: &Path, candidate: &Path) -> Result<PathBuf, ProjectError> {
+    let canonical = fs::canonicalize(candidate).map_err(|source| ProjectError::Io {
+        operation: "Projektpfad kanonisieren",
+        source,
+    })?;
+    if canonical.starts_with(root) {
+        Ok(canonical)
+    } else {
+        Err(ProjectError::OutsideProjectRoot)
+    }
+}
+
+fn open_read_only(path: &Path) -> Result<Connection, ProjectError> {
+    Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)
+        .map_err(|_| ProjectError::InvalidDatabase)
+}
+
+fn verify_database(path: &Path) -> Result<(), ProjectError> {
+    let connection = open_read_only(path)?;
+    verify_connection(&connection)
+}
+
+fn verify_connection(connection: &Connection) -> Result<(), ProjectError> {
+    let integrity: String = connection
+        .query_row("PRAGMA quick_check", [], |row| row.get(0))
+        .map_err(|_| ProjectError::InvalidDatabase)?;
+    if integrity != "ok" {
+        return Err(ProjectError::InvalidDatabase);
+    }
+    let version: u32 = connection
+        .pragma_query_value(None, "user_version", |row| row.get(0))
+        .map_err(|_| ProjectError::InvalidDatabase)?;
+    if version != CURRENT_SCHEMA_VERSION.0 {
+        return Err(ProjectError::InvalidDatabase);
+    }
+
+    let object_count: u32 = connection
+        .query_row(
+            "SELECT count(*) FROM sqlite_master
+             WHERE name IN ('project', 'document', 'entity', 'relation', 'link',
+                            'document_fts', 'document_fts_after_insert',
+                            'document_fts_after_update', 'document_fts_after_delete')",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|_| ProjectError::InvalidDatabase)?;
+    if object_count != 9 {
+        return Err(ProjectError::InvalidDatabase);
+    }
+
+    let project_count: u32 = connection
+        .query_row("SELECT count(*) FROM project", [], |row| row.get(0))
+        .map_err(|_| ProjectError::InvalidDatabase)?;
+    if project_count != 1 {
+        return Err(ProjectError::InvalidDatabase);
+    }
+    Ok(())
+}
+
+struct TemporaryDirectory {
+    path: PathBuf,
+    remove_on_drop: bool,
+}
+
+impl TemporaryDirectory {
+    fn create(parent: &Path) -> Result<Self, ProjectError> {
+        for _ in 0..100 {
+            let sequence = TEMPORARY_NAME_COUNTER.fetch_add(1, Ordering::Relaxed);
+            let path = parent.join(format!(".kraqel-stage-{}-{sequence}", std::process::id()));
+            match fs::create_dir(&path) {
+                Ok(()) => {
+                    return Ok(Self {
+                        path,
+                        remove_on_drop: true,
+                    });
+                }
+                Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {}
+                Err(source) => {
+                    return Err(ProjectError::Io {
+                        operation: "temporäres Projektverzeichnis anlegen",
+                        source,
+                    });
+                }
+            }
+        }
+        Err(ProjectError::Io {
+            operation: "eindeutiges temporäres Projektverzeichnis anlegen",
+            source: io::Error::new(io::ErrorKind::AlreadyExists, "temporary name collision"),
+        })
+    }
+
+    fn path(&self) -> &Path {
+        &self.path
+    }
+
+    fn keep(&mut self) {
+        self.remove_on_drop = false;
+    }
+}
+
+impl Drop for TemporaryDirectory {
+    fn drop(&mut self) {
+        if self.remove_on_drop {
+            let _ = fs::remove_dir_all(&self.path);
+        }
+    }
+}
+
+struct TemporaryFile {
+    path: PathBuf,
+}
+
+impl TemporaryFile {
+    fn reserve(parent: &Path) -> Result<Self, ProjectError> {
+        for _ in 0..100 {
+            let sequence = TEMPORARY_NAME_COUNTER.fetch_add(1, Ordering::Relaxed);
+            let path = parent.join(format!(
+                ".kraqel-backup-{}-{sequence}.tmp",
+                std::process::id()
+            ));
+            match fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&path)
+            {
+                Ok(_) => return Ok(Self { path }),
+                Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {}
+                Err(source) => {
+                    return Err(ProjectError::Io {
+                        operation: "temporäre Sicherung anlegen",
+                        source,
+                    });
+                }
+            }
+        }
+        Err(ProjectError::Io {
+            operation: "eindeutige temporäre Sicherung anlegen",
+            source: io::Error::new(io::ErrorKind::AlreadyExists, "temporary name collision"),
+        })
+    }
+
+    fn path(&self) -> &Path {
+        &self.path
+    }
+}
+
+impl Drop for TemporaryFile {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.path);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{fs, path::Path};
+
+    use kraqel_domain::{CURRENT_SCHEMA_VERSION, Project, ProjectId};
+    use tempfile::tempdir;
+
+    use super::{BACKUP_DIRECTORY_NAME, DATABASE_FILE_NAME, ProjectError, ProjectManager};
+
+    fn project(name: &str) -> Project {
+        Project {
+            id: ProjectId::new(),
+            name: name.to_owned(),
+            schema_version: CURRENT_SCHEMA_VERSION,
+        }
+    }
+
+    #[test]
+    fn creates_and_opens_project_with_windows_friendly_path() {
+        let root = tempdir().expect("temporary root should exist");
+        let manager = ProjectManager::new(root.path()).expect("manager should open");
+        let relative = Path::new("Welten mit Leerzeichen").join("Äther-Projekt");
+
+        let created = manager
+            .create_project(&relative, &project("Äther & Archive"))
+            .expect("project should be created");
+        assert!(created.directory().ends_with(&relative));
+        assert!(created.directory().join(DATABASE_FILE_NAME).is_file());
+        assert!(created.directory().join(BACKUP_DIRECTORY_NAME).is_dir());
+        drop(created);
+
+        manager
+            .open_project(&relative)
+            .expect("project should reopen");
+    }
+
+    #[test]
+    fn supports_long_project_directory_names() {
+        let root = tempdir().expect("temporary root should exist");
+        let manager = ProjectManager::new(root.path()).expect("manager should open");
+        let long_name = format!("Roman-{}", "x".repeat(180));
+
+        let opened = manager
+            .create_project(&long_name, &project("Ein langer Weg"))
+            .expect("long project path should work");
+        assert!(opened.directory().ends_with(long_name));
+    }
+
+    #[test]
+    fn rejects_traversal_and_absolute_paths() {
+        let root = tempdir().expect("temporary root should exist");
+        let manager = ProjectManager::new(root.path()).expect("manager should open");
+
+        assert!(matches!(
+            manager.create_project(Path::new("..").join("escape"), &project("Flucht")),
+            Err(ProjectError::InvalidRelativePath)
+        ));
+        assert!(matches!(
+            manager.open_project(root.path()),
+            Err(ProjectError::InvalidRelativePath)
+        ));
+    }
+
+    #[test]
+    fn reports_missing_and_corrupt_databases() {
+        let root = tempdir().expect("temporary root should exist");
+        let manager = ProjectManager::new(root.path()).expect("manager should open");
+
+        assert!(matches!(
+            manager.open_project("fehlt"),
+            Err(ProjectError::ProjectMissing)
+        ));
+
+        let broken = root.path().join("kaputt");
+        fs::create_dir(&broken).expect("broken project directory should be created");
+        fs::write(broken.join(DATABASE_FILE_NAME), b"keine Datenbank")
+            .expect("broken database should be written");
+        assert!(matches!(
+            manager.open_project("kaputt"),
+            Err(ProjectError::InvalidDatabase)
+        ));
+
+        let incomplete = root.path().join("unvollstaendig");
+        fs::create_dir(&incomplete).expect("incomplete project directory should be created");
+        let connection = rusqlite::Connection::open(incomplete.join(DATABASE_FILE_NAME))
+            .expect("sqlite database should be created");
+        connection
+            .pragma_update(None, "user_version", CURRENT_SCHEMA_VERSION.0)
+            .expect("claimed version should be stored");
+        drop(connection);
+        assert!(matches!(
+            manager.open_project("unvollstaendig"),
+            Err(ProjectError::InvalidDatabase)
+        ));
+    }
+
+    #[test]
+    fn backup_is_consistent_and_never_overwritten() {
+        let root = tempdir().expect("temporary root should exist");
+        let manager = ProjectManager::new(root.path()).expect("manager should open");
+        let opened = manager
+            .create_project("quelle", &project("Quelle"))
+            .expect("project should be created");
+        opened
+            .database()
+            .connection()
+            .execute(
+                "INSERT INTO entity (
+                    id, project_id, kind, name, created_at, updated_at
+                 ) SELECT '018f47ea-9b2d-7cc1-98e8-b5f4f6b741a3', id, 'figure',
+                          'Ada', 'test', 'test' FROM project",
+                [],
+            )
+            .expect("entity should be stored");
+        drop(opened);
+
+        let backup = manager
+            .backup_project("quelle", "stand-1")
+            .expect("backup should be created");
+        assert!(backup.is_file());
+        assert!(matches!(
+            manager.backup_project("quelle", "stand-1"),
+            Err(ProjectError::BackupAlreadyExists)
+        ));
+    }
+
+    #[test]
+    fn restore_creates_new_project_without_changing_source_backup() {
+        let root = tempdir().expect("temporary root should exist");
+        let manager = ProjectManager::new(root.path()).expect("manager should open");
+        manager
+            .create_project("quelle", &project("Quelle"))
+            .expect("project should be created");
+        let backup = manager
+            .backup_project("quelle", "stand-1")
+            .expect("backup should be created");
+        let bytes_before = fs::read(&backup).expect("backup should be readable");
+
+        let restored = manager
+            .restore_backup("quelle", "stand-1", "wiederhergestellt")
+            .expect("backup should restore");
+        let project_count: i64 = restored
+            .database()
+            .connection()
+            .query_row("SELECT count(*) FROM project", [], |row| row.get(0))
+            .expect("restored project should be readable");
+        assert_eq!(project_count, 1);
+        assert_eq!(
+            fs::read(&backup).expect("backup should remain readable"),
+            bytes_before
+        );
+        assert!(matches!(
+            manager.restore_backup("quelle", "stand-1", "wiederhergestellt"),
+            Err(ProjectError::ProjectAlreadyExists)
+        ));
+    }
+
+    #[test]
+    fn rejects_corrupt_backup_without_creating_destination() {
+        let root = tempdir().expect("temporary root should exist");
+        let manager = ProjectManager::new(root.path()).expect("manager should open");
+        let source = manager
+            .create_project("quelle", &project("Quelle"))
+            .expect("project should be created");
+        fs::write(
+            source
+                .directory()
+                .join(BACKUP_DIRECTORY_NAME)
+                .join("kaputt.sqlite3"),
+            b"zerbrochen",
+        )
+        .expect("corrupt backup should be written");
+        drop(source);
+
+        assert!(matches!(
+            manager.restore_backup("quelle", "kaputt", "ziel"),
+            Err(ProjectError::InvalidDatabase)
+        ));
+        assert!(!root.path().join("ziel").exists());
+    }
+
+    #[test]
+    fn rejects_symlink_components() {
+        let root = tempdir().expect("temporary root should exist");
+        let outside = tempdir().expect("outside directory should exist");
+        let link = root.path().join("verknuepfung");
+        if create_directory_symlink(outside.path(), &link).is_err() {
+            return;
+        }
+        let manager = ProjectManager::new(root.path()).expect("manager should open");
+
+        assert!(matches!(
+            manager.create_project(Path::new("verknuepfung").join("flucht"), &project("Flucht")),
+            Err(ProjectError::SymlinkNotAllowed)
+        ));
+        assert!(!outside.path().join("flucht").exists());
+    }
+
+    #[cfg(unix)]
+    fn create_directory_symlink(source: &Path, target: &Path) -> std::io::Result<()> {
+        std::os::unix::fs::symlink(source, target)
+    }
+
+    #[cfg(windows)]
+    fn create_directory_symlink(source: &Path, target: &Path) -> std::io::Result<()> {
+        std::os::windows::fs::symlink_dir(source, target)
+    }
+}

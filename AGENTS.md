@@ -37,7 +37,7 @@ Aktuell im Repository und verifiziert:
 - **Verträge:** versionierte Request-/Response-Hüllen, UUID-Typen und bereinigte IPC-Fehler in Rust
   und TypeScript.
 - **Persistenz:** SQLite mit atomarer Initialmigration, Fremdschlüsseln und FTS5 im
-  `kraqel-storage`-Crate; noch ohne fachliche Repository- und Projektmanager-Schicht.
+  `kraqel-storage`-Crate; sicherer lokaler Projektlebenszyklus mit Datenbankbackup und Recovery.
 - **Qualität:** Prettier, ESLint, TypeScript-Checks, Vitest, Rust-Tests, rustfmt und Clippy mit
   Warnungen als Fehler; GitHub Actions unter Windows und Linux.
 
@@ -58,7 +58,7 @@ kompiliert.
 | `packages/ai-contracts/`     | Provider-, Capability- und Freigabeverträge                  | Grundtypen, keine Provider      |
 | `packages/visual-contracts/` | Medien- und visuelle Profilverträge                          | Grundtypen, keine Persistenz    |
 | `crates/domain/`             | Rust-Domäne und versionierte Command-Verträge                | Grundmodell implementiert       |
-| `crates/storage/`            | SQLite, Migrationen, FTS5 und Repositories                   | Schema v1; Repositories fehlen  |
+| `crates/storage/`            | SQLite, Migrationen, FTS5 und Projektlebenszyklus            | M0-Persistenz; Fach-CRUD fehlt  |
 | `crates/git-service/`        | Deterministische Snapshots und Git-Operationen               | Nur Status-Enum                 |
 | `crates/export/`             | Markdown-, HTML-, DOCX- und PDF-Export                       | Nur Format-Enum                 |
 | `crates/continuity/`         | Regelbasierte Kontinuitätsprüfung                            | Nur Schweregrad-Enum            |

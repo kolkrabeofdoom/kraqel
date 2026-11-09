@@ -2,7 +2,7 @@
 
 Stand: 9. November 2026
 
-Code-Referenz: KQ-003 (`feat/kq-003-sqlite-schema`, dieser Stand)
+Code-Referenz: KQ-004 (`feat/kq-004-project-manager`, dieser Stand)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -12,15 +12,15 @@ als vollständige Fachfunktion.
 
 ## Status nach Pflichtenheft-Stufen
 
-| Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                                                             |
-| ------------ | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Weitgehend umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge sowie SQLite-Schema v1 mit Migration und FTS5 vorhanden. Projektmanager, Backup und Recovery fehlen. |
-| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Nicht implementiert.** Nur ein generischer Editor-Snapshot-Typ existiert.                                                                                                                     |
-| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Nicht implementiert.** Keine UI, Persistenz oder Fachlogik.                                                                                                                                   |
-| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Nicht implementiert.** Es existieren nur Enums/Vertragstypen und eine relative Pfadprüfung.                                                                                                   |
-| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Nur Verträge vorbereitet:** Capability-, Kontextfreigabe-, Medien- und Profiltypen; keine Provider oder Fachabläufe.                                                                          |
-| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                                   |
-| **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                          |
+| Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                                                      |
+| ------------ | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden. |
+| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Nicht implementiert.** Nur ein generischer Editor-Snapshot-Typ existiert.                                                                                                              |
+| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Nicht implementiert.** Keine UI, Persistenz oder Fachlogik.                                                                                                                            |
+| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Nicht implementiert.** Es existieren nur Enums/Vertragstypen und eine relative Pfadprüfung.                                                                                            |
+| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Nur Verträge vorbereitet:** Capability-, Kontextfreigabe-, Medien- und Profiltypen; keine Provider oder Fachabläufe.                                                                   |
+| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                            |
+| **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                   |
 
 Die funktionalen Anforderungen F01 bis F09 sind damit noch nicht abgenommen. Vorhandene Verträge und
 Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
@@ -33,7 +33,7 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Tauri-2-/React-/TypeScript-Desktop-Shell mit statischer, responsiver Startoberfläche.
 - Minimale Tauri-Berechtigung `core:default`, definierte CSP und Windows-Fensterkonfiguration.
 - GitHub-Actions-CI unter `windows-latest` und `ubuntu-latest`.
-- Letzter CI-Lauf für `main` bei `496f243`: erfolgreich.
+- Letzter CI-Lauf für `main` bei `479d0b2`: erfolgreich unter Windows und Linux.
 - Qualitätskette: Prettier, rustfmt, ESLint, Clippy mit `-D warnings`, TypeScript, Vitest,
   Rust-Tests sowie Frontend- und Workspace-Builds.
 - GPL-3.0-or-later, Beitrags-, Verhaltens- und Sicherheitsdokumentation vorhanden.
@@ -62,6 +62,21 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Tests für leere und befüllte Datenbanken, Wiederöffnung, Fremdschlüssel, FTS-Synchronisation und
   Ablehnung eines Zukunftsschemas.
 
+### Projektlebenszyklus, Backup und Recovery (KQ-004)
+
+- `ProjectManager` erstellt und öffnet Projekte ausschließlich unter einer kanonischen lokalen
+  Wurzel; absolute Pfade, Traversal und Symlink-Komponenten werden abgelehnt.
+- Projekterstellung und Recovery erfolgen in temporären Geschwisterverzeichnissen und werden erst
+  nach erfolgreicher Prüfung atomar veröffentlicht.
+- Konsistente SQLite-Sicherungen verwenden die Online-Backup-API, `quick_check`, Schema-Prüfung und
+  Dateisynchronisation; bestehende Sicherungen werden nicht überschrieben.
+- Wiederherstellung liest die Sicherung ausschließlich lesend und erzeugt immer ein neues Ziel.
+- Datenarme Fehler unterscheiden fehlende Projekte, Datenbanken und Sicherungen sowie beschädigte
+  Datenbanken.
+- Tests decken Windows-taugliche Leerzeichen-/Unicodepfade, lange Verzeichnisnamen, Traversal,
+  Symlinks, fehlende und beschädigte Dateien, Backup-Konsistenz und unveränderte Recovery-Quellen
+  ab.
+
 ### Begrenzte Hilfsfunktionen und Verträge
 
 - `asset-service`: relative Pfade werden akzeptiert, absolute Pfade und Elterntraversal abgelehnt.
@@ -72,12 +87,11 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 ## Offene Aufgaben
 
-### Unmittelbar: M0 abschließen
+### Unmittelbar: M1 beginnen
 
-1. **KQ-004 - Lokaler Projektmanager, Backup und Recovery** (`status: ready`)
-   - sichere Projektpfade, atomare Schreibvorgänge, Backup und nicht-destruktive Wiederherstellung
-2. **KQ-005 - Editor, Szenenbaum und Autosave** (`status: triage`)
-   - erst nach stabilen Domänen- und Persistenzverträgen sinnvoll umzusetzen
+1. **KQ-005 - Editor, Szenenbaum und Autosave** (`status: triage`)
+   - Tiptap-Vertrag und Dokument-Repository zuerst konkretisieren
+   - Szenen-/Kapitelbaum, transaktionales Autosave, Undo/Redo und Wortzählung umsetzen
 
 ### Danach gemäß Pflichtenheft
 
@@ -90,9 +104,11 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 
 ## Bekannte Fehler und Lücken
 
-- **Noch keine fachliche Persistenzschicht:** Schema, Migration und FTS5 sind vorhanden, aber
-  Repository-Operationen und der lokale Projektmanager fehlen. Die sichtbare Anwendung öffnet noch
-  keine Projektdatenbank.
+- **Noch keine Dokument-Repository-Schicht:** Der Projektlebenszyklus ist implementiert, fachliche
+  CRUD-Operationen für Dokumente und Entitäten fehlen. Die sichtbare Anwendung öffnet noch keine
+  Projektdatenbank.
+- **Lokales Backup umfasst nur SQLite:** Assets sind noch nicht implementiert und daher nicht Teil
+  der Sicherung. Portable Austausch- und Git-Snapshots sind ein späterer, getrennter Mechanismus.
 - **Nur Initialmigration:** Der Migrationspfad 0 -> 1 ist getestet; weitere Versionen benötigen je
   eine neue unveränderliche Vorwärtsmigration samt Test mit befüllter Vorgängerdatenbank.
 - **Startoberfläche ohne Funktion:** „Neues Projekt“ und „Projekt öffnen“ besitzen noch keine
@@ -109,6 +125,9 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 - **Reproduzierbares SQLite und atomare Vorwärtsmigrationen:** Gebündeltes SQLite stellt FTS5
   bereit; `PRAGMA user_version`, Fremdschlüssel, WAL und sofortige Transaktionen definieren den
   Verbindungs- und Migrationsvertrag (ADR 0002).
+- **Kanonische Projektwurzel und nicht-destruktive Recovery:** Symlinks und unsichere relative Pfade
+  werden abgelehnt; Projekte und Sicherungen werden erst nach Prüfung atomar veröffentlicht.
+  Wiederherstellung schreibt ausschließlich in ein neues Ziel (ADR 0003).
 - **Privilegierte Operationen in Rust:** React kommuniziert ausschließlich über versionierte,
   typisierte Tauri-Commands mit Dateisystem, Storage, Git und späteren Providern.
 - **Verträge sind explizit versioniert:** Inkompatible Änderungen erfordern eine neue
@@ -126,33 +145,33 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 
 ## Abhängigkeiten und technische Risiken
 
-| Thema                        | Zustand / Risiko                                                         | Nächste Kontrolle                                         |
-| ---------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------- |
-| SQLite und FTS5              | Schema v1 und FTS5 getestet; Repository-API und Backup fehlen            | KQ-004 mit Projektlebenszyklus und Recovery               |
-| Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                    | Gemeinsame Fixtures oder spätere Codegenerierung bewerten |
-| Datenformat                  | Manifest und JSON-Schemas fehlen                                         | Mit KQ-003 und Snapshotarbeit versionieren                |
-| Dateisystem                  | Nur lexikalische relative Pfadprüfung; keine Symlink-/Kanonikprüfung     | KQ-004 mit Windows-Pfadtests                              |
-| Editorformat                 | Nur generischer Snapshot; Tiptap noch nicht eingebunden                  | Vor KQ-005 Versionierung festlegen                        |
-| Desktoptests                 | Keine E2E-Abdeckung                                                      | Playwright erst mit ersten nutzbaren Abläufen einführen   |
-| CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten            | Caching prüfen, ohne Reproduzierbarkeit zu schwächen      |
-| Abhängigkeitssicherheit      | GitHub Dependency Review privat nicht verfügbar                          | Alternative Audits oder Advanced Security später bewerten |
-| Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen | Plattformmatrix je Release definieren                     |
+| Thema                        | Zustand / Risiko                                                          | Nächste Kontrolle                                         |
+| ---------------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------- |
+| SQLite und FTS5              | Schema, Migration, FTS5, Backup und Recovery getestet; Fach-CRUD fehlt    | KQ-005 mit Dokument-Repository und Autosave               |
+| Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                     | Gemeinsame Fixtures oder spätere Codegenerierung bewerten |
+| Datenformat                  | Manifest und JSON-Schemas fehlen                                          | Mit KQ-008 und Snapshotarbeit versionieren                |
+| Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen  |
+| Editorformat                 | Nur generischer Snapshot; Tiptap noch nicht eingebunden                   | Vor KQ-005 Versionierung festlegen                        |
+| Desktoptests                 | Keine E2E-Abdeckung                                                       | Playwright erst mit ersten nutzbaren Abläufen einführen   |
+| CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten             | Caching prüfen, ohne Reproduzierbarkeit zu schwächen      |
+| Abhängigkeitssicherheit      | GitHub Dependency Review privat nicht verfügbar                           | Alternative Audits oder Advanced Security später bewerten |
+| Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen  | Plattformmatrix je Release definieren                     |
 
 ## Nächste geplante Entwicklungsstufe
 
-**KQ-004: Lokaler Projektmanager, Backup und Recovery.**
+**KQ-005: Editor, Szenenbaum und Autosave.**
 
 Empfohlener, überprüfbarer Scope:
 
-1. Projektordner und Datenbankdatei über eine klar definierte Rust-API anlegen und öffnen.
-2. Pfade kanonisieren, erlaubte Wurzeln prüfen und Symlink-/Traversal-Fälle unter Windows testen.
-3. Atomare Backup-Erzeugung mit konsistentem SQLite-Snapshot implementieren.
-4. Wiederherstellung ausschließlich in ein neues Ziel durchführen; vorhandene Projekte nie still
-   überschreiben.
-5. Fehlerverträge und Tests für beschädigte Datenbanken, fehlende Dateien und Zukunftsschemas
-   ergänzen.
-6. Noch keine Editor- oder Git-Snapshotfunktion hineinziehen. Auch ein Projektmanager braucht keine
-   acht Arme, selbst wenn Oktopusse in Meetings oft erstaunlich effizient wirken.
+1. Persistenzvertrag für Kapitel, Szenen und Tiptap-JSON festziehen; Revisionen und
+   Konfliktverhalten explizit definieren.
+2. Transaktionale Repository-Operationen für Baumabfragen, Erstellen, Umordnen und Speichern bauen.
+3. Tiptap/ProseMirror integrieren und Autosave ausschließlich über versionierte Tauri-Commands
+   führen.
+4. Undo/Redo, Wortzählung und grundlegende Tastaturbedienung testen.
+5. Recovery-Test vom gespeicherten Szenenstand bis zur wiederhergestellten Oberfläche ergänzen.
+6. Story-Bibel und Plotboard noch nicht hineinziehen. Ein Editor wird nicht besser, wenn man ihm
+   vorsorglich drei Nebenberufe und einen Umhang gibt.
 
 ## Einstieg für die nächste Codex-Session
 
@@ -161,10 +180,10 @@ cd D:\kraqel
 git status
 git branch --show-current
 git log -5 --oneline
-gh issue view 4
+gh issue view 5
 ```
 
-Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0001 und ADR 0002, `docs/data-format/README.md`,
-`crates/domain/src/lib.rs`, `crates/storage/src/lib.rs` sowie die Initialmigration. Für KQ-004 einen
-eigenen Branch wie `feat/kq-004-project-manager` verwenden und den Issue-Status erst bei
-tatsächlichem Arbeitsbeginn ändern.
+Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0001 bis ADR 0003, `docs/data-format/README.md`,
+`packages/editor/`, `crates/domain/src/lib.rs` und `crates/storage/src/`. Für KQ-005 einen eigenen
+Branch wie `feat/kq-005-editor-autosave` verwenden und den Issue-Status erst bei tatsächlichem
+Arbeitsbeginn ändern.

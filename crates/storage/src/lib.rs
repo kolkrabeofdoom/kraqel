@@ -5,6 +5,8 @@ use std::{error::Error, fmt, path::Path, time::Duration};
 use kraqel_domain::{CURRENT_SCHEMA_VERSION, SchemaVersion};
 use rusqlite::{Connection, Transaction, TransactionBehavior};
 
+pub mod project_manager;
+
 const INITIAL_SCHEMA: &str = include_str!("../migrations/0001_initial.sql");
 const BUSY_TIMEOUT: Duration = Duration::from_secs(5);
 
