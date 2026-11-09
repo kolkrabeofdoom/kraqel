@@ -1,5 +1,7 @@
 //! Gemeinsame Domänentypen und versionierte Verträge der privilegierten Rust-Grenze.
 
+use std::fmt;
+
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -19,6 +21,18 @@ impl ProjectId {
     #[must_use]
     pub fn new() -> Self {
         Self(Uuid::new_v4())
+    }
+
+    /// Liefert die zugrunde liegende UUID.
+    #[must_use]
+    pub const fn as_uuid(self) -> Uuid {
+        self.0
+    }
+}
+
+impl fmt::Display for ProjectId {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(formatter)
     }
 }
 
