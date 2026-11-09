@@ -4,6 +4,7 @@ import {
   COMMAND_CONTRACT_VERSION,
   KraqelCommandError,
   createStoryEntity,
+  reorderPlotCards,
   getApplicationStatus,
   saveDocument,
   validateProjectName,
@@ -153,6 +154,27 @@ describe("typed Tauri commands", () => {
           name: "Rhea",
           properties: { Rolle: "Pilotin" },
         },
+      },
+    });
+  });
+
+  it("sends the complete Plotboard order through the versioned boundary", async () => {
+    const projectId = requestId as ProjectId;
+    const first = "018f47ea-9b2d-7cc1-98e8-b5f4f6b741a3" as EntityId;
+    const second = "018f47ea-9b2d-7cc1-98e8-b5f4f6b741a4" as EntityId;
+    mockedInvoke.mockResolvedValue({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: null,
+    });
+
+    await reorderPlotCards(projectId, [second, first]);
+
+    expect(mockedInvoke).toHaveBeenCalledWith("reorder_plot_cards", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: { projectId, parentId: null, orderedIds: [second, first] },
       },
     });
   });

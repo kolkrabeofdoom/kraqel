@@ -63,6 +63,57 @@ export interface StoryEntityDetails {
   readonly backlinks: readonly StoryBacklink[];
 }
 
+export type PlotStatus = "planned" | "draft" | "revised" | "done";
+
+export interface Storyline {
+  readonly id: EntityId;
+  readonly projectId: ProjectId;
+  readonly name: string;
+  readonly color: string;
+  readonly position: number;
+}
+
+export interface PlotCard {
+  readonly documentId: EntityId;
+  readonly title: string;
+  readonly storylineId: EntityId | null;
+  readonly povEntityId: EntityId | null;
+  readonly status: PlotStatus;
+  readonly position: number;
+}
+
+export interface PlotBoard {
+  readonly storylines: readonly Storyline[];
+  readonly cards: readonly PlotCard[];
+}
+
+export type TimelineMode = "relative" | "absolute";
+
+export interface Timeline {
+  readonly id: EntityId;
+  readonly projectId: ProjectId;
+  readonly name: string;
+  readonly mode: TimelineMode;
+  readonly position: number;
+}
+
+export interface TimelineEvent {
+  readonly id: EntityId;
+  readonly projectId: ProjectId;
+  readonly timelineId: EntityId;
+  readonly title: string;
+  readonly description: string;
+  readonly timeValue: string | null;
+  readonly position: number;
+  readonly documentIds: readonly EntityId[];
+  readonly entityIds: readonly EntityId[];
+}
+
+export interface TimelineDetails {
+  readonly timeline: Timeline;
+  readonly events: readonly TimelineEvent[];
+}
+
 export interface Project {
   readonly id: ProjectId;
   readonly name: string;

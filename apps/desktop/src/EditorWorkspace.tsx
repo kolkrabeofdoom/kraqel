@@ -19,6 +19,8 @@ import {
   type Workspace,
 } from "./commands";
 import { StoryBible } from "./StoryBible";
+import { PlotBoard } from "./PlotBoard";
+import { Timelines } from "./Timelines";
 
 interface EditorWorkspaceProps {
   readonly initialWorkspace: Workspace;
@@ -33,7 +35,9 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
   const [stored, setStored] = useState<StoredDocument | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [view, setView] = useState<"manuscript" | "storyBible">("manuscript");
+  const [view, setView] = useState<"manuscript" | "storyBible" | "plotBoard" | "timelines">(
+    "manuscript",
+  );
   const tree = useMemo(() => buildDocumentTree(workspace.documents), [workspace.documents]);
 
   useEffect(() => {
@@ -115,6 +119,22 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
             >
               Story-Bibel
             </button>
+            <button
+              type="button"
+              className={view === "plotBoard" ? "active" : "secondary"}
+              aria-current={view === "plotBoard" ? "page" : undefined}
+              onClick={() => setView("plotBoard")}
+            >
+              Plotboard
+            </button>
+            <button
+              type="button"
+              className={view === "timelines" ? "active" : "secondary"}
+              aria-current={view === "timelines" ? "page" : undefined}
+              onClick={() => setView("timelines")}
+            >
+              Timelines
+            </button>
           </nav>
           <button type="button" className="secondary" onClick={onClose}>
             Projektübersicht
@@ -159,8 +179,26 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
             ) : null}
           </section>
         </div>
-      ) : (
+      ) : view === "storyBible" ? (
         <StoryBible
+          projectId={workspace.project.id}
+          documents={workspace.documents}
+          activeDocumentId={activeId}
+          onSelectDocument={(id) => {
+            setActiveId(id);
+            setView("manuscript");
+          }}
+        />
+      ) : view === "plotBoard" ? (
+        <PlotBoard
+          projectId={workspace.project.id}
+          onSelectDocument={(id) => {
+            setActiveId(id);
+            setView("manuscript");
+          }}
+        />
+      ) : (
+        <Timelines
           projectId={workspace.project.id}
           documents={workspace.documents}
           activeDocumentId={activeId}

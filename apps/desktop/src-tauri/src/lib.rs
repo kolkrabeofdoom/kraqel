@@ -1,13 +1,15 @@
 use kraqel_domain::{
     CURRENT_SCHEMA_VERSION, CommandError, CommandRequest, CommandResponse, DocumentKind,
-    DocumentNode, EDITOR_DOCUMENT_VERSION, EditorDocument, EntityId, EntityKind, Project,
-    ProjectId, StoryEntity, StoryEntityDetails, StoryRelation, is_valid_project_name,
+    DocumentNode, EDITOR_DOCUMENT_VERSION, EditorDocument, EntityId, EntityKind, PlotBoard,
+    PlotStatus, Project, ProjectId, StoryEntity, StoryEntityDetails, StoryRelation, Storyline,
+    Timeline, TimelineDetails, TimelineEvent, TimelineMode, is_valid_project_name,
     require_current_contract,
 };
 use kraqel_storage::{
     document_repository::{DocumentError, DocumentRepository},
     project_manager::{ProjectError, ProjectManager},
     story_bible_repository::{StoryBibleError, StoryBibleRepository},
+    structure_repository::{StructureError, StructureRepository},
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, fs, path::PathBuf};
@@ -155,6 +157,85 @@ struct LinkStoryEntityRequest {
     project_id: String,
     document_id: String,
     entity_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct StorylineWriteRequest {
+    project_id: String,
+    name: String,
+    color: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct StorylineDeleteRequest {
+    project_id: String,
+    storyline_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PlotCardWriteRequest {
+    project_id: String,
+    document_id: String,
+    status: PlotStatus,
+    storyline_id: Option<String>,
+    pov_entity_id: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ReorderRequest {
+    project_id: String,
+    parent_id: Option<String>,
+    ordered_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct TimelineWriteRequest {
+    project_id: String,
+    name: String,
+    mode: TimelineMode,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct TimelineRequest {
+    project_id: String,
+    timeline_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct EventWriteRequest {
+    project_id: String,
+    timeline_id: String,
+    title: String,
+    description: String,
+    time_value: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct EventRequest {
+    project_id: String,
+    event_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(
+    clippy::struct_field_names,
+    reason = "Feldnamen spiegeln den öffentlichen IPC-Vertrag"
+)]
+struct EventLinkRequest {
+    project_id: String,
+    timeline_id: String,
+    event_id: String,
+    document_id: Option<String>,
+    entity_id: Option<String>,
 }
 
 #[tauri::command]
@@ -386,6 +467,303 @@ fn link_story_entity(
 ) -> Result<CommandResponse<StoryEntityDetails>, CommandError> {
     require_current_contract(&request)?;
     let data = link_story_entity_impl(&state, request.request_id, &request.payload)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn get_plot_board(
+    state: State<'_, AppState>,
+    request: CommandRequest<ProjectRequest>,
+) -> Result<CommandResponse<PlotBoard>, CommandError> {
+    require_current_contract(&request)?;
+    let data = with_structure(
+        &state,
+        request.request_id,
+        &request.payload.project_id,
+        |project, repository| repository.plot_board(project),
+    )?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn create_storyline(
+    state: State<'_, AppState>,
+    request: CommandRequest<StorylineWriteRequest>,
+) -> Result<CommandResponse<Storyline>, CommandError> {
+    require_current_contract(&request)?;
+    let data = with_structure(
+        &state,
+        request.request_id,
+        &request.payload.project_id,
+        |project, repository| {
+            repository.create_storyline(project, &request.payload.name, &request.payload.color)
+        },
+    )?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn delete_storyline(
+    state: State<'_, AppState>,
+    request: CommandRequest<StorylineDeleteRequest>,
+) -> Result<CommandResponse<()>, CommandError> {
+    require_current_contract(&request)?;
+    let id = parse_entity_id(request.request_id, &request.payload.storyline_id)?;
+    with_structure(
+        &state,
+        request.request_id,
+        &request.payload.project_id,
+        |project, repository| repository.delete_storyline(project, id),
+    )?;
+    Ok(CommandResponse::current(request.request_id, ()))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn update_plot_card(
+    state: State<'_, AppState>,
+    request: CommandRequest<PlotCardWriteRequest>,
+) -> Result<CommandResponse<()>, CommandError> {
+    require_current_contract(&request)?;
+    let document = parse_entity_id(request.request_id, &request.payload.document_id)?;
+    let storyline =
+        parse_optional_entity_id(request.request_id, request.payload.storyline_id.as_deref())?;
+    let pov =
+        parse_optional_entity_id(request.request_id, request.payload.pov_entity_id.as_deref())?;
+    with_structure(
+        &state,
+        request.request_id,
+        &request.payload.project_id,
+        |project, repository| {
+            repository.update_card(project, document, request.payload.status, storyline, pov)
+        },
+    )?;
+    Ok(CommandResponse::current(request.request_id, ()))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn reorder_plot_cards(
+    state: State<'_, AppState>,
+    request: CommandRequest<ReorderRequest>,
+) -> Result<CommandResponse<()>, CommandError> {
+    require_current_contract(&request)?;
+    if request.payload.parent_id.is_some() {
+        return Err(CommandError::invalid_request(
+            request.request_id,
+            "Die Kartenreihenfolge ist ungültig.",
+        ));
+    }
+    let ids = parse_entity_ids(request.request_id, &request.payload.ordered_ids)?;
+    with_structure(
+        &state,
+        request.request_id,
+        &request.payload.project_id,
+        |project, repository| repository.reorder_cards(project, &ids),
+    )?;
+    Ok(CommandResponse::current(request.request_id, ()))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn list_timelines(
+    state: State<'_, AppState>,
+    request: CommandRequest<ProjectRequest>,
+) -> Result<CommandResponse<Vec<Timeline>>, CommandError> {
+    require_current_contract(&request)?;
+    let data = with_structure(
+        &state,
+        request.request_id,
+        &request.payload.project_id,
+        |project, repository| repository.list_timelines(project),
+    )?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn create_timeline(
+    state: State<'_, AppState>,
+    request: CommandRequest<TimelineWriteRequest>,
+) -> Result<CommandResponse<Timeline>, CommandError> {
+    require_current_contract(&request)?;
+    let data = with_structure(
+        &state,
+        request.request_id,
+        &request.payload.project_id,
+        |project, repository| {
+            repository.create_timeline(project, &request.payload.name, request.payload.mode)
+        },
+    )?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn delete_timeline(
+    state: State<'_, AppState>,
+    request: CommandRequest<TimelineRequest>,
+) -> Result<CommandResponse<()>, CommandError> {
+    require_current_contract(&request)?;
+    let id = parse_entity_id(request.request_id, &request.payload.timeline_id)?;
+    with_structure(
+        &state,
+        request.request_id,
+        &request.payload.project_id,
+        |project, repository| repository.delete_timeline(project, id),
+    )?;
+    Ok(CommandResponse::current(request.request_id, ()))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn load_timeline(
+    state: State<'_, AppState>,
+    request: CommandRequest<TimelineRequest>,
+) -> Result<CommandResponse<TimelineDetails>, CommandError> {
+    require_current_contract(&request)?;
+    let id = parse_entity_id(request.request_id, &request.payload.timeline_id)?;
+    let data = with_structure(
+        &state,
+        request.request_id,
+        &request.payload.project_id,
+        |project, repository| repository.load_timeline(project, id),
+    )?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn create_timeline_event(
+    state: State<'_, AppState>,
+    request: CommandRequest<EventWriteRequest>,
+) -> Result<CommandResponse<TimelineEvent>, CommandError> {
+    require_current_contract(&request)?;
+    let timeline = parse_entity_id(request.request_id, &request.payload.timeline_id)?;
+    let data = with_structure(
+        &state,
+        request.request_id,
+        &request.payload.project_id,
+        |project, repository| {
+            repository.create_event(
+                project,
+                timeline,
+                &request.payload.title,
+                &request.payload.description,
+                request.payload.time_value.as_deref(),
+            )
+        },
+    )?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn delete_timeline_event(
+    state: State<'_, AppState>,
+    request: CommandRequest<EventRequest>,
+) -> Result<CommandResponse<()>, CommandError> {
+    require_current_contract(&request)?;
+    let event = parse_entity_id(request.request_id, &request.payload.event_id)?;
+    with_structure(
+        &state,
+        request.request_id,
+        &request.payload.project_id,
+        |project, repository| repository.delete_event(project, event),
+    )?;
+    Ok(CommandResponse::current(request.request_id, ()))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn reorder_timeline_events(
+    state: State<'_, AppState>,
+    request: CommandRequest<ReorderRequest>,
+) -> Result<CommandResponse<()>, CommandError> {
+    require_current_contract(&request)?;
+    let timeline =
+        request.payload.parent_id.as_deref().ok_or_else(|| {
+            CommandError::invalid_request(request.request_id, "Die Zeitebene fehlt.")
+        })?;
+    let timeline = parse_entity_id(request.request_id, timeline)?;
+    let ids = parse_entity_ids(request.request_id, &request.payload.ordered_ids)?;
+    with_structure(
+        &state,
+        request.request_id,
+        &request.payload.project_id,
+        |project, repository| repository.reorder_events(project, timeline, &ids),
+    )?;
+    Ok(CommandResponse::current(request.request_id, ()))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn link_timeline_event(
+    state: State<'_, AppState>,
+    request: CommandRequest<EventLinkRequest>,
+) -> Result<CommandResponse<TimelineDetails>, CommandError> {
+    require_current_contract(&request)?;
+    let event = parse_entity_id(request.request_id, &request.payload.event_id)?;
+    let timeline = parse_entity_id(request.request_id, &request.payload.timeline_id)?;
+    let document =
+        parse_optional_entity_id(request.request_id, request.payload.document_id.as_deref())?;
+    let entity =
+        parse_optional_entity_id(request.request_id, request.payload.entity_id.as_deref())?;
+    let data = with_structure(
+        &state,
+        request.request_id,
+        &request.payload.project_id,
+        |project, repository| {
+            let before = repository.load_timeline(project, timeline)?;
+            if !before.events.iter().any(|item| item.id == event) {
+                return Err(StructureError::InvalidInput);
+            }
+            repository.link_event(project, event, document, entity)?;
+            repository.load_timeline(project, timeline)
+        },
+    )?;
     Ok(CommandResponse::current(request.request_id, data))
 }
 
@@ -704,6 +1082,24 @@ fn manager(state: &AppState, request_id: uuid::Uuid) -> Result<ProjectManager, C
     ProjectManager::new(&state.project_root).map_err(|_| CommandError::internal(request_id))
 }
 
+fn with_structure<T>(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    project_value: &str,
+    operation: impl FnOnce(ProjectId, &mut StructureRepository<'_>) -> Result<T, StructureError>,
+) -> Result<T, CommandError> {
+    let project_id = parse_project_id(request_id, project_value)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    operation(
+        project_id,
+        &mut StructureRepository::new(opened.database_mut()),
+    )
+    .map_err(|error| map_structure_error(request_id, &error))
+}
+
 fn parse_project_id(request_id: uuid::Uuid, value: &str) -> Result<ProjectId, CommandError> {
     ProjectId::parse(value).ok_or_else(|| {
         CommandError::invalid_request(request_id, "Die Projektkennung ist ungültig.")
@@ -714,6 +1110,25 @@ fn parse_entity_id(request_id: uuid::Uuid, value: &str) -> Result<EntityId, Comm
     EntityId::parse(value).ok_or_else(|| {
         CommandError::invalid_request(request_id, "Die Dokumentkennung ist ungültig.")
     })
+}
+
+fn parse_optional_entity_id(
+    request_id: uuid::Uuid,
+    value: Option<&str>,
+) -> Result<Option<EntityId>, CommandError> {
+    value
+        .map(|item| parse_entity_id(request_id, item))
+        .transpose()
+}
+
+fn parse_entity_ids(
+    request_id: uuid::Uuid,
+    values: &[String],
+) -> Result<Vec<EntityId>, CommandError> {
+    values
+        .iter()
+        .map(|value| parse_entity_id(request_id, value))
+        .collect()
 }
 
 fn map_project_error(request_id: uuid::Uuid, error: &ProjectError) -> CommandError {
@@ -751,6 +1166,17 @@ fn map_story_bible_error(request_id: uuid::Uuid, error: &StoryBibleError) -> Com
     }
 }
 
+fn map_structure_error(request_id: uuid::Uuid, error: &StructureError) -> CommandError {
+    match error {
+        StructureError::InvalidInput | StructureError::NotFound => {
+            CommandError::invalid_request(request_id, "Die Struktur-Anfrage ist ungültig.")
+        }
+        StructureError::InvalidStoredData
+        | StructureError::Storage(_)
+        | StructureError::InvalidSystemTime => CommandError::internal(request_id),
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 /// Startet die Desktop-Anwendung.
 ///
@@ -781,7 +1207,20 @@ pub fn run() {
             delete_story_entity,
             create_story_relation,
             delete_story_relation,
-            link_story_entity
+            link_story_entity,
+            get_plot_board,
+            create_storyline,
+            delete_storyline,
+            update_plot_card,
+            reorder_plot_cards,
+            list_timelines,
+            create_timeline,
+            delete_timeline,
+            load_timeline,
+            create_timeline_event,
+            delete_timeline_event,
+            reorder_timeline_events,
+            link_timeline_event
         ])
         .run(tauri::generate_context!())
         .expect("KRAQEL konnte nicht gestartet werden");
