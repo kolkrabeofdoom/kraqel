@@ -2,7 +2,7 @@
 
 Stand: 9. November 2026
 
-Code-Referenz: KQ-009 (`feat/kq-009-export-pipeline`, Arbeitsstand)
+Code-Referenz: KQ-010 (`feat/kq-010-ollama-streaming`, Arbeitsstand)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -18,7 +18,7 @@ als vollständige Fachfunktion.
 | **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Teilweise umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, szenengebundenes Undo/Redo, Wortzählung, Fokusmodus, revisionsgeprüftes Autosave und SQLite-Backup vorhanden. Umbenennen, Umordnen, Löschen und E2E-Abnahme fehlen. |
 | **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks vorhanden. Browser-/Screenreader-Abnahme fehlt.                                   |
 | **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** deterministische Projektsnapshots, lokales Git sowie Manuskriptexport als Markdown, HTML, DOCX und PDF vorhanden. Import, schreibende Snapshot-Wiederherstellung, Medien und visuelle Profile fehlen.           |
-| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Nur Verträge vorbereitet:** Capability-, Kontextfreigabe-, Medien- und Profiltypen; keine Provider oder Fachabläufe.                                                                                                                   |
+| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Teilweise umgesetzt:** lokaler Ollama-Adapter mit Modellwahl, Streaming, revisionsgebundener Kontextfreigabe und verwerfbarem Entwurf vorhanden. Cloudprovider, Kontinuität, Prompt-Builder und Bildabläufe fehlen.                    |
 | **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                                                                            |
 | **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                   |
 
@@ -33,7 +33,7 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Tauri-2-/React-/TypeScript-Desktop-Shell mit statischer, responsiver Startoberfläche.
 - Minimale Tauri-Berechtigung `core:default`, definierte CSP und Windows-Fensterkonfiguration.
 - GitHub-Actions-CI unter `windows-latest` und `ubuntu-latest`.
-- Letzter CI-Lauf für `main` bei `667666f`: erfolgreich unter Windows und Linux.
+- Letzter geprüfter CI-Lauf für `main` bei `a0684fe`: erfolgreich unter Windows und Linux.
 - Qualitätskette: Prettier, rustfmt, ESLint, Clippy mit `-D warnings`, TypeScript, Vitest,
   Rust-Tests sowie Frontend- und Workspace-Builds.
 - GPL-3.0-or-later, Beitrags-, Verhaltens- und Sicherheitsdokumentation vorhanden.
@@ -147,11 +147,31 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Nicht Teil dieses Inkrements: Import, DOCX-Roundtrip, Medien, Fußnoten, Tabellen, Links und
   beliebige Tiptap-Erweiterungen.
 
+### Lokale Text-KI mit Ollama (KQ-010)
+
+- Providerunabhängige asynchrone Rust-Grenze für Beschreibung, Modellabfrage und geordnete
+  Streamereignisse; der erste Adapter spricht ausschließlich einen lokalen Ollama-Dienst an.
+- Die feste Loopback-Adresse, deaktivierte Systemproxies und Redirects verhindern, dass die lokale
+  Konfiguration versehentlich zu einem Cloudzugriff wird. Anfrage, einzelne JSONL-Zeilen und
+  Gesamtausgabe sind begrenzt und Antworten werden strikt validiert.
+- Vor jedem Lauf zeigt die Oberfläche den gespeicherten Szenenklartext. Die Freigabe erfolgt per
+  Checkbox für genau Dokument-ID und Revision; Rust lädt den Text erneut und lehnt einen inzwischen
+  geänderten Stand als Konflikt ab.
+- Modellliste und Textentwurf laufen über typisierte Tauri-Commands beziehungsweise einen Kanal. Der
+  Stream trägt Provenienz, bleibt verwerfbarer Entwurf und verändert oder speichert niemals
+  automatisch den Szenentext.
+- Automatisierte Tests prüfen Modellreihenfolge, JSON-Vertrag, geordnetes Streaming, den tatsächlich
+  übertragenen Kontext sowie die Sperre ohne Freigabe und für Nicht-Loopback-Adressen.
+- In der Entwicklungsumgebung ist kein laufender Ollama-Dienst vorhanden. Ein echter Modelllauf und
+  die manuelle Browser-/Screenreader-Abnahme sind daher noch nicht nachgewiesen. Cloudprovider und
+  Schlüsselspeicher gehören ausdrücklich nicht zu KQ-010.
+
 ### Begrenzte Hilfsfunktionen und Verträge
 
 - `asset-service`: relative Pfade werden akzeptiert, absolute Pfade und Elterntraversal abgelehnt.
 - `editor`: versionierter, generischer Snapshot-Vertrag.
-- `ai-contracts`: Capability-, Provider- und explizite Kontextfreigabetypen.
+- `ai-contracts`: Capability-, Provider-, Streaming- und explizite Kontextfreigabetypen; aktiv für
+  den lokalen Ollama-Ablauf genutzt.
 - `visual-contracts`: Grundtypen für Medienassets und visuelle Profile.
 - `continuity`: nur ein grundlegendes Enum; keine ausführbare Fachlogik.
 
@@ -177,19 +197,20 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 ## Offene Aufgaben
 
-### Unmittelbar: M3 fortsetzen
+### Unmittelbar: M4 fortsetzen
 
-1. **KQ-010 - Providerunabhängige Text-KI-Verträge und explizite Kontextfreigabe**
-   - konkreten Scope und Akzeptanzkriterien vor Implementierung aus dem Pflichtenheft ableiten
-   - kein Netzwerkzugriff und keine Providerkopplung ohne eigene Freigabeentscheidung
+1. **KQ-011 - Cloud-Textprovider, Schlüsselschutz und Freigabevorschau**
+   - OpenAI, Claude, Gemini und Mistral hinter derselben Providergrenze bewerten und anbinden
+   - Zugangsdaten ausschließlich im Betriebssystem-Schlüsselspeicher halten
+   - Cloudläufe nur nach klarer Vorschau und expliziter, laufbezogener Freigabe erlauben
 
 ### Danach gemäß Pflichtenheft
 
-- KQ-010 bis KQ-016: Textprovider, Kontinuität, Medienbibliothek, visuelle Profile, Prompt-Builder
-  und Bild-Capability-Verträge.
+- KQ-011 bis KQ-016: Cloud-Textprovider, Kontinuität, Medienbibliothek, visuelle Profile,
+  Prompt-Builder und Bild-Capability-Verträge.
 - KQ-017 und KQ-018 gehören zu Version 0.2 und sind kein Ziel für 0.1.
 
-Für KQ-009 bis KQ-018 sind noch nicht alle GitHub-Issues angelegt; die Aufgaben stehen im
+Für KQ-011 bis KQ-018 sind noch nicht alle GitHub-Issues angelegt; die Aufgaben stehen im
 Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkretisiert werden.
 
 ## Bekannte Fehler und Lücken
@@ -214,6 +235,11 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 - **Zeitwerte ohne Kalendersemantik:** Absolute Zeitwerte sind validierte Zeichenketten. Kalender,
   Zeitzonen und Arithmetik sind bewusst noch nicht implementiert.
 - **Keine End-to-End-Tests:** Playwright ist weder installiert noch konfiguriert.
+- **Ollama nur gegen Testserver geprüft:** Kein Ollama-Dienst und kein lokales Modell waren in der
+  Entwicklungsumgebung verfügbar. Abbruch, Laufpersistenz und eine manuelle Übernahme des Entwurfs
+  in den Editor sind noch nicht implementiert.
+- **Keine Cloudprovider:** OpenAI, Claude, Gemini und Mistral sowie sicherer Schlüsselspeicher sind
+  geplant, aber nicht implementiert. Ohne laufendes lokales Ollama bleibt die Text-KI inaktiv.
 - **Entitätssuche nicht indexiert:** Die Unicode-korrekte Suche filtert derzeit alle Einträge eines
   Projekts in Rust. Vor sehr großen Story-Bibeln sind Messung und gegebenenfalls eine echte
   FTS-Migration nötig.
@@ -246,6 +272,9 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 - **Ein Exportmodell für vier Renderer:** Die unterstützte Tiptap-Teilmenge wird vor jeder Ausgabe
   vollständig validiert. Renderer erhalten nur das gemeinsame Zwischenformat; Ziele werden lokal und
   atomar veröffentlicht (ADR 0008).
+- **Lokales Ollama hinter einer revisionsgebundenen Freigabe:** React erhält keinen direkten
+  Providerzugriff. Rust lädt den freigegebenen Szenenstand erneut, spricht ausschließlich Loopback
+  an und streamt einen verwerfbaren Entwurf ohne automatische Speicherung (ADR 0009).
 - **Privilegierte Operationen in Rust:** React kommuniziert ausschließlich über versionierte,
   typisierte Tauri-Commands mit Dateisystem, Storage, Git und späteren Providern.
 - **Verträge sind explizit versioniert:** Inkompatible Änderungen erfordern eine neue
@@ -263,30 +292,34 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 
 ## Abhängigkeiten und technische Risiken
 
-| Thema                        | Zustand / Risiko                                                                                            | Nächste Kontrolle                                         |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert | Vor großen Projekten messen; Migration nur mit Evidenz    |
-| Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                       | Gemeinsame Fixtures oder spätere Codegenerierung bewerten |
-| Datenformat                  | Snapshot v1 und vier Textexporte vorhanden; Import, Roundtrip und Assetreferenzen fehlen                    | Import/Roundtrip vor vollständiger F07/F08-Abnahme testen |
-| Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                             | Freie eingebettete Schrift und Medienkonzept prüfen       |
-| Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                   | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen  |
-| Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                    | Bei jeder Erweiterung Fixtures und Migration prüfen       |
-| Desktoptests                 | Unit-/IPC-Tests vorhanden, aber keine Browser-/Tauri-E2E-Abdeckung                                          | Playwright für Projekt- und Schreibablauf einführen       |
-| CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                               | Caching prüfen, ohne Reproduzierbarkeit zu schwächen      |
-| Abhängigkeitssicherheit      | GitHub Dependency Review privat nicht verfügbar                                                             | Alternative Audits oder Advanced Security später bewerten |
-| Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                    | Plattformmatrix je Release definieren                     |
+| Thema                        | Zustand / Risiko                                                                                            | Nächste Kontrolle                                          |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert | Vor großen Projekten messen; Migration nur mit Evidenz     |
+| Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                       | Gemeinsame Fixtures oder spätere Codegenerierung bewerten  |
+| Datenformat                  | Snapshot v1 und vier Textexporte vorhanden; Import, Roundtrip und Assetreferenzen fehlen                    | Import/Roundtrip vor vollständiger F07/F08-Abnahme testen  |
+| Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                             | Freie eingebettete Schrift und Medienkonzept prüfen        |
+| Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                   | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen   |
+| Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                    | Bei jeder Erweiterung Fixtures und Migration prüfen        |
+| Desktoptests                 | Unit-/IPC-Tests vorhanden, aber keine Browser-/Tauri-E2E-Abdeckung                                          | Playwright für Projekt- und Schreibablauf einführen        |
+| CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                               | Caching prüfen, ohne Reproduzierbarkeit zu schwächen       |
+| Abhängigkeitssicherheit      | GitHub Dependency Review privat nicht verfügbar                                                             | Alternative Audits oder Advanced Security später bewerten  |
+| Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                    | Plattformmatrix je Release definieren                      |
+| Lokale Text-KI               | Protokoll gegen kontrollierten Loopback-Testserver geprüft; echter Ollama-/Modelllauf fehlt                 | Mit freiem Testmodell manuell prüfen und Abbruch entwerfen |
+| Cloudprovider                | Noch nicht implementiert; Datenschutz, Schlüssel und anbieterspezifische Fehler bleiben offen               | KQ-011 mit eigener Bedrohungs- und Datenschutzprüfung      |
 
 ## Nächste geplante Entwicklungsstufe
 
-**KQ-010: Providerunabhängige Text-KI-Verträge und explizite Kontextfreigabe.**
+**KQ-011: Cloud-Textprovider, Schlüsselschutz und explizite Kontextfreigabe.**
 
 Empfohlener, überprüfbarer Scope:
 
-1. Pflichtenheft-Anforderungen für F04 und M4 gegen vorhandene `ai-contracts` abgleichen.
-2. GitHub-Issue mit expliziter Datenfluss-, Vorschau- und Einwilligungsgrenze anlegen.
-3. Lokale Mock-Provider-Schnittstelle und Fehlervertrag definieren; noch keinen Cloudanbieter
-   anbinden.
-4. Tests sicherstellen lassen, dass ohne Freigabe kein Kontext den Prozess verlässt.
+1. Pflichtenheft-Anforderungen für F05 und M4 gegen ADR 0009 und die vorhandene Providergrenze
+   abgleichen.
+2. GitHub-Issue mit Providerreihenfolge, Datenfluss, Schlüsselspeicher und Freigabegrenze anlegen.
+3. Zunächst einen Cloudprovider vertikal anbinden; anbieterspezifische SDKs und Fehler dürfen nicht
+   in UI oder Domänenmodell durchsickern.
+4. Mit Tests belegen, dass ohne Freigabe kein Request entsteht und Fehler keine Prompts,
+   Zugangsdaten oder lokalen Pfade offenlegen.
 
 ## Einstieg für die nächste Codex-Session
 
@@ -295,9 +328,9 @@ cd D:\kraqel
 git status
 git branch --show-current
 git log -5 --oneline
-rg "KQ-010" docs ROADMAP.md
+rg "KQ-011" docs ROADMAP.md
 ```
 
-Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0001 bis ADR 0007, `docs/data-format/README.md`,
-`packages/ai-contracts/` und die Zugänglichkeitstestpläne. Vor KQ-010 zuerst ein eigenes Issue
-anlegen und den Scope gegen F04 und M4 prüfen.
+Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0009, `docs/architecture/threat-model.md`,
+`packages/ai-contracts/`, `crates/ai-service/` und die Zugänglichkeitstestpläne. Vor KQ-011 zuerst
+ein eigenes Issue anlegen und den Scope gegen F05 und M4 prüfen.

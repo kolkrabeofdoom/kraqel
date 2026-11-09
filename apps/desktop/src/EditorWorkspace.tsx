@@ -23,6 +23,7 @@ import { PlotBoard } from "./PlotBoard";
 import { Timelines } from "./Timelines";
 import { VersionControl } from "./VersionControl";
 import { Exports } from "./Exports";
+import { TextAssistant } from "./TextAssistant";
 
 interface EditorWorkspaceProps {
   readonly initialWorkspace: Workspace;
@@ -38,7 +39,7 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<
-    "manuscript" | "storyBible" | "plotBoard" | "timelines" | "versions" | "exports"
+    "manuscript" | "storyBible" | "plotBoard" | "timelines" | "versions" | "exports" | "textAi"
   >("manuscript");
   const tree = useMemo(() => buildDocumentTree(workspace.documents), [workspace.documents]);
 
@@ -153,6 +154,14 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
             >
               Export
             </button>
+            <button
+              type="button"
+              className={view === "textAi" ? "active" : "secondary"}
+              aria-current={view === "textAi" ? "page" : undefined}
+              onClick={() => setView("textAi")}
+            >
+              KI-Entwurf
+            </button>
           </nav>
           <button type="button" className="secondary" onClick={onClose}>
             Projektübersicht
@@ -227,8 +236,10 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
         />
       ) : view === "versions" ? (
         <VersionControl projectId={workspace.project.id} />
-      ) : (
+      ) : view === "exports" ? (
         <Exports projectId={workspace.project.id} />
+      ) : (
+        <TextAssistant projectId={workspace.project.id} activeDocumentId={activeId} />
       )}
     </main>
   );

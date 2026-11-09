@@ -8,12 +8,18 @@ import {
   reorderPlotCards,
   getApplicationStatus,
   saveDocument,
+  streamTextDraft,
   validateProjectName,
 } from "./commands";
 import type { EntityId, ProjectId } from "@kraqel/domain";
 import { EDITOR_DOCUMENT_VERSION } from "@kraqel/editor";
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: vi.fn(),
+  Channel: class MockChannel<T> {
+    onmessage: (message: T) => void = () => undefined;
+  },
+}));
 
 const mockedInvoke = vi.mocked(invoke);
 const requestId = "018f47ea-9b2d-7cc1-98e8-b5f4f6b741a2";
@@ -197,6 +203,47 @@ describe("typed Tauri commands", () => {
         requestId,
         payload: { projectId, message: "Kapitel überarbeitet" },
       },
+    });
+  });
+
+  it("streams text events through a channel without changing editor content", async () => {
+    const projectId = requestId as ProjectId;
+    const documentId = "018f47ea-9b2d-7cc1-98e8-b5f4f6b741a3" as EntityId;
+    const events: unknown[] = [];
+    mockedInvoke.mockImplementation(async (_command, arguments_) => {
+      const channel = (arguments_ as { onEvent: { onmessage: (message: unknown) => void } })
+        .onEvent;
+      channel.onmessage({ type: "delta", text: "Kolkrabe" });
+      return { contractVersion: COMMAND_CONTRACT_VERSION, requestId, data: null };
+    });
+
+    await streamTextDraft(
+      {
+        projectId,
+        documentId,
+        expectedRevision: 3,
+        model: "rabe:7b",
+        instruction: "Weiterschreiben",
+        contextApproved: true,
+      },
+      (event) => events.push(event),
+    );
+
+    expect(events).toEqual([{ type: "delta", text: "Kolkrabe" }]);
+    expect(mockedInvoke).toHaveBeenCalledWith("stream_text_draft", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: {
+          projectId,
+          documentId,
+          expectedRevision: 3,
+          model: "rabe:7b",
+          instruction: "Weiterschreiben",
+          contextApproved: true,
+        },
+      },
+      onEvent: expect.any(Object),
     });
   });
 });

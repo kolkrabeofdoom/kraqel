@@ -1,4 +1,5 @@
-import { invoke } from "@tauri-apps/api/core";
+import { Channel, invoke } from "@tauri-apps/api/core";
+import type { AiContextPreview, TextProviderStatus, TextStreamEvent } from "@kraqel/ai-contracts";
 import {
   CURRENT_SCHEMA_VERSION,
   parseUuid,
@@ -209,6 +210,57 @@ export async function exportManuscript(
       ExportResult
     >("export_manuscript", { projectId, format })
   ).data;
+}
+
+export async function listOllamaModels(): Promise<TextProviderStatus> {
+  return (await callCommand<Record<string, never>, TextProviderStatus>("list_ollama_models", {}))
+    .data;
+}
+
+export async function previewAiContext(
+  projectId: ProjectId,
+  documentId: EntityId,
+): Promise<AiContextPreview> {
+  return (
+    await callCommand<
+      { readonly projectId: ProjectId; readonly documentId: EntityId },
+      AiContextPreview
+    >("preview_ai_context", { projectId, documentId })
+  ).data;
+}
+
+export interface StreamTextDraftInput {
+  readonly projectId: ProjectId;
+  readonly documentId: EntityId;
+  readonly expectedRevision: number;
+  readonly model: string;
+  readonly instruction: string;
+  readonly contextApproved: boolean;
+}
+
+export async function streamTextDraft(
+  input: StreamTextDraftInput,
+  onEvent: (event: TextStreamEvent) => void,
+): Promise<void> {
+  const requestId = newRequestId();
+  const channel = new Channel<TextStreamEvent>();
+  channel.onmessage = onEvent;
+  const request: CommandRequest<StreamTextDraftInput> = {
+    contractVersion: COMMAND_CONTRACT_VERSION,
+    requestId,
+    payload: input,
+  };
+  try {
+    const response = await invoke<CommandResponse<null>>("stream_text_draft", {
+      request,
+      onEvent: channel,
+    });
+    if (!isCommandResponse(response, requestId)) throw internalContractError(requestId);
+  } catch (error: unknown) {
+    if (error instanceof KraqelCommandError) throw error;
+    if (isCommandErrorContract(error, requestId)) throw new KraqelCommandError(error);
+    throw internalContractError(requestId);
+  }
 }
 
 export async function listStoryEntities(
