@@ -2,7 +2,7 @@
 
 Stand: 9. November 2026
 
-Code-Referenz: `496f243` (`KQ-002: Versionierte Domänen- und Command-Verträge`)
+Code-Referenz: KQ-003 (`feat/kq-003-sqlite-schema`, dieser Stand)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -12,15 +12,15 @@ als vollständige Fachfunktion.
 
 ## Status nach Pflichtenheft-Stufen
 
-| Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                            |
-| ------------ | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Teilweise umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability und Command-Verträge vorhanden. SQLite/FTS5, Migrationen und Projektpersistenz fehlen. |
-| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Nicht implementiert.** Nur ein generischer Editor-Snapshot-Typ existiert.                                                                                    |
-| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Nicht implementiert.** Keine UI, Persistenz oder Fachlogik.                                                                                                  |
-| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Nicht implementiert.** Es existieren nur Enums/Vertragstypen und eine relative Pfadprüfung.                                                                  |
-| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Nur Verträge vorbereitet:** Capability-, Kontextfreigabe-, Medien- und Profiltypen; keine Provider oder Fachabläufe.                                         |
-| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                  |
-| **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                         |
+| Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                                                             |
+| ------------ | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Weitgehend umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge sowie SQLite-Schema v1 mit Migration und FTS5 vorhanden. Projektmanager, Backup und Recovery fehlen. |
+| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Nicht implementiert.** Nur ein generischer Editor-Snapshot-Typ existiert.                                                                                                                     |
+| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Nicht implementiert.** Keine UI, Persistenz oder Fachlogik.                                                                                                                                   |
+| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Nicht implementiert.** Es existieren nur Enums/Vertragstypen und eine relative Pfadprüfung.                                                                                                   |
+| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Nur Verträge vorbereitet:** Capability-, Kontextfreigabe-, Medien- und Profiltypen; keine Provider oder Fachabläufe.                                                                          |
+| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                                   |
+| **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                          |
 
 Die funktionalen Anforderungen F01 bis F09 sind damit noch nicht abgenommen. Vorhandene Verträge und
 Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
@@ -50,6 +50,18 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Tests für Serialisierungsform, Vertragsversion, UUID-/Schemaprüfung, Projektnamen und
   Fehlerbereinigung.
 
+### Lokale Datenbank (KQ-003)
+
+- `rusqlite` 0.39 mit gebündeltem SQLite und FTS5, kompatibel mit Rust 1.85.
+- Initialschema v1 für `project`, `document`, `entity`, `relation` und `link` mit Fremdschlüsseln,
+  Indizes, JSON-Prüfungen und zentraler Schema-Version aus `kraqel-domain`.
+- Atomare Vorwärtsmigration über `PRAGMA user_version`; unbekannte Zukunftsversionen werden ohne
+  Schemaänderung abgelehnt.
+- Verwaltete Verbindungen aktivieren Fremdschlüssel, Busy-Timeout und für Dateien WAL.
+- FTS5-Index für Dokumenttitel und Klartext mit Triggern für Einfügen, Ändern und Löschen.
+- Tests für leere und befüllte Datenbanken, Wiederöffnung, Fremdschlüssel, FTS-Synchronisation und
+  Ablehnung eines Zukunftsschemas.
+
 ### Begrenzte Hilfsfunktionen und Verträge
 
 - `asset-service`: relative Pfade werden akzeptiert, absolute Pfade und Elterntraversal abgelehnt.
@@ -62,13 +74,9 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 ### Unmittelbar: M0 abschließen
 
-1. **KQ-003 - SQLite-Schema, Migrationen und FTS5** (`status: ready`)
-   - initiale Tabellen für `project`, `document`, `entity`, `relation` und `link`
-   - Foreign Keys, Transaktionen, FTS5 und Migrationstests
-   - einzige zentrale Schema-Version und Ablehnung unbekannter Zukunftsschemas
-2. **KQ-004 - Lokaler Projektmanager, Backup und Recovery** (`status: ready`)
+1. **KQ-004 - Lokaler Projektmanager, Backup und Recovery** (`status: ready`)
    - sichere Projektpfade, atomare Schreibvorgänge, Backup und nicht-destruktive Wiederherstellung
-3. **KQ-005 - Editor, Szenenbaum und Autosave** (`status: triage`)
+2. **KQ-005 - Editor, Szenenbaum und Autosave** (`status: triage`)
    - erst nach stabilen Domänen- und Persistenzverträgen sinnvoll umzusetzen
 
 ### Danach gemäß Pflichtenheft
@@ -82,11 +90,11 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 
 ## Bekannte Fehler und Lücken
 
-- **Schema-Version inkonsistent:** `crates/domain` und `packages/domain` verwenden Version `1`,
-  `crates/storage` verwendet noch den Platzhalter `0`. Das Storage-Crate ist nicht integriert;
-  KQ-003 muss die doppelte Quelle entfernen oder eindeutig ableiten.
-- **Keine Persistenz:** `crates/storage` enthält weder SQLite-Abhängigkeit noch Schema, Migrationen,
-  FTS5 oder Repositoryimplementierung.
+- **Noch keine fachliche Persistenzschicht:** Schema, Migration und FTS5 sind vorhanden, aber
+  Repository-Operationen und der lokale Projektmanager fehlen. Die sichtbare Anwendung öffnet noch
+  keine Projektdatenbank.
+- **Nur Initialmigration:** Der Migrationspfad 0 -> 1 ist getestet; weitere Versionen benötigen je
+  eine neue unveränderliche Vorwärtsmigration samt Test mit befüllter Vorgängerdatenbank.
 - **Startoberfläche ohne Funktion:** „Neues Projekt“ und „Projekt öffnen“ besitzen noch keine
   Handler. Die vorhandenen Commands werden von der sichtbaren UI nicht aufgerufen.
 - **Keine End-to-End-Tests:** Playwright ist weder installiert noch konfiguriert.
@@ -98,6 +106,9 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 
 - **SQLite als lokale Autorität, Git für portable Snapshots:** Die laufende Datenbank wird nicht
   versioniert. Exporte müssen deterministisch und wiederherstellbar sein (ADR 0001).
+- **Reproduzierbares SQLite und atomare Vorwärtsmigrationen:** Gebündeltes SQLite stellt FTS5
+  bereit; `PRAGMA user_version`, Fremdschlüssel, WAL und sofortige Transaktionen definieren den
+  Verbindungs- und Migrationsvertrag (ADR 0002).
 - **Privilegierte Operationen in Rust:** React kommuniziert ausschließlich über versionierte,
   typisierte Tauri-Commands mit Dateisystem, Storage, Git und späteren Providern.
 - **Verträge sind explizit versioniert:** Inkompatible Änderungen erfordern eine neue
@@ -117,7 +128,7 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 
 | Thema                        | Zustand / Risiko                                                         | Nächste Kontrolle                                         |
 | ---------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------- |
-| SQLite und FTS5              | Noch keine Bibliothek oder Migration; M0 blockiert                       | KQ-003 mit Migrations- und FTS5-Tests                     |
+| SQLite und FTS5              | Schema v1 und FTS5 getestet; Repository-API und Backup fehlen            | KQ-004 mit Projektlebenszyklus und Recovery               |
 | Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                    | Gemeinsame Fixtures oder spätere Codegenerierung bewerten |
 | Datenformat                  | Manifest und JSON-Schemas fehlen                                         | Mit KQ-003 und Snapshotarbeit versionieren                |
 | Dateisystem                  | Nur lexikalische relative Pfadprüfung; keine Symlink-/Kanonikprüfung     | KQ-004 mit Windows-Pfadtests                              |
@@ -129,19 +140,19 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 
 ## Nächste geplante Entwicklungsstufe
 
-**KQ-003: SQLite-Schema, Migrationen, FTS5 und Migrationstests.**
+**KQ-004: Lokaler Projektmanager, Backup und Recovery.**
 
 Empfohlener, überprüfbarer Scope:
 
-1. ADR-Ergänzung für SQLite-Bibliothek, Connection-Pragmas und Migrationsstrategie.
-2. Zentrale Schema-Version aus `kraqel-domain` verwenden; Storage-Platzhalter `0` beseitigen.
-3. Initialmigration für `project`, `document`, `entity`, `relation` und `link` mit
-   UUID-Textschlüsseln, Foreign Keys und sinnvollen Indizes.
-4. FTS5 zunächst für Szenen-/Dokumenttext mit explizitem Synchronisationsmodell.
-5. Tests für leere Datenbank, Vorwärtsmigration, Foreign-Key-Verletzung, FTS-Suche und unbekannte
-   Zukunftsversion.
-6. Noch keine Medien-, Timeline-, KI- oder Editorfunktion in diesen Scope ziehen; ein Sumpf wird
-   nicht trockener, wenn man mehr Frösche hineinsetzt.
+1. Projektordner und Datenbankdatei über eine klar definierte Rust-API anlegen und öffnen.
+2. Pfade kanonisieren, erlaubte Wurzeln prüfen und Symlink-/Traversal-Fälle unter Windows testen.
+3. Atomare Backup-Erzeugung mit konsistentem SQLite-Snapshot implementieren.
+4. Wiederherstellung ausschließlich in ein neues Ziel durchführen; vorhandene Projekte nie still
+   überschreiben.
+5. Fehlerverträge und Tests für beschädigte Datenbanken, fehlende Dateien und Zukunftsschemas
+   ergänzen.
+6. Noch keine Editor- oder Git-Snapshotfunktion hineinziehen. Auch ein Projektmanager braucht keine
+   acht Arme, selbst wenn Oktopusse in Meetings oft erstaunlich effizient wirken.
 
 ## Einstieg für die nächste Codex-Session
 
@@ -150,10 +161,10 @@ cd D:\kraqel
 git status
 git branch --show-current
 git log -5 --oneline
-gh issue view 3
+gh issue view 4
 ```
 
-Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0001, `docs/data-format/README.md`,
-`crates/domain/src/lib.rs` und `crates/storage/src/lib.rs`. Für KQ-003 einen eigenen Branch wie
-`feat/kq-003-sqlite-schema` verwenden und den Issue-Status erst bei tatsächlichem Arbeitsbeginn
-ändern.
+Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0001 und ADR 0002, `docs/data-format/README.md`,
+`crates/domain/src/lib.rs`, `crates/storage/src/lib.rs` sowie die Initialmigration. Für KQ-004 einen
+eigenen Branch wie `feat/kq-004-project-manager` verwenden und den Issue-Status erst bei
+tatsächlichem Arbeitsbeginn ändern.

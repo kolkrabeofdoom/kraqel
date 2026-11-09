@@ -9,7 +9,20 @@ Der Exportstandard ist noch in Arbeit. Fest stehen folgende Invarianten:
 - keine API-Schlüssel, absoluten lokalen Pfade oder unfreigegebenen temporären Daten
 - dokumentierte Herkunft für importierte und generierte Medien
 
-Ein formales Manifest und JSON-Schemas folgen mit KQ-002/KQ-003.
+Ein formales portables Manifest und JSON-Schemas fehlen weiterhin und werden mit der Snapshotarbeit
+konkretisiert.
+
+## Lokales SQLite-Schema v1
+
+Die autoritative lokale Datenbank besitzt die Tabellen `project`, `document`, `entity`, `relation`
+und `link`. UUIDs werden als kanonische kleingeschriebene Textwerte gespeichert; Fremdschlüssel und
+JSON-Gültigkeitsprüfungen sind verbindlich. `document_fts` indexiert Titel und Klartext per FTS5 und
+wird durch Trigger synchron gehalten.
+
+`PRAGMA user_version = 1` bezeichnet die technische Schema-Version. KRAQEL migriert nur
+vorwärtsgerichtet und atomar; Datenbanken aus unbekannten neueren Versionen werden nicht verändert.
+Die SQLite-Datei selbst ist kein Austauschformat und bleibt ebenso wie WAL-Nebenfiles aus Git
+ausgeschlossen.
 
 ## Lokaler Command-Vertrag v1
 
