@@ -14,7 +14,10 @@
 2. M2-Strukturwerkzeuge
    - [x] Story-Bibel mit Entitäten, Beziehungen, Suche und Szenen-Rückverweisen
    - [x] Plotboard und Timeline
-3. Git-Snapshots, Import/Export, Medienbibliothek und visuelle Profile
+3. M3-Datenportabilität und Medien
+   - [x] Deterministische Projektsnapshots und lokales Git für Status, Diff und Commit
+   - [ ] Import/Export nach Markdown, HTML, DOCX und PDF
+   - [ ] Medienbibliothek und visuelle Profile
 4. Optionale Text-KI, Kontinuitätsprüfung, Prompt-Entwürfe und Bildverträge
 5. Reproduzierbarer Windows-Release mit Dokumentation und Abnahme
 

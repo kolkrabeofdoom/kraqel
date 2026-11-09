@@ -21,6 +21,7 @@ import {
 import { StoryBible } from "./StoryBible";
 import { PlotBoard } from "./PlotBoard";
 import { Timelines } from "./Timelines";
+import { VersionControl } from "./VersionControl";
 
 interface EditorWorkspaceProps {
   readonly initialWorkspace: Workspace;
@@ -35,9 +36,9 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
   const [stored, setStored] = useState<StoredDocument | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [view, setView] = useState<"manuscript" | "storyBible" | "plotBoard" | "timelines">(
-    "manuscript",
-  );
+  const [view, setView] = useState<
+    "manuscript" | "storyBible" | "plotBoard" | "timelines" | "versions"
+  >("manuscript");
   const tree = useMemo(() => buildDocumentTree(workspace.documents), [workspace.documents]);
 
   useEffect(() => {
@@ -135,6 +136,14 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
             >
               Timelines
             </button>
+            <button
+              type="button"
+              className={view === "versions" ? "active" : "secondary"}
+              aria-current={view === "versions" ? "page" : undefined}
+              onClick={() => setView("versions")}
+            >
+              Versionen
+            </button>
           </nav>
           <button type="button" className="secondary" onClick={onClose}>
             Projektübersicht
@@ -197,7 +206,7 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
             setView("manuscript");
           }}
         />
-      ) : (
+      ) : view === "timelines" ? (
         <Timelines
           projectId={workspace.project.id}
           documents={workspace.documents}
@@ -207,6 +216,8 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
             setView("manuscript");
           }}
         />
+      ) : (
+        <VersionControl projectId={workspace.project.id} />
       )}
     </main>
   );

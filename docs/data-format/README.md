@@ -9,8 +9,37 @@ Der Exportstandard ist noch in Arbeit. Fest stehen folgende Invarianten:
 - keine API-Schlüssel, absoluten lokalen Pfade oder unfreigegebenen temporären Daten
 - dokumentierte Herkunft für importierte und generierte Medien
 
-Ein formales portables Manifest und JSON-Schemas fehlen weiterhin und werden mit der Snapshotarbeit
-konkretisiert.
+Das portable Snapshotformat v1 ist in `snapshot-v1.schema.json` formal beschrieben. Die laufende
+SQLite-Datei bleibt davon getrennt.
+
+## Portabler Projektsnapshot v1
+
+KRAQEL veröffentlicht einen Snapshot im Projektordner unter `snapshot/`. Der Ordner enthält:
+
+- `manifest.json` mit Formatkennung `kraqel-project-snapshot`, Formatversion, Projektmetadaten,
+  fester Dateiliste und der vorerst leeren Assetliste;
+- `schema.json` als mitgeführte Kopie des JSON-Schemas;
+- `documents.json`, `story-bible.json`, `plotboard.json` und `timelines.json` mit explizitem
+  `kind`-Diskriminator;
+- `manuscript/<uuid>.md` mit stabilen, titelunabhängigen Dateinamen;
+- `README.md` als menschenlesbaren Hinweis auf SQLite als lokale Autorität.
+
+Sammlungen werden fachlich und anschließend nach stabiler UUID sortiert. JSON wird eingerückt mit
+sortierten Objektschlüsseln, UTF-8, LF und abschließendem Zeilenumbruch geschrieben. Markdown
+normalisiert Zeilenenden auf LF. Erstellungs- und Änderungszeitstempel der Datenbank werden nicht
+exportiert, da sie einen fachlich unveränderten Snapshot instabil machen würden.
+
+Die Veröffentlichung verwendet ein neues Geschwisterverzeichnis und tauscht anschließend den
+kompletten `snapshot/`-Ordner aus. Eine Wiederholung ohne fachliche Änderung ist byte-identisch. Die
+lesende Prüfung kontrolliert Manifest, Formatversion, Projektkennung, feste Dateien,
+Inhaltsdiskriminatoren sowie UUID-basierte Manuskriptdateien. Sie schreibt nichts zurück in SQLite;
+eine vollständige Wiederherstellung in ein neues Projekt ist noch nicht implementiert.
+
+Git wird im verwalteten Projektordner lokal initialisiert. Eine deny-by-default `.gitignore` gibt
+nur `.gitignore` und `snapshot/**` frei. Add, Status, Diff und Commit erhalten zusätzlich feste
+Pfadangaben; Git-System- und Nutzer*innenkonfiguration, Hooks, externe Diffs, Signaturzwang und
+interaktive Prompts werden für diese Operationen deaktiviert. Insbesondere bleiben `kraqel.sqlite3`,
+WAL-/SHM-Dateien, `backups/`, Schlüssel und temporäre Dateien unversioniert.
 
 ## Lokales SQLite-Schema und Migrationsstand
 
