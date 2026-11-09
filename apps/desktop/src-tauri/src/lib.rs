@@ -1,3 +1,7 @@
+use kraqel_ai_service::{
+    OllamaProvider, ReleasedTextContext, TextGenerationRequest, TextModel, TextProvider,
+    TextProviderDescriptor, TextProviderError, TextStreamEvent,
+};
 use kraqel_domain::{
     CURRENT_SCHEMA_VERSION, CommandError, CommandRequest, CommandResponse, DocumentKind,
     DocumentNode, EDITOR_DOCUMENT_VERSION, EditorDocument, EntityId, EntityKind, PlotBoard,
@@ -19,7 +23,7 @@ use kraqel_storage::{
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, fs, path::PathBuf};
-use tauri::{Manager as _, State};
+use tauri::{Manager as _, State, ipc::Channel};
 
 struct AppState {
     project_root: PathBuf,
@@ -88,6 +92,41 @@ struct SaveDocumentRequest {
 struct ExportProjectRequest {
     project_id: String,
     format: ExportFormat,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AiContextRequest {
+    project_id: String,
+    document_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AiContextPreview {
+    document_id: EntityId,
+    document_title: String,
+    revision: u64,
+    text: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct StreamTextDraftRequest {
+    project_id: String,
+    document_id: String,
+    expected_revision: u64,
+    model: String,
+    instruction: String,
+    context_approved: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct OllamaModelsResponse {
+    provider: TextProviderDescriptor,
+    available: bool,
+    models: Vec<TextModel>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -396,6 +435,73 @@ fn export_manuscript(
     require_current_contract(&request)?;
     let data = export_manuscript_impl(&state, request.request_id, &request.payload)?;
     Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+async fn list_ollama_models(
+    request: CommandRequest<ApplicationStatusRequest>,
+) -> Result<CommandResponse<OllamaModelsResponse>, CommandError> {
+    require_current_contract(&request)?;
+    let ApplicationStatusRequest {} = request.payload;
+    let provider = OllamaProvider::local_default()
+        .map_err(|error| map_text_provider_error(request.request_id, &error))?;
+    let descriptor = provider.descriptor();
+    let (available, models) = match provider.list_models().await {
+        Ok(models) => (true, models),
+        Err(TextProviderError::Unavailable) => (false, Vec::new()),
+        Err(error) => return Err(map_text_provider_error(request.request_id, &error)),
+    };
+    Ok(CommandResponse::current(
+        request.request_id,
+        OllamaModelsResponse {
+            provider: descriptor,
+            available,
+            models,
+        },
+    ))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn preview_ai_context(
+    state: State<'_, AppState>,
+    request: CommandRequest<AiContextRequest>,
+) -> Result<CommandResponse<AiContextPreview>, CommandError> {
+    require_current_contract(&request)?;
+    let preview = preview_ai_context_impl(&state, request.request_id, &request.payload)?;
+    Ok(CommandResponse::current(request.request_id, preview))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+async fn stream_text_draft(
+    state: State<'_, AppState>,
+    request: CommandRequest<StreamTextDraftRequest>,
+    on_event: Channel<TextStreamEvent>,
+) -> Result<CommandResponse<()>, CommandError> {
+    require_current_contract(&request)?;
+    let generation = prepare_text_generation(&state, request.request_id, &request.payload)?;
+    let provider = OllamaProvider::local_default()
+        .map_err(|error| map_text_provider_error(request.request_id, &error))?;
+    provider
+        .stream_draft(&generation, &mut |event| {
+            on_event
+                .send(event)
+                .map_err(|_| TextProviderError::StreamClosed)
+        })
+        .await
+        .map_err(|error| map_text_provider_error(request.request_id, &error))?;
+    Ok(CommandResponse::current(request.request_id, ()))
 }
 
 #[tauri::command]
@@ -1118,6 +1224,70 @@ fn export_manuscript_impl(
         .map_err(|error| map_export_error(request_id, &error))
 }
 
+fn preview_ai_context_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &AiContextRequest,
+) -> Result<AiContextPreview, CommandError> {
+    let stored = load_ai_scene(state, request_id, &request.project_id, &request.document_id)?;
+    Ok(AiContextPreview {
+        document_id: stored.node.id,
+        document_title: stored.node.title,
+        revision: stored.node.revision,
+        text: stored.plain_text,
+    })
+}
+
+fn prepare_text_generation(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &StreamTextDraftRequest,
+) -> Result<TextGenerationRequest, CommandError> {
+    if !request.context_approved {
+        return Err(CommandError::invalid_request(
+            request_id,
+            "Der angezeigte Kontext wurde nicht freigegeben.",
+        ));
+    }
+    let stored = load_ai_scene(state, request_id, &request.project_id, &request.document_id)?;
+    if stored.node.revision != request.expected_revision {
+        return Err(CommandError::conflict(request_id));
+    }
+    Ok(TextGenerationRequest {
+        model: request.model.clone(),
+        instruction: request.instruction.clone(),
+        context: ReleasedTextContext {
+            label: stored.node.title,
+            text: stored.plain_text,
+            approved: true,
+        },
+    })
+}
+
+fn load_ai_scene(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    project_id: &str,
+    document_id: &str,
+) -> Result<kraqel_storage::document_repository::StoredDocument, CommandError> {
+    let project_id = parse_project_id(request_id, project_id)?;
+    let document_id = parse_entity_id(request_id, document_id)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    let stored = DocumentRepository::new(opened.database_mut())
+        .load(project_id, document_id)
+        .map_err(|error| map_document_error(request_id, &error))?;
+    if stored.node.kind != DocumentKind::Scene {
+        return Err(CommandError::invalid_request(
+            request_id,
+            "Nur Szenen können als Textkontext freigegeben werden.",
+        ));
+    }
+    Ok(stored)
+}
+
 fn list_story_entities_impl(
     state: &AppState,
     request_id: uuid::Uuid,
@@ -1409,6 +1579,18 @@ fn map_export_error(request_id: uuid::Uuid, error: &ExportError) -> CommandError
     }
 }
 
+fn map_text_provider_error(request_id: uuid::Uuid, error: &TextProviderError) -> CommandError {
+    match error {
+        TextProviderError::ContextNotApproved | TextProviderError::InvalidRequest => {
+            CommandError::invalid_request(request_id, "Die Textanfrage ist ungültig.")
+        }
+        TextProviderError::Unavailable
+        | TextProviderError::InvalidResponse
+        | TextProviderError::ResponseTooLarge
+        | TextProviderError::StreamClosed => CommandError::internal(request_id),
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 /// Startet die Desktop-Anwendung.
 ///
@@ -1433,6 +1615,9 @@ pub fn run() {
             load_document,
             save_document,
             export_manuscript,
+            list_ollama_models,
+            preview_ai_context,
+            stream_text_draft,
             list_story_entities,
             create_story_entity,
             update_story_entity,
@@ -1478,12 +1663,14 @@ mod tests {
     use uuid::Uuid;
 
     use super::{
-        AppState, ApplicationStatusRequest, CreateProjectRequest, DocumentRequest,
-        ExportProjectRequest, LinkStoryEntityRequest, ListStoryEntitiesRequest,
-        SaveDocumentRequest, StoryEntityRequest, ValidateProjectNameRequest,
-        WriteStoryEntityRequest, application_status, create_project_impl, export_manuscript_impl,
-        link_story_entity_impl, list_projects_impl, list_story_entities_impl, load_document_impl,
-        load_story_entity_impl, save_document_impl, validate_project_name, write_story_entity_impl,
+        AiContextRequest, AppState, ApplicationStatusRequest, CreateProjectRequest,
+        DocumentRequest, ExportProjectRequest, LinkStoryEntityRequest, ListStoryEntitiesRequest,
+        SaveDocumentRequest, StoryEntityRequest, StreamTextDraftRequest,
+        ValidateProjectNameRequest, WriteStoryEntityRequest, application_status,
+        create_project_impl, export_manuscript_impl, link_story_entity_impl, list_projects_impl,
+        list_story_entities_impl, load_document_impl, load_story_entity_impl,
+        prepare_text_generation, preview_ai_context_impl, save_document_impl,
+        validate_project_name, write_story_entity_impl,
     };
 
     const REQUEST_ID: Uuid = Uuid::from_u128(0x018f_47ea_9b2d_7cc1_98e8_b5f4_f6b7_41a2);
@@ -1618,6 +1805,66 @@ mod tests {
         )
         .expect_err("stale revision should conflict");
         assert_eq!(conflict.code, CommandErrorCode::Conflict);
+    }
+
+    #[test]
+    fn ai_context_requires_preview_release_and_current_revision() {
+        let root = tempdir().expect("temporary root should exist");
+        let state = AppState {
+            project_root: root.path().to_path_buf(),
+        };
+        let workspace = create_project_impl(
+            &state,
+            REQUEST_ID,
+            CreateProjectRequest {
+                name: "Morgenrot".to_owned(),
+            },
+        )
+        .expect("project should be created");
+        let scene = workspace
+            .documents
+            .iter()
+            .find(|document| document.kind == kraqel_domain::DocumentKind::Scene)
+            .expect("scene");
+        save_document_impl(
+            &state,
+            REQUEST_ID,
+            SaveDocumentRequest {
+                project_id: workspace.project.id.to_string(),
+                document_id: scene.id.to_string(),
+                expected_revision: 0,
+                content: EditorDocument {
+                    version: EDITOR_DOCUMENT_VERSION,
+                    document: json!({"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Nur dieser Kontext"}]}]}),
+                },
+            },
+        )
+        .expect("scene save");
+        let preview = preview_ai_context_impl(
+            &state,
+            REQUEST_ID,
+            &AiContextRequest {
+                project_id: workspace.project.id.to_string(),
+                document_id: scene.id.to_string(),
+            },
+        )
+        .expect("preview");
+        assert_eq!(preview.text, "Nur dieser Kontext");
+        assert_eq!(preview.revision, 1);
+        let error = prepare_text_generation(
+            &state,
+            REQUEST_ID,
+            &StreamTextDraftRequest {
+                project_id: workspace.project.id.to_string(),
+                document_id: scene.id.to_string(),
+                expected_revision: preview.revision,
+                model: "rabe:7b".to_owned(),
+                instruction: "Weiterschreiben".to_owned(),
+                context_approved: false,
+            },
+        )
+        .expect_err("release should be required");
+        assert_eq!(error.code, CommandErrorCode::InvalidRequest);
     }
 
     #[test]

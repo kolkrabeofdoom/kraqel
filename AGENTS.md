@@ -51,12 +51,15 @@ Aktuell im Repository und verifiziert:
 - **Export:** streng validierte gemeinsame Manuskriptrepräsentation und lokale, atomare Ausgabe als
   Markdown, eigenständiges HTML, DOCX oder A4-PDF; unbekannte Editorformatierungen werden abgelehnt
   statt verworfen.
+- **Lokale Text-KI:** providerunabhängige Rust-Grenze, ausschließlich lokaler Ollama-Adapter,
+  Modellabfrage und gestreamte, verwerfbare Entwürfe nach expliziter Kontextfreigabe.
 - **Qualität:** Prettier, ESLint, TypeScript-Checks, Vitest, Rust-Tests, rustfmt und Clippy mit
   Warnungen als Fehler; GitHub Actions unter Windows und Linux.
 
 Im Pflichtenheft vorgesehen, aber noch **nicht implementiert oder installiert**: Tailwind, React
-Flow, dnd-kit, Playwright, Provider-Anbindungen und Bildgenerierung. Eine bloße Typdefinition oder
-ein leeres Crate ist keine fertige Funktion - auch wenn es sehr selbstbewusst kompiliert.
+Flow, dnd-kit, Playwright, Cloud-Provider-Anbindungen und Bildgenerierung. Ollama wird unterstützt,
+aber nicht mit KRAQEL ausgeliefert. Eine bloße Typdefinition oder ein leeres Crate ist keine fertige
+Funktion - auch wenn es sehr selbstbewusst kompiliert.
 
 ## Verzeichnisstruktur und Verantwortlichkeiten
 
@@ -67,12 +70,13 @@ ein leeres Crate ist keine fertige Funktion - auch wenn es sehr selbstbewusst ko
 | `packages/domain/`           | TypeScript-Domänentypen, UUID-/Schema-Validierung            | Dokument- und Story-Modell   |
 | `packages/editor/`           | Editorvertrag, Baum, Autosave und Tiptap-Hilfsfunktionen     | M1-Grundfunktionen getestet  |
 | `packages/ui/`               | Geteilte zugängliche UI-Komponenten                          | Nur Platzhalterkonstante     |
-| `packages/ai-contracts/`     | Provider-, Capability- und Freigabeverträge                  | Grundtypen, keine Provider   |
+| `packages/ai-contracts/`     | Provider-, Capability-, Stream- und Freigabeverträge         | Textverträge für Ollama      |
 | `packages/visual-contracts/` | Medien- und visuelle Profilverträge                          | Grundtypen, keine Persistenz |
 | `crates/domain/`             | Rust-Domäne und versionierte Command-Verträge                | Dokument- und Story-Modell   |
 | `crates/storage/`            | SQLite, Projektlebenszyklus und fachliche Repositories       | Dokumente und M2-Persistenz  |
 | `crates/git-service/`        | Deterministische Snapshots und Git-Operationen               | Lokaler M3-Mindestumfang     |
 | `crates/export/`             | Validierung, Zwischenformat und atomarer Manuskriptexport    | M3-Textformate getestet      |
+| `crates/ai-service/`         | Textprovider-Grenze, Loopback-Schutz und Ollama-Streaming    | Lokaler KQ-010-Mindestumfang |
 | `crates/continuity/`         | Regelbasierte Kontinuitätsprüfung                            | Nur Schweregrad-Enum         |
 | `crates/asset-service/`      | Sicherer Asset-Import, Hashes, Pfade, Thumbnails             | Relative Pfadprüfung         |
 | `docs/architecture/`         | Architekturübersicht, ADRs und Threat Model                  | Verbindliche Entscheidungen  |
@@ -134,6 +138,7 @@ pnpm --filter @kraqel/desktop test
 cargo test -p kraqel-domain
 cargo test -p kraqel-storage
 cargo test -p kraqel-export
+cargo test -p kraqel-ai-service
 ```
 
 `pnpm check` ist vor einer Codeübergabe verbindlich. Einen vollständigen Tauri-Build nur ausführen,

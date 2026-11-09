@@ -28,7 +28,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -54,6 +55,7 @@ button:disabled {
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
+textarea:focus-visible,
 .ProseMirror:focus-visible {
   outline: 3px solid #cc7048;
   outline-offset: 3px;
@@ -642,6 +644,107 @@ button.scene-button.active {
   max-width: 1100px;
   margin: 0 auto;
   padding: 1.5rem;
+}
+
+.ai-panel {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.ai-panel > p {
+  max-width: 58rem;
+  line-height: 1.6;
+}
+
+.ai-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.ai-controls,
+.draft-panel {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  padding: 1rem;
+  background: var(--surface);
+}
+
+.ai-controls label {
+  font-weight: 700;
+}
+
+.ai-controls select,
+.ai-controls textarea {
+  width: 100%;
+  border: 1px solid #8aa49e;
+  border-radius: 0.6rem;
+  padding: 0.75rem;
+  color: #183235;
+  background: #fffef9;
+}
+
+.context-preview {
+  border-left: 4px solid #0c7772;
+  padding-left: 0.85rem;
+}
+
+.context-preview pre,
+.draft-panel pre {
+  max-height: 24rem;
+  overflow: auto;
+  margin: 0;
+  border-radius: 0.5rem;
+  padding: 0.85rem;
+  color: #183235;
+  background: #f4f1e8;
+  font:
+    0.9rem/1.55 ui-monospace,
+    "Cascadia Code",
+    monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.consent-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-weight: 500 !important;
+}
+
+.consent-row input {
+  margin-top: 0.2rem;
+}
+
+.draft-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.draft-heading h3 {
+  margin: 0;
+}
+
+.notice-banner {
+  border-left: 4px solid #b78620;
+  border-radius: 0.35rem;
+  padding: 0.85rem 1rem;
+  color: #66470b;
+  background: #fff6dc;
+}
+
+@media (max-width: 850px) {
+  .ai-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .export-panel > p {

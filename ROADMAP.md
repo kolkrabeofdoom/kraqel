@@ -20,6 +20,9 @@
    - [ ] Import und DOCX-Roundtrip
    - [ ] Medienbibliothek und visuelle Profile
 4. Optionale Text-KI, Kontinuitätsprüfung, Prompt-Entwürfe und Bildverträge
+   - [x] Providerunabhängige Textgrenze und lokales Ollama-Streaming mit Kontextfreigabe
+   - [ ] Cloud-Textprovider und Betriebssystem-Schlüsselspeicher
+   - [ ] Kontinuitätsprüfung, Prompt-Entwürfe und Bildverträge
 5. Reproduzierbarer Windows-Release mit Dokumentation und Abnahme
 
 ## M6 - Version 0.2

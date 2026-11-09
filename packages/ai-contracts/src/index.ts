@@ -20,3 +20,35 @@ export interface ContextRelease {
   readonly assetIds: readonly string[];
   readonly metadataKeys: readonly string[];
 }
+
+export interface TextModel {
+  readonly id: string;
+}
+
+export interface TextProviderStatus {
+  readonly provider: ProviderDescriptor;
+  readonly available: boolean;
+  readonly models: readonly TextModel[];
+}
+
+export interface AiContextPreview {
+  readonly documentId: string;
+  readonly documentTitle: string;
+  readonly revision: number;
+  readonly text: string;
+}
+
+export type TextStreamEvent =
+  | {
+      readonly type: "started";
+      readonly providerId: string;
+      readonly model: string;
+    }
+  | {
+      readonly type: "delta";
+      readonly text: string;
+    }
+  | {
+      readonly type: "completed";
+      readonly provenance: string;
+    };
