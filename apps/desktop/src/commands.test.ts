@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   COMMAND_CONTRACT_VERSION,
   KraqelCommandError,
+  createStoryEntity,
   getApplicationStatus,
   saveDocument,
   validateProjectName,
@@ -117,5 +118,42 @@ describe("typed Tauri commands", () => {
     expect(error).toMatchObject({ code: "CONFLICT", retryable: false });
     expect(String(error)).toContain("zwischenzeitlich");
     expect(String(error)).not.toContain("private");
+  });
+
+  it("sends structured Story Bible properties without inventing an entity id", async () => {
+    const projectId = requestId as ProjectId;
+    const entityId = "018f47ea-9b2d-7cc1-98e8-b5f4f6b741a3" as EntityId;
+    mockedInvoke.mockResolvedValue({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: {
+        id: entityId,
+        projectId,
+        kind: "character",
+        name: "Rhea",
+        properties: { Rolle: "Pilotin" },
+      },
+    });
+
+    await createStoryEntity({
+      projectId,
+      kind: "character",
+      name: "Rhea",
+      properties: { Rolle: "Pilotin" },
+    });
+
+    expect(mockedInvoke).toHaveBeenCalledWith("create_story_entity", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: {
+          projectId,
+          entityId: null,
+          kind: "character",
+          name: "Rhea",
+          properties: { Rolle: "Pilotin" },
+        },
+      },
+    });
   });
 });

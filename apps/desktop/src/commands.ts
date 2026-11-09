@@ -5,10 +5,14 @@ import {
   type DocumentKind,
   type DocumentNode,
   type EntityId,
+  type EntityKind,
   type Project,
   type ProjectId,
   type SchemaVersion,
   type Uuid,
+  type StoryEntity,
+  type StoryEntityDetails,
+  type StoryRelation,
 } from "@kraqel/domain";
 import type { EditorDocument } from "@kraqel/editor";
 
@@ -160,6 +164,113 @@ export async function saveDocument(
     { readonly revision: number }
   >("save_document", { projectId, documentId, expectedRevision, content });
   return response.data.revision;
+}
+
+export async function listStoryEntities(
+  projectId: ProjectId,
+  query = "",
+  kind: EntityKind | null = null,
+): Promise<readonly StoryEntity[]> {
+  const response = await callCommand<
+    { readonly projectId: ProjectId; readonly query: string; readonly kind: EntityKind | null },
+    readonly StoryEntity[]
+  >("list_story_entities", { projectId, query, kind });
+  return response.data;
+}
+
+export interface WriteStoryEntityInput {
+  readonly projectId: ProjectId;
+  readonly entityId: EntityId | null;
+  readonly kind: EntityKind;
+  readonly name: string;
+  readonly properties: Readonly<Record<string, string>>;
+}
+
+export async function createStoryEntity(
+  input: Omit<WriteStoryEntityInput, "entityId">,
+): Promise<StoryEntity> {
+  const response = await callCommand<WriteStoryEntityInput, StoryEntity>("create_story_entity", {
+    ...input,
+    entityId: null,
+  });
+  return response.data;
+}
+
+export async function updateStoryEntity(input: WriteStoryEntityInput): Promise<StoryEntity> {
+  const response = await callCommand<WriteStoryEntityInput, StoryEntity>(
+    "update_story_entity",
+    input,
+  );
+  return response.data;
+}
+
+export async function loadStoryEntity(
+  projectId: ProjectId,
+  entityId: EntityId,
+): Promise<StoryEntityDetails> {
+  const response = await callCommand<
+    { readonly projectId: ProjectId; readonly entityId: EntityId },
+    StoryEntityDetails
+  >("load_story_entity", { projectId, entityId });
+  return response.data;
+}
+
+export async function deleteStoryEntity(projectId: ProjectId, entityId: EntityId): Promise<void> {
+  await callCommand<{ readonly projectId: ProjectId; readonly entityId: EntityId }, null>(
+    "delete_story_entity",
+    { projectId, entityId },
+  );
+}
+
+export async function createStoryRelation(
+  projectId: ProjectId,
+  sourceEntityId: EntityId,
+  targetEntityId: EntityId,
+  kind: string,
+): Promise<StoryRelation> {
+  const response = await callCommand<
+    {
+      readonly projectId: ProjectId;
+      readonly sourceEntityId: EntityId;
+      readonly targetEntityId: EntityId;
+      readonly kind: string;
+      readonly properties: Readonly<Record<string, string>>;
+    },
+    StoryRelation
+  >("create_story_relation", {
+    projectId,
+    sourceEntityId,
+    targetEntityId,
+    kind,
+    properties: {},
+  });
+  return response.data;
+}
+
+export async function deleteStoryRelation(
+  projectId: ProjectId,
+  relationId: EntityId,
+): Promise<void> {
+  await callCommand<{ readonly projectId: ProjectId; readonly relationId: EntityId }, null>(
+    "delete_story_relation",
+    { projectId, relationId },
+  );
+}
+
+export async function linkStoryEntity(
+  projectId: ProjectId,
+  documentId: EntityId,
+  entityId: EntityId,
+): Promise<StoryEntityDetails> {
+  const response = await callCommand<
+    {
+      readonly projectId: ProjectId;
+      readonly documentId: EntityId;
+      readonly entityId: EntityId;
+    },
+    StoryEntityDetails
+  >("link_story_entity", { projectId, documentId, entityId });
+  return response.data;
 }
 
 async function callCommand<TPayload, TData>(

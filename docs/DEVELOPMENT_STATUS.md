@@ -2,7 +2,7 @@
 
 Stand: 9. November 2026
 
-Code-Referenz: KQ-005 (`feat/kq-005-editor-autosave`, dieser Stand)
+Code-Referenz: KQ-006 (`feat/kq-006-story-bible`, dieser Stand)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -16,7 +16,7 @@ als vollständige Fachfunktion.
 | ------------ | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                 |
 | **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Teilweise umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, szenengebundenes Undo/Redo, Wortzählung, Fokusmodus, revisionsgeprüftes Autosave und SQLite-Backup vorhanden. Umbenennen, Umordnen, Löschen und E2E-Abnahme fehlen. |
-| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Nicht implementiert.** Keine UI, Persistenz oder Fachlogik.                                                                                                                                                                            |
+| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Teilweise umgesetzt:** Story-Bibel mit vier Entitätsarten, freien Eigenschaften, gerichteten Relationen, Suche und Szenen-Rückverweisen vorhanden. Plotboard und Timeline fehlen.                                                      |
 | **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Nicht implementiert.** Es existieren nur Enums/Vertragstypen und eine relative Pfadprüfung.                                                                                                                                            |
 | **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Nur Verträge vorbereitet:** Capability-, Kontextfreigabe-, Medien- und Profiltypen; keine Provider oder Fachabläufe.                                                                                                                   |
 | **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                                                                            |
@@ -33,7 +33,7 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Tauri-2-/React-/TypeScript-Desktop-Shell mit statischer, responsiver Startoberfläche.
 - Minimale Tauri-Berechtigung `core:default`, definierte CSP und Windows-Fensterkonfiguration.
 - GitHub-Actions-CI unter `windows-latest` und `ubuntu-latest`.
-- Letzter CI-Lauf für `main` bei `20f6b1b`: erfolgreich unter Windows und Linux.
+- Letzter CI-Lauf für `main` bei `d1433a5`: erfolgreich unter Windows und Linux.
 - Qualitätskette: Prettier, rustfmt, ESLint, Clippy mit `-D warnings`, TypeScript, Vitest,
   Rust-Tests sowie Frontend- und Workspace-Builds.
 - GPL-3.0-or-later, Beitrags-, Verhaltens- und Sicherheitsdokumentation vorhanden.
@@ -93,6 +93,24 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   sowie Backup/Recovery mit 100 Szenen. Tastatur- und Screenreader-Fälle sind als manueller Testplan
   dokumentiert, aber noch nicht als E2E-Test ausgeführt.
 
+### Story-Bibel (KQ-006)
+
+- Gemeinsame Rust-/TypeScript-Verträge für Figuren, Orte, Fraktionen, Gegenstände, freie
+  Eigenschaften, gerichtete Relationen und Szenen-Rückverweise.
+- Transaktionales `StoryBibleRepository` auf den vorhandenen Tabellen `entity`, `relation` und
+  `link`; Namen und freie Eigenschaften werden begrenzt und in Rust validiert.
+- Einträge lassen sich anlegen, suchen, nach Art filtern, bearbeiten und löschen. Die Suche prüft
+  Namen, Eigenschaftsschlüssel und -werte Unicode-bewusst, ist derzeit aber nicht FTS-indexiert.
+- Beziehungen bewahren Quelle und Ziel; die Detailansicht trennt eingehende und ausgehende Kanten.
+  Selbstbeziehungen sind im Vertrag v1 nicht erlaubt. Löschkaskaden entfernen verwaiste Kanten.
+- Szenenlinks werden idempotent angelegt und als Rückverweise angezeigt; aus einem Rückverweis kann
+  wieder in die betreffende Szene gewechselt werden.
+- Zugängliche React-Oberfläche mit beschrifteten Formularen, sichtbaren Fokuszuständen,
+  Tastaturbedienung sowie textlich erkennbarer Beziehungsrichtung.
+- Automatisierte Repository-Tests decken Suche, Eigenschaften, Richtungstreue, Löschregeln,
+  Rückverweise und Backup/Recovery ab. IPC- und TypeScript-Tests prüfen den vertikalen Vertrag.
+  Browser-/Screenreader-Abnahme bleibt als manueller Testfall dokumentiert.
+
 ### Begrenzte Hilfsfunktionen und Verträge
 
 - `asset-service`: relative Pfade werden akzeptiert, absolute Pfade und Elterntraversal abgelehnt.
@@ -103,19 +121,19 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 ## Offene Aufgaben
 
-### Unmittelbar: M1 erweitern
+### Unmittelbar: M2 fortsetzen
 
-1. **KQ-006 - Story-Bibel** (GitHub-Issue noch anzulegen)
-   - Entitäten, freie Eigenschaften, gerichtete Relationen und Rückverweise
-   - Suche und nachvollziehbare Verknüpfung mit Szenen
+1. **KQ-007 - Plotboard und parallele Timelines** (GitHub-Issue noch anzulegen)
+   - Szenenkarten, Status, POV und Handlungsstränge
+   - explizites Zeitmodell sowie nachvollziehbare Szenen- und Entitätslinks
 
 ### Danach gemäß Pflichtenheft
 
-- KQ-006 bis KQ-016: Story-Bibel, Plotboard/Timeline, Git-Snapshots, Export, Textprovider,
-  Kontinuität, Medienbibliothek, visuelle Profile, Prompt-Builder und Bild-Capability-Verträge.
+- KQ-007 bis KQ-016: Plotboard/Timeline, Git-Snapshots, Export, Textprovider, Kontinuität,
+  Medienbibliothek, visuelle Profile, Prompt-Builder und Bild-Capability-Verträge.
 - KQ-017 und KQ-018 gehören zu Version 0.2 und sind kein Ziel für 0.1.
 
-Für KQ-006 bis KQ-018 sind noch nicht alle GitHub-Issues angelegt; die Aufgaben stehen im
+Für KQ-007 bis KQ-018 sind noch nicht alle GitHub-Issues angelegt; die Aufgaben stehen im
 Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkretisiert werden.
 
 ## Bekannte Fehler und Lücken
@@ -129,6 +147,9 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 - **Nur Initialmigration:** Der Migrationspfad 0 -> 1 ist getestet; weitere Versionen benötigen je
   eine neue unveränderliche Vorwärtsmigration samt Test mit befüllter Vorgängerdatenbank.
 - **Keine End-to-End-Tests:** Playwright ist weder installiert noch konfiguriert.
+- **Entitätssuche nicht indexiert:** Die Unicode-korrekte Suche filtert derzeit alle Einträge eines
+  Projekts in Rust. Vor sehr großen Story-Bibeln sind Messung und gegebenenfalls eine echte
+  FTS-Migration nötig.
 - **Dependency Review eingeschränkt:** Der GitHub-Job wird bei privaten Repositories ohne GitHub
   Advanced Security bewusst übersprungen. Lockfiles und reguläre CI bleiben aktiv.
 - Der aktuelle Teststand ist grün; es sind keine fehlschlagenden Tests auf `main` bekannt.
@@ -146,6 +167,9 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 - **Versioniertes Tiptap-JSON und optimistische Revisionen:** Jede Szene besitzt eine eigene
   Undo/Redo-Grenze; Autosave ist entprellt, serialisiert und konfliktbehaftete Schreibversuche
   überschreiben nichts (ADR 0004).
+- **Begrenzte Story-Verträge auf Schema v1:** Vier Entitätsarten und strukturierte freie
+  Eigenschaften werden in Rust validiert; Relationen sind gerichtet, Szenenlinks idempotent und
+  Löschkaskaden explizit. Die Unicode-Suche bleibt zunächst bewusst unindexiert (ADR 0005).
 - **Privilegierte Operationen in Rust:** React kommuniziert ausschließlich über versionierte,
   typisierte Tauri-Commands mit Dateisystem, Storage, Git und späteren Providern.
 - **Verträge sind explizit versioniert:** Inkompatible Änderungen erfordern eine neue
@@ -163,32 +187,34 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 
 ## Abhängigkeiten und technische Risiken
 
-| Thema                        | Zustand / Risiko                                                             | Nächste Kontrolle                                         |
-| ---------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------- |
-| SQLite und FTS5              | Dokument-Repository, FTS5, Backup und Recovery getestet; Entitäts-CRUD fehlt | KQ-006 mit Story-Bibel-Repository                         |
-| Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                        | Gemeinsame Fixtures oder spätere Codegenerierung bewerten |
-| Datenformat                  | Manifest und JSON-Schemas fehlen                                             | Mit KQ-008 und Snapshotarbeit versionieren                |
-| Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt    | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen  |
-| Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version     | Bei jeder Erweiterung Fixtures und Migration prüfen       |
-| Desktoptests                 | Unit-/IPC-Tests vorhanden, aber keine Browser-/Tauri-E2E-Abdeckung           | Playwright für Projekt- und Schreibablauf einführen       |
-| CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                | Caching prüfen, ohne Reproduzierbarkeit zu schwächen      |
-| Abhängigkeitssicherheit      | GitHub Dependency Review privat nicht verfügbar                              | Alternative Audits oder Advanced Security später bewerten |
-| Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen     | Plattformmatrix je Release definieren                     |
+| Thema                        | Zustand / Risiko                                                                                            | Nächste Kontrolle                                         |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert | Vor großen Projekten messen; Migration nur mit Evidenz    |
+| Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                       | Gemeinsame Fixtures oder spätere Codegenerierung bewerten |
+| Datenformat                  | Manifest und JSON-Schemas fehlen                                                                            | Mit KQ-008 und Snapshotarbeit versionieren                |
+| Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                   | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen  |
+| Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                    | Bei jeder Erweiterung Fixtures und Migration prüfen       |
+| Desktoptests                 | Unit-/IPC-Tests vorhanden, aber keine Browser-/Tauri-E2E-Abdeckung                                          | Playwright für Projekt- und Schreibablauf einführen       |
+| CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                               | Caching prüfen, ohne Reproduzierbarkeit zu schwächen      |
+| Abhängigkeitssicherheit      | GitHub Dependency Review privat nicht verfügbar                                                             | Alternative Audits oder Advanced Security später bewerten |
+| Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                    | Plattformmatrix je Release definieren                     |
 
 ## Nächste geplante Entwicklungsstufe
 
-**KQ-006: Story-Bibel mit Entitäten, Relationen, Rückverweisen und Suche.**
+**KQ-007: Plotboard und parallele Timelines mit explizitem Zeitmodell.**
 
 Empfohlener, überprüfbarer Scope:
 
-1. GitHub-Issue mit konkreten Akzeptanzkriterien und Abhängigkeit zu KQ-005 anlegen.
-2. Versionierte Verträge für Figuren, Orte, Fraktionen und Gegenstände samt freien Eigenschaften
-   definieren.
-3. Repository für Entitäten, gerichtete Relationen und Szenenlinks transaktional implementieren.
-4. Story-Bibel-Oberfläche mit Suche, Rückverweisen und barrierearmer Navigation bauen.
-5. Tests für Relationstreue, Löschregeln, FTS-Suche und Backup/Recovery ergänzen.
-6. Plotboard und Timeline getrennt halten. Auch Geschichten profitieren gelegentlich davon, wenn
-   nicht jede Figur gleichzeitig die Bühne, die Beleuchtung und den Fahrplan verwaltet.
+1. GitHub-Issue mit Akzeptanzkriterien und Abhängigkeit zu KQ-006 anlegen.
+2. Verträge für Handlungsstränge, Szenenkarten, POV, Status, Zeitebenen und Ereignisordnung
+   definieren, bevor eine Oberfläche gebaut wird.
+3. Prüfen, ob das bestehende Initialschema dafür eine echte Vorwärtsmigration benötigt; eine
+   Migration muss mit einer befüllten v1-Datenbank getestet werden.
+4. Plotboard und Timeline als getrennte Ansichten auf denselben stabilen Szenen-, Entitäts- und
+   Ereigniskennungen aufbauen.
+5. Drag-and-drop nur als Bedienweg behandeln; jede Aktion braucht eine zugängliche
+   Tastaturalternative. Karten, die ausschließlich von Mäusen bewegt werden können, sind eher
+   Katzen-Spielzeug als Softwarearchitektur.
 
 ## Einstieg für die nächste Codex-Session
 
@@ -197,9 +223,9 @@ cd D:\kraqel
 git status
 git branch --show-current
 git log -5 --oneline
-rg "KQ-006" docs ROADMAP.md
+rg "KQ-007" docs ROADMAP.md
 ```
 
-Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0001 bis ADR 0004, `docs/data-format/README.md`,
-`crates/storage/src/document_repository.rs` und den Editor-Testplan. Vor KQ-006 zuerst ein eigenes
-Issue anlegen und den Scope gegen F02 des Pflichtenhefts prüfen.
+Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0001 bis ADR 0005, `docs/data-format/README.md`,
+`crates/storage/src/story_bible_repository.rs` und den Zugänglichkeitstestplan. Vor KQ-007 zuerst
+ein eigenes Issue anlegen und den Scope gegen F03, F04 und M2 des Pflichtenhefts prüfen.

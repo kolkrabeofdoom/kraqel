@@ -1,6 +1,6 @@
 //! Gemeinsame Domänentypen und versionierte Verträge der privilegierten Rust-Grenze.
 
-use std::fmt;
+use std::{collections::BTreeMap, fmt};
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -101,6 +101,82 @@ pub enum DocumentKind {
     Chapter,
     /// Schreibbare Szene.
     Scene,
+}
+
+/// Fachlich unterstützte Arten von Story-Bibel-Einträgen.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum EntityKind {
+    /// Handelnde oder erwähnte Figur.
+    Character,
+    /// Räumlicher Schauplatz.
+    Location,
+    /// Organisierte Gruppe oder Partei.
+    Faction,
+    /// Bedeutender Gegenstand.
+    Item,
+}
+
+/// Ein Eintrag der Story-Bibel mit frei benennbaren Eigenschaften.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StoryEntity {
+    /// Stabile Kennung.
+    pub id: EntityId,
+    /// Zugehöriges Projekt.
+    pub project_id: ProjectId,
+    /// Fachliche Art des Eintrags.
+    pub kind: EntityKind,
+    /// Anzeigename.
+    pub name: String,
+    /// Alphabetisch stabile freie Eigenschaften.
+    pub properties: BTreeMap<String, String>,
+}
+
+/// Gerichtete Beziehung zwischen zwei Story-Bibel-Einträgen.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StoryRelation {
+    /// Stabile Kennung der Beziehung.
+    pub id: EntityId,
+    /// Zugehöriges Projekt.
+    pub project_id: ProjectId,
+    /// Ausgangspunkt der gerichteten Beziehung.
+    pub source_entity_id: EntityId,
+    /// Ziel der gerichteten Beziehung.
+    pub target_entity_id: EntityId,
+    /// Frei benannte Beziehungsart, beispielsweise `kennt`.
+    pub kind: String,
+    /// Alphabetisch stabile freie Eigenschaften.
+    pub properties: BTreeMap<String, String>,
+}
+
+/// Rückverweis von einem Story-Bibel-Eintrag auf ein Dokument.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StoryBacklink {
+    /// Kennung des verknüpften Dokuments.
+    pub document_id: EntityId,
+    /// Anzeigename des Dokuments.
+    pub document_title: String,
+    /// Art des Dokuments.
+    pub document_kind: DocumentKind,
+    /// Fachliche Rolle der Verknüpfung.
+    pub role: String,
+}
+
+/// Detailansicht eines Story-Bibel-Eintrags samt Beziehungen und Rückverweisen.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StoryEntityDetails {
+    /// Der ausgewählte Eintrag.
+    pub entity: StoryEntity,
+    /// Vom Eintrag ausgehende Beziehungen.
+    pub outgoing_relations: Vec<StoryRelation>,
+    /// Auf den Eintrag gerichtete Beziehungen.
+    pub incoming_relations: Vec<StoryRelation>,
+    /// Dokumente, die auf den Eintrag verweisen.
+    pub backlinks: Vec<StoryBacklink>,
 }
 
 /// Minimales Projektmodell für Storage- und Command-Verträge.

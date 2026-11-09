@@ -18,6 +18,7 @@ import {
   type StoredDocument,
   type Workspace,
 } from "./commands";
+import { StoryBible } from "./StoryBible";
 
 interface EditorWorkspaceProps {
   readonly initialWorkspace: Workspace;
@@ -32,6 +33,7 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
   const [stored, setStored] = useState<StoredDocument | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<"manuscript" | "storyBible">("manuscript");
   const tree = useMemo(() => buildDocumentTree(workspace.documents), [workspace.documents]);
 
   useEffect(() => {
@@ -95,43 +97,79 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
           <span className="eyebrow">Lokales Projekt</span>
           <h1>{workspace.project.name}</h1>
         </div>
-        <button type="button" className="secondary" onClick={onClose}>
-          Projektübersicht
-        </button>
+        <div className="workspace-actions">
+          <nav aria-label="Projektbereiche" className="workspace-tabs">
+            <button
+              type="button"
+              className={view === "manuscript" ? "active" : "secondary"}
+              aria-current={view === "manuscript" ? "page" : undefined}
+              onClick={() => setView("manuscript")}
+            >
+              Manuskript
+            </button>
+            <button
+              type="button"
+              className={view === "storyBible" ? "active" : "secondary"}
+              aria-current={view === "storyBible" ? "page" : undefined}
+              onClick={() => setView("storyBible")}
+            >
+              Story-Bibel
+            </button>
+          </nav>
+          <button type="button" className="secondary" onClick={onClose}>
+            Projektübersicht
+          </button>
+        </div>
       </header>
 
-      <div className="workspace-grid">
-        <aside className="document-sidebar" aria-label="Kapitel und Szenen">
-          <div className="sidebar-heading">
-            <h2>Manuskript</h2>
-            <button type="button" className="compact" onClick={() => void addChapter()}>
-              + Kapitel
-            </button>
-          </div>
-          <div role="tree" aria-label="Dokumentbaum" className="document-tree">
-            {tree.map((chapter) => (
-              <ChapterTree
-                key={chapter.id}
-                chapter={chapter}
-                activeId={activeId}
-                onSelect={setActiveId}
-                onAddScene={addScene}
-              />
-            ))}
-          </div>
-        </aside>
+      {view === "manuscript" ? (
+        <div className="workspace-grid">
+          <aside className="document-sidebar" aria-label="Kapitel und Szenen">
+            <div className="sidebar-heading">
+              <h2>Manuskript</h2>
+              <button type="button" className="compact" onClick={() => void addChapter()}>
+                + Kapitel
+              </button>
+            </div>
+            <div role="tree" aria-label="Dokumentbaum" className="document-tree">
+              {tree.map((chapter) => (
+                <ChapterTree
+                  key={chapter.id}
+                  chapter={chapter}
+                  activeId={activeId}
+                  onSelect={setActiveId}
+                  onAddScene={addScene}
+                />
+              ))}
+            </div>
+          </aside>
 
-        <section className="editor-panel" aria-live="polite">
-          {error ? <p className="error-banner">{error}</p> : null}
-          {loading ? <p className="empty-editor">Szene wird geladen …</p> : null}
-          {!loading && stored ? (
-            <RichTextEditor key={stored.node.id} projectId={workspace.project.id} stored={stored} />
-          ) : null}
-          {!loading && !stored ? (
-            <p className="empty-editor">Wähle eine Szene aus oder lege eine neue an.</p>
-          ) : null}
-        </section>
-      </div>
+          <section className="editor-panel" aria-live="polite">
+            {error ? <p className="error-banner">{error}</p> : null}
+            {loading ? <p className="empty-editor">Szene wird geladen …</p> : null}
+            {!loading && stored ? (
+              <RichTextEditor
+                key={stored.node.id}
+                projectId={workspace.project.id}
+                stored={stored}
+              />
+            ) : null}
+            {!loading && !stored ? (
+              <p className="empty-editor">Wähle eine Szene aus oder lege eine neue an.</p>
+            ) : null}
+          </section>
+        </div>
+      ) : (
+        <StoryBible
+          projectId={workspace.project.id}
+          documents={workspace.documents}
+          activeDocumentId={activeId}
+          onSelectDocument={(id) => {
+            setActiveId(id);
+            setView("manuscript");
+          }}
+        />
+      )}
     </main>
   );
 }
