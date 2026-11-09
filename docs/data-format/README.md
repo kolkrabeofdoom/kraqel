@@ -10,3 +10,24 @@ Der Exportstandard ist noch in Arbeit. Fest stehen folgende Invarianten:
 - dokumentierte Herkunft für importierte und generierte Medien
 
 Ein formales Manifest und JSON-Schemas folgen mit KQ-002/KQ-003.
+
+## Lokaler Command-Vertrag v1
+
+Tauri-Commands verwenden eine einheitliche JSON-Hülle:
+
+```json
+{
+  "contractVersion": 1,
+  "requestId": "018f47ea-9b2d-7cc1-98e8-b5f4f6b741a2",
+  "payload": {}
+}
+```
+
+Erfolgsantworten spiegeln Version und `requestId` und liefern ihre Nutzlast unter `data`. Fehler
+verwenden ausschließlich die stabilen Codes `INVALID_REQUEST`, `UNSUPPORTED_CONTRACT_VERSION` oder
+`INTERNAL`, eine bereinigte Meldung und `retryable`. Sie enthalten keine übermittelten Texte,
+absoluten Pfade oder internen Fehlerdetails.
+
+Der Vertrag ist lokal und erlaubt keinen Netzwerkzugriff. Eine neue inkompatible Form benötigt eine
+neue `contractVersion`; stilles Umdeuten bestehender Felder ist untersagt, selbst wenn Merkur
+rückläufig ist.

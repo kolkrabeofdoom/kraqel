@@ -1619,9 +1619,21 @@ version = "0.1.0"
 name = "kraqel-desktop"
 version = "0.1.0"
 dependencies = [
+ "kraqel-domain",
  "serde",
+ "serde_json",
  "tauri",
  "tauri-build",
+ "uuid",
+]
+
+[[package]]
+name = "kraqel-domain"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "uuid",
 ]
 
 [[package]]
