@@ -12,7 +12,7 @@ use std::{
 use kraqel_domain::{CURRENT_SCHEMA_VERSION, Project, is_valid_project_name};
 use rusqlite::{Connection, MAIN_DB, OpenFlags, params};
 
-use crate::{Database, StorageError};
+use crate::{CURRENT_DATABASE_VERSION, Database, StorageError};
 
 /// Name der autoritativen Datenbank innerhalb eines Projektverzeichnisses.
 pub const DATABASE_FILE_NAME: &str = "kraqel.sqlite3";
@@ -409,7 +409,7 @@ impl ProjectManager {
             &format!("{backup_name}.sqlite3"),
             ProjectError::BackupMissing,
         )?;
-        verify_database(&backup_path)?;
+        verify_restore_source(&backup_path)?;
 
         let (parent, destination) = self.prepare_new_destination(destination_project.as_ref())?;
         if fs::symlink_metadata(&destination).is_ok() {
@@ -426,8 +426,14 @@ impl ProjectManager {
         let restored_database = staging.path().join(DATABASE_FILE_NAME);
         let source = open_read_only(&backup_path)?;
         source.backup(MAIN_DB, &restored_database, None)?;
-        verify_database(&restored_database)?;
         drop(source);
+        {
+            let migrated = Database::open(&restored_database).map_err(map_open_error)?;
+            migrated
+                .connection()
+                .execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")?;
+        }
+        verify_database(&restored_database)?;
 
         fs::rename(staging.path(), &destination).map_err(|source| ProjectError::Io {
             operation: "Wiederherstellung atomar veröffentlichen",
@@ -608,6 +614,40 @@ fn verify_database(path: &Path) -> Result<(), ProjectError> {
     verify_connection(&connection)
 }
 
+fn verify_restore_source(path: &Path) -> Result<(), ProjectError> {
+    let connection = open_read_only(path)?;
+    let integrity: String = connection
+        .query_row("PRAGMA quick_check", [], |row| row.get(0))
+        .map_err(|_| ProjectError::InvalidDatabase)?;
+    if integrity != "ok" {
+        return Err(ProjectError::InvalidDatabase);
+    }
+    let version: u32 = connection
+        .pragma_query_value(None, "user_version", |row| row.get(0))
+        .map_err(|_| ProjectError::InvalidDatabase)?;
+    if !(1..=CURRENT_DATABASE_VERSION.0).contains(&version) {
+        return Err(ProjectError::InvalidDatabase);
+    }
+    let required: u32 = connection
+        .query_row(
+            "SELECT count(*) FROM sqlite_master
+             WHERE name IN ('project', 'document', 'entity', 'relation', 'link',
+                            'storyline', 'plot_card', 'timeline', 'event',
+                            'event_document_link', 'event_entity_link',
+                            'document_fts', 'document_fts_after_insert',
+                            'document_fts_after_update', 'document_fts_after_delete')",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|_| ProjectError::InvalidDatabase)?;
+    let expected = if version == 1 { 9 } else { 15 };
+    if required == expected {
+        Ok(())
+    } else {
+        Err(ProjectError::InvalidDatabase)
+    }
+}
+
 fn verify_connection(connection: &Connection) -> Result<(), ProjectError> {
     let integrity: String = connection
         .query_row("PRAGMA quick_check", [], |row| row.get(0))
@@ -618,7 +658,7 @@ fn verify_connection(connection: &Connection) -> Result<(), ProjectError> {
     let version: u32 = connection
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .map_err(|_| ProjectError::InvalidDatabase)?;
-    if version != CURRENT_SCHEMA_VERSION.0 {
+    if version != CURRENT_DATABASE_VERSION.0 {
         return Err(ProjectError::InvalidDatabase);
     }
 
@@ -626,13 +666,15 @@ fn verify_connection(connection: &Connection) -> Result<(), ProjectError> {
         .query_row(
             "SELECT count(*) FROM sqlite_master
              WHERE name IN ('project', 'document', 'entity', 'relation', 'link',
+                            'storyline', 'plot_card', 'timeline', 'event',
+                            'event_document_link', 'event_entity_link',
                             'document_fts', 'document_fts_after_insert',
                             'document_fts_after_update', 'document_fts_after_delete')",
             [],
             |row| row.get(0),
         )
         .map_err(|_| ProjectError::InvalidDatabase)?;
-    if object_count != 9 {
+    if object_count != 15 {
         return Err(ProjectError::InvalidDatabase);
     }
 
@@ -745,7 +787,10 @@ mod tests {
     use kraqel_domain::{CURRENT_SCHEMA_VERSION, Project, ProjectId};
     use tempfile::tempdir;
 
-    use super::{BACKUP_DIRECTORY_NAME, DATABASE_FILE_NAME, ProjectError, ProjectManager};
+    use super::{
+        BACKUP_DIRECTORY_NAME, CURRENT_DATABASE_VERSION, DATABASE_FILE_NAME, ProjectError,
+        ProjectManager,
+    };
 
     fn project(name: &str) -> Project {
         Project {
@@ -825,7 +870,7 @@ mod tests {
         let connection = rusqlite::Connection::open(incomplete.join(DATABASE_FILE_NAME))
             .expect("sqlite database should be created");
         connection
-            .pragma_update(None, "user_version", CURRENT_SCHEMA_VERSION.0)
+            .pragma_update(None, "user_version", CURRENT_DATABASE_VERSION.0)
             .expect("claimed version should be stored");
         drop(connection);
         assert!(matches!(
@@ -893,6 +938,52 @@ mod tests {
             manager.restore_backup("quelle", "stand-1", "wiederhergestellt"),
             Err(ProjectError::ProjectAlreadyExists)
         ));
+    }
+
+    #[test]
+    fn restore_migrates_v1_backup_without_changing_source() {
+        let root = tempdir().expect("temporary root should exist");
+        let manager = ProjectManager::new(root.path()).expect("manager should open");
+        let project = project("Quelle");
+        manager
+            .create_project("quelle", &project)
+            .expect("project should be created");
+        let backup = root
+            .path()
+            .join("quelle")
+            .join(BACKUP_DIRECTORY_NAME)
+            .join("alt.sqlite3");
+        let connection = rusqlite::Connection::open(&backup).expect("v1 backup should open");
+        connection
+            .execute_batch(crate::INITIAL_SCHEMA)
+            .expect("v1 schema should install");
+        connection
+            .pragma_update(None, "user_version", 1)
+            .expect("v1 should be marked");
+        connection
+            .execute(
+                "INSERT INTO project (id, name, schema_version, created_at, updated_at)
+                 VALUES (?1, 'Quelle', 1, 'test', 'test')",
+                [project.id.to_string()],
+            )
+            .expect("project should be inserted");
+        drop(connection);
+
+        let restored = manager
+            .restore_backup("quelle", "alt", "wiederhergestellt")
+            .expect("v1 backup should restore");
+        assert_eq!(
+            restored
+                .database()
+                .schema_version()
+                .expect("version should load"),
+            CURRENT_DATABASE_VERSION
+        );
+        let source = rusqlite::Connection::open(&backup).expect("source should reopen");
+        let source_version: u32 = source
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .expect("source version should load");
+        assert_eq!(source_version, 1);
     }
 
     #[test]

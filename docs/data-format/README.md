@@ -12,17 +12,33 @@ Der Exportstandard ist noch in Arbeit. Fest stehen folgende Invarianten:
 Ein formales portables Manifest und JSON-Schemas fehlen weiterhin und werden mit der Snapshotarbeit
 konkretisiert.
 
-## Lokales SQLite-Schema v1
+## Lokales SQLite-Schema und Migrationsstand
 
 Die autoritative lokale Datenbank besitzt die Tabellen `project`, `document`, `entity`, `relation`
 und `link`. UUIDs werden als kanonische kleingeschriebene Textwerte gespeichert; Fremdschlüssel und
 JSON-Gültigkeitsprüfungen sind verbindlich. `document_fts` indexiert Titel und Klartext per FTS5 und
 wird durch Trigger synchron gehalten.
 
-`PRAGMA user_version = 1` bezeichnet die technische Schema-Version. KRAQEL migriert nur
-vorwärtsgerichtet und atomar; Datenbanken aus unbekannten neueren Versionen werden nicht verändert.
-Die SQLite-Datei selbst ist kein Austauschformat und bleibt ebenso wie WAL-Nebenfiles aus Git
-ausgeschlossen.
+`project.schema_version = 1` bezeichnet weiterhin das portable Projektformat. Der davon getrennte
+interne SQLite-Migrationsstand ist `PRAGMA user_version = 2`. KRAQEL migriert nur vorwärtsgerichtet
+und atomar; Datenbanken aus unbekannten neueren Versionen werden nicht verändert. Die SQLite-Datei
+selbst ist kein Austauschformat und bleibt ebenso wie WAL-Nebenfiles aus Git ausgeschlossen.
+
+Migration 2 ergänzt `storyline`, `plot_card`, `timeline`, `event`, `event_document_link` und
+`event_entity_link`. Eine befüllte v1-Datenbank wird vorwärts migriert, ohne Dokumente oder
+Story-Bibel-Daten umzudeuten. v1-Sicherungen bleiben wiederherstellbar: Nur die neue Zielkopie wird
+migriert, die Sicherungsquelle bleibt unverändert.
+
+## Plotboard- und Timeline-Vertrag v1
+
+Jede Szene erhält genau eine `plot_card` mit stabiler Position, Status (`planned`, `draft`,
+`revised`, `done`), optionalem Handlungsstrang und optionaler POV-Figur. Eine neue Reihenfolge wird
+als vollständige UUID-Liste atomar gespeichert; fehlende oder doppelte Karten werden abgelehnt.
+
+Zeitebenen sind `relative` oder `absolute`. Relative Ereignisse besitzen nur eine stabile Position;
+absolute Ereignisse benötigen zusätzlich einen nicht leeren `time_value`. Ereignisse können n:m mit
+Szenen und Story-Bibel-Entitäten desselben Projekts verknüpft werden. Löschen einer Zeitebene
+entfernt Ereignisse und Links per Fremdschlüsselregel.
 
 ## Lokales Projektverzeichnis und Sicherungen
 

@@ -8,9 +8,9 @@ ihrem Unterbaum ergänzen. Vor jeder Änderung sind mindestens diese Datei und
 
 KRAQEL ist als quelloffenes, offlinefähiges Autorenstudio für Romane, Drehbücher und
 Rollenspielmodule geplant. Primärplattform ist Windows. Das Repository enthält das M0-Fundament,
-einen ersten M1-Schreibablauf und die Story-Bibel aus M2, aber keine produktionsreife Anwendung.
-Verifizierte Implementierungen und geplante Funktionen sind strikt zu unterscheiden; der
-verbindliche Stand steht in `docs/DEVELOPMENT_STATUS.md`.
+einen ersten M1-Schreibablauf sowie Story-Bibel, Plotboard und Timelines aus M2, aber keine
+produktionsreife Anwendung. Verifizierte Implementierungen und geplante Funktionen sind strikt zu
+unterscheiden; der verbindliche Stand steht in `docs/DEVELOPMENT_STATUS.md`.
 
 Leitplanken:
 
@@ -42,6 +42,8 @@ Aktuell im Repository und verifiziert:
   `kraqel-storage`-Crate; sicherer lokaler Projektlebenszyklus mit Datenbankbackup und Recovery.
 - **Story-Bibel:** typisierte Figuren, Orte, Fraktionen und Gegenstände, freie Eigenschaften,
   gerichtete Relationen, Unicode-Suche und Szenen-Rückverweise über das bestehende SQLite-Schema.
+- **Strukturwerkzeuge:** persistente Szenenkarten, Handlungsstränge, POV/Status sowie parallele
+  relative und absolute Zeitebenen mit Szenen- und Entitätslinks.
 - **Qualität:** Prettier, ESLint, TypeScript-Checks, Vitest, Rust-Tests, rustfmt und Clippy mit
   Warnungen als Fehler; GitHub Actions unter Windows und Linux.
 
@@ -51,25 +53,25 @@ ein leeres Crate ist keine fertige Funktion - auch wenn es sehr selbstbewusst ko
 
 ## Verzeichnisstruktur und Verantwortlichkeiten
 
-| Pfad                         | Verantwortung                                                | Aktueller Reifegrad             |
-| ---------------------------- | ------------------------------------------------------------ | ------------------------------- |
-| `apps/desktop/`              | React-Oberfläche, Editor und typisierte IPC-Clientfunktionen | Schreiben und Story-Bibel       |
-| `apps/desktop/src-tauri/`    | Command-Handler, Tauri-Konfiguration und Berechtigungen      | Projekt-, Dokument-, Lore-IPC   |
-| `packages/domain/`           | TypeScript-Domänentypen, UUID-/Schema-Validierung            | Dokument- und Story-Modell      |
-| `packages/editor/`           | Editorvertrag, Baum, Autosave und Tiptap-Hilfsfunktionen     | M1-Grundfunktionen getestet     |
-| `packages/ui/`               | Geteilte zugängliche UI-Komponenten                          | Nur Platzhalterkonstante        |
-| `packages/ai-contracts/`     | Provider-, Capability- und Freigabeverträge                  | Grundtypen, keine Provider      |
-| `packages/visual-contracts/` | Medien- und visuelle Profilverträge                          | Grundtypen, keine Persistenz    |
-| `crates/domain/`             | Rust-Domäne und versionierte Command-Verträge                | Dokument- und Story-Modell      |
-| `crates/storage/`            | SQLite, Projektlebenszyklus und fachliche Repositories       | Dokumente und Story-Bibel       |
-| `crates/git-service/`        | Deterministische Snapshots und Git-Operationen               | Nur Status-Enum                 |
-| `crates/export/`             | Markdown-, HTML-, DOCX- und PDF-Export                       | Nur Format-Enum                 |
-| `crates/continuity/`         | Regelbasierte Kontinuitätsprüfung                            | Nur Schweregrad-Enum            |
-| `crates/asset-service/`      | Sicherer Asset-Import, Hashes, Pfade, Thumbnails             | Relative Pfadprüfung            |
-| `docs/architecture/`         | Architekturübersicht, ADRs und Threat Model                  | Verbindliche Entscheidungen     |
-| `docs/specifications/`       | Technisches Pflichtenheft und Abnahmekriterien               | Fachliche Quelle                |
-| `docs/data-format/`          | Offenes Export- und Command-Format                           | Command-Vertrag v1 dokumentiert |
-| `examples/`                  | Künstliche Testprojekte und freie Beispielmedien             | Noch leer                       |
+| Pfad                         | Verantwortung                                                | Aktueller Reifegrad          |
+| ---------------------------- | ------------------------------------------------------------ | ---------------------------- |
+| `apps/desktop/`              | React-Oberfläche, Editor und typisierte IPC-Clientfunktionen | Schreiben und M2-Werkzeuge   |
+| `apps/desktop/src-tauri/`    | Command-Handler, Tauri-Konfiguration und Berechtigungen      | Projekt-, Dokument-, M2-IPC  |
+| `packages/domain/`           | TypeScript-Domänentypen, UUID-/Schema-Validierung            | Dokument- und Story-Modell   |
+| `packages/editor/`           | Editorvertrag, Baum, Autosave und Tiptap-Hilfsfunktionen     | M1-Grundfunktionen getestet  |
+| `packages/ui/`               | Geteilte zugängliche UI-Komponenten                          | Nur Platzhalterkonstante     |
+| `packages/ai-contracts/`     | Provider-, Capability- und Freigabeverträge                  | Grundtypen, keine Provider   |
+| `packages/visual-contracts/` | Medien- und visuelle Profilverträge                          | Grundtypen, keine Persistenz |
+| `crates/domain/`             | Rust-Domäne und versionierte Command-Verträge                | Dokument- und Story-Modell   |
+| `crates/storage/`            | SQLite, Projektlebenszyklus und fachliche Repositories       | Dokumente und M2-Persistenz  |
+| `crates/git-service/`        | Deterministische Snapshots und Git-Operationen               | Nur Status-Enum              |
+| `crates/export/`             | Markdown-, HTML-, DOCX- und PDF-Export                       | Nur Format-Enum              |
+| `crates/continuity/`         | Regelbasierte Kontinuitätsprüfung                            | Nur Schweregrad-Enum         |
+| `crates/asset-service/`      | Sicherer Asset-Import, Hashes, Pfade, Thumbnails             | Relative Pfadprüfung         |
+| `docs/architecture/`         | Architekturübersicht, ADRs und Threat Model                  | Verbindliche Entscheidungen  |
+| `docs/specifications/`       | Technisches Pflichtenheft und Abnahmekriterien               | Fachliche Quelle             |
+| `docs/data-format/`          | Offenes Export- und Command-Format                           | Lokale Verträge dokumentiert |
+| `examples/`                  | Künstliche Testprojekte und freie Beispielmedien             | Noch leer                    |
 
 ## Verbindliche Entwicklungsregeln
 

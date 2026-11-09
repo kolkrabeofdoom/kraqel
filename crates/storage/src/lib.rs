@@ -2,14 +2,18 @@
 
 use std::{error::Error, fmt, path::Path, time::Duration};
 
-use kraqel_domain::{CURRENT_SCHEMA_VERSION, SchemaVersion};
+use kraqel_domain::SchemaVersion;
 use rusqlite::{Connection, Transaction, TransactionBehavior};
 
 pub mod document_repository;
 pub mod project_manager;
 pub mod story_bible_repository;
+pub mod structure_repository;
 
 const INITIAL_SCHEMA: &str = include_str!("../migrations/0001_initial.sql");
+const STRUCTURE_SCHEMA: &str = include_str!("../migrations/0002_plotboard_timeline.sql");
+/// Aktueller interner SQLite-Migrationsstand.
+pub const CURRENT_DATABASE_VERSION: SchemaVersion = SchemaVersion(2);
 const BUSY_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Von der Speicherschicht gemeldete Fehler.
@@ -122,28 +126,40 @@ impl Database {
     fn migrate(&mut self) -> Result<(), StorageError> {
         let found = self.schema_version()?;
 
-        if found > CURRENT_SCHEMA_VERSION {
+        if found > CURRENT_DATABASE_VERSION {
             return Err(StorageError::FutureSchema {
                 found,
-                supported: CURRENT_SCHEMA_VERSION,
+                supported: CURRENT_DATABASE_VERSION,
             });
         }
-        if found == CURRENT_SCHEMA_VERSION {
+        if found == CURRENT_DATABASE_VERSION {
             return Ok(());
         }
-        if found != SchemaVersion(0) || CURRENT_SCHEMA_VERSION != SchemaVersion(1) {
-            return Err(StorageError::MissingMigration {
-                found,
-                target: CURRENT_SCHEMA_VERSION,
-            });
+        let mut version = found;
+        while version < CURRENT_DATABASE_VERSION {
+            let transaction = self
+                .connection
+                .transaction_with_behavior(TransactionBehavior::Immediate)?;
+            match version {
+                SchemaVersion(0) => {
+                    transaction.execute_batch(INITIAL_SCHEMA)?;
+                    transaction.execute_batch("PRAGMA user_version = 1;")?;
+                    version = SchemaVersion(1);
+                }
+                SchemaVersion(1) => {
+                    transaction.execute_batch(STRUCTURE_SCHEMA)?;
+                    transaction.execute_batch("PRAGMA user_version = 2;")?;
+                    version = SchemaVersion(2);
+                }
+                _ => {
+                    return Err(StorageError::MissingMigration {
+                        found: version,
+                        target: CURRENT_DATABASE_VERSION,
+                    });
+                }
+            }
+            transaction.commit()?;
         }
-
-        let transaction = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)?;
-        transaction.execute_batch(INITIAL_SCHEMA)?;
-        transaction.execute_batch("PRAGMA user_version = 1;")?;
-        transaction.commit()?;
         Ok(())
     }
 
@@ -184,7 +200,7 @@ mod tests {
     use rusqlite::{Connection, params};
     use tempfile::tempdir;
 
-    use super::{Database, StorageError};
+    use super::{CURRENT_DATABASE_VERSION, Database, INITIAL_SCHEMA, StorageError};
     use kraqel_domain::{CURRENT_SCHEMA_VERSION, SchemaVersion};
 
     const PROJECT_ID: &str = "018f47ea-9b2d-7cc1-98e8-b5f4f6b741a2";
@@ -230,7 +246,7 @@ mod tests {
             database
                 .schema_version()
                 .expect("version should be readable"),
-            CURRENT_SCHEMA_VERSION
+            CURRENT_DATABASE_VERSION
         );
         let foreign_keys: bool = database
             .connection()
@@ -243,13 +259,15 @@ mod tests {
             .query_row(
                 "SELECT count(*) FROM sqlite_master
                  WHERE name IN ('project', 'document', 'entity', 'relation', 'link',
+                                'storyline', 'plot_card', 'timeline', 'event',
+                                'event_document_link', 'event_entity_link',
                                 'document_fts', 'document_fts_after_insert',
                                 'document_fts_after_update', 'document_fts_after_delete')",
                 [],
                 |row| row.get(0),
             )
             .expect("schema objects should be readable");
-        assert_eq!(object_count, 9);
+        assert_eq!(object_count, 15);
     }
 
     #[test]
@@ -258,7 +276,7 @@ mod tests {
         let path = directory.path().join("future.sqlite3");
         let connection = Connection::open(&path).expect("database should open");
         connection
-            .pragma_update(None, "user_version", 2)
+            .pragma_update(None, "user_version", 3)
             .expect("future version should be set");
         drop(connection);
 
@@ -268,8 +286,8 @@ mod tests {
         assert!(matches!(
             error,
             StorageError::FutureSchema {
-                found: SchemaVersion(2),
-                supported: SchemaVersion(1)
+                found: SchemaVersion(3),
+                supported: SchemaVersion(2)
             }
         ));
 
@@ -277,7 +295,7 @@ mod tests {
         let version: u32 = connection
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .expect("version should remain readable");
-        assert_eq!(version, 2);
+        assert_eq!(version, 3);
     }
 
     #[test]
@@ -342,7 +360,7 @@ mod tests {
             database
                 .schema_version()
                 .expect("version should be readable"),
-            CURRENT_SCHEMA_VERSION
+            CURRENT_DATABASE_VERSION
         );
         assert!(
             fs::metadata(path)
@@ -350,5 +368,41 @@ mod tests {
                 .len()
                 > 0
         );
+    }
+
+    #[test]
+    fn populated_v1_database_migrates_without_losing_existing_data() {
+        let directory = tempdir().expect("temporary directory should exist");
+        let path = directory.path().join("v1.sqlite3");
+        let connection = Connection::open(&path).expect("database should open");
+        connection
+            .execute_batch(INITIAL_SCHEMA)
+            .expect("v1 schema should install");
+        connection
+            .pragma_update(None, "user_version", 1)
+            .expect("v1 should be marked");
+        insert_project(&connection);
+        insert_document(&connection, "Bleibt erhalten.");
+        drop(connection);
+
+        let database = Database::open(&path).expect("v1 database should migrate");
+        assert_eq!(
+            database.schema_version().expect("version should load"),
+            CURRENT_DATABASE_VERSION
+        );
+        let text: String = database
+            .connection()
+            .query_row(
+                "SELECT plain_text FROM document WHERE id = ?1",
+                [DOCUMENT_ID],
+                |row| row.get(0),
+            )
+            .expect("document should remain");
+        assert_eq!(text, "Bleibt erhalten.");
+        let structure_tables: i64 = database.connection().query_row(
+            "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name IN ('storyline', 'plot_card', 'timeline', 'event')",
+            [], |row| row.get(0)
+        ).expect("new tables should exist");
+        assert_eq!(structure_tables, 4);
     }
 }

@@ -6,6 +6,8 @@ import {
   type DocumentNode,
   type EntityId,
   type EntityKind,
+  type PlotBoard,
+  type PlotStatus,
   type Project,
   type ProjectId,
   type SchemaVersion,
@@ -13,6 +15,11 @@ import {
   type StoryEntity,
   type StoryEntityDetails,
   type StoryRelation,
+  type Storyline,
+  type Timeline,
+  type TimelineDetails,
+  type TimelineEvent,
+  type TimelineMode,
 } from "@kraqel/domain";
 import type { EditorDocument } from "@kraqel/editor";
 
@@ -271,6 +278,140 @@ export async function linkStoryEntity(
     StoryEntityDetails
   >("link_story_entity", { projectId, documentId, entityId });
   return response.data;
+}
+
+export async function getPlotBoard(projectId: ProjectId): Promise<PlotBoard> {
+  return (
+    await callCommand<{ readonly projectId: ProjectId }, PlotBoard>("get_plot_board", { projectId })
+  ).data;
+}
+
+export async function createStoryline(
+  projectId: ProjectId,
+  name: string,
+  color: string,
+): Promise<Storyline> {
+  return (
+    await callCommand<
+      { readonly projectId: ProjectId; readonly name: string; readonly color: string },
+      Storyline
+    >("create_storyline", { projectId, name, color })
+  ).data;
+}
+
+export async function deleteStoryline(projectId: ProjectId, storylineId: EntityId): Promise<void> {
+  await callCommand("delete_storyline", { projectId, storylineId });
+}
+
+export async function updatePlotCard(
+  projectId: ProjectId,
+  documentId: EntityId,
+  status: PlotStatus,
+  storylineId: EntityId | null,
+  povEntityId: EntityId | null,
+): Promise<void> {
+  await callCommand("update_plot_card", {
+    projectId,
+    documentId,
+    status,
+    storylineId,
+    povEntityId,
+  });
+}
+
+export async function reorderPlotCards(
+  projectId: ProjectId,
+  orderedIds: readonly EntityId[],
+): Promise<void> {
+  await callCommand("reorder_plot_cards", { projectId, parentId: null, orderedIds });
+}
+
+export async function listTimelines(projectId: ProjectId): Promise<readonly Timeline[]> {
+  return (
+    await callCommand<{ readonly projectId: ProjectId }, readonly Timeline[]>("list_timelines", {
+      projectId,
+    })
+  ).data;
+}
+
+export async function createTimeline(
+  projectId: ProjectId,
+  name: string,
+  mode: TimelineMode,
+): Promise<Timeline> {
+  return (
+    await callCommand<
+      { readonly projectId: ProjectId; readonly name: string; readonly mode: TimelineMode },
+      Timeline
+    >("create_timeline", { projectId, name, mode })
+  ).data;
+}
+
+export async function deleteTimeline(projectId: ProjectId, timelineId: EntityId): Promise<void> {
+  await callCommand("delete_timeline", { projectId, timelineId });
+}
+
+export async function loadTimeline(
+  projectId: ProjectId,
+  timelineId: EntityId,
+): Promise<TimelineDetails> {
+  return (
+    await callCommand<
+      { readonly projectId: ProjectId; readonly timelineId: EntityId },
+      TimelineDetails
+    >("load_timeline", { projectId, timelineId })
+  ).data;
+}
+
+export async function createTimelineEvent(
+  projectId: ProjectId,
+  timelineId: EntityId,
+  title: string,
+  description: string,
+  timeValue: string | null,
+): Promise<TimelineEvent> {
+  return (
+    await callCommand<
+      {
+        readonly projectId: ProjectId;
+        readonly timelineId: EntityId;
+        readonly title: string;
+        readonly description: string;
+        readonly timeValue: string | null;
+      },
+      TimelineEvent
+    >("create_timeline_event", { projectId, timelineId, title, description, timeValue })
+  ).data;
+}
+
+export async function deleteTimelineEvent(projectId: ProjectId, eventId: EntityId): Promise<void> {
+  await callCommand("delete_timeline_event", { projectId, eventId });
+}
+
+export async function reorderTimelineEvents(
+  projectId: ProjectId,
+  timelineId: EntityId,
+  orderedIds: readonly EntityId[],
+): Promise<void> {
+  await callCommand("reorder_timeline_events", { projectId, parentId: timelineId, orderedIds });
+}
+
+export async function linkTimelineEvent(
+  projectId: ProjectId,
+  timelineId: EntityId,
+  eventId: EntityId,
+  documentId: EntityId | null,
+  entityId: EntityId | null,
+): Promise<TimelineDetails> {
+  return (
+    (await callCommand("link_timeline_event", {
+      projectId,
+      timelineId,
+      eventId,
+      documentId,
+      entityId,
+    })) as CommandResponse<TimelineDetails>
+  ).data;
 }
 
 async function callCommand<TPayload, TData>(

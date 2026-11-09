@@ -179,6 +179,124 @@ pub struct StoryEntityDetails {
     pub backlinks: Vec<StoryBacklink>,
 }
 
+/// Bearbeitungsstand einer Szenenkarte im Plotboard.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum PlotStatus {
+    /// Geplante, noch nicht ausgearbeitete Szene.
+    Planned,
+    /// Szene im Entwurf.
+    Draft,
+    /// Überarbeitete Szene.
+    Revised,
+    /// Für den aktuellen Stand abgeschlossene Szene.
+    Done,
+}
+
+/// Projektweiter Handlungsstrang.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Storyline {
+    /// Stabile Kennung.
+    pub id: EntityId,
+    /// Zugehöriges Projekt.
+    pub project_id: ProjectId,
+    /// Anzeigename.
+    pub name: String,
+    /// Darstellungsfarbe als Hex-Wert.
+    pub color: String,
+    /// Stabile Reihenfolge.
+    pub position: u32,
+}
+
+/// Persistente Plotboard-Metadaten einer Szene.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlotCard {
+    /// Kennung der Szene.
+    pub document_id: EntityId,
+    /// Szenentitel für die Darstellung.
+    pub title: String,
+    /// Optionaler Handlungsstrang.
+    pub storyline_id: Option<EntityId>,
+    /// Optionale POV-Figur.
+    pub pov_entity_id: Option<EntityId>,
+    /// Bearbeitungsstand.
+    pub status: PlotStatus,
+    /// Stabile Reihenfolge im Plotboard.
+    pub position: u32,
+}
+
+/// Vollständiger Plotboard-Stand eines Projekts.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlotBoard {
+    /// Handlungsstränge in stabiler Reihenfolge.
+    pub storylines: Vec<Storyline>,
+    /// Szenenkarten in stabiler Reihenfolge.
+    pub cards: Vec<PlotCard>,
+}
+
+/// Ordnungsmodell einer Zeitebene.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum TimelineMode {
+    /// Ereignisse sind ausschließlich relativ zueinander geordnet.
+    Relative,
+    /// Ereignisse besitzen zusätzlich einen expliziten Zeitpunkt.
+    Absolute,
+}
+
+/// Parallele Zeitebene eines Projekts.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Timeline {
+    /// Stabile Kennung.
+    pub id: EntityId,
+    /// Zugehöriges Projekt.
+    pub project_id: ProjectId,
+    /// Anzeigename.
+    pub name: String,
+    /// Relatives oder absolutes Ordnungsmodell.
+    pub mode: TimelineMode,
+    /// Stabile Reihenfolge der Zeitebenen.
+    pub position: u32,
+}
+
+/// Ereignis mit nachvollziehbaren Szenen- und Entitätslinks.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TimelineEvent {
+    /// Stabile Kennung.
+    pub id: EntityId,
+    /// Zugehöriges Projekt.
+    pub project_id: ProjectId,
+    /// Zugehörige Zeitebene.
+    pub timeline_id: EntityId,
+    /// Anzeigename.
+    pub title: String,
+    /// Optionale Beschreibung.
+    pub description: String,
+    /// Expliziter Zeitpunkt bei absoluten Zeitebenen.
+    pub time_value: Option<String>,
+    /// Stabile Reihenfolge innerhalb der Zeitebene.
+    pub position: u32,
+    /// Verknüpfte Szenen.
+    pub document_ids: Vec<EntityId>,
+    /// Verknüpfte Story-Bibel-Einträge.
+    pub entity_ids: Vec<EntityId>,
+}
+
+/// Vollständige Zeitebene mit stabil sortierten Ereignissen.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TimelineDetails {
+    /// Metadaten der Zeitebene.
+    pub timeline: Timeline,
+    /// Ereignisse in fachlicher Reihenfolge.
+    pub events: Vec<TimelineEvent>,
+}
+
 /// Minimales Projektmodell für Storage- und Command-Verträge.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
