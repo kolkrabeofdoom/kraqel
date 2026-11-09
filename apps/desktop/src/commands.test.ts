@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   COMMAND_CONTRACT_VERSION,
   KraqelCommandError,
+  commitProjectSnapshot,
   createStoryEntity,
   reorderPlotCards,
   getApplicationStatus,
@@ -175,6 +176,26 @@ describe("typed Tauri commands", () => {
         contractVersion: COMMAND_CONTRACT_VERSION,
         requestId,
         payload: { projectId, parentId: null, orderedIds: [second, first] },
+      },
+    });
+  });
+
+  it("sends a commit message only through the versioned Git command", async () => {
+    const projectId = requestId as ProjectId;
+    mockedInvoke.mockResolvedValue({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: { commitId: "abc123" },
+    });
+
+    await expect(commitProjectSnapshot(projectId, "Kapitel überarbeitet")).resolves.toEqual({
+      commitId: "abc123",
+    });
+    expect(mockedInvoke).toHaveBeenCalledWith("commit_project_snapshot", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: { projectId, message: "Kapitel überarbeitet" },
       },
     });
   });

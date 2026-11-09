@@ -5,6 +5,9 @@ use kraqel_domain::{
     Timeline, TimelineDetails, TimelineEvent, TimelineMode, is_valid_project_name,
     require_current_contract,
 };
+use kraqel_git_service::{
+    CommitResult, GitService, GitServiceError, SnapshotSummary, VersionControlStatus,
+};
 use kraqel_storage::{
     document_repository::{DocumentError, DocumentRepository},
     project_manager::{ProjectError, ProjectManager},
@@ -236,6 +239,19 @@ struct EventLinkRequest {
     event_id: String,
     document_id: Option<String>,
     entity_id: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CommitSnapshotRequest {
+    project_id: String,
+    message: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct VersionControlDiffResponse {
+    diff: String,
 }
 
 #[tauri::command]
@@ -767,6 +783,104 @@ fn link_timeline_event(
     Ok(CommandResponse::current(request.request_id, data))
 }
 
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn create_project_snapshot(
+    state: State<'_, AppState>,
+    request: CommandRequest<ProjectRequest>,
+) -> Result<CommandResponse<SnapshotSummary>, CommandError> {
+    require_current_contract(&request)?;
+    let data = with_git_service(
+        &state,
+        request.request_id,
+        &request.payload.project_id,
+        |project, service, database| service.create_snapshot(database, project),
+    )?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn validate_project_snapshot(
+    state: State<'_, AppState>,
+    request: CommandRequest<ProjectRequest>,
+) -> Result<CommandResponse<SnapshotSummary>, CommandError> {
+    require_current_contract(&request)?;
+    let data = with_git_service(
+        &state,
+        request.request_id,
+        &request.payload.project_id,
+        |project, service, _| service.validate_snapshot(project),
+    )?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn get_version_control_status(
+    state: State<'_, AppState>,
+    request: CommandRequest<ProjectRequest>,
+) -> Result<CommandResponse<VersionControlStatus>, CommandError> {
+    require_current_contract(&request)?;
+    let data = with_git_service(
+        &state,
+        request.request_id,
+        &request.payload.project_id,
+        |_, service, _| service.status(),
+    )?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn get_version_control_diff(
+    state: State<'_, AppState>,
+    request: CommandRequest<ProjectRequest>,
+) -> Result<CommandResponse<VersionControlDiffResponse>, CommandError> {
+    require_current_contract(&request)?;
+    let diff = with_git_service(
+        &state,
+        request.request_id,
+        &request.payload.project_id,
+        |_, service, _| service.diff(),
+    )?;
+    Ok(CommandResponse::current(
+        request.request_id,
+        VersionControlDiffResponse { diff },
+    ))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn commit_project_snapshot(
+    state: State<'_, AppState>,
+    request: CommandRequest<CommitSnapshotRequest>,
+) -> Result<CommandResponse<CommitResult>, CommandError> {
+    require_current_contract(&request)?;
+    let data = with_git_service(
+        &state,
+        request.request_id,
+        &request.payload.project_id,
+        |_, service, _| service.commit(&request.payload.message),
+    )?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
 fn list_projects_impl(
     state: &AppState,
     request_id: uuid::Uuid,
@@ -1100,6 +1214,29 @@ fn with_structure<T>(
     .map_err(|error| map_structure_error(request_id, &error))
 }
 
+fn with_git_service<T>(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    project_value: &str,
+    operation: impl FnOnce(
+        ProjectId,
+        &GitService<'_>,
+        &kraqel_storage::Database,
+    ) -> Result<T, GitServiceError>,
+) -> Result<T, CommandError> {
+    let project_id = parse_project_id(request_id, project_value)?;
+    let manager = manager(state, request_id)?;
+    let opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    operation(
+        project_id,
+        &GitService::new(opened.directory()),
+        opened.database(),
+    )
+    .map_err(|error| map_git_error(request_id, &error))
+}
+
 fn parse_project_id(request_id: uuid::Uuid, value: &str) -> Result<ProjectId, CommandError> {
     ProjectId::parse(value).ok_or_else(|| {
         CommandError::invalid_request(request_id, "Die Projektkennung ist ungültig.")
@@ -1177,6 +1314,21 @@ fn map_structure_error(request_id: uuid::Uuid, error: &StructureError) -> Comman
     }
 }
 
+fn map_git_error(request_id: uuid::Uuid, error: &GitServiceError) -> CommandError {
+    match error {
+        GitServiceError::InvalidInput | GitServiceError::NothingToCommit => {
+            CommandError::invalid_request(request_id, "Die Versionsanfrage ist ungültig.")
+        }
+        GitServiceError::InvalidSnapshot => {
+            CommandError::invalid_request(request_id, "Der Projektsnapshot ist ungültig.")
+        }
+        GitServiceError::GitFailed
+        | GitServiceError::Database(_)
+        | GitServiceError::Io(_)
+        | GitServiceError::Json(_) => CommandError::internal(request_id),
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 /// Startet die Desktop-Anwendung.
 ///
@@ -1220,7 +1372,12 @@ pub fn run() {
             create_timeline_event,
             delete_timeline_event,
             reorder_timeline_events,
-            link_timeline_event
+            link_timeline_event,
+            create_project_snapshot,
+            validate_project_snapshot,
+            get_version_control_status,
+            get_version_control_diff,
+            commit_project_snapshot
         ])
         .run(tauri::generate_context!())
         .expect("KRAQEL konnte nicht gestartet werden");

@@ -15,6 +15,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 kraqel-domain = { path = "../../../crates/domain" }
+kraqel-git-service = { path = "../../../crates/git-service" }
 kraqel-storage = { path = "../../../crates/storage" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

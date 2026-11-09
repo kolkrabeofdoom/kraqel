@@ -24,9 +24,14 @@
 - explizite Kontextvorschau und Freigabe vor jedem Cloudlauf
 - Betriebssystem-Schlüsselspeicher statt Konfigurationsdateien
 - deterministische Snapshots, Prüfsummen und getestete Wiederherstellung
+- deny-by-default Git-Pfadfreigabe; keine globale Git-Konfiguration, Hooks oder interaktiven Prompts
 - Abhängigkeitsprüfung und reproduzierbare CI
 
 Dieses Dokument wird mit jeder neuen Vertrauensgrenze aktualisiert.
+
+Die aktuelle Snapshotprüfung ist ausschließlich lesend und validiert den Formatvertrag. Eine
+vollständige Wiederherstellung aus Snapshot ist noch nicht implementiert; ihre Datenverlust- und
+Überschreibungsrisiken müssen vor einer schreibenden Importfunktion gesondert modelliert werden.
 
 Verbleibendes Risiko: Die kanonische Vorabprüfung ist nicht vollständig gegen ein gleichzeitiges
 böswilliges Austauschen bereits geprüfter Verzeichnisse abgesichert. Vor der Unterstützung

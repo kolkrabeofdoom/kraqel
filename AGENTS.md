@@ -8,9 +8,10 @@ ihrem Unterbaum ergänzen. Vor jeder Änderung sind mindestens diese Datei und
 
 KRAQEL ist als quelloffenes, offlinefähiges Autorenstudio für Romane, Drehbücher und
 Rollenspielmodule geplant. Primärplattform ist Windows. Das Repository enthält das M0-Fundament,
-einen ersten M1-Schreibablauf sowie Story-Bibel, Plotboard und Timelines aus M2, aber keine
-produktionsreife Anwendung. Verifizierte Implementierungen und geplante Funktionen sind strikt zu
-unterscheiden; der verbindliche Stand steht in `docs/DEVELOPMENT_STATUS.md`.
+einen ersten M1-Schreibablauf, die M2-Strukturwerkzeuge sowie portable Snapshots und lokale
+Git-Versionierung aus M3, aber keine produktionsreife Anwendung. Verifizierte Implementierungen und
+geplante Funktionen sind strikt zu unterscheiden; der verbindliche Stand steht in
+`docs/DEVELOPMENT_STATUS.md`.
 
 Leitplanken:
 
@@ -44,6 +45,9 @@ Aktuell im Repository und verifiziert:
   gerichtete Relationen, Unicode-Suche und Szenen-Rückverweise über das bestehende SQLite-Schema.
 - **Strukturwerkzeuge:** persistente Szenenkarten, Handlungsstränge, POV/Status sowie parallele
   relative und absolute Zeitebenen mit Szenen- und Entitätslinks.
+- **Versionierung:** deterministische JSON-/Markdown-Snapshots, formales Schema und kontrollierte
+  lokale Git-Operationen für Init, Status, Diff und Commit; SQLite und Nebenartefakte sind
+  ausgeschlossen.
 - **Qualität:** Prettier, ESLint, TypeScript-Checks, Vitest, Rust-Tests, rustfmt und Clippy mit
   Warnungen als Fehler; GitHub Actions unter Windows und Linux.
 
@@ -64,7 +68,7 @@ ein leeres Crate ist keine fertige Funktion - auch wenn es sehr selbstbewusst ko
 | `packages/visual-contracts/` | Medien- und visuelle Profilverträge                          | Grundtypen, keine Persistenz |
 | `crates/domain/`             | Rust-Domäne und versionierte Command-Verträge                | Dokument- und Story-Modell   |
 | `crates/storage/`            | SQLite, Projektlebenszyklus und fachliche Repositories       | Dokumente und M2-Persistenz  |
-| `crates/git-service/`        | Deterministische Snapshots und Git-Operationen               | Nur Status-Enum              |
+| `crates/git-service/`        | Deterministische Snapshots und Git-Operationen               | Lokaler M3-Mindestumfang     |
 | `crates/export/`             | Markdown-, HTML-, DOCX- und PDF-Export                       | Nur Format-Enum              |
 | `crates/continuity/`         | Regelbasierte Kontinuitätsprüfung                            | Nur Schweregrad-Enum         |
 | `crates/asset-service/`      | Sicherer Asset-Import, Hashes, Pfade, Thumbnails             | Relative Pfadprüfung         |

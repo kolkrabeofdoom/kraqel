@@ -88,6 +88,24 @@ export interface StoredDocument {
   readonly plainText: string;
 }
 
+export interface SnapshotSummary {
+  readonly formatVersion: number;
+  readonly projectId: ProjectId;
+  readonly fileCount: number;
+  readonly byteCount: number;
+}
+
+export interface VersionControlStatus {
+  readonly initialized: boolean;
+  readonly clean: boolean;
+  readonly changedFiles: readonly string[];
+  readonly head: string | null;
+}
+
+export interface CommitResult {
+  readonly commitId: string;
+}
+
 export interface CreateDocumentInput {
   readonly projectId: ProjectId;
   readonly parentId: EntityId | null;
@@ -411,6 +429,54 @@ export async function linkTimelineEvent(
       documentId,
       entityId,
     })) as CommandResponse<TimelineDetails>
+  ).data;
+}
+
+export async function createProjectSnapshot(projectId: ProjectId): Promise<SnapshotSummary> {
+  return (
+    await callCommand<{ readonly projectId: ProjectId }, SnapshotSummary>(
+      "create_project_snapshot",
+      { projectId },
+    )
+  ).data;
+}
+
+export async function validateProjectSnapshot(projectId: ProjectId): Promise<SnapshotSummary> {
+  return (
+    await callCommand<{ readonly projectId: ProjectId }, SnapshotSummary>(
+      "validate_project_snapshot",
+      { projectId },
+    )
+  ).data;
+}
+
+export async function getVersionControlStatus(projectId: ProjectId): Promise<VersionControlStatus> {
+  return (
+    await callCommand<{ readonly projectId: ProjectId }, VersionControlStatus>(
+      "get_version_control_status",
+      { projectId },
+    )
+  ).data;
+}
+
+export async function getVersionControlDiff(projectId: ProjectId): Promise<string> {
+  return (
+    await callCommand<{ readonly projectId: ProjectId }, { readonly diff: string }>(
+      "get_version_control_diff",
+      { projectId },
+    )
+  ).data.diff;
+}
+
+export async function commitProjectSnapshot(
+  projectId: ProjectId,
+  message: string,
+): Promise<CommitResult> {
+  return (
+    await callCommand<{ readonly projectId: ProjectId; readonly message: string }, CommitResult>(
+      "commit_project_snapshot",
+      { projectId, message },
+    )
   ).data;
 }
 

@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kraqel.local/schema/snapshot-v1.schema.json",
+  "title": "KRAQEL project snapshot v1",
+  "oneOf": [
+    { "$ref": "#/$defs/manifest" },
+    { "$ref": "#/$defs/documents" },
+    { "$ref": "#/$defs/storyBible" },
+    { "$ref": "#/$defs/plotboard" },
+    { "$ref": "#/$defs/timelines" }
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "manifest": {
+      "type": "object",
+      "required": ["format", "formatVersion", "project", "files", "assets"],
+      "properties": {
+        "format": { "const": "kraqel-project-snapshot" },
+        "formatVersion": { "const": 1 },
+        "project": {
+          "type": "object",
+          "required": ["id", "name", "schemaVersion", "settings"],
+          "properties": {
+            "id": { "$ref": "#/$defs/uuid" },
+            "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+            "schemaVersion": { "const": 1 },
+            "settings": { "type": "object" }
+          },
+          "additionalProperties": false
+        },
+        "files": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "assets": { "type": "array" }
+      },
+      "additionalProperties": false
+    },
+    "documents": {
+      "type": "object",
+      "required": ["kind", "documents"],
+      "properties": {
+        "kind": { "const": "documents" },
+        "documents": { "type": "array", "items": { "$ref": "#/$defs/document" } }
+      },
+      "additionalProperties": false
+    },
+    "document": {
+      "type": "object",
+      "required": [
+        "id",
+        "parentId",
+        "kind",
+        "title",
+        "position",
+        "revision",
+        "content",
+        "plainText"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/uuid" },
+        "parentId": { "anyOf": [{ "$ref": "#/$defs/uuid" }, { "type": "null" }] },
+        "kind": { "enum": ["chapter", "scene"] },
+        "title": { "type": "string" },
+        "position": { "type": "integer", "minimum": 0 },
+        "revision": { "type": "integer", "minimum": 0 },
+        "content": { "type": "object" },
+        "plainText": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "storyBible": {
+      "type": "object",
+      "required": ["kind", "entities", "relations", "links"],
+      "properties": {
+        "kind": { "const": "storyBible" },
+        "entities": { "type": "array", "items": { "type": "object" } },
+        "relations": { "type": "array", "items": { "type": "object" } },
+        "links": { "type": "array", "items": { "type": "object" } }
+      },
+      "additionalProperties": false
+    },
+    "plotboard": {
+      "type": "object",
+      "required": ["kind", "storylines", "cards"],
+      "properties": {
+        "kind": { "const": "plotboard" },
+        "storylines": { "type": "array", "items": { "type": "object" } },
+        "cards": { "type": "array", "items": { "type": "object" } }
+      },
+      "additionalProperties": false
+    },
+    "timelines": {
+      "type": "object",
+      "required": ["kind", "timelines", "events", "documentLinks", "entityLinks"],
+      "properties": {
+        "kind": { "const": "timelines" },
+        "timelines": { "type": "array", "items": { "type": "object" } },
+        "events": { "type": "array", "items": { "type": "object" } },
+        "documentLinks": { "type": "array", "items": { "type": "object" } },
+        "entityLinks": { "type": "array", "items": { "type": "object" } }
+      },
+      "additionalProperties": false
+    }
+  }
+}

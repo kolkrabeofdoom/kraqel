@@ -2,7 +2,7 @@
 
 Stand: 9. November 2026
 
-Code-Referenz: KQ-007 (`feat/kq-007-plotboard-timelines`, dieser Stand)
+Code-Referenz: KQ-008 (`feat/kq-008-git-snapshots`, dieser Stand)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -17,7 +17,7 @@ als vollständige Fachfunktion.
 | **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                 |
 | **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Teilweise umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, szenengebundenes Undo/Redo, Wortzählung, Fokusmodus, revisionsgeprüftes Autosave und SQLite-Backup vorhanden. Umbenennen, Umordnen, Löschen und E2E-Abnahme fehlen. |
 | **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks vorhanden. Browser-/Screenreader-Abnahme fehlt.                                   |
-| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Nicht implementiert.** Es existieren nur Enums/Vertragstypen und eine relative Pfadprüfung.                                                                                                                                            |
+| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** deterministische Projektsnapshots sowie lokales Git für Init, Status, Diff und Commit vorhanden. Schreibende Snapshot-Wiederherstellung, allgemeiner Export, Medien und visuelle Profile fehlen.                |
 | **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Nur Verträge vorbereitet:** Capability-, Kontextfreigabe-, Medien- und Profiltypen; keine Provider oder Fachabläufe.                                                                                                                   |
 | **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                                                                            |
 | **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                   |
@@ -33,7 +33,7 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Tauri-2-/React-/TypeScript-Desktop-Shell mit statischer, responsiver Startoberfläche.
 - Minimale Tauri-Berechtigung `core:default`, definierte CSP und Windows-Fensterkonfiguration.
 - GitHub-Actions-CI unter `windows-latest` und `ubuntu-latest`.
-- Letzter CI-Lauf für `main` bei `33e1a52`: erfolgreich unter Windows und Linux.
+- Letzter CI-Lauf für `main` bei `667666f`: erfolgreich unter Windows und Linux.
 - Qualitätskette: Prettier, rustfmt, ESLint, Clippy mit `-D warnings`, TypeScript, Vitest,
   Rust-Tests sowie Frontend- und Workspace-Builds.
 - GPL-3.0-or-later, Beitrags-, Verhaltens- und Sicherheitsdokumentation vorhanden.
@@ -135,23 +135,43 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - `editor`: versionierter, generischer Snapshot-Vertrag.
 - `ai-contracts`: Capability-, Provider- und explizite Kontextfreigabetypen.
 - `visual-contracts`: Grundtypen für Medienassets und visuelle Profile.
-- `export`, `git-service` und `continuity`: nur grundlegende Enums; keine ausführbare Fachlogik.
+- `export` und `continuity`: nur grundlegende Enums; keine ausführbare Fachlogik.
+
+### Deterministische Snapshots und lokales Git (KQ-008)
+
+- Portables Snapshotformat v1 für Projektmetadaten, Dokumente, Story-Bibel, Plotboard und Timelines;
+  ein formales JSON-Schema wird mit jedem Snapshot kopiert.
+- UUID-basierte Markdown-Dateinamen, stabile fachliche Sortierung, UTF-8/LF und keine flüchtigen
+  Datenbankzeitstempel. Wiederholte Erzeugung unveränderter Projekte ist byte-identisch getestet.
+- Snapshotstände entstehen in temporären Geschwisterverzeichnissen und werden als vollständiger
+  Verzeichnistausch veröffentlicht.
+- Deny-by-default `.gitignore` sowie feste Pfadangaben beschränken Init, Add, Status, Diff und
+  Commit auf `.gitignore` und `snapshot/**`. SQLite, WAL, Sicherungen und Nebenartefakte bleiben
+  ungetrackt.
+- Globale Git-Konfiguration, Systemkonfiguration, Hooks, externe Diffs, Signaturzwang und
+  interaktive Prompts sind für Dienstoperationen deaktiviert.
+- Versionierte Tauri-Commands und die zugängliche Ansicht **Versionen** bieten Snapshoterzeugung,
+  lesende Prüfung, Status, Unified Diff und expliziten Commit.
+- Automatisierte Tests prüfen Byte-Stabilität, Manipulationserkennung, Ausschluss der Datenbank und
+  Git-Roundtrip. Browser-/Screenreader-Abnahme ist nur als manueller Testplan dokumentiert.
+- Die Prüfung ist noch keine schreibende Wiederherstellung: Ein Snapshot wird derzeit nicht in ein
+  neues SQLite-Projekt importiert.
 
 ## Offene Aufgaben
 
-### Unmittelbar: M3 beginnen
+### Unmittelbar: M3 fortsetzen
 
-1. **KQ-008 - Deterministische Projekt-Snapshots und Git-Status/Commit/Diff**
-   - offenes, deterministisch sortiertes Snapshotformat
-   - sichere Git-Operationen ohne laufende SQLite-Datei oder private Nebenartefakte
+1. **KQ-009 - Markdown-/HTML-/DOCX-/PDF-Pipeline und Exporttests**
+   - definierte, dokumentierte Formatierungsmenge
+   - reproduzierbare Exporte mit sicheren relativen Medienreferenzen
 
 ### Danach gemäß Pflichtenheft
 
-- KQ-008 bis KQ-016: Git-Snapshots, Export, Textprovider, Kontinuität, Medienbibliothek, visuelle
-  Profile, Prompt-Builder und Bild-Capability-Verträge.
+- KQ-009 bis KQ-016: Export, Textprovider, Kontinuität, Medienbibliothek, visuelle Profile,
+  Prompt-Builder und Bild-Capability-Verträge.
 - KQ-017 und KQ-018 gehören zu Version 0.2 und sind kein Ziel für 0.1.
 
-Für KQ-008 bis KQ-018 sind noch nicht alle GitHub-Issues angelegt; die Aufgaben stehen im
+Für KQ-009 bis KQ-018 sind noch nicht alle GitHub-Issues angelegt; die Aufgaben stehen im
 Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkretisiert werden.
 
 ## Bekannte Fehler und Lücken
@@ -161,7 +181,10 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 - **Feste Projektwurzel in der Desktopoberfläche:** Projekte liegen derzeit unter dem lokalen
   App-Datenverzeichnis. Eine frei wählbare Projektwurzel ist noch nicht umgesetzt.
 - **Lokales Backup umfasst nur SQLite:** Assets sind noch nicht implementiert und daher nicht Teil
-  der Sicherung. Portable Austausch- und Git-Snapshots sind ein späterer, getrennter Mechanismus.
+  der Sicherung. Portable Git-Snapshots sind ein getrennter Mechanismus und enthalten derzeit keine
+  Assets.
+- **Snapshot-Wiederherstellung nur vorbereitet:** Format und Inhalte werden lesend geprüft, aber
+  noch nicht in eine neue Datenbank importiert. F07 ist deshalb noch nicht vollständig abgenommen.
 - **Migrationen bleiben vorwärtsgerichtet:** 0→1 und die befüllte Migration 1→2 sind getestet;
   weitere Versionen benötigen jeweils eine neue unveränderliche Migration.
 - **Zeitwerte ohne Kalendersemantik:** Absolute Zeitwerte sind validierte Zeichenketten. Kalender,
@@ -193,6 +216,9 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 - **Getrennte Datenbankversion und explizites Zeitmodell:** SQLite-Migrationen sind vom portablen
   Projektformat getrennt; relative und absolute Zeitebenen erzwingen unterschiedliche Zeitwerte und
   Links bleiben n:m (ADR 0006).
+- **Portabler Snapshot und kontrolliertes Git:** Nur `.gitignore` und `snapshot/**` sind
+  freigegeben; globale Konfiguration, Hooks und interaktive Git-Abläufe bleiben deaktiviert. Die
+  erste Wiederherstellungsstufe ist lesende Validierung (ADR 0007).
 - **Privilegierte Operationen in Rust:** React kommuniziert ausschließlich über versionierte,
   typisierte Tauri-Commands mit Dateisystem, Storage, Git und späteren Providern.
 - **Verträge sind explizit versioniert:** Inkompatible Änderungen erfordern eine neue
@@ -214,7 +240,7 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
 | SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert | Vor großen Projekten messen; Migration nur mit Evidenz    |
 | Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                       | Gemeinsame Fixtures oder spätere Codegenerierung bewerten |
-| Datenformat                  | Lokale M2-Verträge dokumentiert; portables Manifest und JSON-Schemas fehlen                                 | Mit KQ-008 und Snapshotarbeit versionieren                |
+| Datenformat                  | Snapshot v1 samt Schema vorhanden; schreibender Import und Assetreferenzen fehlen                           | Roundtrip-Import vor vollständiger F07-Abnahme testen     |
 | Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                   | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen  |
 | Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                    | Bei jeder Erweiterung Fixtures und Migration prüfen       |
 | Desktoptests                 | Unit-/IPC-Tests vorhanden, aber keine Browser-/Tauri-E2E-Abdeckung                                          | Playwright für Projekt- und Schreibablauf einführen       |
@@ -224,17 +250,16 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 
 ## Nächste geplante Entwicklungsstufe
 
-**KQ-008: Deterministische Projekt-Snapshots und sichere Git-Operationen.**
+**KQ-009: Markdown-/HTML-/DOCX-/PDF-Pipeline und Exporttests.**
 
 Empfohlener, überprüfbarer Scope:
 
-1. GitHub-Issue mit Akzeptanzkriterien und Abhängigkeit zu KQ-007 anlegen.
-2. Portables Manifest und JSON-Schemas für Projekte, Dokumente, Story-Bibel, Plotboard und Timelines
+1. GitHub-Issue mit Akzeptanzkriterien und Abhängigkeit zu KQ-008 anlegen.
+2. Gemeinsame, bewusst begrenzte Zwischenrepräsentation für unterstützte Textformatierungen
    definieren.
-3. Deterministische Sortierung, stabile Dateinamen und atomare Snapshot-Erzeugung implementieren.
-4. Git init/status/diff/commit ausschließlich gegen freigegebene Snapshotdateien ausführen.
-5. Wiederherstellung zunächst lesend prüfen; laufende SQLite-Dateien, WAL, Backups und Schlüssel
-   bleiben ausgeschlossen. Git ist Gedächtnis, kein Staubsaugerbeutel.
+3. Deterministische Markdown- und HTML-Ausgabe mit Roundtrip-Fixtures implementieren.
+4. DOCX und PDF aus derselben Repräsentation erzeugen und gerendert prüfen.
+5. Medienreferenzen zunächst nur relativ und explizit behandeln; keine stillen Netzwerkzugriffe.
 
 ## Einstieg für die nächste Codex-Session
 
@@ -243,9 +268,9 @@ cd D:\kraqel
 git status
 git branch --show-current
 git log -5 --oneline
-rg "KQ-008" docs ROADMAP.md
+rg "KQ-009" docs ROADMAP.md
 ```
 
-Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0001 bis ADR 0006, `docs/data-format/README.md`,
-`crates/storage/src/structure_repository.rs` und die Zugänglichkeitstestpläne. Vor KQ-008 zuerst ein
-eigenes Issue anlegen und den Scope gegen F07, M3 und ADR 0001 prüfen.
+Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0001 bis ADR 0007, `docs/data-format/README.md`,
+`crates/export/src/lib.rs` und die Zugänglichkeitstestpläne. Vor KQ-009 zuerst ein eigenes Issue
+anlegen und den Scope gegen F08 und M3 prüfen.
