@@ -3,7 +3,8 @@
 use std::{
     error::Error,
     ffi::OsString,
-    fmt, fs, io,
+    fmt, fs,
+    io::{self, Write as _},
     path::{Component, Path, PathBuf},
     sync::atomic::{AtomicU64, Ordering},
     time::{SystemTime, UNIX_EPOCH},
@@ -11,6 +12,7 @@ use std::{
 
 use kraqel_domain::{CURRENT_SCHEMA_VERSION, Project, is_valid_project_name};
 use rusqlite::{Connection, MAIN_DB, OpenFlags, params};
+use sha2::{Digest as _, Sha256};
 
 use crate::{CURRENT_DATABASE_VERSION, Database, StorageError};
 
@@ -18,6 +20,7 @@ use crate::{CURRENT_DATABASE_VERSION, Database, StorageError};
 pub const DATABASE_FILE_NAME: &str = "kraqel.sqlite3";
 /// Verzeichnis für konsistente lokale Datenbanksicherungen.
 pub const BACKUP_DIRECTORY_NAME: &str = "backups";
+const BACKUP_ASSET_SUFFIX: &str = ".assets";
 
 static TEMPORARY_NAME_COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -348,7 +351,11 @@ impl ProjectManager {
             ProjectError::BackupMissing,
         )?;
         let destination = backup_directory.join(format!("{backup_name}.sqlite3"));
-        if fs::symlink_metadata(&destination).is_ok() {
+        let asset_destination =
+            backup_directory.join(format!("{backup_name}{BACKUP_ASSET_SUFFIX}"));
+        if fs::symlink_metadata(&destination).is_ok()
+            || fs::symlink_metadata(&asset_destination).is_ok()
+        {
             return Err(ProjectError::BackupAlreadyExists);
         }
 
@@ -368,16 +375,27 @@ impl ProjectManager {
                 source,
             })?;
 
-        fs::hard_link(temporary.path(), &destination).map_err(|source| {
-            if source.kind() == io::ErrorKind::AlreadyExists {
+        let mut asset_staging = TemporaryDirectory::create(&backup_directory)?;
+        copy_assets_from_project(temporary.path(), project.directory(), asset_staging.path())?;
+        fs::rename(asset_staging.path(), &asset_destination).map_err(|source| {
+            ProjectError::Io {
+                operation: "Asset-Sicherung atomar veröffentlichen",
+                source,
+            }
+        })?;
+        asset_staging.keep();
+
+        if let Err(source) = fs::hard_link(temporary.path(), &destination) {
+            let _ = fs::remove_dir_all(&asset_destination);
+            return Err(if source.kind() == io::ErrorKind::AlreadyExists {
                 ProjectError::BackupAlreadyExists
             } else {
                 ProjectError::Io {
                     operation: "Sicherung atomar veröffentlichen",
                     source,
                 }
-            }
-        })?;
+            });
+        }
         Ok(destination)
     }
 
@@ -434,6 +452,8 @@ impl ProjectManager {
                 .execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")?;
         }
         verify_database(&restored_database)?;
+        let backup_assets = backup_directory.join(format!("{backup_name}{BACKUP_ASSET_SUFFIX}"));
+        restore_assets_into_project(&restored_database, &backup_assets, staging.path())?;
 
         fs::rename(staging.path(), &destination).map_err(|source| ProjectError::Io {
             operation: "Wiederherstellung atomar veröffentlichen",
@@ -609,6 +629,114 @@ fn open_read_only(path: &Path) -> Result<Connection, ProjectError> {
         .map_err(|_| ProjectError::InvalidDatabase)
 }
 
+fn copy_assets_from_project(
+    database_path: &Path,
+    project_directory: &Path,
+    backup_root: &Path,
+) -> Result<(), ProjectError> {
+    copy_referenced_assets(database_path, project_directory, backup_root)
+}
+
+fn restore_assets_into_project(
+    database_path: &Path,
+    backup_root: &Path,
+    project_directory: &Path,
+) -> Result<(), ProjectError> {
+    copy_referenced_assets(database_path, backup_root, project_directory)
+}
+
+fn copy_referenced_assets(
+    database_path: &Path,
+    source_root: &Path,
+    destination_root: &Path,
+) -> Result<(), ProjectError> {
+    let connection = open_read_only(database_path)?;
+    let mut statement = connection.prepare(
+        "SELECT relative_path, thumbnail_path, checksum FROM media_asset
+         ORDER BY relative_path",
+    )?;
+    let rows = statement
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+            ))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    if rows.is_empty() {
+        return Ok(());
+    }
+    validate_directory_metadata(
+        &fs::symlink_metadata(source_root).map_err(|_| ProjectError::InvalidDatabase)?,
+    )?;
+    for (original, thumbnail, checksum) in rows {
+        copy_asset_file(source_root, destination_root, &original, Some(&checksum))?;
+        copy_asset_file(source_root, destination_root, &thumbnail, None)?;
+    }
+    Ok(())
+}
+
+fn copy_asset_file(
+    source_root: &Path,
+    destination_root: &Path,
+    relative: &str,
+    expected_checksum: Option<&str>,
+) -> Result<(), ProjectError> {
+    let components = relative_components(Path::new(relative))?;
+    if components.first().and_then(|part| part.to_str()) != Some("assets") {
+        return Err(ProjectError::InvalidDatabase);
+    }
+    let mut source = source_root.to_path_buf();
+    for component in &components {
+        source.push(component);
+        let metadata = fs::symlink_metadata(&source).map_err(|_| ProjectError::InvalidDatabase)?;
+        if metadata.file_type().is_symlink() {
+            return Err(ProjectError::SymlinkNotAllowed);
+        }
+    }
+    if !source.is_file() {
+        return Err(ProjectError::InvalidDatabase);
+    }
+    let bytes = fs::read(&source).map_err(|source| ProjectError::Io {
+        operation: "Asset für Sicherung lesen",
+        source,
+    })?;
+    if let Some(expected) = expected_checksum {
+        if format!("{:x}", Sha256::digest(&bytes)) != expected {
+            return Err(ProjectError::InvalidDatabase);
+        }
+    }
+    let destination = components
+        .iter()
+        .fold(destination_root.to_path_buf(), |path, part| path.join(part));
+    let parent = destination
+        .parent()
+        .ok_or(ProjectError::InvalidRelativePath)?;
+    fs::create_dir_all(parent).map_err(|source| ProjectError::Io {
+        operation: "Asset-Sicherungsverzeichnis anlegen",
+        source,
+    })?;
+    let mut output = fs::OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(&destination)
+        .map_err(|source| ProjectError::Io {
+            operation: "Asset-Sicherung schreiben",
+            source,
+        })?;
+    output
+        .write_all(&bytes)
+        .map_err(|source| ProjectError::Io {
+            operation: "Asset-Sicherung schreiben",
+            source,
+        })?;
+    output.sync_all().map_err(|source| ProjectError::Io {
+        operation: "Asset-Sicherung synchronisieren",
+        source,
+    })
+}
+
 fn verify_database(path: &Path) -> Result<(), ProjectError> {
     let connection = open_read_only(path)?;
     verify_connection(&connection)
@@ -634,13 +762,22 @@ fn verify_restore_source(path: &Path) -> Result<(), ProjectError> {
              WHERE name IN ('project', 'document', 'entity', 'relation', 'link',
                             'storyline', 'plot_card', 'timeline', 'event',
                             'event_document_link', 'event_entity_link',
+                            'media_asset', 'asset_link',
+                            'asset_link_document_after_delete',
+                            'asset_link_entity_after_delete',
+                            'asset_link_event_after_delete',
                             'document_fts', 'document_fts_after_insert',
                             'document_fts_after_update', 'document_fts_after_delete')",
             [],
             |row| row.get(0),
         )
         .map_err(|_| ProjectError::InvalidDatabase)?;
-    let expected = if version == 1 { 9 } else { 15 };
+    let expected = match version {
+        1 => 9,
+        2 => 15,
+        3 => 20,
+        _ => return Err(ProjectError::InvalidDatabase),
+    };
     if required == expected {
         Ok(())
     } else {
@@ -668,13 +805,17 @@ fn verify_connection(connection: &Connection) -> Result<(), ProjectError> {
              WHERE name IN ('project', 'document', 'entity', 'relation', 'link',
                             'storyline', 'plot_card', 'timeline', 'event',
                             'event_document_link', 'event_entity_link',
+                            'media_asset', 'asset_link',
+                            'asset_link_document_after_delete',
+                            'asset_link_entity_after_delete',
+                            'asset_link_event_after_delete',
                             'document_fts', 'document_fts_after_insert',
                             'document_fts_after_update', 'document_fts_after_delete')",
             [],
             |row| row.get(0),
         )
         .map_err(|_| ProjectError::InvalidDatabase)?;
-    if object_count != 15 {
+    if object_count != 20 {
         return Err(ProjectError::InvalidDatabase);
     }
 
@@ -784,7 +925,9 @@ impl Drop for TemporaryFile {
 mod tests {
     use std::{fs, path::Path};
 
-    use kraqel_domain::{CURRENT_SCHEMA_VERSION, Project, ProjectId};
+    use kraqel_domain::{CURRENT_SCHEMA_VERSION, EntityId, Project, ProjectId};
+    use rusqlite::params;
+    use sha2::{Digest as _, Sha256};
     use tempfile::tempdir;
 
     use super::{
@@ -907,6 +1050,57 @@ mod tests {
             manager.backup_project("quelle", "stand-1"),
             Err(ProjectError::BackupAlreadyExists)
         ));
+    }
+
+    #[test]
+    fn backup_and_restore_preserve_hash_verified_assets() {
+        let root = tempdir().expect("temporary root should exist");
+        let manager = ProjectManager::new(root.path()).expect("manager should open");
+        let project = project("Medienprojekt");
+        let project_id = project.id;
+        let opened = manager
+            .create_project("quelle", &project)
+            .expect("project should be created");
+        let original = b"deterministic image bytes";
+        let thumbnail = b"thumbnail bytes";
+        fs::create_dir_all(opened.directory().join("assets/thumbnails")).unwrap();
+        fs::write(opened.directory().join("assets/image.png"), original).unwrap();
+        fs::write(
+            opened.directory().join("assets/thumbnails/image.png"),
+            thumbnail,
+        )
+        .unwrap();
+        opened
+            .database()
+            .connection()
+            .execute(
+                "INSERT INTO media_asset (
+                id, project_id, kind, relative_path, thumbnail_path, original_name, title,
+                mime_type, checksum, byte_count, width, height, provenance, created_at, updated_at
+             ) VALUES (?1, ?2, 'image', 'assets/image.png', 'assets/thumbnails/image.png',
+                       'image.png', 'Bild', 'image/png', ?3, ?4, 1, 1, 'imported', 't', 't')",
+                params![
+                    EntityId::new().to_string(),
+                    project_id.to_string(),
+                    format!("{:x}", Sha256::digest(original)),
+                    i64::try_from(original.len()).unwrap()
+                ],
+            )
+            .unwrap();
+        drop(opened);
+
+        manager.backup_project("quelle", "mit-assets").unwrap();
+        let restored = manager
+            .restore_backup("quelle", "mit-assets", "wiederhergestellt")
+            .unwrap();
+        assert_eq!(
+            fs::read(restored.directory().join("assets/image.png")).unwrap(),
+            original
+        );
+        assert_eq!(
+            fs::read(restored.directory().join("assets/thumbnails/image.png")).unwrap(),
+            thumbnail
+        );
     }
 
     #[test]

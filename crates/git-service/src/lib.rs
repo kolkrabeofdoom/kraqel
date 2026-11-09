@@ -1,6 +1,7 @@
 //! Deterministische Exportsnapshots und kontrollierte Git-Operationen.
 
 use std::{
+    collections::BTreeSet,
     error::Error,
     fmt, fs, io,
     path::{Path, PathBuf},
@@ -12,6 +13,7 @@ use kraqel_storage::Database;
 use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use sha2::{Digest as _, Sha256};
 use uuid::Uuid;
 
 const SNAPSHOT_DIRECTORY: &str = "snapshot";
@@ -162,7 +164,12 @@ impl<'project> GitService<'project> {
             .project_directory
             .join(format!(".kraqel-snapshot-new-{}", Uuid::new_v4()));
         fs::create_dir(&staging)?;
-        if let Err(error) = Self::write_snapshot(database.connection(), project_id, &staging) {
+        if let Err(error) = Self::write_snapshot(
+            database.connection(),
+            project_id,
+            &staging,
+            self.project_directory,
+        ) {
             let _ = fs::remove_dir_all(&staging);
             return Err(error);
         }
@@ -205,6 +212,7 @@ impl<'project> GitService<'project> {
                 validate_json_file(name, &value)?;
             }
         }
+        validate_snapshot_assets(&root, &manifest.assets)?;
         let manuscript = root.join(MANUSCRIPT_DIRECTORY);
         if !manuscript.is_dir() {
             return Err(GitServiceError::InvalidSnapshot);
@@ -335,6 +343,7 @@ impl<'project> GitService<'project> {
         connection: &Connection,
         project_id: ProjectId,
         root: &Path,
+        project_directory: &Path,
     ) -> Result<(), GitServiceError> {
         let project_id_text = project_id.to_string();
         let (stored_id, name, schema_version, settings): (String, String, u32, String) = connection
@@ -454,6 +463,7 @@ impl<'project> GitService<'project> {
             root.join("schema.json"),
             include_bytes!("../../../docs/data-format/snapshot-v1.schema.json"),
         )?;
+        let assets = write_snapshot_assets(connection, &project_id_text, project_directory, root)?;
         let manifest = Manifest {
             format: "kraqel-project-snapshot".to_owned(),
             format_version: 1,
@@ -464,7 +474,7 @@ impl<'project> GitService<'project> {
                 settings: serde_json::from_str(&settings)?,
             },
             files: expected_manifest_files(),
-            assets: Vec::new(),
+            assets,
         };
         write_json(root.join("manifest.json"), &manifest)?;
         fs::write(
@@ -574,6 +584,198 @@ impl<'project> GitService<'project> {
             return Err(GitServiceError::GitFailed);
         }
         Ok(output.status.success().then_some(output))
+    }
+}
+
+fn write_snapshot_assets(
+    connection: &Connection,
+    project_id: &str,
+    project_directory: &Path,
+    snapshot_root: &Path,
+) -> Result<Vec<Value>, GitServiceError> {
+    let mut statement = connection.prepare(
+        "SELECT id, original_name, title, mime_type, checksum, byte_count, width, height,
+                provenance, tags_json, relative_path
+         FROM media_asset WHERE project_id = ?1 ORDER BY id",
+    )?;
+    let rows = statement
+        .query_map([project_id], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, i64>(5)?,
+                row.get::<_, u32>(6)?,
+                row.get::<_, u32>(7)?,
+                row.get::<_, String>(8)?,
+                row.get::<_, String>(9)?,
+                row.get::<_, String>(10)?,
+            ))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+    if rows.is_empty() {
+        return Ok(Vec::new());
+    }
+    fs::create_dir(snapshot_root.join("assets"))?;
+    let mut result = Vec::with_capacity(rows.len());
+    for (
+        id,
+        original_name,
+        title,
+        mime_type,
+        checksum,
+        byte_count,
+        width,
+        height,
+        provenance,
+        tags_json,
+        relative_path,
+    ) in rows
+    {
+        let extension = snapshot_extension(&mime_type)?;
+        let snapshot_path = format!("assets/{checksum}.{extension}");
+        let source = resolve_project_asset(project_directory, &relative_path)?;
+        let bytes = fs::read(source)?;
+        if byte_count < 0
+            || u64::try_from(byte_count).ok() != Some(bytes.len() as u64)
+            || format!("{:x}", Sha256::digest(&bytes)) != checksum
+        {
+            return Err(GitServiceError::InvalidSnapshot);
+        }
+        fs::write(snapshot_root.join(&snapshot_path), bytes)?;
+        let tags: Value =
+            serde_json::from_str(&tags_json).map_err(|_| GitServiceError::InvalidSnapshot)?;
+        if !tags.is_array() {
+            return Err(GitServiceError::InvalidSnapshot);
+        }
+        let mut link_statement = connection.prepare(
+            "SELECT target_type, target_id, role FROM asset_link
+             WHERE project_id = ?1 AND asset_id = ?2 ORDER BY target_type, target_id, role",
+        )?;
+        let links = link_statement
+            .query_map(params![project_id, id], |row| {
+                Ok(json!({
+                    "targetKind": row.get::<_, String>(0)?,
+                    "targetId": row.get::<_, String>(1)?,
+                    "role": row.get::<_, String>(2)?,
+                }))
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        result.push(json!({
+            "id": id,
+            "kind": "image",
+            "path": snapshot_path,
+            "originalName": original_name,
+            "title": title,
+            "mimeType": mime_type,
+            "checksum": checksum,
+            "byteCount": byte_count,
+            "width": width,
+            "height": height,
+            "provenance": provenance,
+            "tags": tags,
+            "links": links,
+        }));
+    }
+    Ok(result)
+}
+
+fn validate_snapshot_assets(root: &Path, assets: &[Value]) -> Result<(), GitServiceError> {
+    let mut expected = BTreeSet::new();
+    for asset in assets {
+        let path = asset
+            .get("path")
+            .and_then(Value::as_str)
+            .ok_or(GitServiceError::InvalidSnapshot)?;
+        let checksum = asset
+            .get("checksum")
+            .and_then(Value::as_str)
+            .ok_or(GitServiceError::InvalidSnapshot)?;
+        let mime_type = asset
+            .get("mimeType")
+            .and_then(Value::as_str)
+            .ok_or(GitServiceError::InvalidSnapshot)?;
+        let extension = snapshot_extension(mime_type)?;
+        if path != format!("assets/{checksum}.{extension}")
+            || checksum.len() != 64
+            || !checksum
+                .bytes()
+                .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+            || !expected.insert(path.to_owned())
+        {
+            return Err(GitServiceError::InvalidSnapshot);
+        }
+        let file = root.join(path);
+        let metadata = fs::symlink_metadata(&file)?;
+        if metadata.file_type().is_symlink() || !metadata.is_file() {
+            return Err(GitServiceError::InvalidSnapshot);
+        }
+        let bytes = fs::read(file)?;
+        if format!("{:x}", Sha256::digest(&bytes)) != checksum
+            || asset.get("byteCount").and_then(Value::as_u64) != Some(bytes.len() as u64)
+            || asset.get("links").is_none_or(|value| !value.is_array())
+            || asset.get("tags").is_none_or(|value| !value.is_array())
+        {
+            return Err(GitServiceError::InvalidSnapshot);
+        }
+    }
+    let asset_directory = root.join("assets");
+    if assets.is_empty() {
+        if asset_directory.exists() {
+            return Err(GitServiceError::InvalidSnapshot);
+        }
+        return Ok(());
+    }
+    let actual = fs::read_dir(asset_directory)?
+        .map(|entry| {
+            let entry = entry?;
+            if entry.file_type()?.is_symlink() || !entry.file_type()?.is_file() {
+                return Err(GitServiceError::InvalidSnapshot);
+            }
+            Ok(format!("assets/{}", entry.file_name().to_string_lossy()))
+        })
+        .collect::<Result<BTreeSet<_>, _>>()?;
+    if actual == expected {
+        Ok(())
+    } else {
+        Err(GitServiceError::InvalidSnapshot)
+    }
+}
+
+fn resolve_project_asset(root: &Path, relative: &str) -> Result<PathBuf, GitServiceError> {
+    let path = Path::new(relative);
+    if path.is_absolute() {
+        return Err(GitServiceError::InvalidSnapshot);
+    }
+    let mut current = root.to_path_buf();
+    for (index, component) in path.components().enumerate() {
+        let std::path::Component::Normal(name) = component else {
+            return Err(GitServiceError::InvalidSnapshot);
+        };
+        if index == 0 && name != "assets" {
+            return Err(GitServiceError::InvalidSnapshot);
+        }
+        current.push(name);
+        let metadata = fs::symlink_metadata(&current)?;
+        if metadata.file_type().is_symlink() {
+            return Err(GitServiceError::InvalidSnapshot);
+        }
+    }
+    if current.is_file() {
+        Ok(current)
+    } else {
+        Err(GitServiceError::InvalidSnapshot)
+    }
+}
+
+fn snapshot_extension(mime_type: &str) -> Result<&'static str, GitServiceError> {
+    match mime_type {
+        "image/png" => Ok("png"),
+        "image/jpeg" => Ok("jpg"),
+        "image/webp" => Ok("webp"),
+        _ => Err(GitServiceError::InvalidSnapshot),
     }
 }
 
@@ -807,6 +1009,7 @@ mod tests {
     use super::{GitService, GitServiceError};
     use kraqel_domain::{CURRENT_SCHEMA_VERSION, EntityId, Project, ProjectId};
     use kraqel_storage::project_manager::ProjectManager;
+    use sha2::{Digest as _, Sha256};
     use std::{collections::BTreeMap, fs};
     use tempfile::tempdir;
 
@@ -816,7 +1019,7 @@ mod tests {
         let id = ProjectId::new();
         let project = Project {
             id,
-            name: "Byte-stabile Krähe".to_owned(),
+            name: "Byte-stabiler Kolkrabe".to_owned(),
             schema_version: CURRENT_SCHEMA_VERSION,
         };
         let opened = manager.create_project(id.to_string(), &project).unwrap();
@@ -881,13 +1084,18 @@ mod tests {
             .database()
             .connection()
             .execute(
-                "UPDATE project SET name = 'Fachlich geänderte Krähe' WHERE id = ?1",
+                "UPDATE project SET name = 'Fachlich geänderter Kolkrabe' WHERE id = ?1",
                 [id.to_string()],
             )
             .unwrap();
         service.create_snapshot(opened.database(), id).unwrap();
         assert!(!service.status().unwrap().clean);
-        assert!(service.diff().unwrap().contains("Fachlich geänderte Krähe"));
+        assert!(
+            service
+                .diff()
+                .unwrap()
+                .contains("Fachlich geänderter Kolkrabe")
+        );
         let tracked = super::output_text(&service.run_git(&["ls-files"]).unwrap()).unwrap();
         assert!(!tracked.contains("sqlite"));
         assert!(!tracked.contains("backups"));
@@ -901,6 +1109,50 @@ mod tests {
         let service = GitService::new(opened.directory());
         service.create_snapshot(opened.database(), id).unwrap();
         fs::write(opened.directory().join("snapshot/manifest.json"), b"{}\n").unwrap();
+        assert!(matches!(
+            service.validate_snapshot(id),
+            Err(GitServiceError::InvalidSnapshot)
+        ));
+    }
+
+    #[test]
+    fn snapshot_copies_assets_by_hash_and_rejects_tampering() {
+        let (root, id) = fixture();
+        let manager = ProjectManager::new(root.path()).unwrap();
+        let opened = manager.open_project(id.to_string()).unwrap();
+        let bytes = b"portable image bytes";
+        let checksum = format!("{:x}", Sha256::digest(bytes));
+        fs::create_dir_all(opened.directory().join("assets/thumbnails")).unwrap();
+        fs::write(opened.directory().join("assets/source.png"), bytes).unwrap();
+        fs::write(
+            opened.directory().join("assets/thumbnails/source.png"),
+            b"thumbnail",
+        )
+        .unwrap();
+        opened
+            .database()
+            .connection()
+            .execute(
+                "INSERT INTO media_asset (
+                id, project_id, kind, relative_path, thumbnail_path, original_name, title,
+                mime_type, checksum, byte_count, width, height, provenance, created_at, updated_at
+             ) VALUES (?1, ?2, 'image', 'assets/source.png', 'assets/thumbnails/source.png',
+                       'source.png', 'Quelle', 'image/png', ?3, ?4, 1, 1, 'imported', 't', 't')",
+                rusqlite::params![
+                    EntityId::new().to_string(),
+                    id.to_string(),
+                    checksum,
+                    i64::try_from(bytes.len()).unwrap()
+                ],
+            )
+            .unwrap();
+        let service = GitService::new(opened.directory());
+        service.create_snapshot(opened.database(), id).unwrap();
+        let snapshot_asset = opened
+            .directory()
+            .join(format!("snapshot/assets/{checksum}.png"));
+        assert_eq!(fs::read(&snapshot_asset).unwrap(), bytes);
+        fs::write(&snapshot_asset, b"tampered").unwrap();
         assert!(matches!(
             service.validate_snapshot(id),
             Err(GitServiceError::InvalidSnapshot)

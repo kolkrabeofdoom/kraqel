@@ -297,6 +297,61 @@ pub struct TimelineDetails {
     pub events: Vec<TimelineEvent>,
 }
 
+/// Aktuell unterstützte Medienart der lokalen Bibliothek.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum MediaKind {
+    /// Lokal importierte Rastergrafik.
+    Image,
+}
+
+/// Nachvollziehbare Herkunft eines Medienassets.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum MediaProvenance {
+    /// Bewusst von einer schreibenden Person importiert.
+    Imported,
+}
+
+/// Fachliche Zielart einer Assetverknüpfung.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum AssetTargetKind {
+    Document,
+    Entity,
+    Event,
+}
+
+/// Stabile Verknüpfung eines Assets mit einem Projektobjekt.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssetLink {
+    pub target_kind: AssetTargetKind,
+    pub target_id: EntityId,
+    pub role: String,
+}
+
+/// Metadaten eines lokalen, inhaltsgeprüften Medienassets.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaAsset {
+    pub id: EntityId,
+    pub project_id: ProjectId,
+    pub kind: MediaKind,
+    pub relative_path: String,
+    pub thumbnail_path: String,
+    pub original_name: String,
+    pub title: String,
+    pub mime_type: String,
+    pub checksum: String,
+    pub byte_count: u64,
+    pub width: u32,
+    pub height: u32,
+    pub provenance: MediaProvenance,
+    pub tags: Vec<String>,
+    pub links: Vec<AssetLink>,
+}
+
 /// Minimales Projektmodell für Storage- und Command-Verträge.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

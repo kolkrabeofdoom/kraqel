@@ -17,11 +17,14 @@ SQLite-Datei bleibt davon getrennt.
 KRAQEL veröffentlicht einen Snapshot im Projektordner unter `snapshot/`. Der Ordner enthält:
 
 - `manifest.json` mit Formatkennung `kraqel-project-snapshot`, Formatversion, Projektmetadaten,
-  fester Dateiliste und der vorerst leeren Assetliste;
+  fester Dateiliste und Assetmetadaten einschließlich SHA-256, Abmessungen, Herkunft, Tags und
+  fachlichen Links;
 - `schema.json` als mitgeführte Kopie des JSON-Schemas;
 - `documents.json`, `story-bible.json`, `plotboard.json` und `timelines.json` mit explizitem
   `kind`-Diskriminator;
 - `manuscript/<uuid>.md` mit stabilen, titelunabhängigen Dateinamen;
+- `assets/<sha256>.<endung>` für freigegebene PNG-, JPEG- und WebP-Originale. Vorschaubilder sind
+  ableitbar und werden nicht dupliziert;
 - `README.md` als menschenlesbaren Hinweis auf SQLite als lokale Autorität.
 
 Sammlungen werden fachlich und anschließend nach stabiler UUID sortiert. JSON wird eingerückt mit
@@ -30,10 +33,11 @@ normalisiert Zeilenenden auf LF. Erstellungs- und Änderungszeitstempel der Date
 exportiert, da sie einen fachlich unveränderten Snapshot instabil machen würden.
 
 Die Veröffentlichung verwendet ein neues Geschwisterverzeichnis und tauscht anschließend den
-kompletten `snapshot/`-Ordner aus. Eine Wiederholung ohne fachliche Änderung ist byte-identisch. Die
-lesende Prüfung kontrolliert Manifest, Formatversion, Projektkennung, feste Dateien,
-Inhaltsdiskriminatoren sowie UUID-basierte Manuskriptdateien. Sie schreibt nichts zurück in SQLite;
-eine vollständige Wiederherstellung in ein neues Projekt ist noch nicht implementiert.
+kompletten `snapshot/`-Ordner aus. Assetdateien werden beim Erzeugen und Prüfen gegen den im
+Manifest gespeicherten SHA-256 verifiziert. Eine Wiederholung ohne fachliche Änderung ist
+byte-identisch. Die lesende Prüfung kontrolliert Manifest, Formatversion, Projektkennung, feste
+Dateien, Inhaltsdiskriminatoren sowie UUID-basierte Manuskriptdateien. Sie schreibt nichts zurück in
+SQLite; eine vollständige Wiederherstellung in ein neues Projekt ist noch nicht implementiert.
 
 Git wird im verwalteten Projektordner lokal initialisiert. Eine deny-by-default `.gitignore` gibt
 nur `.gitignore` und `snapshot/**` frei. Add, Status, Diff und Commit erhalten zusätzlich feste
@@ -49,7 +53,7 @@ JSON-Gültigkeitsprüfungen sind verbindlich. `document_fts` indexiert Titel und
 wird durch Trigger synchron gehalten.
 
 `project.schema_version = 1` bezeichnet weiterhin das portable Projektformat. Der davon getrennte
-interne SQLite-Migrationsstand ist `PRAGMA user_version = 2`. KRAQEL migriert nur vorwärtsgerichtet
+interne SQLite-Migrationsstand ist `PRAGMA user_version = 3`. KRAQEL migriert nur vorwärtsgerichtet
 und atomar; Datenbanken aus unbekannten neueren Versionen werden nicht verändert. Die SQLite-Datei
 selbst ist kein Austauschformat und bleibt ebenso wie WAL-Nebenfiles aus Git ausgeschlossen.
 
@@ -57,6 +61,11 @@ Migration 2 ergänzt `storyline`, `plot_card`, `timeline`, `event`, `event_docum
 `event_entity_link`. Eine befüllte v1-Datenbank wird vorwärts migriert, ohne Dokumente oder
 Story-Bibel-Daten umzudeuten. v1-Sicherungen bleiben wiederherstellbar: Nur die neue Zielkopie wird
 migriert, die Sicherungsquelle bleibt unverändert.
+
+Migration 3 ergänzt `media_asset` und `asset_link`. Originale und Vorschaubilder liegen unter
+`assets/`; die Datenbank speichert ausschließlich normalisierte relative Pfade. Lokale Sicherungen
+erhalten ein gleichnamiges `.assets`-Begleitverzeichnis, dessen referenzierte Originale vor der
+Veröffentlichung und Wiederherstellung gegen SHA-256 geprüft werden.
 
 ## Plotboard- und Timeline-Vertrag v1
 

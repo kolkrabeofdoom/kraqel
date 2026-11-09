@@ -10,6 +10,7 @@ import {
   CURRENT_SCHEMA_VERSION,
   parseUuid,
   type DocumentKind,
+  type AssetTargetKind,
   type DocumentNode,
   type EntityId,
   type EntityKind,
@@ -27,6 +28,7 @@ import {
   type TimelineDetails,
   type TimelineEvent,
   type TimelineMode,
+  type MediaAsset,
 } from "@kraqel/domain";
 import type { EditorDocument } from "@kraqel/editor";
 
@@ -148,6 +150,12 @@ export interface SuggestionReview {
   readonly revision: number;
   readonly changed: boolean;
   readonly lines: readonly { readonly kind: DiffLineKind; readonly text: string }[];
+}
+
+export interface MediaAssetView {
+  readonly asset: MediaAsset;
+  readonly thumbnailDataUrl: string | null;
+  readonly fileAvailable: boolean;
 }
 
 export interface CreateDocumentInput {
@@ -274,6 +282,109 @@ export async function reviewTextSuggestion(
       },
       SuggestionReview
     >("review_text_suggestion", { projectId, documentId, expectedRevision, proposedText })
+  ).data;
+}
+
+export async function listMediaAssets(projectId: ProjectId): Promise<readonly MediaAssetView[]> {
+  return (
+    await callCommand<{ readonly projectId: ProjectId }, readonly MediaAssetView[]>(
+      "list_media_assets",
+      { projectId },
+    )
+  ).data;
+}
+
+export async function importMediaAsset(
+  projectId: ProjectId,
+  fileName: string,
+  title: string,
+  tags: readonly string[],
+  bytes: readonly number[],
+): Promise<MediaAssetView> {
+  return (
+    await callCommand<
+      {
+        readonly projectId: ProjectId;
+        readonly fileName: string;
+        readonly title: string;
+        readonly tags: readonly string[];
+        readonly bytes: readonly number[];
+      },
+      MediaAssetView
+    >("import_media_asset", { projectId, fileName, title, tags, bytes })
+  ).data;
+}
+
+export async function updateMediaAsset(
+  projectId: ProjectId,
+  assetId: EntityId,
+  title: string,
+  tags: readonly string[],
+): Promise<MediaAssetView> {
+  return (
+    await callCommand<
+      {
+        readonly projectId: ProjectId;
+        readonly assetId: EntityId;
+        readonly title: string;
+        readonly tags: readonly string[];
+      },
+      MediaAssetView
+    >("update_media_asset", { projectId, assetId, title, tags })
+  ).data;
+}
+
+export async function replaceMediaAsset(
+  projectId: ProjectId,
+  assetId: EntityId,
+  fileName: string,
+  bytes: readonly number[],
+): Promise<MediaAssetView> {
+  return (
+    await callCommand<
+      {
+        readonly projectId: ProjectId;
+        readonly assetId: EntityId;
+        readonly fileName: string;
+        readonly bytes: readonly number[];
+      },
+      MediaAssetView
+    >("replace_media_asset", { projectId, assetId, fileName, bytes })
+  ).data;
+}
+
+export async function deleteMediaAsset(projectId: ProjectId, assetId: EntityId): Promise<void> {
+  await callCommand<{ readonly projectId: ProjectId; readonly assetId: EntityId }, null>(
+    "delete_media_asset",
+    { projectId, assetId },
+  );
+}
+
+export async function changeMediaAssetLink(
+  add: boolean,
+  projectId: ProjectId,
+  assetId: EntityId,
+  targetKind: AssetTargetKind,
+  targetId: EntityId,
+  role: string,
+): Promise<MediaAssetView> {
+  return (
+    await callCommand<
+      {
+        readonly projectId: ProjectId;
+        readonly assetId: EntityId;
+        readonly targetKind: AssetTargetKind;
+        readonly targetId: EntityId;
+        readonly role: string;
+      },
+      MediaAssetView
+    >(add ? "link_media_asset" : "unlink_media_asset", {
+      projectId,
+      assetId,
+      targetKind,
+      targetId,
+      role,
+    })
   ).data;
 }
 

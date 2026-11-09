@@ -114,6 +114,34 @@ export interface TimelineDetails {
   readonly events: readonly TimelineEvent[];
 }
 
+export type MediaKind = "image";
+export type MediaProvenance = "imported";
+export type AssetTargetKind = "document" | "entity" | "event";
+
+export interface AssetLink {
+  readonly targetKind: AssetTargetKind;
+  readonly targetId: EntityId;
+  readonly role: string;
+}
+
+export interface MediaAsset {
+  readonly id: EntityId;
+  readonly projectId: ProjectId;
+  readonly kind: MediaKind;
+  readonly relativePath: string;
+  readonly thumbnailPath: string;
+  readonly originalName: string;
+  readonly title: string;
+  readonly mimeType: string;
+  readonly checksum: string;
+  readonly byteCount: number;
+  readonly width: number;
+  readonly height: number;
+  readonly provenance: MediaProvenance;
+  readonly tags: readonly string[];
+  readonly links: readonly AssetLink[];
+}
+
 export interface Project {
   readonly id: ProjectId;
   readonly name: string;

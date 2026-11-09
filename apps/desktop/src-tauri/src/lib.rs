@@ -1,15 +1,19 @@
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use kraqel_ai_service::{
     CloudProviderId, CloudTextProvider, CredentialError, CredentialStore, OllamaProvider,
     OsCredentialStore, ReleasedTextContext, TextGenerationRequest, TextModel, TextProvider,
     TextProviderDescriptor, TextProviderError, TextStreamEvent,
 };
+use kraqel_asset_service::{
+    AssetError, prepare_image, read_thumbnail, remove_asset_files, store_image, verify_original,
+};
 use kraqel_continuity::{Finding, SuggestionReview, review_suggestion};
 use kraqel_domain::{
-    CURRENT_SCHEMA_VERSION, CommandError, CommandRequest, CommandResponse, DocumentKind,
-    DocumentNode, EDITOR_DOCUMENT_VERSION, EditorDocument, EntityId, EntityKind, PlotBoard,
-    PlotStatus, Project, ProjectId, StoryEntity, StoryEntityDetails, StoryRelation, Storyline,
-    Timeline, TimelineDetails, TimelineEvent, TimelineMode, is_valid_project_name,
-    require_current_contract,
+    AssetTargetKind, CURRENT_SCHEMA_VERSION, CommandError, CommandRequest, CommandResponse,
+    DocumentKind, DocumentNode, EDITOR_DOCUMENT_VERSION, EditorDocument, EntityId, EntityKind,
+    MediaAsset, PlotBoard, PlotStatus, Project, ProjectId, StoryEntity, StoryEntityDetails,
+    StoryRelation, Storyline, Timeline, TimelineDetails, TimelineEvent, TimelineMode,
+    is_valid_project_name, require_current_contract,
 };
 use kraqel_export::{
     ExportError, ExportFormat, ExportResult, ExportSourceDocument, export_project,
@@ -20,6 +24,7 @@ use kraqel_git_service::{
 use kraqel_storage::{
     continuity_repository::{ContinuityError, ContinuityRepository},
     document_repository::{DocumentError, DocumentRepository},
+    media_repository::{MediaError, MediaRepository},
     project_manager::{ProjectError, ProjectManager},
     story_bible_repository::{StoryBibleError, StoryBibleRepository},
     structure_repository::{StructureError, StructureRepository},
@@ -367,6 +372,59 @@ struct EventLinkRequest {
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+struct ImportMediaRequest {
+    project_id: String,
+    file_name: String,
+    title: String,
+    tags: Vec<String>,
+    bytes: Vec<u8>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MediaAssetRequest {
+    project_id: String,
+    asset_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct UpdateMediaRequest {
+    project_id: String,
+    asset_id: String,
+    title: String,
+    tags: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ReplaceMediaRequest {
+    project_id: String,
+    asset_id: String,
+    file_name: String,
+    bytes: Vec<u8>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AssetLinkRequest {
+    project_id: String,
+    asset_id: String,
+    target_kind: AssetTargetKind,
+    target_id: String,
+    role: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct MediaAssetView {
+    asset: MediaAsset,
+    thumbnail_data_url: Option<String>,
+    file_available: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct CommitSnapshotRequest {
     project_id: String,
     message: String,
@@ -705,6 +763,104 @@ fn review_text_suggestion(
     require_current_contract(&request)?;
     let review = review_text_suggestion_impl(&state, request.request_id, &request.payload)?;
     Ok(CommandResponse::current(request.request_id, review))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn list_media_assets(
+    state: State<'_, AppState>,
+    request: CommandRequest<ProjectRequest>,
+) -> Result<CommandResponse<Vec<MediaAssetView>>, CommandError> {
+    require_current_contract(&request)?;
+    let data = list_media_assets_impl(&state, request.request_id, &request.payload.project_id)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn import_media_asset(
+    state: State<'_, AppState>,
+    request: CommandRequest<ImportMediaRequest>,
+) -> Result<CommandResponse<MediaAssetView>, CommandError> {
+    require_current_contract(&request)?;
+    let data = import_media_asset_impl(&state, request.request_id, &request.payload)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn update_media_asset(
+    state: State<'_, AppState>,
+    request: CommandRequest<UpdateMediaRequest>,
+) -> Result<CommandResponse<MediaAssetView>, CommandError> {
+    require_current_contract(&request)?;
+    let data = update_media_asset_impl(&state, request.request_id, &request.payload)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn replace_media_asset(
+    state: State<'_, AppState>,
+    request: CommandRequest<ReplaceMediaRequest>,
+) -> Result<CommandResponse<MediaAssetView>, CommandError> {
+    require_current_contract(&request)?;
+    let data = replace_media_asset_impl(&state, request.request_id, &request.payload)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn delete_media_asset(
+    state: State<'_, AppState>,
+    request: CommandRequest<MediaAssetRequest>,
+) -> Result<CommandResponse<()>, CommandError> {
+    require_current_contract(&request)?;
+    delete_media_asset_impl(&state, request.request_id, &request.payload)?;
+    Ok(CommandResponse::current(request.request_id, ()))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn link_media_asset(
+    state: State<'_, AppState>,
+    request: CommandRequest<AssetLinkRequest>,
+) -> Result<CommandResponse<MediaAssetView>, CommandError> {
+    require_current_contract(&request)?;
+    let data = change_media_link_impl(&state, request.request_id, &request.payload, true)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn unlink_media_asset(
+    state: State<'_, AppState>,
+    request: CommandRequest<AssetLinkRequest>,
+) -> Result<CommandResponse<MediaAssetView>, CommandError> {
+    require_current_contract(&request)?;
+    let data = change_media_link_impl(&state, request.request_id, &request.payload, false)?;
+    Ok(CommandResponse::current(request.request_id, data))
 }
 
 #[tauri::command]
@@ -1590,6 +1746,222 @@ fn review_text_suggestion_impl(
     ))
 }
 
+fn list_media_assets_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    project_value: &str,
+) -> Result<Vec<MediaAssetView>, CommandError> {
+    let project_id = parse_project_id(request_id, project_value)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    let directory = opened.directory().to_path_buf();
+    let assets = MediaRepository::new(opened.database_mut())
+        .list(project_id)
+        .map_err(|error| map_media_error(request_id, &error))?;
+    Ok(assets
+        .into_iter()
+        .map(|asset| media_view(&directory, asset))
+        .collect())
+}
+
+fn import_media_asset_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &ImportMediaRequest,
+) -> Result<MediaAssetView, CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let prepared = prepare_image(&request.file_name, &request.bytes)
+        .map_err(|error| map_asset_error(request_id, &error))?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    let directory = opened.directory().to_path_buf();
+    if let Some(existing) = MediaRepository::new(opened.database_mut())
+        .find_by_checksum(project_id, &prepared.checksum)
+        .map_err(|error| map_media_error(request_id, &error))?
+    {
+        return Ok(media_view(&directory, existing));
+    }
+    let id = EntityId::new();
+    let stored = store_image(&directory, id, &prepared)
+        .map_err(|error| map_asset_error(request_id, &error))?;
+    let inserted = MediaRepository::new(opened.database_mut()).insert(
+        project_id,
+        id,
+        &stored.relative_path,
+        &stored.thumbnail_path,
+        &prepared.original_name,
+        &request.title,
+        prepared.mime_type,
+        &prepared.checksum,
+        prepared.original_bytes.len() as u64,
+        prepared.width,
+        prepared.height,
+        &request.tags,
+    );
+    match inserted {
+        Ok(asset) => Ok(media_view(&directory, asset)),
+        Err(error) => {
+            let _ = remove_asset_files(&directory, &stored.relative_path, &stored.thumbnail_path);
+            Err(map_media_error(request_id, &error))
+        }
+    }
+}
+
+fn update_media_asset_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &UpdateMediaRequest,
+) -> Result<MediaAssetView, CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let asset_id = parse_entity_id(request_id, &request.asset_id)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    let directory = opened.directory().to_path_buf();
+    let asset = MediaRepository::new(opened.database_mut())
+        .update_metadata(project_id, asset_id, &request.title, &request.tags)
+        .map_err(|error| map_media_error(request_id, &error))?;
+    Ok(media_view(&directory, asset))
+}
+
+fn replace_media_asset_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &ReplaceMediaRequest,
+) -> Result<MediaAssetView, CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let asset_id = parse_entity_id(request_id, &request.asset_id)?;
+    let prepared = prepare_image(&request.file_name, &request.bytes)
+        .map_err(|error| map_asset_error(request_id, &error))?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    let directory = opened.directory().to_path_buf();
+    let mut repository = MediaRepository::new(opened.database_mut());
+    let previous = repository
+        .load(project_id, asset_id)
+        .map_err(|error| map_media_error(request_id, &error))?;
+    if previous.checksum == prepared.checksum {
+        return Ok(media_view(&directory, previous));
+    }
+    if repository
+        .find_by_checksum(project_id, &prepared.checksum)
+        .map_err(|error| map_media_error(request_id, &error))?
+        .is_some()
+    {
+        return Err(CommandError::invalid_request(
+            request_id,
+            "Dieses Bild ist bereits in der Medienbibliothek vorhanden.",
+        ));
+    }
+    let stored = store_image(&directory, asset_id, &prepared)
+        .map_err(|error| map_asset_error(request_id, &error))?;
+    let replaced = repository.replace_content(
+        project_id,
+        asset_id,
+        &stored.relative_path,
+        &stored.thumbnail_path,
+        &prepared.original_name,
+        prepared.mime_type,
+        &prepared.checksum,
+        prepared.original_bytes.len() as u64,
+        prepared.width,
+        prepared.height,
+    );
+    match replaced {
+        Ok(asset) => {
+            let _ = remove_asset_files(
+                &directory,
+                &previous.relative_path,
+                &previous.thumbnail_path,
+            );
+            Ok(media_view(&directory, asset))
+        }
+        Err(error) => {
+            let _ = remove_asset_files(&directory, &stored.relative_path, &stored.thumbnail_path);
+            Err(map_media_error(request_id, &error))
+        }
+    }
+}
+
+fn delete_media_asset_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &MediaAssetRequest,
+) -> Result<(), CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let asset_id = parse_entity_id(request_id, &request.asset_id)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    let directory = opened.directory().to_path_buf();
+    let deleted = MediaRepository::new(opened.database_mut())
+        .delete(project_id, asset_id)
+        .map_err(|error| map_media_error(request_id, &error))?;
+    let _ = remove_asset_files(&directory, &deleted.relative_path, &deleted.thumbnail_path);
+    Ok(())
+}
+
+fn change_media_link_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &AssetLinkRequest,
+    add: bool,
+) -> Result<MediaAssetView, CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let asset_id = parse_entity_id(request_id, &request.asset_id)?;
+    let target_id = parse_entity_id(request_id, &request.target_id)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    let directory = opened.directory().to_path_buf();
+    let mut repository = MediaRepository::new(opened.database_mut());
+    let asset = if add {
+        repository.link(
+            project_id,
+            asset_id,
+            request.target_kind,
+            target_id,
+            &request.role,
+        )
+    } else {
+        repository.unlink(
+            project_id,
+            asset_id,
+            request.target_kind,
+            target_id,
+            &request.role,
+        )
+    }
+    .map_err(|error| map_media_error(request_id, &error))?;
+    Ok(media_view(&directory, asset))
+}
+
+fn media_view(directory: &std::path::Path, asset: MediaAsset) -> MediaAssetView {
+    match verify_original(directory, &asset.relative_path, &asset.checksum)
+        .and_then(|()| read_thumbnail(directory, &asset.thumbnail_path))
+    {
+        Ok(bytes) => MediaAssetView {
+            asset,
+            thumbnail_data_url: Some(format!("data:image/png;base64,{}", BASE64.encode(bytes))),
+            file_available: true,
+        },
+        Err(_) => MediaAssetView {
+            asset,
+            thumbnail_data_url: None,
+            file_available: false,
+        },
+    }
+}
+
 fn list_story_entities_impl(
     state: &AppState,
     request_id: uuid::Uuid,
@@ -1858,6 +2230,31 @@ fn map_continuity_error(request_id: uuid::Uuid, _error: &ContinuityError) -> Com
     CommandError::internal(request_id)
 }
 
+fn map_media_error(request_id: uuid::Uuid, error: &MediaError) -> CommandError {
+    match error {
+        MediaError::InvalidInput | MediaError::NotFound | MediaError::Duplicate => {
+            CommandError::invalid_request(request_id, "Die Medienanfrage ist ungültig.")
+        }
+        MediaError::InvalidStoredData | MediaError::InvalidSystemTime | MediaError::Storage(_) => {
+            CommandError::internal(request_id)
+        }
+    }
+}
+
+fn map_asset_error(request_id: uuid::Uuid, error: &AssetError) -> CommandError {
+    match error {
+        AssetError::InvalidName
+        | AssetError::UnsupportedFormat
+        | AssetError::InvalidImage
+        | AssetError::TooLarge => {
+            CommandError::invalid_request(request_id, "Die Bilddatei ist ungültig.")
+        }
+        AssetError::UnsafePath | AssetError::AlreadyExists | AssetError::Io(_) => {
+            CommandError::internal(request_id)
+        }
+    }
+}
+
 fn map_git_error(request_id: uuid::Uuid, error: &GitServiceError) -> CommandError {
     match error {
         GitServiceError::InvalidInput | GitServiceError::NothingToCommit => {
@@ -1954,6 +2351,13 @@ pub fn run() {
             stream_text_draft,
             analyze_continuity,
             review_text_suggestion,
+            list_media_assets,
+            import_media_asset,
+            update_media_asset,
+            replace_media_asset,
+            delete_media_asset,
+            link_media_asset,
+            unlink_media_asset,
             list_story_entities,
             create_story_entity,
             update_story_entity,
@@ -1992,6 +2396,7 @@ mod tests {
         sync::Mutex,
     };
 
+    use base64::Engine as _;
     use kraqel_domain::{
         COMMAND_CONTRACT_VERSION, CommandErrorCode, CommandRequest, EDITOR_DOCUMENT_VERSION,
         EditorDocument, EntityKind,
@@ -2003,10 +2408,11 @@ mod tests {
 
     use super::{
         AiContextRequest, AppState, ApplicationStatusRequest, CreateProjectRequest,
-        DocumentRequest, ExportProjectRequest, LinkStoryEntityRequest, ListStoryEntitiesRequest,
-        ReviewTextSuggestionRequest, SaveDocumentRequest, StoryEntityRequest,
-        StreamTextDraftRequest, ValidateProjectNameRequest, WriteStoryEntityRequest,
-        application_status, create_project_impl, export_manuscript_impl, link_story_entity_impl,
+        DocumentRequest, ExportProjectRequest, ImportMediaRequest, LinkStoryEntityRequest,
+        ListStoryEntitiesRequest, ReviewTextSuggestionRequest, SaveDocumentRequest,
+        StoryEntityRequest, StreamTextDraftRequest, ValidateProjectNameRequest,
+        WriteStoryEntityRequest, application_status, create_project_impl, export_manuscript_impl,
+        import_media_asset_impl, link_story_entity_impl, list_media_assets_impl,
         list_projects_impl, list_story_entities_impl, load_document_impl, load_story_entity_impl,
         prepare_text_generation, preview_ai_context_impl, review_text_suggestion_impl,
         save_document_impl, validate_project_name, write_story_entity_impl,
@@ -2208,6 +2614,49 @@ mod tests {
         let conflict = review_text_suggestion_impl(&state, REQUEST_ID, &request)
             .expect_err("stale review should conflict");
         assert_eq!(conflict.code, CommandErrorCode::Conflict);
+    }
+
+    #[test]
+    fn media_import_is_local_hash_verified_and_listed_with_preview() {
+        let root = tempdir().expect("temporary root should exist");
+        let state = AppState {
+            project_root: root.path().to_path_buf(),
+            ai_releases: Mutex::new(HashMap::new()),
+        };
+        let workspace = create_project_impl(
+            &state,
+            REQUEST_ID,
+            CreateProjectRequest {
+                name: "Bildarchiv".to_owned(),
+            },
+        )
+        .expect("project should be created");
+        let bytes = base64::engine::general_purpose::STANDARD
+            .decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")
+            .expect("fixture should decode");
+        let imported = import_media_asset_impl(
+            &state,
+            REQUEST_ID,
+            &ImportMediaRequest {
+                project_id: workspace.project.id.to_string(),
+                file_name: "kolkrabe.png".to_owned(),
+                title: "Kolkrabe bei Nacht".to_owned(),
+                tags: vec!["Nacht".to_owned()],
+                bytes,
+            },
+        )
+        .expect("valid image should import");
+        assert!(imported.file_available);
+        assert!(
+            imported
+                .thumbnail_data_url
+                .as_deref()
+                .is_some_and(|value| value.starts_with("data:image/png;base64,"))
+        );
+        let listed = list_media_assets_impl(&state, REQUEST_ID, &workspace.project.id.to_string())
+            .expect("assets should list");
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].asset.id, imported.asset.id);
     }
 
     #[test]

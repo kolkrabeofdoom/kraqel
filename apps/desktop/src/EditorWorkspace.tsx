@@ -25,6 +25,7 @@ import { VersionControl } from "./VersionControl";
 import { Exports } from "./Exports";
 import { TextAssistant } from "./TextAssistant";
 import { Continuity } from "./Continuity";
+import { MediaLibrary } from "./MediaLibrary";
 
 interface EditorWorkspaceProps {
   readonly initialWorkspace: Workspace;
@@ -45,6 +46,7 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
     | "plotBoard"
     | "timelines"
     | "continuity"
+    | "media"
     | "versions"
     | "exports"
     | "textAi"
@@ -114,6 +116,14 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
         </div>
         <div className="workspace-actions">
           <nav aria-label="Projektbereiche" className="workspace-tabs">
+            <button
+              type="button"
+              className={view === "media" ? "active" : "secondary"}
+              aria-current={view === "media" ? "page" : undefined}
+              onClick={() => setView("media")}
+            >
+              Medien
+            </button>
             <button
               type="button"
               className={view === "continuity" ? "active" : "secondary"}
@@ -253,6 +263,16 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
       ) : view === "continuity" ? (
         <Continuity
           projectId={workspace.project.id}
+          onSelectDocument={(id) => {
+            setActiveId(id);
+            setView("manuscript");
+          }}
+        />
+      ) : view === "media" ? (
+        <MediaLibrary
+          projectId={workspace.project.id}
+          documents={workspace.documents}
+          activeDocumentId={activeId}
           onSelectDocument={(id) => {
             setActiveId(id);
             setView("manuscript");

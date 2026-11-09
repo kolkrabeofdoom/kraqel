@@ -32,7 +32,51 @@
           "additionalProperties": false
         },
         "files": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
-        "assets": { "type": "array" }
+        "assets": { "type": "array", "items": { "$ref": "#/$defs/asset" } }
+      },
+      "additionalProperties": false
+    },
+    "asset": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "path",
+        "originalName",
+        "title",
+        "mimeType",
+        "checksum",
+        "byteCount",
+        "width",
+        "height",
+        "provenance",
+        "tags",
+        "links"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/uuid" },
+        "kind": { "const": "image" },
+        "path": { "type": "string", "pattern": "^assets/[0-9a-f]{64}\\.(png|jpg|webp)$" },
+        "originalName": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "mimeType": { "enum": ["image/png", "image/jpeg", "image/webp"] },
+        "checksum": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "byteCount": { "type": "integer", "minimum": 1, "maximum": 26214400 },
+        "width": { "type": "integer", "minimum": 1, "maximum": 16384 },
+        "height": { "type": "integer", "minimum": 1, "maximum": 16384 },
+        "provenance": { "const": "imported" },
+        "tags": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "links": { "type": "array", "items": { "$ref": "#/$defs/assetLink" } }
+      },
+      "additionalProperties": false
+    },
+    "assetLink": {
+      "type": "object",
+      "required": ["targetKind", "targetId", "role"],
+      "properties": {
+        "targetKind": { "enum": ["document", "entity", "event"] },
+        "targetId": { "$ref": "#/$defs/uuid" },
+        "role": { "type": "string", "minLength": 1, "maxLength": 80 }
       },
       "additionalProperties": false
     },

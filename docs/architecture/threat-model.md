@@ -28,6 +28,10 @@
   Konflikt statt zur Übertragung eines anderen Textstands
 - Vorschlags-Diffs laden die Szene erneut, verlangen dieselbe Revision und besitzen keinen
   Schreibpfad; regelbasierte Kontinuitätsprüfungen bleiben vollständig lokal
+- Bildimporte werden in Rust nach Signatur, Endung, Bytegröße, Pixelgrenzen und Dekodierbarkeit
+  geprüft; Projektdateinamen entstehen nur aus UUID und Hash
+- Backup und portable Snapshots kopieren ausschließlich datenbankreferenzierte Assetpfade und
+  verifizieren Originale vor Veröffentlichung beziehungsweise Wiederherstellung gegen SHA-256
 - Betriebssystem-Schlüsselspeicher statt Konfigurationsdateien
 - feste offizielle HTTPS-Endpunkte für Cloudprovider; keine Redirects, Umgebungsproxies oder frei
   konfigurierbaren Produktionsziele
@@ -62,6 +66,13 @@ Protokolltests ersetzen keine echte Anbieterabnahme.
 Die aktuelle Snapshotprüfung ist ausschließlich lesend und validiert den Formatvertrag. Eine
 vollständige Wiederherstellung aus Snapshot ist noch nicht implementiert; ihre Datenverlust- und
 Überschreibungsrisiken müssen vor einer schreibenden Importfunktion gesondert modelliert werden.
+
+Bilddecoder bleiben trotz Signatur-, Format-, Größen- und Pixelgrenzen eine Angriffsfläche für
+präparierte Dateien. Deshalb ist `image` exakt und mit nur drei aktivierten Formaten gebunden und
+muss regelmäßig aktualisiert werden. Der aktuelle WebView-Import überträgt außerdem das gesamte Bild
+als Bytearray; die 25-MiB-Grenze gilt in Oberfläche und Rust, verhindert aber nicht jede kurzzeitige
+Mehrfachbelegung beim Deserialisieren. Ein nativer Streamingimport ist vor wesentlich größeren
+Einzeldateien oder Massenuploads neu zu bewerten.
 
 Verbleibendes Risiko: Die kanonische Vorabprüfung ist nicht vollständig gegen ein gleichzeitiges
 böswilliges Austauschen bereits geprüfter Verzeichnisse abgesichert. Vor der Unterstützung
