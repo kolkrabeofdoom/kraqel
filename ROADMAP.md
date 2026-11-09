@@ -16,7 +16,8 @@
    - [x] Plotboard und Timeline
 3. M3-Datenportabilität und Medien
    - [x] Deterministische Projektsnapshots und lokales Git für Status, Diff und Commit
-   - [ ] Import/Export nach Markdown, HTML, DOCX und PDF
+   - [x] Export nach Markdown, HTML, DOCX und PDF für die dokumentierte Formatierungsmenge
+   - [ ] Import und DOCX-Roundtrip
    - [ ] Medienbibliothek und visuelle Profile
 4. Optionale Text-KI, Kontinuitätsprüfung, Prompt-Entwürfe und Bildverträge
 5. Reproduzierbarer Windows-Release mit Dokumentation und Abnahme

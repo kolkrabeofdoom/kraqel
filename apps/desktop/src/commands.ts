@@ -106,6 +106,14 @@ export interface CommitResult {
   readonly commitId: string;
 }
 
+export type ExportFormat = "markdown" | "html" | "docx" | "pdf";
+
+export interface ExportResult {
+  readonly format: ExportFormat;
+  readonly fileName: string;
+  readonly byteCount: number;
+}
+
 export interface CreateDocumentInput {
   readonly projectId: ProjectId;
   readonly parentId: EntityId | null;
@@ -189,6 +197,18 @@ export async function saveDocument(
     { readonly revision: number }
   >("save_document", { projectId, documentId, expectedRevision, content });
   return response.data.revision;
+}
+
+export async function exportManuscript(
+  projectId: ProjectId,
+  format: ExportFormat,
+): Promise<ExportResult> {
+  return (
+    await callCommand<
+      { readonly projectId: ProjectId; readonly format: ExportFormat },
+      ExportResult
+    >("export_manuscript", { projectId, format })
+  ).data;
 }
 
 export async function listStoryEntities(

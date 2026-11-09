@@ -2,7 +2,7 @@
 
 Stand: 9. November 2026
 
-Code-Referenz: KQ-008 (`feat/kq-008-git-snapshots`, dieser Stand)
+Code-Referenz: KQ-009 (`feat/kq-009-export-pipeline`, Arbeitsstand)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -17,7 +17,7 @@ als vollständige Fachfunktion.
 | **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                 |
 | **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Teilweise umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, szenengebundenes Undo/Redo, Wortzählung, Fokusmodus, revisionsgeprüftes Autosave und SQLite-Backup vorhanden. Umbenennen, Umordnen, Löschen und E2E-Abnahme fehlen. |
 | **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks vorhanden. Browser-/Screenreader-Abnahme fehlt.                                   |
-| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** deterministische Projektsnapshots sowie lokales Git für Init, Status, Diff und Commit vorhanden. Schreibende Snapshot-Wiederherstellung, allgemeiner Export, Medien und visuelle Profile fehlen.                |
+| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** deterministische Projektsnapshots, lokales Git sowie Manuskriptexport als Markdown, HTML, DOCX und PDF vorhanden. Import, schreibende Snapshot-Wiederherstellung, Medien und visuelle Profile fehlen.           |
 | **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Nur Verträge vorbereitet:** Capability-, Kontextfreigabe-, Medien- und Profiltypen; keine Provider oder Fachabläufe.                                                                                                                   |
 | **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                                                                            |
 | **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                   |
@@ -129,13 +129,31 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   ab. Alte v1-Sicherungen werden nur in der neuen Zielkopie migriert; die Quelle bleibt unverändert.
   TypeScript-Vertragstests prüfen die vollständige Kartenreihenfolge.
 
+### Manuskriptexport (KQ-009)
+
+- Gemeinsame, streng validierte Zwischenrepräsentation für Projekt, Kapitel, Szenen, Absätze,
+  Überschriften, Fett/Kursiv, harte Umbrüche, Listen und Blockzitate.
+- Unbekannte Tiptap-Knoten und -Markierungen brechen den Export mit bereinigtem Fehler ab; Inhalte
+  werden nicht still verworfen.
+- Markdown und eigenständiges HTML in UTF-8, DOCX im Letter-Seitenformat sowie PDF in A4 werden aus
+  derselben fachlichen Repräsentation erzeugt.
+- Exporte entstehen atomar und ausschließlich unter `exports/manuskript.<format>` im lokalen
+  Projektordner. Symlinks und nicht reguläre Zielobjekte werden abgelehnt.
+- Versionierter Tauri-Command und zugängliche React-Ansicht **Export** bieten alle vier Formate an
+  und melden Dateiname sowie Größe, aber keinen absoluten lokalen Pfad.
+- Automatisierte Tests prüfen alle Formate, Textformatierung und die Ablehnung unbekannter Knoten.
+  DOCX und PDF wurden zusätzlich als Seiten gerendert und visuell geprüft; für DOCX war unter
+  Windows wegen fehlendem LibreOffice eine Word-basierte Konvertierung nötig.
+- Nicht Teil dieses Inkrements: Import, DOCX-Roundtrip, Medien, Fußnoten, Tabellen, Links und
+  beliebige Tiptap-Erweiterungen.
+
 ### Begrenzte Hilfsfunktionen und Verträge
 
 - `asset-service`: relative Pfade werden akzeptiert, absolute Pfade und Elterntraversal abgelehnt.
 - `editor`: versionierter, generischer Snapshot-Vertrag.
 - `ai-contracts`: Capability-, Provider- und explizite Kontextfreigabetypen.
 - `visual-contracts`: Grundtypen für Medienassets und visuelle Profile.
-- `export` und `continuity`: nur grundlegende Enums; keine ausführbare Fachlogik.
+- `continuity`: nur ein grundlegendes Enum; keine ausführbare Fachlogik.
 
 ### Deterministische Snapshots und lokales Git (KQ-008)
 
@@ -161,14 +179,14 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 ### Unmittelbar: M3 fortsetzen
 
-1. **KQ-009 - Markdown-/HTML-/DOCX-/PDF-Pipeline und Exporttests**
-   - definierte, dokumentierte Formatierungsmenge
-   - reproduzierbare Exporte mit sicheren relativen Medienreferenzen
+1. **KQ-010 - Providerunabhängige Text-KI-Verträge und explizite Kontextfreigabe**
+   - konkreten Scope und Akzeptanzkriterien vor Implementierung aus dem Pflichtenheft ableiten
+   - kein Netzwerkzugriff und keine Providerkopplung ohne eigene Freigabeentscheidung
 
 ### Danach gemäß Pflichtenheft
 
-- KQ-009 bis KQ-016: Export, Textprovider, Kontinuität, Medienbibliothek, visuelle Profile,
-  Prompt-Builder und Bild-Capability-Verträge.
+- KQ-010 bis KQ-016: Textprovider, Kontinuität, Medienbibliothek, visuelle Profile, Prompt-Builder
+  und Bild-Capability-Verträge.
 - KQ-017 und KQ-018 gehören zu Version 0.2 und sind kein Ziel für 0.1.
 
 Für KQ-009 bis KQ-018 sind noch nicht alle GitHub-Issues angelegt; die Aufgaben stehen im
@@ -185,6 +203,12 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
   Assets.
 - **Snapshot-Wiederherstellung nur vorbereitet:** Format und Inhalte werden lesend geprüft, aber
   noch nicht in eine neue Datenbank importiert. F07 ist deshalb noch nicht vollständig abgenommen.
+- **Export ist kein Import:** Die vier Ausgaben sind erzeugbar; ein Roundtrip zurück nach KRAQEL und
+  der im Pflichtenheft genannte Import sind nicht implementiert. F08 ist deshalb nur teilweise
+  erfüllt.
+- **Exportformatierung bewusst begrenzt:** Links, Code, Tabellen, Fußnoten und Medien werden nicht
+  still reduziert, sondern derzeit abgelehnt. PDF verwendet eingebaute Standardschriften; vor einer
+  breiteren Unicode-Abnahme ist eine eingebettete freie Schrift zu prüfen.
 - **Migrationen bleiben vorwärtsgerichtet:** 0→1 und die befüllte Migration 1→2 sind getestet;
   weitere Versionen benötigen jeweils eine neue unveränderliche Migration.
 - **Zeitwerte ohne Kalendersemantik:** Absolute Zeitwerte sind validierte Zeichenketten. Kalender,
@@ -219,6 +243,9 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 - **Portabler Snapshot und kontrolliertes Git:** Nur `.gitignore` und `snapshot/**` sind
   freigegeben; globale Konfiguration, Hooks und interaktive Git-Abläufe bleiben deaktiviert. Die
   erste Wiederherstellungsstufe ist lesende Validierung (ADR 0007).
+- **Ein Exportmodell für vier Renderer:** Die unterstützte Tiptap-Teilmenge wird vor jeder Ausgabe
+  vollständig validiert. Renderer erhalten nur das gemeinsame Zwischenformat; Ziele werden lokal und
+  atomar veröffentlicht (ADR 0008).
 - **Privilegierte Operationen in Rust:** React kommuniziert ausschließlich über versionierte,
   typisierte Tauri-Commands mit Dateisystem, Storage, Git und späteren Providern.
 - **Verträge sind explizit versioniert:** Inkompatible Änderungen erfordern eine neue
@@ -240,7 +267,8 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
 | SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert | Vor großen Projekten messen; Migration nur mit Evidenz    |
 | Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                       | Gemeinsame Fixtures oder spätere Codegenerierung bewerten |
-| Datenformat                  | Snapshot v1 samt Schema vorhanden; schreibender Import und Assetreferenzen fehlen                           | Roundtrip-Import vor vollständiger F07-Abnahme testen     |
+| Datenformat                  | Snapshot v1 und vier Textexporte vorhanden; Import, Roundtrip und Assetreferenzen fehlen                    | Import/Roundtrip vor vollständiger F07/F08-Abnahme testen |
+| Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                             | Freie eingebettete Schrift und Medienkonzept prüfen       |
 | Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                   | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen  |
 | Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                    | Bei jeder Erweiterung Fixtures und Migration prüfen       |
 | Desktoptests                 | Unit-/IPC-Tests vorhanden, aber keine Browser-/Tauri-E2E-Abdeckung                                          | Playwright für Projekt- und Schreibablauf einführen       |
@@ -250,16 +278,15 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 
 ## Nächste geplante Entwicklungsstufe
 
-**KQ-009: Markdown-/HTML-/DOCX-/PDF-Pipeline und Exporttests.**
+**KQ-010: Providerunabhängige Text-KI-Verträge und explizite Kontextfreigabe.**
 
 Empfohlener, überprüfbarer Scope:
 
-1. GitHub-Issue mit Akzeptanzkriterien und Abhängigkeit zu KQ-008 anlegen.
-2. Gemeinsame, bewusst begrenzte Zwischenrepräsentation für unterstützte Textformatierungen
-   definieren.
-3. Deterministische Markdown- und HTML-Ausgabe mit Roundtrip-Fixtures implementieren.
-4. DOCX und PDF aus derselben Repräsentation erzeugen und gerendert prüfen.
-5. Medienreferenzen zunächst nur relativ und explizit behandeln; keine stillen Netzwerkzugriffe.
+1. Pflichtenheft-Anforderungen für F04 und M4 gegen vorhandene `ai-contracts` abgleichen.
+2. GitHub-Issue mit expliziter Datenfluss-, Vorschau- und Einwilligungsgrenze anlegen.
+3. Lokale Mock-Provider-Schnittstelle und Fehlervertrag definieren; noch keinen Cloudanbieter
+   anbinden.
+4. Tests sicherstellen lassen, dass ohne Freigabe kein Kontext den Prozess verlässt.
 
 ## Einstieg für die nächste Codex-Session
 
@@ -268,9 +295,9 @@ cd D:\kraqel
 git status
 git branch --show-current
 git log -5 --oneline
-rg "KQ-009" docs ROADMAP.md
+rg "KQ-010" docs ROADMAP.md
 ```
 
 Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0001 bis ADR 0007, `docs/data-format/README.md`,
-`crates/export/src/lib.rs` und die Zugänglichkeitstestpläne. Vor KQ-009 zuerst ein eigenes Issue
-anlegen und den Scope gegen F08 und M3 prüfen.
+`packages/ai-contracts/` und die Zugänglichkeitstestpläne. Vor KQ-010 zuerst ein eigenes Issue
+anlegen und den Scope gegen F04 und M4 prüfen.

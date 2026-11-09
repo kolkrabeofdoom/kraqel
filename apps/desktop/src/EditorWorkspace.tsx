@@ -22,6 +22,7 @@ import { StoryBible } from "./StoryBible";
 import { PlotBoard } from "./PlotBoard";
 import { Timelines } from "./Timelines";
 import { VersionControl } from "./VersionControl";
+import { Exports } from "./Exports";
 
 interface EditorWorkspaceProps {
   readonly initialWorkspace: Workspace;
@@ -37,7 +38,7 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<
-    "manuscript" | "storyBible" | "plotBoard" | "timelines" | "versions"
+    "manuscript" | "storyBible" | "plotBoard" | "timelines" | "versions" | "exports"
   >("manuscript");
   const tree = useMemo(() => buildDocumentTree(workspace.documents), [workspace.documents]);
 
@@ -144,6 +145,14 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
             >
               Versionen
             </button>
+            <button
+              type="button"
+              className={view === "exports" ? "active" : "secondary"}
+              aria-current={view === "exports" ? "page" : undefined}
+              onClick={() => setView("exports")}
+            >
+              Export
+            </button>
           </nav>
           <button type="button" className="secondary" onClick={onClose}>
             Projektübersicht
@@ -216,8 +225,10 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
             setView("manuscript");
           }}
         />
-      ) : (
+      ) : view === "versions" ? (
         <VersionControl projectId={workspace.project.id} />
+      ) : (
+        <Exports projectId={workspace.project.id} />
       )}
     </main>
   );

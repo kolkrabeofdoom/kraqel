@@ -5,6 +5,9 @@ use kraqel_domain::{
     Timeline, TimelineDetails, TimelineEvent, TimelineMode, is_valid_project_name,
     require_current_contract,
 };
+use kraqel_export::{
+    ExportError, ExportFormat, ExportResult, ExportSourceDocument, export_project,
+};
 use kraqel_git_service::{
     CommitResult, GitService, GitServiceError, SnapshotSummary, VersionControlStatus,
 };
@@ -78,6 +81,13 @@ struct SaveDocumentRequest {
     document_id: String,
     expected_revision: u64,
     content: EditorDocument,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ExportProjectRequest {
+    project_id: String,
+    format: ExportFormat,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -371,6 +381,20 @@ fn save_document(
 ) -> Result<CommandResponse<SaveDocumentResponse>, CommandError> {
     require_current_contract(&request)?;
     let data = save_document_impl(&state, request.request_id, request.payload)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn export_manuscript(
+    state: State<'_, AppState>,
+    request: CommandRequest<ExportProjectRequest>,
+) -> Result<CommandResponse<ExportResult>, CommandError> {
+    require_current_contract(&request)?;
+    let data = export_manuscript_impl(&state, request.request_id, &request.payload)?;
     Ok(CommandResponse::current(request.request_id, data))
 }
 
@@ -1050,6 +1074,50 @@ fn save_document_impl(
     Ok(SaveDocumentResponse { revision })
 }
 
+fn export_manuscript_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &ExportProjectRequest,
+) -> Result<ExportResult, CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    let name: String = opened
+        .database()
+        .connection()
+        .query_row(
+            "SELECT name FROM project WHERE id = ?1",
+            [project_id.to_string()],
+            |row| row.get(0),
+        )
+        .map_err(|_| CommandError::internal(request_id))?;
+    let project = Project {
+        id: project_id,
+        name,
+        schema_version: CURRENT_SCHEMA_VERSION,
+    };
+    let project_directory = opened.directory().to_path_buf();
+    let repository = DocumentRepository::new(opened.database_mut());
+    let documents = repository
+        .list(project_id)
+        .map_err(|error| map_document_error(request_id, &error))?
+        .into_iter()
+        .map(|node| {
+            repository
+                .load(project_id, node.id)
+                .map(|stored| ExportSourceDocument {
+                    node: stored.node,
+                    content: stored.content,
+                })
+                .map_err(|error| map_document_error(request_id, &error))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    export_project(&project_directory, &project, &documents, request.format)
+        .map_err(|error| map_export_error(request_id, &error))
+}
+
 fn list_story_entities_impl(
     state: &AppState,
     request_id: uuid::Uuid,
@@ -1329,6 +1397,18 @@ fn map_git_error(request_id: uuid::Uuid, error: &GitServiceError) -> CommandErro
     }
 }
 
+fn map_export_error(request_id: uuid::Uuid, error: &ExportError) -> CommandError {
+    match error {
+        ExportError::InvalidDocument(_) => CommandError::invalid_request(
+            request_id,
+            "Das Manuskript enthält eine noch nicht exportierbare Formatierung.",
+        ),
+        ExportError::UnsafeDestination | ExportError::Internal(_) => {
+            CommandError::internal(request_id)
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 /// Startet die Desktop-Anwendung.
 ///
@@ -1352,6 +1432,7 @@ pub fn run() {
             create_document,
             load_document,
             save_document,
+            export_manuscript,
             list_story_entities,
             create_story_entity,
             update_story_entity,
@@ -1391,17 +1472,18 @@ mod tests {
         COMMAND_CONTRACT_VERSION, CommandErrorCode, CommandRequest, EDITOR_DOCUMENT_VERSION,
         EditorDocument, EntityKind,
     };
+    use kraqel_export::ExportFormat;
     use serde_json::json;
     use tempfile::tempdir;
     use uuid::Uuid;
 
     use super::{
         AppState, ApplicationStatusRequest, CreateProjectRequest, DocumentRequest,
-        LinkStoryEntityRequest, ListStoryEntitiesRequest, SaveDocumentRequest, StoryEntityRequest,
-        ValidateProjectNameRequest, WriteStoryEntityRequest, application_status,
-        create_project_impl, link_story_entity_impl, list_projects_impl, list_story_entities_impl,
-        load_document_impl, load_story_entity_impl, save_document_impl, validate_project_name,
-        write_story_entity_impl,
+        ExportProjectRequest, LinkStoryEntityRequest, ListStoryEntitiesRequest,
+        SaveDocumentRequest, StoryEntityRequest, ValidateProjectNameRequest,
+        WriteStoryEntityRequest, application_status, create_project_impl, export_manuscript_impl,
+        link_story_entity_impl, list_projects_impl, list_story_entities_impl, load_document_impl,
+        load_story_entity_impl, save_document_impl, validate_project_name, write_story_entity_impl,
     };
 
     const REQUEST_ID: Uuid = Uuid::from_u128(0x018f_47ea_9b2d_7cc1_98e8_b5f4_f6b7_41a2);
@@ -1500,6 +1582,23 @@ mod tests {
         .expect("scene should load");
         assert_eq!(loaded.content, content);
         assert_eq!(loaded.plain_text, "Hallo Welt");
+        let exported = export_manuscript_impl(
+            &state,
+            REQUEST_ID,
+            &ExportProjectRequest {
+                project_id: workspace.project.id.to_string(),
+                format: ExportFormat::Markdown,
+            },
+        )
+        .expect("manuscript should export");
+        assert_eq!(exported.file_name, "manuskript.md");
+        let exported_text = std::fs::read_to_string(
+            root.path()
+                .join(workspace.project.id.to_string())
+                .join("exports/manuskript.md"),
+        )
+        .expect("export should be readable");
+        assert!(exported_text.contains("Hallo Welt"));
         assert_eq!(
             list_projects_impl(&state, REQUEST_ID)
                 .expect("projects should list")
