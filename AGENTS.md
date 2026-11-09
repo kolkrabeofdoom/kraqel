@@ -48,6 +48,9 @@ Aktuell im Repository und verifiziert:
 - **Versionierung:** deterministische JSON-/Markdown-Snapshots, formales Schema und kontrollierte
   lokale Git-Operationen für Init, Status, Diff und Commit; SQLite und Nebenartefakte sind
   ausgeschlossen.
+- **Export:** streng validierte gemeinsame Manuskriptrepräsentation und lokale, atomare Ausgabe als
+  Markdown, eigenständiges HTML, DOCX oder A4-PDF; unbekannte Editorformatierungen werden abgelehnt
+  statt verworfen.
 - **Qualität:** Prettier, ESLint, TypeScript-Checks, Vitest, Rust-Tests, rustfmt und Clippy mit
   Warnungen als Fehler; GitHub Actions unter Windows und Linux.
 
@@ -69,7 +72,7 @@ ein leeres Crate ist keine fertige Funktion - auch wenn es sehr selbstbewusst ko
 | `crates/domain/`             | Rust-Domäne und versionierte Command-Verträge                | Dokument- und Story-Modell   |
 | `crates/storage/`            | SQLite, Projektlebenszyklus und fachliche Repositories       | Dokumente und M2-Persistenz  |
 | `crates/git-service/`        | Deterministische Snapshots und Git-Operationen               | Lokaler M3-Mindestumfang     |
-| `crates/export/`             | Markdown-, HTML-, DOCX- und PDF-Export                       | Nur Format-Enum              |
+| `crates/export/`             | Validierung, Zwischenformat und atomarer Manuskriptexport    | M3-Textformate getestet      |
 | `crates/continuity/`         | Regelbasierte Kontinuitätsprüfung                            | Nur Schweregrad-Enum         |
 | `crates/asset-service/`      | Sicherer Asset-Import, Hashes, Pfade, Thumbnails             | Relative Pfadprüfung         |
 | `docs/architecture/`         | Architekturübersicht, ADRs und Threat Model                  | Verbindliche Entscheidungen  |
@@ -130,6 +133,7 @@ pnpm --filter @kraqel/domain test
 pnpm --filter @kraqel/desktop test
 cargo test -p kraqel-domain
 cargo test -p kraqel-storage
+cargo test -p kraqel-export
 ```
 
 `pnpm check` ist vor einer Codeübergabe verbindlich. Einen vollständigen Tauri-Build nur ausführen,
