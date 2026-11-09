@@ -10,6 +10,8 @@ import {
   getApplicationStatus,
   saveDocument,
   reviewTextSuggestion,
+  importMediaAsset,
+  listMediaAssets,
   streamTextDraft,
   validateProjectName,
 } from "./commands";
@@ -163,6 +165,36 @@ describe("typed Tauri commands", () => {
         contractVersion: COMMAND_CONTRACT_VERSION,
         requestId,
         payload: { projectId, documentId, expectedRevision: 4, proposedText: "Vorschlag" },
+      },
+    });
+  });
+
+  it("sends bounded media bytes and metadata through the versioned boundary", async () => {
+    const projectId = requestId as ProjectId;
+    mockedInvoke.mockResolvedValueOnce({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: [],
+    });
+    await expect(listMediaAssets(projectId)).resolves.toEqual([]);
+
+    mockedInvoke.mockResolvedValueOnce({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: { asset: {}, thumbnailDataUrl: null, fileAvailable: false },
+    });
+    await importMediaAsset(projectId, "rabe.png", "Kolkrabe", ["Nacht"], [137, 80]);
+    expect(mockedInvoke).toHaveBeenLastCalledWith("import_media_asset", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: {
+          projectId,
+          fileName: "rabe.png",
+          title: "Kolkrabe",
+          tags: ["Nacht"],
+          bytes: [137, 80],
+        },
       },
     });
   });

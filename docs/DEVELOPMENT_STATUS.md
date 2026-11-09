@@ -2,7 +2,7 @@
 
 Stand: 9. November 2026
 
-Code-Referenz: KQ-012 (`0fae3aa` auf `main`, PR #23)
+Code-Referenz: KQ-013 (PR #26)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -17,7 +17,7 @@ als vollständige Fachfunktion.
 | **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                                             |
 | **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Teilweise umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, szenengebundenes Undo/Redo, Wortzählung, Fokusmodus, revisionsgeprüftes Autosave und SQLite-Backup vorhanden. Umbenennen, Umordnen, Löschen und E2E-Abnahme fehlen.                             |
 | **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks vorhanden. Browser-/Screenreader-Abnahme fehlt.                                                               |
-| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** deterministische Projektsnapshots, lokales Git sowie Manuskriptexport als Markdown, HTML, DOCX und PDF vorhanden. Import, schreibende Snapshot-Wiederherstellung, Medien und visuelle Profile fehlen.                                       |
+| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte und eine lokale PNG-/JPEG-/WebP-Medienbibliothek mit Links, Assetbackup und Hash-Snapshot vorhanden. Textimport, schreibende Snapshot-Wiederherstellung und visuelle Profile fehlen.         |
 | **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Teilweise umgesetzt:** Ollama und vier Cloudprotokolle sowie deterministische Offline-Kontinuitätsregeln mit Quellenankern und revisionsgebundenem Nur-Lese-Diff vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise, Prompt-Builder und Bildabläufe fehlen. |
 | **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                                                                                                        |
 | **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                               |
@@ -33,7 +33,7 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Tauri-2-/React-/TypeScript-Desktop-Shell mit statischer, responsiver Startoberfläche.
 - Minimale Tauri-Berechtigung `core:default`, definierte CSP und Windows-Fensterkonfiguration.
 - GitHub-Actions-CI unter `windows-latest` und `ubuntu-latest`.
-- Letzter geprüfter CI-Lauf für `main` bei `e7bdb8c`: erfolgreich unter Windows und Linux.
+- Letzter geprüfter CI-Lauf für `main` bei `2108e25`: erfolgreich unter Windows und Linux.
 - Qualitätskette: Prettier, rustfmt, ESLint, Clippy mit `-D warnings`, TypeScript, Vitest,
   Rust-Tests sowie Frontend- und Workspace-Builds.
 - GPL-3.0-or-later, Beitrags-, Verhaltens- und Sicherheitsdokumentation vorhanden.
@@ -41,7 +41,7 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 ### Domäne und IPC-Grenze (KQ-002)
 
 - Kanonische UUID-Typen für Projekte und Entitäten in Rust und TypeScript.
-- Portable Projektformat-Version `1` in den Domänenmodulen; interner SQLite-Migrationsstand `2`.
+- Portable Projektformat-Version `1` in den Domänenmodulen; interner SQLite-Migrationsstand `3`.
 - Versionierter lokaler Command-Vertrag v1 mit `contractVersion`, `requestId` und Nutzlast.
 - Stabile Fehlercodes `INVALID_REQUEST`, `UNSUPPORTED_CONTRACT_VERSION` und `INTERNAL`.
 - UI ersetzt fremde IPC-Fehlermeldungen durch bereinigte Texte; Eingaben und Pfade werden nicht
@@ -205,9 +205,33 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   Read-only-Verhalten und Revisionskonflikte. KI-basierte Kontinuitätshinweise, persistente
   Prüfläufe und ein interaktiver Teilübernahme-Editor sind nicht implementiert.
 
+### Lokale Medienbibliothek (KQ-013)
+
+- SQLite-Migration 2→3 ergänzt `media_asset`, `asset_link`, Indizes und Löschtrigger. Assets
+  speichern relative Original-/Thumbnailpfade, MIME-Typ, SHA-256, Bytegröße, Abmessungen, Herkunft,
+  Titel und Schlagwörter.
+- Die Rust-Grenze akzeptiert ausschließlich inhaltlich dekodierbare PNG-, JPEG- und WebP-Dateien bis
+  25 MiB, 16.384 Pixel je Achse und 40 Millionen Pixel. Signatur und Endung müssen übereinstimmen.
+- Projektdateinamen bestehen aus Asset-UUID und Hashpräfix. Gelieferte Namen werden nicht als Pfade
+  verwendet. Thumbnails entstehen lokal als begrenzte PNG-Dateien.
+- Die Ansicht **Medien** unterstützt Import, Vorschau, Metadaten und Tags, inhaltsgeprüften Ersatz,
+  zweistufig bestätigtes Löschen sowie Links zu Szenen, Story-Bibel-Einträgen und Ereignissen.
+  Fehlende oder hash-veränderte Originale beziehungsweise fehlende Thumbnails werden sichtbar als
+  nicht verfügbar gemeldet.
+- Links verwenden stabile IDs und bleiben bei Umbenennungen erhalten. Rust prüft jedes Linkziel;
+  Trigger entfernen Links automatisch, wenn das Zielobjekt gelöscht wird.
+- Lokale SQLite-Backups erhalten ein `.assets`-Begleitverzeichnis. Die Datenbanksicherung bestimmt
+  die kopierten Dateien; Originale werden vor Veröffentlichung und Wiederherstellung gegen SHA-256
+  geprüft.
+- Portable Snapshots kopieren Originale als `assets/<sha256>.<endung>`, führen Metadaten und Links
+  im Manifest und prüfen Hash sowie exakte Dateimenge. Byte-Stabilität bleibt erhalten.
+- Tests decken Inhaltsprüfung, Pfadsicherheit, Hash/Thumbnail, Migration 2→3, Linkkaskaden,
+  Backup/Recovery, manipulierte Snapshotassets sowie den vertikalen Importvertrag ab.
+
 ### Begrenzte Hilfsfunktionen und Verträge
 
-- `asset-service`: relative Pfade werden akzeptiert, absolute Pfade und Elterntraversal abgelehnt.
+- `asset-service`: produktiver, begrenzter Rasterbildimport mit SHA-256, Thumbnail, sicherer
+  Veröffentlichung und erneuter Dateiprüfung.
 - `editor`: versionierter, generischer Snapshot-Vertrag.
 - `ai-contracts`: Capability-, Provider-, Streaming- und explizite Kontextfreigabetypen; aktiv für
   den lokalen Ollama-Ablauf genutzt.
@@ -221,6 +245,8 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   ein formales JSON-Schema wird mit jedem Snapshot kopiert.
 - UUID-basierte Markdown-Dateinamen, stabile fachliche Sortierung, UTF-8/LF und keine flüchtigen
   Datenbankzeitstempel. Wiederholte Erzeugung unveränderter Projekte ist byte-identisch getestet.
+- Freigegebene Rasterbilder werden inhaltsadressiert kopiert; Manifest, Hash und tatsächliche
+  Assetdateien werden gemeinsam validiert.
 - Snapshotstände entstehen in temporären Geschwisterverzeichnissen und werden als vollständiger
   Verzeichnistausch veröffentlicht.
 - Deny-by-default `.gitignore` sowie feste Pfadangaben beschränken Init, Add, Status, Diff und
@@ -237,21 +263,20 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 ## Offene Aufgaben
 
-### Unmittelbar: M3-Medienfundament ergänzen
+### Unmittelbar: M3-Visualisierung fortsetzen
 
-1. **KQ-013 - Medienbibliothek, sicherer Import und Metadaten**
-   - lokale Medien nur über die Rust-Grenze importieren und Inhalts-Hashes bilden
-   - sichere relative Pfade, Größen-/Typgrenzen und Thumbnail-Vertrag definieren
-   - Assets in Backup, portablem Snapshot und UI nachvollziehbar integrieren
+1. **KQ-014 - Visuelle Profile und Stilvorlagen**
+   - Kernmerkmale, Ausschlüsse und kanonisches Referenzasset je Story-Bibel-Eintrag modellieren
+   - projektweite Stilvorlagen mit Geltungsbereichen und validiertem CRUD umsetzen
+   - Profile und Vorlagen in Backup, Snapshot und zugänglicher UI integrieren
 
 ### Danach gemäß Pflichtenheft
 
-- KQ-013 bis KQ-016: Medienbibliothek, visuelle Profile, Prompt-Builder und
-  Bild-Capability-Verträge. KI-basierte Kontinuitätshinweise bleiben eine spätere Erweiterung von
-  KQ-012.
+- KQ-014 bis KQ-016: visuelle Profile, Prompt-Builder und Bild-Capability-Verträge. KI-basierte
+  Kontinuitätshinweise bleiben eine spätere Erweiterung von KQ-012.
 - KQ-017 und KQ-018 gehören zu Version 0.2 und sind kein Ziel für 0.1.
 
-Für KQ-013 bis KQ-018 sind noch nicht alle GitHub-Issues angelegt; die Aufgaben stehen im
+Für KQ-014 bis KQ-018 sind noch nicht alle GitHub-Issues angelegt; die Aufgaben stehen im
 Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkretisiert werden.
 
 ## Bekannte Fehler und Lücken
@@ -260,9 +285,9 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
   implementiert; Umbenennen, Löschen und Umordnen fehlen.
 - **Feste Projektwurzel in der Desktopoberfläche:** Projekte liegen derzeit unter dem lokalen
   App-Datenverzeichnis. Eine frei wählbare Projektwurzel ist noch nicht umgesetzt.
-- **Lokales Backup umfasst nur SQLite:** Assets sind noch nicht implementiert und daher nicht Teil
-  der Sicherung. Portable Git-Snapshots sind ein getrennter Mechanismus und enthalten derzeit keine
-  Assets.
+- **Backup bleibt zweiteilig:** Eine Sicherung besteht aus `<name>.sqlite3` und `<name>.assets/`.
+  Beide Teile werden gemeinsam erzeugt und für medienhaltige Wiederherstellungen benötigt; ein
+  einzelnes gepacktes Austauscharchiv ist noch nicht definiert.
 - **Snapshot-Wiederherstellung nur vorbereitet:** Format und Inhalte werden lesend geprüft, aber
   noch nicht in eine neue Datenbank importiert. F07 ist deshalb noch nicht vollständig abgenommen.
 - **Export ist kein Import:** Die vier Ausgaben sind erzeugbar; ein Roundtrip zurück nach KRAQEL und
@@ -271,6 +296,10 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 - **Exportformatierung bewusst begrenzt:** Links, Code, Tabellen, Fußnoten und Medien werden nicht
   still reduziert, sondern derzeit abgelehnt. PDF verwendet eingebaute Standardschriften; vor einer
   breiteren Unicode-Abnahme ist eine eingebettete freie Schrift zu prüfen.
+- **Medienumfang bewusst begrenzt:** SVG, Animationen, Audio, Video, Lizenzfelder und eingebettete
+  Exportmedien fehlen. Der WebView übergibt ausgewählte Dateien als Bytearray; bei vielen großen
+  Dateien ist später ein nativer Streamingimport sinnvoll. Fehlgeschlagene Dateibereinigung kann
+  unreferenzierte Dateien hinterlassen, aber keine intakte Referenz vorzeitig löschen.
 - **Migrationen bleiben vorwärtsgerichtet:** 0→1 und die befüllte Migration 1→2 sind getestet;
   weitere Versionen benötigen jeweils eine neue unveränderliche Migration.
 - **Zeitwerte ohne Kalendersemantik:** Absolute Zeitwerte sind validierte Zeichenketten. Kalender,
@@ -327,6 +356,9 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 - **Deterministische Kontinuität und Nur-Lese-Review:** Regeln arbeiten auf einer lokalen
   Faktenprojektion und formulieren Mehrdeutigkeiten nicht als Gewissheiten. Vorschlags-Diffs sind an
   die Szenenrevision gebunden und besitzen keinen Schreibpfad (ADR 0011).
+- **Inhaltsgeprüfte lokale Medien:** Rust validiert Formate und Grenzen, Projektdateinamen entstehen
+  aus UUID/Hash, Ersetzen schaltet erst nach neuer Dateiveröffentlichung um, und Backup/Snapshot
+  prüfen referenzierte Originale gegen SHA-256 (ADR 0012).
 - **Privilegierte Operationen in Rust:** React kommuniziert ausschließlich über versionierte,
   typisierte Tauri-Commands mit Dateisystem, Storage, Git und späteren Providern.
 - **Verträge sind explizit versioniert:** Inkompatible Änderungen erfordern eine neue
@@ -348,7 +380,7 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert | Vor großen Projekten messen; Migration nur mit Evidenz                |
 | Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                       | Gemeinsame Fixtures oder spätere Codegenerierung bewerten             |
-| Datenformat                  | Snapshot v1 und vier Textexporte vorhanden; Import, Roundtrip und Assetreferenzen fehlen                    | Import/Roundtrip vor vollständiger F07/F08-Abnahme testen             |
+| Datenformat                  | Snapshot v1 mit Hash-Assets und vier Textexporten; Import und Roundtrip fehlen                              | Import/Roundtrip vor vollständiger F07/F08-Abnahme testen             |
 | Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                             | Freie eingebettete Schrift und Medienkonzept prüfen                   |
 | Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                   | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen              |
 | Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                    | Bei jeder Erweiterung Fixtures und Migration prüfen                   |
@@ -360,18 +392,21 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 | Cloudprovider                | Vier Protokolle lokal getestet; echte API-, Kosten-, Aufbewahrungs- und Kontodialog-Abnahme fehlt           | Mit separaten Testkonten und Minimalbudget manuell prüfen             |
 | Schlüsselspeicher            | Native Backends eingebunden; reale Windows-/Linux-Dialoge nicht automatisiert getestet                      | Manuelle Plattformabnahme ohne produktive Schlüssel                   |
 | Kontinuitätsprüfung          | Vier Offline-Regeln getestet; exakte Nennungen und grober Zeilendiff begrenzen die Abdeckung                | Mit größeren künstlichen Projekten messen; KI-Kanal separat entwerfen |
+| Medienimport                 | Drei Rasterformate und harte Limits getestet; Bytearray-IPC skaliert nicht für Massenuploads                | Nativen Streamingimport erst nach Messung großer Sammlungen bewerten  |
+| Assetbackup                  | Hash-verifizierte Begleitverzeichnisse getestet; noch kein einzelnes portables Paket                        | Paketformat und atomare Mehrdatei-Verteilung vor externem Austausch   |
 
 ## Nächste geplante Entwicklungsstufe
 
-**KQ-013: Medienbibliothek, sicherer Import und Metadaten.**
+**KQ-014: Visuelle Profile und projektweite Stilvorlagen.**
 
 Empfohlener, überprüfbarer Scope:
 
-1. F04, F07 und KQ-013 gegen `asset-service`, Backup- und Snapshot-Verträge abgleichen.
-2. Zulässige Dateitypen, Größenlimits, Hashverfahren und Thumbnail-Grenzen festlegen.
-3. Einen atomaren, pfadsicheren Import in Rust mit künstlichen Testassets implementieren.
-4. Medienmetadaten in SQLite, Backup und portablem Snapshot konsistent integrieren, bevor eine
-   Galerie als abgeschlossen gilt.
+1. F09, Modul V.1 und KQ-014 gegen Medien-, Story-Bibel- und Snapshotverträge abgleichen.
+2. Strukturierte Kernmerkmale und Ausschlüsse sowie genau ein optionales kanonisches Asset pro
+   Entität definieren.
+3. Stilvorlagen mit projektweitem Namen, visuellen Regeln und zulässigen Entitätsarten transaktional
+   persistieren.
+4. CRUD, Referenzintegrität, Snapshotdarstellung und zugängliche Bearbeitung gemeinsam testen.
 
 ## Einstieg für die nächste Codex-Session
 
@@ -380,10 +415,10 @@ cd D:\kraqel
 git status
 git branch --show-current
 git log -5 --oneline
-rg "KQ-013" docs ROADMAP.md
+rg "KQ-014" docs ROADMAP.md
 ```
 
-Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0011, `docs/architecture/threat-model.md`,
-`crates/asset-service/`, Backup-/Snapshot-Verträge und die Pflichtenheft-Abschnitte zu F04, F07 und
-KQ-013. Vor KQ-013 zuerst ein eigenes Issue anlegen und den Asset-Scope gegen Datenschutz,
-Portabilität und Größenlimits prüfen.
+Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0012, `docs/architecture/threat-model.md`,
+`packages/visual-contracts/`, Medien-/Story-Bibel-Verträge und die Pflichtenheft-Abschnitte zu F09,
+V.1 und KQ-014. Vor KQ-014 zuerst ein eigenes Issue anlegen und Profil-/Stilgrenzen gegen
+Datenschutz, Portabilität und spätere Promptnutzung prüfen.

@@ -9,9 +9,9 @@ ihrem Unterbaum ergänzen. Vor jeder Änderung sind mindestens diese Datei und
 KRAQEL ist als quelloffenes, offlinefähiges Autorenstudio für Romane, Drehbücher und
 Rollenspielmodule geplant. Primärplattform ist Windows. Das Repository enthält das M0-Fundament,
 einen ersten M1-Schreibablauf, die M2-Strukturwerkzeuge, portable Snapshots und lokale
-Git-Versionierung aus M3 sowie einen ersten M4-Kontinuitätsablauf, aber keine produktionsreife
-Anwendung. Verifizierte Implementierungen und geplante Funktionen sind strikt zu unterscheiden; der
-verbindliche Stand steht in `docs/DEVELOPMENT_STATUS.md`.
+Git-Versionierung und eine lokale Medienbibliothek aus M3 sowie einen ersten M4-Kontinuitätsablauf,
+aber keine produktionsreife Anwendung. Verifizierte Implementierungen und geplante Funktionen sind
+strikt zu unterscheiden; der verbindliche Stand steht in `docs/DEVELOPMENT_STATUS.md`.
 
 Leitplanken:
 
@@ -39,15 +39,15 @@ Aktuell im Repository und verifiziert:
 - **Workspaces:** pnpm-Monorepo für TypeScript, Cargo-Workspace für Rust.
 - **Verträge:** versionierte Request-/Response-Hüllen, UUID-Typen und bereinigte IPC-Fehler in Rust
   und TypeScript.
-- **Persistenz:** SQLite mit atomarer Initialmigration, Fremdschlüsseln und FTS5 im
-  `kraqel-storage`-Crate; sicherer lokaler Projektlebenszyklus mit Datenbankbackup und Recovery.
+- **Persistenz:** SQLite-Migrationsstand 3 mit Fremdschlüsseln, FTS5, Medienmetadaten und Links im
+  `kraqel-storage`-Crate; sicherer Projektlebenszyklus mit Datenbank- und Assetbackup.
 - **Story-Bibel:** typisierte Figuren, Orte, Fraktionen und Gegenstände, freie Eigenschaften,
   gerichtete Relationen, Unicode-Suche und Szenen-Rückverweise über das bestehende SQLite-Schema.
 - **Strukturwerkzeuge:** persistente Szenenkarten, Handlungsstränge, POV/Status sowie parallele
   relative und absolute Zeitebenen mit Szenen- und Entitätslinks.
 - **Versionierung:** deterministische JSON-/Markdown-Snapshots, formales Schema und kontrollierte
-  lokale Git-Operationen für Init, Status, Diff und Commit; SQLite und Nebenartefakte sind
-  ausgeschlossen.
+  lokale Git-Operationen für Init, Status, Diff und Commit; geeignete Assets werden nach SHA-256
+  kopiert, SQLite und Nebenartefakte bleiben ausgeschlossen.
 - **Export:** streng validierte gemeinsame Manuskriptrepräsentation und lokale, atomare Ausgabe als
   Markdown, eigenständiges HTML, DOCX oder A4-PDF; unbekannte Editorformatierungen werden abgelehnt
   statt verworfen.
@@ -58,37 +58,39 @@ Aktuell im Repository und verifiziert:
   echte Anbieterläufe sind mangels Testschlüsseln noch nicht abgenommen.
 - **Kontinuität:** deterministische Offline-Regeln für Story-Bibel-, POV-, Verknüpfungs- und
   Timeline-Daten mit konkreten Quellenankern; revisionsgebundener Nur-Lese-Diff für Textentwürfe.
+- **Medienbibliothek:** validierter PNG-/JPEG-/WebP-Import, SHA-256, lokale Thumbnails,
+  Metadaten/Tags, Links zu Szenen, Story-Bibel und Ereignissen sowie sicherer Ersatz und Löschung.
 - **Qualität:** Prettier, ESLint, TypeScript-Checks, Vitest, Rust-Tests, rustfmt und Clippy mit
   Warnungen als Fehler; GitHub Actions unter Windows und Linux.
 
 Im Pflichtenheft vorgesehen, aber noch **nicht implementiert oder installiert**: Tailwind, React
-Flow, dnd-kit, Playwright, KI-basierte Kontinuitätshinweise und Bildgenerierung. Ollama und
-Cloudprovider werden unterstützt, aber weder lokale Modelle noch Cloudzugänge mit KRAQEL
+Flow, dnd-kit, Playwright, visuelle Profile, KI-basierte Kontinuitätshinweise und Bildgenerierung.
+Ollama und Cloudprovider werden unterstützt, aber weder lokale Modelle noch Cloudzugänge mit KRAQEL
 ausgeliefert. Eine bloße Typdefinition oder ein leeres Crate ist keine fertige Funktion - auch wenn
 es sehr selbstbewusst kompiliert.
 
 ## Verzeichnisstruktur und Verantwortlichkeiten
 
-| Pfad                         | Verantwortung                                                | Aktueller Reifegrad              |
-| ---------------------------- | ------------------------------------------------------------ | -------------------------------- |
-| `apps/desktop/`              | React-Oberfläche, Editor und typisierte IPC-Clientfunktionen | Schreiben und M2-Werkzeuge       |
-| `apps/desktop/src-tauri/`    | Command-Handler, Tauri-Konfiguration und Berechtigungen      | Projekt-, Dokument-, M2-IPC      |
-| `packages/domain/`           | TypeScript-Domänentypen, UUID-/Schema-Validierung            | Dokument- und Story-Modell       |
-| `packages/editor/`           | Editorvertrag, Baum, Autosave und Tiptap-Hilfsfunktionen     | M1-Grundfunktionen getestet      |
-| `packages/ui/`               | Geteilte zugängliche UI-Komponenten                          | Nur Platzhalterkonstante         |
-| `packages/ai-contracts/`     | Provider-, Capability-, Stream- und Freigabeverträge         | Lokale und Cloud-Textverträge    |
-| `packages/visual-contracts/` | Medien- und visuelle Profilverträge                          | Grundtypen, keine Persistenz     |
-| `crates/domain/`             | Rust-Domäne und versionierte Command-Verträge                | Dokument- und Story-Modell       |
-| `crates/storage/`            | SQLite, Projektlebenszyklus und fachliche Repositories       | Dokumente, M2 und Prüfprojektion |
-| `crates/git-service/`        | Deterministische Snapshots und Git-Operationen               | Lokaler M3-Mindestumfang         |
-| `crates/export/`             | Validierung, Zwischenformat und atomarer Manuskriptexport    | M3-Textformate getestet          |
-| `crates/ai-service/`         | Textprovider, Schlüsselspeicher und sichere Streaminggrenzen | KQ-010/011-Protokollumfang       |
-| `crates/continuity/`         | Offline-Regeln, Quellenanker und Vorschlags-Diff             | KQ-012-Mindestumfang getestet    |
-| `crates/asset-service/`      | Sicherer Asset-Import, Hashes, Pfade, Thumbnails             | Relative Pfadprüfung             |
-| `docs/architecture/`         | Architekturübersicht, ADRs und Threat Model                  | Verbindliche Entscheidungen      |
-| `docs/specifications/`       | Technisches Pflichtenheft und Abnahmekriterien               | Fachliche Quelle                 |
-| `docs/data-format/`          | Offenes Export- und Command-Format                           | Lokale Verträge dokumentiert     |
-| `examples/`                  | Künstliche Testprojekte und freie Beispielmedien             | Noch leer                        |
+| Pfad                         | Verantwortung                                                | Aktueller Reifegrad            |
+| ---------------------------- | ------------------------------------------------------------ | ------------------------------ |
+| `apps/desktop/`              | React-Oberfläche, Editor und typisierte IPC-Clientfunktionen | Schreiben und M2-Werkzeuge     |
+| `apps/desktop/src-tauri/`    | Command-Handler, Tauri-Konfiguration und Berechtigungen      | Projekt-, Dokument-, M2-IPC    |
+| `packages/domain/`           | TypeScript-Domänentypen, UUID-/Schema-Validierung            | Dokument- und Story-Modell     |
+| `packages/editor/`           | Editorvertrag, Baum, Autosave und Tiptap-Hilfsfunktionen     | M1-Grundfunktionen getestet    |
+| `packages/ui/`               | Geteilte zugängliche UI-Komponenten                          | Nur Platzhalterkonstante       |
+| `packages/ai-contracts/`     | Provider-, Capability-, Stream- und Freigabeverträge         | Lokale und Cloud-Textverträge  |
+| `packages/visual-contracts/` | Medien- und visuelle Profilverträge                          | Grundtypen, keine Persistenz   |
+| `crates/domain/`             | Rust-Domäne und versionierte Command-Verträge                | Dokument- und Story-Modell     |
+| `crates/storage/`            | SQLite, Projektlebenszyklus und fachliche Repositories       | Dokumente, Struktur und Medien |
+| `crates/git-service/`        | Deterministische Snapshots und Git-Operationen               | Lokaler M3-Mindestumfang       |
+| `crates/export/`             | Validierung, Zwischenformat und atomarer Manuskriptexport    | M3-Textformate getestet        |
+| `crates/ai-service/`         | Textprovider, Schlüsselspeicher und sichere Streaminggrenzen | KQ-010/011-Protokollumfang     |
+| `crates/continuity/`         | Offline-Regeln, Quellenanker und Vorschlags-Diff             | KQ-012-Mindestumfang getestet  |
+| `crates/asset-service/`      | Sicherer Asset-Import, Hashes, Pfade, Thumbnails             | KQ-013-Bildumfang getestet     |
+| `docs/architecture/`         | Architekturübersicht, ADRs und Threat Model                  | Verbindliche Entscheidungen    |
+| `docs/specifications/`       | Technisches Pflichtenheft und Abnahmekriterien               | Fachliche Quelle               |
+| `docs/data-format/`          | Offenes Export- und Command-Format                           | Lokale Verträge dokumentiert   |
+| `examples/`                  | Künstliche Testprojekte und freie Beispielmedien             | Noch leer                      |
 
 ## Verbindliche Entwicklungsregeln
 

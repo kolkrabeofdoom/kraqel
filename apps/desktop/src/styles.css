@@ -658,6 +658,131 @@ button.scene-button.active {
   padding: 1.5rem;
 }
 
+.media-library {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.media-import {
+  display: grid;
+  grid-template-columns: minmax(14rem, 1fr) minmax(12rem, 0.7fr) minmax(14rem, 1fr) auto;
+  gap: 0.65rem;
+  align-items: end;
+  margin: 1rem 0 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  padding: 1rem;
+  background: var(--surface);
+}
+
+.media-import label,
+.media-card label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.media-import label:first-child {
+  grid-column: 1;
+}
+
+.media-import input,
+.media-card input,
+.media-card select {
+  min-width: 0;
+  border: 1px solid #8aa49e;
+  border-radius: 0.55rem;
+  padding: 0.65rem;
+  color: #183235;
+  background: #fffef9;
+}
+
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 1rem;
+}
+
+.media-card {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  background: var(--surface);
+}
+
+.media-card > img,
+.missing-media {
+  width: 100%;
+  height: 230px;
+  object-fit: contain;
+  background: #e8ece7;
+}
+
+.missing-media {
+  display: grid;
+  place-items: center;
+  color: #842f27;
+  font-weight: 750;
+}
+
+.media-card-body {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1rem;
+}
+
+.media-metadata {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.media-metadata div {
+  min-width: 0;
+}
+
+.media-metadata dt {
+  color: #647776;
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.media-metadata dd {
+  margin: 0.15rem 0 0;
+  overflow: hidden;
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+}
+
+.asset-link-form,
+.asset-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.asset-link-form select {
+  flex: 1 1 12rem;
+}
+
+.asset-links .link-chip {
+  max-width: 100%;
+}
+
+.text-link {
+  overflow: hidden;
+  padding: 0;
+  color: #183235;
+  background: transparent;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .panel-heading,
 .finding-heading,
 .source-list {
@@ -1159,7 +1284,8 @@ button.scene-button.active {
 
   .form-row,
   .property-row,
-  .timeline-layout {
+  .timeline-layout,
+  .media-import {
     grid-template-columns: 1fr;
   }
 
