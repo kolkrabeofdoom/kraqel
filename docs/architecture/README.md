@@ -15,8 +15,9 @@ bildet den portablen, versionierbaren Zustand ab. Die laufende Datenbank wird ni
 
 1. **Projektordner:** grundsätzlich vertrauenswürdig, Pfade und importierte Dateien dennoch prüfen.
 2. **Importe:** niemals als ausführbar behandeln; Typ, Größe und Inhalt validieren.
-3. **Provider:** standardmäßig inaktiv; der lokale Ollama-Adapter ist auf Loopback begrenzt. Kontext
-   wird vor jedem Lauf angezeigt und revisionsgebunden freigegeben; Cloudprovider fehlen.
+3. **Provider:** standardmäßig inaktiv; der lokale Ollama-Adapter ist auf Loopback begrenzt.
+   Cloudprovider besitzen feste HTTPS-Ziele und native Schlüsselspeicherung. Kontext wird vor jedem
+   Lauf vollständig angezeigt und mit einem kurzlebigen Einmalbeleg freigegeben.
 4. **Plugins/Editor-Inhalte:** als potenziell nicht vertrauenswürdig behandeln und Ausgaben säubern.
 
 Architekturänderungen werden als ADR unter `decisions/` dokumentiert.

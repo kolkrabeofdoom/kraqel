@@ -680,6 +680,7 @@ button.scene-button.active {
 }
 
 .ai-controls select,
+.ai-controls input,
 .ai-controls textarea {
   width: 100%;
   border: 1px solid #8aa49e;
@@ -687,6 +688,47 @@ button.scene-button.active {
   padding: 0.75rem;
   color: #183235;
   background: #fffef9;
+}
+
+.credential-panel {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  border: 1px solid #8aa49e;
+  border-radius: 0.65rem;
+  padding: 0.85rem;
+}
+
+.credential-panel legend {
+  padding: 0 0.35rem;
+  font-weight: 750;
+}
+
+.provider-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.release-details {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0 0 0.85rem;
+}
+
+.release-details > div {
+  display: grid;
+  grid-template-columns: minmax(7rem, 0.35fr) 1fr;
+  gap: 0.6rem;
+}
+
+.release-details dt {
+  font-weight: 750;
+}
+
+.release-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .context-preview {

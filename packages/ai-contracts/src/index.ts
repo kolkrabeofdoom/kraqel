@@ -36,6 +36,18 @@ export interface AiContextPreview {
   readonly documentTitle: string;
   readonly revision: number;
   readonly text: string;
+  readonly providerId: string;
+  readonly providerDisplayName: string;
+  readonly providerLocation: "local" | "cloud";
+  readonly model: string;
+  readonly instruction: string;
+  readonly metadata: Readonly<Record<string, string>>;
+  readonly releaseId: string;
+}
+
+export interface CloudProviderStatus {
+  readonly provider: ProviderDescriptor;
+  readonly credentialConfigured: boolean;
 }
 
 export type TextStreamEvent =

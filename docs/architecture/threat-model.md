@@ -27,6 +27,10 @@
 - Kontextfreigaben binden Dokument-ID und Revision; Änderungen zwischen Vorschau und Lauf führen zum
   Konflikt statt zur Übertragung eines anderen Textstands
 - Betriebssystem-Schlüsselspeicher statt Konfigurationsdateien
+- feste offizielle HTTPS-Endpunkte für Cloudprovider; keine Redirects, Umgebungsproxies oder frei
+  konfigurierbaren Produktionsziele
+- höchstens zehn Minuten gültige Einmalfreigabe bindet Projekt, Dokumentrevision, Provider, Modell
+  und Arbeitsauftrag und wird vor dem Cloudrequest verbraucht
 - deterministische Snapshots, Prüfsummen und getestete Wiederherstellung
 - deny-by-default Git-Pfadfreigabe; keine globale Git-Konfiguration, Hooks oder interaktiven Prompts
 - Abhängigkeitsprüfung und reproduzierbare CI
@@ -39,6 +43,19 @@ und Streamereignisse werden bereinigt; Prompts und Antworten werden nicht gelogg
 in kanonische Dokumente geschrieben. Ein lokal kompromittierter Ollama-Prozess kann den
 freigegebenen Text dennoch lesen und bösartige beziehungsweise übergroße Antworten liefern; deshalb
 bleiben Größenlimits, strikte JSONL-Validierung und manuelle Übernahme erforderlich.
+
+Die Cloudadapter für OpenAI, Anthropic, Google und Mistral lesen Schlüssel ausschließlich innerhalb
+der Rust-Grenze aus dem nativen Betriebssystemspeicher. Gespeicherte Werte werden nicht über IPC
+zurückgegeben, in Projektdateien geschrieben oder geloggt. Beim erstmaligen Speichern existiert der
+eingegebene Wert zwangsläufig kurz im React- und IPC-Speicher; danach wird er nur als
+vorhanden/fehlend ausgewiesen. Der Provider sieht bei einer ausdrücklich ausgelösten Modellabfrage
+bereits Konto und Netzwerkadresse, auch wenn noch keine Projektdaten übertragen werden.
+
+Ein kompromittierter Betriebssystemspeicher, Root-/Administratorzugriff oder ein kompromittierter
+Prozess kann Schlüssel und freigegebene Inhalte weiterhin lesen. KRAQEL kontrolliert außerdem weder
+Kosten noch serverseitige Aufbewahrung, Trainingsnutzung oder Verfügbarkeit der Anbieter. Vor
+produktiver Nutzung sind deren aktuelle Verträge und Datenschutzeinstellungen zu prüfen. Lokale
+Protokolltests ersetzen keine echte Anbieterabnahme.
 
 Die aktuelle Snapshotprüfung ist ausschließlich lesend und validiert den Formatvertrag. Eine
 vollständige Wiederherstellung aus Snapshot ist noch nicht implementiert; ihre Datenverlust- und

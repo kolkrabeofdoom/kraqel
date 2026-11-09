@@ -1,5 +1,6 @@
 use kraqel_ai_service::{
-    OllamaProvider, ReleasedTextContext, TextGenerationRequest, TextModel, TextProvider,
+    CloudProviderId, CloudTextProvider, CredentialError, CredentialStore, OllamaProvider,
+    OsCredentialStore, ReleasedTextContext, TextGenerationRequest, TextModel, TextProvider,
     TextProviderDescriptor, TextProviderError, TextStreamEvent,
 };
 use kraqel_domain::{
@@ -22,11 +23,32 @@ use kraqel_storage::{
     structure_repository::{StructureError, StructureRepository},
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeMap, fs, path::PathBuf};
+use std::{
+    collections::{BTreeMap, HashMap},
+    fs,
+    path::PathBuf,
+    sync::Mutex,
+    time::{Duration, Instant},
+};
 use tauri::{Manager as _, State, ipc::Channel};
+use zeroize::Zeroizing;
+
+const AI_RELEASE_LIFETIME: Duration = Duration::from_secs(10 * 60);
 
 struct AppState {
     project_root: PathBuf,
+    ai_releases: Mutex<HashMap<uuid::Uuid, AiReleaseRecord>>,
+}
+
+#[derive(Debug, Clone)]
+struct AiReleaseRecord {
+    project_id: String,
+    document_id: String,
+    revision: u64,
+    provider_id: String,
+    model: String,
+    instruction: String,
+    created_at: Instant,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -99,6 +121,9 @@ struct ExportProjectRequest {
 struct AiContextRequest {
     project_id: String,
     document_id: String,
+    provider_id: String,
+    model: String,
+    instruction: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -108,6 +133,13 @@ struct AiContextPreview {
     document_title: String,
     revision: u64,
     text: String,
+    provider_id: String,
+    provider_display_name: String,
+    provider_location: String,
+    model: String,
+    instruction: String,
+    metadata: BTreeMap<String, String>,
+    release_id: uuid::Uuid,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -119,6 +151,8 @@ struct StreamTextDraftRequest {
     model: String,
     instruction: String,
     context_approved: bool,
+    provider_id: String,
+    release_id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -127,6 +161,36 @@ struct OllamaModelsResponse {
     provider: TextProviderDescriptor,
     available: bool,
     models: Vec<TextModel>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CloudProviderStatus {
+    provider: TextProviderDescriptor,
+    credential_configured: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CloudProviderRequest {
+    provider_id: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SaveCloudCredentialRequest {
+    provider_id: String,
+    api_key: String,
+}
+
+impl std::fmt::Debug for SaveCloudCredentialRequest {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("SaveCloudCredentialRequest")
+            .field("provider_id", &self.provider_id)
+            .field("api_key", &"[REDACTED]")
+            .finish()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -470,6 +534,87 @@ async fn list_ollama_models(
     clippy::needless_pass_by_value,
     reason = "Tauri besitzt Command-Argumente"
 )]
+fn list_cloud_provider_statuses(
+    request: CommandRequest<ApplicationStatusRequest>,
+) -> Result<CommandResponse<Vec<CloudProviderStatus>>, CommandError> {
+    require_current_contract(&request)?;
+    let ApplicationStatusRequest {} = request.payload;
+    let store = OsCredentialStore;
+    let statuses = CloudProviderId::ALL
+        .into_iter()
+        .map(|provider| {
+            Ok(CloudProviderStatus {
+                provider: provider.descriptor(),
+                credential_configured: store
+                    .contains(provider)
+                    .map_err(|error| map_credential_error(request.request_id, error))?,
+            })
+        })
+        .collect::<Result<Vec<_>, CommandError>>()?;
+    Ok(CommandResponse::current(request.request_id, statuses))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn save_cloud_credential(
+    request: CommandRequest<SaveCloudCredentialRequest>,
+) -> Result<CommandResponse<()>, CommandError> {
+    require_current_contract(&request)?;
+    let request_id = request.request_id;
+    let provider = parse_cloud_provider(request_id, &request.payload.provider_id)?;
+    let api_key = Zeroizing::new(request.payload.api_key);
+    OsCredentialStore
+        .set(provider, &api_key)
+        .map_err(|error| map_credential_error(request_id, error))?;
+    Ok(CommandResponse::current(request_id, ()))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn delete_cloud_credential(
+    request: CommandRequest<CloudProviderRequest>,
+) -> Result<CommandResponse<()>, CommandError> {
+    require_current_contract(&request)?;
+    let provider = parse_cloud_provider(request.request_id, &request.payload.provider_id)?;
+    OsCredentialStore
+        .delete(provider)
+        .map_err(|error| map_credential_error(request.request_id, error))?;
+    Ok(CommandResponse::current(request.request_id, ()))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+async fn list_cloud_models(
+    request: CommandRequest<CloudProviderRequest>,
+) -> Result<CommandResponse<Vec<TextModel>>, CommandError> {
+    require_current_contract(&request)?;
+    let provider_id = parse_cloud_provider(request.request_id, &request.payload.provider_id)?;
+    let api_key = OsCredentialStore
+        .get(provider_id)
+        .map_err(|error| map_credential_error(request.request_id, error))?;
+    let provider = CloudTextProvider::production(provider_id, api_key)
+        .map_err(|error| map_text_provider_error(request.request_id, &error))?;
+    let models = provider
+        .list_models()
+        .await
+        .map_err(|error| map_text_provider_error(request.request_id, &error))?;
+    Ok(CommandResponse::current(request.request_id, models))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
 fn preview_ai_context(
     state: State<'_, AppState>,
     request: CommandRequest<AiContextRequest>,
@@ -491,16 +636,28 @@ async fn stream_text_draft(
 ) -> Result<CommandResponse<()>, CommandError> {
     require_current_contract(&request)?;
     let generation = prepare_text_generation(&state, request.request_id, &request.payload)?;
-    let provider = OllamaProvider::local_default()
-        .map_err(|error| map_text_provider_error(request.request_id, &error))?;
-    provider
-        .stream_draft(&generation, &mut |event| {
-            on_event
-                .send(event)
-                .map_err(|_| TextProviderError::StreamClosed)
-        })
-        .await
-        .map_err(|error| map_text_provider_error(request.request_id, &error))?;
+    let mut send = |event| {
+        on_event
+            .send(event)
+            .map_err(|_| TextProviderError::StreamClosed)
+    };
+    if request.payload.provider_id == kraqel_ai_service::OLLAMA_PROVIDER_ID {
+        OllamaProvider::local_default()
+            .map_err(|error| map_text_provider_error(request.request_id, &error))?
+            .stream_draft(&generation, &mut send)
+            .await
+            .map_err(|error| map_text_provider_error(request.request_id, &error))?;
+    } else {
+        let provider_id = parse_cloud_provider(request.request_id, &request.payload.provider_id)?;
+        let api_key = OsCredentialStore
+            .get(provider_id)
+            .map_err(|error| map_credential_error(request.request_id, error))?;
+        CloudTextProvider::production(provider_id, api_key)
+            .map_err(|error| map_text_provider_error(request.request_id, &error))?
+            .stream_draft(&generation, &mut send)
+            .await
+            .map_err(|error| map_text_provider_error(request.request_id, &error))?;
+    }
     Ok(CommandResponse::current(request.request_id, ()))
 }
 
@@ -1229,12 +1386,61 @@ fn preview_ai_context_impl(
     request_id: uuid::Uuid,
     request: &AiContextRequest,
 ) -> Result<AiContextPreview, CommandError> {
+    if request.model.trim().is_empty()
+        || request.model.chars().count() > 200
+        || request.model.chars().any(char::is_control)
+        || request.instruction.trim().is_empty()
+        || request.instruction.chars().count() > 4_000
+    {
+        return Err(CommandError::invalid_request(
+            request_id,
+            "Das ausgewählte Modell ist ungültig.",
+        ));
+    }
+    let descriptor = if request.provider_id == kraqel_ai_service::OLLAMA_PROVIDER_ID {
+        OllamaProvider::local_default()
+            .map_err(|error| map_text_provider_error(request_id, &error))?
+            .descriptor()
+    } else {
+        parse_cloud_provider(request_id, &request.provider_id)?.descriptor()
+    };
     let stored = load_ai_scene(state, request_id, &request.project_id, &request.document_id)?;
+    let release_id = uuid::Uuid::new_v4();
+    let mut releases = state
+        .ai_releases
+        .lock()
+        .map_err(|_| CommandError::internal(request_id))?;
+    releases.retain(|_, release| release.created_at.elapsed() <= AI_RELEASE_LIFETIME);
+    releases.insert(
+        release_id,
+        AiReleaseRecord {
+            project_id: request.project_id.clone(),
+            document_id: request.document_id.clone(),
+            revision: stored.node.revision,
+            provider_id: request.provider_id.clone(),
+            model: request.model.clone(),
+            instruction: request.instruction.trim().to_owned(),
+            created_at: Instant::now(),
+        },
+    );
+    let mut metadata = BTreeMap::new();
+    metadata.insert("Szenentitel".to_owned(), stored.node.title.clone());
     Ok(AiContextPreview {
         document_id: stored.node.id,
         document_title: stored.node.title,
         revision: stored.node.revision,
         text: stored.plain_text,
+        provider_id: descriptor.id.to_owned(),
+        provider_display_name: descriptor.display_name.to_owned(),
+        provider_location: match descriptor.location {
+            kraqel_ai_service::ProviderLocation::Local => "local",
+            kraqel_ai_service::ProviderLocation::Cloud => "cloud",
+        }
+        .to_owned(),
+        model: request.model.clone(),
+        instruction: request.instruction.trim().to_owned(),
+        metadata,
+        release_id,
     })
 }
 
@@ -1247,6 +1453,33 @@ fn prepare_text_generation(
         return Err(CommandError::invalid_request(
             request_id,
             "Der angezeigte Kontext wurde nicht freigegeben.",
+        ));
+    }
+    let release_id = uuid::Uuid::parse_str(&request.release_id).map_err(|_| {
+        CommandError::invalid_request(request_id, "Die Kontextfreigabe ist ungültig.")
+    })?;
+    let release = state
+        .ai_releases
+        .lock()
+        .map_err(|_| CommandError::internal(request_id))?
+        .remove(&release_id)
+        .ok_or_else(|| {
+            CommandError::invalid_request(
+                request_id,
+                "Die Kontextfreigabe fehlt oder wurde bereits verwendet.",
+            )
+        })?;
+    if release.created_at.elapsed() > AI_RELEASE_LIFETIME
+        || release.project_id != request.project_id
+        || release.document_id != request.document_id
+        || release.revision != request.expected_revision
+        || release.provider_id != request.provider_id
+        || release.model != request.model
+        || release.instruction != request.instruction.trim()
+    {
+        return Err(CommandError::invalid_request(
+            request_id,
+            "Die Kontextfreigabe passt nicht zur Textanfrage.",
         ));
     }
     let stored = load_ai_scene(state, request_id, &request.project_id, &request.document_id)?;
@@ -1581,13 +1814,34 @@ fn map_export_error(request_id: uuid::Uuid, error: &ExportError) -> CommandError
 
 fn map_text_provider_error(request_id: uuid::Uuid, error: &TextProviderError) -> CommandError {
     match error {
-        TextProviderError::ContextNotApproved | TextProviderError::InvalidRequest => {
+        TextProviderError::ContextNotApproved
+        | TextProviderError::InvalidRequest
+        | TextProviderError::CredentialMissing => {
             CommandError::invalid_request(request_id, "Die Textanfrage ist ungültig.")
         }
         TextProviderError::Unavailable
         | TextProviderError::InvalidResponse
         | TextProviderError::ResponseTooLarge
-        | TextProviderError::StreamClosed => CommandError::internal(request_id),
+        | TextProviderError::StreamClosed
+        | TextProviderError::CredentialRejected => CommandError::internal(request_id),
+    }
+}
+
+fn parse_cloud_provider(
+    request_id: uuid::Uuid,
+    provider_id: &str,
+) -> Result<CloudProviderId, CommandError> {
+    provider_id
+        .parse()
+        .map_err(|_| CommandError::invalid_request(request_id, "Der Cloudprovider ist ungültig."))
+}
+
+fn map_credential_error(request_id: uuid::Uuid, error: CredentialError) -> CommandError {
+    match error {
+        CredentialError::Invalid | CredentialError::Missing => {
+            CommandError::invalid_request(request_id, "Der API-Schlüssel ist ungültig oder fehlt.")
+        }
+        CredentialError::Unavailable => CommandError::internal(request_id),
     }
 }
 
@@ -1602,7 +1856,10 @@ pub fn run() {
         .setup(|app| {
             let project_root = app.path().app_local_data_dir()?.join("projects");
             fs::create_dir_all(&project_root)?;
-            app.manage(AppState { project_root });
+            app.manage(AppState {
+                project_root,
+                ai_releases: Mutex::new(HashMap::new()),
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -1616,6 +1873,10 @@ pub fn run() {
             save_document,
             export_manuscript,
             list_ollama_models,
+            list_cloud_provider_statuses,
+            save_cloud_credential,
+            delete_cloud_credential,
+            list_cloud_models,
             preview_ai_context,
             stream_text_draft,
             list_story_entities,
@@ -1651,7 +1912,10 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
+    use std::{
+        collections::{BTreeMap, HashMap},
+        sync::Mutex,
+    };
 
     use kraqel_domain::{
         COMMAND_CONTRACT_VERSION, CommandErrorCode, CommandRequest, EDITOR_DOCUMENT_VERSION,
@@ -1723,6 +1987,7 @@ mod tests {
         let root = tempdir().expect("temporary root should exist");
         let state = AppState {
             project_root: root.path().to_path_buf(),
+            ai_releases: Mutex::new(HashMap::new()),
         };
         let workspace = create_project_impl(
             &state,
@@ -1812,6 +2077,7 @@ mod tests {
         let root = tempdir().expect("temporary root should exist");
         let state = AppState {
             project_root: root.path().to_path_buf(),
+            ai_releases: Mutex::new(HashMap::new()),
         };
         let workspace = create_project_impl(
             &state,
@@ -1846,6 +2112,9 @@ mod tests {
             &AiContextRequest {
                 project_id: workspace.project.id.to_string(),
                 document_id: scene.id.to_string(),
+                provider_id: "ollama".to_owned(),
+                model: "rabe:7b".to_owned(),
+                instruction: "Weiterschreiben".to_owned(),
             },
         )
         .expect("preview");
@@ -1861,10 +2130,29 @@ mod tests {
                 model: "rabe:7b".to_owned(),
                 instruction: "Weiterschreiben".to_owned(),
                 context_approved: false,
+                provider_id: "ollama".to_owned(),
+                release_id: preview.release_id.to_string(),
             },
         )
         .expect_err("release should be required");
         assert_eq!(error.code, CommandErrorCode::InvalidRequest);
+
+        let approved = StreamTextDraftRequest {
+            project_id: workspace.project.id.to_string(),
+            document_id: scene.id.to_string(),
+            expected_revision: preview.revision,
+            model: "rabe:7b".to_owned(),
+            instruction: "Weiterschreiben".to_owned(),
+            context_approved: true,
+            provider_id: "ollama".to_owned(),
+            release_id: preview.release_id.to_string(),
+        };
+        let generation = prepare_text_generation(&state, REQUEST_ID, &approved)
+            .expect("matching release should work once");
+        assert_eq!(generation.context.text, "Nur dieser Kontext");
+        let reused = prepare_text_generation(&state, REQUEST_ID, &approved)
+            .expect_err("release must be single use");
+        assert_eq!(reused.code, CommandErrorCode::InvalidRequest);
     }
 
     #[test]
@@ -1872,6 +2160,7 @@ mod tests {
         let root = tempdir().expect("temporary root should exist");
         let state = AppState {
             project_root: root.path().to_path_buf(),
+            ai_releases: Mutex::new(HashMap::new()),
         };
         let workspace = create_project_impl(
             &state,

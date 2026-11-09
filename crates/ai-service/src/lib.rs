@@ -1,4 +1,10 @@
-//! Providerunabhängige Text-KI-Grenze und sicherer lokaler Ollama-Adapter.
+//! Providerunabhängige Text-KI-Grenze für lokale und explizit freigegebene Cloudläufe.
+
+mod cloud;
+mod credentials;
+
+pub use cloud::{CloudProviderId, CloudTextProvider};
+pub use credentials::{CredentialError, CredentialStore, OsCredentialStore};
 
 use std::{
     error::Error,
@@ -41,6 +47,8 @@ pub enum TextCapability {
 pub enum ProviderLocation {
     /// Provider läuft auf demselben Gerät.
     Local,
+    /// Provider verarbeitet freigegebene Daten außerhalb des Geräts.
+    Cloud,
 }
 
 /// Datenarmer Providervertrag für UI und Serviceauswahl.
@@ -125,6 +133,10 @@ pub enum TextProviderError {
     ResponseTooLarge,
     /// Empfänger*in des Streams ist nicht mehr erreichbar.
     StreamClosed,
+    /// Für den gewählten Cloudprovider fehlt ein Schlüssel.
+    CredentialMissing,
+    /// Der Cloudprovider hat den gespeicherten Schlüssel abgelehnt.
+    CredentialRejected,
 }
 
 impl fmt::Display for TextProviderError {
@@ -132,14 +144,18 @@ impl fmt::Display for TextProviderError {
         match self {
             Self::ContextNotApproved => formatter.write_str("Der Kontext wurde nicht freigegeben."),
             Self::InvalidRequest => formatter.write_str("Die Textanfrage ist ungültig."),
-            Self::Unavailable => {
-                formatter.write_str("Der lokale Textprovider ist nicht erreichbar.")
-            }
+            Self::Unavailable => formatter.write_str("Der Textprovider ist nicht erreichbar."),
             Self::InvalidResponse => {
-                formatter.write_str("Der lokale Textprovider hat ungültig geantwortet.")
+                formatter.write_str("Der Textprovider hat ungültig geantwortet.")
             }
             Self::ResponseTooLarge => formatter.write_str("Die Providerantwort ist zu groß."),
             Self::StreamClosed => formatter.write_str("Der Textstream wurde geschlossen."),
+            Self::CredentialMissing => {
+                formatter.write_str("Für den Cloudprovider fehlt ein API-Schlüssel.")
+            }
+            Self::CredentialRejected => {
+                formatter.write_str("Der Cloudprovider hat den API-Schlüssel abgelehnt.")
+            }
         }
     }
 }
@@ -307,7 +323,7 @@ impl TextProvider for OllamaProvider {
     }
 }
 
-fn validate_request(request: &TextGenerationRequest) -> Result<(), TextProviderError> {
+pub(crate) fn validate_request(request: &TextGenerationRequest) -> Result<(), TextProviderError> {
     if !request.context.approved {
         return Err(TextProviderError::ContextNotApproved);
     }
@@ -322,13 +338,13 @@ fn validate_request(request: &TextGenerationRequest) -> Result<(), TextProviderE
     Ok(())
 }
 
-fn valid_model(model: &str) -> bool {
+pub(crate) fn valid_model(model: &str) -> bool {
     !model.trim().is_empty()
         && model.chars().count() <= MAX_MODEL_CHARACTERS
         && !model.chars().any(char::is_control)
 }
 
-fn build_prompt(request: &TextGenerationRequest) -> String {
+pub(crate) fn build_prompt(request: &TextGenerationRequest) -> String {
     format!(
         "Arbeitsauftrag:\n{}\n\nFreigegebener Kontext – {}:\n{}",
         request.instruction.trim(),
