@@ -13,8 +13,12 @@
   "dependencies": {
     "@kraqel/ai-contracts": "workspace:*",
     "@kraqel/domain": "workspace:*",
+    "@kraqel/editor": "workspace:*",
     "@kraqel/visual-contracts": "workspace:*",
     "@tauri-apps/api": "^2.0.0",
+    "@tiptap/pm": "^3.33.0",
+    "@tiptap/react": "^3.33.0",
+    "@tiptap/starter-kit": "^3.33.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

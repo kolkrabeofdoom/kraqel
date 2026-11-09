@@ -34,6 +34,24 @@ portables Austauschformat und kein Git-Snapshot.
 Recovery schreibt eine geprüfte Sicherung ausschließlich in ein neues Projektverzeichnis. Weder die
 Sicherungsdatei noch das ursprüngliche Projekt werden dabei verändert oder überschrieben.
 
+## Editor-Dokumentvertrag v1
+
+Szeneninhalte stehen in `document.content_json` als versionierte Hülle:
+
+```json
+{
+  "version": 1,
+  "document": {
+    "type": "doc",
+    "content": [{ "type": "paragraph" }]
+  }
+}
+```
+
+`document` ist Tiptap-/ProseMirror-JSON. Rust prüft Version, Wurzeltyp und Größenlimit, leitet den
+Klartext rekursiv ab und aktualisiert Inhalt, `plain_text`, Revision und FTS-Index transaktional.
+Autosave sendet die erwartete Revision; ein Konflikt überschreibt keinen neueren Stand.
+
 ## Lokaler Command-Vertrag v1
 
 Tauri-Commands verwenden eine einheitliche JSON-Hülle:
@@ -47,9 +65,9 @@ Tauri-Commands verwenden eine einheitliche JSON-Hülle:
 ```
 
 Erfolgsantworten spiegeln Version und `requestId` und liefern ihre Nutzlast unter `data`. Fehler
-verwenden ausschließlich die stabilen Codes `INVALID_REQUEST`, `UNSUPPORTED_CONTRACT_VERSION` oder
-`INTERNAL`, eine bereinigte Meldung und `retryable`. Sie enthalten keine übermittelten Texte,
-absoluten Pfade oder internen Fehlerdetails.
+verwenden ausschließlich die stabilen Codes `INVALID_REQUEST`, `UNSUPPORTED_CONTRACT_VERSION`,
+`CONFLICT` oder `INTERNAL`, eine bereinigte Meldung und `retryable`. Sie enthalten keine
+übermittelten Texte, absoluten Pfade oder internen Fehlerdetails.
 
 Der Vertrag ist lokal und erlaubt keinen Netzwerkzugriff. Eine neue inkompatible Form benötigt eine
 neue `contractVersion`; stilles Umdeuten bestehender Felder ist untersagt, selbst wenn Merkur

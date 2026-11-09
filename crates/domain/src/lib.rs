@@ -8,6 +8,9 @@ use uuid::Uuid;
 /// Aktuelle Version des lokalen Projektschemas.
 pub const CURRENT_SCHEMA_VERSION: SchemaVersion = SchemaVersion(1);
 
+/// Aktuelle Version des gespeicherten Tiptap-Dokumentvertrags.
+pub const EDITOR_DOCUMENT_VERSION: u16 = 1;
+
 /// Aktuelle Version des Command-Vertrags zwischen UI und Rust.
 pub const COMMAND_CONTRACT_VERSION: u16 = 1;
 
@@ -27,6 +30,12 @@ impl ProjectId {
     #[must_use]
     pub const fn as_uuid(self) -> Uuid {
         self.0
+    }
+
+    /// Liest eine kanonische UUID als Projektkennung.
+    #[must_use]
+    pub fn parse(value: &str) -> Option<Self> {
+        Uuid::parse_str(value).ok().map(Self)
     }
 }
 
@@ -52,6 +61,24 @@ impl EntityId {
     #[must_use]
     pub fn new() -> Self {
         Self(Uuid::new_v4())
+    }
+
+    /// Liefert die zugrunde liegende UUID.
+    #[must_use]
+    pub const fn as_uuid(self) -> Uuid {
+        self.0
+    }
+
+    /// Liest eine kanonische UUID als Entitätskennung.
+    #[must_use]
+    pub fn parse(value: &str) -> Option<Self> {
+        Uuid::parse_str(value).ok().map(Self)
+    }
+}
+
+impl fmt::Display for EntityId {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(formatter)
     }
 }
 
@@ -108,6 +135,16 @@ pub struct DocumentNode {
     pub revision: u64,
 }
 
+/// Versionierter, in SQLite gespeicherter Tiptap-Dokumentinhalt.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EditorDocument {
+    /// Version des Editor-Datenvertrags.
+    pub version: u16,
+    /// Tiptap-/ProseMirror-JSON mit einem Wurzelknoten vom Typ `doc`.
+    pub document: serde_json::Value,
+}
+
 /// Versionierte Anfragehülle für Tauri-Commands.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -152,6 +189,8 @@ pub enum CommandErrorCode {
     InvalidRequest,
     /// Angefragte Vertragsversion wird nicht unterstützt.
     UnsupportedContractVersion,
+    /// Optimistischer Schreibstand ist nicht mehr aktuell.
+    Conflict,
     /// Unerwarteter interner Fehler ohne offengelegte Details.
     Internal,
 }
@@ -193,6 +232,30 @@ impl CommandError {
             request_id,
             code: CommandErrorCode::InvalidRequest,
             message,
+            retryable: false,
+        }
+    }
+
+    /// Meldet einen optimistischen Revisionskonflikt.
+    #[must_use]
+    pub const fn conflict(request_id: Uuid) -> Self {
+        Self {
+            contract_version: COMMAND_CONTRACT_VERSION,
+            request_id,
+            code: CommandErrorCode::Conflict,
+            message: "Das Dokument wurde zwischenzeitlich verändert.",
+            retryable: false,
+        }
+    }
+
+    /// Meldet einen bereinigten internen Fehler.
+    #[must_use]
+    pub const fn internal(request_id: Uuid) -> Self {
+        Self {
+            contract_version: COMMAND_CONTRACT_VERSION,
+            request_id,
+            code: CommandErrorCode::Internal,
+            message: "Die lokale Anwendung konnte die Anfrage nicht verarbeiten.",
             retryable: false,
         }
     }

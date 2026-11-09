@@ -15,12 +15,15 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 kraqel-domain = { path = "../../../crates/domain" }
+kraqel-storage = { path = "../../../crates/storage" }
 serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 tauri = { version = "2", features = [] }
 uuid = { version = "1", features = ["serde"] }
 
 [dev-dependencies]
 serde_json = "1"
+tempfile = "3"
 
 [lints]
 workspace = true
