@@ -652,6 +652,95 @@ button.scene-button.active {
   padding: 1.5rem;
 }
 
+.continuity-panel {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.panel-heading,
+.finding-heading,
+.source-list {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.panel-heading {
+  justify-content: space-between;
+}
+
+.panel-heading p {
+  max-width: 52rem;
+  line-height: 1.6;
+}
+
+.finding-list {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+
+.finding-card {
+  border: 1px solid var(--border);
+  border-left: 5px solid #537b78;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background: var(--surface);
+}
+
+.finding-card.severity-warning {
+  border-left-color: #a56a1f;
+}
+
+.finding-card.severity-conflict {
+  border-left-color: #a3362a;
+}
+
+.finding-card h3 {
+  margin-bottom: 0.25rem;
+}
+
+.finding-heading,
+.source-list {
+  flex-wrap: wrap;
+}
+
+.finding-severity,
+.source-label {
+  border-radius: 999px;
+  padding: 0.3rem 0.55rem;
+  background: #edf2ec;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.suggestion-review {
+  display: grid;
+  gap: 0.5rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+.suggestion-review h4,
+.suggestion-review p {
+  margin: 0;
+}
+
+.suggestion-review pre span {
+  display: block;
+}
+
+.diff-added {
+  color: #225c34;
+  background: #e9f6ed;
+}
+
+.diff-removed {
+  color: #842f27;
+  background: #f8e9e7;
+}
+
 .ai-panel > p {
   max-width: 58rem;
   line-height: 1.6;
@@ -1049,6 +1138,7 @@ button.scene-button.active {
   }
 
   .workspace-header,
+  .panel-heading,
   .editor-title-row,
   .story-bible-header,
   .workspace-actions,

@@ -3,11 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   COMMAND_CONTRACT_VERSION,
   KraqelCommandError,
+  analyzeContinuity,
   commitProjectSnapshot,
   createStoryEntity,
   reorderPlotCards,
   getApplicationStatus,
   saveDocument,
+  reviewTextSuggestion,
   streamTextDraft,
   validateProjectName,
 } from "./commands";
@@ -126,6 +128,43 @@ describe("typed Tauri commands", () => {
     expect(error).toMatchObject({ code: "CONFLICT", retryable: false });
     expect(String(error)).toContain("zwischenzeitlich");
     expect(String(error)).not.toContain("private");
+  });
+
+  it("requests a local continuity analysis through the versioned boundary", async () => {
+    const projectId = requestId as ProjectId;
+    mockedInvoke.mockResolvedValue({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: [],
+    });
+
+    await expect(analyzeContinuity(projectId)).resolves.toEqual([]);
+    expect(mockedInvoke).toHaveBeenCalledWith("analyze_continuity", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: { projectId },
+      },
+    });
+  });
+
+  it("binds a suggestion review to the scene revision", async () => {
+    const projectId = requestId as ProjectId;
+    const documentId = "018f47ea-9b2d-7cc1-98e8-b5f4f6b741a3" as EntityId;
+    mockedInvoke.mockResolvedValue({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: { documentId, revision: 4, changed: true, lines: [] },
+    });
+
+    await reviewTextSuggestion(projectId, documentId, 4, "Vorschlag");
+    expect(mockedInvoke).toHaveBeenCalledWith("review_text_suggestion", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: { projectId, documentId, expectedRevision: 4, proposedText: "Vorschlag" },
+      },
+    });
   });
 
   it("sends structured Story Bible properties without inventing an entity id", async () => {

@@ -2096,12 +2096,17 @@ version = "0.1.0"
 [[package]]
 name = "kraqel-continuity"
 version = "0.1.0"
+dependencies = [
+ "kraqel-domain",
+ "serde",
+]
 
 [[package]]
 name = "kraqel-desktop"
 version = "0.1.0"
 dependencies = [
  "kraqel-ai-service",
+ "kraqel-continuity",
  "kraqel-domain",
  "kraqel-export",
  "kraqel-git-service",
@@ -2153,6 +2158,7 @@ dependencies = [
 name = "kraqel-storage"
 version = "0.1.0"
 dependencies = [
+ "kraqel-continuity",
  "kraqel-domain",
  "rusqlite",
  "serde_json",

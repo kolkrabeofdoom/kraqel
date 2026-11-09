@@ -121,6 +121,35 @@ export interface ExportResult {
   readonly byteCount: number;
 }
 
+export type FindingSeverity = "information" | "warning" | "conflict";
+export type SourceKind = "document" | "entity" | "plotCard" | "timelineEvent";
+
+export interface SourceAnchor {
+  readonly kind: SourceKind;
+  readonly id: EntityId;
+  readonly label: string;
+  readonly documentId: EntityId | null;
+  readonly start: number | null;
+  readonly end: number | null;
+}
+
+export interface ContinuityFinding {
+  readonly ruleId: string;
+  readonly severity: FindingSeverity;
+  readonly title: string;
+  readonly explanation: string;
+  readonly sources: readonly SourceAnchor[];
+}
+
+export type DiffLineKind = "context" | "removed" | "added";
+
+export interface SuggestionReview {
+  readonly documentId: EntityId;
+  readonly revision: number;
+  readonly changed: boolean;
+  readonly lines: readonly { readonly kind: DiffLineKind; readonly text: string }[];
+}
+
 export interface CreateDocumentInput {
   readonly projectId: ProjectId;
   readonly parentId: EntityId | null;
@@ -215,6 +244,36 @@ export async function exportManuscript(
       { readonly projectId: ProjectId; readonly format: ExportFormat },
       ExportResult
     >("export_manuscript", { projectId, format })
+  ).data;
+}
+
+export async function analyzeContinuity(
+  projectId: ProjectId,
+): Promise<readonly ContinuityFinding[]> {
+  return (
+    await callCommand<{ readonly projectId: ProjectId }, readonly ContinuityFinding[]>(
+      "analyze_continuity",
+      { projectId },
+    )
+  ).data;
+}
+
+export async function reviewTextSuggestion(
+  projectId: ProjectId,
+  documentId: EntityId,
+  expectedRevision: number,
+  proposedText: string,
+): Promise<SuggestionReview> {
+  return (
+    await callCommand<
+      {
+        readonly projectId: ProjectId;
+        readonly documentId: EntityId;
+        readonly expectedRevision: number;
+        readonly proposedText: string;
+      },
+      SuggestionReview
+    >("review_text_suggestion", { projectId, documentId, expectedRevision, proposedText })
   ).data;
 }
 

@@ -24,6 +24,7 @@ import { Timelines } from "./Timelines";
 import { VersionControl } from "./VersionControl";
 import { Exports } from "./Exports";
 import { TextAssistant } from "./TextAssistant";
+import { Continuity } from "./Continuity";
 
 interface EditorWorkspaceProps {
   readonly initialWorkspace: Workspace;
@@ -39,7 +40,14 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<
-    "manuscript" | "storyBible" | "plotBoard" | "timelines" | "versions" | "exports" | "textAi"
+    | "manuscript"
+    | "storyBible"
+    | "plotBoard"
+    | "timelines"
+    | "continuity"
+    | "versions"
+    | "exports"
+    | "textAi"
   >("manuscript");
   const tree = useMemo(() => buildDocumentTree(workspace.documents), [workspace.documents]);
 
@@ -106,6 +114,14 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
         </div>
         <div className="workspace-actions">
           <nav aria-label="Projektbereiche" className="workspace-tabs">
+            <button
+              type="button"
+              className={view === "continuity" ? "active" : "secondary"}
+              aria-current={view === "continuity" ? "page" : undefined}
+              onClick={() => setView("continuity")}
+            >
+              Kontinuität
+            </button>
             <button
               type="button"
               className={view === "manuscript" ? "active" : "secondary"}
@@ -229,6 +245,14 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
           projectId={workspace.project.id}
           documents={workspace.documents}
           activeDocumentId={activeId}
+          onSelectDocument={(id) => {
+            setActiveId(id);
+            setView("manuscript");
+          }}
+        />
+      ) : view === "continuity" ? (
+        <Continuity
+          projectId={workspace.project.id}
           onSelectDocument={(id) => {
             setActiveId(id);
             setView("manuscript");

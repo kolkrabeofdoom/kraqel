@@ -23,7 +23,8 @@
    - [x] Providerunabhängige Textgrenze und lokales Ollama-Streaming mit Kontextfreigabe
    - [x] Cloud-Textprovider und Betriebssystem-Schlüsselspeicher (Protokolltests; Live-Abnahme
          offen)
-   - [ ] Kontinuitätsprüfung, Prompt-Entwürfe und Bildverträge
+   - [x] Deterministische Kontinuitätsprüfung mit Quellenankern und Nur-Lese-Diff
+   - [ ] Optionale KI-Kontinuitätshinweise, Prompt-Entwürfe und Bildverträge
 5. Reproduzierbarer Windows-Release mit Dokumentation und Abnahme
 
 ## M6 - Version 0.2

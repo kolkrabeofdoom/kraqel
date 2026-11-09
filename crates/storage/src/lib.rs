@@ -5,6 +5,7 @@ use std::{error::Error, fmt, path::Path, time::Duration};
 use kraqel_domain::SchemaVersion;
 use rusqlite::{Connection, Transaction, TransactionBehavior};
 
+pub mod continuity_repository;
 pub mod document_repository;
 pub mod project_manager;
 pub mod story_bible_repository;

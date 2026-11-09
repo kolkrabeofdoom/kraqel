@@ -26,6 +26,8 @@
   deaktiviert, Antworten und Anfragen besitzen Größenlimits
 - Kontextfreigaben binden Dokument-ID und Revision; Änderungen zwischen Vorschau und Lauf führen zum
   Konflikt statt zur Übertragung eines anderen Textstands
+- Vorschlags-Diffs laden die Szene erneut, verlangen dieselbe Revision und besitzen keinen
+  Schreibpfad; regelbasierte Kontinuitätsprüfungen bleiben vollständig lokal
 - Betriebssystem-Schlüsselspeicher statt Konfigurationsdateien
 - feste offizielle HTTPS-Endpunkte für Cloudprovider; keine Redirects, Umgebungsproxies oder frei
   konfigurierbaren Produktionsziele

@@ -15,6 +15,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 kraqel-ai-service = { path = "../../../crates/ai-service" }
+kraqel-continuity = { path = "../../../crates/continuity" }
 kraqel-domain = { path = "../../../crates/domain" }
 kraqel-export = { path = "../../../crates/export" }
 kraqel-git-service = { path = "../../../crates/git-service" }
