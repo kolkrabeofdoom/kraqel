@@ -225,6 +225,8 @@ describe("typed Tauri commands", () => {
         model: "rabe:7b",
         instruction: "Weiterschreiben",
         contextApproved: true,
+        providerId: "ollama",
+        releaseId: "018f47ea-9b2d-7cc1-98e8-b5f4f6b741a4",
       },
       (event) => events.push(event),
     );
@@ -241,6 +243,8 @@ describe("typed Tauri commands", () => {
           model: "rabe:7b",
           instruction: "Weiterschreiben",
           contextApproved: true,
+          providerId: "ollama",
+          releaseId: "018f47ea-9b2d-7cc1-98e8-b5f4f6b741a4",
         },
       },
       onEvent: expect.any(Object),

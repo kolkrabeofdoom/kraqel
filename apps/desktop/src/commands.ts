@@ -1,5 +1,11 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
-import type { AiContextPreview, TextProviderStatus, TextStreamEvent } from "@kraqel/ai-contracts";
+import type {
+  AiContextPreview,
+  CloudProviderStatus,
+  TextModel,
+  TextProviderStatus,
+  TextStreamEvent,
+} from "@kraqel/ai-contracts";
 import {
   CURRENT_SCHEMA_VERSION,
   parseUuid,
@@ -220,12 +226,51 @@ export async function listOllamaModels(): Promise<TextProviderStatus> {
 export async function previewAiContext(
   projectId: ProjectId,
   documentId: EntityId,
+  providerId: string,
+  model: string,
+  instruction: string,
 ): Promise<AiContextPreview> {
   return (
     await callCommand<
-      { readonly projectId: ProjectId; readonly documentId: EntityId },
+      {
+        readonly projectId: ProjectId;
+        readonly documentId: EntityId;
+        readonly providerId: string;
+        readonly model: string;
+        readonly instruction: string;
+      },
       AiContextPreview
-    >("preview_ai_context", { projectId, documentId })
+    >("preview_ai_context", { projectId, documentId, providerId, model, instruction })
+  ).data;
+}
+
+export async function listCloudProviderStatuses(): Promise<readonly CloudProviderStatus[]> {
+  return (
+    await callCommand<Record<string, never>, readonly CloudProviderStatus[]>(
+      "list_cloud_provider_statuses",
+      {},
+    )
+  ).data;
+}
+
+export async function saveCloudCredential(providerId: string, apiKey: string): Promise<void> {
+  await callCommand<{ readonly providerId: string; readonly apiKey: string }, null>(
+    "save_cloud_credential",
+    { providerId, apiKey },
+  );
+}
+
+export async function deleteCloudCredential(providerId: string): Promise<void> {
+  await callCommand<{ readonly providerId: string }, null>("delete_cloud_credential", {
+    providerId,
+  });
+}
+
+export async function listCloudModels(providerId: string): Promise<readonly TextModel[]> {
+  return (
+    await callCommand<{ readonly providerId: string }, readonly TextModel[]>("list_cloud_models", {
+      providerId,
+    })
   ).data;
 }
 
@@ -236,6 +281,8 @@ export interface StreamTextDraftInput {
   readonly model: string;
   readonly instruction: string;
   readonly contextApproved: boolean;
+  readonly providerId: string;
+  readonly releaseId: string;
 }
 
 export async function streamTextDraft(

@@ -53,36 +53,40 @@ Aktuell im Repository und verifiziert:
   statt verworfen.
 - **Lokale Text-KI:** providerunabhängige Rust-Grenze, ausschließlich lokaler Ollama-Adapter,
   Modellabfrage und gestreamte, verwerfbare Entwürfe nach expliziter Kontextfreigabe.
+- **Cloud-Text-KI:** OpenAI-, Anthropic-, Gemini- und Mistral-Protokolle, native
+  Betriebssystem-Schlüsselspeicherung sowie einmalige, revisions- und requestgebundene Freigaben;
+  echte Anbieterläufe sind mangels Testschlüsseln noch nicht abgenommen.
 - **Qualität:** Prettier, ESLint, TypeScript-Checks, Vitest, Rust-Tests, rustfmt und Clippy mit
   Warnungen als Fehler; GitHub Actions unter Windows und Linux.
 
 Im Pflichtenheft vorgesehen, aber noch **nicht implementiert oder installiert**: Tailwind, React
-Flow, dnd-kit, Playwright, Cloud-Provider-Anbindungen und Bildgenerierung. Ollama wird unterstützt,
-aber nicht mit KRAQEL ausgeliefert. Eine bloße Typdefinition oder ein leeres Crate ist keine fertige
-Funktion - auch wenn es sehr selbstbewusst kompiliert.
+Flow, dnd-kit, Playwright, Kontinuitätsprüfung und Bildgenerierung. Ollama und Cloudprovider werden
+unterstützt, aber weder lokale Modelle noch Cloudzugänge mit KRAQEL ausgeliefert. Eine bloße
+Typdefinition oder ein leeres Crate ist keine fertige Funktion - auch wenn es sehr selbstbewusst
+kompiliert.
 
 ## Verzeichnisstruktur und Verantwortlichkeiten
 
-| Pfad                         | Verantwortung                                                | Aktueller Reifegrad          |
-| ---------------------------- | ------------------------------------------------------------ | ---------------------------- |
-| `apps/desktop/`              | React-Oberfläche, Editor und typisierte IPC-Clientfunktionen | Schreiben und M2-Werkzeuge   |
-| `apps/desktop/src-tauri/`    | Command-Handler, Tauri-Konfiguration und Berechtigungen      | Projekt-, Dokument-, M2-IPC  |
-| `packages/domain/`           | TypeScript-Domänentypen, UUID-/Schema-Validierung            | Dokument- und Story-Modell   |
-| `packages/editor/`           | Editorvertrag, Baum, Autosave und Tiptap-Hilfsfunktionen     | M1-Grundfunktionen getestet  |
-| `packages/ui/`               | Geteilte zugängliche UI-Komponenten                          | Nur Platzhalterkonstante     |
-| `packages/ai-contracts/`     | Provider-, Capability-, Stream- und Freigabeverträge         | Textverträge für Ollama      |
-| `packages/visual-contracts/` | Medien- und visuelle Profilverträge                          | Grundtypen, keine Persistenz |
-| `crates/domain/`             | Rust-Domäne und versionierte Command-Verträge                | Dokument- und Story-Modell   |
-| `crates/storage/`            | SQLite, Projektlebenszyklus und fachliche Repositories       | Dokumente und M2-Persistenz  |
-| `crates/git-service/`        | Deterministische Snapshots und Git-Operationen               | Lokaler M3-Mindestumfang     |
-| `crates/export/`             | Validierung, Zwischenformat und atomarer Manuskriptexport    | M3-Textformate getestet      |
-| `crates/ai-service/`         | Textprovider-Grenze, Loopback-Schutz und Ollama-Streaming    | Lokaler KQ-010-Mindestumfang |
-| `crates/continuity/`         | Regelbasierte Kontinuitätsprüfung                            | Nur Schweregrad-Enum         |
-| `crates/asset-service/`      | Sicherer Asset-Import, Hashes, Pfade, Thumbnails             | Relative Pfadprüfung         |
-| `docs/architecture/`         | Architekturübersicht, ADRs und Threat Model                  | Verbindliche Entscheidungen  |
-| `docs/specifications/`       | Technisches Pflichtenheft und Abnahmekriterien               | Fachliche Quelle             |
-| `docs/data-format/`          | Offenes Export- und Command-Format                           | Lokale Verträge dokumentiert |
-| `examples/`                  | Künstliche Testprojekte und freie Beispielmedien             | Noch leer                    |
+| Pfad                         | Verantwortung                                                | Aktueller Reifegrad           |
+| ---------------------------- | ------------------------------------------------------------ | ----------------------------- |
+| `apps/desktop/`              | React-Oberfläche, Editor und typisierte IPC-Clientfunktionen | Schreiben und M2-Werkzeuge    |
+| `apps/desktop/src-tauri/`    | Command-Handler, Tauri-Konfiguration und Berechtigungen      | Projekt-, Dokument-, M2-IPC   |
+| `packages/domain/`           | TypeScript-Domänentypen, UUID-/Schema-Validierung            | Dokument- und Story-Modell    |
+| `packages/editor/`           | Editorvertrag, Baum, Autosave und Tiptap-Hilfsfunktionen     | M1-Grundfunktionen getestet   |
+| `packages/ui/`               | Geteilte zugängliche UI-Komponenten                          | Nur Platzhalterkonstante      |
+| `packages/ai-contracts/`     | Provider-, Capability-, Stream- und Freigabeverträge         | Lokale und Cloud-Textverträge |
+| `packages/visual-contracts/` | Medien- und visuelle Profilverträge                          | Grundtypen, keine Persistenz  |
+| `crates/domain/`             | Rust-Domäne und versionierte Command-Verträge                | Dokument- und Story-Modell    |
+| `crates/storage/`            | SQLite, Projektlebenszyklus und fachliche Repositories       | Dokumente und M2-Persistenz   |
+| `crates/git-service/`        | Deterministische Snapshots und Git-Operationen               | Lokaler M3-Mindestumfang      |
+| `crates/export/`             | Validierung, Zwischenformat und atomarer Manuskriptexport    | M3-Textformate getestet       |
+| `crates/ai-service/`         | Textprovider, Schlüsselspeicher und sichere Streaminggrenzen | KQ-010/011-Protokollumfang    |
+| `crates/continuity/`         | Regelbasierte Kontinuitätsprüfung                            | Nur Schweregrad-Enum          |
+| `crates/asset-service/`      | Sicherer Asset-Import, Hashes, Pfade, Thumbnails             | Relative Pfadprüfung          |
+| `docs/architecture/`         | Architekturübersicht, ADRs und Threat Model                  | Verbindliche Entscheidungen   |
+| `docs/specifications/`       | Technisches Pflichtenheft und Abnahmekriterien               | Fachliche Quelle              |
+| `docs/data-format/`          | Offenes Export- und Command-Format                           | Lokale Verträge dokumentiert  |
+| `examples/`                  | Künstliche Testprojekte und freie Beispielmedien             | Noch leer                     |
 
 ## Verbindliche Entwicklungsregeln
 
@@ -113,7 +117,8 @@ Funktion - auch wenn es sehr selbstbewusst kompiliert.
 
 ## Build-, Test- und Prüfkommandos
 
-Voraussetzungen: Node.js 22+, pnpm 11+, Rust 1.85+ und die Tauri-Systemabhängigkeiten.
+Voraussetzungen: Node.js 22+, pnpm 11+, Rust 1.85+, die Tauri-Systemabhängigkeiten sowie unter Linux
+die Entwicklungsdateien für D-Bus/Secret Service.
 
 ```powershell
 pnpm install --frozen-lockfile  # reproduzierbare Installation

@@ -2,7 +2,7 @@
 
 Stand: 9. November 2026
 
-Code-Referenz: KQ-010 (`feat/kq-010-ollama-streaming`, Arbeitsstand)
+Code-Referenz: KQ-011 (`feat/kq-011-cloud-providers`, Arbeitsstand)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -12,15 +12,15 @@ als vollständige Fachfunktion.
 
 ## Status nach Pflichtenheft-Stufen
 
-| Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                                                                                                      |
-| ------------ | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                 |
-| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Teilweise umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, szenengebundenes Undo/Redo, Wortzählung, Fokusmodus, revisionsgeprüftes Autosave und SQLite-Backup vorhanden. Umbenennen, Umordnen, Löschen und E2E-Abnahme fehlen. |
-| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks vorhanden. Browser-/Screenreader-Abnahme fehlt.                                   |
-| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** deterministische Projektsnapshots, lokales Git sowie Manuskriptexport als Markdown, HTML, DOCX und PDF vorhanden. Import, schreibende Snapshot-Wiederherstellung, Medien und visuelle Profile fehlen.           |
-| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Teilweise umgesetzt:** lokaler Ollama-Adapter mit Modellwahl, Streaming, revisionsgebundener Kontextfreigabe und verwerfbarem Entwurf vorhanden. Cloudprovider, Kontinuität, Prompt-Builder und Bildabläufe fehlen.                    |
-| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                                                                            |
-| **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                   |
+| Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                                                                                                              |
+| ------------ | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                         |
+| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Teilweise umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, szenengebundenes Undo/Redo, Wortzählung, Fokusmodus, revisionsgeprüftes Autosave und SQLite-Backup vorhanden. Umbenennen, Umordnen, Löschen und E2E-Abnahme fehlen.         |
+| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks vorhanden. Browser-/Screenreader-Abnahme fehlt.                                           |
+| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** deterministische Projektsnapshots, lokales Git sowie Manuskriptexport als Markdown, HTML, DOCX und PDF vorhanden. Import, schreibende Snapshot-Wiederherstellung, Medien und visuelle Profile fehlen.                   |
+| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Teilweise umgesetzt:** Ollama sowie Protokolladapter für OpenAI, Claude, Gemini und Mistral mit Modellwahl, Streaming, Schlüsselspeicher und Einmalfreigabe vorhanden. Echte Cloudabnahme, Kontinuität, Prompt-Builder und Bildabläufe fehlen. |
+| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                                                                                    |
+| **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                           |
 
 Die funktionalen Anforderungen F01 bis F09 sind damit noch nicht abgenommen. Vorhandene Verträge und
 Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
@@ -166,6 +166,25 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   die manuelle Browser-/Screenreader-Abnahme sind daher noch nicht nachgewiesen. Cloudprovider und
   Schlüsselspeicher gehören ausdrücklich nicht zu KQ-010.
 
+### Cloud-Textprovider und Schlüsselschutz (KQ-011)
+
+- Rust-Adapter für OpenAI Responses, Anthropic Messages, Google Gemini und Mistral Chat Completions
+  bilden deren Modelllisten und gestreamte Textdeltas auf denselben providerunabhängigen Vertrag ab.
+- Produktionsendpunkte sind feste offizielle HTTPS-Adressen. Redirects, Umgebungsproxies und frei
+  konfigurierbare Produktionsziele sind deaktiviert; lokale HTTP-Endpunkte existieren nur in Tests.
+- API-Schlüssel werden je Provider im nativen Betriebssystem-Schlüsselspeicher abgelegt. Die UI kann
+  Werte setzen oder löschen und nur deren Vorhandensein prüfen; gespeicherte Werte werden niemals
+  zurückgegeben oder in Projektdateien geschrieben.
+- Jede Vorschau zeigt Provider, Modell, Arbeitsauftrag, Szenentext und übertragene Metadaten. Ein
+  kurzlebiger Einmalbeleg bindet diese Angaben an Dokumentrevision und Projekt und wird vor dem
+  Request verbraucht. Änderungen oder Wiederverwendung werden in Rust abgelehnt.
+- Modelllisten werden nur nach ausdrücklicher Bedienhandlung abgerufen. Streams bleiben
+  größenbegrenzt, erhalten eine Herkunftsangabe und verändern den kanonischen Text nicht.
+- Protokolltests prüfen alle vier Antwortformate, Modelllisten und die Sperre ohne Freigabe mit
+  lokalen Testservern. Mangels realer API-Schlüssel wurden keine kostenpflichtigen oder echten
+  Cloudrequests ausgeführt; Anbieterkompatibilität und Betriebssystemdialoge benötigen manuelle
+  Abnahme.
+
 ### Begrenzte Hilfsfunktionen und Verträge
 
 - `asset-service`: relative Pfade werden akzeptiert, absolute Pfade und Elterntraversal abgelehnt.
@@ -199,18 +218,18 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 ### Unmittelbar: M4 fortsetzen
 
-1. **KQ-011 - Cloud-Textprovider, Schlüsselschutz und Freigabevorschau**
-   - OpenAI, Claude, Gemini und Mistral hinter derselben Providergrenze bewerten und anbinden
-   - Zugangsdaten ausschließlich im Betriebssystem-Schlüsselspeicher halten
-   - Cloudläufe nur nach klarer Vorschau und expliziter, laufbezogener Freigabe erlauben
+1. **KQ-012 - Kontinuitätsregeln, Quellenanker und KI-Diff-Review**
+   - deterministische Regeln mit konkreten Fundstellen und Schweregraden implementieren
+   - optionale KI-Hinweise strikt von regelbasierten Befunden unterscheiden
+   - Änderungsvorschläge nur als prüfbaren Diff, niemals automatisch, anbieten
 
 ### Danach gemäß Pflichtenheft
 
-- KQ-011 bis KQ-016: Cloud-Textprovider, Kontinuität, Medienbibliothek, visuelle Profile,
-  Prompt-Builder und Bild-Capability-Verträge.
+- KQ-012 bis KQ-016: Kontinuität, Medienbibliothek, visuelle Profile, Prompt-Builder und
+  Bild-Capability-Verträge.
 - KQ-017 und KQ-018 gehören zu Version 0.2 und sind kein Ziel für 0.1.
 
-Für KQ-011 bis KQ-018 sind noch nicht alle GitHub-Issues angelegt; die Aufgaben stehen im
+Für KQ-012 bis KQ-018 sind noch nicht alle GitHub-Issues angelegt; die Aufgaben stehen im
 Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkretisiert werden.
 
 ## Bekannte Fehler und Lücken
@@ -238,8 +257,9 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 - **Ollama nur gegen Testserver geprüft:** Kein Ollama-Dienst und kein lokales Modell waren in der
   Entwicklungsumgebung verfügbar. Abbruch, Laufpersistenz und eine manuelle Übernahme des Entwurfs
   in den Editor sind noch nicht implementiert.
-- **Keine Cloudprovider:** OpenAI, Claude, Gemini und Mistral sowie sicherer Schlüsselspeicher sind
-  geplant, aber nicht implementiert. Ohne laufendes lokales Ollama bleibt die Text-KI inaktiv.
+- **Cloudprovider nur gegen Testserver geprüft:** Die vier Protokolle und der Schlüsselspeicher sind
+  implementiert, aber ohne reale Schlüssel weder gegen Anbieterendpunkte noch hinsichtlich Kosten,
+  Kontodialogen und serverseitiger Aufbewahrung abgenommen.
 - **Entitätssuche nicht indexiert:** Die Unicode-korrekte Suche filtert derzeit alle Einträge eines
   Projekts in Rust. Vor sehr großen Story-Bibeln sind Messung und gegebenenfalls eine echte
   FTS-Migration nötig.
@@ -275,6 +295,9 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 - **Lokales Ollama hinter einer revisionsgebundenen Freigabe:** React erhält keinen direkten
   Providerzugriff. Rust lädt den freigegebenen Szenenstand erneut, spricht ausschließlich Loopback
   an und streamt einen verwerfbaren Entwurf ohne automatische Speicherung (ADR 0009).
+- **Cloudprovider mit fester Ziel- und Einmalfreigabe:** Schlüssel liegen im nativen
+  Betriebssystemspeicher; feste HTTPS-Ziele und ein kurzlebiger, verbrauchbarer Freigabebeleg binden
+  Provider, Modell, Arbeitsauftrag und Dokumentrevision (ADR 0010).
 - **Privilegierte Operationen in Rust:** React kommuniziert ausschließlich über versionierte,
   typisierte Tauri-Commands mit Dateisystem, Storage, Git und späteren Providern.
 - **Verträge sind explizit versioniert:** Inkompatible Änderungen erfordern eine neue
@@ -305,21 +328,20 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 | Abhängigkeitssicherheit      | GitHub Dependency Review privat nicht verfügbar                                                             | Alternative Audits oder Advanced Security später bewerten  |
 | Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                    | Plattformmatrix je Release definieren                      |
 | Lokale Text-KI               | Protokoll gegen kontrollierten Loopback-Testserver geprüft; echter Ollama-/Modelllauf fehlt                 | Mit freiem Testmodell manuell prüfen und Abbruch entwerfen |
-| Cloudprovider                | Noch nicht implementiert; Datenschutz, Schlüssel und anbieterspezifische Fehler bleiben offen               | KQ-011 mit eigener Bedrohungs- und Datenschutzprüfung      |
+| Cloudprovider                | Vier Protokolle lokal getestet; echte API-, Kosten-, Aufbewahrungs- und Kontodialog-Abnahme fehlt           | Mit separaten Testkonten und Minimalbudget manuell prüfen  |
+| Schlüsselspeicher            | Native Backends eingebunden; reale Windows-/Linux-Dialoge nicht automatisiert getestet                      | Manuelle Plattformabnahme ohne produktive Schlüssel        |
 
 ## Nächste geplante Entwicklungsstufe
 
-**KQ-011: Cloud-Textprovider, Schlüsselschutz und explizite Kontextfreigabe.**
+**KQ-012: Kontinuitätsregeln, Quellenanker und KI-Diff-Review.**
 
 Empfohlener, überprüfbarer Scope:
 
-1. Pflichtenheft-Anforderungen für F05 und M4 gegen ADR 0009 und die vorhandene Providergrenze
-   abgleichen.
-2. GitHub-Issue mit Providerreihenfolge, Datenfluss, Schlüsselspeicher und Freigabegrenze anlegen.
-3. Zunächst einen Cloudprovider vertikal anbinden; anbieterspezifische SDKs und Fehler dürfen nicht
-   in UI oder Domänenmodell durchsickern.
-4. Mit Tests belegen, dass ohne Freigabe kein Request entsteht und Fehler keine Prompts,
-   Zugangsdaten oder lokalen Pfade offenlegen.
+1. F06 und KQ-012 gegen vorhandene Story-Bibel-, Dokument- und Timeline-Verträge abgleichen.
+2. Ein kleines, deterministisches Regelset mit stabilen Quellenankern und Schweregraden definieren.
+3. Befunde in Rust erzeugen, persistieren und in einer zugänglichen Reviewansicht darstellen.
+4. KI-Hinweise als optionalen, gekennzeichneten zweiten Kanal entwerfen; vorgeschlagene Änderungen
+   ausschließlich als explizit prüfbaren Diff behandeln.
 
 ## Einstieg für die nächste Codex-Session
 
@@ -328,9 +350,9 @@ cd D:\kraqel
 git status
 git branch --show-current
 git log -5 --oneline
-rg "KQ-011" docs ROADMAP.md
+rg "KQ-012" docs ROADMAP.md
 ```
 
-Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0009, `docs/architecture/threat-model.md`,
-`packages/ai-contracts/`, `crates/ai-service/` und die Zugänglichkeitstestpläne. Vor KQ-011 zuerst
-ein eigenes Issue anlegen und den Scope gegen F05 und M4 prüfen.
+Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0010, `docs/architecture/threat-model.md`,
+`crates/continuity/`, die Dokument-/Story-Bibel-Verträge und die Zugänglichkeitstestpläne. Vor
+KQ-012 zuerst ein eigenes Issue anlegen und den Scope gegen F06 und M4 prüfen.
