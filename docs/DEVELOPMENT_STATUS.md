@@ -2,7 +2,7 @@
 
 Stand: 10. November 2026
 
-Code-Referenz: KQ-015 (Issue #29, Arbeitsbranch)
+Code-Referenz: KQ-015 (PR #30)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
