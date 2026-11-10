@@ -403,7 +403,8 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
   Advanced Security bewusst übersprungen. Lockfiles und reguläre CI bleiben aktiv.
 - Die vollständige lokale KQ-021-Qualitätskette ist grün: 37 TypeScript-, 91 ausgeführte Rust- und
   zwei Playwright-E2E-Tests, Formatierung, ESLint, Clippy, Typprüfung sowie Desktop-Build. Ein
-  visueller Export-QA-Test bleibt planmäßig ignoriert; der CI-Nachweis folgt im PR.
+  visueller Export-QA-Test bleibt planmäßig ignoriert. PR #39 bestätigt die Matrix einschließlich
+  beider Chromium-E2E-Abläufe unter Windows und Linux.
 
 ## Wichtige Architekturentscheidungen
 
