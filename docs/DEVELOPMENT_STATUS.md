@@ -33,7 +33,7 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Tauri-2-/React-/TypeScript-Desktop-Shell mit statischer, responsiver Startoberfläche.
 - Minimale Tauri-Berechtigung `core:default`, definierte CSP und Windows-Fensterkonfiguration.
 - GitHub-Actions-CI unter `windows-latest` und `ubuntu-latest`.
-- Letzter geprüfter CI-Lauf für `main` bei `2ae33c6`: erfolgreich unter Windows und Linux.
+- KQ-015-Merge aus PR #30 und anschließender `main`-Lauf: erfolgreich unter Windows und Linux.
 - Qualitätskette: Prettier, rustfmt, ESLint, Clippy mit `-D warnings`, TypeScript, Vitest,
   Rust-Tests sowie Frontend- und Workspace-Builds.
 - GPL-3.0-or-later, Beitrags-, Verhaltens- und Sicherheitsdokumentation vorhanden.
@@ -363,9 +363,9 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
   FTS-Migration nötig.
 - **Dependency Review eingeschränkt:** Der GitHub-Job wird bei privaten Repositories ohne GitHub
   Advanced Security bewusst übersprungen. Lockfiles und reguläre CI bleiben aktiv.
-- Die vollständige lokale Qualitätskette des KQ-015-Arbeitsbranches ist grün: 33 TypeScript- und 82
-  ausgeführte Rust-Tests, Formatierung, ESLint, Clippy und Typprüfung sowie der Vite-Build. Ein
-  visueller Export-QA-Test bleibt planmäßig ignoriert; die Windows-/Linux-CI folgt vor dem Merge.
+- Die vollständige Qualitätskette für KQ-015 ist lokal sowie in der Windows-/Linux-CI grün: 33
+  TypeScript- und 82 ausgeführte Rust-Tests, Formatierung, ESLint, Clippy und Typprüfung sowie
+  Frontend- und Workspace-Build. Ein visueller Export-QA-Test bleibt planmäßig ignoriert.
 
 ## Wichtige Architekturentscheidungen
 
