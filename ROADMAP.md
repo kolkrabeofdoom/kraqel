@@ -30,6 +30,8 @@
    - [x] Provider- und modellspezifische Bild-Capability-Registry sowie Generation-Job-Verträge
    - [ ] Optionale KI-Kontinuitätshinweise
 5. Reproduzierbarer Windows-Release mit Dokumentation und Abnahme
+   - [x] Playwright-Browser-E2E für den M1-Kernablauf unter Windows und Linux
+   - [ ] Gebündelte Tauri-Anwendung, Screenreader und Releasepaket abnehmen
 
 ## M6 - Version 0.2
 

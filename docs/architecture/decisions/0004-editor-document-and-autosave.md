@@ -48,5 +48,8 @@ Projektwurzel ist eine spätere Produktentscheidung.
 - KQ-005 und KQ-019 unterstützen Erstellen, Öffnen, Schreiben, Umbenennen, tastaturbedienbares
   Umordnen und zweistufiges Löschen. Kapitelkaskaden entfernen Szenen und deren dokumentbezogene
   Links transaktional; eine automatische Wiederherstellung gelöschter Inhalte existiert nicht.
-- Tastatur- und Screenreader-Abnahme folgt dem dokumentierten manuellen Testplan; automatisierte
-  Browser-E2E-Tests sind noch nicht eingerichtet.
+- KQ-020 prüft Projektanlage, Schreiben, Autosave, Wiederöffnen, Umbenennen, Umordnen und Löschen
+  mit Playwright in Chromium. Ein ausschließlich im E2E-Devserver aktivierter persistenter
+  Browser-Adapter bildet dafür die versionierte Command-Hülle und die benötigte M1-Semantik ab.
+- Dieser Lauf ersetzt weder die Rust-/IPC-Vertragstests noch eine WebDriver-Abnahme der gebündelten
+  Tauri-Anwendung. Tastatur- und Screenreader-Abnahme folgt weiterhin dem manuellen Testplan.
