@@ -8,11 +8,11 @@ ihrem Unterbaum ergänzen. Vor jeder Änderung sind mindestens diese Datei und
 
 KRAQEL ist als quelloffenes, offlinefähiges Autorenstudio für Romane, Drehbücher und
 Rollenspielmodule geplant. Primärplattform ist Windows. Das Repository enthält das M0-Fundament,
-einen browserseitig E2E-geprüften M1-Schreibablauf, die M2-Strukturwerkzeuge, portable Snapshots und
-lokale Git-Versionierung, eine lokale Medienbibliothek und visuelle Profile aus M3 sowie
-Kontinuitäts- und Bildprompt-Abläufe aus M4, aber keine produktionsreife Anwendung. Verifizierte
-Implementierungen und geplante Funktionen sind strikt zu unterscheiden; der verbindliche Stand steht
-in `docs/DEVELOPMENT_STATUS.md`.
+einen browserseitig E2E-geprüften M1-Schreibablauf und M2-Kernabläufe, die M2-Strukturwerkzeuge,
+portable Snapshots und lokale Git-Versionierung, eine lokale Medienbibliothek und visuelle Profile
+aus M3 sowie Kontinuitäts- und Bildprompt-Abläufe aus M4, aber keine produktionsreife Anwendung.
+Verifizierte Implementierungen und geplante Funktionen sind strikt zu unterscheiden; der
+verbindliche Stand steht in `docs/DEVELOPMENT_STATUS.md`.
 
 Leitplanken:
 
@@ -71,8 +71,8 @@ Aktuell im Repository und verifiziert:
   versionierte Generation-Job-, Freigabe-, Herkunfts- und Fehlerverträge; nur lokaler Test-Mock,
   keine produktive Bildausführung.
 - **Qualität:** Prettier, ESLint, TypeScript-Checks, Vitest, Rust-Tests, rustfmt und Clippy mit
-  Warnungen als Fehler sowie Playwright-Browser-E2E für den M1-Kernablauf und die Story-Bibel;
-  GitHub Actions unter Windows und Linux.
+  Warnungen als Fehler sowie getrennte Playwright-Browser-E2E für M1, Story-Bibel, Plotboard und
+  Timelines; GitHub Actions unter Windows und Linux.
 
 Im Pflichtenheft vorgesehen, aber noch **nicht implementiert oder installiert**: Tailwind, React
 Flow, dnd-kit, KI-basierte Kontinuitätshinweise und produktive Bildgenerierung. Ollama und
@@ -158,8 +158,8 @@ pnpm --filter @kraqel/desktop exec playwright install chromium
 ```
 
 Der Playwright-Lauf verwendet ausschließlich im E2E-Devserver einen lokalen Command-Adapter. Er
-prüft React-Abläufe für Editor, Dokumentbaum und Story-Bibel, aber weder die gebündelte
-Tauri-Anwendung noch Rust, Betriebssystemdialoge oder Screenreader.
+prüft React-Abläufe für Editor, Dokumentbaum, Story-Bibel, Plotboard und Timelines, aber weder die
+gebündelte Tauri-Anwendung noch Rust, Betriebssystemdialoge oder Screenreader.
 
 Für kleine Änderungen zuerst gezielt prüfen, zum Beispiel:
 
