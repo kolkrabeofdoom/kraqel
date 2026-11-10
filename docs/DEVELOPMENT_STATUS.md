@@ -2,7 +2,7 @@
 
 Stand: 10. November 2026
 
-Code-Referenz: KQ-022 (Issue #40)
+Code-Referenz: KQ-022 (PR #41)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
