@@ -2,7 +2,7 @@
 
 Stand: 10. November 2026
 
-Code-Referenz: KQ-014 (PR #28)
+Code-Referenz: KQ-015 (Issue #29, Arbeitsbranch)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -12,15 +12,15 @@ als vollständige Fachfunktion.
 
 ## Status nach Pflichtenheft-Stufen
 
-| Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                                                                                                                                  |
-| ------------ | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                                             |
-| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Teilweise umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, szenengebundenes Undo/Redo, Wortzählung, Fokusmodus, revisionsgeprüftes Autosave und SQLite-Backup vorhanden. Umbenennen, Umordnen, Löschen und E2E-Abnahme fehlen.                             |
-| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks vorhanden. Browser-/Screenreader-Abnahme fehlt.                                                               |
-| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, lokale Medienbibliothek sowie visuelle Profile und Stilvorlagen mit Backup und Snapshot vorhanden. Textimport und schreibende Snapshot-Wiederherstellung fehlen.                            |
-| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Teilweise umgesetzt:** Ollama und vier Cloudprotokolle sowie deterministische Offline-Kontinuitätsregeln mit Quellenankern und revisionsgebundenem Nur-Lese-Diff vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise, Prompt-Builder und Bildabläufe fehlen. |
-| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                                                                                                        |
-| **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                               |
+| Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                                                                                                                                |
+| ------------ | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                                           |
+| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Teilweise umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, szenengebundenes Undo/Redo, Wortzählung, Fokusmodus, revisionsgeprüftes Autosave und SQLite-Backup vorhanden. Umbenennen, Umordnen, Löschen und E2E-Abnahme fehlen.                           |
+| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks vorhanden. Browser-/Screenreader-Abnahme fehlt.                                                             |
+| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, lokale Medienbibliothek sowie visuelle Profile und Stilvorlagen mit Backup und Snapshot vorhanden. Textimport und schreibende Snapshot-Wiederherstellung fehlen.                          |
+| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Teilweise umgesetzt:** Ollama und vier Cloudprotokolle, deterministische Offline-Kontinuitätsregeln sowie lokale editierbare Bildprompt-Entwürfe vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise, Bild-Capability-Registry und Bildgenerierung fehlen. |
+| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                                                                                                      |
+| **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                             |
 
 Die funktionalen Anforderungen F01 bis F09 sind damit noch nicht abgenommen. Vorhandene Verträge und
 Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
@@ -33,7 +33,7 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Tauri-2-/React-/TypeScript-Desktop-Shell mit statischer, responsiver Startoberfläche.
 - Minimale Tauri-Berechtigung `core:default`, definierte CSP und Windows-Fensterkonfiguration.
 - GitHub-Actions-CI unter `windows-latest` und `ubuntu-latest`.
-- Letzter geprüfter CI-Lauf für `main` bei `998acc2`: erfolgreich unter Windows und Linux.
+- Letzter geprüfter CI-Lauf für `main` bei `2ae33c6`: erfolgreich unter Windows und Linux.
 - Qualitätskette: Prettier, rustfmt, ESLint, Clippy mit `-D warnings`, TypeScript, Vitest,
   Rust-Tests sowie Frontend- und Workspace-Builds.
 - GPL-3.0-or-later, Beitrags-, Verhaltens- und Sicherheitsdokumentation vorhanden.
@@ -41,7 +41,7 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 ### Domäne und IPC-Grenze (KQ-002)
 
 - Kanonische UUID-Typen für Projekte und Entitäten in Rust und TypeScript.
-- Portable Projektformat-Version `1` in den Domänenmodulen; interner SQLite-Migrationsstand `4`.
+- Portable Projektformat-Version `1` in den Domänenmodulen; interner SQLite-Migrationsstand `5`.
 - Versionierter lokaler Command-Vertrag v1 mit `contractVersion`, `requestId` und Nutzlast.
 - Stabile Fehlercodes `INVALID_REQUEST`, `UNSUPPORTED_CONTRACT_VERSION` und `INTERNAL`.
 - UI ersetzt fremde IPC-Fehlermeldungen durch bereinigte Texte; Eingaben und Pfade werden nicht
@@ -246,8 +246,26 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   sie in `visual-profiles.json` und prüfen Struktur sowie Entitäts- und Assetreferenzen.
 - Repository-, Migrations-, Backup-, Snapshot-, IPC- und TypeScript-Vertragstests decken den
   vertikalen Ablauf ab. Browser-/Screenreader-Abnahme bleibt manuell offen.
-- Es existiert kein Netzwerkpfad für Profile oder Stilvorlagen. Prompt-Zusammenstellung und
-  Bildprovider sind ausdrücklich nicht Bestandteil dieses Inkrements.
+- Es existiert kein Netzwerkpfad für Profile oder Stilvorlagen. Bildprovider sind ausdrücklich nicht
+  Bestandteil dieses Inkrements.
+
+### Lokaler, editierbarer Bildprompt-Builder (KQ-015)
+
+- Die Ansicht **Bildprompts** verlangt die explizite Auswahl einer Szene, mindestens eines visuellen
+  Profils und optional einer für alle gewählten Entitätsarten passenden Stilvorlage.
+- Rust lädt Szenentext, Story-Bibel-Eigenschaften, Kernmerkmale, Ausschlüsse, kanonische Asset-UUIDs
+  und Stilregeln erneut und setzt sie deterministisch zu einem editierbaren Text zusammen.
+  Szenentext ist als unvertrauenswürdiger Inhalt gekennzeichnet.
+- SQLite-Migration 4→5 speichert Name, bearbeiteten Prompttext, Szenen-UUID und Quellrevision,
+  Profil-UUIDs sowie die optionale Stilvorlage. Die erste Speicherung lehnt eine zwischenzeitlich
+  geänderte Szene als Konflikt ab; spätere Textbearbeitung ändert Quellen nicht still.
+- Erstellen, Listen, Bearbeiten, zweistufiges Löschen sowie UTF-8/LF-Export unter
+  `exports/prompts/bildprompt-<uuid>.txt` sind lokal implementiert. Es gibt keinen Provider-,
+  Netzwerk- oder automatischen Übernahmepfad.
+- Backup/Recovery erhält Entwürfe. Snapshot v3 exportiert `prompt-drafts.json`, prüft Dokument-,
+  Profil- und Stilreferenzen und liest weiterhin v1 und v2.
+- Repository-, Migration-, Backup-, Snapshot-, Export-, Rust-IPC- und TypeScript-Commandtests sind
+  grün. Browser- und Screenreader-Abnahme der neuen Ansicht bleibt manuell offen.
 
 ### Begrenzte Hilfsfunktionen und Verträge
 
@@ -256,14 +274,15 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - `editor`: versionierter, generischer Snapshot-Vertrag.
 - `ai-contracts`: Capability-, Provider-, Streaming- und explizite Kontextfreigabetypen; aktiv für
   den lokalen Ollama-Ablauf genutzt.
-- `visual-contracts`: Medien-, Profil- und Stilvorlagenverträge; keine Prompt- oder Providerlogik.
+- `visual-contracts`: Medien-, Profil-, Stilvorlagen- und Promptverträge; keine Providerlogik.
 - `continuity`: ausführbare Offline-Regeln und Vorschlags-Diff; keine KI-Analyse oder
   Laufpersistenz.
 
 ### Deterministische Snapshots und lokales Git (KQ-008)
 
-- Portables Snapshotformat v2 für Projektmetadaten, Dokumente, Story-Bibel, Plotboard, Timelines und
-  visuelle Profile; v1 bleibt lesbar und ein formales JSON-Schema wird mit jedem Snapshot kopiert.
+- Portables Snapshotformat v3 für Projektmetadaten, Dokumente, Story-Bibel, Plotboard, Timelines,
+  visuelle Profile und Prompt-Entwürfe; v1/v2 bleiben lesbar und ein formales JSON-Schema wird mit
+  jedem Snapshot kopiert.
 - UUID-basierte Markdown-Dateinamen, stabile fachliche Sortierung, UTF-8/LF und keine flüchtigen
   Datenbankzeitstempel. Wiederholte Erzeugung unveränderter Projekte ist byte-identisch getestet.
 - Freigegebene Rasterbilder werden inhaltsadressiert kopiert; Manifest, Hash und tatsächliche
@@ -286,18 +305,18 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 ### Unmittelbar: M4-Bildvorbereitung fortsetzen
 
-1. **KQ-015 - Editierbarer Bildprompt-Builder**
-   - ausgewählte Story-Bibel-Profile, Stilvorlage und Szenentext explizit zusammenstellen
-   - resultierenden Prompt vor jeder weiteren Verwendung vollständig editierbar anzeigen
-   - Prompt lokal speichern und als UTF-8-Text exportieren, ohne Provider- oder Netzwerkzugriff
+1. **KQ-016 - Bild-Capability-Registry und Generation-Job-Verträge**
+   - Bildfähigkeiten provider- und modellspezifisch beschreiben, ohne aktive Netzpflicht
+   - Generation-Job-Zustände, Einstellungen, Herkunft und bereinigte Fehler versioniert modellieren
+   - einen vollständig lokalen Mock-Provider testen; keine echte Bildgenerierung in Version 0.1
 
 ### Danach gemäß Pflichtenheft
 
-- KQ-015 und KQ-016: Prompt-Builder und Bild-Capability-Verträge. KI-basierte Kontinuitätshinweise
+- KQ-016: Bild-Capability-Registry und Generation-Job-Verträge. KI-basierte Kontinuitätshinweise
   bleiben eine spätere Erweiterung von KQ-012.
 - KQ-017 und KQ-018 gehören zu Version 0.2 und sind kein Ziel für 0.1.
 
-Für KQ-015 bis KQ-018 sind noch nicht alle GitHub-Issues angelegt; die Aufgaben stehen im
+Für KQ-016 bis KQ-018 sind noch nicht alle GitHub-Issues angelegt; die Aufgaben stehen im
 Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkretisiert werden.
 
 ## Bekannte Fehler und Lücken
@@ -321,11 +340,14 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
   Exportmedien fehlen. Der WebView übergibt ausgewählte Dateien als Bytearray; bei vielen großen
   Dateien ist später ein nativer Streamingimport sinnvoll. Fehlgeschlagene Dateibereinigung kann
   unreferenzierte Dateien hinterlassen, aber keine intakte Referenz vorzeitig löschen.
-- **Migrationen bleiben vorwärtsgerichtet:** 0→1 sowie befüllte Migrationen 1→2, 2→3 und 3→4 sind
-  getestet; weitere Versionen benötigen jeweils eine neue unveränderliche Migration.
+- **Migrationen bleiben vorwärtsgerichtet:** 0→1 sowie befüllte Migrationen 1→2, 2→3, 3→4 und 4→5
+  sind getestet; weitere Versionen benötigen jeweils eine neue unveränderliche Migration.
 - **Zeitwerte ohne Kalendersemantik:** Absolute Zeitwerte sind validierte Zeichenketten. Kalender,
   Zeitzonen und Arithmetik sind bewusst noch nicht implementiert.
 - **Keine End-to-End-Tests:** Playwright ist weder installiert noch konfiguriert.
+- **Prompt-Builder noch ohne Browserabnahme:** Datenfluss, IPC und UI-Verträge sind automatisiert
+  getestet; Tastatur-, Screenreader- und WebView-Verhalten der neuen Ansicht wurden noch nicht
+  manuell abgenommen. Entwürfe sind bewusst nicht automatisch mit Bildprovidern verbunden.
 - **Ollama nur gegen Testserver geprüft:** Kein Ollama-Dienst und kein lokales Modell waren in der
   Entwicklungsumgebung verfügbar. Abbruch, Laufpersistenz und eine manuelle Übernahme des Entwurfs
   in den Editor sind noch nicht implementiert.
@@ -341,7 +363,9 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
   FTS-Migration nötig.
 - **Dependency Review eingeschränkt:** Der GitHub-Job wird bei privaten Repositories ohne GitHub
   Advanced Security bewusst übersprungen. Lockfiles und reguläre CI bleiben aktiv.
-- Der aktuelle Teststand ist grün; es sind keine fehlschlagenden Tests auf `main` bekannt.
+- Die vollständige lokale Qualitätskette des KQ-015-Arbeitsbranches ist grün: 33 TypeScript- und 82
+  ausgeführte Rust-Tests, Formatierung, ESLint, Clippy und Typprüfung sowie der Vite-Build. Ein
+  visueller Export-QA-Test bleibt planmäßig ignoriert; die Windows-/Linux-CI folgt vor dem Merge.
 
 ## Wichtige Architekturentscheidungen
 
@@ -383,6 +407,9 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 - **Projektgebundene visuelle Vorgaben:** Profile referenzieren Entitäten und optionale kanonische
   Assets über stabile UUIDs; Stilvorlagen bleiben strukturiert, begrenzt und vollständig lokal (ADR
   0013).
+- **Explizite lokale Promptquellen:** Bildprompt-Entwürfe binden Szene, Quellrevision, Profile und
+  optionale Stilvorlage; Zusammensetzung, Speicherung und Textausgabe bleiben ohne Providerpfad (ADR
+  0014).
 - **Privilegierte Operationen in Rust:** React kommuniziert ausschließlich über versionierte,
   typisierte Tauri-Commands mit Dateisystem, Storage, Git und späteren Providern.
 - **Verträge sind explizit versioniert:** Inkompatible Änderungen erfordern eine neue
@@ -404,7 +431,7 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert | Vor großen Projekten messen; Migration nur mit Evidenz                |
 | Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                       | Gemeinsame Fixtures oder spätere Codegenerierung bewerten             |
-| Datenformat                  | Snapshot v2 mit Profilen und Hash-Assets sowie vier Textexporten; Import und Roundtrip fehlen               | Import/Roundtrip vor vollständiger F07/F08-Abnahme testen             |
+| Datenformat                  | Snapshot v3 mit Prompt-Entwürfen, Profilen und Hash-Assets; Import und Roundtrip fehlen                     | Import/Roundtrip vor vollständiger F07/F08-Abnahme testen             |
 | Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                             | Freie eingebettete Schrift und Medienkonzept prüfen                   |
 | Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                   | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen              |
 | Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                    | Bei jeder Erweiterung Fixtures und Migration prüfen                   |
@@ -419,19 +446,18 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 | Medienimport                 | Drei Rasterformate und harte Limits getestet; Bytearray-IPC skaliert nicht für Massenuploads                | Nativen Streamingimport erst nach Messung großer Sammlungen bewerten  |
 | Assetbackup                  | Hash-verifizierte Begleitverzeichnisse getestet; noch kein einzelnes portables Paket                        | Paketformat und atomare Mehrdatei-Verteilung vor externem Austausch   |
 | Visuelle Profile             | Struktur und Referenzen getestet; Stilnamen-Eindeutigkeit nutzt SQLite-NOCASE mit ASCII-Grenze              | Unicode-Kollation bei internationalisierten Vorlagennamen bewerten    |
+| Bildprompt-Entwürfe          | Lokal und referenziell geprüft; UI ohne E2E, kein Providerpfad und keine automatische Rekombination         | Browserabnahme; Freigabegrenze bei KQ-016 getrennt halten             |
 
 ## Nächste geplante Entwicklungsstufe
 
-**KQ-015: Editierbarer Bildprompt-Builder.**
+**KQ-016: Bild-Capability-Registry und Generation-Job-Verträge.**
 
 Empfohlener, überprüfbarer Scope:
 
-1. F09, Modul V.1 und KQ-015 gegen Dokument-, Profil- und Stilvorlagenverträge abgleichen.
-2. Eine explizite Auswahl aus Szene, Story-Bibel-Profilen und optionaler Stilvorlage modellieren.
-3. Aus dieser Auswahl lokal einen vollständig editierbaren Promptentwurf erzeugen; keine
-   automatische Providerfreigabe und keine Änderung kanonischer Daten.
-4. Lokales Speichern, UTF-8-Textexport, deterministische Snapshots und zugängliche Bearbeitung
-   gemeinsam testen.
+1. F09, Modul V.1 und KQ-016 gegen bestehende Textprovider- und Promptverträge abgleichen.
+2. Provider- und modellspezifische Bildfähigkeiten ohne pauschale Annahmen modellieren.
+3. Versionierte Generation-Job-Zustände, Einstellungen, Herkunft und bereinigte Fehler definieren.
+4. Einen rein lokalen Mock-Provider testen; keine echte Bildgenerierung oder Cloudübertragung.
 
 ## Einstieg für die nächste Codex-Session
 
@@ -440,10 +466,10 @@ cd D:\kraqel
 git status
 git branch --show-current
 git log -5 --oneline
-rg "KQ-015" docs ROADMAP.md
+rg "KQ-016" docs ROADMAP.md
 ```
 
-Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0013, `docs/architecture/threat-model.md`,
-`packages/visual-contracts/`, Profil-/Dokumentverträge und die Pflichtenheft-Abschnitte zu F09, V.1
-und KQ-015. Vor KQ-015 zuerst ein eigenes Issue anlegen und Auswahl-, Speicher- und Exportgrenzen
-gegen Datenschutz, Portabilität und spätere Providerfreigaben prüfen.
+Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0014, `docs/architecture/threat-model.md`,
+`packages/ai-contracts/`, `packages/visual-contracts/` und die Pflichtenheft-Abschnitte zu F09, V.1
+und KQ-016. Vor KQ-016 zuerst ein eigenes Issue anlegen und Capability-, Job- und Mock-Grenzen gegen
+Datenschutz, Offlinefähigkeit und spätere Providerfreigaben prüfen.

@@ -25,7 +25,8 @@
    - [x] Cloud-Textprovider und Betriebssystem-Schlüsselspeicher (Protokolltests; Live-Abnahme
          offen)
    - [x] Deterministische Kontinuitätsprüfung mit Quellenankern und Nur-Lese-Diff
-   - [ ] Optionale KI-Kontinuitätshinweise, Prompt-Entwürfe und Bildverträge
+   - [x] Lokale, editierbare Bildprompt-Entwürfe mit UTF-8-Export und Snapshot
+   - [ ] Optionale KI-Kontinuitätshinweise und Bild-Capability-Verträge
 5. Reproduzierbarer Windows-Release mit Dokumentation und Abnahme
 
 ## M6 - Version 0.2

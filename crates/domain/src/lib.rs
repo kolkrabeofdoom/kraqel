@@ -15,7 +15,7 @@ pub const EDITOR_DOCUMENT_VERSION: u16 = 1;
 pub const COMMAND_CONTRACT_VERSION: u16 = 1;
 
 /// Stabile Projektkennung.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct ProjectId(Uuid);
 
@@ -52,7 +52,7 @@ impl Default for ProjectId {
 }
 
 /// Stabile Kennung einer projektbezogenen Entität.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct EntityId(Uuid);
 
@@ -372,6 +372,33 @@ pub struct StylePreset {
     pub name: String,
     pub visual_rules: BTreeMap<String, String>,
     pub applicable_kinds: Vec<EntityKind>,
+}
+
+/// Lokal aus explizit ausgewählten Projektquellen zusammengesetzter Bildprompt.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImagePromptComposition {
+    pub project_id: ProjectId,
+    pub document_id: EntityId,
+    pub document_title: String,
+    pub document_revision: u64,
+    pub entity_ids: Vec<EntityId>,
+    pub style_preset_id: Option<EntityId>,
+    pub prompt_text: String,
+}
+
+/// Projektgebundener, vollständig editierbarer Bildprompt-Entwurf.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImagePromptDraft {
+    pub id: EntityId,
+    pub project_id: ProjectId,
+    pub name: String,
+    pub source_document_id: EntityId,
+    pub source_document_revision: u64,
+    pub entity_ids: Vec<EntityId>,
+    pub style_preset_id: Option<EntityId>,
+    pub prompt_text: String,
 }
 
 /// Minimales Projektmodell für Storage- und Command-Verträge.

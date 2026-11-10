@@ -29,6 +29,8 @@ import {
   type TimelineEvent,
   type TimelineMode,
   type MediaAsset,
+  type ImagePromptComposition,
+  type ImagePromptDraft,
   type StylePreset,
   type VisualProfile,
 } from "@kraqel/domain";
@@ -121,6 +123,11 @@ export type ExportFormat = "markdown" | "html" | "docx" | "pdf";
 
 export interface ExportResult {
   readonly format: ExportFormat;
+  readonly fileName: string;
+  readonly byteCount: number;
+}
+
+export interface PromptExportResult {
   readonly fileName: string;
   readonly byteCount: number;
 }
@@ -468,6 +475,93 @@ export async function deleteStylePreset(projectId: ProjectId, presetId: EntityId
     "delete_style_preset",
     { projectId, presetId },
   );
+}
+
+export async function composeImagePrompt(
+  projectId: ProjectId,
+  documentId: EntityId,
+  entityIds: readonly EntityId[],
+  stylePresetId: EntityId | null,
+): Promise<ImagePromptComposition> {
+  return (
+    await callCommand<
+      {
+        readonly projectId: ProjectId;
+        readonly documentId: EntityId;
+        readonly entityIds: readonly EntityId[];
+        readonly stylePresetId: EntityId | null;
+      },
+      ImagePromptComposition
+    >("compose_image_prompt", { projectId, documentId, entityIds, stylePresetId })
+  ).data;
+}
+
+export async function listImagePromptDrafts(
+  projectId: ProjectId,
+): Promise<readonly ImagePromptDraft[]> {
+  return (
+    await callCommand<{ readonly projectId: ProjectId }, readonly ImagePromptDraft[]>(
+      "list_image_prompt_drafts",
+      { projectId },
+    )
+  ).data;
+}
+
+export async function createImagePromptDraft(
+  projectId: ProjectId,
+  name: string,
+  composition: ImagePromptComposition,
+  promptText: string,
+): Promise<ImagePromptDraft> {
+  return (
+    await callCommand<
+      {
+        readonly projectId: ProjectId;
+        readonly name: string;
+        readonly composition: ImagePromptComposition;
+        readonly promptText: string;
+      },
+      ImagePromptDraft
+    >("create_image_prompt_draft", { projectId, name, composition, promptText })
+  ).data;
+}
+
+export async function updateImagePromptDraft(
+  projectId: ProjectId,
+  draftId: EntityId,
+  name: string,
+  promptText: string,
+): Promise<ImagePromptDraft> {
+  return (
+    await callCommand<
+      {
+        readonly projectId: ProjectId;
+        readonly draftId: EntityId;
+        readonly name: string;
+        readonly promptText: string;
+      },
+      ImagePromptDraft
+    >("update_image_prompt_draft", { projectId, draftId, name, promptText })
+  ).data;
+}
+
+export async function deleteImagePromptDraft(
+  projectId: ProjectId,
+  draftId: EntityId,
+): Promise<void> {
+  await callCommand("delete_image_prompt_draft", { projectId, draftId });
+}
+
+export async function exportImagePromptDraft(
+  projectId: ProjectId,
+  draftId: EntityId,
+): Promise<PromptExportResult> {
+  return (
+    await callCommand<
+      { readonly projectId: ProjectId; readonly draftId: EntityId },
+      PromptExportResult
+    >("export_image_prompt_draft", { projectId, draftId })
+  ).data;
 }
 
 export async function listOllamaModels(): Promise<TextProviderStatus> {

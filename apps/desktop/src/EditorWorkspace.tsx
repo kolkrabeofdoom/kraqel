@@ -27,6 +27,7 @@ import { TextAssistant } from "./TextAssistant";
 import { Continuity } from "./Continuity";
 import { MediaLibrary } from "./MediaLibrary";
 import { VisualProfiles } from "./VisualProfiles";
+import { PromptBuilder } from "./PromptBuilder";
 
 interface EditorWorkspaceProps {
   readonly initialWorkspace: Workspace;
@@ -49,6 +50,7 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
     | "continuity"
     | "media"
     | "visuals"
+    | "prompts"
     | "versions"
     | "exports"
     | "textAi"
@@ -118,6 +120,14 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
         </div>
         <div className="workspace-actions">
           <nav aria-label="Projektbereiche" className="workspace-tabs">
+            <button
+              type="button"
+              className={view === "prompts" ? "active" : "secondary"}
+              aria-current={view === "prompts" ? "page" : undefined}
+              onClick={() => setView("prompts")}
+            >
+              Bildprompts
+            </button>
             <button
               type="button"
               className={view === "media" ? "active" : "secondary"}
@@ -290,6 +300,12 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
         />
       ) : view === "visuals" ? (
         <VisualProfiles projectId={workspace.project.id} />
+      ) : view === "prompts" ? (
+        <PromptBuilder
+          projectId={workspace.project.id}
+          documents={workspace.documents}
+          activeDocumentId={activeId}
+        />
       ) : view === "versions" ? (
         <VersionControl projectId={workspace.project.id} />
       ) : view === "exports" ? (

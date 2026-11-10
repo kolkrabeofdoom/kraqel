@@ -11,12 +11,14 @@ use kraqel_continuity::{Finding, SuggestionReview, review_suggestion};
 use kraqel_domain::{
     AssetTargetKind, CURRENT_SCHEMA_VERSION, CommandError, CommandRequest, CommandResponse,
     DocumentKind, DocumentNode, EDITOR_DOCUMENT_VERSION, EditorDocument, EntityId, EntityKind,
-    MediaAsset, PlotBoard, PlotStatus, Project, ProjectId, StoryEntity, StoryEntityDetails,
-    StoryRelation, Storyline, StylePreset, Timeline, TimelineDetails, TimelineEvent, TimelineMode,
-    VisualProfile, is_valid_project_name, require_current_contract,
+    ImagePromptComposition, ImagePromptDraft, MediaAsset, PlotBoard, PlotStatus, Project,
+    ProjectId, StoryEntity, StoryEntityDetails, StoryRelation, Storyline, StylePreset, Timeline,
+    TimelineDetails, TimelineEvent, TimelineMode, VisualProfile, is_valid_project_name,
+    require_current_contract,
 };
 use kraqel_export::{
-    ExportError, ExportFormat, ExportResult, ExportSourceDocument, export_project,
+    ExportError, ExportFormat, ExportResult, ExportSourceDocument, PromptExportResult,
+    export_project, export_prompt_draft,
 };
 use kraqel_git_service::{
     CommitResult, GitService, GitServiceError, SnapshotSummary, VersionControlStatus,
@@ -26,6 +28,7 @@ use kraqel_storage::{
     document_repository::{DocumentError, DocumentRepository},
     media_repository::{MediaError, MediaRepository},
     project_manager::{ProjectError, ProjectManager},
+    prompt_repository::{PromptError, PromptRepository},
     story_bible_repository::{StoryBibleError, StoryBibleRepository},
     structure_repository::{StructureError, StructureRepository},
     visual_repository::{VisualError, VisualRepository},
@@ -449,6 +452,40 @@ struct WriteStylePresetRequest {
 struct StylePresetRequest {
     project_id: String,
     preset_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ComposeImagePromptRequest {
+    project_id: String,
+    document_id: String,
+    entity_ids: Vec<String>,
+    style_preset_id: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CreateImagePromptDraftRequest {
+    project_id: String,
+    name: String,
+    composition: ImagePromptComposition,
+    prompt_text: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct UpdateImagePromptDraftRequest {
+    project_id: String,
+    draft_id: String,
+    name: String,
+    prompt_text: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ImagePromptDraftRequest {
+    project_id: String,
+    draft_id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -987,6 +1024,91 @@ fn delete_style_preset(
     require_current_contract(&request)?;
     delete_style_preset_impl(&state, request.request_id, &request.payload)?;
     Ok(CommandResponse::current(request.request_id, ()))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn compose_image_prompt(
+    state: State<'_, AppState>,
+    request: CommandRequest<ComposeImagePromptRequest>,
+) -> Result<CommandResponse<ImagePromptComposition>, CommandError> {
+    require_current_contract(&request)?;
+    let data = compose_image_prompt_impl(&state, request.request_id, &request.payload)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn list_image_prompt_drafts(
+    state: State<'_, AppState>,
+    request: CommandRequest<ProjectRequest>,
+) -> Result<CommandResponse<Vec<ImagePromptDraft>>, CommandError> {
+    require_current_contract(&request)?;
+    let data =
+        list_image_prompt_drafts_impl(&state, request.request_id, &request.payload.project_id)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn create_image_prompt_draft(
+    state: State<'_, AppState>,
+    request: CommandRequest<CreateImagePromptDraftRequest>,
+) -> Result<CommandResponse<ImagePromptDraft>, CommandError> {
+    require_current_contract(&request)?;
+    let data = create_image_prompt_draft_impl(&state, request.request_id, &request.payload)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn update_image_prompt_draft(
+    state: State<'_, AppState>,
+    request: CommandRequest<UpdateImagePromptDraftRequest>,
+) -> Result<CommandResponse<ImagePromptDraft>, CommandError> {
+    require_current_contract(&request)?;
+    let data = update_image_prompt_draft_impl(&state, request.request_id, &request.payload)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn delete_image_prompt_draft(
+    state: State<'_, AppState>,
+    request: CommandRequest<ImagePromptDraftRequest>,
+) -> Result<CommandResponse<()>, CommandError> {
+    require_current_contract(&request)?;
+    delete_image_prompt_draft_impl(&state, request.request_id, &request.payload)?;
+    Ok(CommandResponse::current(request.request_id, ()))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn export_image_prompt_draft(
+    state: State<'_, AppState>,
+    request: CommandRequest<ImagePromptDraftRequest>,
+) -> Result<CommandResponse<PromptExportResult>, CommandError> {
+    require_current_contract(&request)?;
+    let data = export_image_prompt_draft_impl(&state, request.request_id, &request.payload)?;
+    Ok(CommandResponse::current(request.request_id, data))
 }
 
 #[tauri::command]
@@ -2221,6 +2343,135 @@ fn delete_style_preset_impl(
         .map_err(|error| map_visual_error(request_id, &error))
 }
 
+fn compose_image_prompt_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &ComposeImagePromptRequest,
+) -> Result<ImagePromptComposition, CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let document_id = parse_entity_id(request_id, &request.document_id)?;
+    let entity_ids = request
+        .entity_ids
+        .iter()
+        .map(|value| parse_entity_id(request_id, value))
+        .collect::<Result<Vec<_>, _>>()?;
+    let style_preset_id = request
+        .style_preset_id
+        .as_deref()
+        .map(|value| parse_entity_id(request_id, value))
+        .transpose()?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    PromptRepository::new(opened.database_mut())
+        .compose(project_id, document_id, &entity_ids, style_preset_id)
+        .map_err(|error| map_prompt_error(request_id, &error))
+}
+
+fn list_image_prompt_drafts_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    project_value: &str,
+) -> Result<Vec<ImagePromptDraft>, CommandError> {
+    let project_id = parse_project_id(request_id, project_value)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    PromptRepository::new(opened.database_mut())
+        .list_drafts(project_id)
+        .map_err(|error| map_prompt_error(request_id, &error))
+}
+
+fn create_image_prompt_draft_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &CreateImagePromptDraftRequest,
+) -> Result<ImagePromptDraft, CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    PromptRepository::new(opened.database_mut())
+        .create_draft(
+            project_id,
+            &request.name,
+            &request.composition,
+            &request.prompt_text,
+        )
+        .map_err(|error| map_prompt_error(request_id, &error))
+}
+
+fn update_image_prompt_draft_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &UpdateImagePromptDraftRequest,
+) -> Result<ImagePromptDraft, CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let draft_id = parse_entity_id(request_id, &request.draft_id)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    PromptRepository::new(opened.database_mut())
+        .update_draft(project_id, draft_id, &request.name, &request.prompt_text)
+        .map_err(|error| map_prompt_error(request_id, &error))
+}
+
+fn delete_image_prompt_draft_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &ImagePromptDraftRequest,
+) -> Result<(), CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let draft_id = parse_entity_id(request_id, &request.draft_id)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    PromptRepository::new(opened.database_mut())
+        .delete_draft(project_id, draft_id)
+        .map_err(|error| map_prompt_error(request_id, &error))
+}
+
+fn export_image_prompt_draft_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &ImagePromptDraftRequest,
+) -> Result<PromptExportResult, CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let draft_id = parse_entity_id(request_id, &request.draft_id)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    let project_directory = opened.directory().to_path_buf();
+    let name: String = opened
+        .database()
+        .connection()
+        .query_row(
+            "SELECT name FROM project WHERE id = ?1",
+            [project_id.to_string()],
+            |row| row.get(0),
+        )
+        .map_err(|_| CommandError::internal(request_id))?;
+    let draft = PromptRepository::new(opened.database_mut())
+        .load_draft(project_id, draft_id)
+        .map_err(|error| map_prompt_error(request_id, &error))?;
+    export_prompt_draft(
+        &project_directory,
+        &Project {
+            id: project_id,
+            name,
+            schema_version: CURRENT_SCHEMA_VERSION,
+        },
+        &draft,
+    )
+    .map_err(|error| map_prompt_export_error(request_id, &error))
+}
+
 fn list_story_entities_impl(
     state: &AppState,
     request_id: uuid::Uuid,
@@ -2511,6 +2762,18 @@ fn map_visual_error(request_id: uuid::Uuid, error: &VisualError) -> CommandError
     }
 }
 
+fn map_prompt_error(request_id: uuid::Uuid, error: &PromptError) -> CommandError {
+    match error {
+        PromptError::Conflict => CommandError::conflict(request_id),
+        PromptError::InvalidInput | PromptError::NotFound => {
+            CommandError::invalid_request(request_id, "Die Bildprompt-Anfrage ist ungültig.")
+        }
+        PromptError::InvalidStoredData
+        | PromptError::InvalidSystemTime
+        | PromptError::Storage(_) => CommandError::internal(request_id),
+    }
+}
+
 fn map_asset_error(request_id: uuid::Uuid, error: &AssetError) -> CommandError {
     match error {
         AssetError::InvalidName
@@ -2545,6 +2808,18 @@ fn map_export_error(request_id: uuid::Uuid, error: &ExportError) -> CommandError
         ExportError::InvalidDocument(_) => CommandError::invalid_request(
             request_id,
             "Das Manuskript enthält eine noch nicht exportierbare Formatierung.",
+        ),
+        ExportError::UnsafeDestination | ExportError::Internal(_) => {
+            CommandError::internal(request_id)
+        }
+    }
+}
+
+fn map_prompt_export_error(request_id: uuid::Uuid, error: &ExportError) -> CommandError {
+    match error {
+        ExportError::InvalidDocument(_) => CommandError::invalid_request(
+            request_id,
+            "Der Bildprompt kann nicht exportiert werden.",
         ),
         ExportError::UnsafeDestination | ExportError::Internal(_) => {
             CommandError::internal(request_id)
@@ -2635,6 +2910,12 @@ pub fn run() {
             create_style_preset,
             update_style_preset,
             delete_style_preset,
+            compose_image_prompt,
+            list_image_prompt_drafts,
+            create_image_prompt_draft,
+            update_image_prompt_draft,
+            delete_image_prompt_draft,
+            export_image_prompt_draft,
             list_story_entities,
             create_story_entity,
             update_story_entity,
@@ -2670,10 +2951,12 @@ pub fn run() {
 mod tests {
     use std::{
         collections::{BTreeMap, HashMap},
+        fs,
         sync::Mutex,
     };
 
     use base64::Engine as _;
+    use kraqel_domain::DocumentKind;
     use kraqel_domain::{
         COMMAND_CONTRACT_VERSION, CommandErrorCode, CommandRequest, EDITOR_DOCUMENT_VERSION,
         EditorDocument, EntityKind,
@@ -2684,18 +2967,21 @@ mod tests {
     use uuid::Uuid;
 
     use super::{
-        AiContextRequest, AppState, ApplicationStatusRequest, CreateProjectRequest,
-        DocumentRequest, ExportProjectRequest, ImportMediaRequest, LinkStoryEntityRequest,
+        AiContextRequest, AppState, ApplicationStatusRequest, ComposeImagePromptRequest,
+        CreateImagePromptDraftRequest, CreateProjectRequest, DocumentRequest, ExportProjectRequest,
+        ImagePromptDraftRequest, ImportMediaRequest, LinkStoryEntityRequest,
         ListStoryEntitiesRequest, ReviewTextSuggestionRequest, SaveDocumentRequest,
-        StoryEntityRequest, StreamTextDraftRequest, ValidateProjectNameRequest,
-        WriteStoryEntityRequest, WriteStylePresetRequest, WriteVisualProfileRequest,
-        application_status, create_project_impl, export_manuscript_impl, import_media_asset_impl,
-        link_story_entity_impl, list_media_assets_impl, list_projects_impl,
-        list_story_entities_impl, list_style_presets_impl, list_visual_profiles_impl,
-        load_document_impl, load_story_entity_impl, prepare_text_generation,
-        preview_ai_context_impl, review_text_suggestion_impl, save_document_impl,
-        save_visual_profile_impl, validate_project_name, write_story_entity_impl,
-        write_style_preset_impl,
+        StoryEntityRequest, StreamTextDraftRequest, UpdateImagePromptDraftRequest,
+        ValidateProjectNameRequest, WriteStoryEntityRequest, WriteStylePresetRequest,
+        WriteVisualProfileRequest, application_status, compose_image_prompt_impl,
+        create_image_prompt_draft_impl, create_project_impl, delete_image_prompt_draft_impl,
+        export_image_prompt_draft_impl, export_manuscript_impl, import_media_asset_impl,
+        link_story_entity_impl, list_image_prompt_drafts_impl, list_media_assets_impl,
+        list_projects_impl, list_story_entities_impl, list_style_presets_impl,
+        list_visual_profiles_impl, load_document_impl, load_story_entity_impl,
+        prepare_text_generation, preview_ai_context_impl, review_text_suggestion_impl,
+        save_document_impl, save_visual_profile_impl, update_image_prompt_draft_impl,
+        validate_project_name, write_story_entity_impl, write_style_preset_impl,
     };
 
     const REQUEST_ID: Uuid = Uuid::from_u128(0x018f_47ea_9b2d_7cc1_98e8_b5f4_f6b7_41a2);
@@ -3004,6 +3290,126 @@ mod tests {
                 .expect("presets should list"),
             vec![preset]
         );
+    }
+
+    #[test]
+    #[allow(
+        clippy::too_many_lines,
+        reason = "Der vertikale Test hält Auswahl, Bearbeitung, Speicherung und Export als einen Ablauf zusammen"
+    )]
+    fn image_prompt_roundtrip_stays_local_editable_and_exportable() {
+        let root = tempdir().expect("temporary root should exist");
+        let state = AppState {
+            project_root: root.path().to_path_buf(),
+            ai_releases: Mutex::new(HashMap::new()),
+        };
+        let workspace = create_project_impl(
+            &state,
+            REQUEST_ID,
+            CreateProjectRequest {
+                name: "Prompt-Archiv".to_owned(),
+            },
+        )
+        .expect("project should be created");
+        let scene = workspace
+            .documents
+            .iter()
+            .find(|document| document.kind == DocumentKind::Scene)
+            .expect("scene should exist");
+        save_document_impl(
+            &state,
+            REQUEST_ID,
+            SaveDocumentRequest {
+                project_id: workspace.project.id.to_string(),
+                document_id: scene.id.to_string(),
+                expected_revision: 0,
+                content: EditorDocument {
+                    version: EDITOR_DOCUMENT_VERSION,
+                    document: json!({"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Kolkrabe am Turm"}]}]}),
+                },
+            },
+        )
+        .expect("scene should save");
+        let entity = write_story_entity_impl(
+            &state,
+            REQUEST_ID,
+            &WriteStoryEntityRequest {
+                project_id: workspace.project.id.to_string(),
+                entity_id: None,
+                kind: EntityKind::Character,
+                name: "Rhea".to_owned(),
+                properties: BTreeMap::from([("Rolle".to_owned(), "Botin".to_owned())]),
+            },
+            false,
+        )
+        .expect("entity should save");
+        save_visual_profile_impl(
+            &state,
+            REQUEST_ID,
+            &WriteVisualProfileRequest {
+                project_id: workspace.project.id.to_string(),
+                entity_id: entity.id.to_string(),
+                traits: BTreeMap::from([("Augen".to_owned(), "bernsteinfarben".to_owned())]),
+                canonical_asset_id: None,
+                exclusions: vec![],
+            },
+        )
+        .expect("profile should save");
+        let composition = compose_image_prompt_impl(
+            &state,
+            REQUEST_ID,
+            &ComposeImagePromptRequest {
+                project_id: workspace.project.id.to_string(),
+                document_id: scene.id.to_string(),
+                entity_ids: vec![entity.id.to_string()],
+                style_preset_id: None,
+            },
+        )
+        .expect("prompt should compose");
+        assert!(composition.prompt_text.contains("Kolkrabe am Turm"));
+        let created = create_image_prompt_draft_impl(
+            &state,
+            REQUEST_ID,
+            &CreateImagePromptDraftRequest {
+                project_id: workspace.project.id.to_string(),
+                name: "Turm".to_owned(),
+                composition,
+                prompt_text: "Bewusst bearbeiteter Kolkrabe".to_owned(),
+            },
+        )
+        .expect("draft should save");
+        let updated = update_image_prompt_draft_impl(
+            &state,
+            REQUEST_ID,
+            &UpdateImagePromptDraftRequest {
+                project_id: workspace.project.id.to_string(),
+                draft_id: created.id.to_string(),
+                name: "Turm bei Nacht".to_owned(),
+                prompt_text: "Kolkrabe, Tusche, Abendlicht".to_owned(),
+            },
+        )
+        .expect("draft should update");
+        assert_eq!(
+            list_image_prompt_drafts_impl(&state, REQUEST_ID, &workspace.project.id.to_string())
+                .expect("drafts should list"),
+            vec![updated.clone()]
+        );
+        let request = ImagePromptDraftRequest {
+            project_id: workspace.project.id.to_string(),
+            draft_id: updated.id.to_string(),
+        };
+        let exported = export_image_prompt_draft_impl(&state, REQUEST_ID, &request)
+            .expect("draft should export");
+        let path = root
+            .path()
+            .join(workspace.project.id.to_string())
+            .join("exports/prompts")
+            .join(exported.file_name);
+        assert_eq!(
+            fs::read_to_string(path).expect("export should be readable"),
+            "Kolkrabe, Tusche, Abendlicht\n"
+        );
+        delete_image_prompt_draft_impl(&state, REQUEST_ID, &request).expect("draft should delete");
     }
 
     #[test]

@@ -2,7 +2,9 @@
 
 mod render;
 
-use kraqel_domain::{DocumentKind, DocumentNode, EDITOR_DOCUMENT_VERSION, EditorDocument, Project};
+use kraqel_domain::{
+    DocumentKind, DocumentNode, EDITOR_DOCUMENT_VERSION, EditorDocument, ImagePromptDraft, Project,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::{
@@ -42,6 +44,13 @@ pub struct ExportSourceDocument {
 #[serde(rename_all = "camelCase")]
 pub struct ExportResult {
     pub format: ExportFormat,
+    pub file_name: String,
+    pub byte_count: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PromptExportResult {
     pub file_name: String,
     pub byte_count: u64,
 }
@@ -120,6 +129,35 @@ pub fn export_project(
     atomic_write(&directory, &file_name, &bytes)?;
     Ok(ExportResult {
         format,
+        file_name,
+        byte_count: u64::try_from(bytes.len()).map_err(internal)?,
+    })
+}
+
+/// Exportiert genau einen gespeicherten Prompt als UTF-8/LF-Text unter `exports/prompts`.
+///
+/// # Errors
+/// Liefert einen Fehler bei projektfremden Daten oder einem unsicheren Exportziel.
+pub fn export_prompt_draft(
+    project_directory: &Path,
+    project: &Project,
+    draft: &ImagePromptDraft,
+) -> Result<PromptExportResult, ExportError> {
+    if draft.project_id != project.id || draft.prompt_text.trim().is_empty() {
+        return Err(ExportError::InvalidDocument(
+            "Der Bildprompt-Entwurf ist ungültig.",
+        ));
+    }
+    let root = prepare_export_directory(project_directory)?;
+    let directory = prepare_child_directory(&root, "prompts")?;
+    let file_name = format!("bildprompt-{}.txt", draft.id);
+    let mut normalized = draft.prompt_text.replace("\r\n", "\n").replace('\r', "\n");
+    if !normalized.ends_with('\n') {
+        normalized.push('\n');
+    }
+    let bytes = normalized.as_bytes();
+    atomic_write(&directory, &file_name, bytes)?;
+    Ok(PromptExportResult {
         file_name,
         byte_count: u64::try_from(bytes.len()).map_err(internal)?,
     })
@@ -320,6 +358,21 @@ fn prepare_export_directory(project_directory: &Path) -> Result<PathBuf, ExportE
     }
     Ok(directory)
 }
+
+fn prepare_child_directory(parent: &Path, name: &str) -> Result<PathBuf, ExportError> {
+    let directory = parent.join(name);
+    match fs::symlink_metadata(&directory) {
+        Ok(metadata) if metadata.file_type().is_symlink() || !metadata.is_dir() => {
+            Err(ExportError::UnsafeDestination)
+        }
+        Ok(_) => Ok(directory),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            fs::create_dir(&directory).map_err(internal)?;
+            Ok(directory)
+        }
+        Err(error) => Err(internal(error)),
+    }
+}
 fn atomic_write(directory: &Path, file_name: &str, bytes: &[u8]) -> Result<(), ExportError> {
     let temporary = directory.join(format!(".{file_name}.tmp"));
     let previous = directory.join(format!(".{file_name}.previous"));
@@ -452,6 +505,27 @@ mod tests {
             build_manuscript(&project, &documents),
             Err(ExportError::InvalidDocument(_))
         ));
+    }
+
+    #[test]
+    fn prompt_draft_is_exported_as_normalized_utf8_text() {
+        let root = tempdir().expect("root");
+        let (project, _) = fixture();
+        let draft = ImagePromptDraft {
+            id: EntityId::new(),
+            project_id: project.id,
+            name: "Abendlicht".to_owned(),
+            source_document_id: EntityId::new(),
+            source_document_revision: 3,
+            entity_ids: vec![EntityId::new()],
+            style_preset_id: None,
+            prompt_text: "Kolkrabe im Abendlicht\r\nüber dem Turm".to_owned(),
+        };
+        let result = export_prompt_draft(root.path(), &project, &draft).expect("prompt export");
+        let bytes = fs::read(root.path().join("exports/prompts").join(&result.file_name))
+            .expect("prompt file");
+        assert_eq!(bytes, "Kolkrabe im Abendlicht\nüber dem Turm\n".as_bytes());
+        assert_eq!(result.byte_count, bytes.len() as u64);
     }
 
     #[test]

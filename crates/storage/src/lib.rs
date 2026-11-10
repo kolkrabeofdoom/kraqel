@@ -9,6 +9,7 @@ pub mod continuity_repository;
 pub mod document_repository;
 pub mod media_repository;
 pub mod project_manager;
+pub mod prompt_repository;
 pub mod story_bible_repository;
 pub mod structure_repository;
 pub mod visual_repository;
@@ -17,8 +18,9 @@ const INITIAL_SCHEMA: &str = include_str!("../migrations/0001_initial.sql");
 const STRUCTURE_SCHEMA: &str = include_str!("../migrations/0002_plotboard_timeline.sql");
 const MEDIA_SCHEMA: &str = include_str!("../migrations/0003_media_library.sql");
 const VISUAL_SCHEMA: &str = include_str!("../migrations/0004_visual_profiles.sql");
+const PROMPT_SCHEMA: &str = include_str!("../migrations/0005_image_prompt_drafts.sql");
 /// Aktueller interner SQLite-Migrationsstand.
-pub const CURRENT_DATABASE_VERSION: SchemaVersion = SchemaVersion(4);
+pub const CURRENT_DATABASE_VERSION: SchemaVersion = SchemaVersion(5);
 const BUSY_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Von der Speicherschicht gemeldete Fehler.
@@ -166,6 +168,11 @@ impl Database {
                     transaction.execute_batch("PRAGMA user_version = 4;")?;
                     version = SchemaVersion(4);
                 }
+                SchemaVersion(4) => {
+                    transaction.execute_batch(PROMPT_SCHEMA)?;
+                    transaction.execute_batch("PRAGMA user_version = 5;")?;
+                    version = SchemaVersion(5);
+                }
                 _ => {
                     return Err(StorageError::MissingMigration {
                         found: version,
@@ -217,7 +224,7 @@ mod tests {
 
     use super::{
         CURRENT_DATABASE_VERSION, Database, INITIAL_SCHEMA, MEDIA_SCHEMA, STRUCTURE_SCHEMA,
-        StorageError,
+        StorageError, VISUAL_SCHEMA,
     };
     use kraqel_domain::{CURRENT_SCHEMA_VERSION, SchemaVersion};
 
@@ -287,13 +294,19 @@ mod tests {
                                 'style_preset_project_name_idx',
                                 'visual_profile_asset_before_insert',
                                 'visual_profile_asset_before_update',
+                                'visual_profile_project_entity_idx',
+                                'image_prompt_draft', 'image_prompt_draft_profile',
+                                'image_prompt_draft_project_idx',
+                                'image_prompt_profile_after_delete',
+                                'image_prompt_style_before_insert',
+                                'image_prompt_style_before_update',
                                 'document_fts', 'document_fts_after_insert',
                                 'document_fts_after_update', 'document_fts_after_delete')",
                 [],
                 |row| row.get(0),
             )
             .expect("schema objects should be readable");
-        assert_eq!(object_count, 25);
+        assert_eq!(object_count, 32);
     }
 
     #[test]
@@ -302,7 +315,7 @@ mod tests {
         let path = directory.path().join("future.sqlite3");
         let connection = Connection::open(&path).expect("database should open");
         connection
-            .pragma_update(None, "user_version", 5)
+            .pragma_update(None, "user_version", 6)
             .expect("future version should be set");
         drop(connection);
 
@@ -312,8 +325,8 @@ mod tests {
         assert!(matches!(
             error,
             StorageError::FutureSchema {
-                found: SchemaVersion(5),
-                supported: SchemaVersion(4)
+                found: SchemaVersion(6),
+                supported: SchemaVersion(5)
             }
         ));
 
@@ -321,7 +334,7 @@ mod tests {
         let version: u32 = connection
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .expect("version should remain readable");
-        assert_eq!(version, 5);
+        assert_eq!(version, 6);
     }
 
     #[test]
@@ -501,5 +514,42 @@ mod tests {
             )
             .unwrap();
         assert_eq!(visual_tables, 2);
+    }
+
+    #[test]
+    fn populated_v4_database_adds_prompt_tables_without_losing_profiles() {
+        let directory = tempdir().expect("temporary directory should exist");
+        let path = directory.path().join("v4.sqlite3");
+        let connection = Connection::open(&path).expect("database should open");
+        connection.execute_batch(INITIAL_SCHEMA).unwrap();
+        connection.execute_batch(STRUCTURE_SCHEMA).unwrap();
+        connection.execute_batch(MEDIA_SCHEMA).unwrap();
+        connection.execute_batch(VISUAL_SCHEMA).unwrap();
+        connection.pragma_update(None, "user_version", 4).unwrap();
+        insert_project(&connection);
+        insert_document(&connection, "Bleibt bei Prompt-Entwürfen erhalten.");
+        drop(connection);
+
+        let database = Database::open(&path).expect("v4 database should migrate");
+        assert_eq!(database.schema_version().unwrap(), CURRENT_DATABASE_VERSION);
+        let prompt_tables: i64 = database
+            .connection()
+            .query_row(
+                "SELECT count(*) FROM sqlite_master
+                 WHERE type = 'table' AND name IN ('image_prompt_draft', 'image_prompt_draft_profile')",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(prompt_tables, 2);
+        let text: String = database
+            .connection()
+            .query_row(
+                "SELECT plain_text FROM document WHERE id = ?1",
+                [DOCUMENT_ID],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(text, "Bleibt bei Prompt-Entwürfen erhalten.");
     }
 }

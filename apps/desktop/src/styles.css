@@ -670,6 +670,78 @@ button.scene-button.active {
   padding: 1.5rem;
 }
 
+.prompt-builder {
+  display: grid;
+  gap: 1rem;
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.prompt-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.6fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.prompt-editor textarea {
+  font-family: "Cascadia Code", Consolas, monospace;
+  line-height: 1.55;
+}
+
+.panel-title-row,
+.button-row,
+.prompt-draft-list article {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-title-row h3,
+.prompt-draft-list p {
+  margin: 0;
+}
+
+.panel-stack fieldset {
+  display: grid;
+  gap: 0.45rem;
+  max-height: 18rem;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  padding: 0.75rem;
+}
+
+.panel-stack .checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.panel-stack .checkbox-row input {
+  width: auto;
+}
+
+.prompt-draft-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.prompt-draft-list article {
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  padding: 0.75rem;
+  background: #fffef9;
+}
+
+.prompt-draft-list article.selected {
+  border-color: #396e66;
+  box-shadow: inset 0 0 0 1px #396e66;
+}
+
 .visual-layout {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1390,8 +1462,15 @@ button.scene-button.active {
   .property-row,
   .timeline-layout,
   .media-import,
-  .visual-layout {
+  .visual-layout,
+  .prompt-layout {
     grid-template-columns: 1fr;
+  }
+
+  .prompt-draft-list article,
+  .button-row {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .structure-header {

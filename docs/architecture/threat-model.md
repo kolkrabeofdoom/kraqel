@@ -34,6 +34,11 @@
   verifizieren Originale vor Veröffentlichung beziehungsweise Wiederherstellung gegen SHA-256
 - visuelle Profile und Stilvorlagen sind projektgebunden, größenbegrenzt und werden nur nach
   erneuter Rust-Validierung gespeichert; ihre Commands besitzen keinen Netzwerkpfad
+- Bildprompt-Entwürfe entstehen nur aus explizit gewählter Szene, visuellen Profilen und optionaler
+  passender Stilvorlage; Szenentext wird als unvertrauenswürdiger Inhalt markiert, Quellrevisionen
+  werden beim ersten Speichern geprüft und kein Prompt-Command besitzt einen Netzwerkpfad
+- Prompt-Textausgaben verwenden feste UUID-Dateinamen und bleiben unter `exports/prompts` im
+  verwalteten Projekt; Snapshot v3 prüft ihre Dokument-, Profil- und Stilreferenzen
 - Betriebssystem-Schlüsselspeicher statt Konfigurationsdateien
 - feste offizielle HTTPS-Endpunkte für Cloudprovider; keine Redirects, Umgebungsproxies oder frei
   konfigurierbaren Produktionsziele
