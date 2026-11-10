@@ -38,6 +38,17 @@ const SNAPSHOT_FILES_V2: [&str; 8] = [
     "visual-profiles.json",
     "README.md",
 ];
+const SNAPSHOT_FILES_V3: [&str; 9] = [
+    "manifest.json",
+    "schema.json",
+    "documents.json",
+    "story-bible.json",
+    "plotboard.json",
+    "timelines.json",
+    "visual-profiles.json",
+    "prompt-drafts.json",
+    "README.md",
+];
 const GITIGNORE: &str = concat!(
     "# KRAQEL: SQLite ist autoritativ; Git erfasst nur portable Snapshots.\n",
     "*\n",
@@ -223,8 +234,11 @@ impl<'project> GitService<'project> {
             }
         }
         validate_snapshot_assets(&root, &manifest.assets)?;
-        if manifest.format_version == 2 {
+        if manifest.format_version >= 2 {
             validate_visual_references(&root, &manifest.assets)?;
+        }
+        if manifest.format_version >= 3 {
+            validate_prompt_references(&root)?;
         }
         let manuscript = root.join(MANUSCRIPT_DIRECTORY);
         if !manuscript.is_dir() {
@@ -482,6 +496,7 @@ impl<'project> GitService<'project> {
                 }))
             },
         )?;
+        let prompt_drafts = query_prompt_drafts(connection, &project_id_text)?;
 
         fs::create_dir(root.join(MANUSCRIPT_DIRECTORY))?;
         write_json(
@@ -504,21 +519,25 @@ impl<'project> GitService<'project> {
             root.join("visual-profiles.json"),
             &json!({"kind": "visualProfiles", "profiles": visual_profiles, "stylePresets": style_presets}),
         )?;
+        write_json(
+            root.join("prompt-drafts.json"),
+            &json!({"kind": "imagePromptDrafts", "drafts": prompt_drafts}),
+        )?;
         fs::write(
             root.join("schema.json"),
-            include_bytes!("../../../docs/data-format/snapshot-v2.schema.json"),
+            include_bytes!("../../../docs/data-format/snapshot-v3.schema.json"),
         )?;
         let assets = write_snapshot_assets(connection, &project_id_text, project_directory, root)?;
         let manifest = Manifest {
             format: "kraqel-project-snapshot".to_owned(),
-            format_version: 2,
+            format_version: 3,
             project: ManifestProject {
                 id: project_id,
                 name,
                 schema_version,
                 settings: serde_json::from_str(&settings)?,
             },
-            files: expected_manifest_files(2)?,
+            files: expected_manifest_files(3)?,
             assets,
         };
         write_json(root.join("manifest.json"), &manifest)?;
@@ -847,6 +866,7 @@ fn expected_manifest_files(format_version: u16) -> Result<Vec<String>, GitServic
     let files: &[&str] = match format_version {
         1 => &SNAPSHOT_FILES_V1,
         2 => &SNAPSHOT_FILES_V2,
+        3 => &SNAPSHOT_FILES_V3,
         _ => return Err(GitServiceError::InvalidSnapshot),
     };
     Ok(files.iter().map(ToString::to_string).collect())
@@ -890,6 +910,11 @@ fn validate_json_file(name: &str, value: &Value) -> Result<(), GitServiceError> 
                     .all(|key| value.get(key).is_some_and(Value::is_array))
                 && validate_visual_data(value)
         }
+        "prompt-drafts.json" => {
+            value.get("kind").and_then(Value::as_str) == Some("imagePromptDrafts")
+                && value.get("drafts").is_some_and(Value::is_array)
+                && validate_prompt_data(value)
+        }
         _ => false,
     };
     if valid {
@@ -897,6 +922,62 @@ fn validate_json_file(name: &str, value: &Value) -> Result<(), GitServiceError> 
     } else {
         Err(GitServiceError::InvalidSnapshot)
     }
+}
+
+fn validate_prompt_data(value: &Value) -> bool {
+    let Some(drafts) = value.get("drafts").and_then(Value::as_array) else {
+        return false;
+    };
+    drafts.iter().all(|draft| {
+        let Some(object) = draft.as_object() else {
+            return false;
+        };
+        let Some(name) = object.get("name").and_then(Value::as_str) else {
+            return false;
+        };
+        let Some(prompt) = object.get("promptText").and_then(Value::as_str) else {
+            return false;
+        };
+        let Some(entity_ids) = object.get("entityIds").and_then(Value::as_array) else {
+            return false;
+        };
+        let unique_ids = entity_ids
+            .iter()
+            .filter_map(Value::as_str)
+            .collect::<BTreeSet<_>>();
+        object.len() == 7
+            && object
+                .get("id")
+                .and_then(Value::as_str)
+                .and_then(kraqel_domain::EntityId::parse)
+                .is_some()
+            && !name.trim().is_empty()
+            && name.chars().count() <= 120
+            && object
+                .get("sourceDocumentId")
+                .and_then(Value::as_str)
+                .and_then(kraqel_domain::EntityId::parse)
+                .is_some()
+            && object
+                .get("sourceDocumentRevision")
+                .and_then(Value::as_u64)
+                .is_some()
+            && !entity_ids.is_empty()
+            && entity_ids.len() <= 32
+            && unique_ids.len() == entity_ids.len()
+            && unique_ids
+                .iter()
+                .all(|id| kraqel_domain::EntityId::parse(id).is_some())
+            && object.get("stylePresetId").is_some_and(|id| {
+                id.is_null()
+                    || id
+                        .as_str()
+                        .and_then(kraqel_domain::EntityId::parse)
+                        .is_some()
+            })
+            && !prompt.trim().is_empty()
+            && prompt.chars().count() <= 200_000
+    })
 }
 
 fn validate_visual_data(value: &Value) -> bool {
@@ -1017,6 +1098,61 @@ fn validate_visual_references(root: &Path, assets: &[Value]) -> Result<(), GitSe
     }
 }
 
+fn validate_prompt_references(root: &Path) -> Result<(), GitServiceError> {
+    let documents: Value = serde_json::from_slice(&fs::read(root.join("documents.json"))?)
+        .map_err(|_| GitServiceError::InvalidSnapshot)?;
+    let visuals: Value = serde_json::from_slice(&fs::read(root.join("visual-profiles.json"))?)
+        .map_err(|_| GitServiceError::InvalidSnapshot)?;
+    let prompts: Value = serde_json::from_slice(&fs::read(root.join("prompt-drafts.json"))?)
+        .map_err(|_| GitServiceError::InvalidSnapshot)?;
+    let document_ids = documents
+        .get("documents")
+        .and_then(Value::as_array)
+        .ok_or(GitServiceError::InvalidSnapshot)?
+        .iter()
+        .filter_map(|document| document.get("id").and_then(Value::as_str))
+        .collect::<BTreeSet<_>>();
+    let profile_ids = visuals
+        .get("profiles")
+        .and_then(Value::as_array)
+        .ok_or(GitServiceError::InvalidSnapshot)?
+        .iter()
+        .filter_map(|profile| profile.get("entityId").and_then(Value::as_str))
+        .collect::<BTreeSet<_>>();
+    let preset_ids = visuals
+        .get("stylePresets")
+        .and_then(Value::as_array)
+        .ok_or(GitServiceError::InvalidSnapshot)?
+        .iter()
+        .filter_map(|preset| preset.get("id").and_then(Value::as_str))
+        .collect::<BTreeSet<_>>();
+    let drafts = prompts
+        .get("drafts")
+        .and_then(Value::as_array)
+        .ok_or(GitServiceError::InvalidSnapshot)?;
+    if drafts.iter().all(|draft| {
+        draft
+            .get("sourceDocumentId")
+            .and_then(Value::as_str)
+            .is_some_and(|id| document_ids.contains(id))
+            && draft
+                .get("entityIds")
+                .and_then(Value::as_array)
+                .is_some_and(|ids| {
+                    ids.iter()
+                        .filter_map(Value::as_str)
+                        .all(|id| profile_ids.contains(id))
+                })
+            && draft.get("stylePresetId").is_some_and(|id| {
+                id.is_null() || id.as_str().is_some_and(|id| preset_ids.contains(id))
+            })
+    }) {
+        Ok(())
+    } else {
+        Err(GitServiceError::InvalidSnapshot)
+    }
+}
+
 fn null_device() -> &'static str {
     if cfg!(windows) { "NUL" } else { "/dev/null" }
 }
@@ -1042,6 +1178,51 @@ fn nonnegative_u64(value: i64) -> rusqlite::Result<u64> {
             Box::new(error),
         )
     })
+}
+
+fn query_prompt_drafts(
+    connection: &Connection,
+    project_id: &str,
+) -> Result<Value, GitServiceError> {
+    let rows = {
+        let mut statement = connection.prepare(
+            "SELECT id, name, source_document_id, source_document_revision,
+                    style_preset_id, prompt_text
+             FROM image_prompt_draft WHERE project_id = ?1 ORDER BY id",
+        )?;
+        statement
+            .query_map([project_id], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, i64>(3)?,
+                    row.get::<_, Option<String>>(4)?,
+                    row.get::<_, String>(5)?,
+                ))
+            })?
+            .collect::<Result<Vec<_>, _>>()?
+    };
+    let mut drafts = Vec::with_capacity(rows.len());
+    for (id, name, document_id, revision, style_preset_id, prompt_text) in rows {
+        let mut statement = connection.prepare(
+            "SELECT entity_id FROM image_prompt_draft_profile
+             WHERE project_id = ?1 AND draft_id = ?2 ORDER BY position",
+        )?;
+        let entity_ids = statement
+            .query_map(params![project_id, id], |row| row.get::<_, String>(0))?
+            .collect::<Result<Vec<_>, _>>()?;
+        drafts.push(json!({
+            "id": id,
+            "name": name,
+            "sourceDocumentId": document_id,
+            "sourceDocumentRevision": nonnegative_u64(revision)?,
+            "entityIds": entity_ids,
+            "stylePresetId": style_preset_id,
+            "promptText": prompt_text,
+        }));
+    }
+    Ok(Value::Array(drafts))
 }
 
 fn query_rows<F>(
@@ -1299,6 +1480,7 @@ mod tests {
         service.create_snapshot(opened.database(), id).unwrap();
         let snapshot = opened.directory().join("snapshot");
         fs::remove_file(snapshot.join("visual-profiles.json")).unwrap();
+        fs::remove_file(snapshot.join("prompt-drafts.json")).unwrap();
         fs::write(
             snapshot.join("schema.json"),
             include_bytes!("../../../docs/data-format/snapshot-v1.schema.json"),
@@ -1315,6 +1497,33 @@ mod tests {
             .validate_snapshot(id)
             .expect("v1 should remain readable");
         assert_eq!(summary.format_version, 1);
+    }
+
+    #[test]
+    fn validation_keeps_reading_legacy_v2_snapshots() {
+        let (root, id) = fixture();
+        let manager = ProjectManager::new(root.path()).unwrap();
+        let opened = manager.open_project(id.to_string()).unwrap();
+        let service = GitService::new(opened.directory());
+        service.create_snapshot(opened.database(), id).unwrap();
+        let snapshot = opened.directory().join("snapshot");
+        fs::remove_file(snapshot.join("prompt-drafts.json")).unwrap();
+        fs::write(
+            snapshot.join("schema.json"),
+            include_bytes!("../../../docs/data-format/snapshot-v2.schema.json"),
+        )
+        .unwrap();
+        let manifest_path = snapshot.join("manifest.json");
+        let mut manifest: serde_json::Value =
+            serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+        manifest["formatVersion"] = serde_json::json!(2);
+        manifest["files"] = serde_json::json!(super::SNAPSHOT_FILES_V2);
+        super::write_json(manifest_path, &manifest).unwrap();
+
+        let summary = service
+            .validate_snapshot(id)
+            .expect("v2 should remain readable");
+        assert_eq!(summary.format_version, 2);
     }
 
     #[test]
@@ -1402,6 +1611,74 @@ mod tests {
         fs::write(
             &path,
             text.replace(&entity_id.to_string(), &EntityId::new().to_string()),
+        )
+        .unwrap();
+        assert!(matches!(
+            service.validate_snapshot(id),
+            Err(GitServiceError::InvalidSnapshot)
+        ));
+    }
+
+    #[test]
+    fn snapshot_contains_prompt_drafts_and_rejects_broken_sources() {
+        let (root, id) = fixture();
+        let manager = ProjectManager::new(root.path()).unwrap();
+        let opened = manager.open_project(id.to_string()).unwrap();
+        let scene_id = EntityId::new();
+        let entity_id = EntityId::new();
+        let draft_id = EntityId::new();
+        opened.database().connection().execute(
+            "INSERT INTO document (id, project_id, kind, title, position, revision, plain_text, created_at, updated_at)
+             VALUES (?1, ?2, 'scene', 'Turm', 1, 4, 'Abendlicht', '0', '0')",
+            rusqlite::params![scene_id.to_string(), id.to_string()],
+        ).unwrap();
+        opened
+            .database()
+            .connection()
+            .execute(
+                "INSERT INTO entity (id, project_id, kind, name, created_at, updated_at)
+             VALUES (?1, ?2, 'character', 'Rhea', '0', '0')",
+                rusqlite::params![entity_id.to_string(), id.to_string()],
+            )
+            .unwrap();
+        opened
+            .database()
+            .connection()
+            .execute(
+                "INSERT INTO visual_profile (entity_id, project_id, created_at, updated_at)
+             VALUES (?1, ?2, '0', '0')",
+                rusqlite::params![entity_id.to_string(), id.to_string()],
+            )
+            .unwrap();
+        opened
+            .database()
+            .connection()
+            .execute(
+                "INSERT INTO image_prompt_draft (
+                id, project_id, name, source_document_id, source_document_revision,
+                prompt_text, created_at, updated_at
+             ) VALUES (?1, ?2, 'Turm bei Nacht', ?3, 4, 'Kolkrabe im Abendlicht', '0', '0')",
+                rusqlite::params![draft_id.to_string(), id.to_string(), scene_id.to_string()],
+            )
+            .unwrap();
+        opened
+            .database()
+            .connection()
+            .execute(
+                "INSERT INTO image_prompt_draft_profile (draft_id, project_id, entity_id, position)
+             VALUES (?1, ?2, ?3, 0)",
+                rusqlite::params![draft_id.to_string(), id.to_string(), entity_id.to_string()],
+            )
+            .unwrap();
+
+        let service = GitService::new(opened.directory());
+        service.create_snapshot(opened.database(), id).unwrap();
+        let path = opened.directory().join("snapshot/prompt-drafts.json");
+        let text = fs::read_to_string(&path).unwrap();
+        assert!(text.contains("Kolkrabe im Abendlicht"));
+        fs::write(
+            &path,
+            text.replace(&scene_id.to_string(), &EntityId::new().to_string()),
         )
         .unwrap();
         assert!(matches!(

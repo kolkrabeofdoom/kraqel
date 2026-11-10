@@ -158,6 +158,27 @@ export interface StylePreset {
   readonly applicableKinds: readonly EntityKind[];
 }
 
+export interface ImagePromptComposition {
+  readonly projectId: ProjectId;
+  readonly documentId: EntityId;
+  readonly documentTitle: string;
+  readonly documentRevision: number;
+  readonly entityIds: readonly EntityId[];
+  readonly stylePresetId: EntityId | null;
+  readonly promptText: string;
+}
+
+export interface ImagePromptDraft {
+  readonly id: EntityId;
+  readonly projectId: ProjectId;
+  readonly name: string;
+  readonly sourceDocumentId: EntityId;
+  readonly sourceDocumentRevision: number;
+  readonly entityIds: readonly EntityId[];
+  readonly stylePresetId: EntityId | null;
+  readonly promptText: string;
+}
+
 export interface Project {
   readonly id: ProjectId;
   readonly name: string;

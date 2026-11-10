@@ -5,6 +5,8 @@ import {
   KraqelCommandError,
   analyzeContinuity,
   commitProjectSnapshot,
+  composeImagePrompt,
+  createImagePromptDraft,
   createStoryEntity,
   reorderPlotCards,
   getApplicationStatus,
@@ -17,6 +19,7 @@ import {
   saveVisualProfile,
   streamTextDraft,
   validateProjectName,
+  exportImagePromptDraft,
 } from "./commands";
 import type { EntityId, ProjectId } from "@kraqel/domain";
 import { EDITOR_DOCUMENT_VERSION } from "@kraqel/editor";
@@ -251,6 +254,69 @@ describe("typed Tauri commands", () => {
           visualRules: { Palette: "monochrom" },
           applicableKinds: ["character"],
         },
+      },
+    });
+  });
+
+  it("keeps image prompt composition, saving and export behind local typed commands", async () => {
+    const projectId = requestId as ProjectId;
+    const documentId = "018f47ea-9b2d-7cc1-98e8-b5f4f6b741a3" as EntityId;
+    const entityId = "018f47ea-9b2d-7cc1-98e8-b5f4f6b741a4" as EntityId;
+    const composition = {
+      projectId,
+      documentId,
+      documentTitle: "Turm",
+      documentRevision: 3,
+      entityIds: [entityId],
+      stylePresetId: null,
+      promptText: "Kolkrabe im Abendlicht",
+    };
+    mockedInvoke.mockResolvedValueOnce({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: composition,
+    });
+    await expect(composeImagePrompt(projectId, documentId, [entityId], null)).resolves.toEqual(
+      composition,
+    );
+    expect(mockedInvoke).toHaveBeenLastCalledWith("compose_image_prompt", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: { projectId, documentId, entityIds: [entityId], stylePresetId: null },
+      },
+    });
+
+    mockedInvoke.mockResolvedValueOnce({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: { id: entityId, name: "Turm", promptText: composition.promptText },
+    });
+    await createImagePromptDraft(projectId, "Turm", composition, composition.promptText);
+    expect(mockedInvoke).toHaveBeenLastCalledWith("create_image_prompt_draft", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: {
+          projectId,
+          name: "Turm",
+          composition,
+          promptText: composition.promptText,
+        },
+      },
+    });
+
+    mockedInvoke.mockResolvedValueOnce({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: { fileName: `bildprompt-${entityId}.txt`, byteCount: 24 },
+    });
+    await exportImagePromptDraft(projectId, entityId);
+    expect(mockedInvoke).toHaveBeenLastCalledWith("export_image_prompt_draft", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: { projectId, draftId: entityId },
       },
     });
   });

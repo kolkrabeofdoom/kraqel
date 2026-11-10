@@ -9,8 +9,8 @@ ihrem Unterbaum ergänzen. Vor jeder Änderung sind mindestens diese Datei und
 KRAQEL ist als quelloffenes, offlinefähiges Autorenstudio für Romane, Drehbücher und
 Rollenspielmodule geplant. Primärplattform ist Windows. Das Repository enthält das M0-Fundament,
 einen ersten M1-Schreibablauf, die M2-Strukturwerkzeuge, portable Snapshots und lokale
-Git-Versionierung, eine lokale Medienbibliothek und visuelle Profile aus M3 sowie einen ersten
-M4-Kontinuitätsablauf, aber keine produktionsreife Anwendung. Verifizierte Implementierungen und
+Git-Versionierung, eine lokale Medienbibliothek und visuelle Profile aus M3 sowie Kontinuitäts- und
+Bildprompt-Abläufe aus M4, aber keine produktionsreife Anwendung. Verifizierte Implementierungen und
 geplante Funktionen sind strikt zu unterscheiden; der verbindliche Stand steht in
 `docs/DEVELOPMENT_STATUS.md`.
 
@@ -40,16 +40,16 @@ Aktuell im Repository und verifiziert:
 - **Workspaces:** pnpm-Monorepo für TypeScript, Cargo-Workspace für Rust.
 - **Verträge:** versionierte Request-/Response-Hüllen, UUID-Typen und bereinigte IPC-Fehler in Rust
   und TypeScript.
-- **Persistenz:** SQLite-Migrationsstand 4 mit Fremdschlüsseln, FTS5, Medienmetadaten, visuellen
-  Profilen und Stilvorlagen im `kraqel-storage`-Crate; sicherer Projektlebenszyklus mit Datenbank-
-  und Assetbackup.
+- **Persistenz:** SQLite-Migrationsstand 5 mit Fremdschlüsseln, FTS5, Medienmetadaten, visuellen
+  Profilen, Stilvorlagen und Bildprompt-Entwürfen im `kraqel-storage`-Crate; sicherer
+  Projektlebenszyklus mit Datenbank- und Assetbackup.
 - **Story-Bibel:** typisierte Figuren, Orte, Fraktionen und Gegenstände, freie Eigenschaften,
   gerichtete Relationen, Unicode-Suche und Szenen-Rückverweise über das bestehende SQLite-Schema.
 - **Strukturwerkzeuge:** persistente Szenenkarten, Handlungsstränge, POV/Status sowie parallele
   relative und absolute Zeitebenen mit Szenen- und Entitätslinks.
-- **Versionierung:** deterministische JSON-/Markdown-Snapshots, formales Schema und kontrollierte
+- **Versionierung:** deterministische JSON-/Markdown-Snapshots v3, formales Schema und kontrollierte
   lokale Git-Operationen für Init, Status, Diff und Commit; geeignete Assets werden nach SHA-256
-  kopiert, SQLite und Nebenartefakte bleiben ausgeschlossen.
+  kopiert, Prompt-Quellen referenziell geprüft, SQLite und Nebenartefakte bleiben ausgeschlossen.
 - **Export:** streng validierte gemeinsame Manuskriptrepräsentation und lokale, atomare Ausgabe als
   Markdown, eigenständiges HTML, DOCX oder A4-PDF; unbekannte Editorformatierungen werden abgelehnt
   statt verworfen.
@@ -64,14 +64,17 @@ Aktuell im Repository und verifiziert:
   Metadaten/Tags, Links zu Szenen, Story-Bibel und Ereignissen sowie sicherer Ersatz und Löschung.
 - **Visuelle Profile:** strukturierte Kernmerkmale, Ausschlüsse, kanonische Referenzassets und
   projektweite Stilvorlagen mit Entitäts-Geltungsbereichen.
+- **Bildprompt-Builder:** explizite Szenen-, Profil- und Stilauswahl, deterministische lokale
+  Zusammensetzung, vollständige Bearbeitung, persistente Entwürfe und UTF-8-Textausgabe ohne
+  Provider- oder Netzwerkzugriff.
 - **Qualität:** Prettier, ESLint, TypeScript-Checks, Vitest, Rust-Tests, rustfmt und Clippy mit
   Warnungen als Fehler; GitHub Actions unter Windows und Linux.
 
 Im Pflichtenheft vorgesehen, aber noch **nicht implementiert oder installiert**: Tailwind, React
-Flow, dnd-kit, Playwright, Prompt-Builder, Bild-Capability-Registry, KI-basierte
-Kontinuitätshinweise und Bildgenerierung. Ollama und Cloudprovider werden unterstützt, aber weder
-lokale Modelle noch Cloudzugänge mit KRAQEL ausgeliefert. Eine bloße Typdefinition oder ein leeres
-Crate ist keine fertige Funktion - auch wenn es sehr selbstbewusst kompiliert.
+Flow, dnd-kit, Playwright, Bild-Capability-Registry, KI-basierte Kontinuitätshinweise und
+Bildgenerierung. Ollama und Cloudprovider werden unterstützt, aber weder lokale Modelle noch
+Cloudzugänge mit KRAQEL ausgeliefert. Eine bloße Typdefinition oder ein leeres Crate ist keine
+fertige Funktion - auch wenn es sehr selbstbewusst kompiliert.
 
 ## Verzeichnisstruktur und Verantwortlichkeiten
 
@@ -83,9 +86,9 @@ Crate ist keine fertige Funktion - auch wenn es sehr selbstbewusst kompiliert.
 | `packages/editor/`           | Editorvertrag, Baum, Autosave und Tiptap-Hilfsfunktionen     | M1-Grundfunktionen getestet             |
 | `packages/ui/`               | Geteilte zugängliche UI-Komponenten                          | Nur Platzhalterkonstante                |
 | `packages/ai-contracts/`     | Provider-, Capability-, Stream- und Freigabeverträge         | Lokale und Cloud-Textverträge           |
-| `packages/visual-contracts/` | Medien-, Profil- und Stilvorlagenverträge                    | KQ-014-Verträge                         |
+| `packages/visual-contracts/` | Medien-, Profil-, Stil- und Promptverträge                   | KQ-015-Verträge                         |
 | `crates/domain/`             | Rust-Domäne und versionierte Command-Verträge                | Dokument- und Story-Modell              |
-| `crates/storage/`            | SQLite, Projektlebenszyklus und fachliche Repositories       | Dokumente, Struktur, Medien und Profile |
+| `crates/storage/`            | SQLite, Projektlebenszyklus und fachliche Repositories       | Dokumente, Struktur, Medien und Prompts |
 | `crates/git-service/`        | Deterministische Snapshots und Git-Operationen               | Lokaler M3-Mindestumfang                |
 | `crates/export/`             | Validierung, Zwischenformat und atomarer Manuskriptexport    | M3-Textformate getestet                 |
 | `crates/ai-service/`         | Textprovider, Schlüsselspeicher und sichere Streaminggrenzen | KQ-010/011-Protokollumfang              |

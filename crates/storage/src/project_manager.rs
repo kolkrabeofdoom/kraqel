@@ -770,6 +770,12 @@ fn verify_restore_source(path: &Path) -> Result<(), ProjectError> {
                             'style_preset_project_name_idx',
                             'visual_profile_asset_before_insert',
                             'visual_profile_asset_before_update',
+                            'visual_profile_project_entity_idx',
+                            'image_prompt_draft', 'image_prompt_draft_profile',
+                            'image_prompt_draft_project_idx',
+                            'image_prompt_profile_after_delete',
+                            'image_prompt_style_before_insert',
+                            'image_prompt_style_before_update',
                             'document_fts', 'document_fts_after_insert',
                             'document_fts_after_update', 'document_fts_after_delete')",
             [],
@@ -781,6 +787,7 @@ fn verify_restore_source(path: &Path) -> Result<(), ProjectError> {
         2 => 15,
         3 => 20,
         4 => 25,
+        5 => 32,
         _ => return Err(ProjectError::InvalidDatabase),
     };
     if required == expected {
@@ -818,13 +825,19 @@ fn verify_connection(connection: &Connection) -> Result<(), ProjectError> {
                             'style_preset_project_name_idx',
                             'visual_profile_asset_before_insert',
                             'visual_profile_asset_before_update',
+                            'visual_profile_project_entity_idx',
+                            'image_prompt_draft', 'image_prompt_draft_profile',
+                            'image_prompt_draft_project_idx',
+                            'image_prompt_profile_after_delete',
+                            'image_prompt_style_before_insert',
+                            'image_prompt_style_before_update',
                             'document_fts', 'document_fts_after_insert',
                             'document_fts_after_update', 'document_fts_after_delete')",
             [],
             |row| row.get(0),
         )
         .map_err(|_| ProjectError::InvalidDatabase)?;
-    if object_count != 25 {
+    if object_count != 32 {
         return Err(ProjectError::InvalidDatabase);
     }
 
