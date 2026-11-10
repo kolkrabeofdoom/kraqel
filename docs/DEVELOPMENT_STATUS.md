@@ -2,7 +2,7 @@
 
 Stand: 10. November 2026
 
-Code-Referenz: KQ-020 (PR #37)
+Code-Referenz: KQ-021 (PR #39)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -16,7 +16,7 @@ als vollständige Fachfunktion.
 | ------------ | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                                                                |
 | **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, Undo/Redo, Wortzählung, Fokusmodus, konfliktgeprüfter Autosave sowie sicheres Umbenennen, Umordnen, Löschen und SQLite-Backup vorhanden. Echte Tauri-/Screenreader-Abnahme fehlt. |
-| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks vorhanden. Browser-/Screenreader-Abnahme fehlt.                                                                                  |
+| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks vorhanden. Story-Bibel ist browserseitig E2E-geprüft; Plotboard-, Timeline-, Tauri- und Screenreader-Abnahme fehlen.             |
 | **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, lokale Medienbibliothek sowie visuelle Profile und Stilvorlagen mit Backup und Snapshot vorhanden. Textimport und schreibende Snapshot-Wiederherstellung fehlen.                                               |
 | **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Technischer 0.1-Umfang weitgehend umgesetzt:** Textprotokolle, Offline-Kontinuität, Prompt-Entwürfe sowie provider- und modellspezifische Bild-Capability- und Jobverträge vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise und Bildgenerierung fehlen.                      |
 | **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                                                                                                                           |
@@ -33,8 +33,8 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Tauri-2-/React-/TypeScript-Desktop-Shell mit statischer, responsiver Startoberfläche.
 - Minimale Tauri-Berechtigung `core:default`, definierte CSP und Windows-Fensterkonfiguration.
 - GitHub-Actions-CI unter `windows-latest` und `ubuntu-latest`.
-- Playwright mit Chromium und einem testexklusiven Browser-Command-Adapter für den M1-Kernablauf;
-  die CI führt ihn unter Windows und Linux aus.
+- Playwright mit Chromium und einem testexklusiven Browser-Command-Adapter für M1 und Story-Bibel;
+  die CI führt beide fachlich getrennten Abläufe unter Windows und Linux aus.
 - Qualitätskette: Prettier, rustfmt, ESLint, Clippy mit `-D warnings`, TypeScript, Vitest,
   Rust-Tests sowie Frontend- und Workspace-Builds.
 - GPL-3.0-or-later, Beitrags-, Verhaltens- und Sicherheitsdokumentation vorhanden.
@@ -120,8 +120,11 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Zugängliche React-Oberfläche mit beschrifteten Formularen, sichtbaren Fokuszuständen,
   Tastaturbedienung sowie textlich erkennbarer Beziehungsrichtung.
 - Automatisierte Repository-Tests decken Suche, Eigenschaften, Richtungstreue, Löschregeln,
-  Rückverweise und Backup/Recovery ab. IPC- und TypeScript-Tests prüfen den vertikalen Vertrag.
-  Browser-/Screenreader-Abnahme bleibt als manueller Testfall dokumentiert.
+  Rückverweise und Backup/Recovery ab. IPC- und TypeScript-Tests prüfen den vertikalen Vertrag. Ein
+  Playwright-Ablauf prüft zusätzlich Erstellung, Eigenschaftssuche, gerichtete Beziehungen und
+  Szenen-Rücksprung in Chromium. Dabei wurden die Listenaktualisierung nach dem Anlegen und der
+  asynchrone Zugriff auf React-Ereignisse in Eigenschaftsfeldern korrigiert. Tauri-/Screenreader-
+  Abnahme bleibt als eigener Testfall offen.
 
 ### Plotboard und parallele Timelines (KQ-007)
 
@@ -335,9 +338,9 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 ### Unmittelbar: 0.1 stabilisieren
 
-1. **Tastatur- und Browserabnahme der bisherigen M2- bis M4-Ansichten vorbereiten**
+1. **Tastatur- und Browserabnahme der verbleibenden M2- bis M4-Ansichten fortsetzen**
    - kleine, fachlich getrennte Playwright-Abläufe statt eines allwissenden Riesentests ergänzen
-   - mit Story-Bibel und Rücksprung in das Manuskript beginnen
+   - als Nächstes Plotboard und Timeline mit Rücksprung in das Manuskript prüfen
 2. **Gebündelte Tauri-Anwendung und Screenreader separat abnehmen**
 
 ### Danach gemäß Pflichtenheft
@@ -398,10 +401,10 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
   FTS-Migration nötig.
 - **Dependency Review eingeschränkt:** Der GitHub-Job wird bei privaten Repositories ohne GitHub
   Advanced Security bewusst übersprungen. Lockfiles und reguläre CI bleiben aktiv.
-- Die vollständige lokale KQ-020-Qualitätskette ist grün: 37 TypeScript-, 91 ausgeführte Rust- und
-  ein Playwright-E2E-Test, Formatierung, ESLint, Clippy, Typprüfung sowie Desktop-Build. Ein
-  visueller Export-QA-Test bleibt planmäßig ignoriert. PR #37 bestätigt die Matrix einschließlich
-  Chromium-E2E unter Windows und Linux.
+- Die vollständige lokale KQ-021-Qualitätskette ist grün: 37 TypeScript-, 91 ausgeführte Rust- und
+  zwei Playwright-E2E-Tests, Formatierung, ESLint, Clippy, Typprüfung sowie Desktop-Build. Ein
+  visueller Export-QA-Test bleibt planmäßig ignoriert. PR #39 bestätigt die Matrix einschließlich
+  beider Chromium-E2E-Abläufe unter Windows und Linux.
 
 ## Wichtige Architekturentscheidungen
 
@@ -475,7 +478,7 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 | Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                             | Freie eingebettete Schrift und Medienkonzept prüfen                   |
 | Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                   | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen              |
 | Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                    | Bei jeder Erweiterung Fixtures und Migration prüfen                   |
-| Desktoptests                 | M1-Browser-E2E sowie Unit-/IPC-Tests vorhanden; keine gebündelte Tauri-/Screenreader-Abnahme                | Story-Bibel als nächsten Browserablauf, Tauri separat prüfen          |
+| Desktoptests                 | M1- und Story-Bibel-Browser-E2E sowie Unit-/IPC-Tests; keine gebündelte Tauri-/Screenreader-Abnahme         | Plotboard und Timeline browserseitig, Tauri separat prüfen            |
 | CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                               | Caching prüfen, ohne Reproduzierbarkeit zu schwächen                  |
 | Abhängigkeitssicherheit      | GitHub Dependency Review privat nicht verfügbar                                                             | Alternative Audits oder Advanced Security später bewerten             |
 | Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                    | Plattformmatrix je Release definieren                                 |
@@ -491,13 +494,14 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 
 ## Nächste geplante Entwicklungsstufe
 
-**0.1-Stabilisierung: Browserabnahme der M2-Strukturwerkzeuge.**
+**0.1-Stabilisierung: Browserabnahme von Plotboard und Timeline.**
 
 Empfohlener, überprüfbarer Scope:
 
-1. Story-Bibel-Erstellung, Suche, Beziehung und Rücksprung zur Szene mit künstlichen Daten prüfen.
-2. Tastaturbedienung und Fokusführung gezielt ergänzen, ohne Screenreader-Abnahme zu behaupten.
-3. Tauri-WebDriver beziehungsweise eine manuelle Windows-Abnahme als getrennten Nachweis planen.
+1. Plotkarten, Status, Handlungsstrang und tastaturbedienbare Reihenfolge mit künstlichen Daten
+   prüfen.
+2. Relative und absolute Timeline-Ereignisse sowie Szenen-Rücksprung browserseitig abnehmen.
+3. Tastaturbedienung und Fokusführung gezielt ergänzen, ohne Screenreader-Abnahme zu behaupten.
 4. KQ-017 und echte Bildprovider bis Version 0.2 ausdrücklich außerhalb des Scopes halten.
 
 ## Einstieg für die nächste Codex-Session
@@ -507,9 +511,9 @@ cd D:\kraqel
 git status
 git branch --show-current
 git log -5 --oneline
-rg "Story-Bibel|E2E|Playwright" docs ROADMAP.md
+rg "Plotboard|Timeline|E2E|Playwright" docs ROADMAP.md
 ```
 
-Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0005, `StoryBible.tsx` und die
-Pflichtenheft-Abschnitte zu F02, M2 und M5. Vor Änderungen zuerst ein eigenes Issue mit kleinem,
+Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0006, `PlotBoard.tsx`, `Timelines.tsx` und die
+Pflichtenheft-Abschnitte zu F03, M2 und M5. Vor Änderungen zuerst ein eigenes Issue mit kleinem,
 fachlich geschlossenem Browserablauf und klarer Abgrenzung zur Screenreader-Abnahme anlegen.

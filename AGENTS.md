@@ -71,8 +71,8 @@ Aktuell im Repository und verifiziert:
   versionierte Generation-Job-, Freigabe-, Herkunfts- und Fehlerverträge; nur lokaler Test-Mock,
   keine produktive Bildausführung.
 - **Qualität:** Prettier, ESLint, TypeScript-Checks, Vitest, Rust-Tests, rustfmt und Clippy mit
-  Warnungen als Fehler sowie Playwright-Browser-E2E für den M1-Kernablauf; GitHub Actions unter
-  Windows und Linux.
+  Warnungen als Fehler sowie Playwright-Browser-E2E für den M1-Kernablauf und die Story-Bibel;
+  GitHub Actions unter Windows und Linux.
 
 Im Pflichtenheft vorgesehen, aber noch **nicht implementiert oder installiert**: Tailwind, React
 Flow, dnd-kit, KI-basierte Kontinuitätshinweise und produktive Bildgenerierung. Ollama und
@@ -144,7 +144,7 @@ pnpm format:check               # reine Formatprüfung
 pnpm lint                       # ESLint und Clippy
 pnpm typecheck                  # TypeScript ohne Ausgabe prüfen
 pnpm test                       # TypeScript-/Vitest-Tests
-pnpm test:e2e                   # Playwright-M1-Ablauf im Chromium-Browser
+pnpm test:e2e                   # Playwright-Kernabläufe im Chromium-Browser
 pnpm check                      # verbindliche Gesamtprüfung inkl. Rust-Tests
 pnpm build                      # alle TypeScript-Pakete und Frontend bauen
 cargo test --workspace          # Rust-Tests
@@ -158,8 +158,8 @@ pnpm --filter @kraqel/desktop exec playwright install chromium
 ```
 
 Der Playwright-Lauf verwendet ausschließlich im E2E-Devserver einen lokalen Command-Adapter. Er
-prüft React, Tiptap, Autosave und den Dokumentbaum, aber weder die gebündelte Tauri-Anwendung noch
-Rust, Betriebssystemdialoge oder Screenreader.
+prüft React-Abläufe für Editor, Dokumentbaum und Story-Bibel, aber weder die gebündelte
+Tauri-Anwendung noch Rust, Betriebssystemdialoge oder Screenreader.
 
 Für kleine Änderungen zuerst gezielt prüfen, zum Beispiel:
 

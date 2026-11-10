@@ -1,4 +1,13 @@
-import type { DocumentKind, DocumentNode, Project } from "@kraqel/domain";
+import type {
+  DocumentKind,
+  DocumentNode,
+  EntityId,
+  EntityKind,
+  Project,
+  StoryEntity,
+  StoryEntityDetails,
+  StoryRelation,
+} from "@kraqel/domain";
 import { plainTextFromDocument, type EditorDocument } from "@kraqel/editor";
 
 const STORAGE_KEY = "kraqel-e2e-command-state-v1";
@@ -12,6 +21,14 @@ interface StoredDocument {
 interface TestProject {
   project: Project;
   documents: StoredDocument[];
+  storyEntities: StoryEntity[];
+  storyRelations: StoryRelation[];
+  storyLinks: StoryLink[];
+}
+
+interface StoryLink {
+  documentId: EntityId;
+  entityId: EntityId;
 }
 
 interface TestState {
@@ -66,6 +83,9 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       const created: TestProject = {
         project,
         documents: [storedDocument(chapter), storedDocument(scene)],
+        storyEntities: [],
+        storyRelations: [],
+        storyLinks: [],
       };
       state.projects.push(created);
       writeState(state);
@@ -142,12 +162,109 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       const deletedIds = [target.node.id, ...childIds];
       const deleted = new Set(deletedIds);
       current.documents = current.documents.filter(({ node }) => !deleted.has(node.id));
+      current.storyLinks = current.storyLinks.filter(({ documentId }) => !deleted.has(documentId));
       compactPositions(current);
       writeState(state);
       return { deletedIds };
     }
+    case "list_story_entities": {
+      const current = findProject(state, payload.projectId);
+      const query = String(payload.query).trim().toLocaleLowerCase();
+      const kind = payload.kind as EntityKind | null;
+      return current.storyEntities
+        .filter((entity) => kind === null || entity.kind === kind)
+        .filter((entity) => {
+          if (!query) return true;
+          const values = [entity.name, ...Object.entries(entity.properties).flat()];
+          return values.some((value) => value.toLocaleLowerCase().includes(query));
+        })
+        .sort(compareStoryEntities);
+    }
+    case "create_story_entity": {
+      const current = findProject(state, payload.projectId);
+      const entity: StoryEntity = {
+        id: crypto.randomUUID() as EntityId,
+        projectId: current.project.id,
+        kind: payload.kind as EntityKind,
+        name: String(payload.name).trim(),
+        properties: structuredClone(payload.properties) as Readonly<Record<string, string>>,
+      };
+      current.storyEntities.push(entity);
+      writeState(state);
+      return entity;
+    }
+    case "update_story_entity": {
+      const current = findProject(state, payload.projectId);
+      const index = current.storyEntities.findIndex(({ id }) => id === payload.entityId);
+      if (index < 0) throw new Error("Unknown E2E story entity");
+      const entity: StoryEntity = {
+        id: payload.entityId as EntityId,
+        projectId: current.project.id,
+        kind: payload.kind as EntityKind,
+        name: String(payload.name).trim(),
+        properties: structuredClone(payload.properties) as Readonly<Record<string, string>>,
+      };
+      current.storyEntities[index] = entity;
+      writeState(state);
+      return entity;
+    }
+    case "load_story_entity":
+      return storyEntityDetails(findProject(state, payload.projectId), payload.entityId);
+    case "delete_story_entity": {
+      const current = findProject(state, payload.projectId);
+      current.storyEntities = current.storyEntities.filter(({ id }) => id !== payload.entityId);
+      current.storyRelations = current.storyRelations.filter(
+        ({ sourceEntityId, targetEntityId }) =>
+          sourceEntityId !== payload.entityId && targetEntityId !== payload.entityId,
+      );
+      current.storyLinks = current.storyLinks.filter(
+        ({ entityId }) => entityId !== payload.entityId,
+      );
+      writeState(state);
+      return null;
+    }
+    case "create_story_relation": {
+      const current = findProject(state, payload.projectId);
+      findStoryEntity(current, payload.sourceEntityId);
+      findStoryEntity(current, payload.targetEntityId);
+      const relation: StoryRelation = {
+        id: crypto.randomUUID() as EntityId,
+        projectId: current.project.id,
+        sourceEntityId: payload.sourceEntityId as EntityId,
+        targetEntityId: payload.targetEntityId as EntityId,
+        kind: String(payload.kind).trim(),
+        properties: structuredClone(payload.properties) as Readonly<Record<string, string>>,
+      };
+      current.storyRelations.push(relation);
+      writeState(state);
+      return relation;
+    }
+    case "delete_story_relation": {
+      const current = findProject(state, payload.projectId);
+      current.storyRelations = current.storyRelations.filter(({ id }) => id !== payload.relationId);
+      writeState(state);
+      return null;
+    }
+    case "link_story_entity": {
+      const current = findProject(state, payload.projectId);
+      findStoredDocument(current, payload.documentId);
+      findStoryEntity(current, payload.entityId);
+      if (
+        !current.storyLinks.some(
+          ({ documentId, entityId }) =>
+            documentId === payload.documentId && entityId === payload.entityId,
+        )
+      ) {
+        current.storyLinks.push({
+          documentId: payload.documentId as EntityId,
+          entityId: payload.entityId as EntityId,
+        });
+      }
+      writeState(state);
+      return storyEntityDetails(current, payload.entityId);
+    }
     default:
-      throw new Error(`Command ${command} is not available in the M1 E2E adapter`);
+      throw new Error(`Command ${command} is not available in the browser E2E adapter`);
   }
 }
 
@@ -194,6 +311,40 @@ function findStoredDocument(current: TestProject, id: unknown): StoredDocument {
   const document = current.documents.find(({ node }) => node.id === id);
   if (!document) throw new Error("Unknown E2E document");
   return document;
+}
+
+function findStoryEntity(current: TestProject, id: unknown): StoryEntity {
+  const entity = current.storyEntities.find((candidate) => candidate.id === id);
+  if (!entity) throw new Error("Unknown E2E story entity");
+  return entity;
+}
+
+function storyEntityDetails(current: TestProject, id: unknown): StoryEntityDetails {
+  const entity = findStoryEntity(current, id);
+  return {
+    entity,
+    outgoingRelations: current.storyRelations.filter(
+      ({ sourceEntityId }) => sourceEntityId === entity.id,
+    ),
+    incomingRelations: current.storyRelations.filter(
+      ({ targetEntityId }) => targetEntityId === entity.id,
+    ),
+    backlinks: current.storyLinks
+      .filter(({ entityId }) => entityId === entity.id)
+      .map(({ documentId }) => {
+        const document = findStoredDocument(current, documentId).node;
+        return {
+          documentId: document.id,
+          documentTitle: document.title,
+          documentKind: document.kind,
+          role: "reference",
+        };
+      }),
+  };
+}
+
+function compareStoryEntities(left: StoryEntity, right: StoryEntity): number {
+  return left.name.localeCompare(right.name, "de") || left.id.localeCompare(right.id);
 }
 
 function compactPositions(current: TestProject): void {
