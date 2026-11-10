@@ -8,11 +8,11 @@ ihrem Unterbaum ergänzen. Vor jeder Änderung sind mindestens diese Datei und
 
 KRAQEL ist als quelloffenes, offlinefähiges Autorenstudio für Romane, Drehbücher und
 Rollenspielmodule geplant. Primärplattform ist Windows. Das Repository enthält das M0-Fundament,
-einen ersten M1-Schreibablauf, die M2-Strukturwerkzeuge, portable Snapshots und lokale
-Git-Versionierung, eine lokale Medienbibliothek und visuelle Profile aus M3 sowie Kontinuitäts- und
-Bildprompt-Abläufe aus M4, aber keine produktionsreife Anwendung. Verifizierte Implementierungen und
-geplante Funktionen sind strikt zu unterscheiden; der verbindliche Stand steht in
-`docs/DEVELOPMENT_STATUS.md`.
+einen browserseitig E2E-geprüften M1-Schreibablauf, die M2-Strukturwerkzeuge, portable Snapshots und
+lokale Git-Versionierung, eine lokale Medienbibliothek und visuelle Profile aus M3 sowie
+Kontinuitäts- und Bildprompt-Abläufe aus M4, aber keine produktionsreife Anwendung. Verifizierte
+Implementierungen und geplante Funktionen sind strikt zu unterscheiden; der verbindliche Stand steht
+in `docs/DEVELOPMENT_STATUS.md`.
 
 Leitplanken:
 
@@ -71,19 +71,20 @@ Aktuell im Repository und verifiziert:
   versionierte Generation-Job-, Freigabe-, Herkunfts- und Fehlerverträge; nur lokaler Test-Mock,
   keine produktive Bildausführung.
 - **Qualität:** Prettier, ESLint, TypeScript-Checks, Vitest, Rust-Tests, rustfmt und Clippy mit
-  Warnungen als Fehler; GitHub Actions unter Windows und Linux.
+  Warnungen als Fehler sowie Playwright-Browser-E2E für den M1-Kernablauf; GitHub Actions unter
+  Windows und Linux.
 
 Im Pflichtenheft vorgesehen, aber noch **nicht implementiert oder installiert**: Tailwind, React
-Flow, dnd-kit, Playwright, KI-basierte Kontinuitätshinweise und produktive Bildgenerierung. Ollama
-und Cloudprovider werden für Text unterstützt, aber weder lokale Modelle noch Cloudzugänge mit
-KRAQEL ausgeliefert. Eine bloße Typdefinition oder ein leeres Crate ist keine fertige Funktion -
-auch wenn es sehr selbstbewusst kompiliert.
+Flow, dnd-kit, KI-basierte Kontinuitätshinweise und produktive Bildgenerierung. Ollama und
+Cloudprovider werden für Text unterstützt, aber weder lokale Modelle noch Cloudzugänge mit KRAQEL
+ausgeliefert. Eine bloße Typdefinition oder ein leeres Crate ist keine fertige Funktion - auch wenn
+es sehr selbstbewusst kompiliert.
 
 ## Verzeichnisstruktur und Verantwortlichkeiten
 
 | Pfad                         | Verantwortung                                                | Aktueller Reifegrad                     |
 | ---------------------------- | ------------------------------------------------------------ | --------------------------------------- |
-| `apps/desktop/`              | React-Oberfläche, Editor und typisierte IPC-Clientfunktionen | Schreiben und M2-Werkzeuge              |
+| `apps/desktop/`              | React-Oberfläche, Editor, IPC-Client und Browser-E2E         | Schreiben und M2-Werkzeuge              |
 | `apps/desktop/src-tauri/`    | Command-Handler, Tauri-Konfiguration und Berechtigungen      | Projekt-, Dokument-, M2-IPC             |
 | `packages/domain/`           | TypeScript-Domänentypen, UUID-/Schema-Validierung            | Dokument- und Story-Modell              |
 | `packages/editor/`           | Editorvertrag, Baum, Autosave und Tiptap-Hilfsfunktionen     | M1-Grundfunktionen getestet             |
@@ -143,11 +144,22 @@ pnpm format:check               # reine Formatprüfung
 pnpm lint                       # ESLint und Clippy
 pnpm typecheck                  # TypeScript ohne Ausgabe prüfen
 pnpm test                       # TypeScript-/Vitest-Tests
+pnpm test:e2e                   # Playwright-M1-Ablauf im Chromium-Browser
 pnpm check                      # verbindliche Gesamtprüfung inkl. Rust-Tests
 pnpm build                      # alle TypeScript-Pakete und Frontend bauen
 cargo test --workspace          # Rust-Tests
 cargo build --workspace         # Rust-Workspace bauen
 ```
+
+Vor der ersten lokalen E2E-Ausführung wird der Browser einmalig installiert:
+
+```powershell
+pnpm --filter @kraqel/desktop exec playwright install chromium
+```
+
+Der Playwright-Lauf verwendet ausschließlich im E2E-Devserver einen lokalen Command-Adapter. Er
+prüft React, Tiptap, Autosave und den Dokumentbaum, aber weder die gebündelte Tauri-Anwendung noch
+Rust, Betriebssystemdialoge oder Screenreader.
 
 Für kleine Änderungen zuerst gezielt prüfen, zum Beispiel:
 

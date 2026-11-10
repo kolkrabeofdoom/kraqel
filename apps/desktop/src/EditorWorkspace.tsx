@@ -10,7 +10,7 @@ import {
   type DocumentTreeNode,
   type EditorDocument,
 } from "@kraqel/editor";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createDocument,
   deleteDocument,
@@ -666,6 +666,7 @@ function RichTextEditor({
     () => new AutosaveController(stored.node.revision, persist, 700),
     [persist, stored.node.revision],
   );
+  const autosaveLifecycle = useRef(0);
   const editor = useEditor({
     extensions: [StarterKit],
     content: stored.content.document,
@@ -686,14 +687,18 @@ function RichTextEditor({
     },
   });
 
-  useEffect(() => autosave.subscribe(({ status: next }) => setStatus(next)), [autosave]);
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    const lifecycle = ++autosaveLifecycle.current;
+    const unsubscribe = autosave.subscribe(({ status: next }) => setStatus(next));
+    return () => {
+      unsubscribe();
       void autosave.flush();
-      autosave.dispose();
-    },
-    [autosave],
-  );
+      // StrictMode richtet Effekte im Devmodus sofort erneut ein; erst ein echter Unmount entsorgt.
+      queueMicrotask(() => {
+        if (autosaveLifecycle.current === lifecycle) autosave.dispose();
+      });
+    };
+  }, [autosave]);
 
   return (
     <div className={focusMode ? "editor-document focus-mode" : "editor-document"}>

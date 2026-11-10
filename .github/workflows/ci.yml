@@ -43,6 +43,17 @@ jobs:
       - run: pnpm --filter @kraqel/desktop build
       - run: cargo build --workspace
 
+      - name: Install Playwright Chromium with Linux dependencies
+        if: runner.os == 'Linux'
+        run: pnpm --filter @kraqel/desktop exec playwright install --with-deps chromium
+
+      - name: Install Playwright Chromium
+        if: runner.os == 'Windows'
+        run: pnpm --filter @kraqel/desktop exec playwright install chromium
+
+      - name: Run M1 browser E2E
+        run: pnpm --filter @kraqel/desktop test:e2e
+
   dependency-review:
     name: Dependency review
     # GitHub stellt Dependency Review für private Repositories nur mit Advanced Security bereit.
