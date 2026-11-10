@@ -8,9 +8,12 @@ import {
   composeImagePrompt,
   createImagePromptDraft,
   createStoryEntity,
+  deleteDocument,
   reorderPlotCards,
+  reorderDocuments,
   getApplicationStatus,
   saveDocument,
+  renameDocument,
   reviewTextSuggestion,
   importMediaAsset,
   listMediaAssets,
@@ -136,6 +139,95 @@ describe("typed Tauri commands", () => {
     expect(error).toMatchObject({ code: "CONFLICT", retryable: false });
     expect(String(error)).toContain("zwischenzeitlich");
     expect(String(error)).not.toContain("private");
+  });
+
+  it("sends conflict-bound document tree mutations", async () => {
+    const projectId = requestId as ProjectId;
+    const documentId = "018f47ea-9b2d-7cc1-98e8-b5f4f6b741a3" as EntityId;
+    const siblingId = "018f47ea-9b2d-7cc1-98e8-b5f4f6b741a4" as EntityId;
+    mockedInvoke.mockResolvedValueOnce({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: {
+        id: documentId,
+        projectId,
+        parentId: null,
+        kind: "chapter",
+        title: "Ankunft",
+        position: 0,
+        revision: 0,
+      },
+    });
+    await renameDocument({
+      projectId,
+      documentId,
+      expectedTitle: "Kapitel 1",
+      title: "Ankunft",
+    });
+    expect(mockedInvoke).toHaveBeenLastCalledWith("rename_document", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: {
+          projectId,
+          documentId,
+          expectedTitle: "Kapitel 1",
+          title: "Ankunft",
+        },
+      },
+    });
+
+    mockedInvoke.mockResolvedValueOnce({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: null,
+    });
+    await reorderDocuments({
+      projectId,
+      parentId: null,
+      expectedOrder: [documentId, siblingId],
+      orderedIds: [siblingId, documentId],
+    });
+    expect(mockedInvoke).toHaveBeenLastCalledWith("reorder_documents", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: {
+          projectId,
+          parentId: null,
+          expectedOrder: [documentId, siblingId],
+          orderedIds: [siblingId, documentId],
+        },
+      },
+    });
+
+    mockedInvoke.mockResolvedValueOnce({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: { deletedIds: [documentId, siblingId] },
+    });
+    await expect(
+      deleteDocument({
+        projectId,
+        documentId,
+        expectedTitle: "Ankunft",
+        expectedRevision: 0,
+        expectedChildIds: [siblingId],
+      }),
+    ).resolves.toEqual([documentId, siblingId]);
+    expect(mockedInvoke).toHaveBeenLastCalledWith("delete_document", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: {
+          projectId,
+          documentId,
+          expectedTitle: "Ankunft",
+          expectedRevision: 0,
+          expectedChildIds: [siblingId],
+        },
+      },
+    });
   });
 
   it("requests a local continuity analysis through the versioned boundary", async () => {

@@ -26,6 +26,9 @@
   deaktiviert, Antworten und Anfragen besitzen Größenlimits
 - Kontextfreigaben binden Dokument-ID und Revision; Änderungen zwischen Vorschau und Lauf führen zum
   Konflikt statt zur Übertragung eines anderen Textstands
+- Titeländerungen vergleichen den zuletzt angezeigten Titel; Baumumordnungen vergleichen alte und
+  neue vollständige Geschwisterlisten. Löschen bindet Titel, Revision und bei Kapiteln die
+  vollständige Kindliste und erfordert in der UI eine zweite Bestätigung
 - Vorschlags-Diffs laden die Szene erneut, verlangen dieselbe Revision und besitzen keinen
   Schreibpfad; regelbasierte Kontinuitätsprüfungen bleiben vollständig lokal
 - Bildimporte werden in Rust nach Signatur, Endung, Bytegröße, Pixelgrenzen und Dekodierbarkeit

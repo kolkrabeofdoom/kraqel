@@ -174,6 +174,28 @@ export interface CreateDocumentInput {
   readonly title: string;
 }
 
+export interface RenameDocumentInput {
+  readonly projectId: ProjectId;
+  readonly documentId: EntityId;
+  readonly expectedTitle: string;
+  readonly title: string;
+}
+
+export interface ReorderDocumentsInput {
+  readonly projectId: ProjectId;
+  readonly parentId: EntityId | null;
+  readonly expectedOrder: readonly EntityId[];
+  readonly orderedIds: readonly EntityId[];
+}
+
+export interface DeleteDocumentInput {
+  readonly projectId: ProjectId;
+  readonly documentId: EntityId;
+  readonly expectedTitle: string;
+  readonly expectedRevision: number;
+  readonly expectedChildIds: readonly EntityId[];
+}
+
 export async function getApplicationStatus(): Promise<ApplicationStatus> {
   const response = await callCommand<Record<string, never>, ApplicationStatus>(
     "application_status",
@@ -250,6 +272,23 @@ export async function saveDocument(
     { readonly revision: number }
   >("save_document", { projectId, documentId, expectedRevision, content });
   return response.data.revision;
+}
+
+export async function renameDocument(input: RenameDocumentInput): Promise<DocumentNode> {
+  return (await callCommand<RenameDocumentInput, DocumentNode>("rename_document", input)).data;
+}
+
+export async function reorderDocuments(input: ReorderDocumentsInput): Promise<void> {
+  await callCommand<ReorderDocumentsInput, null>("reorder_documents", input);
+}
+
+export async function deleteDocument(input: DeleteDocumentInput): Promise<readonly EntityId[]> {
+  return (
+    await callCommand<DeleteDocumentInput, { readonly deletedIds: readonly EntityId[] }>(
+      "delete_document",
+      input,
+    )
+  ).data.deletedIds;
 }
 
 export async function exportManuscript(

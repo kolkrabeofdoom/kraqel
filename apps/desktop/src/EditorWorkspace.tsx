@@ -13,7 +13,10 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   createDocument,
+  deleteDocument,
   loadDocument,
+  renameDocument,
+  reorderDocuments,
   saveDocument,
   type StoredDocument,
   type Workspace,
@@ -110,6 +113,106 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
       setError("Die Szene konnte nicht angelegt werden.");
     }
   };
+
+  const renameNode = async (node: DocumentNode, title: string) => {
+    try {
+      const renamed = await renameDocument({
+        projectId: workspace.project.id,
+        documentId: node.id,
+        expectedTitle: node.title,
+        title,
+      });
+      setWorkspace((current) => ({
+        ...current,
+        documents: current.documents.map((item) => (item.id === renamed.id ? renamed : item)),
+      }));
+      setStored((current) =>
+        current?.node.id === renamed.id ? { ...current, node: renamed } : current,
+      );
+      setError(null);
+      return true;
+    } catch {
+      setError("Der Titel konnte nicht geändert werden. Der Dokumentbaum könnte neuer sein.");
+      return false;
+    }
+  };
+
+  const moveNode = async (node: DocumentNode, delta: -1 | 1) => {
+    const siblings = workspace.documents
+      .filter(({ parentId }) => parentId === node.parentId)
+      .sort(compareDocumentNodes);
+    const index = siblings.findIndex(({ id }) => id === node.id);
+    const target = index + delta;
+    if (index < 0 || target < 0 || target >= siblings.length) return;
+    const expectedOrder = siblings.map(({ id }) => id);
+    const orderedIds = [...expectedOrder];
+    const currentId = orderedIds[index];
+    const targetId = orderedIds[target];
+    if (!currentId || !targetId) return;
+    orderedIds[index] = targetId;
+    orderedIds[target] = currentId;
+    try {
+      await reorderDocuments({
+        projectId: workspace.project.id,
+        parentId: node.parentId,
+        expectedOrder,
+        orderedIds,
+      });
+      const positions = new Map(orderedIds.map((id, position) => [id, position]));
+      setWorkspace((current) => ({
+        ...current,
+        documents: current.documents.map((item) => {
+          const position = positions.get(item.id);
+          return position === undefined ? item : { ...item, position };
+        }),
+      }));
+      setError(null);
+    } catch {
+      setError("Die Reihenfolge konnte nicht geändert werden. Der Dokumentbaum könnte neuer sein.");
+    }
+  };
+
+  const prepareDelete = (ids: readonly EntityId[]) => {
+    if (activeId && ids.includes(activeId)) {
+      setActiveId(null);
+      setStored(null);
+    }
+  };
+
+  const deleteNode = async (node: DocumentNode, childIds: readonly EntityId[]) => {
+    try {
+      const deletedIds = await deleteDocument({
+        projectId: workspace.project.id,
+        documentId: node.id,
+        expectedTitle: node.title,
+        expectedRevision: node.revision,
+        expectedChildIds: childIds,
+      });
+      const deleted = new Set(deletedIds);
+      setWorkspace((current) => ({
+        ...current,
+        documents: current.documents.filter(({ id }) => !deleted.has(id)),
+      }));
+      if (activeId && deleted.has(activeId)) {
+        setActiveId(null);
+        setStored(null);
+      }
+      setError(null);
+      return true;
+    } catch {
+      setError(
+        "Das Dokument konnte nicht gelöscht werden. Inhalt oder Kindliste könnten neuer sein.",
+      );
+      return false;
+    }
+  };
+
+  const updateDocumentRevision = useCallback((id: EntityId, revision: number) => {
+    setWorkspace((current) => ({
+      ...current,
+      documents: current.documents.map((item) => (item.id === id ? { ...item, revision } : item)),
+    }));
+  }, []);
 
   return (
     <main className="workspace-shell">
@@ -225,13 +328,19 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
               </button>
             </div>
             <div role="tree" aria-label="Dokumentbaum" className="document-tree">
-              {tree.map((chapter) => (
+              {tree.map((chapter, index) => (
                 <ChapterTree
                   key={chapter.id}
                   chapter={chapter}
                   activeId={activeId}
                   onSelect={setActiveId}
                   onAddScene={addScene}
+                  canMoveUp={index > 0}
+                  canMoveDown={index < tree.length - 1}
+                  onMove={moveNode}
+                  onRename={renameNode}
+                  onPrepareDelete={prepareDelete}
+                  onDelete={deleteNode}
                 />
               ))}
             </div>
@@ -245,6 +354,7 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
                 key={stored.node.id}
                 projectId={workspace.project.id}
                 stored={stored}
+                onRevision={updateDocumentRevision}
               />
             ) : null}
             {!loading && !stored ? (
@@ -322,16 +432,70 @@ function ChapterTree({
   activeId,
   onSelect,
   onAddScene,
+  canMoveUp,
+  canMoveDown,
+  onMove,
+  onRename,
+  onPrepareDelete,
+  onDelete,
 }: {
   readonly chapter: DocumentTreeNode;
   readonly activeId: EntityId | null;
   readonly onSelect: (id: EntityId) => void;
   readonly onAddScene: (chapterId: EntityId) => Promise<void>;
+  readonly canMoveUp: boolean;
+  readonly canMoveDown: boolean;
+  readonly onMove: (node: DocumentNode, delta: -1 | 1) => Promise<void>;
+  readonly onRename: (node: DocumentNode, title: string) => Promise<boolean>;
+  readonly onPrepareDelete: (ids: readonly EntityId[]) => void;
+  readonly onDelete: (node: DocumentNode, childIds: readonly EntityId[]) => Promise<boolean>;
 }) {
+  const [editingId, setEditingId] = useState<EntityId | null>(null);
+  const [draftTitle, setDraftTitle] = useState("");
+  const [deleteArmedId, setDeleteArmedId] = useState<EntityId | null>(null);
+
+  const startRename = (node: DocumentNode) => {
+    setDeleteArmedId(null);
+    setEditingId(node.id);
+    setDraftTitle(node.title);
+  };
+
+  const submitRename = async (node: DocumentNode) => {
+    if (await onRename(node, draftTitle)) setEditingId(null);
+  };
+
+  const requestDelete = async (node: DocumentNode, childIds: readonly EntityId[]) => {
+    if (deleteArmedId !== node.id) {
+      setEditingId(null);
+      setDeleteArmedId(node.id);
+      onPrepareDelete([node.id, ...childIds]);
+      return;
+    }
+    if (await onDelete(node, childIds)) setDeleteArmedId(null);
+  };
+
   return (
     <div role="treeitem" aria-expanded="true" className="tree-chapter">
       <div className="chapter-row">
-        <strong>{chapter.title}</strong>
+        <TreeNodeLabel
+          node={chapter}
+          editing={editingId === chapter.id}
+          draftTitle={draftTitle}
+          deleteArmed={deleteArmedId === chapter.id}
+          canMoveUp={canMoveUp}
+          canMoveDown={canMoveDown}
+          onDraftTitle={setDraftTitle}
+          onCancelRename={() => setEditingId(null)}
+          onSubmitRename={() => void submitRename(chapter)}
+          onStartRename={() => startRename(chapter)}
+          onMove={(delta) => void onMove(chapter, delta)}
+          onDelete={() =>
+            void requestDelete(
+              chapter,
+              chapter.children.map(({ id }) => id),
+            )
+          }
+        />
         <button
           type="button"
           className="icon-button"
@@ -342,18 +506,137 @@ function ChapterTree({
         </button>
       </div>
       <div role="group">
-        {chapter.children.map((scene) => (
-          <button
-            type="button"
+        {chapter.children.map((scene, index) => (
+          <div
+            className="scene-row"
+            key={scene.id}
             role="treeitem"
             aria-selected={activeId === scene.id}
-            className={activeId === scene.id ? "scene-button active" : "scene-button"}
-            key={scene.id}
-            onClick={() => onSelect(scene.id)}
           >
-            {scene.title}
-          </button>
+            <TreeNodeLabel
+              node={scene}
+              editing={editingId === scene.id}
+              draftTitle={draftTitle}
+              deleteArmed={deleteArmedId === scene.id}
+              canMoveUp={index > 0}
+              canMoveDown={index < chapter.children.length - 1}
+              selected={activeId === scene.id}
+              onSelect={() => onSelect(scene.id)}
+              onDraftTitle={setDraftTitle}
+              onCancelRename={() => setEditingId(null)}
+              onSubmitRename={() => void submitRename(scene)}
+              onStartRename={() => startRename(scene)}
+              onMove={(delta) => void onMove(scene, delta)}
+              onDelete={() => void requestDelete(scene, [])}
+            />
+          </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function TreeNodeLabel({
+  node,
+  editing,
+  draftTitle,
+  deleteArmed,
+  canMoveUp,
+  canMoveDown,
+  selected = false,
+  onSelect,
+  onDraftTitle,
+  onCancelRename,
+  onSubmitRename,
+  onStartRename,
+  onMove,
+  onDelete,
+}: {
+  readonly node: DocumentNode;
+  readonly editing: boolean;
+  readonly draftTitle: string;
+  readonly deleteArmed: boolean;
+  readonly canMoveUp: boolean;
+  readonly canMoveDown: boolean;
+  readonly selected?: boolean;
+  readonly onSelect?: () => void;
+  readonly onDraftTitle: (title: string) => void;
+  readonly onCancelRename: () => void;
+  readonly onSubmitRename: () => void;
+  readonly onStartRename: () => void;
+  readonly onMove: (delta: -1 | 1) => void;
+  readonly onDelete: () => void;
+}) {
+  if (editing) {
+    return (
+      <form
+        className="tree-node-edit"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSubmitRename();
+        }}
+      >
+        <label>
+          <span className="sr-only">Neuer Titel für {node.title}</span>
+          <input
+            autoFocus
+            maxLength={240}
+            value={draftTitle}
+            onChange={(event) => onDraftTitle(event.target.value)}
+          />
+        </label>
+        <button type="submit" className="compact" disabled={!draftTitle.trim()}>
+          Speichern
+        </button>
+        <button type="button" className="compact secondary" onClick={onCancelRename}>
+          Abbrechen
+        </button>
+      </form>
+    );
+  }
+
+  return (
+    <div className="tree-node-label">
+      {node.kind === "scene" ? (
+        <button
+          type="button"
+          className={selected ? "scene-button active" : "scene-button"}
+          onClick={onSelect}
+        >
+          {node.title}
+        </button>
+      ) : (
+        <strong>{node.title}</strong>
+      )}
+      <div className="tree-node-actions" aria-label={`Aktionen für ${node.title}`}>
+        <button
+          type="button"
+          className="icon-button"
+          aria-label={`${node.title} nach oben`}
+          disabled={!canMoveUp}
+          onClick={() => onMove(-1)}
+        >
+          ↑
+        </button>
+        <button
+          type="button"
+          className="icon-button"
+          aria-label={`${node.title} nach unten`}
+          disabled={!canMoveDown}
+          onClick={() => onMove(1)}
+        >
+          ↓
+        </button>
+        <button type="button" className="compact secondary" onClick={onStartRename}>
+          Umbenennen
+        </button>
+        <button
+          type="button"
+          className={deleteArmed ? "compact danger" : "compact secondary"}
+          onClick={onDelete}
+        >
+          {deleteArmed ? "Löschen bestätigen" : "Löschen"}
+        </button>
       </div>
     </div>
   );
@@ -362,17 +645,22 @@ function ChapterTree({
 function RichTextEditor({
   projectId,
   stored,
+  onRevision,
 }: {
   readonly projectId: Workspace["project"]["id"];
   readonly stored: StoredDocument;
+  readonly onRevision: (id: EntityId, revision: number) => void;
 }) {
   const [status, setStatus] = useState<AutosaveStatus>("saved");
   const [wordCount, setWordCount] = useState(countWords(stored.plainText));
   const [focusMode, setFocusMode] = useState(false);
   const persist = useCallback(
-    (content: EditorDocument, revision: number) =>
-      saveDocument(projectId, stored.node.id, revision, content),
-    [projectId, stored.node.id],
+    async (content: EditorDocument, revision: number) => {
+      const nextRevision = await saveDocument(projectId, stored.node.id, revision, content);
+      onRevision(stored.node.id, nextRevision);
+      return nextRevision;
+    },
+    [onRevision, projectId, stored.node.id],
   );
   const autosave = useMemo(
     () => new AutosaveController(stored.node.revision, persist, 700),
@@ -461,6 +749,10 @@ function firstSceneId(documents: readonly DocumentNode[]): EntityId | null {
 
 function chapterCount(documents: readonly DocumentNode[]): number {
   return documents.filter(({ kind }) => kind === "chapter").length;
+}
+
+function compareDocumentNodes(left: DocumentNode, right: DocumentNode): number {
+  return left.position - right.position || left.id.localeCompare(right.id);
 }
 
 function statusLabel(status: AutosaveStatus): string {

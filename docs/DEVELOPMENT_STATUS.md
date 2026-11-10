@@ -2,7 +2,7 @@
 
 Stand: 10. November 2026
 
-Code-Referenz: KQ-016 (PR #33)
+Code-Referenz: KQ-019 (PR #35)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -15,7 +15,7 @@ als vollständige Fachfunktion.
 | Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                                                                                                                                |
 | ------------ | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                                           |
-| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Teilweise umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, szenengebundenes Undo/Redo, Wortzählung, Fokusmodus, revisionsgeprüftes Autosave und SQLite-Backup vorhanden. Umbenennen, Umordnen, Löschen und E2E-Abnahme fehlen.                           |
+| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Technischer Mindestumfang umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, Undo/Redo, Wortzählung, Fokusmodus, konfliktgeprüfter Autosave sowie sicheres Umbenennen, Umordnen, Löschen und SQLite-Backup vorhanden. Browser-/E2E-Abnahme fehlt.          |
 | **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks vorhanden. Browser-/Screenreader-Abnahme fehlt.                                                             |
 | **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, lokale Medienbibliothek sowie visuelle Profile und Stilvorlagen mit Backup und Snapshot vorhanden. Textimport und schreibende Snapshot-Wiederherstellung fehlen.                          |
 | **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Technischer 0.1-Umfang weitgehend umgesetzt:** Textprotokolle, Offline-Kontinuität, Prompt-Entwürfe sowie provider- und modellspezifische Bild-Capability- und Jobverträge vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise und Bildgenerierung fehlen. |
@@ -33,7 +33,7 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Tauri-2-/React-/TypeScript-Desktop-Shell mit statischer, responsiver Startoberfläche.
 - Minimale Tauri-Berechtigung `core:default`, definierte CSP und Windows-Fensterkonfiguration.
 - GitHub-Actions-CI unter `windows-latest` und `ubuntu-latest`.
-- KQ-015-Merge aus PR #30 und anschließender `main`-Lauf: erfolgreich unter Windows und Linux.
+- KQ-016-Merge aus PR #33 und anschließender `main`-Lauf: erfolgreich unter Windows und Linux.
 - Qualitätskette: Prettier, rustfmt, ESLint, Clippy mit `-D warnings`, TypeScript, Vitest,
   Rust-Tests sowie Frontend- und Workspace-Builds.
 - GPL-3.0-or-later, Beitrags-, Verhaltens- und Sicherheitsdokumentation vorhanden.
@@ -78,7 +78,7 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   Symlinks, fehlende und beschädigte Dateien, Backup-Konsistenz und unveränderte Recovery-Quellen
   ab.
 
-### Editor, Szenenbaum und Autosave (KQ-005)
+### Editor, Szenenbaum und Autosave (KQ-005/KQ-019)
 
 - Tiptap 3/ProseMirror mit versioniertem Editor-Dokumentvertrag v1 und grundlegender
   Rich-Text-Formatierung.
@@ -90,9 +90,15 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   Schreibvorgängen und optimistischer Revision. Konflikte überschreiben keinen neueren Stand.
 - Rust leitet Klartext aus Tiptap-JSON ab und aktualisiert Inhalt, Revision sowie FTS-Index
   transaktional.
-- Automatisierte Tests für Editorvertrag, Baumordnung, Autosave, IPC-Roundtrip, Revisionskonflikt
-  sowie Backup/Recovery mit 100 Szenen. Tastatur- und Screenreader-Fälle sind als manueller Testplan
-  dokumentiert, aber noch nicht als E2E-Test ausgeführt.
+- Kapitel und Szenen lassen sich inline umbenennen und per zugänglichen Hoch-/Runter-Aktionen unter
+  ihren Geschwistern umordnen. Titel-Compare-and-swap und vollständige alte/neue Reihenfolgen
+  verhindern stilles Überschreiben eines neueren Baums.
+- Zweistufiges Löschen bindet Titel und Inhaltsrevision, bei Kapiteln zusätzlich die vollständig
+  angezeigte Kindliste. SQLite kaskadiert Szenen sowie Story-, Plotboard-, Timeline-, Medien- und
+  Promptreferenzen; die UI entfernt Auswahl und lokale Baumknoten konsistent.
+- Automatisierte Tests für Editorvertrag, Baumordnung, Autosave, IPC-Roundtrip, Konflikte,
+  Löschkaskaden sowie Backup/Recovery mit 100 Szenen. Tastatur- und Screenreader-Fälle sind als
+  manueller Testplan dokumentiert, aber noch nicht als E2E-Test ausgeführt.
 
 ### Story-Bibel (KQ-006)
 
@@ -324,12 +330,10 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 ### Unmittelbar: 0.1 stabilisieren
 
-1. **M1-Dokumentverwaltung vervollständigen**
-   - Kapitel und Szenen sicher umbenennen, umordnen und löschen
-   - Revisions-, Auswahl- und Löschkonflikte automatisiert prüfen
-2. **E2E-Grundlage für Kernabläufe schaffen**
+1. **E2E-Grundlage für Kernabläufe schaffen**
    - Playwright für Projektstart, Schreiben, Speichern und Wiederöffnen einführen
-   - Tastatur- und Browserabnahme der bisherigen M2- bis M4-Ansichten vorbereiten
+   - Dokumentbaum mit Umbenennen, Umordnen und zweistufigem Löschen automatisiert abnehmen
+2. **Tastatur- und Browserabnahme der bisherigen M2- bis M4-Ansichten vorbereiten**
 
 ### Danach gemäß Pflichtenheft
 
@@ -341,8 +345,9 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
 
 ## Bekannte Fehler und Lücken
 
-- **Dokumentverwaltung noch unvollständig:** Erstellen, Listen, Laden und Speichern sind
-  implementiert; Umbenennen, Löschen und Umordnen fehlen.
+- **Löschen ist endgültig:** Dokumente und ihre abhängigen Links werden erst nach zweistufiger
+  Bestätigung und Konfliktprüfung entfernt, besitzen aber noch keinen Papierkorb oder Undo über die
+  laufende Sitzung hinaus. Backups und Git-Snapshots bleiben der Wiederherstellungsweg.
 - **Feste Projektwurzel in der Desktopoberfläche:** Projekte liegen derzeit unter dem lokalen
   App-Datenverzeichnis. Eine frei wählbare Projektwurzel ist noch nicht umgesetzt.
 - **Backup bleibt zweiteilig:** Eine Sicherung besteht aus `<name>.sqlite3` und `<name>.assets/`.
@@ -386,9 +391,9 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
   FTS-Migration nötig.
 - **Dependency Review eingeschränkt:** Der GitHub-Job wird bei privaten Repositories ohne GitHub
   Advanced Security bewusst übersprungen. Lockfiles und reguläre CI bleiben aktiv.
-- Die vollständige Qualitätskette für KQ-016 ist lokal grün: 36 TypeScript- und 88 ausgeführte
-  Rust-Tests, Formatierung, ESLint, Clippy und Typprüfung. Ein visueller Export-QA-Test bleibt
-  planmäßig ignoriert.
+- Die vollständige Qualitätskette für KQ-019 ist lokal grün: 37 TypeScript- und 91 ausgeführte
+  Rust-Tests, Formatierung, ESLint, Clippy, Typprüfung und Desktop-Build. Ein visueller
+  Export-QA-Test bleibt planmäßig ignoriert.
 
 ## Wichtige Architekturentscheidungen
 
@@ -402,7 +407,8 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
   Wiederherstellung schreibt ausschließlich in ein neues Ziel (ADR 0003).
 - **Versioniertes Tiptap-JSON und optimistische Revisionen:** Jede Szene besitzt eine eigene
   Undo/Redo-Grenze; Autosave ist entprellt, serialisiert und konfliktbehaftete Schreibversuche
-  überschreiben nichts (ADR 0004).
+  überschreiben nichts. Metadaten- und Baumänderungen verwenden eigene Compare-and-swap-Grenzen;
+  Löschen bindet den vollständig angezeigten Stand (ADR 0004).
 - **Begrenzte Story-Verträge auf Schema v1:** Vier Entitätsarten und strukturierte freie
   Eigenschaften werden in Rust validiert; Relationen sind gerichtet, Szenenlinks idempotent und
   Löschkaskaden explizit. Die Unicode-Suche bleibt zunächst bewusst unindexiert (ADR 0005).
@@ -477,16 +483,13 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 
 ## Nächste geplante Entwicklungsstufe
 
-**0.1-Stabilisierung: vollständige Dokumentverwaltung und E2E-Grundlage.**
+**0.1-Stabilisierung: Playwright-E2E-Grundlage für den M1-Kernablauf.**
 
 Empfohlener, überprüfbarer Scope:
 
-1. Für Umbenennen, Umordnen und Löschen von Kapiteln/Szenen ein eigenes Issue mit Konflikt- und
-   Löschsemantik anlegen.
-2. Storage-, Command- und UI-Verträge vertikal ergänzen, ohne bestehende Autosave-Revisionen zu
-   umgehen.
-3. Danach Playwright als kleine E2E-Basis für Projektstart, Schreiben, Speichern und Wiederöffnen
-   einführen.
+1. Playwright mit einer kleinen, reproduzierbaren Desktop-/Browser-Testkonfiguration einführen.
+2. Projektstart, Schreiben, Autosave und Wiederöffnen ohne reale Manuskriptdaten automatisieren.
+3. Dokumentumbenennung, Tastaturreihenfolge und bestätigtes Löschen als M1-Ablauf prüfen.
 4. KQ-017 und echte Bildprovider bis Version 0.2 ausdrücklich außerhalb des Scopes halten.
 
 ## Einstieg für die nächste Codex-Session
@@ -496,9 +499,9 @@ cd D:\kraqel
 git status
 git branch --show-current
 git log -5 --oneline
-rg "Dokumentverwaltung|E2E|Playwright" docs ROADMAP.md
+rg "E2E|Playwright" docs ROADMAP.md
 ```
 
-Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0004, die Dokument-Repository- und Command-Verträge
-sowie die Pflichtenheft-Abschnitte zu F01, M1 und M5. Vor Änderungen zuerst ein eigenes Issue mit
-klarer Reihenfolge-, Konflikt- und Löschsemantik anlegen.
+Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0004, die Desktop-Startlogik und die
+Pflichtenheft-Abschnitte zu F01, M1 und M5. Vor Änderungen zuerst ein eigenes Issue mit kleiner,
+plattformtauglicher E2E-Matrix und klarer Abgrenzung zu manuellen Tauri-/Screenreader-Tests anlegen.

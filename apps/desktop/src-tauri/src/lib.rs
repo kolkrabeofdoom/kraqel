@@ -122,6 +122,34 @@ struct SaveDocumentRequest {
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+struct RenameDocumentRequest {
+    project_id: String,
+    document_id: String,
+    expected_title: String,
+    title: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ReorderDocumentsRequest {
+    project_id: String,
+    parent_id: Option<String>,
+    expected_order: Vec<String>,
+    ordered_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DeleteDocumentRequest {
+    project_id: String,
+    document_id: String,
+    expected_title: String,
+    expected_revision: u64,
+    expected_child_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct ExportProjectRequest {
     project_id: String,
     format: ExportFormat,
@@ -239,6 +267,12 @@ struct StoredDocumentResponse {
 #[serde(rename_all = "camelCase")]
 struct SaveDocumentResponse {
     revision: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DeleteDocumentResponse {
+    deleted_ids: Vec<EntityId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -618,6 +652,48 @@ fn save_document(
 ) -> Result<CommandResponse<SaveDocumentResponse>, CommandError> {
     require_current_contract(&request)?;
     let data = save_document_impl(&state, request.request_id, request.payload)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn rename_document(
+    state: State<'_, AppState>,
+    request: CommandRequest<RenameDocumentRequest>,
+) -> Result<CommandResponse<DocumentNode>, CommandError> {
+    require_current_contract(&request)?;
+    let data = rename_document_impl(&state, request.request_id, request.payload)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn reorder_documents(
+    state: State<'_, AppState>,
+    request: CommandRequest<ReorderDocumentsRequest>,
+) -> Result<CommandResponse<()>, CommandError> {
+    require_current_contract(&request)?;
+    reorder_documents_impl(&state, request.request_id, request.payload)?;
+    Ok(CommandResponse::current(request.request_id, ()))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn delete_document(
+    state: State<'_, AppState>,
+    request: CommandRequest<DeleteDocumentRequest>,
+) -> Result<CommandResponse<DeleteDocumentResponse>, CommandError> {
+    require_current_contract(&request)?;
+    let data = delete_document_impl(&state, request.request_id, request.payload)?;
     Ok(CommandResponse::current(request.request_id, data))
 }
 
@@ -1787,6 +1863,88 @@ fn save_document_impl(
     Ok(SaveDocumentResponse { revision })
 }
 
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "DTO wird an der Servicegrenze übernommen"
+)]
+fn rename_document_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: RenameDocumentRequest,
+) -> Result<DocumentNode, CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let document_id = parse_entity_id(request_id, &request.document_id)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    DocumentRepository::new(opened.database_mut())
+        .rename(
+            project_id,
+            document_id,
+            &request.expected_title,
+            &request.title,
+        )
+        .map_err(|error| map_document_error(request_id, &error))
+}
+
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "DTO wird an der Servicegrenze übernommen"
+)]
+fn reorder_documents_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: ReorderDocumentsRequest,
+) -> Result<(), CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let parent_id = request
+        .parent_id
+        .as_deref()
+        .map(|value| parse_entity_id(request_id, value))
+        .transpose()?;
+    let expected_order = parse_entity_ids(request_id, &request.expected_order)?;
+    let ordered_ids = parse_entity_ids(request_id, &request.ordered_ids)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    DocumentRepository::new(opened.database_mut())
+        .reorder(project_id, parent_id, &expected_order, &ordered_ids)
+        .map_err(|error| map_document_error(request_id, &error))
+}
+
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "DTO wird an der Servicegrenze übernommen"
+)]
+fn delete_document_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: DeleteDocumentRequest,
+) -> Result<DeleteDocumentResponse, CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let document_id = parse_entity_id(request_id, &request.document_id)?;
+    let expected_child_ids = parse_entity_ids(request_id, &request.expected_child_ids)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    DocumentRepository::new(opened.database_mut())
+        .delete(
+            project_id,
+            document_id,
+            &request.expected_title,
+            request.expected_revision,
+            &expected_child_ids,
+        )
+        .map_err(|error| map_document_error(request_id, &error))?;
+    let mut deleted_ids = Vec::with_capacity(expected_child_ids.len() + 1);
+    deleted_ids.push(document_id);
+    deleted_ids.extend(expected_child_ids);
+    Ok(DeleteDocumentResponse { deleted_ids })
+}
+
 fn export_manuscript_impl(
     state: &AppState,
     request_id: uuid::Uuid,
@@ -2886,6 +3044,9 @@ pub fn run() {
             create_document,
             load_document,
             save_document,
+            rename_document,
+            reorder_documents,
+            delete_document,
             export_manuscript,
             list_ollama_models,
             list_cloud_provider_statuses,
@@ -2968,20 +3129,23 @@ mod tests {
 
     use super::{
         AiContextRequest, AppState, ApplicationStatusRequest, ComposeImagePromptRequest,
-        CreateImagePromptDraftRequest, CreateProjectRequest, DocumentRequest, ExportProjectRequest,
-        ImagePromptDraftRequest, ImportMediaRequest, LinkStoryEntityRequest,
-        ListStoryEntitiesRequest, ReviewTextSuggestionRequest, SaveDocumentRequest,
-        StoryEntityRequest, StreamTextDraftRequest, UpdateImagePromptDraftRequest,
-        ValidateProjectNameRequest, WriteStoryEntityRequest, WriteStylePresetRequest,
-        WriteVisualProfileRequest, application_status, compose_image_prompt_impl,
-        create_image_prompt_draft_impl, create_project_impl, delete_image_prompt_draft_impl,
+        CreateDocumentRequest, CreateImagePromptDraftRequest, CreateProjectRequest,
+        DeleteDocumentRequest, DocumentRequest, ExportProjectRequest, ImagePromptDraftRequest,
+        ImportMediaRequest, LinkStoryEntityRequest, ListStoryEntitiesRequest,
+        RenameDocumentRequest, ReorderDocumentsRequest, ReviewTextSuggestionRequest,
+        SaveDocumentRequest, StoryEntityRequest, StreamTextDraftRequest,
+        UpdateImagePromptDraftRequest, ValidateProjectNameRequest, WriteStoryEntityRequest,
+        WriteStylePresetRequest, WriteVisualProfileRequest, application_status,
+        compose_image_prompt_impl, create_document_impl, create_image_prompt_draft_impl,
+        create_project_impl, delete_document_impl, delete_image_prompt_draft_impl,
         export_image_prompt_draft_impl, export_manuscript_impl, import_media_asset_impl,
         link_story_entity_impl, list_image_prompt_drafts_impl, list_media_assets_impl,
         list_projects_impl, list_story_entities_impl, list_style_presets_impl,
-        list_visual_profiles_impl, load_document_impl, load_story_entity_impl,
-        prepare_text_generation, preview_ai_context_impl, review_text_suggestion_impl,
-        save_document_impl, save_visual_profile_impl, update_image_prompt_draft_impl,
-        validate_project_name, write_story_entity_impl, write_style_preset_impl,
+        list_visual_profiles_impl, load_document_impl, load_story_entity_impl, open_workspace_impl,
+        prepare_text_generation, preview_ai_context_impl, rename_document_impl,
+        reorder_documents_impl, review_text_suggestion_impl, save_document_impl,
+        save_visual_profile_impl, update_image_prompt_draft_impl, validate_project_name,
+        write_story_entity_impl, write_style_preset_impl,
     };
 
     const REQUEST_ID: Uuid = Uuid::from_u128(0x018f_47ea_9b2d_7cc1_98e8_b5f4_f6b7_41a2);
@@ -3117,6 +3281,118 @@ mod tests {
         )
         .expect_err("stale revision should conflict");
         assert_eq!(conflict.code, CommandErrorCode::Conflict);
+    }
+
+    #[test]
+    #[allow(
+        clippy::too_many_lines,
+        reason = "Der vertikale Commandtest hält Konflikt- und Kaskadenablauf zusammen"
+    )]
+    fn document_management_commands_preserve_conflicts_and_cascade_explicitly() {
+        let root = tempdir().expect("temporary root should exist");
+        let state = AppState {
+            project_root: root.path().to_path_buf(),
+            ai_releases: Mutex::new(HashMap::new()),
+        };
+        let workspace = create_project_impl(
+            &state,
+            REQUEST_ID,
+            CreateProjectRequest {
+                name: "Morgenrot".to_owned(),
+            },
+        )
+        .expect("project should be created");
+        let chapter = workspace
+            .documents
+            .iter()
+            .find(|document| document.kind == kraqel_domain::DocumentKind::Chapter)
+            .expect("initial chapter")
+            .clone();
+        let first_scene = workspace
+            .documents
+            .iter()
+            .find(|document| document.kind == kraqel_domain::DocumentKind::Scene)
+            .expect("initial scene")
+            .clone();
+        let renamed = rename_document_impl(
+            &state,
+            REQUEST_ID,
+            RenameDocumentRequest {
+                project_id: workspace.project.id.to_string(),
+                document_id: first_scene.id.to_string(),
+                expected_title: first_scene.title.clone(),
+                title: "Ankunft".to_owned(),
+            },
+        )
+        .expect("scene should rename");
+        assert_eq!(renamed.title, "Ankunft");
+        let stale_rename = rename_document_impl(
+            &state,
+            REQUEST_ID,
+            RenameDocumentRequest {
+                project_id: workspace.project.id.to_string(),
+                document_id: first_scene.id.to_string(),
+                expected_title: first_scene.title,
+                title: "Veraltet".to_owned(),
+            },
+        )
+        .expect_err("stale title should conflict");
+        assert_eq!(stale_rename.code, CommandErrorCode::Conflict);
+
+        let second_scene = create_document_impl(
+            &state,
+            REQUEST_ID,
+            CreateDocumentRequest {
+                project_id: workspace.project.id.to_string(),
+                parent_id: Some(chapter.id.to_string()),
+                kind: kraqel_domain::DocumentKind::Scene,
+                title: "Szene 2".to_owned(),
+            },
+        )
+        .expect("second scene");
+        reorder_documents_impl(
+            &state,
+            REQUEST_ID,
+            ReorderDocumentsRequest {
+                project_id: workspace.project.id.to_string(),
+                parent_id: Some(chapter.id.to_string()),
+                expected_order: vec![first_scene.id.to_string(), second_scene.id.to_string()],
+                ordered_ids: vec![second_scene.id.to_string(), first_scene.id.to_string()],
+            },
+        )
+        .expect("scenes should reorder");
+        let stale_reorder = reorder_documents_impl(
+            &state,
+            REQUEST_ID,
+            ReorderDocumentsRequest {
+                project_id: workspace.project.id.to_string(),
+                parent_id: Some(chapter.id.to_string()),
+                expected_order: vec![first_scene.id.to_string(), second_scene.id.to_string()],
+                ordered_ids: vec![second_scene.id.to_string(), first_scene.id.to_string()],
+            },
+        )
+        .expect_err("stale order should conflict");
+        assert_eq!(stale_reorder.code, CommandErrorCode::Conflict);
+
+        let deleted = delete_document_impl(
+            &state,
+            REQUEST_ID,
+            DeleteDocumentRequest {
+                project_id: workspace.project.id.to_string(),
+                document_id: chapter.id.to_string(),
+                expected_title: chapter.title,
+                expected_revision: chapter.revision,
+                expected_child_ids: vec![second_scene.id.to_string(), first_scene.id.to_string()],
+            },
+        )
+        .expect("displayed chapter should delete");
+        assert_eq!(deleted.deleted_ids.len(), 3);
+        assert_eq!(
+            open_workspace_impl(&state, REQUEST_ID, &workspace.project.id.to_string())
+                .expect("workspace should reopen")
+                .documents,
+            Vec::new()
+        );
     }
 
     #[test]
