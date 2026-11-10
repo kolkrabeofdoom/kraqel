@@ -14,6 +14,7 @@
    - [x] Kapitel und Szenen erstellen, umbenennen, umordnen und explizit löschen
 2. M2-Strukturwerkzeuge
    - [x] Story-Bibel mit Entitäten, Beziehungen, Suche und Szenen-Rückverweisen
+     - [x] Browser-E2E für den fachlichen Story-Bibel-Kernablauf
    - [x] Plotboard und Timeline
 3. M3-Datenportabilität und Medien
    - [x] Deterministische Projektsnapshots und lokales Git für Status, Diff und Commit

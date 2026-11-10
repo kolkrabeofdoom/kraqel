@@ -38,3 +38,8 @@ das Verhalten für nicht-ASCII-Namen korrekt, ohne die bestehende Migration umzu
 - Beziehungen enthalten derzeit keine eingebetteten Anzeigenamen; die UI löst Namen aus der
   Entitätsliste auf. Portable Snapshots werden erst in KQ-008 definiert.
 - Plotboard und Timeline bleiben eigene Module und verändern diesen Vertrag nicht.
+- KQ-021 prüft Erstellen, freie Eigenschaften, Suche, ausgehende und eingehende Beziehungen sowie
+  den Szenen-Rücksprung mit Playwright in Chromium. Der ausschließlich im E2E-Devserver aktive
+  Command-Adapter bildet dafür nur die benötigte Story-Bibel-Semantik ab.
+- Der Browserlauf ergänzt Repository-, IPC- und Vertragstests, ersetzt aber weder Rust/SQLite noch
+  eine Tauri-WebDriver- oder Screenreader-Abnahme.

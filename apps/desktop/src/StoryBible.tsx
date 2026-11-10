@@ -48,9 +48,13 @@ export function StoryBible({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const refreshList = async (preferredId: EntityId | null = selectedId) => {
+  const refreshList = async (
+    preferredId: EntityId | null = selectedId,
+    nextQuery = query,
+    nextKindFilter: EntityKind | "" = kindFilter,
+  ) => {
     const [result, complete] = await Promise.all([
-      listStoryEntities(projectId, query, kindFilter || null),
+      listStoryEntities(projectId, nextQuery, nextKindFilter || null),
       listStoryEntities(projectId),
     ]);
     setEntities(result);
@@ -102,7 +106,7 @@ export function StoryBible({
   const handleCreated = async (entity: StoryEntity) => {
     setQuery("");
     setKindFilter("");
-    setSelectedId(entity.id);
+    await refreshList(entity.id, "", "");
     setDetails(await loadStoryEntity(projectId, entity.id));
   };
 
@@ -371,13 +375,14 @@ function EntityEditor({
                 placeholder="Eigenschaft"
                 value={property.key}
                 maxLength={80}
-                onChange={(event) =>
+                onChange={(event) => {
+                  const value = event.currentTarget.value;
                   setProperties((current) =>
                     current.map((item) =>
-                      item.id === property.id ? { ...item, key: event.currentTarget.value } : item,
+                      item.id === property.id ? { ...item, key: value } : item,
                     ),
-                  )
-                }
+                  );
+                }}
               />
               <label className="visually-hidden" htmlFor={`property-value-${property.id}`}>
                 Eigenschaftswert
@@ -387,15 +392,12 @@ function EntityEditor({
                 placeholder="Wert"
                 value={property.value}
                 maxLength={2000}
-                onChange={(event) =>
+                onChange={(event) => {
+                  const value = event.currentTarget.value;
                   setProperties((current) =>
-                    current.map((item) =>
-                      item.id === property.id
-                        ? { ...item, value: event.currentTarget.value }
-                        : item,
-                    ),
-                  )
-                }
+                    current.map((item) => (item.id === property.id ? { ...item, value } : item)),
+                  );
+                }}
               />
               <button
                 type="button"
