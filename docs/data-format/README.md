@@ -121,6 +121,13 @@ Szeneninhalte stehen in `document.content_json` als versionierte Hülle:
 Klartext rekursiv ab und aktualisiert Inhalt, `plain_text`, Revision und FTS-Index transaktional.
 Autosave sendet die erwartete Revision; ein Konflikt überschreibt keinen neueren Stand.
 
+Umbenennen verwendet den zuletzt angezeigten Titel als Compare-and-swap-Wert, ohne die
+Inhaltsrevision zu erhöhen. Umordnen sendet sowohl die erwartete als auch die gewünschte
+vollständige UUID-Reihenfolge genau einer Geschwistergruppe. Löschen bindet den zuletzt angezeigten
+Titel und die Inhaltsrevision; für Kapitel muss zusätzlich die geordnete Liste aller unmittelbar
+enthaltenen Szenen übereinstimmen. SQLite entfernt danach dokumentbezogene Story-, Plotboard-,
+Timeline-, Medien- und Promptreferenzen per Fremdschlüssel beziehungsweise dokumentiertem Trigger.
+
 ## Story-Bibel-Vertrag v1
 
 Einträge verwenden stabile UUIDs und genau eine Art: `character`, `location`, `faction` oder `item`.

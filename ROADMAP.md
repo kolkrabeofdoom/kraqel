@@ -10,7 +10,8 @@
 
 ## M1 bis M5 - Version 0.1
 
-1. [x] Editor-Grundfunktionen, Szenenbaum, Autosave und Backup
+1. [x] Editor-Grundfunktionen, verwalteter Szenenbaum, Autosave und Backup
+   - [x] Kapitel und Szenen erstellen, umbenennen, umordnen und explizit löschen
 2. M2-Strukturwerkzeuge
    - [x] Story-Bibel mit Entitäten, Beziehungen, Suche und Szenen-Rückverweisen
    - [x] Plotboard und Timeline

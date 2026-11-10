@@ -1,6 +1,7 @@
 //! Transaktionales Repository für Kapitel, Szenen und versionierte Editorinhalte.
 
 use std::{
+    collections::BTreeSet,
     error::Error,
     fmt,
     time::{SystemTime, UNIX_EPOCH},
@@ -304,6 +305,157 @@ impl<'database> DocumentRepository<'database> {
         transaction.commit()?;
         Ok(next_revision)
     }
+
+    /// Benennt ein Kapitel oder eine Szene nur vom zuletzt angezeigten Titel aus um.
+    ///
+    /// Die Inhaltsrevision bleibt unverändert, damit eine reine Metadatenänderung keinen laufenden
+    /// Autosave verfälscht. Der erwartete Titel bildet dafür einen eigenen Compare-and-swap-Schutz.
+    ///
+    /// # Errors
+    ///
+    /// Liefert `RevisionConflict`, wenn der Titel zwischenzeitlich geändert wurde.
+    pub fn rename(
+        &mut self,
+        project_id: ProjectId,
+        document_id: EntityId,
+        expected_title: &str,
+        title: &str,
+    ) -> Result<DocumentNode, DocumentError> {
+        validate_title(expected_title)?;
+        validate_title(title)?;
+        let title = title.trim();
+        let timestamp = current_timestamp()?;
+        let transaction = self.database.transaction()?;
+        let mut node = load_node(&transaction, project_id, document_id)?;
+        if node.title != expected_title.trim() {
+            return Err(DocumentError::RevisionConflict);
+        }
+        let changed = transaction.execute(
+            "UPDATE document SET title = ?1, updated_at = ?2
+             WHERE project_id = ?3 AND id = ?4 AND title = ?5",
+            params![
+                title,
+                timestamp,
+                project_id.to_string(),
+                document_id.to_string(),
+                expected_title.trim()
+            ],
+        )?;
+        if changed != 1 {
+            return Err(DocumentError::RevisionConflict);
+        }
+        transaction.commit()?;
+        title.clone_into(&mut node.title);
+        Ok(node)
+    }
+
+    /// Ordnet genau eine vollständige Geschwisterliste atomar neu.
+    ///
+    /// # Errors
+    ///
+    /// Liefert `RevisionConflict`, wenn sich Reihenfolge oder Menge seit der Anzeige geändert haben,
+    /// sowie `InvalidInput` bei Duplikaten oder fremden Kennungen.
+    pub fn reorder(
+        &mut self,
+        project_id: ProjectId,
+        parent_id: Option<EntityId>,
+        expected_order: &[EntityId],
+        ordered_ids: &[EntityId],
+    ) -> Result<(), DocumentError> {
+        if expected_order.len() != ordered_ids.len()
+            || expected_order
+                .iter()
+                .copied()
+                .collect::<BTreeSet<_>>()
+                .len()
+                != expected_order.len()
+            || ordered_ids.iter().copied().collect::<BTreeSet<_>>().len() != ordered_ids.len()
+            || expected_order.iter().copied().collect::<BTreeSet<_>>()
+                != ordered_ids.iter().copied().collect::<BTreeSet<_>>()
+        {
+            return Err(DocumentError::InvalidInput);
+        }
+        let timestamp = current_timestamp()?;
+        let transaction = self.database.transaction()?;
+        validate_reorder_parent(&transaction, project_id, parent_id)?;
+        let current = sibling_ids(&transaction, project_id, parent_id)?;
+        if current != expected_order {
+            return Err(DocumentError::RevisionConflict);
+        }
+        for (position, id) in ordered_ids.iter().enumerate() {
+            transaction.execute(
+                "UPDATE document SET position = ?1, updated_at = ?2
+                 WHERE project_id = ?3 AND id = ?4 AND parent_id IS ?5",
+                params![
+                    i64::try_from(position).map_err(|_| DocumentError::InvalidInput)?,
+                    timestamp,
+                    project_id.to_string(),
+                    id.to_string(),
+                    parent_id.map(|value| value.to_string())
+                ],
+            )?;
+        }
+        transaction.commit()?;
+        Ok(())
+    }
+
+    /// Löscht den exakt angezeigten Dokumentstand samt deklarierter Kindliste.
+    ///
+    /// Kapitelkinder und fachliche Referenzen werden durch die dokumentierten SQLite-Regeln
+    /// kaskadiert. Eine neue Revision, Umbenennung oder abweichende Kindliste verhindert das
+    /// Löschen.
+    ///
+    /// # Errors
+    ///
+    /// Liefert `RevisionConflict` bei einem veralteten Stand und `InvalidInput`, wenn für eine Szene
+    /// Kinder angegeben werden.
+    pub fn delete(
+        &mut self,
+        project_id: ProjectId,
+        document_id: EntityId,
+        expected_title: &str,
+        expected_revision: u64,
+        expected_child_ids: &[EntityId],
+    ) -> Result<(), DocumentError> {
+        validate_title(expected_title)?;
+        if expected_child_ids
+            .iter()
+            .copied()
+            .collect::<BTreeSet<_>>()
+            .len()
+            != expected_child_ids.len()
+        {
+            return Err(DocumentError::InvalidInput);
+        }
+        let transaction = self.database.transaction()?;
+        let node = load_node(&transaction, project_id, document_id)?;
+        if node.title != expected_title.trim() || node.revision != expected_revision {
+            return Err(DocumentError::RevisionConflict);
+        }
+        let children = sibling_ids(&transaction, project_id, Some(document_id))?;
+        if node.kind == DocumentKind::Scene && !expected_child_ids.is_empty() {
+            return Err(DocumentError::InvalidInput);
+        }
+        if children != expected_child_ids {
+            return Err(DocumentError::RevisionConflict);
+        }
+        let changed = transaction.execute(
+            "DELETE FROM document
+             WHERE project_id = ?1 AND id = ?2 AND title = ?3 AND revision = ?4",
+            params![
+                project_id.to_string(),
+                document_id.to_string(),
+                expected_title.trim(),
+                i64::try_from(expected_revision).map_err(|_| DocumentError::InvalidInput)?
+            ],
+        )?;
+        if changed != 1 {
+            return Err(DocumentError::RevisionConflict);
+        }
+        compact_siblings(&transaction, project_id, node.parent_id)?;
+        transaction.commit()?;
+        Ok(())
+    }
 }
 
 struct RawDocumentNode {
@@ -334,6 +486,99 @@ impl RawDocumentNode {
             revision: u64::try_from(self.revision).map_err(|_| DocumentError::InvalidStoredData)?,
         })
     }
+}
+
+fn load_node(
+    transaction: &Transaction<'_>,
+    project_id: ProjectId,
+    document_id: EntityId,
+) -> Result<DocumentNode, DocumentError> {
+    transaction
+        .query_row(
+            "SELECT id, project_id, parent_id, kind, title, position, revision
+             FROM document WHERE project_id = ?1 AND id = ?2",
+            params![project_id.to_string(), document_id.to_string()],
+            |row| {
+                Ok(RawDocumentNode {
+                    id: row.get(0)?,
+                    project_id: row.get(1)?,
+                    parent_id: row.get(2)?,
+                    kind: row.get(3)?,
+                    title: row.get(4)?,
+                    position: row.get(5)?,
+                    revision: row.get(6)?,
+                })
+            },
+        )
+        .optional()?
+        .ok_or(DocumentError::NotFound)?
+        .parse()
+}
+
+fn sibling_ids(
+    transaction: &Transaction<'_>,
+    project_id: ProjectId,
+    parent_id: Option<EntityId>,
+) -> Result<Vec<EntityId>, DocumentError> {
+    let mut statement = transaction.prepare(
+        "SELECT id FROM document
+         WHERE project_id = ?1 AND parent_id IS ?2
+         ORDER BY position, id",
+    )?;
+    let rows = statement.query_map(
+        params![
+            project_id.to_string(),
+            parent_id.map(|value| value.to_string())
+        ],
+        |row| row.get::<_, String>(0),
+    )?;
+    rows.map(|row| {
+        row.map_err(DocumentError::from)
+            .and_then(|value| EntityId::parse(&value).ok_or(DocumentError::InvalidStoredData))
+    })
+    .collect()
+}
+
+fn validate_reorder_parent(
+    transaction: &Transaction<'_>,
+    project_id: ProjectId,
+    parent_id: Option<EntityId>,
+) -> Result<(), DocumentError> {
+    if let Some(parent_id) = parent_id {
+        let parent = load_node(transaction, project_id, parent_id)?;
+        if parent.kind != DocumentKind::Chapter || parent.parent_id.is_some() {
+            return Err(DocumentError::InvalidParent);
+        }
+    } else {
+        let exists: bool = transaction.query_row(
+            "SELECT EXISTS(SELECT 1 FROM project WHERE id = ?1)",
+            [project_id.to_string()],
+            |row| row.get(0),
+        )?;
+        if !exists {
+            return Err(DocumentError::NotFound);
+        }
+    }
+    Ok(())
+}
+
+fn compact_siblings(
+    transaction: &Transaction<'_>,
+    project_id: ProjectId,
+    parent_id: Option<EntityId>,
+) -> Result<(), DocumentError> {
+    let siblings = sibling_ids(transaction, project_id, parent_id)?;
+    for (position, id) in siblings.iter().enumerate() {
+        transaction.execute(
+            "UPDATE document SET position = ?1 WHERE project_id = ?2 AND id = ?3",
+            params![
+                i64::try_from(position).map_err(|_| DocumentError::InvalidStoredData)?,
+                project_id.to_string(),
+                id.to_string()
+            ],
+        )?;
+    }
+    Ok(())
 }
 
 fn validate_project_and_parent(
@@ -538,6 +783,289 @@ mod tests {
             repository.load(project.id, scene.id),
             Err(DocumentError::InvalidStoredData)
         ));
+    }
+
+    #[test]
+    fn renames_reorders_and_deletes_only_the_displayed_tree_state() {
+        let root = tempdir().expect("temporary root should exist");
+        let manager = ProjectManager::new(root.path()).expect("manager should open");
+        let project = project();
+        let mut opened = manager
+            .create_project("projekt", &project)
+            .expect("project should be created");
+        let mut repository = DocumentRepository::new(opened.database_mut());
+        let first_chapter = repository
+            .create(project.id, None, DocumentKind::Chapter, "Kapitel 1")
+            .expect("chapter should be created");
+        let second_chapter = repository
+            .create(project.id, None, DocumentKind::Chapter, "Kapitel 2")
+            .expect("chapter should be created");
+        let first_scene = repository
+            .create(
+                project.id,
+                Some(first_chapter.id),
+                DocumentKind::Scene,
+                "Szene 1",
+            )
+            .expect("scene should be created");
+        let second_scene = repository
+            .create(
+                project.id,
+                Some(first_chapter.id),
+                DocumentKind::Scene,
+                "Szene 2",
+            )
+            .expect("scene should be created");
+
+        let renamed = repository
+            .rename(project.id, first_scene.id, "Szene 1", "Ankunft")
+            .expect("current title should rename");
+        assert_eq!(renamed.title, "Ankunft");
+        assert_eq!(renamed.revision, first_scene.revision);
+        assert!(matches!(
+            repository.rename(project.id, first_scene.id, "Szene 1", "Veraltet"),
+            Err(DocumentError::RevisionConflict)
+        ));
+
+        repository
+            .reorder(
+                project.id,
+                None,
+                &[first_chapter.id, second_chapter.id],
+                &[second_chapter.id, first_chapter.id],
+            )
+            .expect("chapters should reorder");
+        assert!(matches!(
+            repository.reorder(
+                project.id,
+                None,
+                &[first_chapter.id, second_chapter.id],
+                &[second_chapter.id, first_chapter.id],
+            ),
+            Err(DocumentError::RevisionConflict)
+        ));
+        repository
+            .reorder(
+                project.id,
+                Some(first_chapter.id),
+                &[first_scene.id, second_scene.id],
+                &[second_scene.id, first_scene.id],
+            )
+            .expect("scenes should reorder");
+
+        assert!(matches!(
+            repository.delete(
+                project.id,
+                first_chapter.id,
+                "Kapitel 1",
+                0,
+                &[first_scene.id, second_scene.id],
+            ),
+            Err(DocumentError::RevisionConflict)
+        ));
+        repository
+            .delete(
+                project.id,
+                first_chapter.id,
+                "Kapitel 1",
+                0,
+                &[second_scene.id, first_scene.id],
+            )
+            .expect("exactly displayed chapter should delete");
+
+        let remaining = repository.list(project.id).expect("tree should load");
+        assert_eq!(remaining.len(), 1);
+        assert_eq!(remaining[0].id, second_chapter.id);
+        assert_eq!(remaining[0].position, 0);
+    }
+
+    #[test]
+    #[allow(
+        clippy::too_many_lines,
+        reason = "Die Integrationsfixture belegt alle dokumentbezogenen Kaskaden gemeinsam"
+    )]
+    fn scene_delete_cascades_all_document_references() {
+        let root = tempdir().expect("temporary root should exist");
+        let manager = ProjectManager::new(root.path()).expect("manager should open");
+        let project = project();
+        let mut opened = manager
+            .create_project("projekt", &project)
+            .expect("project should be created");
+        let (scene, entity, event, asset, draft) = {
+            let mut repository = DocumentRepository::new(opened.database_mut());
+            let chapter = repository
+                .create(project.id, None, DocumentKind::Chapter, "Kapitel")
+                .expect("chapter should be created");
+            let scene = repository
+                .create(project.id, Some(chapter.id), DocumentKind::Scene, "Szene")
+                .expect("scene should be created");
+            (
+                scene,
+                kraqel_domain::EntityId::new(),
+                kraqel_domain::EntityId::new(),
+                kraqel_domain::EntityId::new(),
+                kraqel_domain::EntityId::new(),
+            )
+        };
+        let timeline = kraqel_domain::EntityId::new();
+        let connection = opened.database().connection();
+        connection
+            .execute(
+                "INSERT INTO entity (
+                    id, project_id, kind, name, properties_json, created_at, updated_at
+                 ) VALUES (?1, ?2, 'character', 'Rhea', '{}', 't', 't')",
+                params![entity.to_string(), project.id.to_string()],
+            )
+            .expect("entity fixture");
+        connection
+            .execute(
+                "INSERT INTO link (id, project_id, document_id, entity_id, role, created_at)
+                 VALUES (?1, ?2, ?3, ?4, 'reference', 't')",
+                params![
+                    kraqel_domain::EntityId::new().to_string(),
+                    project.id.to_string(),
+                    scene.id.to_string(),
+                    entity.to_string()
+                ],
+            )
+            .expect("story link fixture");
+        connection
+            .execute(
+                "INSERT INTO plot_card (
+                    project_id, document_id, status, position, updated_at
+                 ) VALUES (?1, ?2, 'planned', 0, 't')",
+                params![project.id.to_string(), scene.id.to_string()],
+            )
+            .expect("plot card fixture");
+        connection
+            .execute(
+                "INSERT INTO timeline (
+                    id, project_id, name, mode, position, created_at, updated_at
+                 ) VALUES (?1, ?2, 'Zeit', 'relative', 0, 't', 't')",
+                params![timeline.to_string(), project.id.to_string()],
+            )
+            .expect("timeline fixture");
+        connection
+            .execute(
+                "INSERT INTO event (
+                    id, project_id, timeline_id, title, description, position, created_at, updated_at
+                 ) VALUES (?1, ?2, ?3, 'Ereignis', '', 0, 't', 't')",
+                params![
+                    event.to_string(),
+                    project.id.to_string(),
+                    timeline.to_string()
+                ],
+            )
+            .expect("event fixture");
+        connection
+            .execute(
+                "INSERT INTO event_document_link (project_id, event_id, document_id, created_at)
+                 VALUES (?1, ?2, ?3, 't')",
+                params![
+                    project.id.to_string(),
+                    event.to_string(),
+                    scene.id.to_string()
+                ],
+            )
+            .expect("timeline link fixture");
+        connection
+            .execute(
+                "INSERT INTO media_asset (
+                    id, project_id, kind, relative_path, thumbnail_path, original_name, title,
+                    mime_type, checksum, byte_count, width, height, provenance, tags_json,
+                    created_at, updated_at
+                 ) VALUES (
+                    ?1, ?2, 'image', ?3, ?4, 'rabe.png', 'Rabe', 'image/png', ?5,
+                    1, 1, 1, 'imported', '[]', 't', 't'
+                 )",
+                params![
+                    asset.to_string(),
+                    project.id.to_string(),
+                    format!("assets/{asset}.png"),
+                    format!("assets/thumbnails/{asset}.png"),
+                    "a".repeat(64)
+                ],
+            )
+            .expect("asset fixture");
+        connection
+            .execute(
+                "INSERT INTO asset_link (
+                    project_id, asset_id, target_type, target_id, role, created_at
+                 ) VALUES (?1, ?2, 'document', ?3, 'reference', 't')",
+                params![
+                    project.id.to_string(),
+                    asset.to_string(),
+                    scene.id.to_string()
+                ],
+            )
+            .expect("asset link fixture");
+        connection
+            .execute(
+                "INSERT INTO visual_profile (
+                    entity_id, project_id, traits_json, exclusions_json, created_at, updated_at
+                 ) VALUES (?1, ?2, '{}', '[]', 't', 't')",
+                params![entity.to_string(), project.id.to_string()],
+            )
+            .expect("profile fixture");
+        connection
+            .execute(
+                "INSERT INTO image_prompt_draft (
+                    id, project_id, name, source_document_id, source_document_revision,
+                    prompt_text, created_at, updated_at
+                 ) VALUES (?1, ?2, 'Prompt', ?3, 0, 'Rabe', 't', 't')",
+                params![
+                    draft.to_string(),
+                    project.id.to_string(),
+                    scene.id.to_string()
+                ],
+            )
+            .expect("prompt fixture");
+        connection
+            .execute(
+                "INSERT INTO image_prompt_draft_profile (
+                    draft_id, project_id, entity_id, position
+                 ) VALUES (?1, ?2, ?3, 0)",
+                params![
+                    draft.to_string(),
+                    project.id.to_string(),
+                    entity.to_string()
+                ],
+            )
+            .expect("prompt profile fixture");
+
+        DocumentRepository::new(opened.database_mut())
+            .delete(project.id, scene.id, "Szene", 0, &[])
+            .expect("current scene should delete");
+
+        for table in [
+            "link",
+            "plot_card",
+            "event_document_link",
+            "asset_link",
+            "image_prompt_draft",
+        ] {
+            let count: i64 = opened
+                .database()
+                .connection()
+                .query_row(&format!("SELECT count(*) FROM {table}"), [], |row| {
+                    row.get(0)
+                })
+                .expect("cascade count");
+            assert_eq!(count, 0, "{table} should cascade");
+        }
+        let surviving: i64 = opened
+            .database()
+            .connection()
+            .query_row(
+                "SELECT
+                    (SELECT count(*) FROM entity) +
+                    (SELECT count(*) FROM event) +
+                    (SELECT count(*) FROM media_asset)",
+                [],
+                |row| row.get(0),
+            )
+            .expect("surviving records");
+        assert_eq!(surviving, 3);
     }
 
     #[test]

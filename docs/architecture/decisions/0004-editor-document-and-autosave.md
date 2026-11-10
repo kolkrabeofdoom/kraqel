@@ -27,6 +27,13 @@ enthält die erwartete Revision. Rust aktualisiert Inhalt, serverseitig abgeleit
 Revision und FTS-Index in einer Transaktion. Eine veraltete Revision erzeugt `CONFLICT` und
 überschreibt keinen neueren Stand.
 
+Titeländerungen verwenden den zuletzt angezeigten Titel als eigenen Compare-and-swap-Wert und
+verändern die Inhaltsrevision nicht. Umordnen übermittelt die vollständige bisherige und gewünschte
+Geschwisterliste; Rust akzeptiert nur dieselbe UUID-Menge und lehnt einen zwischenzeitlich
+veränderten Baum ab. Löschen bindet Titel und Inhaltsrevision, bei Kapiteln zusätzlich die
+vollständig angezeigte geordnete Kindliste. Die Oberfläche verlangt zwei getrennte Löschaktionen und
+wählt eine betroffene aktive Szene vor der Bestätigung ab.
+
 Die Desktopanwendung verwaltet Projekte vorerst unter `app_local_data_dir/projects/<project-uuid>`.
 Der generische `ProjectManager` bleibt von diesem UI-Standardpfad unabhängig. Eine frei wählbare
 Projektwurzel ist eine spätere Produktentscheidung.
@@ -38,7 +45,8 @@ Projektwurzel ist eine spätere Produktentscheidung.
   den FTS-Inhalt nicht separat vorspiegeln.
 - Kapitel liegen auf der Wurzelebene; Szenen benötigen ein Kapitel. Geschwister werden stabil nach
   Position und UUID sortiert.
-- KQ-005 unterstützt Erstellen, Öffnen und Schreiben. Umbenennen, Löschen und Drag-and-drop-
-  Umordnung fehlen weiterhin und gelten nicht als implementiert.
+- KQ-005 und KQ-019 unterstützen Erstellen, Öffnen, Schreiben, Umbenennen, tastaturbedienbares
+  Umordnen und zweistufiges Löschen. Kapitelkaskaden entfernen Szenen und deren dokumentbezogene
+  Links transaktional; eine automatische Wiederherstellung gelöschter Inhalte existiert nicht.
 - Tastatur- und Screenreader-Abnahme folgt dem dokumentierten manuellen Testplan; automatisierte
   Browser-E2E-Tests sind noch nicht eingerichtet.

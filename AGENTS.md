@@ -35,8 +35,8 @@ Aktuell im Repository und verifiziert:
 
 - **Desktop:** Tauri 2 mit Rust 2024; minimale `core:default`-Capability und restriktive CSP.
 - **Frontend:** React 19, TypeScript 5, Vite 7; lokale Projekt- und Schreiboberfläche.
-- **Editor:** Tiptap 3/ProseMirror mit versioniertem JSON, szenengebundenem Undo/Redo und
-  entprelltem, revisionsgeprüftem Autosave.
+- **Editor:** Tiptap 3/ProseMirror mit versioniertem JSON, szenengebundenem Undo/Redo, entprelltem
+  Autosave sowie konfliktgeprüftem Umbenennen, Umordnen und Löschen des Dokumentbaums.
 - **Workspaces:** pnpm-Monorepo für TypeScript, Cargo-Workspace für Rust.
 - **Verträge:** versionierte Request-/Response-Hüllen, UUID-Typen und bereinigte IPC-Fehler in Rust
   und TypeScript.
