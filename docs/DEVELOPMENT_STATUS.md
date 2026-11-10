@@ -2,7 +2,7 @@
 
 Stand: 10. November 2026
 
-Code-Referenz: KQ-016 (Issue #32)
+Code-Referenz: KQ-016 (PR #33)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -387,8 +387,8 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
 - **Dependency Review eingeschränkt:** Der GitHub-Job wird bei privaten Repositories ohne GitHub
   Advanced Security bewusst übersprungen. Lockfiles und reguläre CI bleiben aktiv.
 - Die vollständige Qualitätskette für KQ-016 ist lokal grün: 36 TypeScript- und 88 ausgeführte
-  Rust-Tests, Formatierung, ESLint, Clippy und Typprüfung. Die Windows-/Linux-CI folgt vor dem
-  Merge; ein visueller Export-QA-Test bleibt planmäßig ignoriert.
+  Rust-Tests, Formatierung, ESLint, Clippy und Typprüfung. Ein visueller Export-QA-Test bleibt
+  planmäßig ignoriert.
 
 ## Wichtige Architekturentscheidungen
 
