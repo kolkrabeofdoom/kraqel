@@ -29,6 +29,8 @@ import {
   type TimelineEvent,
   type TimelineMode,
   type MediaAsset,
+  type StylePreset,
+  type VisualProfile,
 } from "@kraqel/domain";
 import type { EditorDocument } from "@kraqel/editor";
 
@@ -386,6 +388,86 @@ export async function changeMediaAssetLink(
       role,
     })
   ).data;
+}
+
+export async function listVisualProfiles(projectId: ProjectId): Promise<readonly VisualProfile[]> {
+  return (
+    await callCommand<{ readonly projectId: ProjectId }, readonly VisualProfile[]>(
+      "list_visual_profiles",
+      { projectId },
+    )
+  ).data;
+}
+
+export async function saveVisualProfile(
+  projectId: ProjectId,
+  entityId: EntityId,
+  traits: Readonly<Record<string, string>>,
+  canonicalAssetId: EntityId | null,
+  exclusions: readonly string[],
+): Promise<VisualProfile> {
+  return (
+    await callCommand<
+      {
+        readonly projectId: ProjectId;
+        readonly entityId: EntityId;
+        readonly traits: Readonly<Record<string, string>>;
+        readonly canonicalAssetId: EntityId | null;
+        readonly exclusions: readonly string[];
+      },
+      VisualProfile
+    >("save_visual_profile", { projectId, entityId, traits, canonicalAssetId, exclusions })
+  ).data;
+}
+
+export async function deleteVisualProfile(projectId: ProjectId, entityId: EntityId): Promise<void> {
+  await callCommand<{ readonly projectId: ProjectId; readonly entityId: EntityId }, null>(
+    "delete_visual_profile",
+    { projectId, entityId },
+  );
+}
+
+export async function listStylePresets(projectId: ProjectId): Promise<readonly StylePreset[]> {
+  return (
+    await callCommand<{ readonly projectId: ProjectId }, readonly StylePreset[]>(
+      "list_style_presets",
+      { projectId },
+    )
+  ).data;
+}
+
+export async function saveStylePreset(
+  projectId: ProjectId,
+  presetId: EntityId | null,
+  name: string,
+  visualRules: Readonly<Record<string, string>>,
+  applicableKinds: readonly EntityKind[],
+): Promise<StylePreset> {
+  return (
+    await callCommand<
+      {
+        readonly projectId: ProjectId;
+        readonly presetId: EntityId | null;
+        readonly name: string;
+        readonly visualRules: Readonly<Record<string, string>>;
+        readonly applicableKinds: readonly EntityKind[];
+      },
+      StylePreset
+    >(presetId === null ? "create_style_preset" : "update_style_preset", {
+      projectId,
+      presetId,
+      name,
+      visualRules,
+      applicableKinds,
+    })
+  ).data;
+}
+
+export async function deleteStylePreset(projectId: ProjectId, presetId: EntityId): Promise<void> {
+  await callCommand<{ readonly projectId: ProjectId; readonly presetId: EntityId }, null>(
+    "delete_style_preset",
+    { projectId, presetId },
+  );
 }
 
 export async function listOllamaModels(): Promise<TextProviderStatus> {

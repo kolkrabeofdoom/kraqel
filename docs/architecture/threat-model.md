@@ -32,6 +32,8 @@
   geprüft; Projektdateinamen entstehen nur aus UUID und Hash
 - Backup und portable Snapshots kopieren ausschließlich datenbankreferenzierte Assetpfade und
   verifizieren Originale vor Veröffentlichung beziehungsweise Wiederherstellung gegen SHA-256
+- visuelle Profile und Stilvorlagen sind projektgebunden, größenbegrenzt und werden nur nach
+  erneuter Rust-Validierung gespeichert; ihre Commands besitzen keinen Netzwerkpfad
 - Betriebssystem-Schlüsselspeicher statt Konfigurationsdateien
 - feste offizielle HTTPS-Endpunkte für Cloudprovider; keine Redirects, Umgebungsproxies oder frei
   konfigurierbaren Produktionsziele

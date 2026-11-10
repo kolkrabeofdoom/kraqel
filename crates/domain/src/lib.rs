@@ -352,6 +352,28 @@ pub struct MediaAsset {
     pub links: Vec<AssetLink>,
 }
 
+/// Konsistenzvorgaben für die visuelle Darstellung eines Story-Bibel-Eintrags.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VisualProfile {
+    pub entity_id: EntityId,
+    pub project_id: ProjectId,
+    pub traits: BTreeMap<String, String>,
+    pub canonical_asset_id: Option<EntityId>,
+    pub exclusions: Vec<String>,
+}
+
+/// Projektweite, wiederverwendbare Regeln für einen visuellen Stil.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StylePreset {
+    pub id: EntityId,
+    pub project_id: ProjectId,
+    pub name: String,
+    pub visual_rules: BTreeMap<String, String>,
+    pub applicable_kinds: Vec<EntityKind>,
+}
+
 /// Minimales Projektmodell für Storage- und Command-Verträge.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

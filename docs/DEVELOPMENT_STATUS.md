@@ -1,8 +1,8 @@
 # Entwicklungsstatus
 
-Stand: 9. November 2026
+Stand: 10. November 2026
 
-Code-Referenz: KQ-013 (PR #26)
+Code-Referenz: KQ-014 (PR #28)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -17,7 +17,7 @@ als vollständige Fachfunktion.
 | **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                                             |
 | **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Teilweise umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, szenengebundenes Undo/Redo, Wortzählung, Fokusmodus, revisionsgeprüftes Autosave und SQLite-Backup vorhanden. Umbenennen, Umordnen, Löschen und E2E-Abnahme fehlen.                             |
 | **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks vorhanden. Browser-/Screenreader-Abnahme fehlt.                                                               |
-| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte und eine lokale PNG-/JPEG-/WebP-Medienbibliothek mit Links, Assetbackup und Hash-Snapshot vorhanden. Textimport, schreibende Snapshot-Wiederherstellung und visuelle Profile fehlen.         |
+| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, lokale Medienbibliothek sowie visuelle Profile und Stilvorlagen mit Backup und Snapshot vorhanden. Textimport und schreibende Snapshot-Wiederherstellung fehlen.                            |
 | **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Teilweise umgesetzt:** Ollama und vier Cloudprotokolle sowie deterministische Offline-Kontinuitätsregeln mit Quellenankern und revisionsgebundenem Nur-Lese-Diff vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise, Prompt-Builder und Bildabläufe fehlen. |
 | **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                                                                                                        |
 | **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                               |
@@ -33,7 +33,7 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Tauri-2-/React-/TypeScript-Desktop-Shell mit statischer, responsiver Startoberfläche.
 - Minimale Tauri-Berechtigung `core:default`, definierte CSP und Windows-Fensterkonfiguration.
 - GitHub-Actions-CI unter `windows-latest` und `ubuntu-latest`.
-- Letzter geprüfter CI-Lauf für `main` bei `2108e25`: erfolgreich unter Windows und Linux.
+- Letzter geprüfter CI-Lauf für `main` bei `998acc2`: erfolgreich unter Windows und Linux.
 - Qualitätskette: Prettier, rustfmt, ESLint, Clippy mit `-D warnings`, TypeScript, Vitest,
   Rust-Tests sowie Frontend- und Workspace-Builds.
 - GPL-3.0-or-later, Beitrags-, Verhaltens- und Sicherheitsdokumentation vorhanden.
@@ -41,7 +41,7 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 ### Domäne und IPC-Grenze (KQ-002)
 
 - Kanonische UUID-Typen für Projekte und Entitäten in Rust und TypeScript.
-- Portable Projektformat-Version `1` in den Domänenmodulen; interner SQLite-Migrationsstand `3`.
+- Portable Projektformat-Version `1` in den Domänenmodulen; interner SQLite-Migrationsstand `4`.
 - Versionierter lokaler Command-Vertrag v1 mit `contractVersion`, `requestId` und Nutzlast.
 - Stabile Fehlercodes `INVALID_REQUEST`, `UNSUPPORTED_CONTRACT_VERSION` und `INTERNAL`.
 - UI ersetzt fremde IPC-Fehlermeldungen durch bereinigte Texte; Eingaben und Pfade werden nicht
@@ -228,6 +228,27 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Tests decken Inhaltsprüfung, Pfadsicherheit, Hash/Thumbnail, Migration 2→3, Linkkaskaden,
   Backup/Recovery, manipulierte Snapshotassets sowie den vertikalen Importvertrag ab.
 
+### Visuelle Profile und Stilvorlagen (KQ-014)
+
+- SQLite-Migration 3→4 ergänzt genau ein `visual_profile` je Story-Bibel-Eintrag sowie projektweite
+  `style_preset`-Datensätze.
+- Profile speichern begrenzte, strukturierte Kernmerkmale, explizite Ausschlüsse und optional genau
+  ein kanonisches Medienasset aus demselben Projekt. Löschen des Assets leert nur die Referenz;
+  Löschen der Entität entfernt das Profil.
+- Stilvorlagen besitzen stabile UUIDs, einen projektweit eindeutigen Namen, strukturierte visuelle
+  Regeln und mindestens eine der vier unterstützten Entitätsarten als Geltungsbereich.
+- Rust normalisiert und begrenzt Namen, Schlüssel, Werte, Listen und JSON-Gesamtgrößen. Sämtliche
+  Entitäts-, Projekt- und Assetreferenzen werden an der autoritativen Grenze geprüft.
+- Die Ansicht **Visuelle Profile** unterstützt Erstellen, Bearbeiten und zweistufig bestätigtes
+  Löschen von Profilen und Stilvorlagen; kanonische Bilder werden aus der lokalen Medienbibliothek
+  gewählt.
+- Backup/Recovery übernimmt die Daten mit der SQLite-Sicherung. Deterministische Snapshots führen
+  sie in `visual-profiles.json` und prüfen Struktur sowie Entitäts- und Assetreferenzen.
+- Repository-, Migrations-, Backup-, Snapshot-, IPC- und TypeScript-Vertragstests decken den
+  vertikalen Ablauf ab. Browser-/Screenreader-Abnahme bleibt manuell offen.
+- Es existiert kein Netzwerkpfad für Profile oder Stilvorlagen. Prompt-Zusammenstellung und
+  Bildprovider sind ausdrücklich nicht Bestandteil dieses Inkrements.
+
 ### Begrenzte Hilfsfunktionen und Verträge
 
 - `asset-service`: produktiver, begrenzter Rasterbildimport mit SHA-256, Thumbnail, sicherer
@@ -235,14 +256,14 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - `editor`: versionierter, generischer Snapshot-Vertrag.
 - `ai-contracts`: Capability-, Provider-, Streaming- und explizite Kontextfreigabetypen; aktiv für
   den lokalen Ollama-Ablauf genutzt.
-- `visual-contracts`: Grundtypen für Medienassets und visuelle Profile.
+- `visual-contracts`: Medien-, Profil- und Stilvorlagenverträge; keine Prompt- oder Providerlogik.
 - `continuity`: ausführbare Offline-Regeln und Vorschlags-Diff; keine KI-Analyse oder
   Laufpersistenz.
 
 ### Deterministische Snapshots und lokales Git (KQ-008)
 
-- Portables Snapshotformat v1 für Projektmetadaten, Dokumente, Story-Bibel, Plotboard und Timelines;
-  ein formales JSON-Schema wird mit jedem Snapshot kopiert.
+- Portables Snapshotformat v2 für Projektmetadaten, Dokumente, Story-Bibel, Plotboard, Timelines und
+  visuelle Profile; v1 bleibt lesbar und ein formales JSON-Schema wird mit jedem Snapshot kopiert.
 - UUID-basierte Markdown-Dateinamen, stabile fachliche Sortierung, UTF-8/LF und keine flüchtigen
   Datenbankzeitstempel. Wiederholte Erzeugung unveränderter Projekte ist byte-identisch getestet.
 - Freigegebene Rasterbilder werden inhaltsadressiert kopiert; Manifest, Hash und tatsächliche
@@ -263,20 +284,20 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 ## Offene Aufgaben
 
-### Unmittelbar: M3-Visualisierung fortsetzen
+### Unmittelbar: M4-Bildvorbereitung fortsetzen
 
-1. **KQ-014 - Visuelle Profile und Stilvorlagen**
-   - Kernmerkmale, Ausschlüsse und kanonisches Referenzasset je Story-Bibel-Eintrag modellieren
-   - projektweite Stilvorlagen mit Geltungsbereichen und validiertem CRUD umsetzen
-   - Profile und Vorlagen in Backup, Snapshot und zugänglicher UI integrieren
+1. **KQ-015 - Editierbarer Bildprompt-Builder**
+   - ausgewählte Story-Bibel-Profile, Stilvorlage und Szenentext explizit zusammenstellen
+   - resultierenden Prompt vor jeder weiteren Verwendung vollständig editierbar anzeigen
+   - Prompt lokal speichern und als UTF-8-Text exportieren, ohne Provider- oder Netzwerkzugriff
 
 ### Danach gemäß Pflichtenheft
 
-- KQ-014 bis KQ-016: visuelle Profile, Prompt-Builder und Bild-Capability-Verträge. KI-basierte
-  Kontinuitätshinweise bleiben eine spätere Erweiterung von KQ-012.
+- KQ-015 und KQ-016: Prompt-Builder und Bild-Capability-Verträge. KI-basierte Kontinuitätshinweise
+  bleiben eine spätere Erweiterung von KQ-012.
 - KQ-017 und KQ-018 gehören zu Version 0.2 und sind kein Ziel für 0.1.
 
-Für KQ-014 bis KQ-018 sind noch nicht alle GitHub-Issues angelegt; die Aufgaben stehen im
+Für KQ-015 bis KQ-018 sind noch nicht alle GitHub-Issues angelegt; die Aufgaben stehen im
 Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkretisiert werden.
 
 ## Bekannte Fehler und Lücken
@@ -300,8 +321,8 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
   Exportmedien fehlen. Der WebView übergibt ausgewählte Dateien als Bytearray; bei vielen großen
   Dateien ist später ein nativer Streamingimport sinnvoll. Fehlgeschlagene Dateibereinigung kann
   unreferenzierte Dateien hinterlassen, aber keine intakte Referenz vorzeitig löschen.
-- **Migrationen bleiben vorwärtsgerichtet:** 0→1 und die befüllte Migration 1→2 sind getestet;
-  weitere Versionen benötigen jeweils eine neue unveränderliche Migration.
+- **Migrationen bleiben vorwärtsgerichtet:** 0→1 sowie befüllte Migrationen 1→2, 2→3 und 3→4 sind
+  getestet; weitere Versionen benötigen jeweils eine neue unveränderliche Migration.
 - **Zeitwerte ohne Kalendersemantik:** Absolute Zeitwerte sind validierte Zeichenketten. Kalender,
   Zeitzonen und Arithmetik sind bewusst noch nicht implementiert.
 - **Keine End-to-End-Tests:** Playwright ist weder installiert noch konfiguriert.
@@ -359,6 +380,9 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 - **Inhaltsgeprüfte lokale Medien:** Rust validiert Formate und Grenzen, Projektdateinamen entstehen
   aus UUID/Hash, Ersetzen schaltet erst nach neuer Dateiveröffentlichung um, und Backup/Snapshot
   prüfen referenzierte Originale gegen SHA-256 (ADR 0012).
+- **Projektgebundene visuelle Vorgaben:** Profile referenzieren Entitäten und optionale kanonische
+  Assets über stabile UUIDs; Stilvorlagen bleiben strukturiert, begrenzt und vollständig lokal (ADR
+  0013).
 - **Privilegierte Operationen in Rust:** React kommuniziert ausschließlich über versionierte,
   typisierte Tauri-Commands mit Dateisystem, Storage, Git und späteren Providern.
 - **Verträge sind explizit versioniert:** Inkompatible Änderungen erfordern eine neue
@@ -380,7 +404,7 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert | Vor großen Projekten messen; Migration nur mit Evidenz                |
 | Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                       | Gemeinsame Fixtures oder spätere Codegenerierung bewerten             |
-| Datenformat                  | Snapshot v1 mit Hash-Assets und vier Textexporten; Import und Roundtrip fehlen                              | Import/Roundtrip vor vollständiger F07/F08-Abnahme testen             |
+| Datenformat                  | Snapshot v2 mit Profilen und Hash-Assets sowie vier Textexporten; Import und Roundtrip fehlen               | Import/Roundtrip vor vollständiger F07/F08-Abnahme testen             |
 | Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                             | Freie eingebettete Schrift und Medienkonzept prüfen                   |
 | Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                   | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen              |
 | Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                    | Bei jeder Erweiterung Fixtures und Migration prüfen                   |
@@ -394,19 +418,20 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 | Kontinuitätsprüfung          | Vier Offline-Regeln getestet; exakte Nennungen und grober Zeilendiff begrenzen die Abdeckung                | Mit größeren künstlichen Projekten messen; KI-Kanal separat entwerfen |
 | Medienimport                 | Drei Rasterformate und harte Limits getestet; Bytearray-IPC skaliert nicht für Massenuploads                | Nativen Streamingimport erst nach Messung großer Sammlungen bewerten  |
 | Assetbackup                  | Hash-verifizierte Begleitverzeichnisse getestet; noch kein einzelnes portables Paket                        | Paketformat und atomare Mehrdatei-Verteilung vor externem Austausch   |
+| Visuelle Profile             | Struktur und Referenzen getestet; Stilnamen-Eindeutigkeit nutzt SQLite-NOCASE mit ASCII-Grenze              | Unicode-Kollation bei internationalisierten Vorlagennamen bewerten    |
 
 ## Nächste geplante Entwicklungsstufe
 
-**KQ-014: Visuelle Profile und projektweite Stilvorlagen.**
+**KQ-015: Editierbarer Bildprompt-Builder.**
 
 Empfohlener, überprüfbarer Scope:
 
-1. F09, Modul V.1 und KQ-014 gegen Medien-, Story-Bibel- und Snapshotverträge abgleichen.
-2. Strukturierte Kernmerkmale und Ausschlüsse sowie genau ein optionales kanonisches Asset pro
-   Entität definieren.
-3. Stilvorlagen mit projektweitem Namen, visuellen Regeln und zulässigen Entitätsarten transaktional
-   persistieren.
-4. CRUD, Referenzintegrität, Snapshotdarstellung und zugängliche Bearbeitung gemeinsam testen.
+1. F09, Modul V.1 und KQ-015 gegen Dokument-, Profil- und Stilvorlagenverträge abgleichen.
+2. Eine explizite Auswahl aus Szene, Story-Bibel-Profilen und optionaler Stilvorlage modellieren.
+3. Aus dieser Auswahl lokal einen vollständig editierbaren Promptentwurf erzeugen; keine
+   automatische Providerfreigabe und keine Änderung kanonischer Daten.
+4. Lokales Speichern, UTF-8-Textexport, deterministische Snapshots und zugängliche Bearbeitung
+   gemeinsam testen.
 
 ## Einstieg für die nächste Codex-Session
 
@@ -415,10 +440,10 @@ cd D:\kraqel
 git status
 git branch --show-current
 git log -5 --oneline
-rg "KQ-014" docs ROADMAP.md
+rg "KQ-015" docs ROADMAP.md
 ```
 
-Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0012, `docs/architecture/threat-model.md`,
-`packages/visual-contracts/`, Medien-/Story-Bibel-Verträge und die Pflichtenheft-Abschnitte zu F09,
-V.1 und KQ-014. Vor KQ-014 zuerst ein eigenes Issue anlegen und Profil-/Stilgrenzen gegen
-Datenschutz, Portabilität und spätere Promptnutzung prüfen.
+Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0013, `docs/architecture/threat-model.md`,
+`packages/visual-contracts/`, Profil-/Dokumentverträge und die Pflichtenheft-Abschnitte zu F09, V.1
+und KQ-015. Vor KQ-015 zuerst ein eigenes Issue anlegen und Auswahl-, Speicher- und Exportgrenzen
+gegen Datenschutz, Portabilität und spätere Providerfreigaben prüfen.

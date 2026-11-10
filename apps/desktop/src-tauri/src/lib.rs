@@ -12,8 +12,8 @@ use kraqel_domain::{
     AssetTargetKind, CURRENT_SCHEMA_VERSION, CommandError, CommandRequest, CommandResponse,
     DocumentKind, DocumentNode, EDITOR_DOCUMENT_VERSION, EditorDocument, EntityId, EntityKind,
     MediaAsset, PlotBoard, PlotStatus, Project, ProjectId, StoryEntity, StoryEntityDetails,
-    StoryRelation, Storyline, Timeline, TimelineDetails, TimelineEvent, TimelineMode,
-    is_valid_project_name, require_current_contract,
+    StoryRelation, Storyline, StylePreset, Timeline, TimelineDetails, TimelineEvent, TimelineMode,
+    VisualProfile, is_valid_project_name, require_current_contract,
 };
 use kraqel_export::{
     ExportError, ExportFormat, ExportResult, ExportSourceDocument, export_project,
@@ -28,6 +28,7 @@ use kraqel_storage::{
     project_manager::{ProjectError, ProjectManager},
     story_bible_repository::{StoryBibleError, StoryBibleRepository},
     structure_repository::{StructureError, StructureRepository},
+    visual_repository::{VisualError, VisualRepository},
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -421,6 +422,33 @@ struct MediaAssetView {
     asset: MediaAsset,
     thumbnail_data_url: Option<String>,
     file_available: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WriteVisualProfileRequest {
+    project_id: String,
+    entity_id: String,
+    traits: BTreeMap<String, String>,
+    canonical_asset_id: Option<String>,
+    exclusions: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WriteStylePresetRequest {
+    project_id: String,
+    preset_id: Option<String>,
+    name: String,
+    visual_rules: BTreeMap<String, String>,
+    applicable_kinds: Vec<EntityKind>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct StylePresetRequest {
+    project_id: String,
+    preset_id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -861,6 +889,104 @@ fn unlink_media_asset(
     require_current_contract(&request)?;
     let data = change_media_link_impl(&state, request.request_id, &request.payload, false)?;
     Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn list_visual_profiles(
+    state: State<'_, AppState>,
+    request: CommandRequest<ProjectRequest>,
+) -> Result<CommandResponse<Vec<VisualProfile>>, CommandError> {
+    require_current_contract(&request)?;
+    let data = list_visual_profiles_impl(&state, request.request_id, &request.payload.project_id)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn save_visual_profile(
+    state: State<'_, AppState>,
+    request: CommandRequest<WriteVisualProfileRequest>,
+) -> Result<CommandResponse<VisualProfile>, CommandError> {
+    require_current_contract(&request)?;
+    let data = save_visual_profile_impl(&state, request.request_id, &request.payload)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn delete_visual_profile(
+    state: State<'_, AppState>,
+    request: CommandRequest<StoryEntityRequest>,
+) -> Result<CommandResponse<()>, CommandError> {
+    require_current_contract(&request)?;
+    delete_visual_profile_impl(&state, request.request_id, &request.payload)?;
+    Ok(CommandResponse::current(request.request_id, ()))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn list_style_presets(
+    state: State<'_, AppState>,
+    request: CommandRequest<ProjectRequest>,
+) -> Result<CommandResponse<Vec<StylePreset>>, CommandError> {
+    require_current_contract(&request)?;
+    let data = list_style_presets_impl(&state, request.request_id, &request.payload.project_id)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn create_style_preset(
+    state: State<'_, AppState>,
+    request: CommandRequest<WriteStylePresetRequest>,
+) -> Result<CommandResponse<StylePreset>, CommandError> {
+    require_current_contract(&request)?;
+    let data = write_style_preset_impl(&state, request.request_id, &request.payload, true)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn update_style_preset(
+    state: State<'_, AppState>,
+    request: CommandRequest<WriteStylePresetRequest>,
+) -> Result<CommandResponse<StylePreset>, CommandError> {
+    require_current_contract(&request)?;
+    let data = write_style_preset_impl(&state, request.request_id, &request.payload, false)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn delete_style_preset(
+    state: State<'_, AppState>,
+    request: CommandRequest<StylePresetRequest>,
+) -> Result<CommandResponse<()>, CommandError> {
+    require_current_contract(&request)?;
+    delete_style_preset_impl(&state, request.request_id, &request.payload)?;
+    Ok(CommandResponse::current(request.request_id, ()))
 }
 
 #[tauri::command]
@@ -1962,6 +2088,139 @@ fn media_view(directory: &std::path::Path, asset: MediaAsset) -> MediaAssetView 
     }
 }
 
+fn list_visual_profiles_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    project_value: &str,
+) -> Result<Vec<VisualProfile>, CommandError> {
+    let project_id = parse_project_id(request_id, project_value)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    VisualRepository::new(opened.database_mut())
+        .list_profiles(project_id)
+        .map_err(|error| map_visual_error(request_id, &error))
+}
+
+fn save_visual_profile_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &WriteVisualProfileRequest,
+) -> Result<VisualProfile, CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let entity_id = parse_entity_id(request_id, &request.entity_id)?;
+    let canonical_asset_id = request
+        .canonical_asset_id
+        .as_deref()
+        .map(|value| parse_entity_id(request_id, value))
+        .transpose()?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    VisualRepository::new(opened.database_mut())
+        .upsert_profile(
+            project_id,
+            entity_id,
+            &request.traits,
+            canonical_asset_id,
+            &request.exclusions,
+        )
+        .map_err(|error| map_visual_error(request_id, &error))
+}
+
+fn delete_visual_profile_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &StoryEntityRequest,
+) -> Result<(), CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let entity_id = parse_entity_id(request_id, &request.entity_id)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    VisualRepository::new(opened.database_mut())
+        .delete_profile(project_id, entity_id)
+        .map_err(|error| map_visual_error(request_id, &error))
+}
+
+fn list_style_presets_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    project_value: &str,
+) -> Result<Vec<StylePreset>, CommandError> {
+    let project_id = parse_project_id(request_id, project_value)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    VisualRepository::new(opened.database_mut())
+        .list_presets(project_id)
+        .map_err(|error| map_visual_error(request_id, &error))
+}
+
+fn write_style_preset_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &WriteStylePresetRequest,
+    create: bool,
+) -> Result<StylePreset, CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    let mut repository = VisualRepository::new(opened.database_mut());
+    let result = if create {
+        if request.preset_id.is_some() {
+            return Err(CommandError::invalid_request(
+                request_id,
+                "Eine neue Stilvorlage darf noch keine Kennung besitzen.",
+            ));
+        }
+        repository.create_preset(
+            project_id,
+            &request.name,
+            &request.visual_rules,
+            &request.applicable_kinds,
+        )
+    } else {
+        let preset_id = request
+            .preset_id
+            .as_deref()
+            .ok_or_else(|| {
+                CommandError::invalid_request(request_id, "Die Stilvorlagenkennung fehlt.")
+            })
+            .and_then(|value| parse_entity_id(request_id, value))?;
+        repository.update_preset(
+            project_id,
+            preset_id,
+            &request.name,
+            &request.visual_rules,
+            &request.applicable_kinds,
+        )
+    };
+    result.map_err(|error| map_visual_error(request_id, &error))
+}
+
+fn delete_style_preset_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &StylePresetRequest,
+) -> Result<(), CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let preset_id = parse_entity_id(request_id, &request.preset_id)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    VisualRepository::new(opened.database_mut())
+        .delete_preset(project_id, preset_id)
+        .map_err(|error| map_visual_error(request_id, &error))
+}
+
 fn list_story_entities_impl(
     state: &AppState,
     request_id: uuid::Uuid,
@@ -2241,6 +2500,17 @@ fn map_media_error(request_id: uuid::Uuid, error: &MediaError) -> CommandError {
     }
 }
 
+fn map_visual_error(request_id: uuid::Uuid, error: &VisualError) -> CommandError {
+    match error {
+        VisualError::InvalidInput | VisualError::NotFound | VisualError::Duplicate => {
+            CommandError::invalid_request(request_id, "Die visuelle Profilanfrage ist ungültig.")
+        }
+        VisualError::InvalidStoredData
+        | VisualError::InvalidSystemTime
+        | VisualError::Storage(_) => CommandError::internal(request_id),
+    }
+}
+
 fn map_asset_error(request_id: uuid::Uuid, error: &AssetError) -> CommandError {
     match error {
         AssetError::InvalidName
@@ -2358,6 +2628,13 @@ pub fn run() {
             delete_media_asset,
             link_media_asset,
             unlink_media_asset,
+            list_visual_profiles,
+            save_visual_profile,
+            delete_visual_profile,
+            list_style_presets,
+            create_style_preset,
+            update_style_preset,
+            delete_style_preset,
             list_story_entities,
             create_story_entity,
             update_story_entity,
@@ -2411,11 +2688,14 @@ mod tests {
         DocumentRequest, ExportProjectRequest, ImportMediaRequest, LinkStoryEntityRequest,
         ListStoryEntitiesRequest, ReviewTextSuggestionRequest, SaveDocumentRequest,
         StoryEntityRequest, StreamTextDraftRequest, ValidateProjectNameRequest,
-        WriteStoryEntityRequest, application_status, create_project_impl, export_manuscript_impl,
-        import_media_asset_impl, link_story_entity_impl, list_media_assets_impl,
-        list_projects_impl, list_story_entities_impl, load_document_impl, load_story_entity_impl,
-        prepare_text_generation, preview_ai_context_impl, review_text_suggestion_impl,
-        save_document_impl, validate_project_name, write_story_entity_impl,
+        WriteStoryEntityRequest, WriteStylePresetRequest, WriteVisualProfileRequest,
+        application_status, create_project_impl, export_manuscript_impl, import_media_asset_impl,
+        link_story_entity_impl, list_media_assets_impl, list_projects_impl,
+        list_story_entities_impl, list_style_presets_impl, list_visual_profiles_impl,
+        load_document_impl, load_story_entity_impl, prepare_text_generation,
+        preview_ai_context_impl, review_text_suggestion_impl, save_document_impl,
+        save_visual_profile_impl, validate_project_name, write_story_entity_impl,
+        write_style_preset_impl,
     };
 
     const REQUEST_ID: Uuid = Uuid::from_u128(0x018f_47ea_9b2d_7cc1_98e8_b5f4_f6b7_41a2);
@@ -2657,6 +2937,73 @@ mod tests {
             .expect("assets should list");
         assert_eq!(listed.len(), 1);
         assert_eq!(listed[0].asset.id, imported.asset.id);
+    }
+
+    #[test]
+    fn visual_profile_and_style_preset_roundtrip_through_commands() {
+        let root = tempdir().expect("temporary root should exist");
+        let state = AppState {
+            project_root: root.path().to_path_buf(),
+            ai_releases: Mutex::new(HashMap::new()),
+        };
+        let workspace = create_project_impl(
+            &state,
+            REQUEST_ID,
+            CreateProjectRequest {
+                name: "Visuelles Archiv".to_owned(),
+            },
+        )
+        .expect("project should be created");
+        let entity = write_story_entity_impl(
+            &state,
+            REQUEST_ID,
+            &WriteStoryEntityRequest {
+                project_id: workspace.project.id.to_string(),
+                entity_id: None,
+                kind: EntityKind::Character,
+                name: "Rhea".to_owned(),
+                properties: BTreeMap::new(),
+            },
+            false,
+        )
+        .expect("entity should be created");
+        let profile = save_visual_profile_impl(
+            &state,
+            REQUEST_ID,
+            &WriteVisualProfileRequest {
+                project_id: workspace.project.id.to_string(),
+                entity_id: entity.id.to_string(),
+                traits: BTreeMap::from([("Augen".to_owned(), "bernsteinfarben".to_owned())]),
+                canonical_asset_id: None,
+                exclusions: vec!["blaue Augen".to_owned()],
+            },
+        )
+        .expect("profile should save");
+        assert_eq!(profile.entity_id, entity.id);
+        assert_eq!(
+            list_visual_profiles_impl(&state, REQUEST_ID, &workspace.project.id.to_string())
+                .expect("profiles should list"),
+            vec![profile]
+        );
+
+        let preset = write_style_preset_impl(
+            &state,
+            REQUEST_ID,
+            &WriteStylePresetRequest {
+                project_id: workspace.project.id.to_string(),
+                preset_id: None,
+                name: "Noir".to_owned(),
+                visual_rules: BTreeMap::from([("Palette".to_owned(), "monochrom".to_owned())]),
+                applicable_kinds: vec![EntityKind::Character],
+            },
+            true,
+        )
+        .expect("preset should save");
+        assert_eq!(
+            list_style_presets_impl(&state, REQUEST_ID, &workspace.project.id.to_string())
+                .expect("presets should list"),
+            vec![preset]
+        );
     }
 
     #[test]

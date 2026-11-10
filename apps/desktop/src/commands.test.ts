@@ -12,6 +12,9 @@ import {
   reviewTextSuggestion,
   importMediaAsset,
   listMediaAssets,
+  listVisualProfiles,
+  saveStylePreset,
+  saveVisualProfile,
   streamTextDraft,
   validateProjectName,
 } from "./commands";
@@ -194,6 +197,59 @@ describe("typed Tauri commands", () => {
           title: "Kolkrabe",
           tags: ["Nacht"],
           bytes: [137, 80],
+        },
+      },
+    });
+  });
+
+  it("sends structured visual profiles and style presets through the versioned boundary", async () => {
+    const projectId = requestId as ProjectId;
+    const entityId = "018f47ea-9b2d-7cc1-98e8-b5f4f6b741a3" as EntityId;
+    mockedInvoke.mockResolvedValueOnce({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: [],
+    });
+    await expect(listVisualProfiles(projectId)).resolves.toEqual([]);
+
+    mockedInvoke.mockResolvedValueOnce({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: { entityId, projectId, traits: {}, canonicalAssetId: null, exclusions: [] },
+    });
+    await saveVisualProfile(projectId, entityId, { Augen: "bernsteinfarben" }, null, [
+      "blaue Augen",
+    ]);
+    expect(mockedInvoke).toHaveBeenLastCalledWith("save_visual_profile", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: {
+          projectId,
+          entityId,
+          traits: { Augen: "bernsteinfarben" },
+          canonicalAssetId: null,
+          exclusions: ["blaue Augen"],
+        },
+      },
+    });
+
+    mockedInvoke.mockResolvedValueOnce({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: { id: entityId, projectId, name: "Noir", visualRules: {}, applicableKinds: [] },
+    });
+    await saveStylePreset(projectId, null, "Noir", { Palette: "monochrom" }, ["character"]);
+    expect(mockedInvoke).toHaveBeenLastCalledWith("create_style_preset", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: {
+          projectId,
+          presetId: null,
+          name: "Noir",
+          visualRules: { Palette: "monochrom" },
+          applicableKinds: ["character"],
         },
       },
     });

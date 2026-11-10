@@ -11,12 +11,14 @@ pub mod media_repository;
 pub mod project_manager;
 pub mod story_bible_repository;
 pub mod structure_repository;
+pub mod visual_repository;
 
 const INITIAL_SCHEMA: &str = include_str!("../migrations/0001_initial.sql");
 const STRUCTURE_SCHEMA: &str = include_str!("../migrations/0002_plotboard_timeline.sql");
 const MEDIA_SCHEMA: &str = include_str!("../migrations/0003_media_library.sql");
+const VISUAL_SCHEMA: &str = include_str!("../migrations/0004_visual_profiles.sql");
 /// Aktueller interner SQLite-Migrationsstand.
-pub const CURRENT_DATABASE_VERSION: SchemaVersion = SchemaVersion(3);
+pub const CURRENT_DATABASE_VERSION: SchemaVersion = SchemaVersion(4);
 const BUSY_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Von der Speicherschicht gemeldete Fehler.
@@ -159,6 +161,11 @@ impl Database {
                     transaction.execute_batch("PRAGMA user_version = 3;")?;
                     version = SchemaVersion(3);
                 }
+                SchemaVersion(3) => {
+                    transaction.execute_batch(VISUAL_SCHEMA)?;
+                    transaction.execute_batch("PRAGMA user_version = 4;")?;
+                    version = SchemaVersion(4);
+                }
                 _ => {
                     return Err(StorageError::MissingMigration {
                         found: version,
@@ -209,7 +216,8 @@ mod tests {
     use tempfile::tempdir;
 
     use super::{
-        CURRENT_DATABASE_VERSION, Database, INITIAL_SCHEMA, STRUCTURE_SCHEMA, StorageError,
+        CURRENT_DATABASE_VERSION, Database, INITIAL_SCHEMA, MEDIA_SCHEMA, STRUCTURE_SCHEMA,
+        StorageError,
     };
     use kraqel_domain::{CURRENT_SCHEMA_VERSION, SchemaVersion};
 
@@ -275,13 +283,17 @@ mod tests {
                                 'asset_link_document_after_delete',
                                 'asset_link_entity_after_delete',
                                 'asset_link_event_after_delete',
+                                'visual_profile', 'style_preset',
+                                'style_preset_project_name_idx',
+                                'visual_profile_asset_before_insert',
+                                'visual_profile_asset_before_update',
                                 'document_fts', 'document_fts_after_insert',
                                 'document_fts_after_update', 'document_fts_after_delete')",
                 [],
                 |row| row.get(0),
             )
             .expect("schema objects should be readable");
-        assert_eq!(object_count, 20);
+        assert_eq!(object_count, 25);
     }
 
     #[test]
@@ -290,7 +302,7 @@ mod tests {
         let path = directory.path().join("future.sqlite3");
         let connection = Connection::open(&path).expect("database should open");
         connection
-            .pragma_update(None, "user_version", 4)
+            .pragma_update(None, "user_version", 5)
             .expect("future version should be set");
         drop(connection);
 
@@ -300,8 +312,8 @@ mod tests {
         assert!(matches!(
             error,
             StorageError::FutureSchema {
-                found: SchemaVersion(4),
-                supported: SchemaVersion(3)
+                found: SchemaVersion(5),
+                supported: SchemaVersion(4)
             }
         ));
 
@@ -309,7 +321,7 @@ mod tests {
         let version: u32 = connection
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .expect("version should remain readable");
-        assert_eq!(version, 4);
+        assert_eq!(version, 5);
     }
 
     #[test]
@@ -453,5 +465,41 @@ mod tests {
             )
             .unwrap();
         assert_eq!(media_tables, 2);
+    }
+
+    #[test]
+    fn populated_v3_database_adds_visual_tables_without_losing_media() {
+        let directory = tempdir().expect("temporary directory should exist");
+        let path = directory.path().join("v3.sqlite3");
+        let connection = Connection::open(&path).expect("database should open");
+        connection.execute_batch(INITIAL_SCHEMA).unwrap();
+        connection.execute_batch(STRUCTURE_SCHEMA).unwrap();
+        connection.execute_batch(MEDIA_SCHEMA).unwrap();
+        connection.pragma_update(None, "user_version", 3).unwrap();
+        insert_project(&connection);
+        insert_document(&connection, "Bleibt bei visuellen Profilen erhalten.");
+        drop(connection);
+
+        let database = Database::open(&path).expect("v3 database should migrate");
+        assert_eq!(database.schema_version().unwrap(), CURRENT_DATABASE_VERSION);
+        let text: String = database
+            .connection()
+            .query_row(
+                "SELECT plain_text FROM document WHERE id = ?1",
+                [DOCUMENT_ID],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(text, "Bleibt bei visuellen Profilen erhalten.");
+        let visual_tables: i64 = database
+            .connection()
+            .query_row(
+                "SELECT count(*) FROM sqlite_master
+                 WHERE type = 'table' AND name IN ('visual_profile', 'style_preset')",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(visual_tables, 2);
     }
 }

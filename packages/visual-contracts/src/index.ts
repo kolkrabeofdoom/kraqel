@@ -15,7 +15,16 @@ export interface MediaAsset {
 
 export interface VisualProfile {
   readonly entityId: string;
+  readonly projectId: string;
   readonly traits: Readonly<Record<string, string>>;
   readonly canonicalAssetId: string | null;
   readonly exclusions: readonly string[];
+}
+
+export interface StylePreset {
+  readonly id: string;
+  readonly projectId: string;
+  readonly name: string;
+  readonly visualRules: Readonly<Record<string, string>>;
+  readonly applicableKinds: readonly ("character" | "location" | "faction" | "item")[];
 }

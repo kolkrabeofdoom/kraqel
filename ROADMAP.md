@@ -19,7 +19,7 @@
    - [x] Export nach Markdown, HTML, DOCX und PDF für die dokumentierte Formatierungsmenge
    - [ ] Import und DOCX-Roundtrip
    - [x] Lokale Medienbibliothek mit Metadaten, Links, Backup und Snapshot-Assets
-   - [ ] Visuelle Profile
+   - [x] Visuelle Profile und projektweite Stilvorlagen
 4. Optionale Text-KI, Kontinuitätsprüfung, Prompt-Entwürfe und Bildverträge
    - [x] Providerunabhängige Textgrenze und lokales Ollama-Streaming mit Kontextfreigabe
    - [x] Cloud-Textprovider und Betriebssystem-Schlüsselspeicher (Protokolltests; Live-Abnahme
