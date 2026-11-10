@@ -35,3 +35,7 @@ Tasten möglich sein.
 - Eine spätere Kalenderdomäne erfordert einen neuen Vertrag und eine Vorwärtsmigration.
 - KQ-008 kann Plotboard und Timelines deterministisch exportieren, ohne die laufende SQLite-Datei zu
   versionieren.
+- KQ-022 prüft Plotboard und Timelines in zwei getrennten Chromium-Abläufen gegen einen
+  testexklusiven, persistenten Browser-Command-Adapter. Das belegt React-Verhalten und die
+  vorhandenen Command-Verträge, nicht jedoch Rust, SQLite, die gebündelte Tauri-Anwendung oder
+  Screenreader.

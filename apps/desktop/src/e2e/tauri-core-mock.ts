@@ -3,10 +3,18 @@ import type {
   DocumentNode,
   EntityId,
   EntityKind,
+  PlotBoard,
+  PlotCard,
+  PlotStatus,
   Project,
   StoryEntity,
   StoryEntityDetails,
   StoryRelation,
+  Storyline,
+  Timeline,
+  TimelineDetails,
+  TimelineEvent,
+  TimelineMode,
 } from "@kraqel/domain";
 import { plainTextFromDocument, type EditorDocument } from "@kraqel/editor";
 
@@ -24,6 +32,10 @@ interface TestProject {
   storyEntities: StoryEntity[];
   storyRelations: StoryRelation[];
   storyLinks: StoryLink[];
+  storylines: Storyline[];
+  plotCards: PlotCard[];
+  timelines: Timeline[];
+  timelineEvents: TimelineEvent[];
 }
 
 interface StoryLink {
@@ -86,6 +98,10 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
         storyEntities: [],
         storyRelations: [],
         storyLinks: [],
+        storylines: [],
+        plotCards: [newPlotCard(scene, 0)],
+        timelines: [],
+        timelineEvents: [],
       };
       state.projects.push(created);
       writeState(state);
@@ -105,6 +121,8 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
         position,
       );
       current.documents.push(storedDocument(node));
+      if (node.kind === "scene")
+        current.plotCards.push(newPlotCard(node, current.plotCards.length));
       writeState(state);
       return node;
     }
@@ -163,6 +181,11 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       const deleted = new Set(deletedIds);
       current.documents = current.documents.filter(({ node }) => !deleted.has(node.id));
       current.storyLinks = current.storyLinks.filter(({ documentId }) => !deleted.has(documentId));
+      current.plotCards = current.plotCards.filter(({ documentId }) => !deleted.has(documentId));
+      current.timelineEvents = current.timelineEvents.map((item) => ({
+        ...item,
+        documentIds: item.documentIds.filter((id) => !deleted.has(id)),
+      }));
       compactPositions(current);
       writeState(state);
       return { deletedIds };
@@ -263,6 +286,136 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       writeState(state);
       return storyEntityDetails(current, payload.entityId);
     }
+    case "get_plot_board":
+      return plotBoard(findProject(state, payload.projectId));
+    case "create_storyline": {
+      const current = findProject(state, payload.projectId);
+      const storyline: Storyline = {
+        id: crypto.randomUUID() as EntityId,
+        projectId: current.project.id,
+        name: String(payload.name).trim(),
+        color: String(payload.color),
+        position: current.storylines.length,
+      };
+      current.storylines.push(storyline);
+      writeState(state);
+      return storyline;
+    }
+    case "delete_storyline": {
+      const current = findProject(state, payload.projectId);
+      current.storylines = current.storylines.filter(({ id }) => id !== payload.storylineId);
+      current.plotCards = current.plotCards.map((card) =>
+        card.storylineId === payload.storylineId ? { ...card, storylineId: null } : card,
+      );
+      writeState(state);
+      return null;
+    }
+    case "update_plot_card": {
+      const current = findProject(state, payload.projectId);
+      const index = current.plotCards.findIndex(
+        ({ documentId }) => documentId === payload.documentId,
+      );
+      if (index < 0) throw new Error("Unknown E2E plot card");
+      current.plotCards[index] = {
+        ...current.plotCards[index]!,
+        status: payload.status as PlotStatus,
+        storylineId: (payload.storylineId ?? null) as EntityId | null,
+        povEntityId: (payload.povEntityId ?? null) as EntityId | null,
+      };
+      writeState(state);
+      return null;
+    }
+    case "reorder_plot_cards": {
+      const current = findProject(state, payload.projectId);
+      reorderByIds(current.plotCards, payload.orderedIds as EntityId[], (item) => item.documentId);
+      writeState(state);
+      return null;
+    }
+    case "list_timelines":
+      return [...findProject(state, payload.projectId).timelines].sort(byPosition);
+    case "create_timeline": {
+      const current = findProject(state, payload.projectId);
+      const timeline: Timeline = {
+        id: crypto.randomUUID() as EntityId,
+        projectId: current.project.id,
+        name: String(payload.name).trim(),
+        mode: payload.mode as TimelineMode,
+        position: current.timelines.length,
+      };
+      current.timelines.push(timeline);
+      writeState(state);
+      return timeline;
+    }
+    case "delete_timeline": {
+      const current = findProject(state, payload.projectId);
+      current.timelines = current.timelines.filter(({ id }) => id !== payload.timelineId);
+      current.timelineEvents = current.timelineEvents.filter(
+        ({ timelineId }) => timelineId !== payload.timelineId,
+      );
+      writeState(state);
+      return null;
+    }
+    case "load_timeline":
+      return timelineDetails(findProject(state, payload.projectId), payload.timelineId);
+    case "create_timeline_event": {
+      const current = findProject(state, payload.projectId);
+      const timelineId = payload.timelineId as EntityId;
+      findTimeline(current, timelineId);
+      const event: TimelineEvent = {
+        id: crypto.randomUUID() as EntityId,
+        projectId: current.project.id,
+        timelineId,
+        title: String(payload.title).trim(),
+        description: String(payload.description),
+        timeValue: (payload.timeValue ?? null) as string | null,
+        position: current.timelineEvents.filter((item) => item.timelineId === timelineId).length,
+        documentIds: [],
+        entityIds: [],
+      };
+      current.timelineEvents.push(event);
+      writeState(state);
+      return event;
+    }
+    case "delete_timeline_event": {
+      const current = findProject(state, payload.projectId);
+      current.timelineEvents = current.timelineEvents.filter(({ id }) => id !== payload.eventId);
+      writeState(state);
+      return null;
+    }
+    case "reorder_timeline_events": {
+      const current = findProject(state, payload.projectId);
+      const timelineId = payload.parentId as EntityId;
+      const events = current.timelineEvents.filter((item) => item.timelineId === timelineId);
+      reorderByIds(events, payload.orderedIds as EntityId[], (item) => item.id);
+      current.timelineEvents = current.timelineEvents.map(
+        (item) => events.find(({ id }) => id === item.id) ?? item,
+      );
+      writeState(state);
+      return null;
+    }
+    case "link_timeline_event": {
+      const current = findProject(state, payload.projectId);
+      const index = current.timelineEvents.findIndex(({ id }) => id === payload.eventId);
+      if (index < 0) throw new Error("Unknown E2E timeline event");
+      const item = current.timelineEvents[index]!;
+      const documentId = (payload.documentId ?? null) as EntityId | null;
+      const entityId = (payload.entityId ?? null) as EntityId | null;
+      if (documentId) findStoredDocument(current, documentId);
+      if (entityId) findStoryEntity(current, entityId);
+      current.timelineEvents[index] = {
+        ...item,
+        documentIds:
+          documentId && !item.documentIds.includes(documentId)
+            ? [...item.documentIds, documentId]
+            : item.documentIds,
+        entityIds:
+          entityId && !item.entityIds.includes(entityId)
+            ? [...item.entityIds, entityId]
+            : item.entityIds,
+      };
+      writeState(state);
+      return timelineDetails(current, payload.timelineId);
+    }
     default:
       throw new Error(`Command ${command} is not available in the browser E2E adapter`);
   }
@@ -294,6 +447,17 @@ function storedDocument(node: DocumentNode): StoredDocument {
   };
 }
 
+function newPlotCard(node: DocumentNode, position: number): PlotCard {
+  return {
+    documentId: node.id,
+    title: node.title,
+    storylineId: null,
+    povEntityId: null,
+    status: "planned",
+    position,
+  };
+}
+
 function workspace(current: TestProject) {
   return {
     project: current.project,
@@ -317,6 +481,54 @@ function findStoryEntity(current: TestProject, id: unknown): StoryEntity {
   const entity = current.storyEntities.find((candidate) => candidate.id === id);
   if (!entity) throw new Error("Unknown E2E story entity");
   return entity;
+}
+
+function findTimeline(current: TestProject, id: unknown): Timeline {
+  const timeline = current.timelines.find((candidate) => candidate.id === id);
+  if (!timeline) throw new Error("Unknown E2E timeline");
+  return timeline;
+}
+
+function plotBoard(current: TestProject): PlotBoard {
+  const titles = new Map(current.documents.map(({ node }) => [node.id, node.title]));
+  return {
+    storylines: [...current.storylines].sort(byPosition),
+    cards: [...current.plotCards]
+      .filter(({ documentId }) => titles.has(documentId))
+      .sort(byPosition)
+      .map((card) => ({ ...card, title: titles.get(card.documentId)! })),
+  };
+}
+
+function timelineDetails(current: TestProject, id: unknown): TimelineDetails {
+  const timeline = findTimeline(current, id);
+  return {
+    timeline,
+    events: [...current.timelineEvents]
+      .filter(({ timelineId }) => timelineId === timeline.id)
+      .sort(byPosition),
+  };
+}
+
+function byPosition(left: { readonly position: number }, right: { readonly position: number }) {
+  return left.position - right.position;
+}
+
+function reorderByIds<T extends { readonly position: number }>(
+  items: T[],
+  orderedIds: readonly EntityId[],
+  idOf: (item: T) => EntityId,
+): void {
+  if (
+    items.length !== orderedIds.length ||
+    items.some((item) => !orderedIds.includes(idOf(item)))
+  ) {
+    throw new Error("Invalid E2E order");
+  }
+  const positions = new Map(orderedIds.map((id, position) => [id, position]));
+  items.forEach((item, index) => {
+    items[index] = { ...item, position: positions.get(idOf(item))! };
+  });
 }
 
 function storyEntityDetails(current: TestProject, id: unknown): StoryEntityDetails {

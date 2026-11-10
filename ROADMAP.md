@@ -16,6 +16,7 @@
    - [x] Story-Bibel mit Entitäten, Beziehungen, Suche und Szenen-Rückverweisen
      - [x] Browser-E2E für den fachlichen Story-Bibel-Kernablauf
    - [x] Plotboard und Timeline
+     - [x] Getrennte Browser-E2E für Plotboard- und Timeline-Kernabläufe
 3. M3-Datenportabilität und Medien
    - [x] Deterministische Projektsnapshots und lokales Git für Status, Diff und Commit
    - [x] Export nach Markdown, HTML, DOCX und PDF für die dokumentierte Formatierungsmenge
