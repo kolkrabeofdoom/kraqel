@@ -2,7 +2,7 @@
 
 Stand: 10. November 2026
 
-Code-Referenz: KQ-014 (Issue #27, `feat/kq-014-visual-profiles`)
+Code-Referenz: KQ-014 (PR #28)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
