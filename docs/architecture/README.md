@@ -17,7 +17,9 @@ bildet den portablen, versionierbaren Zustand ab. Die laufende Datenbank wird ni
 2. **Importe:** niemals als ausführbar behandeln; Typ, Größe und Inhalt validieren.
 3. **Provider:** standardmäßig inaktiv; der lokale Ollama-Adapter ist auf Loopback begrenzt.
    Cloudprovider besitzen feste HTTPS-Ziele und native Schlüsselspeicherung. Kontext wird vor jedem
-   Lauf vollständig angezeigt und mit einem kurzlebigen Einmalbeleg freigegeben.
+   Textlauf vollständig angezeigt und mit einem kurzlebigen Einmalbeleg freigegeben. Die
+   Bild-Capability-Registry ist rein lokal auswertbar; produktive Bildprovider existieren noch
+   nicht.
 4. **Plugins/Editor-Inhalte:** als potenziell nicht vertrauenswürdig behandeln und Ausgaben säubern.
 
 Architekturänderungen werden als ADR unter `decisions/` dokumentiert.

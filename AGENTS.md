@@ -67,14 +67,17 @@ Aktuell im Repository und verifiziert:
 - **Bildprompt-Builder:** explizite Szenen-, Profil- und Stilauswahl, deterministische lokale
   Zusammensetzung, vollständige Bearbeitung, persistente Entwürfe und UTF-8-Textausgabe ohne
   Provider- oder Netzwerkzugriff.
+- **Bildverträge:** offline auswertbare, provider- und modellspezifische Capability-Registry sowie
+  versionierte Generation-Job-, Freigabe-, Herkunfts- und Fehlerverträge; nur lokaler Test-Mock,
+  keine produktive Bildausführung.
 - **Qualität:** Prettier, ESLint, TypeScript-Checks, Vitest, Rust-Tests, rustfmt und Clippy mit
   Warnungen als Fehler; GitHub Actions unter Windows und Linux.
 
 Im Pflichtenheft vorgesehen, aber noch **nicht implementiert oder installiert**: Tailwind, React
-Flow, dnd-kit, Playwright, Bild-Capability-Registry, KI-basierte Kontinuitätshinweise und
-Bildgenerierung. Ollama und Cloudprovider werden unterstützt, aber weder lokale Modelle noch
-Cloudzugänge mit KRAQEL ausgeliefert. Eine bloße Typdefinition oder ein leeres Crate ist keine
-fertige Funktion - auch wenn es sehr selbstbewusst kompiliert.
+Flow, dnd-kit, Playwright, KI-basierte Kontinuitätshinweise und produktive Bildgenerierung. Ollama
+und Cloudprovider werden für Text unterstützt, aber weder lokale Modelle noch Cloudzugänge mit
+KRAQEL ausgeliefert. Eine bloße Typdefinition oder ein leeres Crate ist keine fertige Funktion -
+auch wenn es sehr selbstbewusst kompiliert.
 
 ## Verzeichnisstruktur und Verantwortlichkeiten
 
@@ -85,13 +88,13 @@ fertige Funktion - auch wenn es sehr selbstbewusst kompiliert.
 | `packages/domain/`           | TypeScript-Domänentypen, UUID-/Schema-Validierung            | Dokument- und Story-Modell              |
 | `packages/editor/`           | Editorvertrag, Baum, Autosave und Tiptap-Hilfsfunktionen     | M1-Grundfunktionen getestet             |
 | `packages/ui/`               | Geteilte zugängliche UI-Komponenten                          | Nur Platzhalterkonstante                |
-| `packages/ai-contracts/`     | Provider-, Capability-, Stream- und Freigabeverträge         | Lokale und Cloud-Textverträge           |
+| `packages/ai-contracts/`     | Provider-, Capability-, Stream- und Freigabeverträge         | Text- und KQ-016-Bildverträge           |
 | `packages/visual-contracts/` | Medien-, Profil-, Stil- und Promptverträge                   | KQ-015-Verträge                         |
 | `crates/domain/`             | Rust-Domäne und versionierte Command-Verträge                | Dokument- und Story-Modell              |
 | `crates/storage/`            | SQLite, Projektlebenszyklus und fachliche Repositories       | Dokumente, Struktur, Medien und Prompts |
 | `crates/git-service/`        | Deterministische Snapshots und Git-Operationen               | Lokaler M3-Mindestumfang                |
 | `crates/export/`             | Validierung, Zwischenformat und atomarer Manuskriptexport    | M3-Textformate getestet                 |
-| `crates/ai-service/`         | Textprovider, Schlüsselspeicher und sichere Streaminggrenzen | KQ-010/011-Protokollumfang              |
+| `crates/ai-service/`         | Textprovider, Schlüssel, Bildregistry und sichere KI-Grenzen | KQ-010/011 und KQ-016-Verträge          |
 | `crates/continuity/`         | Offline-Regeln, Quellenanker und Vorschlags-Diff             | KQ-012-Mindestumfang getestet           |
 | `crates/asset-service/`      | Sicherer Asset-Import, Hashes, Pfade, Thumbnails             | KQ-013-Bildumfang getestet              |
 | `docs/architecture/`         | Architekturübersicht, ADRs und Threat Model                  | Verbindliche Entscheidungen             |

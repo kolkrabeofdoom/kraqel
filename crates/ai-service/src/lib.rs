@@ -2,9 +2,17 @@
 
 mod cloud;
 mod credentials;
+mod image;
 
 pub use cloud::{CloudProviderId, CloudTextProvider};
 pub use credentials::{CredentialError, CredentialStore, OsCredentialStore};
+pub use image::{
+    IMAGE_GENERATION_CONTRACT_VERSION, ImageCapability, ImageCapabilityRegistry,
+    ImageContextRelease, ImageGenerationError, ImageGenerationErrorCode, ImageGenerationJob,
+    ImageGenerationJobStatus, ImageGenerationProvenance, ImageGenerationRequest,
+    ImageGenerationSettings, ImageModelDescriptor, ImageModelLimits, ImageProvider,
+    ImageProviderDescriptor,
+};
 
 use std::{
     error::Error,
@@ -42,7 +50,7 @@ pub enum TextCapability {
 }
 
 /// Ausführungsort eines Providers.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ProviderLocation {
     /// Provider läuft auf demselben Gerät.

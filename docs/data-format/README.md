@@ -161,3 +161,23 @@ verwenden ausschließlich die stabilen Codes `INVALID_REQUEST`, `UNSUPPORTED_CON
 Der Vertrag ist lokal und erlaubt keinen Netzwerkzugriff. Eine neue inkompatible Form benötigt eine
 neue `contractVersion`; stilles Umdeuten bestehender Felder ist untersagt, selbst wenn Merkur
 rückläufig ist.
+
+## Bild-Capability- und Generation-Job-Vertrag v1
+
+Der Bildvertrag in `packages/ai-contracts` und `kraqel-ai-service` verwendet `contractVersion = 1`.
+Eine lokal auswertbare Registry ordnet die Fähigkeiten `image.generate`, `image.edit`,
+`image.reference` und `image.map_render` einzelnen Provider-Modellen zu. Sie beschreibt außerdem
+Verfügbarkeit, Prompt- und Referenzlimits, unterstützte Bildgrößen, Ergebniszahl und
+Seed-Unterstützung. Eine Providerbezeichnung allein begründet keine Modellfähigkeit.
+
+Ein Auftrag bindet Job- und Projekt-UUID, Provider, Modell, Primärfähigkeit, Prompt-Entwurf, exakt
+freigegebenen Prompttext, Referenzasset-UUIDs und validierte Einstellungen. Die Zustände lauten
+`queued`, `running`, `succeeded`, `failed` und `cancelled`; Endzustände können nicht wieder geöffnet
+werden. Nur erfolgreiche Jobs tragen technische Herkunft, nur fehlgeschlagene Jobs einen bereinigten
+Fehler. Fehlercodes und Meldungen enthalten keine Prompts, Providerantworten, Pfade, Schlüssel oder
+internen Diagnosedaten.
+
+Dieser Vertrag wird in Version 0.1 nicht in SQLite oder Snapshots persistiert und besitzt keinen
+Tauri-Command. Der einzige ausführende Provider ist ein rein lokaler Rust-Test-Mock ohne Netzwerk
+und ohne Bilddatei. Produktive Ausführung, Abbruch, Assets und Übernahme bleiben Version 0.2
+vorbehalten.
