@@ -9,10 +9,11 @@ Der Exportstandard ist noch in Arbeit. Fest stehen folgende Invarianten:
 - keine API-Schlüssel, absoluten lokalen Pfade oder unfreigegebenen temporären Daten
 - dokumentierte Herkunft für importierte und generierte Medien
 
-Das portable Snapshotformat v1 ist in `snapshot-v1.schema.json` formal beschrieben. Die laufende
-SQLite-Datei bleibt davon getrennt.
+Das aktuelle portable Snapshotformat v2 ist in `snapshot-v2.schema.json` formal beschrieben.
+`snapshot-v1.schema.json` bleibt für die lesende Kompatibilität erhalten. Die laufende SQLite-Datei
+bleibt davon getrennt.
 
-## Portabler Projektsnapshot v1
+## Portabler Projektsnapshot v2
 
 KRAQEL veröffentlicht einen Snapshot im Projektordner unter `snapshot/`. Der Ordner enthält:
 
@@ -20,8 +21,8 @@ KRAQEL veröffentlicht einen Snapshot im Projektordner unter `snapshot/`. Der Or
   fester Dateiliste und Assetmetadaten einschließlich SHA-256, Abmessungen, Herkunft, Tags und
   fachlichen Links;
 - `schema.json` als mitgeführte Kopie des JSON-Schemas;
-- `documents.json`, `story-bible.json`, `plotboard.json` und `timelines.json` mit explizitem
-  `kind`-Diskriminator;
+- `documents.json`, `story-bible.json`, `plotboard.json`, `timelines.json` und
+  `visual-profiles.json` mit explizitem `kind`-Diskriminator;
 - `manuscript/<uuid>.md` mit stabilen, titelunabhängigen Dateinamen;
 - `assets/<sha256>.<endung>` für freigegebene PNG-, JPEG- und WebP-Originale. Vorschaubilder sind
   ableitbar und werden nicht dupliziert;
@@ -37,7 +38,9 @@ kompletten `snapshot/`-Ordner aus. Assetdateien werden beim Erzeugen und Prüfen
 Manifest gespeicherten SHA-256 verifiziert. Eine Wiederholung ohne fachliche Änderung ist
 byte-identisch. Die lesende Prüfung kontrolliert Manifest, Formatversion, Projektkennung, feste
 Dateien, Inhaltsdiskriminatoren sowie UUID-basierte Manuskriptdateien. Sie schreibt nichts zurück in
-SQLite; eine vollständige Wiederherstellung in ein neues Projekt ist noch nicht implementiert.
+SQLite; eine vollständige Wiederherstellung in ein neues Projekt ist noch nicht implementiert. Die
+lesende Prüfung akzeptiert weiterhin Formatversion 1 ohne `visual-profiles.json`; neu erzeugte
+Snapshots verwenden ausschließlich Version 2.
 
 Git wird im verwalteten Projektordner lokal initialisiert. Eine deny-by-default `.gitignore` gibt
 nur `.gitignore` und `snapshot/**` frei. Add, Status, Diff und Commit erhalten zusätzlich feste
@@ -53,7 +56,7 @@ JSON-Gültigkeitsprüfungen sind verbindlich. `document_fts` indexiert Titel und
 wird durch Trigger synchron gehalten.
 
 `project.schema_version = 1` bezeichnet weiterhin das portable Projektformat. Der davon getrennte
-interne SQLite-Migrationsstand ist `PRAGMA user_version = 3`. KRAQEL migriert nur vorwärtsgerichtet
+interne SQLite-Migrationsstand ist `PRAGMA user_version = 4`. KRAQEL migriert nur vorwärtsgerichtet
 und atomar; Datenbanken aus unbekannten neueren Versionen werden nicht verändert. Die SQLite-Datei
 selbst ist kein Austauschformat und bleibt ebenso wie WAL-Nebenfiles aus Git ausgeschlossen.
 
@@ -66,6 +69,12 @@ Migration 3 ergänzt `media_asset` und `asset_link`. Originale und Vorschaubilde
 `assets/`; die Datenbank speichert ausschließlich normalisierte relative Pfade. Lokale Sicherungen
 erhalten ein gleichnamiges `.assets`-Begleitverzeichnis, dessen referenzierte Originale vor der
 Veröffentlichung und Wiederherstellung gegen SHA-256 geprüft werden.
+
+Migration 4 ergänzt `visual_profile` und `style_preset`. Ein Profil gehört über eine stabile UUID
+genau zu einem Story-Bibel-Eintrag und kann ein kanonisches Asset desselben Projekts referenzieren.
+Kernmerkmale, Ausschlüsse, Stilregeln und Entitäts-Geltungsbereiche werden begrenzt und
+deterministisch gespeichert. Löschen eines kanonischen Assets leert nur die Referenz; Löschen der
+Entität entfernt ihr Profil.
 
 ## Plotboard- und Timeline-Vertrag v1
 

@@ -26,6 +26,7 @@ import { Exports } from "./Exports";
 import { TextAssistant } from "./TextAssistant";
 import { Continuity } from "./Continuity";
 import { MediaLibrary } from "./MediaLibrary";
+import { VisualProfiles } from "./VisualProfiles";
 
 interface EditorWorkspaceProps {
   readonly initialWorkspace: Workspace;
@@ -47,6 +48,7 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
     | "timelines"
     | "continuity"
     | "media"
+    | "visuals"
     | "versions"
     | "exports"
     | "textAi"
@@ -123,6 +125,14 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
               onClick={() => setView("media")}
             >
               Medien
+            </button>
+            <button
+              type="button"
+              className={view === "visuals" ? "active" : "secondary"}
+              aria-current={view === "visuals" ? "page" : undefined}
+              onClick={() => setView("visuals")}
+            >
+              Visuelle Profile
             </button>
             <button
               type="button"
@@ -278,6 +288,8 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
             setView("manuscript");
           }}
         />
+      ) : view === "visuals" ? (
+        <VisualProfiles projectId={workspace.project.id} />
       ) : view === "versions" ? (
         <VersionControl projectId={workspace.project.id} />
       ) : view === "exports" ? (

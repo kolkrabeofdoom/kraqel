@@ -766,6 +766,10 @@ fn verify_restore_source(path: &Path) -> Result<(), ProjectError> {
                             'asset_link_document_after_delete',
                             'asset_link_entity_after_delete',
                             'asset_link_event_after_delete',
+                            'visual_profile', 'style_preset',
+                            'style_preset_project_name_idx',
+                            'visual_profile_asset_before_insert',
+                            'visual_profile_asset_before_update',
                             'document_fts', 'document_fts_after_insert',
                             'document_fts_after_update', 'document_fts_after_delete')",
             [],
@@ -776,6 +780,7 @@ fn verify_restore_source(path: &Path) -> Result<(), ProjectError> {
         1 => 9,
         2 => 15,
         3 => 20,
+        4 => 25,
         _ => return Err(ProjectError::InvalidDatabase),
     };
     if required == expected {
@@ -809,13 +814,17 @@ fn verify_connection(connection: &Connection) -> Result<(), ProjectError> {
                             'asset_link_document_after_delete',
                             'asset_link_entity_after_delete',
                             'asset_link_event_after_delete',
+                            'visual_profile', 'style_preset',
+                            'style_preset_project_name_idx',
+                            'visual_profile_asset_before_insert',
+                            'visual_profile_asset_before_update',
                             'document_fts', 'document_fts_after_insert',
                             'document_fts_after_update', 'document_fts_after_delete')",
             [],
             |row| row.get(0),
         )
         .map_err(|_| ProjectError::InvalidDatabase)?;
-    if object_count != 20 {
+    if object_count != 25 {
         return Err(ProjectError::InvalidDatabase);
     }
 
@@ -1101,6 +1110,69 @@ mod tests {
             fs::read(restored.directory().join("assets/thumbnails/image.png")).unwrap(),
             thumbnail
         );
+    }
+
+    #[test]
+    fn backup_and_restore_preserve_visual_profiles_and_presets() {
+        let root = tempdir().expect("temporary root should exist");
+        let manager = ProjectManager::new(root.path()).expect("manager should open");
+        let project = project("Visuelles Projekt");
+        let project_id = project.id;
+        let entity_id = EntityId::new();
+        let opened = manager
+            .create_project("quelle", &project)
+            .expect("project should be created");
+        opened
+            .database()
+            .connection()
+            .execute(
+                "INSERT INTO entity (id, project_id, kind, name, created_at, updated_at)
+             VALUES (?1, ?2, 'character', 'Rhea', '0', '0')",
+                params![entity_id.to_string(), project_id.to_string()],
+            )
+            .unwrap();
+        opened
+            .database()
+            .connection()
+            .execute(
+                "INSERT INTO visual_profile (
+                entity_id, project_id, traits_json, exclusions_json, created_at, updated_at
+             ) VALUES (?1, ?2, '{\"Augen\":\"bernsteinfarben\"}', '[\"blaue Augen\"]', '0', '0')",
+                params![entity_id.to_string(), project_id.to_string()],
+            )
+            .unwrap();
+        opened.database().connection().execute(
+            "INSERT INTO style_preset (
+                id, project_id, name, visual_rules_json, applicable_kinds_json, created_at, updated_at
+             ) VALUES (?1, ?2, 'Noir', '{\"Palette\":\"monochrom\"}', '[\"character\"]', '0', '0')",
+            params![EntityId::new().to_string(), project_id.to_string()],
+        ).unwrap();
+        drop(opened);
+
+        manager.backup_project("quelle", "visueller-stand").unwrap();
+        let restored = manager
+            .restore_backup("quelle", "visueller-stand", "wiederhergestellt")
+            .unwrap();
+        let profile_count: i64 = restored
+            .database()
+            .connection()
+            .query_row(
+                "SELECT count(*) FROM visual_profile WHERE entity_id = ?1",
+                [entity_id.to_string()],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let preset_name: String = restored
+            .database()
+            .connection()
+            .query_row(
+                "SELECT name FROM style_preset WHERE project_id = ?1",
+                [project_id.to_string()],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(profile_count, 1);
+        assert_eq!(preset_name, "Noir");
     }
 
     #[test]

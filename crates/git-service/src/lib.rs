@@ -19,13 +19,23 @@ use uuid::Uuid;
 const SNAPSHOT_DIRECTORY: &str = "snapshot";
 const MANUSCRIPT_DIRECTORY: &str = "manuscript";
 const MAX_GIT_OUTPUT_BYTES: usize = 1024 * 1024;
-const SNAPSHOT_FILES: [&str; 7] = [
+const SNAPSHOT_FILES_V1: [&str; 7] = [
     "manifest.json",
     "schema.json",
     "documents.json",
     "story-bible.json",
     "plotboard.json",
     "timelines.json",
+    "README.md",
+];
+const SNAPSHOT_FILES_V2: [&str; 8] = [
+    "manifest.json",
+    "schema.json",
+    "documents.json",
+    "story-bible.json",
+    "plotboard.json",
+    "timelines.json",
+    "visual-profiles.json",
     "README.md",
 ];
 const GITIGNORE: &str = concat!(
@@ -191,14 +201,14 @@ impl<'project> GitService<'project> {
         let root = self.project_directory.join(SNAPSHOT_DIRECTORY);
         let manifest: Manifest = serde_json::from_slice(&fs::read(root.join("manifest.json"))?)
             .map_err(|_| GitServiceError::InvalidSnapshot)?;
+        let expected_files = expected_manifest_files(manifest.format_version)?;
         if manifest.format != "kraqel-project-snapshot"
-            || manifest.format_version != 1
             || manifest.project.id != expected_project_id
-            || manifest.files != expected_manifest_files()
+            || manifest.files != expected_files
         {
             return Err(GitServiceError::InvalidSnapshot);
         }
-        for name in SNAPSHOT_FILES {
+        for name in &expected_files {
             let path = root.join(name);
             if !path.is_file() {
                 return Err(GitServiceError::InvalidSnapshot);
@@ -213,6 +223,9 @@ impl<'project> GitService<'project> {
             }
         }
         validate_snapshot_assets(&root, &manifest.assets)?;
+        if manifest.format_version == 2 {
+            validate_visual_references(&root, &manifest.assets)?;
+        }
         let manuscript = root.join(MANUSCRIPT_DIRECTORY);
         if !manuscript.is_dir() {
             return Err(GitServiceError::InvalidSnapshot);
@@ -441,6 +454,34 @@ impl<'project> GitService<'project> {
             &project_id_text,
             &["eventId", "entityId"],
         )?;
+        let visual_profiles = query_rows(
+            connection,
+            "SELECT entity_id, traits_json, canonical_asset_id, exclusions_json
+             FROM visual_profile WHERE project_id = ?1 ORDER BY entity_id",
+            &project_id_text,
+            |row| {
+                Ok(json!({
+                    "entityId": row.get::<_, String>(0)?,
+                    "traits": parse_json(&row.get::<_, String>(1)?)?,
+                    "canonicalAssetId": row.get::<_, Option<String>>(2)?,
+                    "exclusions": parse_json(&row.get::<_, String>(3)?)?,
+                }))
+            },
+        )?;
+        let style_presets = query_rows(
+            connection,
+            "SELECT id, name, visual_rules_json, applicable_kinds_json
+             FROM style_preset WHERE project_id = ?1 ORDER BY name COLLATE NOCASE, id",
+            &project_id_text,
+            |row| {
+                Ok(json!({
+                    "id": row.get::<_, String>(0)?,
+                    "name": row.get::<_, String>(1)?,
+                    "visualRules": parse_json(&row.get::<_, String>(2)?)?,
+                    "applicableKinds": parse_json(&row.get::<_, String>(3)?)?,
+                }))
+            },
+        )?;
 
         fs::create_dir(root.join(MANUSCRIPT_DIRECTORY))?;
         write_json(
@@ -459,21 +500,25 @@ impl<'project> GitService<'project> {
             root.join("timelines.json"),
             &json!({"kind": "timelines", "timelines": timelines, "events": events, "documentLinks": event_documents, "entityLinks": event_entities}),
         )?;
+        write_json(
+            root.join("visual-profiles.json"),
+            &json!({"kind": "visualProfiles", "profiles": visual_profiles, "stylePresets": style_presets}),
+        )?;
         fs::write(
             root.join("schema.json"),
-            include_bytes!("../../../docs/data-format/snapshot-v1.schema.json"),
+            include_bytes!("../../../docs/data-format/snapshot-v2.schema.json"),
         )?;
         let assets = write_snapshot_assets(connection, &project_id_text, project_directory, root)?;
         let manifest = Manifest {
             format: "kraqel-project-snapshot".to_owned(),
-            format_version: 1,
+            format_version: 2,
             project: ManifestProject {
                 id: project_id,
                 name,
                 schema_version,
                 settings: serde_json::from_str(&settings)?,
             },
-            files: expected_manifest_files(),
+            files: expected_manifest_files(2)?,
             assets,
         };
         write_json(root.join("manifest.json"), &manifest)?;
@@ -798,8 +843,13 @@ struct ManifestProject {
     settings: Value,
 }
 
-fn expected_manifest_files() -> Vec<String> {
-    SNAPSHOT_FILES.iter().map(ToString::to_string).collect()
+fn expected_manifest_files(format_version: u16) -> Result<Vec<String>, GitServiceError> {
+    let files: &[&str] = match format_version {
+        1 => &SNAPSHOT_FILES_V1,
+        2 => &SNAPSHOT_FILES_V2,
+        _ => return Err(GitServiceError::InvalidSnapshot),
+    };
+    Ok(files.iter().map(ToString::to_string).collect())
 }
 
 fn validate_json_file(name: &str, value: &Value) -> Result<(), GitServiceError> {
@@ -833,9 +883,134 @@ fn validate_json_file(name: &str, value: &Value) -> Result<(), GitServiceError> 
                     .iter()
                     .all(|key| value.get(key).is_some_and(Value::is_array))
         }
+        "visual-profiles.json" => {
+            value.get("kind").and_then(Value::as_str) == Some("visualProfiles")
+                && ["profiles", "stylePresets"]
+                    .iter()
+                    .all(|key| value.get(key).is_some_and(Value::is_array))
+                && validate_visual_data(value)
+        }
         _ => false,
     };
     if valid {
+        Ok(())
+    } else {
+        Err(GitServiceError::InvalidSnapshot)
+    }
+}
+
+fn validate_visual_data(value: &Value) -> bool {
+    let Some(profiles) = value.get("profiles").and_then(Value::as_array) else {
+        return false;
+    };
+    let Some(presets) = value.get("stylePresets").and_then(Value::as_array) else {
+        return false;
+    };
+    profiles.iter().all(|profile| {
+        let Some(object) = profile.as_object() else {
+            return false;
+        };
+        object.len() == 4
+            && object
+                .get("entityId")
+                .and_then(Value::as_str)
+                .and_then(kraqel_domain::EntityId::parse)
+                .is_some()
+            && object.get("traits").is_some_and(validate_string_map)
+            && object.get("canonicalAssetId").is_some_and(|id| {
+                id.is_null()
+                    || id
+                        .as_str()
+                        .and_then(kraqel_domain::EntityId::parse)
+                        .is_some()
+            })
+            && object.get("exclusions").is_some_and(validate_string_list)
+    }) && presets.iter().all(|preset| {
+        let Some(object) = preset.as_object() else {
+            return false;
+        };
+        let Some(name) = object.get("name").and_then(Value::as_str) else {
+            return false;
+        };
+        let Some(kinds) = object.get("applicableKinds").and_then(Value::as_array) else {
+            return false;
+        };
+        let unique_kinds = kinds
+            .iter()
+            .filter_map(Value::as_str)
+            .collect::<BTreeSet<_>>();
+        object.len() == 4
+            && object
+                .get("id")
+                .and_then(Value::as_str)
+                .and_then(kraqel_domain::EntityId::parse)
+                .is_some()
+            && !name.trim().is_empty()
+            && name.chars().count() <= 120
+            && object.get("visualRules").is_some_and(validate_string_map)
+            && !kinds.is_empty()
+            && kinds.len() <= 4
+            && unique_kinds.len() == kinds.len()
+            && unique_kinds
+                .iter()
+                .all(|kind| matches!(*kind, "character" | "location" | "faction" | "item"))
+    })
+}
+
+fn validate_string_map(value: &Value) -> bool {
+    value.as_object().is_some_and(|map| {
+        map.len() <= 32
+            && map.iter().all(|(key, value)| {
+                !key.trim().is_empty()
+                    && key.chars().count() <= 80
+                    && value
+                        .as_str()
+                        .is_some_and(|text| !text.trim().is_empty() && text.chars().count() <= 500)
+            })
+    })
+}
+
+fn validate_string_list(value: &Value) -> bool {
+    value.as_array().is_some_and(|items| {
+        let strings = items.iter().filter_map(Value::as_str).collect::<Vec<_>>();
+        strings.len() == items.len()
+            && strings.len() <= 32
+            && strings.iter().collect::<BTreeSet<_>>().len() == strings.len()
+            && strings
+                .iter()
+                .all(|text| !text.trim().is_empty() && text.chars().count() <= 500)
+    })
+}
+
+fn validate_visual_references(root: &Path, assets: &[Value]) -> Result<(), GitServiceError> {
+    let story: Value = serde_json::from_slice(&fs::read(root.join("story-bible.json"))?)
+        .map_err(|_| GitServiceError::InvalidSnapshot)?;
+    let visuals: Value = serde_json::from_slice(&fs::read(root.join("visual-profiles.json"))?)
+        .map_err(|_| GitServiceError::InvalidSnapshot)?;
+    let entity_ids = story
+        .get("entities")
+        .and_then(Value::as_array)
+        .ok_or(GitServiceError::InvalidSnapshot)?
+        .iter()
+        .filter_map(|entity| entity.get("id").and_then(Value::as_str))
+        .collect::<BTreeSet<_>>();
+    let asset_ids = assets
+        .iter()
+        .filter_map(|asset| asset.get("id").and_then(Value::as_str))
+        .collect::<BTreeSet<_>>();
+    let profiles = visuals
+        .get("profiles")
+        .and_then(Value::as_array)
+        .ok_or(GitServiceError::InvalidSnapshot)?;
+    if profiles.iter().all(|profile| {
+        profile
+            .get("entityId")
+            .and_then(Value::as_str)
+            .is_some_and(|id| entity_ids.contains(id))
+            && profile.get("canonicalAssetId").is_none_or(|id| {
+                id.is_null() || id.as_str().is_some_and(|id| asset_ids.contains(id))
+            })
+    }) {
         Ok(())
     } else {
         Err(GitServiceError::InvalidSnapshot)
@@ -1116,6 +1291,33 @@ mod tests {
     }
 
     #[test]
+    fn validation_keeps_reading_legacy_v1_snapshots() {
+        let (root, id) = fixture();
+        let manager = ProjectManager::new(root.path()).unwrap();
+        let opened = manager.open_project(id.to_string()).unwrap();
+        let service = GitService::new(opened.directory());
+        service.create_snapshot(opened.database(), id).unwrap();
+        let snapshot = opened.directory().join("snapshot");
+        fs::remove_file(snapshot.join("visual-profiles.json")).unwrap();
+        fs::write(
+            snapshot.join("schema.json"),
+            include_bytes!("../../../docs/data-format/snapshot-v1.schema.json"),
+        )
+        .unwrap();
+        let manifest_path = snapshot.join("manifest.json");
+        let mut manifest: serde_json::Value =
+            serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+        manifest["formatVersion"] = serde_json::json!(1);
+        manifest["files"] = serde_json::json!(super::SNAPSHOT_FILES_V1);
+        super::write_json(manifest_path, &manifest).unwrap();
+
+        let summary = service
+            .validate_snapshot(id)
+            .expect("v1 should remain readable");
+        assert_eq!(summary.format_version, 1);
+    }
+
+    #[test]
     fn snapshot_copies_assets_by_hash_and_rejects_tampering() {
         let (root, id) = fixture();
         let manager = ProjectManager::new(root.path()).unwrap();
@@ -1153,6 +1355,55 @@ mod tests {
             .join(format!("snapshot/assets/{checksum}.png"));
         assert_eq!(fs::read(&snapshot_asset).unwrap(), bytes);
         fs::write(&snapshot_asset, b"tampered").unwrap();
+        assert!(matches!(
+            service.validate_snapshot(id),
+            Err(GitServiceError::InvalidSnapshot)
+        ));
+    }
+
+    #[test]
+    fn snapshot_contains_profiles_and_rejects_broken_references() {
+        let (root, id) = fixture();
+        let manager = ProjectManager::new(root.path()).unwrap();
+        let opened = manager.open_project(id.to_string()).unwrap();
+        let entity_id = EntityId::new();
+        opened
+            .database()
+            .connection()
+            .execute(
+                "INSERT INTO entity (id, project_id, kind, name, created_at, updated_at)
+             VALUES (?1, ?2, 'character', 'Rhea', '0', '0')",
+                rusqlite::params![entity_id.to_string(), id.to_string()],
+            )
+            .unwrap();
+        opened
+            .database()
+            .connection()
+            .execute(
+                "INSERT INTO visual_profile (
+                entity_id, project_id, traits_json, exclusions_json, created_at, updated_at
+             ) VALUES (?1, ?2, '{\"Augen\":\"bernsteinfarben\"}', '[\"blaue Augen\"]', '0', '0')",
+                rusqlite::params![entity_id.to_string(), id.to_string()],
+            )
+            .unwrap();
+        opened.database().connection().execute(
+            "INSERT INTO style_preset (
+                id, project_id, name, visual_rules_json, applicable_kinds_json, created_at, updated_at
+             ) VALUES (?1, ?2, 'Noir', '{\"Palette\":\"monochrom\"}', '[\"character\"]', '0', '0')",
+            rusqlite::params![EntityId::new().to_string(), id.to_string()],
+        ).unwrap();
+
+        let service = GitService::new(opened.directory());
+        service.create_snapshot(opened.database(), id).unwrap();
+        let path = opened.directory().join("snapshot/visual-profiles.json");
+        let text = fs::read_to_string(&path).unwrap();
+        assert!(text.contains("bernsteinfarben"));
+        assert!(text.contains("Noir"));
+        fs::write(
+            &path,
+            text.replace(&entity_id.to_string(), &EntityId::new().to_string()),
+        )
+        .unwrap();
         assert!(matches!(
             service.validate_snapshot(id),
             Err(GitServiceError::InvalidSnapshot)

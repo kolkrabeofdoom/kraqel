@@ -142,6 +142,22 @@ export interface MediaAsset {
   readonly links: readonly AssetLink[];
 }
 
+export interface VisualProfile {
+  readonly entityId: EntityId;
+  readonly projectId: ProjectId;
+  readonly traits: Readonly<Record<string, string>>;
+  readonly canonicalAssetId: EntityId | null;
+  readonly exclusions: readonly string[];
+}
+
+export interface StylePreset {
+  readonly id: EntityId;
+  readonly projectId: ProjectId;
+  readonly name: string;
+  readonly visualRules: Readonly<Record<string, string>>;
+  readonly applicableKinds: readonly EntityKind[];
+}
+
 export interface Project {
   readonly id: ProjectId;
   readonly name: string;
