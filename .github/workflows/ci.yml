@@ -51,7 +51,7 @@ jobs:
         if: runner.os == 'Windows'
         run: pnpm --filter @kraqel/desktop exec playwright install chromium
 
-      - name: Run M1 browser E2E
+      - name: Run browser E2E
         run: pnpm --filter @kraqel/desktop test:e2e
 
   dependency-review:
