@@ -37,6 +37,13 @@
 - Bildprompt-Entwürfe entstehen nur aus explizit gewählter Szene, visuellen Profilen und optionaler
   passender Stilvorlage; Szenentext wird als unvertrauenswürdiger Inhalt markiert, Quellrevisionen
   werden beim ersten Speichern geprüft und kein Prompt-Command besitzt einen Netzwerkpfad
+- Bildfähigkeiten werden je Provider und Modell aus einer lokal validierten Registry gelesen;
+  unbekannte Provider, Modelle, Fähigkeiten, Größen und Referenzmengen werden vor einem möglichen
+  Provideraufruf abgelehnt
+- Bildfreigaben enthalten exakt den angezeigten Prompt und die ausgewählten Referenzasset-UUIDs;
+  eine Promptansicht oder ein gespeicherter Entwurf gilt nicht als Übertragungsfreigabe
+- Generation-Job-Fehler verwenden ausschließlich feste Codes und statische Meldungen; Prompt,
+  Providerantworten, Schlüssel, Pfade und fremde Diagnosedaten sind nicht Bestandteil des Fehlers
 - Prompt-Textausgaben verwenden feste UUID-Dateinamen und bleiben unter `exports/prompts` im
   verwalteten Projekt; Snapshot v3 prüft ihre Dokument-, Profil- und Stilreferenzen
 - Betriebssystem-Schlüsselspeicher statt Konfigurationsdateien
@@ -73,6 +80,12 @@ Protokolltests ersetzen keine echte Anbieterabnahme.
 Die aktuelle Snapshotprüfung ist ausschließlich lesend und validiert den Formatvertrag. Eine
 vollständige Wiederherstellung aus Snapshot ist noch nicht implementiert; ihre Datenverlust- und
 Überschreibungsrisiken müssen vor einer schreibenden Importfunktion gesondert modelliert werden.
+
+Die Bildprovider-Grenze besitzt in Version 0.1 nur Verträge, Registryvalidierung und einen lokalen
+Test-Mock. Es gibt keinen produktiven Adapter, keinen Tauri-Command, keine Jobpersistenz und keine
+Bildausgabe. Vor KQ-017 müssen Cloudfreigaben wie bei Text kurzlebig und einmalig gebunden,
+Referenzdateien unmittelbar vor Übertragung erneut hashgeprüft, Ergebnisse nach Signatur und Größe
+validiert sowie Kosten-, Lizenz- und Aufbewahrungsinformationen sichtbar gemacht werden.
 
 Bilddecoder bleiben trotz Signatur-, Format-, Größen- und Pixelgrenzen eine Angriffsfläche für
 präparierte Dateien. Deshalb ist `image` exakt und mit nur drei aktivierten Formaten gebunden und

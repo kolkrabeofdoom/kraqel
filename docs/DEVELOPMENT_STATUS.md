@@ -2,7 +2,7 @@
 
 Stand: 10. November 2026
 
-Code-Referenz: KQ-015 (PR #30)
+Code-Referenz: KQ-016 (Issue #32)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -18,7 +18,7 @@ als vollständige Fachfunktion.
 | **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Teilweise umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, szenengebundenes Undo/Redo, Wortzählung, Fokusmodus, revisionsgeprüftes Autosave und SQLite-Backup vorhanden. Umbenennen, Umordnen, Löschen und E2E-Abnahme fehlen.                           |
 | **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks vorhanden. Browser-/Screenreader-Abnahme fehlt.                                                             |
 | **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, lokale Medienbibliothek sowie visuelle Profile und Stilvorlagen mit Backup und Snapshot vorhanden. Textimport und schreibende Snapshot-Wiederherstellung fehlen.                          |
-| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Teilweise umgesetzt:** Ollama und vier Cloudprotokolle, deterministische Offline-Kontinuitätsregeln sowie lokale editierbare Bildprompt-Entwürfe vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise, Bild-Capability-Registry und Bildgenerierung fehlen. |
+| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Technischer 0.1-Umfang weitgehend umgesetzt:** Textprotokolle, Offline-Kontinuität, Prompt-Entwürfe sowie provider- und modellspezifische Bild-Capability- und Jobverträge vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise und Bildgenerierung fehlen. |
 | **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                                                                                                      |
 | **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                             |
 
@@ -272,11 +272,30 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - `asset-service`: produktiver, begrenzter Rasterbildimport mit SHA-256, Thumbnail, sicherer
   Veröffentlichung und erneuter Dateiprüfung.
 - `editor`: versionierter, generischer Snapshot-Vertrag.
-- `ai-contracts`: Capability-, Provider-, Streaming- und explizite Kontextfreigabetypen; aktiv für
-  den lokalen Ollama-Ablauf genutzt.
+- `ai-contracts`: Capability-, Provider-, Streaming- und explizite Kontextfreigabetypen für Text
+  sowie gespiegelte Bild-Registry- und Generation-Job-Verträge.
 - `visual-contracts`: Medien-, Profil-, Stilvorlagen- und Promptverträge; keine Providerlogik.
 - `continuity`: ausführbare Offline-Regeln und Vorschlags-Diff; keine KI-Analyse oder
   Laufpersistenz.
+
+### Bild-Capability-Registry und Generation-Job-Verträge (KQ-016)
+
+- Die lokale Registry ordnet `image.generate`, `image.edit`, `image.reference` und
+  `image.map_render` einzelnen Modellen zu, statt Fähigkeiten pauschal für einen Provider
+  anzunehmen.
+- Modelleinträge beschreiben Prompt- und Referenzlimits, unterstützte Breiten und Höhen,
+  Ergebniszahl und Seed-Unterstützung. Leere Installationen und verständlich begründete inaktive
+  Provider sind zulässig; doppelte oder widersprüchliche Einträge werden abgelehnt.
+- Der versionierte Vertrag v1 bindet Job, Projekt, Provider, Modell, Fähigkeit, Prompt-Entwurf,
+  exakt freigegebenen Prompttext, Referenzasset-UUIDs und Einstellungen.
+- Die Zustandsmaschine erlaubt nur `queued -> running -> succeeded|failed|cancelled` sowie Fehler
+  oder Abbruch vor dem Start. Endzustände sind endgültig; Herkunft und bereinigte Fehler dürfen nur
+  zum passenden Endzustand gehören.
+- Rust prüft Registry, Modellfähigkeit, Grenzen und explizite Kontextfreigabe vor einem möglichen
+  Provideraufruf. Statische Fehler enthalten keine Eingaben, Pfade oder fremden Diagnosedaten.
+- Ein rein lokaler, nur in Tests kompilierter Mock prüft den vollständigen Jobablauf ohne Netzwerk,
+  Bilddatei oder Assetübernahme. Es gibt keinen produktiven Bildadapter, Tauri-Command, SQLite-Job
+  oder Snapshotformat für Läufe.
 
 ### Deterministische Snapshots und lokales Git (KQ-008)
 
@@ -303,21 +322,22 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 ## Offene Aufgaben
 
-### Unmittelbar: M4-Bildvorbereitung fortsetzen
+### Unmittelbar: 0.1 stabilisieren
 
-1. **KQ-016 - Bild-Capability-Registry und Generation-Job-Verträge**
-   - Bildfähigkeiten provider- und modellspezifisch beschreiben, ohne aktive Netzpflicht
-   - Generation-Job-Zustände, Einstellungen, Herkunft und bereinigte Fehler versioniert modellieren
-   - einen vollständig lokalen Mock-Provider testen; keine echte Bildgenerierung in Version 0.1
+1. **M1-Dokumentverwaltung vervollständigen**
+   - Kapitel und Szenen sicher umbenennen, umordnen und löschen
+   - Revisions-, Auswahl- und Löschkonflikte automatisiert prüfen
+2. **E2E-Grundlage für Kernabläufe schaffen**
+   - Playwright für Projektstart, Schreiben, Speichern und Wiederöffnen einführen
+   - Tastatur- und Browserabnahme der bisherigen M2- bis M4-Ansichten vorbereiten
 
 ### Danach gemäß Pflichtenheft
 
-- KQ-016: Bild-Capability-Registry und Generation-Job-Verträge. KI-basierte Kontinuitätshinweise
-  bleiben eine spätere Erweiterung von KQ-012.
+- KI-basierte Kontinuitätshinweise bleiben eine spätere Erweiterung von KQ-012.
 - KQ-017 und KQ-018 gehören zu Version 0.2 und sind kein Ziel für 0.1.
 
-Für KQ-016 bis KQ-018 sind noch nicht alle GitHub-Issues angelegt; die Aufgaben stehen im
-Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkretisiert werden.
+Für KQ-017 und KQ-018 sind noch keine GitHub-Issues angelegt; die Aufgaben stehen im Pflichtenheft.
+Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisiert werden.
 
 ## Bekannte Fehler und Lücken
 
@@ -348,6 +368,9 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 - **Prompt-Builder noch ohne Browserabnahme:** Datenfluss, IPC und UI-Verträge sind automatisiert
   getestet; Tastatur-, Screenreader- und WebView-Verhalten der neuen Ansicht wurden noch nicht
   manuell abgenommen. Entwürfe sind bewusst nicht automatisch mit Bildprovidern verbunden.
+- **Bildverträge ohne Laufzeitfunktion:** Registry, Jobzustände, Freigabe und Fehler sind getestet,
+  aber es gibt weder produktive Provider noch UI, Persistenz, Abbruch, Bildausgabe oder
+  Assetübernahme. Das ist der beabsichtigte 0.1-Umfang, keine bereits fertige Bildgenerierung.
 - **Ollama nur gegen Testserver geprüft:** Kein Ollama-Dienst und kein lokales Modell waren in der
   Entwicklungsumgebung verfügbar. Abbruch, Laufpersistenz und eine manuelle Übernahme des Entwurfs
   in den Editor sind noch nicht implementiert.
@@ -363,9 +386,9 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
   FTS-Migration nötig.
 - **Dependency Review eingeschränkt:** Der GitHub-Job wird bei privaten Repositories ohne GitHub
   Advanced Security bewusst übersprungen. Lockfiles und reguläre CI bleiben aktiv.
-- Die vollständige Qualitätskette für KQ-015 ist lokal sowie in der Windows-/Linux-CI grün: 33
-  TypeScript- und 82 ausgeführte Rust-Tests, Formatierung, ESLint, Clippy und Typprüfung sowie
-  Frontend- und Workspace-Build. Ein visueller Export-QA-Test bleibt planmäßig ignoriert.
+- Die vollständige Qualitätskette für KQ-016 ist lokal grün: 36 TypeScript- und 88 ausgeführte
+  Rust-Tests, Formatierung, ESLint, Clippy und Typprüfung. Die Windows-/Linux-CI folgt vor dem
+  Merge; ein visueller Export-QA-Test bleibt planmäßig ignoriert.
 
 ## Wichtige Architekturentscheidungen
 
@@ -410,6 +433,9 @@ Pflichtenheft. Bei Anlage müssen Akzeptanzkriterien und Abhängigkeiten konkret
 - **Explizite lokale Promptquellen:** Bildprompt-Entwürfe binden Szene, Quellrevision, Profile und
   optionale Stilvorlage; Zusammensetzung, Speicherung und Textausgabe bleiben ohne Providerpfad (ADR
   0014).
+- **Modellspezifische Bildfähigkeiten:** Eine offline validierte Registry und ein geschlossener
+  Jobvertrag trennen Modellfähigkeiten, Freigabe, Herkunft und bereinigte Fehler von jeder späteren
+  Ausführung. KQ-016 enthält nur einen Test-Mock (ADR 0015).
 - **Privilegierte Operationen in Rust:** React kommuniziert ausschließlich über versionierte,
   typisierte Tauri-Commands mit Dateisystem, Storage, Git und späteren Providern.
 - **Verträge sind explizit versioniert:** Inkompatible Änderungen erfordern eine neue
@@ -447,17 +473,21 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 | Assetbackup                  | Hash-verifizierte Begleitverzeichnisse getestet; noch kein einzelnes portables Paket                        | Paketformat und atomare Mehrdatei-Verteilung vor externem Austausch   |
 | Visuelle Profile             | Struktur und Referenzen getestet; Stilnamen-Eindeutigkeit nutzt SQLite-NOCASE mit ASCII-Grenze              | Unicode-Kollation bei internationalisierten Vorlagennamen bewerten    |
 | Bildprompt-Entwürfe          | Lokal und referenziell geprüft; UI ohne E2E, kein Providerpfad und keine automatische Rekombination         | Browserabnahme; Freigabegrenze bei KQ-016 getrennt halten             |
+| Bild-Capability-Verträge     | Rust/TypeScript v1 und lokaler Mock getestet; keine produktive Ausführung oder Persistenz                   | Vor KQ-017 Freigabebeleg, Ergebnisprüfung, Kosten und Lizenzen klären |
 
 ## Nächste geplante Entwicklungsstufe
 
-**KQ-016: Bild-Capability-Registry und Generation-Job-Verträge.**
+**0.1-Stabilisierung: vollständige Dokumentverwaltung und E2E-Grundlage.**
 
 Empfohlener, überprüfbarer Scope:
 
-1. F09, Modul V.1 und KQ-016 gegen bestehende Textprovider- und Promptverträge abgleichen.
-2. Provider- und modellspezifische Bildfähigkeiten ohne pauschale Annahmen modellieren.
-3. Versionierte Generation-Job-Zustände, Einstellungen, Herkunft und bereinigte Fehler definieren.
-4. Einen rein lokalen Mock-Provider testen; keine echte Bildgenerierung oder Cloudübertragung.
+1. Für Umbenennen, Umordnen und Löschen von Kapiteln/Szenen ein eigenes Issue mit Konflikt- und
+   Löschsemantik anlegen.
+2. Storage-, Command- und UI-Verträge vertikal ergänzen, ohne bestehende Autosave-Revisionen zu
+   umgehen.
+3. Danach Playwright als kleine E2E-Basis für Projektstart, Schreiben, Speichern und Wiederöffnen
+   einführen.
+4. KQ-017 und echte Bildprovider bis Version 0.2 ausdrücklich außerhalb des Scopes halten.
 
 ## Einstieg für die nächste Codex-Session
 
@@ -466,10 +496,9 @@ cd D:\kraqel
 git status
 git branch --show-current
 git log -5 --oneline
-rg "KQ-016" docs ROADMAP.md
+rg "Dokumentverwaltung|E2E|Playwright" docs ROADMAP.md
 ```
 
-Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0014, `docs/architecture/threat-model.md`,
-`packages/ai-contracts/`, `packages/visual-contracts/` und die Pflichtenheft-Abschnitte zu F09, V.1
-und KQ-016. Vor KQ-016 zuerst ein eigenes Issue anlegen und Capability-, Job- und Mock-Grenzen gegen
-Datenschutz, Offlinefähigkeit und spätere Providerfreigaben prüfen.
+Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0004, die Dokument-Repository- und Command-Verträge
+sowie die Pflichtenheft-Abschnitte zu F01, M1 und M5. Vor Änderungen zuerst ein eigenes Issue mit
+klarer Reihenfolge-, Konflikt- und Löschsemantik anlegen.

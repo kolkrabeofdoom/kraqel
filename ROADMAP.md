@@ -26,7 +26,8 @@
          offen)
    - [x] Deterministische Kontinuitätsprüfung mit Quellenankern und Nur-Lese-Diff
    - [x] Lokale, editierbare Bildprompt-Entwürfe mit UTF-8-Export und Snapshot
-   - [ ] Optionale KI-Kontinuitätshinweise und Bild-Capability-Verträge
+   - [x] Provider- und modellspezifische Bild-Capability-Registry sowie Generation-Job-Verträge
+   - [ ] Optionale KI-Kontinuitätshinweise
 5. Reproduzierbarer Windows-Release mit Dokumentation und Abnahme
 
 ## M6 - Version 0.2

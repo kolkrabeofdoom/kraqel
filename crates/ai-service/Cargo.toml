@@ -12,6 +12,7 @@ futures-util = "0.3"
 reqwest = { version = "0.12.28", default-features = false, features = ["json", "rustls-tls", "stream"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+uuid = { version = "1", features = ["serde"] }
 zeroize = "1"
 
 [target.'cfg(target_os = "windows")'.dependencies]
