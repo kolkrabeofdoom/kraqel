@@ -2,7 +2,7 @@
 
 Stand: 11. November 2026
 
-Code-Referenz: KQ-027 (Issue #50)
+Code-Referenz: KQ-027 (PR #51)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
