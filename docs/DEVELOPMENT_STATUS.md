@@ -2,7 +2,7 @@
 
 Stand: 11. November 2026
 
-Code-Referenz: KQ-030 (PR #57)
+Code-Referenz: KQ-031
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -12,15 +12,15 @@ als vollständige Fachfunktion.
 
 ## Status nach Pflichtenheft-Stufen
 
-| Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                                                                                                                                                     |
-| ------------ | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                                                                |
-| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, Undo/Redo, Wortzählung, Fokusmodus, konfliktgeprüfter Autosave sowie sicheres Umbenennen, Umordnen, Löschen und SQLite-Backup vorhanden. Echte Tauri-/Screenreader-Abnahme fehlt. |
-| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks sind in getrennten Chromium-Abläufen geprüft. Tauri- und Screenreader-Abnahme fehlen.                           |
-| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, Medienbibliothek sowie visuelle Profile und Stilvorlagen sind im browserseitigen Kernablauf geprüft. Backup und Snapshot sind vorhanden; Textimport und schreibende Snapshot-Wiederherstellung fehlen.         |
-| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Technischer 0.1-Umfang weitgehend umgesetzt:** Textprotokolle, browserseitig geprüfte Offline-Kontinuität und Prompt-Entwürfe sowie Bild-Capability- und Jobverträge vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise und Bildgenerierung fehlen.                            |
-| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Teilweise begonnen:** Debug-Build, echter Windows-Tauri-Smoke-Test und ein isolierter unsignierter NSIS-Testinstaller mit geprüftem lokalen Lebenszyklus sind vorhanden. Clean-VM, MSI, Signierung, Screenreader- und vollständige 0.1-Abnahme fehlen.                                |
-| **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                                                  |
+| Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                                                                                                                                                                                                                  |
+| ------------ | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                                                                                                                             |
+| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, Undo/Redo, Wortzählung, Fokusmodus, konfliktgeprüfter Autosave sowie sicheres Umbenennen, Umordnen, Löschen und SQLite-Backup vorhanden. Echte Tauri-/Screenreader-Abnahme fehlt.                                                              |
+| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks sind in getrennten Chromium-Abläufen geprüft. Tauri- und Screenreader-Abnahme fehlen.                                                                                        |
+| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, Medienbibliothek sowie visuelle Profile und Stilvorlagen sind im browserseitigen Kernablauf geprüft. Backup und Snapshot sind vorhanden; Textimport und schreibende Snapshot-Wiederherstellung fehlen.                                                                      |
+| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Technischer 0.1-Umfang weitgehend umgesetzt:** Textprotokolle, browserseitig geprüfte Offline-Kontinuität und Prompt-Entwürfe sowie Bild-Capability- und Jobverträge vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise und Bildgenerierung fehlen.                                                                                         |
+| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Teilweise begonnen:** Debug-Build, echter Windows-Tauri-Smoke-Test und ein isolierter unsignierter NSIS-Testinstaller mit geprüftem lokalen Lebenszyklus sind vorhanden. Zweitrechner-, MSI-, Signierungs-, Screenreader- und vollständige 0.1-Abnahme fehlen. Die Zweitrechnerprüfung ist bewusst auf einen späteren manuellen Termin verschoben. |
+| **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                                                                                                               |
 
 Die funktionalen Anforderungen F01 bis F09 sind damit noch nicht abgenommen. Vorhandene Verträge und
 Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
@@ -380,12 +380,15 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 ### Unmittelbar: 0.1 stabilisieren
 
-1. **Windows-Installer auf einem frischen Zielsystem ergänzend abnehmen**
-   - der isolierte lokale NSIS-Lebenszyklus ist durch KQ-030 belegt
-   - Installation, Start, Datenpfade und Deinstallation zusätzlich auf einer frisch provisionierten
-     Windows-VM oder einem getrennten Testrechner prüfen
+1. **Tastatur- und Screenreader-Abnahme mit dokumentierter Testmatrix durchführen**
+2. **Releaseverteilung getrennt vorbereiten**
    - Codesignierung, SmartScreen, WebView2-Verteilung und späteren Updatepfad separat entscheiden
-2. **Tastatur- und Screenreader-Abnahme mit dokumentierter Testmatrix durchführen**
+
+### Bewusst zurückgestellt
+
+- Der isolierte lokale NSIS-Lebenszyklus ist durch KQ-030 belegt. Eine zusätzliche manuelle Prüfung
+  auf einem weiteren Windows-Rechner wird zu einem späteren Zeitpunkt nachgeholt. Sie ist weiterhin
+  offene Release-Evidenz, aber keine unmittelbar blockierende Entwicklungsaufgabe.
 
 ### Danach gemäß Pflichtenheft
 
@@ -539,8 +542,8 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 | Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                                         | Freie eingebettete Schrift und Medienkonzept prüfen                   |
 | Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                               | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen              |
 | Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                                | Bei jeder Erweiterung Fixtures und Migration prüfen                   |
-| Desktoptests                 | Zehn Browser-E2E, echter Windows-Tauri-M1-Smoke und lokaler NSIS-Lebenszyklus; keine breite Tauri-/Screenreader-Abnahme | Clean-VM und Screenreader separat prüfen                              |
-| Windows-Installer            | Unsignierter NSIS-Debug-Test lokal grün; MSI, Signierung, SmartScreen und Updatepfad nicht abgenommen                   | Auf frischer VM prüfen und Releaseverteilung separat entscheiden      |
+| Desktoptests                 | Zehn Browser-E2E, echter Windows-Tauri-M1-Smoke und lokaler NSIS-Lebenszyklus; keine breite Tauri-/Screenreader-Abnahme | Screenreader als nächste aktive Prüfung                               |
+| Windows-Installer            | Unsignierter NSIS-Debug-Test lokal grün; Zweitrechner, MSI, Signierung, SmartScreen und Updatepfad nicht abgenommen     | Zweitrechner später manuell; Releaseverteilung separat entscheiden    |
 | CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                                           | Caching prüfen, ohne Reproduzierbarkeit zu schwächen                  |
 | Abhängigkeitssicherheit      | GitHub Dependency Review privat nicht verfügbar                                                                         | Alternative Audits oder Advanced Security später bewerten             |
 | Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                                | Plattformmatrix je Release definieren                                 |
@@ -556,15 +559,18 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 
 ## Nächste geplante Entwicklungsstufe
 
-**0.1-Stabilisierung: Windows-Zielsystem- und Barrierefreiheitsabnahme vorbereiten.**
+**0.1-Stabilisierung: Tastatur- und Screenreader-Abnahme durchführen.**
 
 Empfohlener, überprüfbarer Scope:
 
-1. Den KQ-030-NSIS-Test auf einer frisch provisionierten Windows-VM oder einem getrennten
-   Testrechner wiederholen und Betriebssystem-/WebView2-Version protokollieren.
-2. Tastatur- und Screenreader-Matrix mit Windows-Sprachausgabe oder NVDA durchführen.
+1. Tastatur- und Screenreader-Matrix mit Windows-Sprachausgabe oder NVDA durchführen.
+2. Befunde nach reproduzierbaren Codefehlern, Dokumentationslücken und manueller Restabnahme
+   trennen.
 3. Codesignierung, SmartScreen, MSI-Bedarf, WebView2-Strategie und Updatepfad vor einem
    veröffentlichbaren Releasepaket entscheiden.
+
+Die zusätzliche Installerprüfung auf einem weiteren Windows-Rechner ist bewusst zurückgestellt und
+wird später manuell nachgeholt.
 
 ## Einstieg für die nächste Codex-Session
 
@@ -576,7 +582,8 @@ git log -5 --oneline
 rg "Installer|NSIS|MSI|Signierung|Screenreader" docs ROADMAP.md apps/desktop/src-tauri
 ```
 
-Danach lesen: `AGENTS.md`, dieses Dokument, `docs/testing/windows-installer-smoke.md`, ADR 0016 und
-die Pflichtenheft-Abschnitte M5 und 10. KQ-030 belegt nur den lokalen isolierten NSIS-Lebenszyklus;
-für Clean-VM, Barrierefreiheit oder Release-Signierung jeweils ein eigenes, fachlich geschlossenes
-Issue anlegen.
+Danach lesen: `AGENTS.md`, dieses Dokument, `docs/testing/windows-installer-smoke.md`,
+`docs/testing/version-control-accessibility.md`, ADR 0016 und die Pflichtenheft-Abschnitte M5
+und 10. KQ-030 belegt den lokalen isolierten NSIS-Lebenszyklus; die Zweitrechnerprüfung ist bewusst
+zurückgestellt. Als Nächstes ein fachlich geschlossenes Issue für die Tastatur- und
+Screenreader-Abnahme anlegen.

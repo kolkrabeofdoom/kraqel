@@ -41,7 +41,9 @@
    - [x] Playwright-Browser-E2E für den M1-Kernablauf unter Windows und Linux
    - [x] Echter Windows-Tauri-Debug-Smoke-Test für Start, Autosave, SQLite und Wiederöffnen
    - [x] Isolierter, unsignierter NSIS-Testinstaller mit lokalem Installationslebenszyklus
-   - [ ] Installer auf frischer Windows-VM, Screenreader, Signierung und Releasepaket abnehmen
+   - [ ] Tastatur- und Screenreader-Abnahme durchführen
+   - [ ] Installer später auf einem weiteren Windows-Rechner gegenprüfen
+   - [ ] Signierung und Releasepaket abnehmen
 
 ## M6 - Version 0.2
 
