@@ -35,3 +35,6 @@ Profil- und Stilreferenzen. Die lesende Prüfung bleibt mit Snapshot v1 und v2 k
 - Prompttext ist auf 200.000 Zeichen, Namen auf 120 Zeichen und die Auswahl auf 32 Profile begrenzt.
 - Eine künftige Capability-Registry muss Kontextvorschau und Einmalfreigabe getrennt modellieren;
   KQ-015 aktiviert keine Bildgenerierung.
+- KQ-023 prüft Quellenanlage, Zusammensetzung, Bearbeitung, lokale Speicherung, Wiederladen und den
+  UTF-8/LF-Exportvertrag in Chromium gegen einen testexklusiven Command-Adapter. Dieser Nachweis
+  umfasst weder Rust und Dateisystem noch Tauri, WebView, Screenreader oder einen Bildprovider.

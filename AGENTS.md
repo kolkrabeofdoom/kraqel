@@ -71,8 +71,8 @@ Aktuell im Repository und verifiziert:
   versionierte Generation-Job-, Freigabe-, Herkunfts- und Fehlerverträge; nur lokaler Test-Mock,
   keine produktive Bildausführung.
 - **Qualität:** Prettier, ESLint, TypeScript-Checks, Vitest, Rust-Tests, rustfmt und Clippy mit
-  Warnungen als Fehler sowie getrennte Playwright-Browser-E2E für M1, Story-Bibel, Plotboard und
-  Timelines; GitHub Actions unter Windows und Linux.
+  Warnungen als Fehler sowie getrennte Playwright-Browser-E2E für M1, Story-Bibel, Plotboard,
+  Timelines und Bildprompt-Builder; GitHub Actions unter Windows und Linux.
 
 Im Pflichtenheft vorgesehen, aber noch **nicht implementiert oder installiert**: Tailwind, React
 Flow, dnd-kit, KI-basierte Kontinuitätshinweise und produktive Bildgenerierung. Ollama und
@@ -84,7 +84,7 @@ es sehr selbstbewusst kompiliert.
 
 | Pfad                         | Verantwortung                                                | Aktueller Reifegrad                     |
 | ---------------------------- | ------------------------------------------------------------ | --------------------------------------- |
-| `apps/desktop/`              | React-Oberfläche, Editor, IPC-Client und Browser-E2E         | Schreiben und M2-Werkzeuge              |
+| `apps/desktop/`              | React-Oberfläche, Editor, IPC-Client und Browser-E2E         | M1- bis M4-Oberflächen                  |
 | `apps/desktop/src-tauri/`    | Command-Handler, Tauri-Konfiguration und Berechtigungen      | Projekt-, Dokument-, M2-IPC             |
 | `packages/domain/`           | TypeScript-Domänentypen, UUID-/Schema-Validierung            | Dokument- und Story-Modell              |
 | `packages/editor/`           | Editorvertrag, Baum, Autosave und Tiptap-Hilfsfunktionen     | M1-Grundfunktionen getestet             |
@@ -158,8 +158,9 @@ pnpm --filter @kraqel/desktop exec playwright install chromium
 ```
 
 Der Playwright-Lauf verwendet ausschließlich im E2E-Devserver einen lokalen Command-Adapter. Er
-prüft React-Abläufe für Editor, Dokumentbaum, Story-Bibel, Plotboard und Timelines, aber weder die
-gebündelte Tauri-Anwendung noch Rust, Betriebssystemdialoge oder Screenreader.
+prüft React-Abläufe für Editor, Dokumentbaum, Story-Bibel, Plotboard, Timelines und den lokalen
+Bildprompt-Builder, aber weder die gebündelte Tauri-Anwendung noch Rust, Betriebssystemdialoge oder
+Screenreader.
 
 Für kleine Änderungen zuerst gezielt prüfen, zum Beispiel:
 
