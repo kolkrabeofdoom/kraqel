@@ -39,3 +39,6 @@ Provider oder erzeugt daraus automatisch einen Prompt.
   Vollständige Unicode-Kollation bleibt eine spätere Produktentscheidung.
 - Prompt-Zusammenstellung, Capability-Registry und jede Netzwerkübertragung bleiben KQ-015 und
   KQ-016 vorbehalten.
+- Ein eigenständiger Browser-E2E prüft Profilmerkmale, Ausschlüsse, Stilregeln, Geltungsbereiche und
+  Wiederladen nach Ansichtswechsel gegen den testexklusiven Command-Adapter. Kanonische
+  Referenzbilder, Tauri und Screenreader bleiben separat abzunehmen.
