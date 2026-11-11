@@ -1,0 +1,108 @@
+import AxeBuilder from "@axe-core/playwright";
+import { expect, test, type Locator, type Page } from "@playwright/test";
+
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.clear());
+});
+
+async function tabTo(page: Page, target: Locator, maximumTabs = 40): Promise<void> {
+  for (let index = 0; index < maximumTabs; index += 1) {
+    await page.keyboard.press("Tab");
+    if (await target.evaluate((element) => element === document.activeElement)) return;
+  }
+
+  throw new Error(`Ziel erhielt nach ${maximumTabs} Tab-Schritten keinen Fokus.`);
+}
+
+async function expectVisibleFocus(target: Locator): Promise<void> {
+  await expect(target).toBeFocused();
+  await expect
+    .poll(() => target.evaluate((element) => getComputedStyle(element).outlineStyle))
+    .not.toBe("none");
+}
+
+async function expectNoSeriousAccessibilityViolations(page: Page): Promise<void> {
+  const results = await new AxeBuilder({ page }).analyze();
+  const violations = results.violations.filter(
+    ({ impact }) => impact === "critical" || impact === "serious",
+  );
+
+  expect(
+    violations,
+    violations
+      .map(
+        ({ id, help, nodes }) =>
+          `${id}: ${help}\n${nodes.map(({ target }) => `  ${target.join(" ")}`).join("\n")}`,
+      )
+      .join("\n"),
+  ).toEqual([]);
+}
+
+test("Kernablauf bleibt per Tastatur erreichbar und zeigt den Fokus", async ({ page }) => {
+  await page.goto("/");
+
+  const projectName = page.getByLabel("Projektname");
+  await tabTo(page, projectName);
+  await expectVisibleFocus(projectName);
+  await page.keyboard.type("Die barrierearme Bibliothek");
+
+  const createProject = page.getByRole("button", { name: "Projekt anlegen" });
+  await tabTo(page, createProject);
+  await expectVisibleFocus(createProject);
+  await page.keyboard.press("Enter");
+
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Die barrierearme Bibliothek" }),
+  ).toBeVisible();
+
+  const manuscript = page.getByRole("button", { name: "Manuskript" });
+  await tabTo(page, manuscript);
+  await expectVisibleFocus(manuscript);
+  await expect(manuscript).toHaveAttribute("aria-current", "page");
+
+  const editor = page.getByRole("textbox", { name: "Text von Szene 1" });
+  await tabTo(page, editor);
+  await expectVisibleFocus(editor);
+  await page.keyboard.type("Ein Kolkrabe sortiert Sterne.");
+  await expect(page.getByRole("status")).toHaveText("Ungespeichert");
+  await page.keyboard.press("Control+A");
+
+  const bold = page.getByRole("button", { name: "Fett" });
+  await tabTo(page, bold);
+  await expectVisibleFocus(bold);
+  await expect(bold).toHaveAttribute("aria-pressed", "false");
+  await page.keyboard.press("Enter");
+  await expect(bold).toHaveAttribute("aria-pressed", "true");
+
+  const focusMode = page.getByRole("button", { name: "Fokusmodus" });
+  await tabTo(page, focusMode);
+  await page.keyboard.press("Enter");
+  await expect(focusMode).toHaveAttribute("aria-pressed", "true");
+
+  await expect(page.getByRole("status")).toHaveText("Gespeichert", { timeout: 5_000 });
+
+  const storyBible = page.getByRole("button", { name: "Story-Bibel" });
+  await tabTo(page, storyBible);
+  await page.keyboard.press("Enter");
+  await expect(storyBible).toHaveAttribute("aria-current", "page");
+
+  const search = page.getByRole("searchbox", { name: "Suche" });
+  await tabTo(page, search);
+  await expectVisibleFocus(search);
+});
+
+test("Kernansichten haben keine schwerwiegenden automatisiert erkennbaren Verstöße", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expectNoSeriousAccessibilityViolations(page);
+
+  await page.getByLabel("Projektname").fill("Die zugängliche Republik der Vögel");
+  await page.getByRole("button", { name: "Projekt anlegen" }).click();
+  await expect(page.getByRole("textbox", { name: "Text von Szene 1" })).toBeVisible();
+  await expectNoSeriousAccessibilityViolations(page);
+
+  await page.getByRole("button", { name: "Story-Bibel" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "Story-Bibel" })).toBeVisible();
+  await expectNoSeriousAccessibilityViolations(page);
+});

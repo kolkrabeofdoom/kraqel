@@ -1,4 +1,4 @@
-import { EditorContent, useEditor } from "@tiptap/react";
+import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import type { DocumentNode, EntityId } from "@kraqel/domain";
 import {
@@ -349,7 +349,7 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
             </div>
           </aside>
 
-          <section className="editor-panel" aria-live="polite">
+          <section className="editor-panel">
             {error ? <p className="error-banner">{error}</p> : null}
             {loading ? <p className="empty-editor">Szene wird geladen …</p> : null}
             {!loading && stored ? (
@@ -689,6 +689,13 @@ function RichTextEditor({
       autosave.schedule(content);
     },
   });
+  const formatting = useEditorState({
+    editor,
+    selector: ({ editor: current }) => ({
+      bold: current?.isActive("bold") ?? false,
+      italic: current?.isActive("italic") ?? false,
+    }),
+  });
 
   useEffect(() => {
     const lifecycle = ++autosaveLifecycle.current;
@@ -712,14 +719,16 @@ function RichTextEditor({
         </div>
         <div className="editor-meta">
           <span>{wordCount} Wörter</span>
-          <span className={`save-status ${status}`}>{statusLabel(status)}</span>
+          <span className={`save-status ${status}`} role="status" aria-live="polite">
+            {statusLabel(status)}
+          </span>
         </div>
       </div>
       <div className="editor-toolbar" role="toolbar" aria-label="Textformatierung">
         <button
           type="button"
           aria-label="Fett"
-          aria-pressed={editor?.isActive("bold") ?? false}
+          aria-pressed={formatting?.bold ?? false}
           onClick={() => editor?.chain().focus().toggleBold().run()}
         >
           Fett
@@ -727,7 +736,7 @@ function RichTextEditor({
         <button
           type="button"
           aria-label="Kursiv"
-          aria-pressed={editor?.isActive("italic") ?? false}
+          aria-pressed={formatting?.italic ?? false}
           onClick={() => editor?.chain().focus().toggleItalic().run()}
         >
           Kursiv

@@ -2,8 +2,9 @@
 
 Stand: 9. November 2026
 
-Dieser Plan ergänzt die automatisierten Vertrags-, Repository- und Autosave-Tests. Er ist noch keine
-protokollierte E2E-Abnahme.
+Dieser Plan ergänzt die automatisierten Vertrags-, Repository-, Autosave- und Accessibility-Tests.
+Der automatisierte KQ-032-Stand und die verbleibende manuelle Hörprüfung stehen in
+[`accessibility-acceptance.md`](accessibility-acceptance.md).
 
 ## Tastatur
 
@@ -38,10 +39,14 @@ protokollierte E2E-Abnahme.
    und Rückverweise prüfen. Eingehende und ausgehende Beziehungen müssen unterscheidbar vorgelesen
    werden.
 
-## Noch zu automatisieren
+## Automatisierungsstand
 
-- Fokusreihenfolge und Tastaturaktivierung mit Playwright
-- zugängliche Namen und Zustände mit einer Accessibility-Prüfung
+- Fokusreihenfolge, Tastaturaktivierung, sichtbarer Fokus sowie zentrale Namen und Zustände werden
+  in `e2e/accessibility.spec.ts` geprüft.
+- Axe prüft Projektübersicht, Manuskript und Story-Bibel auf schwerwiegende oder kritische
+  Accessibility-Verstöße.
+- Der fachliche Story-Bibel-CRUD-, Relations- und Rückverweisablauf besitzt einen eigenen
+  browsergestützten E2E-Test.
+- Eine echte Hörprüfung mit Windows-Sprachausgabe oder NVDA bleibt manuell offen.
 - Szenenwechsel während eines laufenden Autosaves
 - Wiederherstellung eines gespeicherten Szenenstands bis in die sichtbare Oberfläche
-- Story-Bibel-CRUD, Relation und Rückverweis als browsergestützter E2E-Ablauf
