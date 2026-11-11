@@ -2,7 +2,7 @@
 
 Stand: 11. November 2026
 
-Code-Referenz: KQ-031 (PR #59)
+Code-Referenz: KQ-032 (in Arbeit)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -12,15 +12,15 @@ als vollständige Fachfunktion.
 
 ## Status nach Pflichtenheft-Stufen
 
-| Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                                                                                                                                                                                                                  |
-| ------------ | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                                                                                                                             |
-| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, Undo/Redo, Wortzählung, Fokusmodus, konfliktgeprüfter Autosave sowie sicheres Umbenennen, Umordnen, Löschen und SQLite-Backup vorhanden. Echte Tauri-/Screenreader-Abnahme fehlt.                                                              |
-| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks sind in getrennten Chromium-Abläufen geprüft. Tauri- und Screenreader-Abnahme fehlen.                                                                                        |
-| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, Medienbibliothek sowie visuelle Profile und Stilvorlagen sind im browserseitigen Kernablauf geprüft. Backup und Snapshot sind vorhanden; Textimport und schreibende Snapshot-Wiederherstellung fehlen.                                                                      |
-| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Technischer 0.1-Umfang weitgehend umgesetzt:** Textprotokolle, browserseitig geprüfte Offline-Kontinuität und Prompt-Entwürfe sowie Bild-Capability- und Jobverträge vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise und Bildgenerierung fehlen.                                                                                         |
-| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Teilweise begonnen:** Debug-Build, echter Windows-Tauri-Smoke-Test und ein isolierter unsignierter NSIS-Testinstaller mit geprüftem lokalen Lebenszyklus sind vorhanden. Zweitrechner-, MSI-, Signierungs-, Screenreader- und vollständige 0.1-Abnahme fehlen. Die Zweitrechnerprüfung ist bewusst auf einen späteren manuellen Termin verschoben. |
-| **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                                                                                                               |
+| Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                                                                                                                                                                                                                           |
+| ------------ | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                                                                                                                                      |
+| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, Undo/Redo, Wortzählung, Fokusmodus, konfliktgeprüfter Autosave sowie sicheres Umbenennen, Umordnen, Löschen und SQLite-Backup vorhanden. KQ-032 ergänzt automatisierte Tastatur-, Fokus- und Axe-Prüfungen; echte Tauri-/Screenreader-Hörabnahme fehlt. |
+| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks sind in getrennten Chromium-Abläufen geprüft. Tauri- und Screenreader-Abnahme fehlen.                                                                                                 |
+| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, Medienbibliothek sowie visuelle Profile und Stilvorlagen sind im browserseitigen Kernablauf geprüft. Backup und Snapshot sind vorhanden; Textimport und schreibende Snapshot-Wiederherstellung fehlen.                                                                               |
+| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Technischer 0.1-Umfang weitgehend umgesetzt:** Textprotokolle, browserseitig geprüfte Offline-Kontinuität und Prompt-Entwürfe sowie Bild-Capability- und Jobverträge vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise und Bildgenerierung fehlen.                                                                                                  |
+| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Teilweise begonnen:** Debug-Build, echter Windows-Tauri-Smoke-Test, isolierter unsignierter NSIS-Testinstaller und automatisierte Accessibility-Kernprüfung sind vorhanden. Zweitrechner-, MSI-, Signierungs-, manuelle Screenreader-Hör- und vollständige 0.1-Abnahme fehlen. Die Zweitrechnerprüfung ist bewusst verschoben.                              |
+| **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                                                                                                                        |
 
 Die funktionalen Anforderungen F01 bis F09 sind damit noch nicht abgenommen. Vorhandene Verträge und
 Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
@@ -105,8 +105,9 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   angezeigte Kindliste. SQLite kaskadiert Szenen sowie Story-, Plotboard-, Timeline-, Medien- und
   Promptreferenzen; die UI entfernt Auswahl und lokale Baumknoten konsistent.
 - Automatisierte Tests für Editorvertrag, Baumordnung, Autosave, IPC-Roundtrip, Konflikte,
-  Löschkaskaden sowie Backup/Recovery mit 100 Szenen. Tastatur- und Screenreader-Fälle sind als
-  manueller Testplan dokumentiert, aber noch nicht als E2E-Test ausgeführt.
+  Löschkaskaden sowie Backup/Recovery mit 100 Szenen. KQ-032 prüft zusätzlich Projektanlage,
+  Bereichsnavigation, Editor, Formatierungszustände, Fokusmodus, Speicherstatus und
+  Story-Bibel-Suche per Tastatur. Die tatsächliche Screenreader-Hörprüfung bleibt manuell offen.
 - Ein Playwright-Ablauf prüft Projektanlage, Schreiben, entprelltes Autosave, Wiederöffnen,
   Kapitel-/Szenenerstellung, Umbenennen, zugängliches Umordnen und zweistufiges Löschen in Chromium.
   Dabei wurde ein StrictMode-Lebenszyklusfehler behoben, der den Autosave-Controller im
@@ -132,7 +133,8 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Szenenlinks werden idempotent angelegt und als Rückverweise angezeigt; aus einem Rückverweis kann
   wieder in die betreffende Szene gewechselt werden.
 - Zugängliche React-Oberfläche mit beschrifteten Formularen, sichtbaren Fokuszuständen,
-  Tastaturbedienung sowie textlich erkennbarer Beziehungsrichtung.
+  Tastaturbedienung sowie textlich erkennbarer Beziehungsrichtung. KQ-032 korrigiert den
+  Ergebniszähler auf WCAG-AA-Kontrast.
 - Automatisierte Repository-Tests decken Suche, Eigenschaften, Richtungstreue, Löschregeln,
   Rückverweise und Backup/Recovery ab. IPC- und TypeScript-Tests prüfen den vertikalen Vertrag. Ein
   Playwright-Ablauf prüft zusätzlich Erstellung, Eigenschaftssuche, gerichtete Beziehungen und
@@ -380,7 +382,8 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 ### Unmittelbar: 0.1 stabilisieren
 
-1. **Tastatur- und Screenreader-Abnahme mit dokumentierter Testmatrix durchführen**
+1. **Manuelle Screenreader-Hörprüfung anhand der KQ-032-Matrix durchführen**
+   - Der automatisierbare Tastatur-, Fokus- und Axe-Kern ist grün.
 2. **Releaseverteilung getrennt vorbereiten**
    - Codesignierung, SmartScreen, WebView2-Verteilung und späteren Updatepfad separat entscheiden
 
@@ -460,8 +463,8 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
   FTS-Migration nötig.
 - **Dependency Review eingeschränkt:** Der GitHub-Job wird bei privaten Repositories ohne GitHub
   Advanced Security bewusst übersprungen. Lockfiles und reguläre CI bleiben aktiv.
-- Die vollständige lokale KQ-030-Qualitätskette ist grün: 40 TypeScript-, 91 ausgeführte Rust- und
-  zehn Playwright-E2E-Tests, Formatierung, ESLint, Clippy und Typprüfung. Zusätzlich sind der
+- Die vollständige lokale KQ-032-Qualitätskette ist grün: 40 TypeScript-, 91 ausgeführte Rust- und
+  zwölf Playwright-E2E-Tests, Formatierung, ESLint, Clippy und Typprüfung. Zusätzlich bleiben der
   isolierte Tauri-Debug-Build, der echte Windows-Persistenz-Smoke-Test sowie Build, Installation und
   Deinstallation des unsignierten NSIS-Testartefakts grün. Ein visueller Export-QA-Test bleibt
   planmäßig ignoriert. Die CI-Matrix unter Windows und Linux ist verbindliche Merge-Voraussetzung;
@@ -534,38 +537,39 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 
 ## Abhängigkeiten und technische Risiken
 
-| Thema                        | Zustand / Risiko                                                                                                        | Nächste Kontrolle                                                     |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert             | Vor großen Projekten messen; Migration nur mit Evidenz                |
-| Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                                   | Gemeinsame Fixtures oder spätere Codegenerierung bewerten             |
-| Datenformat                  | Snapshot v3 mit Prompt-Entwürfen, Profilen und Hash-Assets; Import und Roundtrip fehlen                                 | Import/Roundtrip vor vollständiger F07/F08-Abnahme testen             |
-| Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                                         | Freie eingebettete Schrift und Medienkonzept prüfen                   |
-| Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                               | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen              |
-| Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                                | Bei jeder Erweiterung Fixtures und Migration prüfen                   |
-| Desktoptests                 | Zehn Browser-E2E, echter Windows-Tauri-M1-Smoke und lokaler NSIS-Lebenszyklus; keine breite Tauri-/Screenreader-Abnahme | Screenreader als nächste aktive Prüfung                               |
-| Windows-Installer            | Unsignierter NSIS-Debug-Test lokal grün; Zweitrechner, MSI, Signierung, SmartScreen und Updatepfad nicht abgenommen     | Zweitrechner später manuell; Releaseverteilung separat entscheiden    |
-| CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                                           | Caching prüfen, ohne Reproduzierbarkeit zu schwächen                  |
-| Abhängigkeitssicherheit      | GitHub Dependency Review privat nicht verfügbar                                                                         | Alternative Audits oder Advanced Security später bewerten             |
-| Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                                | Plattformmatrix je Release definieren                                 |
-| Lokale Text-KI               | Protokoll gegen kontrollierten Loopback-Testserver geprüft; echter Ollama-/Modelllauf fehlt                             | Mit freiem Testmodell manuell prüfen und Abbruch entwerfen            |
-| Cloudprovider                | Vier Protokolle lokal getestet; echte API-, Kosten-, Aufbewahrungs- und Kontodialog-Abnahme fehlt                       | Mit separaten Testkonten und Minimalbudget manuell prüfen             |
-| Schlüsselspeicher            | Native Backends eingebunden; reale Windows-/Linux-Dialoge nicht automatisiert getestet                                  | Manuelle Plattformabnahme ohne produktive Schlüssel                   |
-| Kontinuitätsprüfung          | Vier Offline-Regeln getestet; exakte Nennungen und grober Zeilendiff begrenzen die Abdeckung                            | Mit größeren künstlichen Projekten messen; KI-Kanal separat entwerfen |
-| Medienimport                 | Drei Rasterformate und harte Limits getestet; Bytearray-IPC skaliert nicht für Massenuploads                            | Nativen Streamingimport erst nach Messung großer Sammlungen bewerten  |
-| Assetbackup                  | Hash-verifizierte Begleitverzeichnisse getestet; noch kein einzelnes portables Paket                                    | Paketformat und atomare Mehrdatei-Verteilung vor externem Austausch   |
-| Visuelle Profile             | Struktur und Referenzen getestet; Stilnamen-Eindeutigkeit nutzt SQLite-NOCASE mit ASCII-Grenze                          | Unicode-Kollation bei internationalisierten Vorlagennamen bewerten    |
-| Bildprompt-Entwürfe          | Lokal, referenziell und browserseitig geprüft; kein Providerpfad und keine automatische Rekombination                   | Tauri-/Screenreader-Abnahme; KQ-016-Grenze getrennt halten            |
-| Bild-Capability-Verträge     | Rust/TypeScript v1 und lokaler Mock getestet; keine produktive Ausführung oder Persistenz                               | Vor KQ-017 Freigabebeleg, Ergebnisprüfung, Kosten und Lizenzen klären |
+| Thema                        | Zustand / Risiko                                                                                                                                                   | Nächste Kontrolle                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert                                                        | Vor großen Projekten messen; Migration nur mit Evidenz                |
+| Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                                                                              | Gemeinsame Fixtures oder spätere Codegenerierung bewerten             |
+| Datenformat                  | Snapshot v3 mit Prompt-Entwürfen, Profilen und Hash-Assets; Import und Roundtrip fehlen                                                                            | Import/Roundtrip vor vollständiger F07/F08-Abnahme testen             |
+| Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                                                                                    | Freie eingebettete Schrift und Medienkonzept prüfen                   |
+| Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                                                                          | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen              |
+| Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                                                                           | Bei jeder Erweiterung Fixtures und Migration prüfen                   |
+| Desktoptests                 | Elf Browser-E2E-Suites einschließlich Accessibility-Kern, echter Windows-Tauri-M1-Smoke und lokaler NSIS-Lebenszyklus; keine breite Tauri-/Screenreader-Hörabnahme | Manuelles Hörprotokoll mit Windows-Sprachausgabe oder NVDA            |
+| Windows-Installer            | Unsignierter NSIS-Debug-Test lokal grün; Zweitrechner, MSI, Signierung, SmartScreen und Updatepfad nicht abgenommen                                                | Zweitrechner später manuell; Releaseverteilung separat entscheiden    |
+| CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                                                                                      | Caching prüfen, ohne Reproduzierbarkeit zu schwächen                  |
+| Abhängigkeitssicherheit      | GitHub Dependency Review privat nicht verfügbar                                                                                                                    | Alternative Audits oder Advanced Security später bewerten             |
+| Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                                                                           | Plattformmatrix je Release definieren                                 |
+| Lokale Text-KI               | Protokoll gegen kontrollierten Loopback-Testserver geprüft; echter Ollama-/Modelllauf fehlt                                                                        | Mit freiem Testmodell manuell prüfen und Abbruch entwerfen            |
+| Cloudprovider                | Vier Protokolle lokal getestet; echte API-, Kosten-, Aufbewahrungs- und Kontodialog-Abnahme fehlt                                                                  | Mit separaten Testkonten und Minimalbudget manuell prüfen             |
+| Schlüsselspeicher            | Native Backends eingebunden; reale Windows-/Linux-Dialoge nicht automatisiert getestet                                                                             | Manuelle Plattformabnahme ohne produktive Schlüssel                   |
+| Kontinuitätsprüfung          | Vier Offline-Regeln getestet; exakte Nennungen und grober Zeilendiff begrenzen die Abdeckung                                                                       | Mit größeren künstlichen Projekten messen; KI-Kanal separat entwerfen |
+| Medienimport                 | Drei Rasterformate und harte Limits getestet; Bytearray-IPC skaliert nicht für Massenuploads                                                                       | Nativen Streamingimport erst nach Messung großer Sammlungen bewerten  |
+| Assetbackup                  | Hash-verifizierte Begleitverzeichnisse getestet; noch kein einzelnes portables Paket                                                                               | Paketformat und atomare Mehrdatei-Verteilung vor externem Austausch   |
+| Visuelle Profile             | Struktur und Referenzen getestet; Stilnamen-Eindeutigkeit nutzt SQLite-NOCASE mit ASCII-Grenze                                                                     | Unicode-Kollation bei internationalisierten Vorlagennamen bewerten    |
+| Bildprompt-Entwürfe          | Lokal, referenziell und browserseitig geprüft; kein Providerpfad und keine automatische Rekombination                                                              | Tauri-/Screenreader-Abnahme; KQ-016-Grenze getrennt halten            |
+| Bild-Capability-Verträge     | Rust/TypeScript v1 und lokaler Mock getestet; keine produktive Ausführung oder Persistenz                                                                          | Vor KQ-017 Freigabebeleg, Ergebnisprüfung, Kosten und Lizenzen klären |
 
 ## Nächste geplante Entwicklungsstufe
 
-**0.1-Stabilisierung: Tastatur- und Screenreader-Abnahme durchführen.**
+**0.1-Stabilisierung: manuelle Screenreader-Hörabnahme vervollständigen.**
 
 Empfohlener, überprüfbarer Scope:
 
-1. Tastatur- und Screenreader-Matrix mit Windows-Sprachausgabe oder NVDA durchführen.
-2. Befunde nach reproduzierbaren Codefehlern, Dokumentationslücken und manueller Restabnahme
-   trennen.
+1. Die verbleibende Hörmatrix aus `docs/testing/accessibility-acceptance.md` mit
+   Windows-Sprachausgabe oder NVDA in der echten Tauri-WebView durchführen.
+2. Ansagen, doppelte Meldungen und Fokusprobleme protokollieren; reproduzierbare Codefehler von
+   Beobachtungen der assistiven Technik trennen.
 3. Codesignierung, SmartScreen, MSI-Bedarf, WebView2-Strategie und Updatepfad vor einem
    veröffentlichbaren Releasepaket entscheiden.
 
@@ -579,11 +583,10 @@ cd D:\kraqel
 git status
 git branch --show-current
 git log -5 --oneline
-rg "Installer|NSIS|MSI|Signierung|Screenreader" docs ROADMAP.md apps/desktop/src-tauri
+rg "Screenreader|Accessibility|Hörprüfung" docs ROADMAP.md apps/desktop/src
 ```
 
-Danach lesen: `AGENTS.md`, dieses Dokument, `docs/testing/windows-installer-smoke.md`,
-`docs/testing/version-control-accessibility.md`, ADR 0016 und die Pflichtenheft-Abschnitte M5
-und 10. KQ-030 belegt den lokalen isolierten NSIS-Lebenszyklus; die Zweitrechnerprüfung ist bewusst
-zurückgestellt. Als Nächstes ein fachlich geschlossenes Issue für die Tastatur- und
-Screenreader-Abnahme anlegen.
+Danach lesen: `AGENTS.md`, dieses Dokument, `docs/testing/accessibility-acceptance.md`,
+`docs/testing/editor-accessibility.md` und die Pflichtenheft-Abschnitte M5 und 10. KQ-032 belegt den
+automatisierbaren Tastatur- und Accessibility-Kern; als Nächstes die dort klar abgegrenzte manuelle
+Hörprüfung durchführen. Die Zweitrechnerprüfung bleibt bewusst zurückgestellt.

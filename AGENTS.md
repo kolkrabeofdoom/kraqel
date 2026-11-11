@@ -72,9 +72,9 @@ Aktuell im Repository und verifiziert:
   keine produktive Bildausführung.
 - **Qualität:** Prettier, ESLint, TypeScript-Checks, Vitest, Rust-Tests, rustfmt und Clippy mit
   Warnungen als Fehler sowie getrennte Playwright-Browser-E2E für M1, Story-Bibel, Plotboard,
-  Timelines, Medien, visuelle Profile, Kontinuität, Bildprompt-Builder, Versionen und Export; GitHub
-  Actions unter Windows und Linux. Ein separater Windows-Smoke-Test prüft den echten Debug-Build
-  über WebView, Tauri-IPC, Rust und SQLite.
+  Timelines, Medien, visuelle Profile, Kontinuität, Bildprompt-Builder, Versionen, Export und den
+  automatisierbaren Accessibility-Kern; GitHub Actions unter Windows und Linux. Ein separater
+  Windows-Smoke-Test prüft den echten Debug-Build über WebView, Tauri-IPC, Rust und SQLite.
 
 Im Pflichtenheft vorgesehen, aber noch **nicht implementiert oder installiert**: Tailwind, React
 Flow, dnd-kit, KI-basierte Kontinuitätshinweise und produktive Bildgenerierung. Ollama und
@@ -147,6 +147,7 @@ pnpm lint                       # ESLint und Clippy
 pnpm typecheck                  # TypeScript ohne Ausgabe prüfen
 pnpm test                       # TypeScript-/Vitest-Tests
 pnpm test:e2e                   # Playwright-Kernabläufe im Chromium-Browser
+pnpm --filter @kraqel/desktop exec playwright test e2e/accessibility.spec.ts # Accessibility-Kern
 pnpm build:installer:test:windows # unsignierten, isolierten Windows-NSIS-Testinstaller bauen
 pnpm test:installer:windows     # Installation, Persistenz und Deinstallation des Testpakets prüfen
 pnpm build:tauri:smoke:windows  # isolierten Windows-Debug-Build für den Desktop-Smoke-Test bauen
@@ -167,7 +168,9 @@ Der Playwright-Lauf verwendet ausschließlich im E2E-Devserver einen lokalen Com
 prüft React-Abläufe für Editor, Dokumentbaum, Story-Bibel, Plotboard, Timelines, den lokalen
 Medienimport, visuelle Profile, Kontinuität, Bildprompt-Builder, Versionen und Export, aber weder
 die gebündelte Tauri-Anwendung noch Rust, Git, echte Bild- oder Exportdateien, Dateisystem,
-Betriebssystemdialoge oder Screenreader.
+Betriebssystemdialoge oder tatsächliche Screenreader-Ausgaben. KQ-032 prüft ergänzend zentrale
+Tastaturpfade, Fokuszustände und schwerwiegende Axe-Befunde; die manuelle Hörprüfung bleibt
+getrennt.
 
 Der getrennte Windows-Tauri-Smoke-Test unter `scripts/windows-tauri-smoke.mjs` verwendet die
 Testkonfiguration `tauri.smoke.conf.json`, `tauri-driver` und einen versionsgleichen Microsoft Edge
