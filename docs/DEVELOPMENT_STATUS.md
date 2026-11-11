@@ -2,7 +2,7 @@
 
 Stand: 11. November 2026
 
-Code-Referenz: KQ-026 (PR #49)
+Code-Referenz: KQ-027 (Issue #50)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -12,15 +12,15 @@ als vollständige Fachfunktion.
 
 ## Status nach Pflichtenheft-Stufen
 
-| Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                                                                                                                                                         |
-| ------------ | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                                                                    |
-| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, Undo/Redo, Wortzählung, Fokusmodus, konfliktgeprüfter Autosave sowie sicheres Umbenennen, Umordnen, Löschen und SQLite-Backup vorhanden. Echte Tauri-/Screenreader-Abnahme fehlt.     |
-| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks sind in getrennten Chromium-Abläufen geprüft. Tauri- und Screenreader-Abnahme fehlen.                               |
-| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte und der Kernablauf der lokalen Medienbibliothek sind browserseitig geprüft; visuelle Profile und Stilvorlagen mit Backup und Snapshot sind vorhanden. Textimport und schreibende Snapshot-Wiederherstellung fehlen. |
-| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Technischer 0.1-Umfang weitgehend umgesetzt:** Textprotokolle, Offline-Kontinuität und browserseitig geprüfte Prompt-Entwürfe sowie Bild-Capability- und Jobverträge vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise und Bildgenerierung fehlen.                                |
-| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                                                                                                                               |
-| **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                                                      |
+| Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                                                                                                                                                     |
+| ------------ | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                                                                |
+| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, Undo/Redo, Wortzählung, Fokusmodus, konfliktgeprüfter Autosave sowie sicheres Umbenennen, Umordnen, Löschen und SQLite-Backup vorhanden. Echte Tauri-/Screenreader-Abnahme fehlt. |
+| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks sind in getrennten Chromium-Abläufen geprüft. Tauri- und Screenreader-Abnahme fehlen.                           |
+| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, Medienbibliothek sowie visuelle Profile und Stilvorlagen sind im browserseitigen Kernablauf geprüft. Backup und Snapshot sind vorhanden; Textimport und schreibende Snapshot-Wiederherstellung fehlen.         |
+| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Technischer 0.1-Umfang weitgehend umgesetzt:** Textprotokolle, Offline-Kontinuität und browserseitig geprüfte Prompt-Entwürfe sowie Bild-Capability- und Jobverträge vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise und Bildgenerierung fehlen.                            |
+| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                                                                                                                           |
+| **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                                                  |
 
 Die funktionalen Anforderungen F01 bis F09 sind damit noch nicht abgenommen. Vorhandene Verträge und
 Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
@@ -34,8 +34,8 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Minimale Tauri-Berechtigung `core:default`, definierte CSP und Windows-Fensterkonfiguration.
 - GitHub-Actions-CI unter `windows-latest` und `ubuntu-latest`.
 - Playwright mit Chromium und einem testexklusiven Browser-Command-Adapter für M1, Story-Bibel,
-  Plotboard, Timelines, Medien, Bildprompt-Builder, Versionen und Export; die CI führt acht fachlich
-  getrennte Abläufe unter Windows und Linux aus.
+  Plotboard, Timelines, Medien, visuelle Profile, Bildprompt-Builder, Versionen und Export; die CI
+  führt neun fachlich getrennte Abläufe unter Windows und Linux aus.
 - Qualitätskette: Prettier, rustfmt, ESLint, Clippy mit `-D warnings`, TypeScript, Vitest,
   Rust-Tests sowie Frontend- und Workspace-Builds.
 - GPL-3.0-or-later, Beitrags-, Verhaltens- und Sicherheitsdokumentation vorhanden.
@@ -276,7 +276,11 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Backup/Recovery übernimmt die Daten mit der SQLite-Sicherung. Deterministische Snapshots führen
   sie in `visual-profiles.json` und prüfen Struktur sowie Entitäts- und Assetreferenzen.
 - Repository-, Migrations-, Backup-, Snapshot-, IPC- und TypeScript-Vertragstests decken den
-  vertikalen Ablauf ab. Browser-/Screenreader-Abnahme bleibt manuell offen.
+  vertikalen Ablauf ab.
+- KQ-027 ergänzt einen eigenständigen Playwright-Ablauf für Profilmerkmale, Ausschlüsse,
+  strukturierte Stilregeln, mehrere Geltungsbereiche und das Wiederladen nach Ansichtswechsel gegen
+  den vorhandenen testexklusiven Command-Adapter. Kanonische Referenzbilder, Tauri und Screenreader
+  bleiben separat abzunehmen.
 - Es existiert kein Netzwerkpfad für Profile oder Stilvorlagen. Bildprovider sind ausdrücklich nicht
   Bestandteil dieses Inkrements.
 
@@ -363,7 +367,7 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 1. **Tastatur- und Browserabnahme der verbleibenden M3- und M4-Ansichten fortsetzen**
    - kleine, fachlich getrennte Playwright-Abläufe statt eines allwissenden Riesentests ergänzen
-   - als Nächstes Profile und Stilvorlagen der Ansicht **Visuelle Profile** browserseitig prüfen
+   - als Nächstes die deterministische Ansicht **Kontinuität** browserseitig prüfen
 2. **Gebündelte Tauri-Anwendung und Screenreader separat abnehmen**
 
 ### Danach gemäß Pflichtenheft
@@ -434,8 +438,8 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
   FTS-Migration nötig.
 - **Dependency Review eingeschränkt:** Der GitHub-Job wird bei privaten Repositories ohne GitHub
   Advanced Security bewusst übersprungen. Lockfiles und reguläre CI bleiben aktiv.
-- Die vollständige lokale KQ-026-Qualitätskette ist grün: 40 TypeScript-, 91 ausgeführte Rust- und
-  acht Playwright-E2E-Tests, Formatierung, ESLint, Clippy und Typprüfung. Ein visueller
+- Die vollständige lokale KQ-027-Qualitätskette ist grün: 40 TypeScript-, 91 ausgeführte Rust- und
+  neun Playwright-E2E-Tests, Formatierung, ESLint, Clippy und Typprüfung. Ein visueller
   Export-QA-Test bleibt planmäßig ignoriert. Die CI-Matrix unter Windows und Linux ist verbindliche
   Merge-Voraussetzung.
 
@@ -511,7 +515,7 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 | Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                             | Freie eingebettete Schrift und Medienkonzept prüfen                   |
 | Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                   | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen              |
 | Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                    | Bei jeder Erweiterung Fixtures und Migration prüfen                   |
-| Desktoptests                 | Acht getrennte M1-/M2-/M3-/M4-Browser-E2E sowie Unit-/IPC-Tests; keine Tauri-/Screenreader-Abnahme          | Ansicht **Visuelle Profile** browserseitig, Tauri separat prüfen      |
+| Desktoptests                 | Neun getrennte M1-/M2-/M3-/M4-Browser-E2E sowie Unit-/IPC-Tests; keine Tauri-/Screenreader-Abnahme          | Ansicht **Kontinuität** browserseitig, Tauri separat prüfen           |
 | CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                               | Caching prüfen, ohne Reproduzierbarkeit zu schwächen                  |
 | Abhängigkeitssicherheit      | GitHub Dependency Review privat nicht verfügbar                                                             | Alternative Audits oder Advanced Security später bewerten             |
 | Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                    | Plattformmatrix je Release definieren                                 |
@@ -527,14 +531,14 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 
 ## Nächste geplante Entwicklungsstufe
 
-**0.1-Stabilisierung: Browserabnahme der visuellen Profile und Stilvorlagen.**
+**0.1-Stabilisierung: Browserabnahme der deterministischen Kontinuitätsansicht.**
 
 Empfohlener, überprüfbarer Scope:
 
-1. Künstlichen Story-Bibel-Eintrag als visuelles Profil mit Kernmerkmalen und Ausschlüssen pflegen.
-2. Projektweite Stilvorlage erstellen und ihren Geltungsbereich prüfen.
-3. Persistenz nach Ansichtswechsel gegen die vorhandenen Commandverträge bestätigen.
-4. Kanonische Referenzbilder, Tauri und Screenreader weiterhin getrennt abnehmen.
+1. Künstliche Story-Bibel- und Szenendaten mit einem reproduzierbaren Offline-Befund anlegen.
+2. Expliziten Prüflauf, Schweregrad, Regelkennung und Quellenanker sichtbar bestätigen.
+3. Rücksprung aus einem Szenenanker ins Manuskript prüfen.
+4. KI-Hinweise, schreibende Änderungen, Tauri und Screenreader weiterhin getrennt abnehmen.
 
 ## Einstieg für die nächste Codex-Session
 
@@ -543,10 +547,10 @@ cd D:\kraqel
 git status
 git branch --show-current
 git log -5 --oneline
-rg "Visuelle Profile|Stilvorlage|E2E|Playwright" docs ROADMAP.md
+rg "Kontinuität|Quellenanker|E2E|Playwright" docs ROADMAP.md
 ```
 
-Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0013, `VisualProfiles.tsx` und die
-Pflichtenheft-Abschnitte zu F09, M3 und M5. Vor Änderungen zuerst ein eigenes Issue mit kleinem,
-fachlich geschlossenem Browserablauf und klarer Abgrenzung zu Referenzmedien-, Tauri- und
-Screenreader-Abnahme anlegen.
+Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0011, `Continuity.tsx` und die
+Pflichtenheft-Abschnitte zu F06, M4 und M5. Vor Änderungen zuerst ein eigenes Issue mit kleinem,
+fachlich geschlossenem Offline-Browserablauf und klarer Abgrenzung zu KI-, Schreib-, Tauri- und
+Screenreader-Funktionen anlegen.
