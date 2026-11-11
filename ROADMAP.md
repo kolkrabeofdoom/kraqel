@@ -43,7 +43,7 @@
    - [x] Isolierter, unsignierter NSIS-Testinstaller mit lokalem Installationslebenszyklus
    - [x] Automatisierte Tastatur-, Fokus- und Accessibility-Prüfung der Kernansichten
    - [x] Manuelle Kern-Hörprüfung mit Windows-Sprachausgabe in der Tauri-WebView
-   - [ ] Erzwungene Speicherfehleransage und „Bewegung reduzieren“ abnehmen
+   - [x] Erzwungene Speicherfehleransage und „Bewegung reduzieren“ abnehmen
    - [ ] Installer später auf einem weiteren Windows-Rechner gegenprüfen
    - [ ] Signierung und Releasepaket abnehmen
 

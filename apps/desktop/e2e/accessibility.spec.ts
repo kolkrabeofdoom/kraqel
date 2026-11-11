@@ -106,3 +106,73 @@ test("Kernansichten haben keine schwerwiegenden automatisiert erkennbaren Verst�
   await expect(page.getByRole("heading", { level: 2, name: "Story-Bibel" })).toBeVisible();
   await expectNoSeriousAccessibilityViolations(page);
 });
+
+test("Speicherfehler bleibt hörbar sichtbar und eine neue Bearbeitung wird erneut gespeichert", async ({
+  page,
+}) => {
+  const failedText = "Der erste Speicherflug scheitert kontrolliert.";
+  const recoveredText = " Der zweite landet sicher.";
+
+  await page.goto("/?kraqelFailNextSave=1");
+  await page.getByLabel("Projektname").fill("Fehlerlabor ohne echte Manuskripte");
+  await page.getByRole("button", { name: "Projekt anlegen" }).click();
+
+  const editor = page.getByRole("textbox", { name: "Text von Szene 1" });
+  await editor.fill(failedText);
+  const saveStatus = page.getByRole("status");
+  await expect(saveStatus).toHaveText("Speichern fehlgeschlagen", { timeout: 5_000 });
+  await expect
+    .poll(() =>
+      page.evaluate(
+        (text) => localStorage.getItem("kraqel-e2e-command-state-v1")?.includes(text) ?? false,
+        failedText,
+      ),
+    )
+    .toBe(false);
+
+  await editor.pressSequentially(recoveredText);
+  await expect(saveStatus).toHaveText("Ungespeichert");
+  await expect(saveStatus).toHaveText("Gespeichert", { timeout: 5_000 });
+  await expect
+    .poll(() =>
+      page.evaluate(
+        (text) => localStorage.getItem("kraqel-e2e-command-state-v1")?.includes(text) ?? false,
+        failedText + recoveredText,
+      ),
+    )
+    .toBe(true);
+});
+
+test("reduzierte Bewegung lässt den Tastatur-Kernablauf ohne wirksame Animationen bedienbar", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  await expect
+    .poll(() => page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches))
+    .toBe(true);
+
+  const projectName = page.getByLabel("Projektname");
+  await tabTo(page, projectName);
+  await page.keyboard.type("Die entschleunigte Republik");
+  const createProject = page.getByRole("button", { name: "Projekt anlegen" });
+  await tabTo(page, createProject);
+  await page.keyboard.press("Enter");
+
+  const storyBible = page.getByRole("button", { name: "Story-Bibel" });
+  await tabTo(page, storyBible);
+  await page.keyboard.press("Enter");
+  await expect(storyBible).toHaveAttribute("aria-current", "page");
+
+  const movingElements = await page.locator("body, body *").evaluateAll((elements) =>
+    elements
+      .filter((element) => {
+        const style = getComputedStyle(element);
+        const hasDuration = (value: string) =>
+          value.split(",").some((part) => Number.parseFloat(part) > 0);
+        return hasDuration(style.animationDuration) || hasDuration(style.transitionDuration);
+      })
+      .map((element) => `${element.tagName.toLowerCase()}.${element.className}`),
+  );
+  expect(movingElements).toEqual([]);
+});

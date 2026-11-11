@@ -26,6 +26,17 @@ import { plainTextFromDocument, type EditorDocument } from "@kraqel/editor";
 import type { ContinuityFinding } from "../commands";
 
 const STORAGE_KEY = "kraqel-e2e-command-state-v1";
+const FAIL_NEXT_SAVE_KEY = "kraqel-e2e-fail-next-save-v1";
+const FAILURE_QUERY_KEY = "kraqelFailNextSave";
+const FAILURE_ARMED_KEY = "kraqel-e2e-save-failure-armed-v1";
+
+if (
+  new URLSearchParams(location.search).get(FAILURE_QUERY_KEY) === "1" &&
+  sessionStorage.getItem(FAILURE_ARMED_KEY) !== "1"
+) {
+  localStorage.setItem(FAIL_NEXT_SAVE_KEY, "1");
+  sessionStorage.setItem(FAILURE_ARMED_KEY, "1");
+}
 
 interface StoredDocument {
   node: DocumentNode;
@@ -94,6 +105,11 @@ export class Channel<T> {
 export async function invoke<T>(command: string, args: InvokeArgs = {}): Promise<T> {
   const request = args.request;
   if (!request || request.contractVersion !== 1) throw new Error("Invalid E2E command request");
+
+  if (command === "save_document" && localStorage.getItem(FAIL_NEXT_SAVE_KEY) === "1") {
+    localStorage.removeItem(FAIL_NEXT_SAVE_KEY);
+    throw new Error("Controlled E2E save failure");
+  }
 
   const data = execute(command, request.payload);
   return {
