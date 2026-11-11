@@ -578,6 +578,8 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
         byteCount: new TextEncoder().encode(normalized).byteLength,
       };
     }
+    case "export_manuscript":
+      return manuscriptExportResult(findProject(state, payload.projectId), payload.format);
     case "create_project_snapshot": {
       const current = findProject(state, payload.projectId);
       current.versionControl.initialized = true;
@@ -799,6 +801,28 @@ function snapshotSummary(current: TestProject) {
       (total, [, content]) => total + new TextEncoder().encode(content).byteLength,
       0,
     ),
+  };
+}
+
+function manuscriptExportResult(current: TestProject, requestedFormat: unknown) {
+  const formats = {
+    markdown: { extension: "md", overhead: 48 },
+    html: { extension: "html", overhead: 256 },
+    docx: { extension: "docx", overhead: 1_024 },
+    pdf: { extension: "pdf", overhead: 2_048 },
+  } as const;
+  if (typeof requestedFormat !== "string" || !(requestedFormat in formats)) {
+    throw new Error("Unknown E2E manuscript export format");
+  }
+  const format = requestedFormat as keyof typeof formats;
+  const manuscriptText = [
+    current.project.name,
+    ...current.documents.flatMap(({ node, plainText }) => [node.title, plainText]),
+  ].join("\n");
+  return {
+    format,
+    fileName: `manuskript.${formats[format].extension}`,
+    byteCount: new TextEncoder().encode(manuscriptText).byteLength + formats[format].overhead,
   };
 }
 
