@@ -1,7 +1,10 @@
 # Manueller Testplan: Versionsansicht
 
-Automatisierte Tests decken Snapshotdeterminismus, Manipulationserkennung, Pfadfreigabe,
-Git-Status/Diff/Commit und den TypeScript-Commandvertrag ab. Folgende Bedienfälle bleiben manuell:
+Automatisierte Komponenten- und Vertragstests decken Snapshotdeterminismus, Manipulationserkennung,
+Pfadfreigabe, Git-Status/Diff/Commit und den TypeScript-Commandvertrag ab. Ein Chromium-Ablauf prüft
+zusätzlich Snapshoterzeugung, lesende Validierung, sichtbaren Status und Unified Diff sowie zwei
+explizite Commits gegen den testexklusiven In-Memory-Adapter. Folgende native und assistive
+Bedienfälle bleiben manuell:
 
 1. Projekt öffnen und ausschließlich mit der Tastatur zum Bereich **Versionen** wechseln.
 2. **Snapshot erzeugen** auslösen; Statusmeldung, Dateianzahl und geänderte Dateien müssen ohne

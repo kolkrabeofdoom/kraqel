@@ -19,6 +19,7 @@
      - [x] Getrennte Browser-E2E für Plotboard- und Timeline-Kernabläufe
 3. M3-Datenportabilität und Medien
    - [x] Deterministische Projektsnapshots und lokales Git für Status, Diff und Commit
+     - [x] Browser-E2E für Snapshot, Status, Diff und expliziten Commit
    - [x] Export nach Markdown, HTML, DOCX und PDF für die dokumentierte Formatierungsmenge
    - [ ] Import und DOCX-Roundtrip
    - [x] Lokale Medienbibliothek mit Metadaten, Links, Backup und Snapshot-Assets

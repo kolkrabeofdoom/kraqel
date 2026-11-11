@@ -212,6 +212,9 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
       ...current,
       documents: current.documents.map((item) => (item.id === id ? { ...item, revision } : item)),
     }));
+    setStored((current) =>
+      current?.node.id === id ? { ...current, node: { ...current.node, revision } } : current,
+    );
   }, []);
 
   return (

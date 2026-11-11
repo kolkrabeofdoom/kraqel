@@ -43,6 +43,15 @@ interface TestProject {
   visualProfiles: VisualProfile[];
   stylePresets: StylePreset[];
   imagePromptDrafts: ImagePromptDraft[];
+  versionControl: TestVersionControl;
+}
+
+interface TestVersionControl {
+  initialized: boolean;
+  snapshotFiles: Record<string, string> | null;
+  committedFiles: Record<string, string>;
+  head: string | null;
+  commitSequence: number;
 }
 
 interface StoryLink {
@@ -112,6 +121,13 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
         visualProfiles: [],
         stylePresets: [],
         imagePromptDrafts: [],
+        versionControl: {
+          initialized: false,
+          snapshotFiles: null,
+          committedFiles: {},
+          head: null,
+          commitSequence: 0,
+        },
       };
       state.projects.push(created);
       writeState(state);
@@ -562,6 +578,47 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
         byteCount: new TextEncoder().encode(normalized).byteLength,
       };
     }
+    case "create_project_snapshot": {
+      const current = findProject(state, payload.projectId);
+      current.versionControl.initialized = true;
+      current.versionControl.snapshotFiles = renderSnapshotFiles(current);
+      writeState(state);
+      return snapshotSummary(current);
+    }
+    case "validate_project_snapshot": {
+      const current = findProject(state, payload.projectId);
+      if (!current.versionControl.snapshotFiles) throw new Error("Missing E2E snapshot");
+      return snapshotSummary(current);
+    }
+    case "get_version_control_status": {
+      const current = findProject(state, payload.projectId);
+      const changedFiles = versionChangedFiles(current);
+      return {
+        initialized: current.versionControl.initialized,
+        clean: changedFiles.length === 0,
+        changedFiles,
+        head: current.versionControl.head,
+      };
+    }
+    case "get_version_control_diff": {
+      const current = findProject(state, payload.projectId);
+      return { diff: renderVersionDiff(current) };
+    }
+    case "commit_project_snapshot": {
+      const current = findProject(state, payload.projectId);
+      if (!String(payload.message).trim() || versionChangedFiles(current).length === 0) {
+        throw new Error("Invalid E2E snapshot commit");
+      }
+      current.versionControl.committedFiles = structuredClone(
+        current.versionControl.snapshotFiles ?? {},
+      );
+      current.versionControl.commitSequence += 1;
+      current.versionControl.head = `c0ffee${current.versionControl.commitSequence
+        .toString(16)
+        .padStart(34, "0")}`;
+      writeState(state);
+      return { commitId: current.versionControl.head };
+    }
     default:
       throw new Error(`Command ${command} is not available in the browser E2E adapter`);
   }
@@ -710,6 +767,80 @@ function appendPromptMap(
 
 function promptKindLabel(kind: EntityKind): string {
   return { character: "Figur", location: "Ort", faction: "Fraktion", item: "Gegenstand" }[kind];
+}
+
+function renderSnapshotFiles(current: TestProject): Record<string, string> {
+  const files: Record<string, string> = {
+    ".gitignore": "*\n!/.gitignore\n!/snapshot/\n!/snapshot/**\n",
+    "snapshot/manifest.json": `${JSON.stringify({
+      format: "kraqel-project-snapshot",
+      formatVersion: 3,
+      project: current.project,
+    })}\n`,
+    "snapshot/documents.json": `${JSON.stringify(current.documents.map(({ node }) => node))}\n`,
+  };
+  for (const document of current.documents) {
+    if (document.node.kind !== "scene") continue;
+    files[`snapshot/manuscript/${document.node.id}.md`] =
+      `# ${document.node.title}\n\n${document.plainText.trim()}\n`;
+  }
+  return files;
+}
+
+function snapshotSummary(current: TestProject) {
+  const files = current.versionControl.snapshotFiles;
+  if (!files) throw new Error("Missing E2E snapshot");
+  const portableFiles = Object.entries(files).filter(([path]) => path !== ".gitignore");
+  return {
+    formatVersion: 3,
+    projectId: current.project.id,
+    fileCount: portableFiles.length,
+    byteCount: portableFiles.reduce(
+      (total, [, content]) => total + new TextEncoder().encode(content).byteLength,
+      0,
+    ),
+  };
+}
+
+function versionChangedFiles(current: TestProject): string[] {
+  const snapshot = current.versionControl.snapshotFiles ?? {};
+  const committed = current.versionControl.committedFiles;
+  return [...new Set([...Object.keys(snapshot), ...Object.keys(committed)])]
+    .filter((path) => snapshot[path] !== committed[path])
+    .sort();
+}
+
+function renderVersionDiff(current: TestProject): string {
+  const snapshot = current.versionControl.snapshotFiles ?? {};
+  const committed = current.versionControl.committedFiles;
+  return versionChangedFiles(current)
+    .map((path) => {
+      const before = committed[path];
+      const after = snapshot[path];
+      const lines = [`diff --git a/${path} b/${path}`];
+      lines.push(before === undefined ? "--- /dev/null" : `--- a/${path}`);
+      lines.push(after === undefined ? "+++ /dev/null" : `+++ b/${path}`);
+      if (before !== undefined) {
+        lines.push(
+          "@@ -1 +1 @@",
+          ...before
+            .trimEnd()
+            .split("\n")
+            .map((line) => `-${line}`),
+        );
+      }
+      if (after !== undefined) {
+        lines.push(
+          "@@ -1 +1 @@",
+          ...after
+            .trimEnd()
+            .split("\n")
+            .map((line) => `+${line}`),
+        );
+      }
+      return lines.join("\n");
+    })
+    .join("\n");
 }
 
 function byPosition(left: { readonly position: number }, right: { readonly position: number }) {
