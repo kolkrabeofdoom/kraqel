@@ -38,3 +38,6 @@ eigene Roundtrip-Tests.
 - Das Schema muss bei inkompatiblen Änderungen mit einer neuen Formatversion erweitert werden.
 - Medienassets und Hashreferenzen folgen mit der Medienbibliothek; die v1-Assetliste ist leer.
 - Lesende Validierung ist noch keine nachgewiesene vollständige Wiederherstellung.
+- KQ-024 prüft Snapshoterzeugung, lesende Validierung, Status, Unified Diff und expliziten Commit in
+  Chromium gegen einen testexklusiven In-Memory-Adapter. Dieser Nachweis umfasst weder echtes Git
+  und Dateisystem noch Tauri, WebView, Screenreader oder Snapshot-Wiederherstellung.
