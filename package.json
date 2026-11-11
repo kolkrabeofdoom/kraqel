@@ -10,12 +10,14 @@
   },
   "scripts": {
     "build": "pnpm --recursive --if-present build",
+    "build:tauri:smoke:windows": "pnpm --filter @kraqel/desktop tauri build --debug --no-bundle --config src-tauri/tauri.smoke.conf.json",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && cargo test --workspace",
     "dev": "pnpm --filter @kraqel/desktop dev",
     "desktop": "pnpm --filter @kraqel/desktop tauri dev",
     "format": "prettier --write . && cargo fmt --all",
     "format:check": "prettier --check . && cargo fmt --all -- --check",
     "lint": "eslint . && cargo clippy --workspace --all-targets -- -D warnings",
+    "test:tauri:windows": "node scripts/windows-tauri-smoke.mjs",
     "test:e2e": "pnpm --filter @kraqel/desktop test:e2e",
     "test": "pnpm --recursive --if-present test",
     "typecheck": "pnpm --recursive --if-present typecheck"

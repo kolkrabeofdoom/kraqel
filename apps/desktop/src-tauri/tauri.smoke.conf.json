@@ -1,0 +1,10 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "identifier": "org.kraqel.desktop.smoke",
+  "app": {
+    "appDirectoriesOverride": "$TEMP/kraqel-tauri-smoke"
+  },
+  "bundle": {
+    "active": false
+  }
+}

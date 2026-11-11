@@ -51,5 +51,9 @@ Projektwurzel ist eine spätere Produktentscheidung.
 - KQ-020 prüft Projektanlage, Schreiben, Autosave, Wiederöffnen, Umbenennen, Umordnen und Löschen
   mit Playwright in Chromium. Ein ausschließlich im E2E-Devserver aktivierter persistenter
   Browser-Adapter bildet dafür die versionierte Command-Hülle und die benötigte M1-Semantik ab.
-- Dieser Lauf ersetzt weder die Rust-/IPC-Vertragstests noch eine WebDriver-Abnahme der gebündelten
-  Tauri-Anwendung. Tastatur- und Screenreader-Abnahme folgt weiterhin dem manuellen Testplan.
+- KQ-029 ergänzt einen getrennten Windows-WebDriver-Smoke-Test gegen den echten Tauri-Debug-Build.
+  Er belegt Projektanlage, Autosave in einer isolierten SQLite-Datei und Wiederöffnen nach einem
+  zweiten Anwendungsstart. Die eigene Tauri-Testkonfiguration leitet alle App-Verzeichnisse nach
+  `$TEMP/kraqel-tauri-smoke` um; der normale Build und reale Projekte bleiben unberührt.
+- Browser- und Desktop-Smoke-Tests ersetzen weder die breitere Tastatur-/Screenreader-Abnahme noch
+  Installer-, Signierungs- und Releaseprüfungen.
