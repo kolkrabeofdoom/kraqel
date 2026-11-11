@@ -1,10 +1,12 @@
 import type {
+  AssetTargetKind,
   DocumentKind,
   DocumentNode,
   EntityId,
   EntityKind,
   ImagePromptComposition,
   ImagePromptDraft,
+  MediaAsset,
   PlotBoard,
   PlotCard,
   PlotStatus,
@@ -40,10 +42,17 @@ interface TestProject {
   plotCards: PlotCard[];
   timelines: Timeline[];
   timelineEvents: TimelineEvent[];
+  mediaAssets: TestMediaAssetView[];
   visualProfiles: VisualProfile[];
   stylePresets: StylePreset[];
   imagePromptDrafts: ImagePromptDraft[];
   versionControl: TestVersionControl;
+}
+
+interface TestMediaAssetView {
+  asset: MediaAsset;
+  thumbnailDataUrl: string | null;
+  fileAvailable: boolean;
 }
 
 interface TestVersionControl {
@@ -118,6 +127,7 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
         plotCards: [newPlotCard(scene, 0)],
         timelines: [],
         timelineEvents: [],
+        mediaAssets: [],
         visualProfiles: [],
         stylePresets: [],
         imagePromptDrafts: [],
@@ -449,7 +459,64 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       return timelineDetails(current, payload.timelineId);
     }
     case "list_media_assets":
-      return [];
+      return findProject(state, payload.projectId).mediaAssets;
+    case "import_media_asset": {
+      const current = findProject(state, payload.projectId);
+      const bytes = payload.bytes;
+      if (
+        !Array.isArray(bytes) ||
+        bytes.length === 0 ||
+        !String(payload.fileName).endsWith(".png")
+      ) {
+        throw new Error("Invalid E2E media import");
+      }
+      const assetId = crypto.randomUUID() as EntityId;
+      const checksum = "7a".repeat(32);
+      const view: TestMediaAssetView = {
+        asset: {
+          id: assetId,
+          projectId: current.project.id,
+          kind: "image",
+          relativePath: `assets/${assetId}-${checksum.slice(0, 12)}.png`,
+          thumbnailPath: `assets/thumbnails/${assetId}.png`,
+          originalName: String(payload.fileName),
+          title: String(payload.title).trim(),
+          mimeType: "image/png",
+          checksum,
+          byteCount: bytes.length,
+          width: 1,
+          height: 1,
+          provenance: "imported",
+          tags: structuredClone(payload.tags) as readonly string[],
+          links: [],
+        },
+        thumbnailDataUrl: `data:image/png;base64,${btoa(String.fromCharCode(...bytes))}`,
+        fileAvailable: true,
+      };
+      current.mediaAssets.unshift(view);
+      writeState(state);
+      return view;
+    }
+    case "link_media_asset":
+    case "unlink_media_asset": {
+      const current = findProject(state, payload.projectId);
+      const view = findMediaAsset(current, payload.assetId);
+      const targetKind = payload.targetKind as AssetTargetKind;
+      const targetId = payload.targetId as EntityId;
+      validateMediaTarget(current, targetKind, targetId);
+      const role = String(payload.role).trim();
+      const matches = (link: MediaAsset["links"][number]) =>
+        link.targetKind === targetKind && link.targetId === targetId && link.role === role;
+      const links =
+        command === "link_media_asset"
+          ? view.asset.links.some(matches)
+            ? view.asset.links
+            : [...view.asset.links, { targetKind, targetId, role }]
+          : view.asset.links.filter((link) => !matches(link));
+      view.asset = { ...view.asset, links };
+      writeState(state);
+      return view;
+    }
     case "list_visual_profiles":
       return findProject(state, payload.projectId).visualProfiles;
     case "save_visual_profile": {
@@ -692,6 +759,24 @@ function findTimeline(current: TestProject, id: unknown): Timeline {
   const timeline = current.timelines.find((candidate) => candidate.id === id);
   if (!timeline) throw new Error("Unknown E2E timeline");
   return timeline;
+}
+
+function findMediaAsset(current: TestProject, id: unknown): TestMediaAssetView {
+  const view = current.mediaAssets.find(({ asset }) => asset.id === id);
+  if (!view) throw new Error("Unknown E2E media asset");
+  return view;
+}
+
+function validateMediaTarget(
+  current: TestProject,
+  targetKind: AssetTargetKind,
+  targetId: EntityId,
+): void {
+  if (targetKind === "document") findStoredDocument(current, targetId);
+  else if (targetKind === "entity") findStoryEntity(current, targetId);
+  else if (!current.timelineEvents.some(({ id }) => id === targetId)) {
+    throw new Error("Unknown E2E media target");
+  }
 }
 
 function plotBoard(current: TestProject): PlotBoard {

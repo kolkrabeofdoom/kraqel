@@ -46,3 +46,6 @@ deterministisch ableitbar sind.
   eine vorzeitig gelöschte Datei umbiegen.
 - SVG, animierte Formate, Videos, Audio, Lizenzfelder, visuelle Profile und Bildgenerierung sind
   nicht Bestandteil dieses Inkrements.
+- Ein Browser-E2E prüft Dateiauswahl, sichtbare Metadaten und Szenenverknüpfung gegen einen
+  testexklusiven Command-Adapter. Bilddekodierung, kryptografische Hashprüfung, Thumbnailing, echte
+  Dateien, Tauri, Dateisystem und Screenreader bleiben damit ausdrücklich unabgenommen.
