@@ -24,6 +24,7 @@
      - [x] Browser-E2E für Formatwahl, Dateiname und sichtbare Größenbestätigung
    - [ ] Import und DOCX-Roundtrip
    - [x] Lokale Medienbibliothek mit Metadaten, Links, Backup und Snapshot-Assets
+     - [x] Browser-E2E für PNG-Import, Metadaten und Szenenverknüpfung
    - [x] Visuelle Profile und projektweite Stilvorlagen
 4. Optionale Text-KI, Kontinuitätsprüfung, Prompt-Entwürfe und Bildverträge
    - [x] Providerunabhängige Textgrenze und lokales Ollama-Streaming mit Kontextfreigabe
