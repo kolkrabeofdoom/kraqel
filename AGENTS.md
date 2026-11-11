@@ -75,8 +75,7 @@ Aktuell im Repository und verifiziert:
   Timelines, Medien, visuelle Profile, Kontinuität, Bildprompt-Builder, Versionen, Export und den
   automatisierbaren Accessibility-Kern; GitHub Actions unter Windows und Linux. Ein separater
   Windows-Smoke-Test prüft den echten Debug-Build über WebView, Tauri-IPC, Rust und SQLite. Eine
-  manuelle KQ-033-Kernprüfung mit Windows-Sprachausgabe ist dokumentiert; erzwungener Speicherfehler
-  und „Bewegung reduzieren“ bleiben offen.
+  manuelle KQ-033-Kernprüfung und die KQ-034-Randfälle mit Windows-Sprachausgabe sind dokumentiert.
 
 Im Pflichtenheft vorgesehen, aber noch **nicht implementiert oder installiert**: Tailwind, React
 Flow, dnd-kit, KI-basierte Kontinuitätshinweise und produktive Bildgenerierung. Ollama und
@@ -150,6 +149,7 @@ pnpm typecheck                  # TypeScript ohne Ausgabe prüfen
 pnpm test                       # TypeScript-/Vitest-Tests
 pnpm test:e2e                   # Playwright-Kernabläufe im Chromium-Browser
 pnpm --filter @kraqel/desktop exec playwright test e2e/accessibility.spec.ts # Accessibility-Kern
+pnpm test:accessibility:manual:windows # isolierte manuelle Tauri-Randfallprüfung
 pnpm build:installer:test:windows # unsignierten, isolierten Windows-NSIS-Testinstaller bauen
 pnpm test:installer:windows     # Installation, Persistenz und Deinstallation des Testpakets prüfen
 pnpm build:tauri:smoke:windows  # isolierten Windows-Debug-Build für den Desktop-Smoke-Test bauen
@@ -172,7 +172,7 @@ Medienimport, visuelle Profile, Kontinuität, Bildprompt-Builder, Versionen und 
 die gebündelte Tauri-Anwendung noch Rust, Git, echte Bild- oder Exportdateien, Dateisystem,
 Betriebssystemdialoge oder tatsächliche Screenreader-Ausgaben. KQ-032 prüft ergänzend zentrale
 Tastaturpfade, Fokuszustände und schwerwiegende Axe-Befunde; KQ-033 dokumentiert die bestandene
-manuelle Kern-Hörprüfung. Speicherfehleransage und „Bewegung reduzieren“ bleiben getrennt.
+manuelle Kern-Hörprüfung und KQ-034 die isolierten Randfälle.
 
 Der getrennte Windows-Tauri-Smoke-Test unter `scripts/windows-tauri-smoke.mjs` verwendet die
 Testkonfiguration `tauri.smoke.conf.json`, `tauri-driver` und einen versionsgleichen Microsoft Edge
@@ -186,6 +186,12 @@ Datenpfaden. `scripts/windows-installer-smoke.ps1` prüft Installation, HKCU-Reg
 echten Tauri-/SQLite-Persistenzlauf und Deinstallation. Voraussetzungen, sichere Zielpfade und
 Aussagegrenzen stehen in `docs/testing/windows-installer-smoke.md`; Clean-VM, MSI, Signierung,
 Updater und assistive Bedienung gehören nicht zur Aussage dieses Installer-Tests.
+
+Die manuelle Accessibility-Randfallprüfung verwendet `tauri.accessibility-test.conf.json`, einen
+eigenen Produktnamen, eine eigene Bundle-ID, temporäre App-Daten und den testexklusiven
+Browser-Command-Mock. Sie erzeugt kein Bundle und lässt genau den ersten Autosave kontrolliert
+scheitern. Aussagegrenzen und Ablauf stehen in `docs/testing/accessibility-acceptance.md` und ADR
+0017; diese Variante darf niemals als Releaseartefakt behandelt werden.
 
 Für kleine Änderungen zuerst gezielt prüfen, zum Beispiel:
 

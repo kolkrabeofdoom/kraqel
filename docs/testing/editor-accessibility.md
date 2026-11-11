@@ -47,7 +47,7 @@ Der automatisierte KQ-032-Stand und die manuelle KQ-033-Prüfmatrix stehen in
   Accessibility-Verstöße.
 - Der fachliche Story-Bibel-CRUD-, Relations- und Rückverweisablauf besitzt einen eigenen
   browsergestützten E2E-Test.
-- Die KQ-033-Kernprüfung mit Windows-Sprachausgabe in der echten Tauri-WebView ist bestanden; ein
-  erzwungener Speicherfehler und „Bewegung reduzieren“ bleiben offen.
+- Die KQ-033-Kernprüfung und die KQ-034-Randfälle mit Windows-Sprachausgabe in der echten
+  Tauri-WebView sind bestanden.
 - Szenenwechsel während eines laufenden Autosaves
 - Wiederherstellung eines gespeicherten Szenenstands bis in die sichtbare Oberfläche

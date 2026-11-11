@@ -22,6 +22,7 @@
     "test:installer:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows-installer-smoke.ps1",
     "test:e2e": "pnpm --filter @kraqel/desktop test:e2e",
     "test": "pnpm --recursive --if-present test",
+    "test:accessibility:manual:windows": "pnpm --filter @kraqel/desktop tauri dev --config src-tauri/tauri.accessibility-test.conf.json",
     "typecheck": "pnpm --recursive --if-present typecheck"
   },
   "devDependencies": {
