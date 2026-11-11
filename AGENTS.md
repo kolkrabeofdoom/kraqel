@@ -72,8 +72,8 @@ Aktuell im Repository und verifiziert:
   keine produktive Bildausführung.
 - **Qualität:** Prettier, ESLint, TypeScript-Checks, Vitest, Rust-Tests, rustfmt und Clippy mit
   Warnungen als Fehler sowie getrennte Playwright-Browser-E2E für M1, Story-Bibel, Plotboard,
-  Timelines, Medien, visuelle Profile, Bildprompt-Builder, Versionen und Export; GitHub Actions
-  unter Windows und Linux.
+  Timelines, Medien, visuelle Profile, Kontinuität, Bildprompt-Builder, Versionen und Export; GitHub
+  Actions unter Windows und Linux.
 
 Im Pflichtenheft vorgesehen, aber noch **nicht implementiert oder installiert**: Tailwind, React
 Flow, dnd-kit, KI-basierte Kontinuitätshinweise und produktive Bildgenerierung. Ollama und
@@ -160,9 +160,9 @@ pnpm --filter @kraqel/desktop exec playwright install chromium
 
 Der Playwright-Lauf verwendet ausschließlich im E2E-Devserver einen lokalen Command-Adapter. Er
 prüft React-Abläufe für Editor, Dokumentbaum, Story-Bibel, Plotboard, Timelines, den lokalen
-Medienimport, visuelle Profile, Bildprompt-Builder, Versionen und Export, aber weder die gebündelte
-Tauri-Anwendung noch Rust, Git, echte Bild- oder Exportdateien, Dateisystem, Betriebssystemdialoge
-oder Screenreader.
+Medienimport, visuelle Profile, Kontinuität, Bildprompt-Builder, Versionen und Export, aber weder
+die gebündelte Tauri-Anwendung noch Rust, Git, echte Bild- oder Exportdateien, Dateisystem,
+Betriebssystemdialoge oder Screenreader.
 
 Für kleine Änderungen zuerst gezielt prüfen, zum Beispiel:
 

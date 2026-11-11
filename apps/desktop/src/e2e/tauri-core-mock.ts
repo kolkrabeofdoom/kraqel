@@ -23,6 +23,7 @@ import type {
   VisualProfile,
 } from "@kraqel/domain";
 import { plainTextFromDocument, type EditorDocument } from "@kraqel/editor";
+import type { ContinuityFinding } from "../commands";
 
 const STORAGE_KEY = "kraqel-e2e-command-state-v1";
 
@@ -647,6 +648,8 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
     }
     case "export_manuscript":
       return manuscriptExportResult(findProject(state, payload.projectId), payload.format);
+    case "analyze_continuity":
+      return analyzeUnlinkedMentions(findProject(state, payload.projectId));
     case "create_project_snapshot": {
       const current = findProject(state, payload.projectId);
       current.versionControl.initialized = true;
@@ -909,6 +912,75 @@ function manuscriptExportResult(current: TestProject, requestedFormat: unknown) 
     fileName: `manuskript.${formats[format].extension}`,
     byteCount: new TextEncoder().encode(manuscriptText).byteLength + formats[format].overhead,
   };
+}
+
+function analyzeUnlinkedMentions(current: TestProject): ContinuityFinding[] {
+  const ambiguousNames = new Set(
+    current.storyEntities
+      .map(({ name }) => name.trim().toLocaleLowerCase())
+      .filter((name, index, names) => names.indexOf(name) !== index),
+  );
+  const findings: ContinuityFinding[] = [];
+
+  for (const document of current.documents.filter(({ node }) => node.kind === "scene")) {
+    for (const entity of current.storyEntities) {
+      const normalizedName = entity.name.trim().toLocaleLowerCase();
+      if (
+        [...entity.name].length < 3 ||
+        ambiguousNames.has(normalizedName) ||
+        current.storyLinks.some(
+          ({ documentId, entityId }) => documentId === document.node.id && entityId === entity.id,
+        )
+      ) {
+        continue;
+      }
+      const position = exactNameMention(document.plainText, entity.name);
+      if (!position) continue;
+
+      findings.push({
+        ruleId: "story-bible.unlinked-mention",
+        severity: "information",
+        title: `„${entity.name}“ wird in „${document.node.title}“ erwähnt`,
+        explanation:
+          "Der Name steht im Szenentext, die Szene besitzt aber noch keinen entsprechenden Story-Bibel-Link. Das kann beabsichtigt sein.",
+        sources: [
+          {
+            kind: "document",
+            id: document.node.id,
+            label: `„${entity.name}“ in ${document.node.title}`,
+            documentId: document.node.id,
+            start: position.start,
+            end: position.end,
+          },
+        ],
+      });
+    }
+  }
+
+  return findings.sort(
+    (left, right) =>
+      left.ruleId.localeCompare(right.ruleId) || left.title.localeCompare(right.title, "de"),
+  );
+}
+
+function exactNameMention(text: string, name: string): { start: number; end: number } | null {
+  let from = 0;
+  while (from <= text.length) {
+    const utf16Start = text.indexOf(name, from);
+    if (utf16Start < 0) return null;
+    const before = text.slice(0, utf16Start).match(/.$/u)?.[0];
+    const after = text.slice(utf16Start + name.length).match(/^./u)?.[0];
+    if (!isAlphaNumeric(before) && !isAlphaNumeric(after)) {
+      const start = [...text.slice(0, utf16Start)].length;
+      return { start, end: start + [...name].length };
+    }
+    from = utf16Start + name.length;
+  }
+  return null;
+}
+
+function isAlphaNumeric(value: string | undefined): boolean {
+  return value !== undefined && /[\p{L}\p{N}]/u.test(value);
 }
 
 function versionChangedFiles(current: TestProject): string[] {

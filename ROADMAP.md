@@ -32,6 +32,7 @@
    - [x] Cloud-Textprovider und Betriebssystem-Schlüsselspeicher (Protokolltests; Live-Abnahme
          offen)
    - [x] Deterministische Kontinuitätsprüfung mit Quellenankern und Nur-Lese-Diff
+     - [x] Browser-E2E für Offline-Befund, Regelkennung, Zeichenanker und Manuskript-Rücksprung
    - [x] Lokale, editierbare Bildprompt-Entwürfe mit UTF-8-Export und Snapshot
      - [x] Browser-E2E für den lokalen Bildprompt-Kernablauf
    - [x] Provider- und modellspezifische Bild-Capability-Registry sowie Generation-Job-Verträge

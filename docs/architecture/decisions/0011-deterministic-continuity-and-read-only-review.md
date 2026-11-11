@@ -33,6 +33,11 @@ reiner Zeilendiff. Der Command besitzt keinen Schreibpfad, und die UI bietet kei
 
 - Die Offline-Prüfung ist ohne Provider, Netzwerk oder API-Schlüssel vollständig nutzbar.
 - Fundstellen sind navigierbar; Textpositionen werden als Unicode-Zeichenpositionen ausgewiesen.
+- Ein Browser-E2E belegt den ausdrücklichen Prüflauf für eine nicht verknüpfte Namensnennung, die
+  sichtbare Regelkennung und den Rücksprung aus dem Zeichenanker in die betreffende Szene. Der
+  testexklusive Browser-Adapter spiegelt dafür nur diese bereits produktiv vorhandene Offline-Regel;
+  Rust- und Tauri-Integration bleiben durch die bestehenden Repository-/IPC-Tests beziehungsweise
+  eine separate Desktopabnahme gedeckt.
 - Exakte Namensnennungen sind bewusst konservativ und erkennen keine Pronomen, Aliasse oder
   semantischen Widersprüche.
 - KI-basierte Kontinuitätshinweise und deren persistente Laufprovenienz bleiben getrennte, noch
