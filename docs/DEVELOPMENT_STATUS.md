@@ -2,7 +2,7 @@
 
 Stand: 11. November 2026
 
-Code-Referenz: KQ-028 (PR #53)
+Code-Referenz: KQ-029 (PR #55)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -19,7 +19,7 @@ als vollständige Fachfunktion.
 | **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks sind in getrennten Chromium-Abläufen geprüft. Tauri- und Screenreader-Abnahme fehlen.                           |
 | **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, Medienbibliothek sowie visuelle Profile und Stilvorlagen sind im browserseitigen Kernablauf geprüft. Backup und Snapshot sind vorhanden; Textimport und schreibende Snapshot-Wiederherstellung fehlen.         |
 | **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Technischer 0.1-Umfang weitgehend umgesetzt:** Textprotokolle, browserseitig geprüfte Offline-Kontinuität und Prompt-Entwürfe sowie Bild-Capability- und Jobverträge vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise und Bildgenerierung fehlen.                            |
-| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                                                                                                                           |
+| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Teilweise begonnen:** Dokumentierter Debug-Build und echter Windows-Tauri-Smoke-Test für Start, Autosave, SQLite und Wiederöffnen sind vorhanden. Installer, Signierung, Screenreader- und vollständige 0.1-Abnahme fehlen.                                                           |
 | **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                                                  |
 
 Die funktionalen Anforderungen F01 bis F09 sind damit noch nicht abgenommen. Vorhandene Verträge und
@@ -38,6 +38,9 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   Export; die CI führt zehn fachlich getrennte Abläufe unter Windows und Linux aus.
 - Qualitätskette: Prettier, rustfmt, ESLint, Clippy mit `-D warnings`, TypeScript, Vitest,
   Rust-Tests sowie Frontend- und Workspace-Builds.
+- Separater Windows-Tauri-Smoke-Test mit realem WebView, versionierten IPC-Commands, Rust und
+  isolierter SQLite-Persistenz; er ist bewusst nicht Bestandteil der plattformübergreifenden
+  Browser-E2E.
 - GPL-3.0-or-later, Beitrags-, Verhaltens- und Sicherheitsdokumentation vorhanden.
 
 ### Domäne und IPC-Grenze (KQ-002)
@@ -108,6 +111,10 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - KQ-024 korrigiert zusätzlich die geladene Szenenrevision nach erfolgreichem Autosave. Ohne diese
   Synchronisation wurde der Editor nach einem Ansichtswechsel mit einer alten Revision neu montiert
   und der nächste Schreibversuch korrekt als Konflikt abgelehnt.
+- KQ-029 baut eine eigene Windows-Smoke-Konfiguration ohne Bundle, startet die echte Tauri-Anwendung
+  über `tauri-driver`, legt ein künstliches Projekt an und bestätigt den per Autosave gespeicherten
+  Szenentext nach einem vollständigen Neustart. Testdaten und WebView-Profile liegen ausschließlich
+  unter `$TEMP/kraqel-tauri-smoke` und werden nach dem Lauf entfernt.
 
 ### Story-Bibel (KQ-006)
 
@@ -370,10 +377,9 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 ### Unmittelbar: 0.1 stabilisieren
 
-1. **Gebündelte Tauri-Anwendung unter Windows separat abnehmen**
-   - reproduzierbaren lokalen Build und Start der echten Tauri-Anwendung nachweisen
-   - einen kleinen Offline-Kernablauf gegen Rust, SQLite und Dateisystem statt Browser-Adapter
-     prüfen
+1. **Windows-Installer und reproduzierbare Installation separat abnehmen**
+   - unsigniertes Testpaket mit klarer Nicht-Release-Kennzeichnung reproduzierbar erzeugen
+   - Installation, Start, Datenpfade und Deinstallation auf einem sauberen Windows-Ziel prüfen
 2. **Tastatur- und Screenreader-Abnahme mit dokumentierter Testmatrix durchführen**
 
 ### Danach gemäß Pflichtenheft
@@ -410,9 +416,10 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
   sind getestet; weitere Versionen benötigen jeweils eine neue unveränderliche Migration.
 - **Zeitwerte ohne Kalendersemantik:** Absolute Zeitwerte sind validierte Zeichenketten. Kalender,
   Zeitzonen und Arithmetik sind bewusst noch nicht implementiert.
-- **Browser-E2E ist keine Tauri-E2E-Abnahme:** Playwright prüft den M1-React-Ablauf gegen einen nur
-  im E2E-Devserver aktiven persistenten Command-Adapter. Rust, SQLite, WebView, native Dialoge und
-  Packaging bleiben durch andere Tests beziehungsweise manuelle Plattformabnahme abzudecken.
+- **Browser-E2E bleibt vom Tauri-Smoke-Test getrennt:** Playwright prüft breite React-Abläufe gegen
+  einen testexklusiven Command-Adapter. KQ-029 belegt nur einen kleinen echten Windows-Pfad durch
+  WebView, Tauri-IPC, Rust und SQLite. Native Dialoge, weitere Fachansichten, Packaging und
+  Screenreader bleiben separat abzunehmen.
 - **Prompt-Builder-Browser-E2E ist keine Dateisystemabnahme:** Der Chromium-Ablauf prüft
   Zusammensetzung, Bearbeitung, Persistenzvertrag und sichtbare Exportbestätigung gegen den
   testexklusiven Adapter. Die echte UTF-8/LF-Datei wird in Rust getestet; Tauri, WebView,
@@ -444,10 +451,11 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
   FTS-Migration nötig.
 - **Dependency Review eingeschränkt:** Der GitHub-Job wird bei privaten Repositories ohne GitHub
   Advanced Security bewusst übersprungen. Lockfiles und reguläre CI bleiben aktiv.
-- Die vollständige lokale KQ-028-Qualitätskette ist grün: 40 TypeScript-, 91 ausgeführte Rust- und
-  zehn Playwright-E2E-Tests, Formatierung, ESLint, Clippy und Typprüfung. Ein visueller
+- Die vollständige lokale KQ-029-Qualitätskette ist grün: 40 TypeScript-, 91 ausgeführte Rust- und
+  zehn Playwright-E2E-Tests, Formatierung, ESLint, Clippy und Typprüfung. Zusätzlich sind der
+  isolierte Tauri-Debug-Build und der echte Windows-Persistenz-Smoke-Test grün. Ein visueller
   Export-QA-Test bleibt planmäßig ignoriert. Die CI-Matrix unter Windows und Linux ist verbindliche
-  Merge-Voraussetzung.
+  Merge-Voraussetzung; der Windows-Tauri-Smoke-Test läuft derzeit bewusst lokal.
 
 ## Wichtige Architekturentscheidungen
 
@@ -521,7 +529,7 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 | Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                             | Freie eingebettete Schrift und Medienkonzept prüfen                   |
 | Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                   | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen              |
 | Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                    | Bei jeder Erweiterung Fixtures und Migration prüfen                   |
-| Desktoptests                 | Zehn getrennte M1-/M2-/M3-/M4-Browser-E2E sowie Unit-/IPC-Tests; keine Tauri-/Screenreader-Abnahme          | Gebündelte Tauri-Anwendung und Screenreader separat prüfen            |
+| Desktoptests                 | Zehn Browser-E2E plus echter Windows-Tauri-M1-Smoke; keine breite Tauri-/Screenreader-Abnahme               | Installer und Screenreader separat prüfen                             |
 | CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                               | Caching prüfen, ohne Reproduzierbarkeit zu schwächen                  |
 | Abhängigkeitssicherheit      | GitHub Dependency Review privat nicht verfügbar                                                             | Alternative Audits oder Advanced Security später bewerten             |
 | Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                    | Plattformmatrix je Release definieren                                 |
@@ -537,15 +545,14 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 
 ## Nächste geplante Entwicklungsstufe
 
-**0.1-Stabilisierung: Abnahme der gebündelten Tauri-Anwendung unter Windows vorbereiten.**
+**0.1-Stabilisierung: reproduzierbaren Windows-Installer und saubere Testinstallation vorbereiten.**
 
 Empfohlener, überprüfbarer Scope:
 
-1. Vorhandene Tauri-Buildkonfiguration und Windows-Voraussetzungen gegen das Pflichtenheft prüfen.
-2. Einen reproduzierbaren Debug-Build ohne Releasebehauptung erzeugen und den echten Anwendungsstart
-   dokumentieren.
-3. Einen kleinen lokalen Projekt-/Schreib-/Wiederöffnungsablauf gegen Rust und SQLite prüfen.
-4. Packaging, Signierung, Installer und Screenreader als getrennte Nachweise behandeln.
+1. NSIS- und MSI-Voraussetzungen sowie Zielsystemgrenzen dokumentieren.
+2. Ein unsigniertes, eindeutig als Testpaket markiertes Installationsartefakt reproduzierbar bauen.
+3. Installation, Start, App-Datenpfad und Deinstallation auf einem sauberen Windows-Ziel prüfen.
+4. Codesignierung, Updatepfad und Screenreader weiterhin als getrennte Nachweise behandeln.
 
 ## Einstieg für die nächste Codex-Session
 
@@ -554,10 +561,10 @@ cd D:\kraqel
 git status
 git branch --show-current
 git log -5 --oneline
-rg "Tauri|Windows|Release|Screenreader" docs ROADMAP.md apps/desktop/src-tauri
+rg "Installer|NSIS|MSI|Signierung|Screenreader" docs ROADMAP.md apps/desktop/src-tauri
 ```
 
-Danach lesen: `AGENTS.md`, dieses Dokument, die Tauri-Konfiguration und die Pflichtenheft-Abschnitte
-zu M5 und NFR01 bis NFR07. Vor Änderungen zuerst ein eigenes Issue mit kleinem, fachlich
-geschlossenem Windows-Desktopnachweis und klarer Abgrenzung zu Packaging, Signierung und
-Screenreader-Abnahme anlegen.
+Danach lesen: `AGENTS.md`, dieses Dokument, `docs/testing/windows-tauri-smoke.md`, die
+Tauri-Konfiguration sowie die Pflichtenheft-Abschnitte M5 und 10. Vor Änderungen zuerst ein eigenes
+Issue mit kleinem, fachlich geschlossenem Installer-Nachweis und klarer Abgrenzung zu Signierung,
+Updates und Screenreader-Abnahme anlegen.
