@@ -29,22 +29,33 @@ pnpm --filter @kraqel/desktop exec playwright test e2e/accessibility.spec.ts
 KQ-032 korrigierte dabei den unzureichenden Kontrast des Story-Bibel-Ergebniszählers und die nicht
 reaktiv aktualisierten `aria-pressed`-Zustände der Editorformatierung.
 
-## Manuell offen
+## Manuell verifiziert
 
-Auf dem Entwicklungsrechner ist die Windows-Sprachausgabe vorhanden; NVDA ist nicht installiert. Die
-bloße Existenz einer ausführbaren Datei ist keine Abnahme. Folgende Fälle benötigen eine hörende
-Testperson und die echte Tauri-WebView:
+Am 11. November 2026 wurde die isolierte Tauri-Anwendung auf dem Windows-Entwicklungsrechner mit der
+Windows-Sprachausgabe und einer hörenden Testperson geprüft. NVDA war nicht installiert.
 
-1. Überschriften, Landmarken, Dokumentbaum, Werkzeugleiste und Editorbezeichnung in sinnvoller
-   Reihenfolge vorlesen lassen.
-2. `Ungespeichert`, `Speichert …`, `Gespeichert` sowie einen simulierten Speicherfehler auf
-   verständliche und nicht störend doppelte Ansagen prüfen.
-3. Story-Bibel-Ergebnisanzahl, freie Eigenschaften, eingehende und ausgehende Beziehungen sowie
-   Szenen-Rückverweise anhören.
-4. Plotboard, Timelines, Versionen, Medien, visuelle Profile, Kontinuität, Bildprompts, Export und
-   KI-Entwürfe stichprobenartig mit Tastatur und Screenreader prüfen.
-5. Oberfläche bei 200 Prozent Zoom und schmalem Fenster sowie mit aktivierter Betriebssystemoption
-   „Bewegung reduzieren“ prüfen.
+| Bereich            | Manuelle Prüfung                                                                                                                    | Ergebnis  |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| Projektübersicht   | Projektname und Projektanlage per Tastatur; verständliche Namen und sichtbarer Fokus                                                | Bestanden |
+| Bereichsnavigation | Projektbereiche per Tastatur; verständliche Ansagen und sichtbarer Fokus                                                            | Bestanden |
+| Manuskript         | Dokumentbaum, Szenenaktionen, Werkzeugleiste und Editorbezeichnung                                                                  | Bestanden |
+| Formatierung       | Fett und Fokusmodus per Tastatur; gedrückte Zustände hörbar                                                                         | Bestanden |
+| Autosave           | `Ungespeichert`, `Speichert …` und `Gespeichert` ohne störende Doppelansage                                                         | Bestanden |
+| Story-Bibel        | Suche, Artfilter, Ergebnisanzahl, Formularfelder und Eintragsanlage                                                                 | Bestanden |
+| Beziehungen        | Ausgehende und eingehende Richtung sowie Szenen-Rückverweis textlich verständlich                                                   | Bestanden |
+| Werkzeugansichten  | Plotboard, Timelines, Versionen, Medien, visuelle Profile, Kontinuität, Bildprompts, Export und KI-Entwurf stichprobenartig geprüft | Bestanden |
+| Vergrößerung       | Kernansichten bei 200 Prozent Zoom und schmalem Tauri-Fenster per Tastatur erreichbar                                               | Bestanden |
 
-Erst nach diesem Protokoll darf die Screenreader-Abnahme als bestanden gelten. Die automatisierten
-Prüfungen ersetzen weder die Tauri-WebView noch reale Ansagen oder menschliches Verstehen.
+Die Testperson meldete für diesen Umfang keine fehlenden, doppelten oder unverständlichen Ansagen
+und keine Tastaturfalle. Die Prüfung verwendete ausschließlich künstliche Testdaten.
+
+## Verbleibende Restfälle
+
+Folgende Fälle wurden nicht ausgeführt und gelten ausdrücklich nicht als bestanden:
+
+1. Ein erzwungener Speicherfehler samt verständlicher Screenreader-Ansage.
+2. Die echte Tauri-WebView mit aktivierter Windows-Option „Bewegung reduzieren“.
+
+Die bestandene Kern-Hörprüfung ist damit belastbare 0.1-Evidenz, aber noch keine vollständige
+Accessibility- oder Releasezertifizierung. Insbesondere ersetzt sie keine Prüfung mit NVDA, weiteren
+Windows-Versionen oder mehreren Testpersonen.

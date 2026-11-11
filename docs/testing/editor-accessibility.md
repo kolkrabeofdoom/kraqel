@@ -1,9 +1,9 @@
 # Testplan: Editor und Tastaturbedienung
 
-Stand: 9. November 2026
+Stand: 11. November 2026
 
 Dieser Plan ergänzt die automatisierten Vertrags-, Repository-, Autosave- und Accessibility-Tests.
-Der automatisierte KQ-032-Stand und die verbleibende manuelle Hörprüfung stehen in
+Der automatisierte KQ-032-Stand und die manuelle KQ-033-Prüfmatrix stehen in
 [`accessibility-acceptance.md`](accessibility-acceptance.md).
 
 ## Tastatur
@@ -47,6 +47,7 @@ Der automatisierte KQ-032-Stand und die verbleibende manuelle Hörprüfung stehe
   Accessibility-Verstöße.
 - Der fachliche Story-Bibel-CRUD-, Relations- und Rückverweisablauf besitzt einen eigenen
   browsergestützten E2E-Test.
-- Eine echte Hörprüfung mit Windows-Sprachausgabe oder NVDA bleibt manuell offen.
+- Die KQ-033-Kernprüfung mit Windows-Sprachausgabe in der echten Tauri-WebView ist bestanden; ein
+  erzwungener Speicherfehler und „Bewegung reduzieren“ bleiben offen.
 - Szenenwechsel während eines laufenden Autosaves
 - Wiederherstellung eines gespeicherten Szenenstands bis in die sichtbare Oberfläche

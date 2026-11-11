@@ -42,7 +42,8 @@
    - [x] Echter Windows-Tauri-Debug-Smoke-Test für Start, Autosave, SQLite und Wiederöffnen
    - [x] Isolierter, unsignierter NSIS-Testinstaller mit lokalem Installationslebenszyklus
    - [x] Automatisierte Tastatur-, Fokus- und Accessibility-Prüfung der Kernansichten
-   - [ ] Manuelle Hörprüfung mit Windows-Sprachausgabe oder NVDA durchführen
+   - [x] Manuelle Kern-Hörprüfung mit Windows-Sprachausgabe in der Tauri-WebView
+   - [ ] Erzwungene Speicherfehleransage und „Bewegung reduzieren“ abnehmen
    - [ ] Installer später auf einem weiteren Windows-Rechner gegenprüfen
    - [ ] Signierung und Releasepaket abnehmen
 

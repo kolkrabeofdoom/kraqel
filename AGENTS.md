@@ -74,7 +74,9 @@ Aktuell im Repository und verifiziert:
   Warnungen als Fehler sowie getrennte Playwright-Browser-E2E für M1, Story-Bibel, Plotboard,
   Timelines, Medien, visuelle Profile, Kontinuität, Bildprompt-Builder, Versionen, Export und den
   automatisierbaren Accessibility-Kern; GitHub Actions unter Windows und Linux. Ein separater
-  Windows-Smoke-Test prüft den echten Debug-Build über WebView, Tauri-IPC, Rust und SQLite.
+  Windows-Smoke-Test prüft den echten Debug-Build über WebView, Tauri-IPC, Rust und SQLite. Eine
+  manuelle KQ-033-Kernprüfung mit Windows-Sprachausgabe ist dokumentiert; erzwungener Speicherfehler
+  und „Bewegung reduzieren“ bleiben offen.
 
 Im Pflichtenheft vorgesehen, aber noch **nicht implementiert oder installiert**: Tailwind, React
 Flow, dnd-kit, KI-basierte Kontinuitätshinweise und produktive Bildgenerierung. Ollama und
@@ -169,8 +171,8 @@ prüft React-Abläufe für Editor, Dokumentbaum, Story-Bibel, Plotboard, Timelin
 Medienimport, visuelle Profile, Kontinuität, Bildprompt-Builder, Versionen und Export, aber weder
 die gebündelte Tauri-Anwendung noch Rust, Git, echte Bild- oder Exportdateien, Dateisystem,
 Betriebssystemdialoge oder tatsächliche Screenreader-Ausgaben. KQ-032 prüft ergänzend zentrale
-Tastaturpfade, Fokuszustände und schwerwiegende Axe-Befunde; die manuelle Hörprüfung bleibt
-getrennt.
+Tastaturpfade, Fokuszustände und schwerwiegende Axe-Befunde; KQ-033 dokumentiert die bestandene
+manuelle Kern-Hörprüfung. Speicherfehleransage und „Bewegung reduzieren“ bleiben getrennt.
 
 Der getrennte Windows-Tauri-Smoke-Test unter `scripts/windows-tauri-smoke.mjs` verwendet die
 Testkonfiguration `tauri.smoke.conf.json`, `tauri-driver` und einen versionsgleichen Microsoft Edge
@@ -183,7 +185,7 @@ unsigniertes Debug-NSIS-Paket mit eigenem Produktnamen, eigener Bundle-ID und te
 Datenpfaden. `scripts/windows-installer-smoke.ps1` prüft Installation, HKCU-Registrierung, den
 echten Tauri-/SQLite-Persistenzlauf und Deinstallation. Voraussetzungen, sichere Zielpfade und
 Aussagegrenzen stehen in `docs/testing/windows-installer-smoke.md`; Clean-VM, MSI, Signierung,
-Updater und Screenreader bleiben getrennte Abnahmen.
+Updater und assistive Bedienung gehören nicht zur Aussage dieses Installer-Tests.
 
 Für kleine Änderungen zuerst gezielt prüfen, zum Beispiel:
 
