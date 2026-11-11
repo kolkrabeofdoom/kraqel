@@ -25,3 +25,6 @@ nicht reguläre Ziele sind unzulässig. Die IPC-Antwort enthält keinen absolute
 - Neue Editorfunktionen benötigen eine bewusste Erweiterung des Exportvertrags.
 - Medien, Links, Tabellen, Fußnoten, Import und DOCX-Roundtrip bleiben getrennte Aufgaben.
 - PDF benötigt vor breiter Unicode-Abnahme eine eingebettete freie Schrift.
+- Ein Browser-E2E prüft Formatwahl, Dateiname und Größenbestätigung gegen einen testexklusiven
+  Command-Adapter. Tatsächliche Dateien, Renderer, Tauri, Dateisystem und Screenreader werden damit
+  ausdrücklich nicht abgenommen.
