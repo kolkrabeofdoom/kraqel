@@ -1,8 +1,8 @@
 # Entwicklungsstatus
 
-Stand: 10. November 2026
+Stand: 11. November 2026
 
-Code-Referenz: KQ-022 (PR #41)
+Code-Referenz: KQ-023 (Issue #42)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -18,7 +18,7 @@ als vollständige Fachfunktion.
 | **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, Undo/Redo, Wortzählung, Fokusmodus, konfliktgeprüfter Autosave sowie sicheres Umbenennen, Umordnen, Löschen und SQLite-Backup vorhanden. Echte Tauri-/Screenreader-Abnahme fehlt. |
 | **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks sind in getrennten Chromium-Abläufen geprüft. Tauri- und Screenreader-Abnahme fehlen.                           |
 | **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, lokale Medienbibliothek sowie visuelle Profile und Stilvorlagen mit Backup und Snapshot vorhanden. Textimport und schreibende Snapshot-Wiederherstellung fehlen.                                               |
-| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Technischer 0.1-Umfang weitgehend umgesetzt:** Textprotokolle, Offline-Kontinuität, Prompt-Entwürfe sowie provider- und modellspezifische Bild-Capability- und Jobverträge vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise und Bildgenerierung fehlen.                      |
+| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Technischer 0.1-Umfang weitgehend umgesetzt:** Textprotokolle, Offline-Kontinuität und browserseitig geprüfte Prompt-Entwürfe sowie Bild-Capability- und Jobverträge vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise und Bildgenerierung fehlen.                            |
 | **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Nicht erreicht.** Debug-Build und CI funktionieren; kein Releasepaket und keine Abnahme der 0.1-Funktionen.                                                                                                                                                                           |
 | **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                                                  |
 
@@ -34,7 +34,8 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Minimale Tauri-Berechtigung `core:default`, definierte CSP und Windows-Fensterkonfiguration.
 - GitHub-Actions-CI unter `windows-latest` und `ubuntu-latest`.
 - Playwright mit Chromium und einem testexklusiven Browser-Command-Adapter für M1, Story-Bibel,
-  Plotboard und Timelines; die CI führt vier fachlich getrennte Abläufe unter Windows und Linux aus.
+  Plotboard, Timelines und Bildprompt-Builder; die CI führt fünf fachlich getrennte Abläufe unter
+  Windows und Linux aus.
 - Qualitätskette: Prettier, rustfmt, ESLint, Clippy mit `-D warnings`, TypeScript, Vitest,
   Rust-Tests sowie Frontend- und Workspace-Builds.
 - GPL-3.0-or-later, Beitrags-, Verhaltens- und Sicherheitsdokumentation vorhanden.
@@ -283,7 +284,10 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Backup/Recovery erhält Entwürfe. Snapshot v3 exportiert `prompt-drafts.json`, prüft Dokument-,
   Profil- und Stilreferenzen und liest weiterhin v1 und v2.
 - Repository-, Migration-, Backup-, Snapshot-, Export-, Rust-IPC- und TypeScript-Commandtests sind
-  grün. Browser- und Screenreader-Abnahme der neuen Ansicht bleibt manuell offen.
+  grün. Ein Playwright-Ablauf legt künstliche Story-Bibel-, Profil- und Stilquellen über die UI an
+  und prüft deterministische Zusammensetzung, vollständige Bearbeitung, lokale Speicherung,
+  Wiederladen sowie die sichtbare UTF-8/LF-Exportbestätigung. Tauri-, Dateisystem-, WebView- und
+  Screenreader-Abnahme bleiben separat offen.
 
 ### Begrenzte Hilfsfunktionen und Verträge
 
@@ -344,7 +348,7 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 1. **Tastatur- und Browserabnahme der verbleibenden M3- und M4-Ansichten fortsetzen**
    - kleine, fachlich getrennte Playwright-Abläufe statt eines allwissenden Riesentests ergänzen
-   - als Nächstes den lokalen Bildprompt-Builder samt Entwurfsspeicherung browserseitig prüfen
+   - als Nächstes Snapshotstatus, Diff und expliziten Commit in der Ansicht **Versionen** prüfen
 2. **Gebündelte Tauri-Anwendung und Screenreader separat abnehmen**
 
 ### Danach gemäß Pflichtenheft
@@ -384,9 +388,11 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
 - **Browser-E2E ist keine Tauri-E2E-Abnahme:** Playwright prüft den M1-React-Ablauf gegen einen nur
   im E2E-Devserver aktiven persistenten Command-Adapter. Rust, SQLite, WebView, native Dialoge und
   Packaging bleiben durch andere Tests beziehungsweise manuelle Plattformabnahme abzudecken.
-- **Prompt-Builder noch ohne Browserabnahme:** Datenfluss, IPC und UI-Verträge sind automatisiert
-  getestet; Tastatur-, Screenreader- und WebView-Verhalten der neuen Ansicht wurden noch nicht
-  manuell abgenommen. Entwürfe sind bewusst nicht automatisch mit Bildprovidern verbunden.
+- **Prompt-Builder-Browser-E2E ist keine Dateisystemabnahme:** Der Chromium-Ablauf prüft
+  Zusammensetzung, Bearbeitung, Persistenzvertrag und sichtbare Exportbestätigung gegen den
+  testexklusiven Adapter. Die echte UTF-8/LF-Datei wird in Rust getestet; Tauri, WebView,
+  Screenreader und Betriebssystemdateisystem bleiben separat abzunehmen. Entwürfe sind bewusst nicht
+  automatisch mit Bildprovidern verbunden.
 - **Bildverträge ohne Laufzeitfunktion:** Registry, Jobzustände, Freigabe und Fehler sind getestet,
   aber es gibt weder produktive Provider noch UI, Persistenz, Abbruch, Bildausgabe oder
   Assetübernahme. Das ist der beabsichtigte 0.1-Umfang, keine bereits fertige Bildgenerierung.
@@ -405,10 +411,10 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
   FTS-Migration nötig.
 - **Dependency Review eingeschränkt:** Der GitHub-Job wird bei privaten Repositories ohne GitHub
   Advanced Security bewusst übersprungen. Lockfiles und reguläre CI bleiben aktiv.
-- Die vollständige lokale KQ-022-Qualitätskette ist grün: 37 TypeScript-, 91 ausgeführte Rust- und
-  vier Playwright-E2E-Tests, Formatierung, ESLint, Clippy, Typprüfung sowie Desktop-Build. Ein
-  visueller Export-QA-Test bleibt planmäßig ignoriert. PR #41 bestätigt dieselbe Matrix unter
-  Windows und Linux einschließlich aller vier Chromium-Abläufe.
+- Die vollständige lokale KQ-023-Qualitätskette ist grün: 40 TypeScript-, 91 ausgeführte Rust- und
+  fünf Playwright-E2E-Tests, Formatierung, ESLint, Clippy, Typprüfung sowie Desktop-Build. Ein
+  visueller Export-QA-Test bleibt planmäßig ignoriert. Die CI-Matrix unter Windows und Linux ist
+  verbindliche Merge-Voraussetzung.
 
 ## Wichtige Architekturentscheidungen
 
@@ -482,7 +488,7 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 | Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                             | Freie eingebettete Schrift und Medienkonzept prüfen                   |
 | Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                   | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen              |
 | Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                    | Bei jeder Erweiterung Fixtures und Migration prüfen                   |
-| Desktoptests                 | Vier getrennte M1-/M2-Browser-E2E sowie Unit-/IPC-Tests; keine gebündelte Tauri-/Screenreader-Abnahme       | Prompt-Builder browserseitig, Tauri und Screenreader separat prüfen   |
+| Desktoptests                 | Fünf getrennte M1-/M2-/M4-Browser-E2E sowie Unit-/IPC-Tests; keine Tauri-/Screenreader-Abnahme              | Ansicht **Versionen** browserseitig, Tauri separat prüfen             |
 | CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                               | Caching prüfen, ohne Reproduzierbarkeit zu schwächen                  |
 | Abhängigkeitssicherheit      | GitHub Dependency Review privat nicht verfügbar                                                             | Alternative Audits oder Advanced Security später bewerten             |
 | Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                    | Plattformmatrix je Release definieren                                 |
@@ -493,20 +499,19 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 | Medienimport                 | Drei Rasterformate und harte Limits getestet; Bytearray-IPC skaliert nicht für Massenuploads                | Nativen Streamingimport erst nach Messung großer Sammlungen bewerten  |
 | Assetbackup                  | Hash-verifizierte Begleitverzeichnisse getestet; noch kein einzelnes portables Paket                        | Paketformat und atomare Mehrdatei-Verteilung vor externem Austausch   |
 | Visuelle Profile             | Struktur und Referenzen getestet; Stilnamen-Eindeutigkeit nutzt SQLite-NOCASE mit ASCII-Grenze              | Unicode-Kollation bei internationalisierten Vorlagennamen bewerten    |
-| Bildprompt-Entwürfe          | Lokal und referenziell geprüft; UI ohne E2E, kein Providerpfad und keine automatische Rekombination         | Browserabnahme; Freigabegrenze bei KQ-016 getrennt halten             |
+| Bildprompt-Entwürfe          | Lokal, referenziell und browserseitig geprüft; kein Providerpfad und keine automatische Rekombination       | Tauri-/Screenreader-Abnahme; KQ-016-Grenze getrennt halten            |
 | Bild-Capability-Verträge     | Rust/TypeScript v1 und lokaler Mock getestet; keine produktive Ausführung oder Persistenz                   | Vor KQ-017 Freigabebeleg, Ergebnisprüfung, Kosten und Lizenzen klären |
 
 ## Nächste geplante Entwicklungsstufe
 
-**0.1-Stabilisierung: Browserabnahme des lokalen Bildprompt-Builders.**
+**0.1-Stabilisierung: Browserabnahme der lokalen Versionierungsansicht.**
 
 Empfohlener, überprüfbarer Scope:
 
-1. Profil- und Stilquellen mit künstlichen Daten auswählen und die deterministische Vorschau prüfen.
-2. Bearbeiteten Entwurf speichern, erneut laden und als UTF-8-Text ausgeben.
-3. Tastaturbedienung und Fokusführung gezielt prüfen, ohne Tauri- oder Screenreader-Abnahme zu
-   behaupten.
-4. KQ-017 und echte Bildprovider bis Version 0.2 ausdrücklich außerhalb des Scopes halten.
+1. Portablen Snapshot über die vorhandene Ansicht erzeugen und lesend validieren.
+2. Status und Unified Diff nach einer künstlichen Manuskriptänderung prüfen.
+3. Expliziten lokalen Commit samt anschließend sauberem Status browserseitig abnehmen.
+4. Dateisystem-, Tauri- und Screenreader-Abnahme weiterhin ausdrücklich getrennt halten.
 
 ## Einstieg für die nächste Codex-Session
 
@@ -515,10 +520,10 @@ cd D:\kraqel
 git status
 git branch --show-current
 git log -5 --oneline
-rg "Bildprompt|Prompt-Entwurf|E2E|Playwright" docs ROADMAP.md
+rg "Versionen|Snapshot|Git|E2E|Playwright" docs ROADMAP.md
 ```
 
-Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0014, `ImagePromptBuilder.tsx` und die
-Pflichtenheft-Abschnitte zu F05, M4 und M5. Vor Änderungen zuerst ein eigenes Issue mit kleinem,
-fachlich geschlossenem Browserablauf und klarer Abgrenzung zu produktiver Bildgenerierung und
+Danach lesen: `AGENTS.md`, dieses Dokument, ADR 0007, `VersionControl.tsx` und die
+Pflichtenheft-Abschnitte zu F07, M3 und M5. Vor Änderungen zuerst ein eigenes Issue mit kleinem,
+fachlich geschlossenem Browserablauf und klarer Abgrenzung zu Tauri-, Dateisystem- und
 Screenreader-Abnahme anlegen.
