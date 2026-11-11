@@ -147,6 +147,8 @@ pnpm lint                       # ESLint und Clippy
 pnpm typecheck                  # TypeScript ohne Ausgabe prüfen
 pnpm test                       # TypeScript-/Vitest-Tests
 pnpm test:e2e                   # Playwright-Kernabläufe im Chromium-Browser
+pnpm build:installer:test:windows # unsignierten, isolierten Windows-NSIS-Testinstaller bauen
+pnpm test:installer:windows     # Installation, Persistenz und Deinstallation des Testpakets prüfen
 pnpm build:tauri:smoke:windows  # isolierten Windows-Debug-Build für den Desktop-Smoke-Test bauen
 pnpm test:tauri:windows         # echten Tauri-/SQLite-Smoke-Test mit lokalen Treibern ausführen
 pnpm check                      # verbindliche Gesamtprüfung inkl. Rust-Tests
@@ -172,6 +174,13 @@ Testkonfiguration `tauri.smoke.conf.json`, `tauri-driver` und einen versionsglei
 Driver. Er prüft Start, Projektanlage, Autosave, SQLite und Wiederöffnen in einem dedizierten
 temporären App-Datenverzeichnis. Voraussetzungen und Aussagegrenzen stehen in
 `docs/testing/windows-tauri-smoke.md`.
+
+Der Windows-Installer-Test verwendet `tauri.installer-test.conf.json` und erzeugt ein bewusst
+unsigniertes Debug-NSIS-Paket mit eigenem Produktnamen, eigener Bundle-ID und temporären
+Datenpfaden. `scripts/windows-installer-smoke.ps1` prüft Installation, HKCU-Registrierung, den
+echten Tauri-/SQLite-Persistenzlauf und Deinstallation. Voraussetzungen, sichere Zielpfade und
+Aussagegrenzen stehen in `docs/testing/windows-installer-smoke.md`; Clean-VM, MSI, Signierung,
+Updater und Screenreader bleiben getrennte Abnahmen.
 
 Für kleine Änderungen zuerst gezielt prüfen, zum Beispiel:
 

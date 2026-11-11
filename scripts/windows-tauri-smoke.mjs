@@ -1,8 +1,8 @@
 import { spawn } from "node:child_process";
-import { access, readdir, rm } from "node:fs/promises";
+import { access, readdir, realpath, rm } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
-import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import process from "node:process";
 
 const ELEMENT_KEY = "element-6066-11e4-a52e-4f735466cecf";
@@ -258,9 +258,10 @@ async function findFiles(root, fileName) {
 }
 
 async function removeIsolatedDirectory(directory) {
-  const systemTemp = resolve(tmpdir());
   const target = resolve(directory);
-  const relation = relative(systemTemp, target);
+  const systemTemp = await realpath(resolve(tmpdir()));
+  const canonicalTarget = join(await realpath(dirname(target)), basename(target));
+  const relation = relative(systemTemp, canonicalTarget);
   if (
     !basename(target).startsWith(TEMP_PREFIX) ||
     relation === "" ||

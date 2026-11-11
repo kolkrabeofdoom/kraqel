@@ -2,7 +2,7 @@
 
 Stand: 11. November 2026
 
-Code-Referenz: KQ-029 (PR #55)
+Code-Referenz: KQ-030 (PR #57)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -19,7 +19,7 @@ als vollständige Fachfunktion.
 | **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks sind in getrennten Chromium-Abläufen geprüft. Tauri- und Screenreader-Abnahme fehlen.                           |
 | **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, Medienbibliothek sowie visuelle Profile und Stilvorlagen sind im browserseitigen Kernablauf geprüft. Backup und Snapshot sind vorhanden; Textimport und schreibende Snapshot-Wiederherstellung fehlen.         |
 | **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Technischer 0.1-Umfang weitgehend umgesetzt:** Textprotokolle, browserseitig geprüfte Offline-Kontinuität und Prompt-Entwürfe sowie Bild-Capability- und Jobverträge vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise und Bildgenerierung fehlen.                            |
-| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Teilweise begonnen:** Dokumentierter Debug-Build und echter Windows-Tauri-Smoke-Test für Start, Autosave, SQLite und Wiederöffnen sind vorhanden. Installer, Signierung, Screenreader- und vollständige 0.1-Abnahme fehlen.                                                           |
+| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Teilweise begonnen:** Debug-Build, echter Windows-Tauri-Smoke-Test und ein isolierter unsignierter NSIS-Testinstaller mit geprüftem lokalen Lebenszyklus sind vorhanden. Clean-VM, MSI, Signierung, Screenreader- und vollständige 0.1-Abnahme fehlen.                                |
 | **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                                                  |
 
 Die funktionalen Anforderungen F01 bis F09 sind damit noch nicht abgenommen. Vorhandene Verträge und
@@ -41,6 +41,9 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Separater Windows-Tauri-Smoke-Test mit realem WebView, versionierten IPC-Commands, Rust und
   isolierter SQLite-Persistenz; er ist bewusst nicht Bestandteil der plattformübergreifenden
   Browser-E2E.
+- Isolierter Windows-NSIS-Testinstaller mit eigenem Produktnamen, eigener Bundle-ID und temporären
+  Programm-/App-Datenpfaden; lokale Installation, HKCU-Registrierung, echter Persistenzlauf und
+  stille Deinstallation sind automatisiert geprüft.
 - GPL-3.0-or-later, Beitrags-, Verhaltens- und Sicherheitsdokumentation vorhanden.
 
 ### Domäne und IPC-Grenze (KQ-002)
@@ -377,9 +380,11 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 ### Unmittelbar: 0.1 stabilisieren
 
-1. **Windows-Installer und reproduzierbare Installation separat abnehmen**
-   - unsigniertes Testpaket mit klarer Nicht-Release-Kennzeichnung reproduzierbar erzeugen
-   - Installation, Start, Datenpfade und Deinstallation auf einem sauberen Windows-Ziel prüfen
+1. **Windows-Installer auf einem frischen Zielsystem ergänzend abnehmen**
+   - der isolierte lokale NSIS-Lebenszyklus ist durch KQ-030 belegt
+   - Installation, Start, Datenpfade und Deinstallation zusätzlich auf einer frisch provisionierten
+     Windows-VM oder einem getrennten Testrechner prüfen
+   - Codesignierung, SmartScreen, WebView2-Verteilung und späteren Updatepfad separat entscheiden
 2. **Tastatur- und Screenreader-Abnahme mit dokumentierter Testmatrix durchführen**
 
 ### Danach gemäß Pflichtenheft
@@ -418,8 +423,9 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
   Zeitzonen und Arithmetik sind bewusst noch nicht implementiert.
 - **Browser-E2E bleibt vom Tauri-Smoke-Test getrennt:** Playwright prüft breite React-Abläufe gegen
   einen testexklusiven Command-Adapter. KQ-029 belegt nur einen kleinen echten Windows-Pfad durch
-  WebView, Tauri-IPC, Rust und SQLite. Native Dialoge, weitere Fachansichten, Packaging und
-  Screenreader bleiben separat abzunehmen.
+  WebView, Tauri-IPC, Rust und SQLite. KQ-030 ergänzt dafür den isolierten lokalen
+  NSIS-Installationslebenszyklus. Native Dialoge, weitere Fachansichten, Clean-VM, Release-Packaging
+  und Screenreader bleiben separat abzunehmen.
 - **Prompt-Builder-Browser-E2E ist keine Dateisystemabnahme:** Der Chromium-Ablauf prüft
   Zusammensetzung, Bearbeitung, Persistenzvertrag und sichtbare Exportbestätigung gegen den
   testexklusiven Adapter. Die echte UTF-8/LF-Datei wird in Rust getestet; Tauri, WebView,
@@ -451,11 +457,12 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
   FTS-Migration nötig.
 - **Dependency Review eingeschränkt:** Der GitHub-Job wird bei privaten Repositories ohne GitHub
   Advanced Security bewusst übersprungen. Lockfiles und reguläre CI bleiben aktiv.
-- Die vollständige lokale KQ-029-Qualitätskette ist grün: 40 TypeScript-, 91 ausgeführte Rust- und
+- Die vollständige lokale KQ-030-Qualitätskette ist grün: 40 TypeScript-, 91 ausgeführte Rust- und
   zehn Playwright-E2E-Tests, Formatierung, ESLint, Clippy und Typprüfung. Zusätzlich sind der
-  isolierte Tauri-Debug-Build und der echte Windows-Persistenz-Smoke-Test grün. Ein visueller
-  Export-QA-Test bleibt planmäßig ignoriert. Die CI-Matrix unter Windows und Linux ist verbindliche
-  Merge-Voraussetzung; der Windows-Tauri-Smoke-Test läuft derzeit bewusst lokal.
+  isolierte Tauri-Debug-Build, der echte Windows-Persistenz-Smoke-Test sowie Build, Installation und
+  Deinstallation des unsignierten NSIS-Testartefakts grün. Ein visueller Export-QA-Test bleibt
+  planmäßig ignoriert. Die CI-Matrix unter Windows und Linux ist verbindliche Merge-Voraussetzung;
+  die nativen Windows-Smoke-Tests laufen derzeit bewusst lokal.
 
 ## Wichtige Architekturentscheidungen
 
@@ -504,6 +511,9 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
 - **Modellspezifische Bildfähigkeiten:** Eine offline validierte Registry und ein geschlossener
   Jobvertrag trennen Modellfähigkeiten, Freigabe, Herkunft und bereinigte Fehler von jeder späteren
   Ausführung. KQ-016 enthält nur einen Test-Mock (ADR 0015).
+- **Isolierte NSIS-Testvariante:** Produktname, Bundle-ID, App-Daten und Installationsziel sind vom
+  regulären Produkt getrennt; nur der unsignierte Current-User-Debug-Installer wird lokal geprüft.
+  Clean-VM, MSI und Release-Signierung bleiben eigene Nachweise (ADR 0016).
 - **Privilegierte Operationen in Rust:** React kommuniziert ausschließlich über versionierte,
   typisierte Tauri-Commands mit Dateisystem, Storage, Git und späteren Providern.
 - **Verträge sind explizit versioniert:** Inkompatible Änderungen erfordern eine neue
@@ -521,38 +531,40 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 
 ## Abhängigkeiten und technische Risiken
 
-| Thema                        | Zustand / Risiko                                                                                            | Nächste Kontrolle                                                     |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert | Vor großen Projekten messen; Migration nur mit Evidenz                |
-| Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                       | Gemeinsame Fixtures oder spätere Codegenerierung bewerten             |
-| Datenformat                  | Snapshot v3 mit Prompt-Entwürfen, Profilen und Hash-Assets; Import und Roundtrip fehlen                     | Import/Roundtrip vor vollständiger F07/F08-Abnahme testen             |
-| Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                             | Freie eingebettete Schrift und Medienkonzept prüfen                   |
-| Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                   | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen              |
-| Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                    | Bei jeder Erweiterung Fixtures und Migration prüfen                   |
-| Desktoptests                 | Zehn Browser-E2E plus echter Windows-Tauri-M1-Smoke; keine breite Tauri-/Screenreader-Abnahme               | Installer und Screenreader separat prüfen                             |
-| CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                               | Caching prüfen, ohne Reproduzierbarkeit zu schwächen                  |
-| Abhängigkeitssicherheit      | GitHub Dependency Review privat nicht verfügbar                                                             | Alternative Audits oder Advanced Security später bewerten             |
-| Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                    | Plattformmatrix je Release definieren                                 |
-| Lokale Text-KI               | Protokoll gegen kontrollierten Loopback-Testserver geprüft; echter Ollama-/Modelllauf fehlt                 | Mit freiem Testmodell manuell prüfen und Abbruch entwerfen            |
-| Cloudprovider                | Vier Protokolle lokal getestet; echte API-, Kosten-, Aufbewahrungs- und Kontodialog-Abnahme fehlt           | Mit separaten Testkonten und Minimalbudget manuell prüfen             |
-| Schlüsselspeicher            | Native Backends eingebunden; reale Windows-/Linux-Dialoge nicht automatisiert getestet                      | Manuelle Plattformabnahme ohne produktive Schlüssel                   |
-| Kontinuitätsprüfung          | Vier Offline-Regeln getestet; exakte Nennungen und grober Zeilendiff begrenzen die Abdeckung                | Mit größeren künstlichen Projekten messen; KI-Kanal separat entwerfen |
-| Medienimport                 | Drei Rasterformate und harte Limits getestet; Bytearray-IPC skaliert nicht für Massenuploads                | Nativen Streamingimport erst nach Messung großer Sammlungen bewerten  |
-| Assetbackup                  | Hash-verifizierte Begleitverzeichnisse getestet; noch kein einzelnes portables Paket                        | Paketformat und atomare Mehrdatei-Verteilung vor externem Austausch   |
-| Visuelle Profile             | Struktur und Referenzen getestet; Stilnamen-Eindeutigkeit nutzt SQLite-NOCASE mit ASCII-Grenze              | Unicode-Kollation bei internationalisierten Vorlagennamen bewerten    |
-| Bildprompt-Entwürfe          | Lokal, referenziell und browserseitig geprüft; kein Providerpfad und keine automatische Rekombination       | Tauri-/Screenreader-Abnahme; KQ-016-Grenze getrennt halten            |
-| Bild-Capability-Verträge     | Rust/TypeScript v1 und lokaler Mock getestet; keine produktive Ausführung oder Persistenz                   | Vor KQ-017 Freigabebeleg, Ergebnisprüfung, Kosten und Lizenzen klären |
+| Thema                        | Zustand / Risiko                                                                                                        | Nächste Kontrolle                                                     |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert             | Vor großen Projekten messen; Migration nur mit Evidenz                |
+| Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                                   | Gemeinsame Fixtures oder spätere Codegenerierung bewerten             |
+| Datenformat                  | Snapshot v3 mit Prompt-Entwürfen, Profilen und Hash-Assets; Import und Roundtrip fehlen                                 | Import/Roundtrip vor vollständiger F07/F08-Abnahme testen             |
+| Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                                         | Freie eingebettete Schrift und Medienkonzept prüfen                   |
+| Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                               | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen              |
+| Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                                | Bei jeder Erweiterung Fixtures und Migration prüfen                   |
+| Desktoptests                 | Zehn Browser-E2E, echter Windows-Tauri-M1-Smoke und lokaler NSIS-Lebenszyklus; keine breite Tauri-/Screenreader-Abnahme | Clean-VM und Screenreader separat prüfen                              |
+| Windows-Installer            | Unsignierter NSIS-Debug-Test lokal grün; MSI, Signierung, SmartScreen und Updatepfad nicht abgenommen                   | Auf frischer VM prüfen und Releaseverteilung separat entscheiden      |
+| CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                                           | Caching prüfen, ohne Reproduzierbarkeit zu schwächen                  |
+| Abhängigkeitssicherheit      | GitHub Dependency Review privat nicht verfügbar                                                                         | Alternative Audits oder Advanced Security später bewerten             |
+| Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                                | Plattformmatrix je Release definieren                                 |
+| Lokale Text-KI               | Protokoll gegen kontrollierten Loopback-Testserver geprüft; echter Ollama-/Modelllauf fehlt                             | Mit freiem Testmodell manuell prüfen und Abbruch entwerfen            |
+| Cloudprovider                | Vier Protokolle lokal getestet; echte API-, Kosten-, Aufbewahrungs- und Kontodialog-Abnahme fehlt                       | Mit separaten Testkonten und Minimalbudget manuell prüfen             |
+| Schlüsselspeicher            | Native Backends eingebunden; reale Windows-/Linux-Dialoge nicht automatisiert getestet                                  | Manuelle Plattformabnahme ohne produktive Schlüssel                   |
+| Kontinuitätsprüfung          | Vier Offline-Regeln getestet; exakte Nennungen und grober Zeilendiff begrenzen die Abdeckung                            | Mit größeren künstlichen Projekten messen; KI-Kanal separat entwerfen |
+| Medienimport                 | Drei Rasterformate und harte Limits getestet; Bytearray-IPC skaliert nicht für Massenuploads                            | Nativen Streamingimport erst nach Messung großer Sammlungen bewerten  |
+| Assetbackup                  | Hash-verifizierte Begleitverzeichnisse getestet; noch kein einzelnes portables Paket                                    | Paketformat und atomare Mehrdatei-Verteilung vor externem Austausch   |
+| Visuelle Profile             | Struktur und Referenzen getestet; Stilnamen-Eindeutigkeit nutzt SQLite-NOCASE mit ASCII-Grenze                          | Unicode-Kollation bei internationalisierten Vorlagennamen bewerten    |
+| Bildprompt-Entwürfe          | Lokal, referenziell und browserseitig geprüft; kein Providerpfad und keine automatische Rekombination                   | Tauri-/Screenreader-Abnahme; KQ-016-Grenze getrennt halten            |
+| Bild-Capability-Verträge     | Rust/TypeScript v1 und lokaler Mock getestet; keine produktive Ausführung oder Persistenz                               | Vor KQ-017 Freigabebeleg, Ergebnisprüfung, Kosten und Lizenzen klären |
 
 ## Nächste geplante Entwicklungsstufe
 
-**0.1-Stabilisierung: reproduzierbaren Windows-Installer und saubere Testinstallation vorbereiten.**
+**0.1-Stabilisierung: Windows-Zielsystem- und Barrierefreiheitsabnahme vorbereiten.**
 
 Empfohlener, überprüfbarer Scope:
 
-1. NSIS- und MSI-Voraussetzungen sowie Zielsystemgrenzen dokumentieren.
-2. Ein unsigniertes, eindeutig als Testpaket markiertes Installationsartefakt reproduzierbar bauen.
-3. Installation, Start, App-Datenpfad und Deinstallation auf einem sauberen Windows-Ziel prüfen.
-4. Codesignierung, Updatepfad und Screenreader weiterhin als getrennte Nachweise behandeln.
+1. Den KQ-030-NSIS-Test auf einer frisch provisionierten Windows-VM oder einem getrennten
+   Testrechner wiederholen und Betriebssystem-/WebView2-Version protokollieren.
+2. Tastatur- und Screenreader-Matrix mit Windows-Sprachausgabe oder NVDA durchführen.
+3. Codesignierung, SmartScreen, MSI-Bedarf, WebView2-Strategie und Updatepfad vor einem
+   veröffentlichbaren Releasepaket entscheiden.
 
 ## Einstieg für die nächste Codex-Session
 
@@ -564,7 +576,7 @@ git log -5 --oneline
 rg "Installer|NSIS|MSI|Signierung|Screenreader" docs ROADMAP.md apps/desktop/src-tauri
 ```
 
-Danach lesen: `AGENTS.md`, dieses Dokument, `docs/testing/windows-tauri-smoke.md`, die
-Tauri-Konfiguration sowie die Pflichtenheft-Abschnitte M5 und 10. Vor Änderungen zuerst ein eigenes
-Issue mit kleinem, fachlich geschlossenem Installer-Nachweis und klarer Abgrenzung zu Signierung,
-Updates und Screenreader-Abnahme anlegen.
+Danach lesen: `AGENTS.md`, dieses Dokument, `docs/testing/windows-installer-smoke.md`, ADR 0016 und
+die Pflichtenheft-Abschnitte M5 und 10. KQ-030 belegt nur den lokalen isolierten NSIS-Lebenszyklus;
+für Clean-VM, Barrierefreiheit oder Release-Signierung jeweils ein eigenes, fachlich geschlossenes
+Issue anlegen.
