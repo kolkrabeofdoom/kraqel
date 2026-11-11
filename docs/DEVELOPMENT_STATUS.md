@@ -2,7 +2,7 @@
 
 Stand: 11. November 2026
 
-Code-Referenz: KQ-030
+Code-Referenz: KQ-030 (PR #57)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
