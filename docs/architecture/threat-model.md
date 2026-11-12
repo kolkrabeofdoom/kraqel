@@ -15,6 +15,7 @@
 - bösartige oder übergroße Importdateien
 - Schlüssel oder private Daten in Logs, Snapshots und Fehlerberichten
 - manipulierte Projekte, Migrationen oder Abhängigkeiten
+- manipulierte oder verwechselte Installations- und Releaseartefakte
 
 ## Grundkontrollen
 
@@ -57,6 +58,9 @@
 - deterministische Snapshots, Prüfsummen und getestete Wiederherstellung
 - deny-by-default Git-Pfadfreigabe; keine globale Git-Konfiguration, Hooks oder interaktiven Prompts
 - Abhängigkeitsprüfung und reproduzierbare CI
+- der Windows-Releasebau akzeptiert standardmäßig nur einen sauberen Git-Stand, genau ein erwartetes
+  unsigniertes NSIS-Artefakt und schreibt Commit, Werkzeugversionen, Dateigröße sowie SHA-256 in ein
+  Buildmanifest
 
 Dieses Dokument wird mit jeder neuen Vertrauensgrenze aktualisiert.
 
@@ -96,6 +100,15 @@ muss regelmäßig aktualisiert werden. Der aktuelle WebView-Import überträgt a
 als Bytearray; die 25-MiB-Grenze gilt in Oberfläche und Rust, verhindert aber nicht jede kurzzeitige
 Mehrfachbelegung beim Deserialisieren. Ein nativer Streamingimport ist vor wesentlich größeren
 Einzeldateien oder Massenuploads neu zu bewerten.
+
+Der Windows-0.1-Releasepfad ist bewusst unsigniert. SHA-256 erkennt Änderungen nur gegenüber einem
+vertrauenswürdig bezogenen Sollwert und stellt keine Herausgeber*innenidentität her. Werden Setup,
+Manifest und Prüfsumme über denselben kompromittierten Kanal ersetzt, bleibt die Manipulation damit
+unentdeckt. Release Candidates dürfen deshalb nur aus einem dokumentierten sauberen Commit gebaut,
+gemeinsam über das private Repository verteilt und vor Veröffentlichung erneut heruntergeladen und
+geprüft werden. SmartScreen-Warnungen sind erwartbar; testende Personen dürfen sie nur nach Quellen-
+und Hashprüfung bewusst übergehen. Eine spätere breitere Verteilung erfordert eine erneute Bewertung
+von Signierung und unabhängiger Prüfsummenveröffentlichung.
 
 Verbleibendes Risiko: Die kanonische Vorabprüfung ist nicht vollständig gegen ein gleichzeitiges
 böswilliges Austauschen bereits geprüfter Verzeichnisse abgesichert. Vor der Unterstützung
