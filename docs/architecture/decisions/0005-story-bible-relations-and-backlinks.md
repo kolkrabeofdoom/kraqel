@@ -36,10 +36,10 @@ Relations-, Ereignis-, POV- und Medienreferenzen wechseln vor dem Löschen der Q
 Direkte Quelle-Ziel-Relationen entfallen, weil daraus unzulässige Selbstrelationen würden.
 
 Ein ausschließlich an der Quelle vorhandenes visuelles Profil wird samt Promptreferenzen zum Ziel
-verschoben. Besitzen beide Einträge ein Profil, bricht die gesamte Transaktion als Konflikt ab. Eine
-implizite inhaltliche Vereinigung zweier Profile wäre nicht nachvollziehbar und könnte kanonische
-Bildmerkmale vernichten. Der Vertrag benötigt keine neue Migration und ändert das Snapshotformat
-nicht.
+verschoben. KQ-044 erweitert den Vertrag nach manueller Abnahme: Besitzen beide Einträge ein Profil,
+bleiben Zielmerkmale und das kanonische Zielbild bei Konflikten maßgeblich; fehlende Quellmerkmale
+und deduplizierte Ausschlüsse werden ergänzt. Promptreferenzen werden ohne Dubletten umgebogen. Der
+Vertrag benötigt keine neue Migration und ändert das Snapshotformat nicht.
 
 ## Folgen
 
@@ -55,6 +55,7 @@ nicht.
   Command-Adapter bildet dafür nur die benötigte Story-Bibel-Semantik ab.
 - Der Browserlauf ergänzt Repository-, IPC- und Vertragstests, ersetzt aber weder Rust/SQLite noch
   eine Tauri-WebDriver- oder Screenreader-Abnahme.
-- KQ-043 prüft Referenzmigration, Zielvorrang bei Eigenschaftskonflikten, Profilverschiebung und
-  vollständigen Rollback bei zwei Profilen in Rust. Ein zusätzlicher Browserablauf belegt Auswahl,
-  Konfliktvorschau, Bestätigung und sichtbares Ergebnis.
+- KQ-043 prüft Referenzmigration, Zielvorrang bei Eigenschaftskonflikten und Profilverschiebung.
+  KQ-044 ergänzt die Vereinigung zweier Profile einschließlich Zielvorrang,
+  Ausschluss-Deduplizierung und eindeutiger Promptreferenzen. Ein zusätzlicher Browserablauf belegt
+  Auswahl, Konfliktvorschau, Bestätigung und sichtbares Ergebnis.

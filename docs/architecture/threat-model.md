@@ -145,6 +145,6 @@ unvertrauenswürdiger Projektwurzeln sind handle-relative Betriebssystemzugriffe
 Die KQ-043-Dubletten-Zusammenführung ist eine destruktive Fachoperation und deshalb ausschließlich
 nach expliziter Quell-/Zielauswahl, sichtbarer Eigenschaftskonfliktvorschau und Bestätigung
 erreichbar. Rust prüft Projekt, Art und verschiedene UUIDs erneut und migriert Referenzen sowie
-Quelllöschung in genau einer SQLite-Transaktion. Zwei visuelle Profile oder ungültige kombinierte
-Eigenschaften führen zum vollständigen Rollback; eine automatische Ähnlichkeitserkennung löst den
-Merge niemals selbst aus.
+Quelllöschung in genau einer SQLite-Transaktion. KQ-044 vereinigt auch zwei visuelle Profile mit
+Zielvorrang und deduplizierten Ausschlüssen; ungültige kombinierte Eigenschaften führen zum
+vollständigen Rollback. Eine automatische Ähnlichkeitserkennung löst den Merge niemals selbst aus.

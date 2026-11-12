@@ -373,9 +373,7 @@ function EntityEditor({
       await onChanged(details.entity.id);
     } catch {
       setMergeStatus(null);
-      onError(
-        "Die Einträge konnten nicht zusammengeführt werden. Prüfe, ob beide ein eigenes visuelles Profil besitzen.",
-      );
+      onError("Die Einträge konnten nicht zusammengeführt werden. Es wurden keine Daten geändert.");
     }
   };
 
@@ -489,7 +487,8 @@ function EntityEditor({
         <p className="muted">
           Der geöffnete Eintrag „{details.entity.name}“ bleibt erhalten. Fehlende Eigenschaften und
           alle Referenzen des gewählten Dubletts werden übernommen; bei unterschiedlichen Werten
-          gewinnt der geöffnete Eintrag. Ungespeicherte Änderungen bitte vorher speichern.
+          gewinnt der geöffnete Eintrag. Das gilt auch für visuelle Profile; Ausschlüsse werden
+          vereinigt. Ungespeicherte Änderungen bitte vorher speichern.
         </p>
         {mergeCandidates.length ? (
           <div className="merge-entity-panel">

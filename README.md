@@ -173,8 +173,8 @@ wenn sie sehr würdevoll kompiliert.
 - Rückverweise aus der Story-Bibel in das Manuskript.
 - Referenzsichere Lösch- und Kaskadenregeln in SQLite.
 - Bewusstes Zusammenführen doppelter Einträge derselben Art mit Konfliktvorschau.
-- Atomare Übernahme von Szenen-, Beziehungs-, Timeline-, POV-, Medien- und Profilreferenzen; bei
-  zwei vorhandenen visuellen Profilen wird ohne Datenänderung abgebrochen.
+- Atomare Übernahme von Szenen-, Beziehungs-, Timeline-, POV-, Medien- und Profilreferenzen; zwei
+  visuelle Profile werden mit Zielvorrang bei Konflikten und vereinigten Ausschlüssen kombiniert.
 
 ### Plotboard und Timelines
 

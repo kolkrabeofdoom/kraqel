@@ -98,6 +98,19 @@ test("Story-Bibel führt ein Dublett samt Referenzen bewusst in den geöffneten 
   await page.getByRole("button", { name: "Beziehung anlegen" }).click();
   await page.getByRole("button", { name: "Mit „Szene 1“ verknüpfen" }).click();
 
+  await page.getByRole("button", { name: "Visuelle Profile" }).click();
+  await page.getByLabel("Story-Bibel-Eintrag").selectOption({ label: "Figuren: Mara doppelt" });
+  await page.getByLabel("Kernmerkmale").fill("Augen: grau\nHaltung: wach");
+  await page.getByLabel("Unerwünschte Abweichungen").fill("Maske\nRegen");
+  await page.getByRole("button", { name: "Profil speichern" }).click();
+  await page.getByLabel("Story-Bibel-Eintrag").selectOption({ label: "Figuren: Mara" });
+  await expect(page.getByLabel("Kernmerkmale")).toHaveValue("");
+  await page.getByLabel("Kernmerkmale").fill("Augen: bernsteinfarben\nKleidung: Mantel");
+  await page.getByLabel("Unerwünschte Abweichungen").fill("Regen\nHut");
+  await page.getByRole("button", { name: "Profil speichern" }).click();
+
+  await page.getByRole("button", { name: "Story-Bibel" }).click();
+
   await entityList.getByRole("button", { name: /^Mara\s+Figur$/ }).click();
   await page.getByLabel("Doppelten Eintrag wählen").selectOption({ label: "Mara doppelt" });
   await expect(page.locator(".merge-preview")).toContainText(
@@ -119,4 +132,13 @@ test("Story-Bibel führt ein Dublett samt Referenzen bewusst in den geöffneten 
   await expect(page.getByPlaceholder("Wert").first()).toHaveValue("Navigatorin");
   await expect(page.locator(".relation-list")).toContainText("Mara → bewacht → Archiv");
   await expect(page.locator(".backlink-list")).toContainText("Szene 1");
+
+  await page.getByRole("button", { name: "Visuelle Profile" }).click();
+  await page.getByLabel("Story-Bibel-Eintrag").selectOption({ label: "Figuren: Mara" });
+  await expect(page.getByLabel("Kernmerkmale")).toHaveValue(/Augen: bernsteinfarben/);
+  await expect(page.getByLabel("Kernmerkmale")).toHaveValue(/Haltung: wach/);
+  await expect(page.getByLabel("Kernmerkmale")).toHaveValue(/Kleidung: Mantel/);
+  await expect(page.getByLabel("Unerwünschte Abweichungen")).toHaveValue(/Regen/);
+  await expect(page.getByLabel("Unerwünschte Abweichungen")).toHaveValue(/Hut/);
+  await expect(page.getByLabel("Unerwünschte Abweichungen")).toHaveValue(/Maske/);
 });

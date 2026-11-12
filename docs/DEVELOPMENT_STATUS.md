@@ -2,7 +2,7 @@
 
 Stand: 12. November 2026
 
-Code-Referenz: KQ-043 (Issue #82)
+Code-Referenz: KQ-044 (Issue #84)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -147,9 +147,10 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   Zieleintrag. Ziel-UUID, -Name und vorhandene Eigenschaftswerte bleiben maßgeblich; fehlende
   Eigenschaften werden ergänzt. Die Oberfläche zeigt abweichende Werte vor der Bestätigung.
 - Dokument-, Relations-, Ereignis-, POV- und Medienreferenzen wechseln vor dem Löschen der Quelle
-  zum Ziel. Ein ausschließlich an der Quelle vorhandenes visuelles Profil wandert samt
-  Promptreferenzen mit. Zwei Profile brechen die gesamte Transaktion konfliktfrei ab; direkte
-  Quelle-Ziel-Relationen werden als sonst unzulässige Selbstrelationen entfernt.
+  zum Ziel. Visuelle Profile und Promptreferenzen wandern ebenfalls mit; bei zwei Profilen gelten
+  Zielvorrang für abweichende Merkmale und das kanonische Bild sowie die Vereinigung der
+  Ausschlüsse. Direkte Quelle-Ziel-Relationen werden als sonst unzulässige Selbstrelationen
+  entfernt.
 - Zugängliche React-Oberfläche mit beschrifteten Formularen, sichtbaren Fokuszuständen,
   Tastaturbedienung sowie textlich erkennbarer Beziehungsrichtung. KQ-032 korrigiert den
   Ergebniszähler auf WCAG-AA-Kontrast.
