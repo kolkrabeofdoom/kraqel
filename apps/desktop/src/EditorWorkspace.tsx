@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createDocument,
   deleteDocument,
+  importTextDocument,
   loadDocument,
   renameDocument,
   reorderDocuments,
@@ -149,6 +150,20 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
       setActiveId(node.id);
     } catch {
       setError("Die Szene konnte nicht angelegt werden.");
+    }
+  };
+
+  const importScene = async (chapterId: EntityId) => {
+    try {
+      const node = await importTextDocument(workspace.project.id, chapterId);
+      if (!node) return;
+      setWorkspace((current) => ({ ...current, documents: [...current.documents, node] }));
+      setActiveId(node.id);
+      setError(null);
+    } catch {
+      setError(
+        "Die Textdatei konnte nicht importiert werden. Unterstützt werden UTF-8-Dateien bis 2 MiB.",
+      );
     }
   };
 
@@ -313,6 +328,7 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
                   activeId={activeId}
                   onSelect={setActiveId}
                   onAddScene={addScene}
+                  onImportScene={importScene}
                   canMoveUp={index > 0}
                   canMoveDown={index < tree.length - 1}
                   onMove={moveNode}
@@ -410,6 +426,7 @@ function ChapterTree({
   activeId,
   onSelect,
   onAddScene,
+  onImportScene,
   canMoveUp,
   canMoveDown,
   onMove,
@@ -421,6 +438,7 @@ function ChapterTree({
   readonly activeId: EntityId | null;
   readonly onSelect: (id: EntityId) => void;
   readonly onAddScene: (chapterId: EntityId) => Promise<void>;
+  readonly onImportScene: (chapterId: EntityId) => Promise<void>;
   readonly canMoveUp: boolean;
   readonly canMoveDown: boolean;
   readonly onMove: (node: DocumentNode, delta: -1 | 1) => Promise<void>;
@@ -481,6 +499,14 @@ function ChapterTree({
           onClick={() => void onAddScene(chapter.id)}
         >
           +
+        </button>
+        <button
+          type="button"
+          className="compact secondary"
+          aria-label={`Import: Textdatei in ${chapter.title}`}
+          onClick={() => void onImportScene(chapter.id)}
+        >
+          Import
         </button>
       </div>
       <div role="group">

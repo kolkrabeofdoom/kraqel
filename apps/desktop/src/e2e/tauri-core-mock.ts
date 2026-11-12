@@ -200,6 +200,26 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       writeState(state);
       return node;
     }
+    case "import_text_document": {
+      if (localStorage.getItem("kraqel-e2e-cancel-text-import") === "1") return null;
+      const current = findProject(state, payload.projectId);
+      const parentId = payload.parentId as EntityId;
+      const position = current.documents.filter(({ node }) => node.parentId === parentId).length;
+      const node = newNode(current.project.id, parentId, "scene", "importierte-szene", position);
+      const imported = storedDocument(node);
+      imported.content = {
+        version: 1,
+        document: {
+          type: "doc",
+          content: [{ type: "paragraph", content: [{ type: "text", text: "Importierter Text" }] }],
+        },
+      };
+      imported.plainText = "Importierter Text";
+      current.documents.push(imported);
+      current.plotCards.push(newPlotCard(node, current.plotCards.length));
+      writeState(state);
+      return node;
+    }
     case "load_document": {
       const current = findStoredDocument(findProject(state, payload.projectId), payload.documentId);
       return structuredClone(current);

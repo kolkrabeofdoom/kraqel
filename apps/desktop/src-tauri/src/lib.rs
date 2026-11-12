@@ -38,6 +38,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, HashMap},
     fs,
+    io::Read as _,
     path::{Path, PathBuf},
     process::Command,
     sync::Mutex,
@@ -48,6 +49,7 @@ use tauri_plugin_dialog::DialogExt as _;
 use zeroize::Zeroizing;
 
 const AI_RELEASE_LIFETIME: Duration = Duration::from_secs(10 * 60);
+const MAX_TEXT_IMPORT_BYTES: usize = 2 * 1024 * 1024;
 const EXAMPLE_PROJECT_ARCHIVE: &[u8] =
     include_bytes!("../../../../examples/die-stadt-die-den-dienstag-verkaufte.kraqel");
 
@@ -129,6 +131,13 @@ struct CreateDocumentRequest {
     parent_id: Option<String>,
     kind: DocumentKind,
     title: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ImportTextDocumentRequest {
+    project_id: String,
+    parent_id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -720,6 +729,41 @@ fn create_document(
     require_current_contract(&request)?;
     let data = create_document_impl(&state, request.request_id, request.payload)?;
     Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+async fn import_text_document(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    request: CommandRequest<ImportTextDocumentRequest>,
+) -> Result<CommandResponse<Option<DocumentNode>>, CommandError> {
+    require_current_contract(&request)?;
+    let selected = app
+        .dialog()
+        .file()
+        .add_filter("Text oder Markdown", &["txt", "md", "markdown"])
+        .blocking_pick_file();
+    let Some(selected) = selected else {
+        return Ok(CommandResponse::current(request.request_id, None));
+    };
+    let path = selected.into_path().map_err(|_| {
+        CommandError::invalid_request(
+            request.request_id,
+            "Die ausgewählte Textdatei ist nicht lokal lesbar.",
+        )
+    })?;
+    let data = import_text_document_file_impl(
+        &state,
+        request.request_id,
+        &request.payload.project_id,
+        &request.payload.parent_id,
+        &path,
+    )?;
+    Ok(CommandResponse::current(request.request_id, Some(data)))
 }
 
 #[tauri::command]
@@ -2030,6 +2074,250 @@ fn create_document_impl(
         .map_err(|error| map_document_error(request_id, &error))
 }
 
+fn import_text_document_file_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    project_id: &str,
+    parent_id: &str,
+    path: &Path,
+) -> Result<DocumentNode, CommandError> {
+    let project_id = parse_project_id(request_id, project_id)?;
+    let parent_id = parse_entity_id(request_id, parent_id)?;
+    let (title, content) = read_text_import(path).map_err(|()| {
+        CommandError::invalid_request(
+            request_id,
+            "Die Textdatei konnte nicht importiert werden. Unterstützt werden unverknüpfte UTF-8-Dateien bis 2 MiB.",
+        )
+    })?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    DocumentRepository::new(opened.database_mut())
+        .create_scene_with_content(project_id, parent_id, &title, &content)
+        .map_err(|error| map_document_error(request_id, &error))
+}
+
+fn read_text_import(path: &Path) -> Result<(String, EditorDocument), ()> {
+    let extension = path
+        .extension()
+        .and_then(|value| value.to_str())
+        .map(str::to_ascii_lowercase)
+        .ok_or(())?;
+    if !matches!(extension.as_str(), "txt" | "md" | "markdown") {
+        return Err(());
+    }
+    let metadata = fs::symlink_metadata(path).map_err(|_| ())?;
+    let maximum = u64::try_from(MAX_TEXT_IMPORT_BYTES).map_err(|_| ())?;
+    if metadata.file_type().is_symlink() || !metadata.is_file() || metadata.len() > maximum {
+        return Err(());
+    }
+    let file = fs::File::open(path).map_err(|_| ())?;
+    let opened_metadata = file.metadata().map_err(|_| ())?;
+    if !opened_metadata.is_file() || opened_metadata.len() != metadata.len() {
+        return Err(());
+    }
+    let expected = usize::try_from(opened_metadata.len()).map_err(|_| ())?;
+    let mut bytes = Vec::with_capacity(expected);
+    file.take(maximum + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| ())?;
+    if bytes.len() != expected || bytes.len() > MAX_TEXT_IMPORT_BYTES || bytes.contains(&0) {
+        return Err(());
+    }
+    let decoded = std::str::from_utf8(&bytes).map_err(|_| ())?;
+    let text = decoded.strip_prefix('\u{feff}').unwrap_or(decoded);
+    let stem = path
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .ok_or(())?;
+    let title: String = stem.trim().chars().take(240).collect();
+    if title.is_empty() {
+        return Err(());
+    }
+    let document = if extension == "txt" {
+        plain_text_document(text)
+    } else {
+        markdown_document(text)
+    };
+    Ok((
+        title,
+        EditorDocument {
+            version: EDITOR_DOCUMENT_VERSION,
+            document,
+        },
+    ))
+}
+
+fn text_node(text: &str) -> serde_json::Value {
+    serde_json::json!({"type": "text", "text": text})
+}
+
+fn paragraph_from_lines(lines: &[&str]) -> serde_json::Value {
+    if lines.is_empty() || (lines.len() == 1 && lines[0].is_empty()) {
+        return serde_json::json!({"type": "paragraph"});
+    }
+    let mut content = Vec::new();
+    for (index, line) in lines.iter().enumerate() {
+        if index > 0 {
+            content.push(serde_json::json!({"type": "hardBreak"}));
+        }
+        if !line.is_empty() {
+            content.push(text_node(line));
+        }
+    }
+    serde_json::json!({"type": "paragraph", "content": content})
+}
+
+fn plain_text_document(text: &str) -> serde_json::Value {
+    let normalized = text.replace("\r\n", "\n").replace('\r', "\n");
+    let mut blocks = Vec::new();
+    let mut paragraph = Vec::new();
+    for line in normalized.split('\n') {
+        if line.trim().is_empty() {
+            if !paragraph.is_empty() {
+                blocks.push(paragraph_from_lines(&paragraph));
+                paragraph.clear();
+            }
+        } else {
+            paragraph.push(line);
+        }
+    }
+    if !paragraph.is_empty() {
+        blocks.push(paragraph_from_lines(&paragraph));
+    }
+    if blocks.is_empty() {
+        blocks.push(serde_json::json!({"type": "paragraph"}));
+    }
+    serde_json::json!({"type": "doc", "content": blocks})
+}
+
+#[allow(
+    clippy::too_many_lines,
+    reason = "Der bewusst kleine Blockparser bleibt als zusammenhängende Grammatik überprüfbar"
+)]
+fn markdown_document(text: &str) -> serde_json::Value {
+    let normalized = text.replace("\r\n", "\n").replace('\r', "\n");
+    let lines: Vec<&str> = normalized.split('\n').collect();
+    let mut blocks = Vec::new();
+    let mut index = 0;
+    while index < lines.len() {
+        let line = lines[index];
+        if line.trim().is_empty() {
+            index += 1;
+            continue;
+        }
+        if line.trim_start().starts_with("```") {
+            index += 1;
+            let mut code = Vec::new();
+            while index < lines.len() && !lines[index].trim_start().starts_with("```") {
+                code.push(lines[index]);
+                index += 1;
+            }
+            if index < lines.len() {
+                index += 1;
+            }
+            let code = code.join("\n");
+            blocks.push(if code.is_empty() {
+                serde_json::json!({"type": "codeBlock"})
+            } else {
+                serde_json::json!({"type": "codeBlock", "content": [text_node(&code)]})
+            });
+            continue;
+        }
+        let trimmed = line.trim_start();
+        let heading_marks = trimmed
+            .chars()
+            .take_while(|character| *character == '#')
+            .count();
+        if (1..=6).contains(&heading_marks)
+            && trimmed
+                .as_bytes()
+                .get(heading_marks)
+                .is_some_and(u8::is_ascii_whitespace)
+            && !trimmed[heading_marks..].trim().is_empty()
+        {
+            let heading = trimmed[heading_marks..].trim_start();
+            blocks.push(serde_json::json!({
+                "type": "heading",
+                "attrs": {"level": heading_marks},
+                "content": [text_node(heading)]
+            }));
+            index += 1;
+            continue;
+        }
+        if let Some(quote) = trimmed.strip_prefix("> ") {
+            blocks.push(serde_json::json!({
+                "type": "blockquote",
+                "content": [paragraph_from_lines(&[quote])]
+            }));
+            index += 1;
+            continue;
+        }
+        if trimmed.starts_with("- ") || trimmed.starts_with("* ") {
+            let mut items = Vec::new();
+            while index < lines.len() {
+                let candidate = lines[index].trim_start();
+                let Some(item) = candidate
+                    .strip_prefix("- ")
+                    .or_else(|| candidate.strip_prefix("* "))
+                else {
+                    break;
+                };
+                items.push(serde_json::json!({
+                    "type": "listItem",
+                    "content": [paragraph_from_lines(&[item])]
+                }));
+                index += 1;
+            }
+            blocks.push(serde_json::json!({"type": "bulletList", "content": items}));
+            continue;
+        }
+        if let Some((_, first_item)) = ordered_markdown_item(trimmed) {
+            let mut items = vec![serde_json::json!({
+                "type": "listItem",
+                "content": [paragraph_from_lines(&[first_item])]
+            })];
+            index += 1;
+            while index < lines.len() {
+                let Some((_, item)) = ordered_markdown_item(lines[index].trim_start()) else {
+                    break;
+                };
+                items.push(serde_json::json!({
+                    "type": "listItem",
+                    "content": [paragraph_from_lines(&[item])]
+                }));
+                index += 1;
+            }
+            blocks.push(serde_json::json!({
+                "type": "orderedList",
+                "attrs": {"start": 1},
+                "content": items
+            }));
+            continue;
+        }
+        let mut paragraph = vec![line];
+        index += 1;
+        while index < lines.len() && !lines[index].trim().is_empty() {
+            paragraph.push(lines[index]);
+            index += 1;
+        }
+        blocks.push(paragraph_from_lines(&paragraph));
+    }
+    if blocks.is_empty() {
+        blocks.push(serde_json::json!({"type": "paragraph"}));
+    }
+    serde_json::json!({"type": "doc", "content": blocks})
+}
+
+fn ordered_markdown_item(line: &str) -> Option<(usize, &str)> {
+    let digits = line.chars().take_while(char::is_ascii_digit).count();
+    if digits == 0 || !line.get(digits..)?.starts_with(". ") {
+        return None;
+    }
+    Some((digits, &line[digits + 2..]))
+}
+
 #[allow(
     clippy::needless_pass_by_value,
     reason = "DTO wird an der Servicegrenze übernommen"
@@ -3337,6 +3625,7 @@ pub fn run() {
             import_snapshot_project,
             open_workspace,
             create_document,
+            import_text_document,
             load_document,
             save_document,
             rename_document,
@@ -3439,10 +3728,10 @@ mod tests {
         create_project_impl, delete_document_impl, delete_image_prompt_draft_impl,
         delete_project_impl, export_image_prompt_draft_impl, export_manuscript_impl,
         export_project_archive_file_impl, import_media_asset_impl,
-        import_snapshot_project_file_impl, link_story_entity_impl, list_image_prompt_drafts_impl,
-        list_media_assets_impl, list_projects_impl, list_story_entities_impl,
-        list_style_presets_impl, list_visual_profiles_impl, load_document_impl,
-        load_story_entity_impl, merge_story_entities_impl, open_workspace_impl,
+        import_snapshot_project_file_impl, import_text_document_file_impl, link_story_entity_impl,
+        list_image_prompt_drafts_impl, list_media_assets_impl, list_projects_impl,
+        list_story_entities_impl, list_style_presets_impl, list_visual_profiles_impl,
+        load_document_impl, load_story_entity_impl, merge_story_entities_impl, open_workspace_impl,
         prepare_text_generation, preview_ai_context_impl, rename_document_impl,
         reorder_documents_impl, resolve_export_directory, review_text_suggestion_impl,
         save_document_impl, save_visual_profile_impl, update_image_prompt_draft_impl,
@@ -3450,6 +3739,81 @@ mod tests {
     };
 
     const REQUEST_ID: Uuid = Uuid::from_u128(0x018f_47ea_9b2d_7cc1_98e8_b5f4_f6b7_41a2);
+
+    #[test]
+    fn imports_utf8_markdown_as_an_atomic_scene_with_visible_unknown_syntax() {
+        let root = tempdir().expect("temporary root should exist");
+        let state = AppState {
+            project_root: root.path().join("projects"),
+            ai_releases: Mutex::new(HashMap::new()),
+        };
+        fs::create_dir_all(&state.project_root).expect("project root should exist");
+        let workspace = create_project_impl(
+            &state,
+            REQUEST_ID,
+            CreateProjectRequest {
+                name: "Importprobe".to_owned(),
+            },
+        )
+        .expect("project should be created");
+        let chapter = workspace
+            .documents
+            .iter()
+            .find(|node| node.kind == DocumentKind::Chapter)
+            .expect("chapter should exist");
+        let source = root.path().join("Neue Szene.md");
+        fs::write(
+            &source,
+            "# Überschrift\n\n- eins\n- zwei\n\n~~bleibt sichtbar~~",
+        )
+        .expect("source should be written");
+
+        let scene = import_text_document_file_impl(
+            &state,
+            REQUEST_ID,
+            &workspace.project.id.to_string(),
+            &chapter.id.to_string(),
+            &source,
+        )
+        .expect("markdown should import");
+        let stored = load_document_impl(
+            &state,
+            REQUEST_ID,
+            DocumentRequest {
+                project_id: workspace.project.id.to_string(),
+                document_id: scene.id.to_string(),
+            },
+        )
+        .expect("imported scene should load");
+
+        assert_eq!(scene.title, "Neue Szene");
+        assert!(stored.plain_text.contains("Überschrift"));
+        assert!(stored.plain_text.contains("~~bleibt sichtbar~~"));
+        assert_eq!(stored.node.revision, 0);
+    }
+
+    #[test]
+    fn rejects_non_utf8_and_nul_text_imports_without_creating_a_scene() {
+        let root = tempdir().expect("temporary root should exist");
+        let invalid_utf8 = root.path().join("kaputt.txt");
+        let nul = root.path().join("nul.md");
+        fs::write(&invalid_utf8, [0xff, 0xfe]).expect("invalid utf8 should be written");
+        fs::write(&nul, b"vorher\0nachher").expect("nul source should be written");
+
+        assert!(super::read_text_import(&invalid_utf8).is_err());
+        assert!(super::read_text_import(&nul).is_err());
+    }
+
+    #[test]
+    fn rejects_text_import_above_the_two_mebibyte_limit() {
+        let root = tempdir().expect("temporary root should exist");
+        let oversized = root.path().join("zu-gross.txt");
+        let file = fs::File::create(&oversized).expect("source should be created");
+        file.set_len(u64::try_from(super::MAX_TEXT_IMPORT_BYTES).unwrap() + 1)
+            .expect("source should become oversized");
+
+        assert!(super::read_text_import(&oversized).is_err());
+    }
 
     #[test]
     fn status_reports_versioned_offline_foundation() {

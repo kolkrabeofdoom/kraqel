@@ -232,6 +232,9 @@ KI-basierte Kontinuitätshinweise sind geplant, aber nicht implementiert.
 - Kontrolliertes lokales Git für Initialisierung, Status, Diff und Commit.
 - Deny-by-default-`.gitignore`: SQLite, Sicherungen, Schlüssel und temporäre Daten bleiben draußen.
 - Streng begrenzter `.kraqel`-/ZIP-Import als stets neues Projekt mit neuer UUID.
+- Nativer UTF-8-Import von `.txt`, `.md` und `.markdown` bis 2 MiB als neue Szene. TXT-Absätze,
+  Markdown-Überschriften, Zitate, Listen und Codeblöcke werden in Editor-Dokument v1 überführt;
+  unbekannte Syntax bleibt sichtbar. Pfad und Bytes bleiben in Rust.
 - Native Auswahl externer Projektarchive ohne Weitergabe von Pfad oder Archivbytes an React. Ein
   abgebrochener Dialog verändert weder Projektliste noch Fehlermeldung.
 - Nativer `.kraqel`-Export eines unmittelbar zuvor erzeugten, validierten Snapshot v3; Zielpfad und
@@ -280,8 +283,7 @@ KRAQEL 0.1.0 Alpha 4 ist ein Entwicklungsstand, keine verschämt als „Beta“ 
 Fertigbehauptung. Insbesondere fehlen oder bleiben offen:
 
 - externe Windows-Abnahme von SmartScreen, Erststart, Persistenz und Deinstallation,
-- allgemeine Dateiauswahl für fremde `.kraqel`-Archive,
-- Textimport und vollständiger DOCX-Roundtrip,
+- vollständiger DOCX-Import und belastbarer Manuskript-Roundtrip,
 - Medien im Manuskriptexport und umfassendere Unicode-Schriftunterstützung im PDF,
 - reale End-to-End-Abnahme mit Ollama und den vier Cloudprovidern,
 - KI-basierte Kontinuitätshinweise,
@@ -530,7 +532,7 @@ metaphysischer Wahrheitsbeweis.
 | M0       | Monorepo, Tauri, Datenbank, CI               | Technisches Fundament umgesetzt                                                              |
 | M1       | Editor, Szenenbaum, Autosave, Backup         | Technischer Mindestumfang mit Browser- und Windows-Smoke-Tests umgesetzt                     |
 | M2       | Story-Bibel, Plotboard, Timeline             | Technischer Mindestumfang mit getrennten E2E-Abläufen umgesetzt                              |
-| M3       | Git, Import/Export, Medien, visuelle Profile | Teilweise umgesetzt; Snapshotauswahl vorhanden, Text-/DOCX-Import und Roundtrip fehlen       |
+| M3       | Git, Import/Export, Medien, visuelle Profile | Teilweise umgesetzt; Snapshot- und UTF-8-/Markdown-Import vorhanden, DOCX-Roundtrip fehlt    |
 | M4       | Text-KI, Kontinuität, Prompt-Entwürfe        | Technischer 0.1-Umfang weitgehend vorhanden; reale Providerabnahme und Bildausführung fehlen |
 | M5       | Windows-Release 0.1                          | Alpha 4 veröffentlicht; unabhängige Windows-Abnahme noch offen                               |
 | M6 / 0.2 | Bildgenerierung, Varianten, Karten           | Nicht begonnen und ausdrücklich außerhalb von 0.1                                            |
@@ -538,7 +540,9 @@ metaphysischer Wahrheitsbeweis.
 Die maßgebliche, faktenbasierte Übergabe steht in
 [`docs/DEVELOPMENT_STATUS.md`](docs/DEVELOPMENT_STATUS.md). Die Arbeitsreihenfolge führt
 [`ROADMAP.md`](ROADMAP.md). Fachliche Anforderungen stammen aus dem technischen Pflichtenheft unter
-[`docs/specifications`](docs/specifications).
+[`docs/specifications`](docs/specifications). Der sichere Wechsel auf einen anderen
+Entwicklungsrechner und der getrennte Transport lokaler Schreibprojekte stehen in
+[`docs/WORKSTATION_HANDOFF.md`](docs/WORKSTATION_HANDOFF.md).
 
 ## Mitwirken
 

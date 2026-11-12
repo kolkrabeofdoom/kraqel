@@ -246,6 +246,71 @@ impl<'database> DocumentRepository<'database> {
         })
     }
 
+    /// Erstellt eine Szene samt Inhalt atomar an der letzten Geschwisterposition.
+    ///
+    /// # Errors
+    ///
+    /// Liefert einen Fehler bei ungültigem Titel oder Inhalt, unzulässigem Elternknoten,
+    /// fehlendem Projekt oder fehlgeschlagener Transaktion.
+    pub fn create_scene_with_content(
+        &mut self,
+        project_id: ProjectId,
+        parent_id: EntityId,
+        title: &str,
+        content: &EditorDocument,
+    ) -> Result<DocumentNode, DocumentError> {
+        validate_title(title)?;
+        validate_content(content)?;
+        let content_json =
+            serde_json::to_string(content).map_err(|_| DocumentError::InvalidInput)?;
+        if content_json.len() > MAX_EDITOR_DOCUMENT_BYTES {
+            return Err(DocumentError::InvalidInput);
+        }
+        let plain_text = plain_text(content);
+        let timestamp = current_timestamp()?;
+        let transaction = self.database.transaction()?;
+        validate_project_and_parent(
+            &transaction,
+            project_id,
+            Some(parent_id),
+            DocumentKind::Scene,
+        )?;
+        let position: i64 = transaction.query_row(
+            "SELECT COALESCE(MAX(position) + 1, 0) FROM document
+             WHERE project_id = ?1 AND parent_id = ?2",
+            params![project_id.to_string(), parent_id.to_string()],
+            |row| row.get(0),
+        )?;
+        let id = EntityId::new();
+        transaction.execute(
+            "INSERT INTO document (
+                id, project_id, parent_id, kind, title, position, revision,
+                content_json, plain_text, created_at, updated_at
+             ) VALUES (?1, ?2, ?3, 'scene', ?4, ?5, 0, ?6, ?7, ?8, ?8)",
+            params![
+                id.to_string(),
+                project_id.to_string(),
+                parent_id.to_string(),
+                title.trim(),
+                position,
+                content_json,
+                plain_text,
+                timestamp
+            ],
+        )?;
+        transaction.commit()?;
+
+        Ok(DocumentNode {
+            id,
+            project_id,
+            parent_id: Some(parent_id),
+            kind: DocumentKind::Scene,
+            title: title.trim().to_owned(),
+            position: u32::try_from(position).map_err(|_| DocumentError::InvalidStoredData)?,
+            revision: 0,
+        })
+    }
+
     /// Speichert eine Szene nur dann, wenn ihre erwartete Revision noch aktuell ist.
     ///
     /// Der Klartext wird serverseitig aus dem Tiptap-JSON abgeleitet und zusammen mit Inhalt,
@@ -703,6 +768,36 @@ mod tests {
 
     use super::{DocumentError, DocumentRepository};
     use crate::project_manager::ProjectManager;
+
+    #[test]
+    fn creates_scene_and_imported_content_in_one_repository_operation() {
+        let root = tempdir().expect("temporary root should exist");
+        let manager = ProjectManager::new(root.path()).expect("manager should open");
+        let project = project();
+        let mut opened = manager
+            .create_project("projekt", &project)
+            .expect("project should be created");
+        let mut repository = DocumentRepository::new(opened.database_mut());
+        let chapter = repository
+            .create(project.id, None, DocumentKind::Chapter, "Kapitel")
+            .expect("chapter should be created");
+
+        let scene = repository
+            .create_scene_with_content(
+                project.id,
+                chapter.id,
+                "Import",
+                &content("Angekommener Text"),
+            )
+            .expect("scene and content should be created atomically");
+        let stored = repository
+            .load(project.id, scene.id)
+            .expect("imported scene should load");
+
+        assert_eq!(stored.node, scene);
+        assert_eq!(stored.plain_text, "Angekommener Text");
+        assert_eq!(stored.content, content("Angekommener Text"));
+    }
 
     #[test]
     fn creates_stably_sorted_tree_and_rejects_invalid_parents() {
