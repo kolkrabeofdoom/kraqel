@@ -52,6 +52,7 @@
    - [x] Privaten GitHub-Releaseentwurf, Rückdownload sowie isolierte Installation und
          Deinstallation abnehmen
    - [x] Geprüftes Artefakt als `v0.1.0-alpha.1`-Prerelease veröffentlichen
+   - [x] Alpha 2 mit eingebettetem Beispielprojekt bauen, zurückprüfen und veröffentlichen
 
 ## M6 - Version 0.2
 

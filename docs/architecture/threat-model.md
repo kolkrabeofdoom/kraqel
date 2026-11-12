@@ -128,6 +128,11 @@ KQ-036-Installation startet die Anwendung absichtlich nicht, weil auf dem Entwic
 KRAQEL-App-Daten vorhanden sind. SmartScreen, Erststart und Persistenz müssen deshalb weiterhin in
 einer Umgebung ohne schützenswerte Bestandsdaten geprüft werden.
 
+KQ-039 wiederholt Build, GitHub-Rückdownload sowie isolierte Installation und Deinstallation für
+Alpha 2 mit eingebetteter Beispielvorlage. Die größere Binärdatei und das zusätzliche Archiv ändern
+die Vertrauensgrenzen nicht: Tag, Manifest, Prüfsumme und Setup bleiben gemeinsam vom GitHub-Kanal
+abhängig. Die offene Clean-VM-Abnahme gilt deshalb unverändert auch für `v0.1.0-alpha.2`.
+
 Verbleibendes Risiko: Die kanonische Vorabprüfung ist nicht vollständig gegen ein gleichzeitiges
 böswilliges Austauschen bereits geprüfter Verzeichnisse abgesichert. Vor der Unterstützung
 unvertrauenswürdiger Projektwurzeln sind handle-relative Betriebssystemzugriffe zu bewerten.
