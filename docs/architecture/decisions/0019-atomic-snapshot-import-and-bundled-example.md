@@ -21,8 +21,12 @@ schreibender Import darf weder bestehende Projekte überschreiben noch Teilzust�
 - Das frei lizenzierte Abenteuer **Die Stadt, die den Dienstag verkaufte** wird aus einem
   festgeschriebenen Quellcommit reproduzierbar erzeugt und per `include_bytes!` in die
   Desktopanwendung eingebettet. Zur Laufzeit findet kein Netzwerkzugriff statt.
-- Die Oberfläche exponiert zunächst nur diese geprüfte Vorlage. Eine allgemeine Auswahl fremder
-  Archive wird erst nach weiterer Sicherheits- und Bedienprüfung ergänzt.
+- Die Oberfläche bietet neben der geprüften Vorlage eine native Auswahl für `.kraqel`- und
+  ZIP-Dateien. Auswahl, Metadatenprüfung und begrenztes Lesen erfolgen vollständig in Rust; React
+  erhält weder absoluten Pfad noch Archivbytes. Abbruch ist ein neutrales Ergebnis.
+- Vor dem Lesen werden Symlinks, Nicht-Dateien, leere Dateien und Archive über 128 MiB abgelehnt.
+  Anschließend gelten dieselben Inhaltsprüfungen und dieselbe atomare Veröffentlichung wie für die
+  eingebettete Vorlage.
 
 ## Folgen
 
@@ -32,8 +36,8 @@ schreibender Import darf weder bestehende Projekte überschreiben noch Teilzust�
   für Originale, Vorschaubilder und SQLite.
 - Die feste Quelle und Bildtransformation ermöglichen reproduzierbare Archiverzeugung, verlangen bei
   jeder Quellenaktualisierung aber eine bewusste Rechte-, Hash- und Inhaltsprüfung.
-- Snapshot-v1/v2 bleiben lesend prüfbar, sind jedoch nicht importierbar. Text- und DOCX-Roundtrip
-  sowie eine allgemeine Archivdateiauswahl bleiben offene M3-Arbeit.
+- Snapshot-v1/v2 bleiben lesend prüfbar, sind jedoch nicht importierbar. Textimport und
+  DOCX-Roundtrip bleiben offene M3-Arbeit.
 
 ## Evidenz
 
@@ -42,3 +46,4 @@ schreibender Import darf weder bestehende Projekte überschreiben noch Teilzust�
 - `scripts/build-example-project.mjs`
 - `examples/NOTICE.md`
 - `apps/desktop/e2e/example-project.spec.ts`
+- `apps/desktop/src-tauri/src/lib.rs`

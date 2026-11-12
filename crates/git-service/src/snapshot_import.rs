@@ -2,6 +2,7 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet},
+    fs::{self, File},
     io::{Cursor, Read as _},
     path::Path,
 };
@@ -22,7 +23,7 @@ use zip::ZipArchive;
 
 use crate::GitServiceError;
 
-const MAX_ARCHIVE_BYTES: usize = 128 * 1024 * 1024;
+pub const MAX_SNAPSHOT_ARCHIVE_BYTES: usize = 128 * 1024 * 1024;
 const MAX_ARCHIVE_FILES: usize = 256;
 const MAX_JSON_BYTES: usize = 4 * 1024 * 1024;
 const MAX_TEXT_BYTES: usize = 2 * 1024 * 1024;
@@ -147,6 +148,45 @@ pub fn import_snapshot_archive(
     ))
 }
 
+/// Liest eine reguläre lokale Archivdatei unter derselben harten Größenbegrenzung und importiert
+/// sie stets als neues Projekt.
+///
+/// # Errors
+/// Liefert einen datenarmen Fehler, wenn der ausgewählte Pfad kein unverknüpftes reguläres File
+/// ist, sich während des Lesens ändert, die Größenbegrenzung verletzt oder kein gültiges
+/// Snapshot-v3-Archiv enthält.
+pub fn import_snapshot_archive_file(
+    manager: &ProjectManager,
+    path: &Path,
+) -> Result<(ManagedProject, ImportSummary), GitServiceError> {
+    let metadata = fs::symlink_metadata(path).map_err(GitServiceError::Io)?;
+    let maximum =
+        u64::try_from(MAX_SNAPSHOT_ARCHIVE_BYTES).map_err(|_| GitServiceError::InvalidSnapshot)?;
+    if metadata.file_type().is_symlink()
+        || !metadata.is_file()
+        || metadata.len() == 0
+        || metadata.len() > maximum
+    {
+        return Err(GitServiceError::InvalidSnapshot);
+    }
+
+    let file = File::open(path).map_err(GitServiceError::Io)?;
+    let opened_metadata = file.metadata().map_err(GitServiceError::Io)?;
+    if !opened_metadata.is_file() || opened_metadata.len() != metadata.len() {
+        return Err(GitServiceError::InvalidSnapshot);
+    }
+    let expected =
+        usize::try_from(opened_metadata.len()).map_err(|_| GitServiceError::InvalidSnapshot)?;
+    let mut archive = Vec::with_capacity(expected);
+    file.take(maximum + 1)
+        .read_to_end(&mut archive)
+        .map_err(GitServiceError::Io)?;
+    if archive.len() != expected || archive.len() > MAX_SNAPSHOT_ARCHIVE_BYTES {
+        return Err(GitServiceError::InvalidSnapshot);
+    }
+    import_snapshot_archive(manager, &archive)
+}
+
 fn parse_snapshot(archive: &[u8]) -> Result<SnapshotData, GitServiceError> {
     let files = read_archive(archive)?;
     let manifest: ImportManifest = parse_json_file(&files, "manifest.json")?;
@@ -248,7 +288,7 @@ fn parse_snapshot(archive: &[u8]) -> Result<SnapshotData, GitServiceError> {
 }
 
 fn read_archive(archive: &[u8]) -> Result<BTreeMap<String, Vec<u8>>, GitServiceError> {
-    if archive.is_empty() || archive.len() > MAX_ARCHIVE_BYTES {
+    if archive.is_empty() || archive.len() > MAX_SNAPSHOT_ARCHIVE_BYTES {
         return Err(GitServiceError::InvalidSnapshot);
     }
     let mut zip =
@@ -292,7 +332,7 @@ fn read_archive(archive: &[u8]) -> Result<BTreeMap<String, Vec<u8>>, GitServiceE
         total = total
             .checked_add(file.size())
             .ok_or(GitServiceError::InvalidSnapshot)?;
-        if total > MAX_ARCHIVE_BYTES as u64 {
+        if total > MAX_SNAPSHOT_ARCHIVE_BYTES as u64 {
             return Err(GitServiceError::InvalidSnapshot);
         }
         let mut bytes = Vec::with_capacity(size);
@@ -1324,7 +1364,11 @@ fn json_text_project(object: &Map<String, Value>, name: &str) -> Result<String, 
 
 #[cfg(test)]
 mod tests {
-    use super::import_snapshot_archive;
+    use std::{fs, fs::File};
+
+    use super::{
+        MAX_SNAPSHOT_ARCHIVE_BYTES, import_snapshot_archive, import_snapshot_archive_file,
+    };
     use kraqel_storage::project_manager::ProjectManager;
     use tempfile::tempdir;
 
@@ -1377,6 +1421,57 @@ mod tests {
         tampered[middle] ^= 0xff;
 
         assert!(import_snapshot_archive(&manager, &tampered).is_err());
+        assert_eq!(manager.list_projects().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn imports_a_regular_bounded_archive_file() {
+        let root = tempdir().expect("temporary root should exist");
+        let project_root = root.path().join("projects");
+        fs::create_dir(&project_root).expect("project root should exist");
+        let source = root.path().join("source.kraqel");
+        fs::write(&source, EXAMPLE).expect("fixture archive should be written");
+        let manager = ProjectManager::new(&project_root).expect("manager should open");
+
+        let (_, summary) = import_snapshot_archive_file(&manager, &source)
+            .expect("regular bounded archive should import");
+
+        assert_eq!(summary.document_count, 20);
+        assert_eq!(manager.list_projects().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn rejects_non_files_and_oversized_archive_files_before_import() {
+        let root = tempdir().expect("temporary root should exist");
+        let project_root = root.path().join("projects");
+        fs::create_dir(&project_root).expect("project root should exist");
+        let manager = ProjectManager::new(&project_root).expect("manager should open");
+
+        assert!(import_snapshot_archive_file(&manager, root.path()).is_err());
+
+        let oversized = root.path().join("oversized.kraqel");
+        let file = File::create(&oversized).expect("oversized fixture should be created");
+        file.set_len(u64::try_from(MAX_SNAPSHOT_ARCHIVE_BYTES).unwrap() + 1)
+            .expect("sparse fixture size should be set");
+        assert!(import_snapshot_archive_file(&manager, &oversized).is_err());
+        assert_eq!(manager.list_projects().unwrap().len(), 0);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn rejects_a_symlinked_archive_file() {
+        use std::os::unix::fs::symlink;
+
+        let root = tempdir().expect("temporary root should exist");
+        let project_root = root.path().join("projects");
+        fs::create_dir(&project_root).expect("project root should exist");
+        let source = root.path().join("source.kraqel");
+        let link = root.path().join("linked.kraqel");
+        fs::write(&source, EXAMPLE).expect("fixture archive should be written");
+        symlink(&source, &link).expect("fixture symlink should be created");
+        let manager = ProjectManager::new(&project_root).expect("manager should open");
+
+        assert!(import_snapshot_archive_file(&manager, &link).is_err());
         assert_eq!(manager.list_projects().unwrap().len(), 0);
     }
 }

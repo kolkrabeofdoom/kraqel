@@ -52,8 +52,10 @@ Aktuell im Repository und verifiziert:
   lokale Git-Operationen für Init, Status, Diff und Commit; geeignete Assets werden nach SHA-256
   kopiert, Prompt-Quellen referenziell geprüft, SQLite und Nebenartefakte bleiben ausgeschlossen.
 - **Archivimport:** streng begrenzte Snapshot-v3-ZIP-Archive werden vollständig in Rust geprüft und
-  erst danach als neues Projekt mit neuer UUID atomar veröffentlicht; die Oberfläche bietet derzeit
-  nur die offline eingebettete Beispielvorlage, noch keine freie Dateiauswahl.
+  erst danach als neues Projekt mit neuer UUID atomar veröffentlicht. Die Oberfläche bietet sowohl
+  die offline eingebettete Beispielvorlage als auch eine native Auswahl für `.kraqel`- und
+  ZIP-Dateien. Pfad und Archivbytes bleiben vollständig in Rust und werden nicht über IPC an React
+  gegeben.
 - **Export:** streng validierte gemeinsame Manuskriptrepräsentation und lokale, atomare Ausgabe als
   Markdown, eigenständiges HTML, begrenztes OOXML-DOCX oder A4-PDF; unbekannte Editorformatierungen
   werden abgelehnt statt verworfen. DOCX und Snapshotarchive verwenden gemeinsam die gepflegte

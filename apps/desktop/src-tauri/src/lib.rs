@@ -22,7 +22,7 @@ use kraqel_export::{
 };
 use kraqel_git_service::{
     CommitResult, GitService, GitServiceError, SnapshotSummary, VersionControlStatus,
-    import_snapshot_archive,
+    import_snapshot_archive, import_snapshot_archive_file,
 };
 use kraqel_storage::{
     continuity_repository::{ContinuityError, ContinuityRepository},
@@ -38,12 +38,13 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, HashMap},
     fs,
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::Command,
     sync::Mutex,
     time::{Duration, Instant},
 };
-use tauri::{Manager as _, State, ipc::Channel};
+use tauri::{AppHandle, Manager as _, State, ipc::Channel};
+use tauri_plugin_dialog::DialogExt as _;
 use zeroize::Zeroizing;
 
 const AI_RELEASE_LIFETIME: Duration = Duration::from_secs(10 * 60);
@@ -627,6 +628,35 @@ fn create_example_project(
     require_current_contract(&request)?;
     let data = create_example_project_impl(&state, request.request_id)?;
     Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+async fn import_snapshot_project(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    request: CommandRequest<ApplicationStatusRequest>,
+) -> Result<CommandResponse<Option<WorkspaceResponse>>, CommandError> {
+    require_current_contract(&request)?;
+    let selected = app
+        .dialog()
+        .file()
+        .add_filter("KRAQEL-Projektarchiv", &["kraqel", "zip"])
+        .blocking_pick_file();
+    let Some(selected) = selected else {
+        return Ok(CommandResponse::current(request.request_id, None));
+    };
+    let path = selected.into_path().map_err(|_| {
+        CommandError::invalid_request(
+            request.request_id,
+            "Die ausgewählte Archivdatei ist nicht lokal lesbar.",
+        )
+    })?;
+    let data = import_snapshot_project_file_impl(&state, request.request_id, &path)?;
+    Ok(CommandResponse::current(request.request_id, Some(data)))
 }
 
 #[tauri::command]
@@ -1815,6 +1845,18 @@ fn create_example_project_impl(
 ) -> Result<WorkspaceResponse, CommandError> {
     let manager = manager(state, request_id)?;
     let (opened, summary) = import_snapshot_archive(&manager, EXAMPLE_PROJECT_ARCHIVE)
+        .map_err(|error| map_git_error(request_id, &error))?;
+    drop(opened);
+    open_workspace_impl(state, request_id, &summary.project_id.to_string())
+}
+
+fn import_snapshot_project_file_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    path: &Path,
+) -> Result<WorkspaceResponse, CommandError> {
+    let manager = manager(state, request_id)?;
+    let (opened, summary) = import_snapshot_archive_file(&manager, path)
         .map_err(|error| map_git_error(request_id, &error))?;
     drop(opened);
     open_workspace_impl(state, request_id, &summary.project_id.to_string())
@@ -3164,6 +3206,7 @@ fn map_credential_error(request_id: uuid::Uuid, error: CredentialError) -> Comma
 /// Bricht ab, wenn die Tauri-Laufzeit nicht initialisiert oder ausgeführt werden kann.
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let project_root = app.path().app_local_data_dir()?.join("projects");
             fs::create_dir_all(&project_root)?;
@@ -3179,6 +3222,7 @@ pub fn run() {
             list_projects,
             create_project,
             create_example_project,
+            import_snapshot_project,
             open_workspace,
             create_document,
             load_document,
@@ -3271,19 +3315,20 @@ mod tests {
     use super::{
         AiContextRequest, AppState, ApplicationStatusRequest, ComposeImagePromptRequest,
         CreateDocumentRequest, CreateImagePromptDraftRequest, CreateProjectRequest,
-        DeleteDocumentRequest, DocumentRequest, ExportProjectRequest, ImagePromptDraftRequest,
-        ImportMediaRequest, LinkStoryEntityRequest, ListStoryEntitiesRequest,
-        MergeStoryEntitiesRequest, RenameDocumentRequest, ReorderDocumentsRequest,
-        ReviewTextSuggestionRequest, SaveDocumentRequest, StoryEntityRequest,
-        StreamTextDraftRequest, UpdateImagePromptDraftRequest, ValidateProjectNameRequest,
-        WriteStoryEntityRequest, WriteStylePresetRequest, WriteVisualProfileRequest,
-        application_status, compose_image_prompt_impl, create_document_impl,
-        create_example_project_impl, create_image_prompt_draft_impl, create_project_impl,
-        delete_document_impl, delete_image_prompt_draft_impl, export_image_prompt_draft_impl,
-        export_manuscript_impl, import_media_asset_impl, link_story_entity_impl,
-        list_image_prompt_drafts_impl, list_media_assets_impl, list_projects_impl,
-        list_story_entities_impl, list_style_presets_impl, list_visual_profiles_impl,
-        load_document_impl, load_story_entity_impl, merge_story_entities_impl, open_workspace_impl,
+        DeleteDocumentRequest, DocumentRequest, EXAMPLE_PROJECT_ARCHIVE, ExportProjectRequest,
+        ImagePromptDraftRequest, ImportMediaRequest, LinkStoryEntityRequest,
+        ListStoryEntitiesRequest, MergeStoryEntitiesRequest, RenameDocumentRequest,
+        ReorderDocumentsRequest, ReviewTextSuggestionRequest, SaveDocumentRequest,
+        StoryEntityRequest, StreamTextDraftRequest, UpdateImagePromptDraftRequest,
+        ValidateProjectNameRequest, WriteStoryEntityRequest, WriteStylePresetRequest,
+        WriteVisualProfileRequest, application_status, compose_image_prompt_impl,
+        create_document_impl, create_example_project_impl, create_image_prompt_draft_impl,
+        create_project_impl, delete_document_impl, delete_image_prompt_draft_impl,
+        export_image_prompt_draft_impl, export_manuscript_impl, import_media_asset_impl,
+        import_snapshot_project_file_impl, link_story_entity_impl, list_image_prompt_drafts_impl,
+        list_media_assets_impl, list_projects_impl, list_story_entities_impl,
+        list_style_presets_impl, list_visual_profiles_impl, load_document_impl,
+        load_story_entity_impl, merge_story_entities_impl, open_workspace_impl,
         prepare_text_generation, preview_ai_context_impl, rename_document_impl,
         reorder_documents_impl, resolve_export_directory, review_text_suggestion_impl,
         save_document_impl, save_visual_profile_impl, update_image_prompt_draft_impl,
@@ -3339,6 +3384,49 @@ mod tests {
         );
         assert_eq!(workspace.documents.len(), 20);
         assert_eq!(list_projects_impl(&state, REQUEST_ID).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn selected_snapshot_file_is_imported_as_a_new_workspace() {
+        let root = tempdir().expect("temporary root should exist");
+        let archive = root.path().join("beispiel.kraqel");
+        fs::write(&archive, EXAMPLE_PROJECT_ARCHIVE).expect("fixture should be writable");
+        let projects = root.path().join("projects");
+        fs::create_dir(&projects).expect("project root should be creatable");
+        let state = AppState {
+            project_root: projects,
+            ai_releases: Mutex::new(HashMap::new()),
+        };
+
+        let workspace = import_snapshot_project_file_impl(&state, REQUEST_ID, &archive)
+            .expect("selected snapshot should create a workspace");
+
+        assert_eq!(
+            workspace.project.name,
+            "Die Stadt, die den Dienstag verkaufte (Beispiel)"
+        );
+        assert_eq!(workspace.documents.len(), 20);
+        assert_eq!(list_projects_impl(&state, REQUEST_ID).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn invalid_selected_snapshot_returns_a_sanitized_error() {
+        let root = tempdir().expect("temporary root should exist");
+        let archive = root.path().join("streng-geheimer-pfad.kraqel");
+        fs::write(&archive, b"kein Snapshot").expect("invalid fixture should be writable");
+        let projects = root.path().join("projects");
+        fs::create_dir(&projects).expect("project root should be creatable");
+        let state = AppState {
+            project_root: projects,
+            ai_releases: Mutex::new(HashMap::new()),
+        };
+
+        let error = import_snapshot_project_file_impl(&state, REQUEST_ID, &archive)
+            .expect_err("invalid snapshot should fail");
+        let serialized = serde_json::to_string(&error).expect("error should serialize");
+
+        assert_eq!(error.code, CommandErrorCode::InvalidRequest);
+        assert!(!serialized.contains("streng-geheimer-pfad"));
     }
 
     #[test]

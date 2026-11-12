@@ -55,8 +55,10 @@ Der Import überschreibt niemals ein vorhandenes Projekt und übernimmt die Proj
 nicht. Jeder Lauf erzeugt eine neue UUID, baut Datenbank, Originale und Vorschaubilder in einem
 Staging-Verzeichnis auf und veröffentlicht das Verzeichnis erst nach erfolgreichem Abschluss atomar.
 Bei einem Fehler bleibt kein sichtbares Teilprojekt zurück. Die Desktopoberfläche verwendet diesen
-Weg derzeit für die eingebettete Beispielvorlage; eine freie Dateiauswahl für externe Archive ist
-noch nicht implementiert.
+Weg sowohl für die eingebettete Beispielvorlage als auch für frei gewählte `.kraqel`- oder
+ZIP-Dateien. Der native Dialog und das Lesen der begrenzten regulären Datei bleiben in Rust; weder
+der absolute Pfad noch Archivbytes werden über IPC an React übertragen. Ein Dialogabbruch liefert
+ein neutrales Ergebnis und legt kein Projekt an.
 
 Git wird im verwalteten Projektordner lokal initialisiert. Eine deny-by-default `.gitignore` gibt
 nur `.gitignore` und `snapshot/**` frei. Add, Status, Diff und Commit erhalten zusätzlich feste

@@ -17,6 +17,7 @@ import {
   renameDocument,
   reviewTextSuggestion,
   importMediaAsset,
+  importSnapshotProject,
   listMediaAssets,
   listVisualProfiles,
   mergeStoryEntities,
@@ -99,6 +100,23 @@ describe("typed Tauri commands", () => {
       project: { id: projectId },
     });
     expect(mockedInvoke).toHaveBeenCalledWith("create_example_project", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: {},
+      },
+    });
+  });
+
+  it("opens native snapshot selection without exposing a path or archive bytes", async () => {
+    mockedInvoke.mockResolvedValue({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: null,
+    });
+
+    await expect(importSnapshotProject()).resolves.toBeNull();
+    expect(mockedInvoke).toHaveBeenCalledWith("import_snapshot_project", {
       request: {
         contractVersion: COMMAND_CONTRACT_VERSION,
         requestId,

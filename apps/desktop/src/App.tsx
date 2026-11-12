@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import {
   createExampleProject,
   createProject,
+  importSnapshotProject,
   listProjects,
   openWorkspace,
   type ProjectOverview,
@@ -68,6 +69,21 @@ export function App() {
     }
   };
 
+  const importSnapshot = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const imported = await importSnapshotProject();
+      if (imported) setWorkspace(imported);
+    } catch {
+      setError(
+        "Das Projektarchiv konnte nicht importiert werden. Unterstützt werden gültige Snapshot-v3-Archive bis 128 MiB.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (workspace) {
     return (
       <EditorWorkspace
@@ -124,6 +140,22 @@ export function App() {
           <p className="muted">
             Eigene Inhalte: CC BY-SA 4.0. Daggerheart-SRD-Anteile: DPCGL 2.0. Kein Download beim
             Anlegen.
+          </p>
+        </section>
+
+        <section className="project-card" aria-labelledby="import-project-heading">
+          <span className="eyebrow">Vorhandenes Projekt</span>
+          <h2 id="import-project-heading">Projektarchiv importieren</h2>
+          <p>
+            Eine Snapshot-v3-Datei sicher als neue lokale Projektkopie öffnen. Das Quellarchiv
+            bleibt unverändert.
+          </p>
+          <button type="button" disabled={busy} onClick={() => void importSnapshot()}>
+            Projektarchiv auswählen
+          </button>
+          <p className="muted">
+            KRAQEL-Archive (.kraqel oder .zip), höchstens 128 MiB. Der Quellpfad bleibt außerhalb
+            der Oberfläche.
           </p>
         </section>
 

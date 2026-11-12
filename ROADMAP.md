@@ -26,7 +26,8 @@
      - [x] Projektgebundenen Exportordner direkt und pfadsicher aus der Oberfläche öffnen
    - [ ] Import und DOCX-Roundtrip
      - [x] Snapshot-v3-Archiv sicher als neues Projekt importieren und Beispielprojekt einbetten
-     - [ ] Frei wählbare Snapshotarchive und Text-/DOCX-Dateien über die Oberfläche importieren
+     - [x] Frei wählbare Snapshotarchive über einen nativen Dialog als neue Projektkopie importieren
+     - [ ] Text-/DOCX-Dateien über die Oberfläche importieren und DOCX-Roundtrip definieren
    - [x] Lokale Medienbibliothek mit Metadaten, Links, Backup und Snapshot-Assets
      - [x] Browser-E2E für PNG-Import, Metadaten und Szenenverknüpfung
      - [x] Medienkarten bei schmalem Fenster und hohem Zoom ohne abgeschnittene Inhalte darstellen
