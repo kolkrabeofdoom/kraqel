@@ -102,6 +102,7 @@ es sehr selbstbewusst kompiliert.
 | `crates/continuity/`         | Offline-Regeln, Quellenanker und Vorschlags-Diff             | KQ-012-Mindestumfang getestet           |
 | `crates/asset-service/`      | Sicherer Asset-Import, Hashes, Pfade, Thumbnails             | KQ-013-Bildumfang getestet              |
 | `docs/architecture/`         | Architekturübersicht, ADRs und Threat Model                  | Verbindliche Entscheidungen             |
+| `docs/release/`              | Releasebau, Artefaktprüfung und Veröffentlichungsablauf      | Windows-0.1-Pfad                        |
 | `docs/specifications/`       | Technisches Pflichtenheft und Abnahmekriterien               | Fachliche Quelle                        |
 | `docs/data-format/`          | Offenes Export- und Command-Format                           | Lokale Verträge dokumentiert            |
 | `examples/`                  | Künstliche Testprojekte und freie Beispielmedien             | Noch leer                               |
@@ -152,6 +153,7 @@ pnpm --filter @kraqel/desktop exec playwright test e2e/accessibility.spec.ts # A
 pnpm test:accessibility:manual:windows # isolierte manuelle Tauri-Randfallprüfung
 pnpm build:installer:test:windows # unsignierten, isolierten Windows-NSIS-Testinstaller bauen
 pnpm test:installer:windows     # Installation, Persistenz und Deinstallation des Testpakets prüfen
+pnpm build:release:windows      # unsignierten Windows-x64-NSIS-Release Candidate samt SHA-256 bauen
 pnpm build:tauri:smoke:windows  # isolierten Windows-Debug-Build für den Desktop-Smoke-Test bauen
 pnpm test:tauri:windows         # echten Tauri-/SQLite-Smoke-Test mit lokalen Treibern ausführen
 pnpm check                      # verbindliche Gesamtprüfung inkl. Rust-Tests
@@ -186,6 +188,15 @@ Datenpfaden. `scripts/windows-installer-smoke.ps1` prüft Installation, HKCU-Reg
 echten Tauri-/SQLite-Persistenzlauf und Deinstallation. Voraussetzungen, sichere Zielpfade und
 Aussagegrenzen stehen in `docs/testing/windows-installer-smoke.md`; Clean-VM, MSI, Signierung,
 Updater und assistive Bedienung gehören nicht zur Aussage dieses Installer-Tests.
+
+Der getrennte Releasepfad verwendet `tauri.release.conf.json` und erzeugt ausschließlich ein
+unsigniertes Windows-x64-NSIS-Paket für das aktuelle Benutzer*innenkonto. WebView2 wird für eine
+netzaunabhängige Installation eingebettet; MSI, Updater, ARM64 und Codesignierung sind ausdrücklich
+nicht Teil von 0.1. `scripts/build-windows-release.ps1` verlangt standardmäßig einen sauberen
+Git-Stand und schreibt Setup, SHA-256 und Buildmanifest unter das ignorierte
+`artifacts/`-Verzeichnis. Verfahren, SmartScreen-Hinweise und Aussagegrenzen stehen in
+`docs/release/windows-unsigned-release.md` und ADR 0018. Ein lokaler Release Candidate ist noch kein
+veröffentlichter oder extern abgenommener Release - auch wenn seine Prüfsumme sehr amtlich schaut.
 
 Die manuelle Accessibility-Randfallprüfung verwendet `tauri.accessibility-test.conf.json`, einen
 eigenen Produktnamen, eine eigene Bundle-ID, temporäre App-Daten und den testexklusiven

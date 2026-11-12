@@ -44,8 +44,10 @@
    - [x] Automatisierte Tastatur-, Fokus- und Accessibility-Prüfung der Kernansichten
    - [x] Manuelle Kern-Hörprüfung mit Windows-Sprachausgabe in der Tauri-WebView
    - [x] Erzwungene Speicherfehleransage und „Bewegung reduzieren“ abnehmen
+   - [ ] Bewusst unsignierten NSIS-Releasepfad mit Offline-WebView2, Prüfsumme und Buildmanifest
+         lokal abnehmen
    - [ ] Installer später auf einem weiteren Windows-Rechner gegenprüfen
-   - [ ] Signierung und Releasepaket abnehmen
+   - [ ] GitHub-Releaseentwurf und heruntergeladenes Releasepaket abnehmen
 
 ## M6 - Version 0.2
 
