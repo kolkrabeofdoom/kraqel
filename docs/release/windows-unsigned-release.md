@@ -84,15 +84,15 @@ vorgesehenen Release-Commit übereinstimmen.
 
 ## Veröffentlichtes Alpha zurückprüfen
 
-KQ-041 veröffentlichte Alpha 3 mit der eingebetteten Beispielvorlage und responsiven Medienkarten
-nach demselben Entwurfs- und Rückdownloadverfahren. Der Tag zeigt auf den geprüften Build-Commit.
-Die drei Assets können in ein neues, ignoriertes Prüfverzeichnis geladen werden:
+KQ-045 veröffentlichte Alpha 4 mit der eingebetteten Beispielvorlage und dem manuell abgenommenen
+Dubletten-Merge nach demselben Entwurfs- und Rückdownloadverfahren. Der Tag zeigt auf den geprüften
+Build-Commit. Die drei Assets können in ein neues, ignoriertes Prüfverzeichnis geladen werden:
 
 ```powershell
-gh release download v0.1.0-alpha.3 --dir artifacts/release-download/v0.1.0-alpha.3
+gh release download v0.1.0-alpha.4 --dir artifacts/release-download/v0.1.0-alpha.4
 pnpm test:release:windows `
-  -ArtifactDirectory artifacts/release-download/v0.1.0-alpha.3 `
-  -ExpectedCommit e3d091771b23b2cfa622495a4f9198b84f34b416
+  -ArtifactDirectory artifacts/release-download/v0.1.0-alpha.4 `
+  -ExpectedCommit 24ceb3c627f94ac6e54f8d11b95a201a8e806eed
 ```
 
 Das Abnahmeskript verlangt exakt Setup, Prüfsummendatei und Buildmanifest. Es prüft SHA-256,
@@ -134,9 +134,9 @@ Dieses Verfahren erzeugt zunächst nur einen privaten Release Candidate. Vor ein
    prüfen; der zurückgestellte Zweitrechnertest kann diesen Nachweis liefern.
 6. Erst nach dokumentierter Abnahme Tag und Release bewusst veröffentlichen.
 
-Für Alpha 1 bis Alpha 3 wurden die Schritte 1 bis 4 ausgeführt und die jeweils unveränderten Pakete
+Für Alpha 1 bis Alpha 4 wurden die Schritte 1 bis 4 ausgeführt und die jeweils unveränderten Pakete
 anschließend auf ausdrückliche Freigabe als Prerelease veröffentlicht. Schritt 5 bleibt offen;
-deshalb ist auch `v0.1.0-alpha.3` kein stabiles Release und darf nicht als vollständige M5-Abnahme
+deshalb ist auch `v0.1.0-alpha.4` kein stabiles Release und darf nicht als vollständige M5-Abnahme
 interpretiert werden.
 
 Ein lokaler Build ersetzt weder die Clean-VM-Abnahme noch die Prüfung des tatsächlich

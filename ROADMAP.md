@@ -56,6 +56,7 @@
    - [x] Geprüftes Artefakt als `v0.1.0-alpha.1`-Prerelease veröffentlichen
    - [x] Alpha 2 mit eingebettetem Beispielprojekt bauen, zurückprüfen und veröffentlichen
    - [x] Alpha 3 mit responsiven Medienkarten bauen, zurückprüfen und veröffentlichen
+   - [x] Alpha 4 mit manuell geprüftem Dubletten-Merge bauen, zurückprüfen und veröffentlichen
 
 ## M6 - Version 0.2
 
