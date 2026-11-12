@@ -165,7 +165,14 @@ h2 {
   list-style: none;
 }
 
-.project-list button {
+.project-list-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: stretch;
+}
+
+.project-list .project-open {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -175,9 +182,18 @@ h2 {
   text-align: left;
 }
 
-.project-list button span {
+.project-list .project-open span {
   color: #0c7772;
   font-size: 0.8rem;
+}
+
+.project-list .project-delete {
+  align-self: end;
+  width: auto;
+  min-width: 6.25rem;
+  padding-inline: 0.7rem;
+  font-size: 0.8rem;
+  text-align: center;
 }
 
 .muted,

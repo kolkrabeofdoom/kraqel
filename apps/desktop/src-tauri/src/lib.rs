@@ -102,6 +102,21 @@ struct ProjectRequest {
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+struct DeleteProjectRequest {
+    project_id: String,
+    confirmed: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ProjectArchiveExportResponse {
+    file_name: String,
+    byte_count: u64,
+    snapshot: SnapshotSummary,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct DocumentRequest {
     project_id: String,
     document_id: String,
@@ -614,6 +629,26 @@ fn create_project(
     require_current_contract(&request)?;
     let data = create_project_impl(&state, request.request_id, request.payload)?;
     Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn delete_project(
+    state: State<'_, AppState>,
+    request: CommandRequest<DeleteProjectRequest>,
+) -> Result<CommandResponse<()>, CommandError> {
+    require_current_contract(&request)?;
+    if !request.payload.confirmed {
+        return Err(CommandError::invalid_request(
+            request.request_id,
+            "Das Löschen des Projekts wurde nicht bestätigt.",
+        ));
+    }
+    delete_project_impl(&state, request.request_id, &request.payload.project_id)?;
+    Ok(CommandResponse::current(request.request_id, ()))
 }
 
 #[tauri::command]
@@ -1710,6 +1745,45 @@ fn create_project_snapshot(
     clippy::needless_pass_by_value,
     reason = "Tauri besitzt Command-Argumente"
 )]
+async fn export_project_archive(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    request: CommandRequest<ProjectRequest>,
+) -> Result<CommandResponse<Option<ProjectArchiveExportResponse>>, CommandError> {
+    require_current_contract(&request)?;
+    parse_project_id(request.request_id, &request.payload.project_id)?;
+    let selected = app
+        .dialog()
+        .file()
+        .add_filter("KRAQEL-Projektarchiv", &["kraqel"])
+        .set_file_name("kraqel-projekt.kraqel")
+        .blocking_save_file();
+    let Some(selected) = selected else {
+        return Ok(CommandResponse::current(request.request_id, None));
+    };
+    let mut path = selected.into_path().map_err(|_| {
+        CommandError::invalid_request(
+            request.request_id,
+            "Das ausgewählte Exportziel ist nicht lokal beschreibbar.",
+        )
+    })?;
+    if path.extension().is_none() {
+        path.set_extension("kraqel");
+    }
+    let data = export_project_archive_file_impl(
+        &state,
+        request.request_id,
+        &request.payload.project_id,
+        &path,
+    )?;
+    Ok(CommandResponse::current(request.request_id, Some(data)))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
 fn validate_project_snapshot(
     state: State<'_, AppState>,
     request: CommandRequest<ProjectRequest>,
@@ -1802,6 +1876,17 @@ fn list_projects_impl(
         .map_err(|error| map_project_error(request_id, &error))
 }
 
+fn delete_project_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    project_id: &str,
+) -> Result<(), CommandError> {
+    let project_id = parse_project_id(request_id, project_id)?;
+    manager(state, request_id)?
+        .delete_project(project_id)
+        .map_err(|error| map_project_error(request_id, &error))
+}
+
 #[allow(
     clippy::needless_pass_by_value,
     reason = "DTO wird an der Servicegrenze übernommen"
@@ -1860,6 +1945,32 @@ fn import_snapshot_project_file_impl(
         .map_err(|error| map_git_error(request_id, &error))?;
     drop(opened);
     open_workspace_impl(state, request_id, &summary.project_id.to_string())
+}
+
+fn export_project_archive_file_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    project_id: &str,
+    destination: &Path,
+) -> Result<ProjectArchiveExportResponse, CommandError> {
+    let archive = with_git_service(
+        state,
+        request_id,
+        project_id,
+        |project, service, database| {
+            service.export_snapshot_archive(database, project, destination)
+        },
+    )?;
+    let file_name = destination
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| CommandError::invalid_request(request_id, "Der Dateiname ist ungültig."))?
+        .to_owned();
+    Ok(ProjectArchiveExportResponse {
+        file_name,
+        byte_count: archive.byte_count,
+        snapshot: archive.snapshot,
+    })
 }
 
 fn open_workspace_impl(
@@ -3221,6 +3332,7 @@ pub fn run() {
             validate_project_name,
             list_projects,
             create_project,
+            delete_project,
             create_example_project,
             import_snapshot_project,
             open_workspace,
@@ -3284,6 +3396,7 @@ pub fn run() {
             reorder_timeline_events,
             link_timeline_event,
             create_project_snapshot,
+            export_project_archive,
             validate_project_snapshot,
             get_version_control_status,
             get_version_control_diff,
@@ -3324,7 +3437,8 @@ mod tests {
         WriteVisualProfileRequest, application_status, compose_image_prompt_impl,
         create_document_impl, create_example_project_impl, create_image_prompt_draft_impl,
         create_project_impl, delete_document_impl, delete_image_prompt_draft_impl,
-        export_image_prompt_draft_impl, export_manuscript_impl, import_media_asset_impl,
+        delete_project_impl, export_image_prompt_draft_impl, export_manuscript_impl,
+        export_project_archive_file_impl, import_media_asset_impl,
         import_snapshot_project_file_impl, link_story_entity_impl, list_image_prompt_drafts_impl,
         list_media_assets_impl, list_projects_impl, list_story_entities_impl,
         list_style_presets_impl, list_visual_profiles_impl, load_document_impl,
@@ -3384,6 +3498,45 @@ mod tests {
         );
         assert_eq!(workspace.documents.len(), 20);
         assert_eq!(list_projects_impl(&state, REQUEST_ID).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn project_archive_export_and_confirmed_deletion_stay_server_side() {
+        let root = tempdir().expect("temporary root should exist");
+        let projects = root.path().join("projects");
+        fs::create_dir(&projects).expect("project root should be creatable");
+        let state = AppState {
+            project_root: projects,
+            ai_releases: Mutex::new(HashMap::new()),
+        };
+        let workspace = create_example_project_impl(&state, REQUEST_ID).unwrap();
+        let destination = root.path().join("portable-kopie.kraqel");
+
+        let exported = export_project_archive_file_impl(
+            &state,
+            REQUEST_ID,
+            &workspace.project.id.to_string(),
+            &destination,
+        )
+        .expect("archive should export");
+        let serialized = serde_json::to_string(&exported).expect("result should serialize");
+
+        assert!(destination.is_file());
+        assert_eq!(exported.file_name, "portable-kopie.kraqel");
+        assert!(exported.byte_count > 0);
+        assert!(!serialized.contains(root.path().to_string_lossy().as_ref()));
+
+        let imported = import_snapshot_project_file_impl(&state, REQUEST_ID, &destination)
+            .expect("exported example archive should import");
+        assert_ne!(imported.project.id, workspace.project.id);
+        assert_eq!(list_projects_impl(&state, REQUEST_ID).unwrap().len(), 2);
+
+        delete_project_impl(&state, REQUEST_ID, &workspace.project.id.to_string())
+            .expect("project should be deleted");
+        assert_eq!(list_projects_impl(&state, REQUEST_ID).unwrap().len(), 1);
+        delete_project_impl(&state, REQUEST_ID, &imported.project.id.to_string())
+            .expect("imported copy should be deleted");
+        assert_eq!(list_projects_impl(&state, REQUEST_ID).unwrap(), Vec::new());
     }
 
     #[test]

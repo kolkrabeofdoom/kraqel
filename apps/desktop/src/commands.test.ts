@@ -10,6 +10,7 @@ import {
   createImagePromptDraft,
   createStoryEntity,
   deleteDocument,
+  deleteProject,
   reorderPlotCards,
   reorderDocuments,
   getApplicationStatus,
@@ -18,6 +19,7 @@ import {
   reviewTextSuggestion,
   importMediaAsset,
   importSnapshotProject,
+  exportProjectArchive,
   listMediaAssets,
   listVisualProfiles,
   mergeStoryEntities,
@@ -121,6 +123,42 @@ describe("typed Tauri commands", () => {
         contractVersion: COMMAND_CONTRACT_VERSION,
         requestId,
         payload: {},
+      },
+    });
+  });
+
+  it("exports a project archive through native selection without exposing a destination", async () => {
+    const projectId = requestId as ProjectId;
+    mockedInvoke.mockResolvedValue({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: null,
+    });
+
+    await expect(exportProjectArchive(projectId)).resolves.toBeNull();
+    expect(mockedInvoke).toHaveBeenCalledWith("export_project_archive", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: { projectId },
+      },
+    });
+  });
+
+  it("sends an explicit deletion confirmation for exactly one project", async () => {
+    const projectId = requestId as ProjectId;
+    mockedInvoke.mockResolvedValue({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: null,
+    });
+
+    await expect(deleteProject(projectId)).resolves.toBeUndefined();
+    expect(mockedInvoke).toHaveBeenCalledWith("delete_project", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: { projectId, confirmed: true },
       },
     });
   });

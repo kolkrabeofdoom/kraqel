@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import {
   createExampleProject,
   createProject,
+  deleteProject,
   importSnapshotProject,
   listProjects,
   openWorkspace,
@@ -16,6 +17,7 @@ export function App() {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<ProjectOverview["id"] | null>(null);
 
   const refreshProjects = async () => {
     try {
@@ -46,12 +48,32 @@ export function App() {
   };
 
   const open = async (project: ProjectOverview) => {
+    setPendingDeleteId(null);
     setBusy(true);
     setError(null);
     try {
       setWorkspace(await openWorkspace(project.id));
     } catch {
       setError("Das Projekt konnte nicht geöffnet werden.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeProject = async (project: ProjectOverview) => {
+    if (pendingDeleteId !== project.id) {
+      setPendingDeleteId(project.id);
+      setError(null);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await deleteProject(project.id);
+      setPendingDeleteId(null);
+      await refreshProjects();
+    } catch {
+      setError("Das Projekt konnte nicht gelöscht werden.");
     } finally {
       setBusy(false);
     }
@@ -168,10 +190,30 @@ export function App() {
             <ul className="project-list">
               {projects.map((project) => (
                 <li key={project.id}>
-                  <button type="button" disabled={busy} onClick={() => void open(project)}>
-                    <strong>{project.name}</strong>
-                    <span>Öffnen</span>
-                  </button>
+                  <div className="project-list-item">
+                    <button
+                      type="button"
+                      className="project-open"
+                      disabled={busy}
+                      onClick={() => void open(project)}
+                    >
+                      <strong>{project.name}</strong>
+                      <span>Öffnen</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`project-delete secondary ${pendingDeleteId === project.id ? "danger" : ""}`}
+                      disabled={busy}
+                      aria-label={
+                        pendingDeleteId === project.id
+                          ? `${project.name} wirklich löschen`
+                          : `${project.name} löschen`
+                      }
+                      onClick={() => void removeProject(project)}
+                    >
+                      {pendingDeleteId === project.id ? "Wirklich löschen?" : "Löschen"}
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>

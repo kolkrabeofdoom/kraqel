@@ -60,6 +60,14 @@ ZIP-Dateien. Der native Dialog und das Lesen der begrenzten regulären Datei ble
 der absolute Pfad noch Archivbytes werden über IPC an React übertragen. Ein Dialogabbruch liefert
 ein neutrales Ergebnis und legt kein Projekt an.
 
+Der Export über **Versionen → Projektarchiv exportieren** erzeugt unmittelbar zuvor einen aktuellen
+Snapshot v3 und packt dessen reguläre Dateien in stabiler Pfadreihenfolge ohne Verzeichniseinträge.
+Unkomprimierte Summe, Dateianzahl und fertiger Container müssen innerhalb derselben Importgrenzen
+liegen. Geschrieben wird zunächst in eine synchronisierte temporäre Geschwisterdatei; ein bereits
+bestätigtes reguläres Ziel wird über eine rücksetzbare Vorgängerdatei ersetzt. Symlinks und
+Nicht-Dateien sind keine zulässigen Ziele. React erhält nur Dateiname, Bytegröße und
+Snapshotzusammenfassung, niemals Zielpfad oder Archivbytes.
+
 Git wird im verwalteten Projektordner lokal initialisiert. Eine deny-by-default `.gitignore` gibt
 nur `.gitignore` und `snapshot/**` frei. Add, Status, Diff und Commit erhalten zusätzlich feste
 Pfadangaben; Git-System- und Nutzer*innenkonfiguration, Hooks, externe Diffs, Signaturzwang und

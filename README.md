@@ -234,6 +234,10 @@ KI-basierte Kontinuitätshinweise sind geplant, aber nicht implementiert.
 - Streng begrenzter `.kraqel`-/ZIP-Import als stets neues Projekt mit neuer UUID.
 - Native Auswahl externer Projektarchive ohne Weitergabe von Pfad oder Archivbytes an React. Ein
   abgebrochener Dialog verändert weder Projektliste noch Fehlermeldung.
+- Nativer `.kraqel`-Export eines unmittelbar zuvor erzeugten, validierten Snapshot v3; Zielpfad und
+  Archivbytes bleiben außerhalb von React.
+- Zweistufig bestätigte Löschung lokaler Projekte auf der Startseite mit erneuter UUID-Prüfung in
+  Rust. Löschen ist endgültig; Archive und Sicherungen sollten vorher bewusst angelegt werden.
 
 ### Optionale Text-KI
 

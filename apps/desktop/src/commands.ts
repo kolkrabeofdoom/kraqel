@@ -108,6 +108,12 @@ export interface SnapshotSummary {
   readonly byteCount: number;
 }
 
+export interface ProjectArchiveExportResult {
+  readonly fileName: string;
+  readonly byteCount: number;
+  readonly snapshot: SnapshotSummary;
+}
+
 export interface VersionControlStatus {
   readonly initialized: boolean;
   readonly clean: boolean;
@@ -238,6 +244,13 @@ export async function createExampleProject(): Promise<Workspace> {
     {},
   );
   return response.data;
+}
+
+export async function deleteProject(projectId: ProjectId): Promise<void> {
+  await callCommand<{ readonly projectId: ProjectId; readonly confirmed: true }, null>(
+    "delete_project",
+    { projectId, confirmed: true },
+  );
 }
 
 export async function importSnapshotProject(): Promise<Workspace | null> {
@@ -978,6 +991,17 @@ export async function createProjectSnapshot(projectId: ProjectId): Promise<Snaps
   return (
     await callCommand<{ readonly projectId: ProjectId }, SnapshotSummary>(
       "create_project_snapshot",
+      { projectId },
+    )
+  ).data;
+}
+
+export async function exportProjectArchive(
+  projectId: ProjectId,
+): Promise<ProjectArchiveExportResult | null> {
+  return (
+    await callCommand<{ readonly projectId: ProjectId }, ProjectArchiveExportResult | null>(
+      "export_project_archive",
       { projectId },
     )
   ).data;

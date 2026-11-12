@@ -358,6 +358,33 @@ impl ProjectManager {
         })
     }
 
+    /// Löscht genau ein über seine UUID adressiertes, geprüftes Projektverzeichnis.
+    ///
+    /// Vor der destruktiven Operation müssen Verzeichnisname und gespeicherte Projektkennung
+    /// übereinstimmen. Symbolische Links und Pfade außerhalb der verwalteten Wurzel werden durch
+    /// denselben Auflösungspfad wie beim Öffnen abgelehnt.
+    ///
+    /// # Errors
+    /// Liefert einen Fehler, wenn das Projekt fehlt, unsicher oder beschädigt ist oder das
+    /// Verzeichnis nicht vollständig entfernt werden kann.
+    pub fn delete_project(&self, project_id: kraqel_domain::ProjectId) -> Result<(), ProjectError> {
+        let opened = self.open_project(project_id.to_string())?;
+        let stored_id: String =
+            opened
+                .database()
+                .connection()
+                .query_row("SELECT id FROM project", [], |row| row.get(0))?;
+        if kraqel_domain::ProjectId::parse(&stored_id) != Some(project_id) {
+            return Err(ProjectError::InvalidProjectMetadata);
+        }
+        let directory = opened.directory().to_path_buf();
+        drop(opened);
+        fs::remove_dir_all(directory).map_err(|source| ProjectError::Io {
+            operation: "Projekt löschen",
+            source,
+        })
+    }
+
     /// Erzeugt eine konsistente Sicherung und veröffentlicht sie atomar unter `backups/`.
     ///
     /// `backup_name` ist ein einzelner Dateiname ohne Erweiterung. Eine vorhandene Sicherung wird
@@ -1011,6 +1038,43 @@ mod tests {
         manager
             .open_project(&relative)
             .expect("project should reopen");
+    }
+
+    #[test]
+    fn deletes_only_a_project_with_matching_directory_and_stored_id() {
+        let root = tempdir().expect("temporary root should exist");
+        let manager = ProjectManager::new(root.path()).expect("manager should open");
+        let doomed = project("Vergängliche Republik");
+        let directory = root.path().join(doomed.id.to_string());
+        drop(
+            manager
+                .create_project(doomed.id.to_string(), &doomed)
+                .expect("project should be created"),
+        );
+
+        manager
+            .delete_project(doomed.id)
+            .expect("matching project should be deleted");
+
+        assert!(!directory.exists());
+        assert_eq!(manager.list_projects().unwrap(), Vec::new());
+
+        let mismatched_directory_id = ProjectId::new();
+        let mismatched = project("Nicht die erwartete Kennung");
+        drop(
+            manager
+                .create_project(mismatched_directory_id.to_string(), &mismatched)
+                .expect("mismatched fixture should be created"),
+        );
+        assert!(matches!(
+            manager.delete_project(mismatched_directory_id),
+            Err(ProjectError::InvalidProjectMetadata)
+        ));
+        assert!(
+            root.path()
+                .join(mismatched_directory_id.to_string())
+                .is_dir()
+        );
     }
 
     #[test]
