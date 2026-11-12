@@ -18,6 +18,7 @@ import {
   renameDocument,
   reviewTextSuggestion,
   importMediaAsset,
+  importTextDocument,
   importSnapshotProject,
   exportProjectArchive,
   listMediaAssets,
@@ -123,6 +124,25 @@ describe("typed Tauri commands", () => {
         contractVersion: COMMAND_CONTRACT_VERSION,
         requestId,
         payload: {},
+      },
+    });
+  });
+
+  it("opens native text selection without exposing a path or file bytes", async () => {
+    const projectId = requestId as ProjectId;
+    const parentId = "018f47ea-9b2d-7cc1-98e8-b5f4f6b741a3" as EntityId;
+    mockedInvoke.mockResolvedValue({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: null,
+    });
+
+    await expect(importTextDocument(projectId, parentId)).resolves.toBeNull();
+    expect(mockedInvoke).toHaveBeenCalledWith("import_text_document", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: { projectId, parentId },
       },
     });
   });

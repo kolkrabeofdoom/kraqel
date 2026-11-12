@@ -74,6 +74,20 @@ Pfadangaben; Git-System- und Nutzer*innenkonfiguration, Hooks, externe Diffs, Si
 interaktive Prompts werden für diese Operationen deaktiviert. Insbesondere bleiben `kraqel.sqlite3`,
 WAL-/SHM-Dateien, `backups/`, Schlüssel und temporäre Dateien unversioniert.
 
+## UTF-8-/Markdown-Import
+
+Die Manuskriptansicht kann `.txt`, `.md` und `.markdown` über einen nativen Dialog als neue Szene
+unter einem gewählten Kapitel importieren. Rust akzeptiert ausschließlich unverknüpfte reguläre
+Dateien bis 2 MiB, deren Größe sich zwischen Metadatenprüfung und Lesen nicht ändert. Inhalt muss
+gültiges UTF-8 ohne NUL-Byte sein. Pfad und Bytes verlassen die Rust-Grenze nicht.
+
+TXT wird an Leerzeilen in Absätze getrennt; einzelne Zeilenumbrüche werden als `hardBreak`
+gespeichert. Markdown bildet Blocküberschriften der Ebenen 1 bis 6, Zitate, ungeordnete und
+geordnete Listen sowie umschlossene Codeblöcke ab. Inline-Markdown und unbekannte Konstrukte bleiben
+als sichtbarer Text erhalten. Der begrenzte Dateistamm wird zum editierbaren Szenentitel. Knoten,
+Inhalt, Klartextindex und Position entstehen atomar; ein Abbruch oder Fehler schreibt nichts. DOCX
+und Format-Roundtrips gehören nicht zu diesem Vertrag.
+
 ## Lokales SQLite-Schema und Migrationsstand
 
 Die autoritative lokale Datenbank besitzt die Tabellen `project`, `document`, `entity`, `relation`

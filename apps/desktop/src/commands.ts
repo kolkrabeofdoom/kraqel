@@ -274,6 +274,17 @@ export async function createDocument(input: CreateDocumentInput): Promise<Docume
   return response.data;
 }
 
+export async function importTextDocument(
+  projectId: ProjectId,
+  parentId: EntityId,
+): Promise<DocumentNode | null> {
+  const response = await callCommand<
+    { readonly projectId: ProjectId; readonly parentId: EntityId },
+    DocumentNode | null
+  >("import_text_document", { projectId, parentId });
+  return response.data;
+}
+
 export async function loadDocument(
   projectId: ProjectId,
   documentId: EntityId,

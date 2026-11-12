@@ -131,6 +131,13 @@ als Bytearray; die 25-MiB-Grenze gilt in Oberfläche und Rust, verhindert aber n
 Mehrfachbelegung beim Deserialisieren. Ein nativer Streamingimport ist vor wesentlich größeren
 Einzeldateien oder Massenuploads neu zu bewerten.
 
+Der native Textimport begrenzt `.txt`/`.md`/`.markdown` auf 2 MiB, reguläre unverknüpfte Dateien,
+stabile Dateilänge, UTF-8 und NUL-Freiheit. Pfad und Bytes bleiben in Rust; die Veröffentlichung von
+Szenenknoten und Editorinhalt ist transaktional. Zwischen Metadatenprüfung und Lesen bleibt ein
+plattformübergreifendes TOCTOU-Restfenster. Unbekannte Markdown-Syntax wird sichtbar übernommen,
+aber nicht als aktives HTML interpretiert; beliebige CommonMark-Erweiterungen sind nicht Teil des
+Vertrags.
+
 Der Windows-0.1-Releasepfad ist bewusst unsigniert. SHA-256 erkennt Änderungen nur gegenüber einem
 vertrauenswürdig bezogenen Sollwert und stellt keine Herausgeber*innenidentität her. Werden Setup,
 Manifest und Prüfsumme über denselben kompromittierten Kanal ersetzt, bleibt die Manipulation damit

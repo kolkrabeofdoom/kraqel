@@ -59,3 +59,27 @@ test("Projekt, Autosave und Dokumentbaum bleiben über Wiederöffnen konsistent"
     secondChapter.getByRole("button", { name: "Zwischenspiel", exact: true }),
   ).toBeVisible();
 });
+
+test("Textimport ergänzt eine editierbare Szene und behandelt Abbruch neutral", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByLabel("Projektname").fill("Import und die Kunst des Ankommens");
+  await page.getByRole("button", { name: "Projekt anlegen" }).click();
+  const chapter = page.locator(".tree-chapter").filter({ hasText: "Kapitel 1" });
+
+  await chapter.getByRole("button", { name: "Import: Textdatei in Kapitel 1" }).click();
+  await expect(page.getByRole("textbox", { name: "Text von importierte-szene" })).toContainText(
+    "Importierter Text",
+  );
+  await chapter.getByRole("button", { name: "Umbenennen" }).last().click();
+  await chapter.getByLabel("Neuer Titel für importierte-szene").fill("Ankunft");
+  await chapter.getByRole("button", { name: "Speichern" }).click();
+  await expect(chapter.getByRole("button", { name: "Ankunft", exact: true })).toBeVisible();
+
+  await page.evaluate(() => localStorage.setItem("kraqel-e2e-cancel-text-import", "1"));
+  const scenesBeforeCancel = await chapter.locator(".scene-row").count();
+  await chapter.getByRole("button", { name: "Import: Textdatei in Kapitel 1" }).click();
+  await expect(chapter.locator(".scene-row")).toHaveCount(scenesBeforeCancel);
+  await expect(page.getByText(/konnte nicht importiert werden/i)).toHaveCount(0);
+});
