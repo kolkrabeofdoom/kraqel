@@ -113,8 +113,10 @@ geprüft werden. SmartScreen-Warnungen sind erwartbar; testende Personen dürfen
 und Hashprüfung bewusst übergehen. Eine spätere breitere Verteilung erfordert eine erneute Bewertung
 von Signierung und unabhängiger Prüfsummenveröffentlichung.
 
-Der private GitHub-Entwurf und sein Rückdownload verringern Verwechslungs- und Uploadfehler, lösen
-aber nicht das Risiko eines vollständig kompromittierten GitHub-Kontos oder Kanals. Die lokale
+Der GitHub-Entwurf und sein Rückdownload verringern Verwechslungs- und Uploadfehler, lösen aber
+nicht das Risiko eines vollständig kompromittierten GitHub-Kontos oder Kanals. KQ-037 veröffentlicht
+das unveränderte Artefakt bewusst als Alpha-Prerelease; Release Notes, Unsigned-Warnung und SHA-256
+reduzieren Fehlannahmen, ersetzen aber weder Signatur noch unabhängigen Vertrauenskanal. Die lokale
 KQ-036-Installation startet die Anwendung absichtlich nicht, weil auf dem Entwicklungsrechner reale
 KRAQEL-App-Daten vorhanden sind. SmartScreen, Erststart und Persistenz müssen deshalb weiterhin in
 einer Umgebung ohne schützenswerte Bestandsdaten geprüft werden.
