@@ -88,6 +88,24 @@ function Test-EmbeddedAuthenticodeSignature {
     }
 }
 
+function Get-Sha256Hex {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    $algorithm = [Security.Cryptography.SHA256]::Create()
+    $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+    try {
+        $hash = $algorithm.ComputeHash($stream)
+        return [BitConverter]::ToString($hash).Replace('-', '').ToLowerInvariant()
+    }
+    finally {
+        $stream.Dispose()
+        $algorithm.Dispose()
+    }
+}
+
 if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
     throw 'The KRAQEL Windows release must be built on Windows.'
 }
@@ -172,7 +190,7 @@ try {
     New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
     Copy-Item -LiteralPath $sourceInstaller -Destination $artifactPath -Force:$Overwrite
     $artifact = Get-Item -LiteralPath $artifactPath
-    $sha256 = (Get-FileHash -LiteralPath $artifactPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $sha256 = Get-Sha256Hex -Path $artifactPath
     Set-Content -LiteralPath $checksumPath -Value "$sha256  $artifactName" -Encoding ascii
 
     $manifest = [ordered]@{
@@ -212,7 +230,7 @@ try {
     }
     $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $manifestPath -Encoding utf8
 
-    $verifiedHash = (Get-FileHash -LiteralPath $artifactPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $verifiedHash = Get-Sha256Hex -Path $artifactPath
     if ($verifiedHash -ne $sha256) {
         throw 'The staged artifact changed while its release metadata was being written.'
     }

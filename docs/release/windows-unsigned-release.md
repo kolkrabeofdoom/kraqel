@@ -65,7 +65,14 @@ Im Artefaktverzeichnis:
 
 ```powershell
 $expected = (Get-Content .\KRAQEL_0.1.0_windows-x64-SHA256SUMS.txt).Split(' ')[0]
-$actual = (Get-FileHash .\KRAQEL_0.1.0_windows-x64-setup.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+$sha256 = [Security.Cryptography.SHA256]::Create()
+$stream = [IO.File]::OpenRead((Resolve-Path .\KRAQEL_0.1.0_windows-x64-setup.exe))
+try {
+  $actual = [BitConverter]::ToString($sha256.ComputeHash($stream)).Replace('-', '').ToLowerInvariant()
+} finally {
+  $stream.Dispose()
+  $sha256.Dispose()
+}
 if ($actual -ne $expected) { throw 'SHA-256 stimmt nicht überein.' }
 ```
 
