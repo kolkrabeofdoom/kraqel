@@ -2,7 +2,7 @@
 
 Stand: 12. November 2026
 
-Code-Referenz: KQ-051/KQ-052 (Issues #99/#100)
+Code-Referenz: KQ-053 (Issue #102)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -59,11 +59,17 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   ihn deterministisch innerhalb der Importgrenzen und veröffentlicht das Archiv über eine temporäre
   Geschwisterdatei. Zielpfad und Bytes bleiben in Rust. Rust belegt Byte-Stabilität und
   erfolgreichen Neuimport; Command- und Browsertests belegen datenarme Antwort und neutralen
-  Dialogabbruch. Der echte native Windows-Speicherdialog ist noch manuell zu prüfen.
+  Dialogabbruch. Der echte native Windows-Speicherdialog und ein erfolgreicher Export wurden am 12.
+  November 2026 manuell bestätigt.
 - KQ-052 ergänzt die endgültige Projektlöschung auf der Startseite. Die UI verlangt einen zweiten
   konkreten Klick, der Command ein Bestätigungsflag und der `ProjectManager` übereinstimmende UUIDs
   in Verzeichnis und Datenbank. Rust-, Command-, Browser- und Accessibility-Tests decken den Ablauf
   ab; eine Wiederherstellung nach bestätigter Löschung ist absichtlich nicht implementiert.
+- KQ-053 behebt den im echten Windows-Test gefundenen Git-Fehler `Filename too long` bei
+  SHA-256-Assets unter dem langen App-Datenpfad. Jeder kontrollierte Git-Prozess erhält nun lokal
+  `-c core.longpaths=true`; globale und systemweite Konfiguration bleiben unangetastet. Ein
+  Windows-Regressionslauf mit einem Snapshotpfad über 260 Zeichen sowie der reale Snapshot- und
+  Archivexport sind erfolgreich.
 - Playwright mit Chromium und einem testexklusiven Browser-Command-Adapter für M1, Story-Bibel,
   Plotboard, Timelines, Medien, visuelle Profile, Kontinuität, Bildprompt-Builder, Versionen und
   Export sowie die eingebettete Beispielvorlage; die CI führt fachlich getrennte Abläufe unter
@@ -722,8 +728,8 @@ sind erst vor Version 0.2 zu klären.
 
 Empfohlener, überprüfbarer Scope:
 
-1. Den echten nativen `.kraqel`-Speicherdialog unter Windows kurz mit Export, Abbruch und
-   anschließendem Neuimport prüfen.
+1. Die zweistufige Projektlöschung mit einer entbehrlichen Kopie in der echten Windows-App kurz
+   manuell bestätigen.
 2. Ziel, Formatierungsmenge und Konfliktverhalten für UTF-8-Text-/Markdown-Import festlegen und als
    kleinsten vertikalen Ablauf implementieren.
 3. DOCX-Einleseumfang und Roundtrip-Garantien getrennt spezifizieren, bevor ein Parser gewählt wird.
@@ -753,6 +759,6 @@ abgenommenen KQ-044-Dubletten-Merge als Alpha 4 und belegt die Bytegleichheit de
 Rückdownloads. KQ-050 ergänzt den frei gewählten, nativen Snapshotimport ohne Pfad- oder
 Archivbyte-IPC; gültiger Import, Abbruch und ungültige Datei sind im echten Windows-Dialog manuell
 bestätigt. KQ-051 ergänzt den nativen, begrenzten `.kraqel`-Export; KQ-052 die zweistufig bestätigte
-Projektlöschung. Als Nächstes folgen die kurze manuelle Windows-Abnahme des Speicherdialogs und der
-eng definierte Textimport; die bewusst zurückgestellte Zweitrechner- oder Clean-VM-Abnahme bleibt
-offen.
+Projektlöschung. KQ-053 aktiviert Git-Langpfade pro internem Prozess; der reale Windows-Snapshot-
+und Archivexport sind bestätigt. Als Nächstes folgen die kurze manuelle Löschabnahme und der eng
+definierte Textimport; die bewusst zurückgestellte Zweitrechner- oder Clean-VM-Abnahme bleibt offen.

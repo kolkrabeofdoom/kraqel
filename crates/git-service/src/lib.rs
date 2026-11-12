@@ -686,6 +686,7 @@ impl<'project> GitService<'project> {
 
     fn run_git_optional(&self, arguments: &[&str]) -> Result<Option<Output>, GitServiceError> {
         let output = Command::new("git")
+            .args(["-c", "core.longpaths=true"])
             .args(arguments)
             .current_dir(self.project_directory)
             .env("GIT_TERMINAL_PROMPT", "0")
@@ -1622,6 +1623,40 @@ mod tests {
         let tracked = super::output_text(&service.run_git(&["ls-files"]).unwrap()).unwrap();
         assert!(!tracked.contains("sqlite"));
         assert!(!tracked.contains("backups"));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn snapshot_git_supports_long_windows_project_paths() {
+        let root = tempdir().unwrap();
+        let manager = ProjectManager::new(root.path()).unwrap();
+        let id = ProjectId::new();
+        let project = Project {
+            id,
+            name: "Langer Pfad, kurzer Prozess".to_owned(),
+            schema_version: CURRENT_SCHEMA_VERSION,
+        };
+        let suffix = format!("-{id}");
+        let padding = 220_usize.saturating_sub(root.path().as_os_str().len() + 1 + suffix.len());
+        let directory_name = format!("{}{suffix}", "x".repeat(padding));
+        let opened = manager.create_project(&directory_name, &project).unwrap();
+        opened.database().connection().execute(
+            "INSERT INTO document (id, project_id, parent_id, kind, title, position, revision, content_json, plain_text, created_at, updated_at) VALUES (?1, ?2, NULL, 'chapter', 'Kapitel', 0, 0, ?3, '', 'a', 'b')",
+            rusqlite::params![EntityId::new().to_string(), id.to_string(), r#"{"version":1,"document":{"type":"doc","content":[]}}"#],
+        ).unwrap();
+        let manuscript_path_length = opened
+            .directory()
+            .join("snapshot/manuscript")
+            .join(format!("{}.md", EntityId::new()))
+            .as_os_str()
+            .len();
+        assert!(manuscript_path_length > 260);
+
+        let service = GitService::new(opened.directory());
+        service
+            .create_snapshot(opened.database(), id)
+            .expect("per-command core.longpaths should allow staging the snapshot");
+        assert!(service.status().unwrap().initialized);
     }
 
     #[test]
