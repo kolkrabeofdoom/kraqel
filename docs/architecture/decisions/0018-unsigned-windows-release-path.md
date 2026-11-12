@@ -53,6 +53,9 @@ konkreten Ergebnisses aufgezeichnet.
   isolierte Installation und Deinstallation. Vollständig abgenommen ist der Release Candidate erst
   nach Anwendungsstart, SmartScreen- und Persistenzprüfung auf einer Clean-VM oder einem
   Zweitrechner.
+- KQ-037 veröffentlicht exakt dieses unveränderte Artefakt als klar gekennzeichnetes
+  `v0.1.0-alpha.1`-Prerelease. Die Alpha-Kennzeichnung, Release Notes und Prüfsumme machen den
+  unfertigen Status sichtbar; sie heben die offenen Abnahmerisiken nicht auf.
 
 ## Evidenz
 

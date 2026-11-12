@@ -79,19 +79,19 @@ if ($actual -ne $expected) { throw 'SHA-256 stimmt nicht überein.' }
 Bei einer Abweichung darf das Setup nicht gestartet werden. Eine passende Prüfsumme belegt nur, dass
 Setup und veröffentlichter Hash zusammengehören. Werden beide über denselben kompromittierten Kanal
 ersetzt, stellt SHA-256 keine Herausgeber*innenidentität her. Deshalb müssen Release-Asset, Manifest
-und Prüfsumme aus dem privaten KRAQEL-GitHub-Repository stammen und der Quellcommit muss mit dem
+und Prüfsumme aus dem offiziellen KRAQEL-GitHub-Repository stammen und der Quellcommit muss mit dem
 vorgesehenen Release-Commit übereinstimmen.
 
-## Privaten GitHub-Entwurf zurückprüfen
+## Veröffentlichtes Alpha zurückprüfen
 
-KQ-036 verwendet den unveröffentlichten, als Prerelease markierten Entwurf `v0.1.0-rc.1`. Ein
-Releaseentwurf erzeugt noch keinen veröffentlichten Git-Tag. Die drei Assets werden in ein neues,
-ignoriertes Prüfverzeichnis geladen:
+KQ-036 prüfte zunächst den privaten Entwurf. KQ-037 veröffentlichte dieselben unveränderten Assets
+als klar markiertes Prerelease `v0.1.0-alpha.1`; der gleichnamige Tag zeigt auf den geprüften
+Build-Commit. Die drei Assets können in ein neues, ignoriertes Prüfverzeichnis geladen werden:
 
 ```powershell
-gh release download v0.1.0-rc.1 --dir artifacts/release-download/v0.1.0-rc.1
+gh release download v0.1.0-alpha.1 --dir artifacts/release-download/v0.1.0-alpha.1
 pnpm test:release:windows `
-  -ArtifactDirectory artifacts/release-download/v0.1.0-rc.1 `
+  -ArtifactDirectory artifacts/release-download/v0.1.0-alpha.1 `
   -ExpectedCommit 5155ed5282cf217c9214cdd0426152ed7c5b8163
 ```
 
@@ -133,6 +133,11 @@ Dieses Verfahren erzeugt zunächst nur einen privaten Release Candidate. Vor ein
 5. Start, Projektpersistenz, SmartScreen und Deinstallation auf einer sauberen Windows-x64-Umgebung
    prüfen; der zurückgestellte Zweitrechnertest kann diesen Nachweis liefern.
 6. Erst nach dokumentierter Abnahme Tag und Release bewusst veröffentlichen.
+
+Für Alpha 1 wurden die Schritte 1 bis 4 ausgeführt und das unveränderte Paket anschließend auf
+ausdrückliche Freigabe als Prerelease veröffentlicht. Schritt 5 bleibt offen; deshalb ist
+`v0.1.0-alpha.1` kein stabiles Release und darf nicht als vollständige M5-Abnahme interpretiert
+werden.
 
 Ein lokaler Build ersetzt weder die Clean-VM-Abnahme noch die Prüfung des tatsächlich
 heruntergeladenen GitHub-Artefakts. Hashes sind nützlich, aber sie tragen keine kleinen Roben und

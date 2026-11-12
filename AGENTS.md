@@ -79,7 +79,9 @@ Aktuell im Repository und verifiziert:
   KQ-035 ergänzt einen lokal geprüften, bewusst unsignierten Windows-x64-Release Candidate mit
   Offline-WebView2, SHA-256 und Buildmanifest. KQ-036 belegt privaten GitHub-Entwurf, Rückdownload,
   Prüfsummenabgleich sowie isolierte Installation und Deinstallation; Anwendungsstart, SmartScreen
-  und Persistenz auf einem zweiten Rechner beziehungsweise einer Clean-VM bleiben offen.
+  und Persistenz auf einem zweiten Rechner beziehungsweise einer Clean-VM bleiben offen. KQ-037
+  veröffentlicht dasselbe geprüfte Artefakt als `v0.1.0-alpha.1`-Prerelease; es ist ausdrücklich
+  kein stabiles 0.1.0.
 
 Im Pflichtenheft vorgesehen, aber noch **nicht implementiert oder installiert**: Tailwind, React
 Flow, dnd-kit, KI-basierte Kontinuitätshinweise und produktive Bildgenerierung. Ollama und

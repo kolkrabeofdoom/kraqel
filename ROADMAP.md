@@ -49,6 +49,7 @@
    - [ ] Installer später auf einem weiteren Windows-Rechner gegenprüfen
    - [x] Privaten GitHub-Releaseentwurf, Rückdownload sowie isolierte Installation und
          Deinstallation abnehmen
+   - [x] Geprüftes Artefakt als `v0.1.0-alpha.1`-Prerelease veröffentlichen
 
 ## M6 - Version 0.2
 
