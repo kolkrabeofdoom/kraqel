@@ -172,6 +172,9 @@ wenn sie sehr würdevoll kompiliert.
 - Verknüpfungen zwischen Szenen und Story-Bibel-Einträgen.
 - Rückverweise aus der Story-Bibel in das Manuskript.
 - Referenzsichere Lösch- und Kaskadenregeln in SQLite.
+- Bewusstes Zusammenführen doppelter Einträge derselben Art mit Konfliktvorschau.
+- Atomare Übernahme von Szenen-, Beziehungs-, Timeline-, POV-, Medien- und Profilreferenzen; bei
+  zwei vorhandenen visuellen Profilen wird ohne Datenänderung abgebrochen.
 
 ### Plotboard und Timelines
 
@@ -473,7 +476,7 @@ Die verbindliche Standardkette `pnpm check` umfasst:
 
 Zusätzlich existieren:
 
-- 15 getrennte Playwright-Browser-E2E-Abläufe,
+- 16 getrennte Playwright-Browser-E2E-Abläufe,
 - Windows- und Ubuntu-CI,
 - ein echter Windows-Tauri-Smoke-Test für Start, IPC, Projektanlage, Autosave, SQLite und
   Wiederöffnen,

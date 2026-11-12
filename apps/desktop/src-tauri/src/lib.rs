@@ -294,6 +294,18 @@ struct StoryEntityRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[allow(
+    clippy::struct_field_names,
+    reason = "Die expliziten Bezeichner bilden den stabilen Tauri-Requestvertrag ab"
+)]
+#[serde(rename_all = "camelCase")]
+struct MergeStoryEntitiesRequest {
+    project_id: String,
+    source_entity_id: String,
+    target_entity_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct WriteStoryEntityRequest {
     project_id: String,
@@ -1272,6 +1284,20 @@ fn delete_story_entity(
     require_current_contract(&request)?;
     delete_story_entity_impl(&state, request.request_id, &request.payload)?;
     Ok(CommandResponse::current(request.request_id, ()))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn merge_story_entities(
+    state: State<'_, AppState>,
+    request: CommandRequest<MergeStoryEntitiesRequest>,
+) -> Result<CommandResponse<StoryEntityDetails>, CommandError> {
+    require_current_contract(&request)?;
+    let data = merge_story_entities_impl(&state, request.request_id, &request.payload)?;
+    Ok(CommandResponse::current(request.request_id, data))
 }
 
 #[tauri::command]
@@ -2740,6 +2766,23 @@ fn delete_story_entity_impl(
         .map_err(|error| map_story_bible_error(request_id, &error))
 }
 
+fn merge_story_entities_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &MergeStoryEntitiesRequest,
+) -> Result<StoryEntityDetails, CommandError> {
+    let project_id = parse_project_id(request_id, &request.project_id)?;
+    let source_entity_id = parse_entity_id(request_id, &request.source_entity_id)?;
+    let target_entity_id = parse_entity_id(request_id, &request.target_entity_id)?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    StoryBibleRepository::new(opened.database_mut())
+        .merge_entities(project_id, source_entity_id, target_entity_id)
+        .map_err(|error| map_story_bible_error(request_id, &error))
+}
+
 fn create_story_relation_impl(
     state: &AppState,
     request_id: uuid::Uuid,
@@ -2902,6 +2945,7 @@ fn map_document_error(request_id: uuid::Uuid, error: &DocumentError) -> CommandE
 
 fn map_story_bible_error(request_id: uuid::Uuid, error: &StoryBibleError) -> CommandError {
     match error {
+        StoryBibleError::MergeConflict => CommandError::conflict(request_id),
         StoryBibleError::InvalidInput | StoryBibleError::NotFound => {
             CommandError::invalid_request(request_id, "Die Story-Bibel-Anfrage ist ungültig.")
         }
@@ -3112,6 +3156,7 @@ pub fn run() {
             update_story_entity,
             load_story_entity,
             delete_story_entity,
+            merge_story_entities,
             create_story_relation,
             delete_story_relation,
             link_story_entity,
@@ -3162,21 +3207,21 @@ mod tests {
         CreateDocumentRequest, CreateImagePromptDraftRequest, CreateProjectRequest,
         DeleteDocumentRequest, DocumentRequest, ExportProjectRequest, ImagePromptDraftRequest,
         ImportMediaRequest, LinkStoryEntityRequest, ListStoryEntitiesRequest,
-        RenameDocumentRequest, ReorderDocumentsRequest, ReviewTextSuggestionRequest,
-        SaveDocumentRequest, StoryEntityRequest, StreamTextDraftRequest,
-        UpdateImagePromptDraftRequest, ValidateProjectNameRequest, WriteStoryEntityRequest,
-        WriteStylePresetRequest, WriteVisualProfileRequest, application_status,
-        compose_image_prompt_impl, create_document_impl, create_example_project_impl,
-        create_image_prompt_draft_impl, create_project_impl, delete_document_impl,
-        delete_image_prompt_draft_impl, export_image_prompt_draft_impl, export_manuscript_impl,
-        import_media_asset_impl, link_story_entity_impl, list_image_prompt_drafts_impl,
-        list_media_assets_impl, list_projects_impl, list_story_entities_impl,
-        list_style_presets_impl, list_visual_profiles_impl, load_document_impl,
-        load_story_entity_impl, open_workspace_impl, prepare_text_generation,
-        preview_ai_context_impl, rename_document_impl, reorder_documents_impl,
-        review_text_suggestion_impl, save_document_impl, save_visual_profile_impl,
-        update_image_prompt_draft_impl, validate_project_name, write_story_entity_impl,
-        write_style_preset_impl,
+        MergeStoryEntitiesRequest, RenameDocumentRequest, ReorderDocumentsRequest,
+        ReviewTextSuggestionRequest, SaveDocumentRequest, StoryEntityRequest,
+        StreamTextDraftRequest, UpdateImagePromptDraftRequest, ValidateProjectNameRequest,
+        WriteStoryEntityRequest, WriteStylePresetRequest, WriteVisualProfileRequest,
+        application_status, compose_image_prompt_impl, create_document_impl,
+        create_example_project_impl, create_image_prompt_draft_impl, create_project_impl,
+        delete_document_impl, delete_image_prompt_draft_impl, export_image_prompt_draft_impl,
+        export_manuscript_impl, import_media_asset_impl, link_story_entity_impl,
+        list_image_prompt_drafts_impl, list_media_assets_impl, list_projects_impl,
+        list_story_entities_impl, list_style_presets_impl, list_visual_profiles_impl,
+        load_document_impl, load_story_entity_impl, merge_story_entities_impl, open_workspace_impl,
+        prepare_text_generation, preview_ai_context_impl, rename_document_impl,
+        reorder_documents_impl, review_text_suggestion_impl, save_document_impl,
+        save_visual_profile_impl, update_image_prompt_draft_impl, validate_project_name,
+        write_story_entity_impl, write_style_preset_impl,
     };
 
     const REQUEST_ID: Uuid = Uuid::from_u128(0x018f_47ea_9b2d_7cc1_98e8_b5f4_f6b7_41a2);
@@ -3822,7 +3867,11 @@ mod tests {
     }
 
     #[test]
-    fn story_bible_commands_roundtrip_entity_search_and_backlink() {
+    #[allow(
+        clippy::too_many_lines,
+        reason = "Der vertikale Command-Test belegt Suche, Backlinks und den atomaren Mergevertrag"
+    )]
+    fn story_bible_commands_roundtrip_search_backlink_and_merge() {
         let root = tempdir().expect("temporary root should exist");
         let state = AppState {
             project_root: root.path().to_path_buf(),
@@ -3890,5 +3939,43 @@ mod tests {
         )
         .expect("entity should load");
         assert_eq!(loaded.entity, entity);
+
+        let duplicate = write_story_entity_impl(
+            &state,
+            REQUEST_ID,
+            &WriteStoryEntityRequest {
+                project_id: workspace.project.id.to_string(),
+                entity_id: None,
+                kind: EntityKind::Character,
+                name: "Rhea doppelt".to_owned(),
+                properties: BTreeMap::from([("Herkunft".to_owned(), "Veyra".to_owned())]),
+            },
+            false,
+        )
+        .expect("duplicate should be created");
+        let merged = merge_story_entities_impl(
+            &state,
+            REQUEST_ID,
+            &MergeStoryEntitiesRequest {
+                project_id: workspace.project.id.to_string(),
+                source_entity_id: duplicate.id.to_string(),
+                target_entity_id: entity.id.to_string(),
+            },
+        )
+        .expect("duplicates should merge");
+        assert_eq!(merged.entity.id, entity.id);
+        assert_eq!(merged.entity.properties["Rolle"], "Pilotin");
+        assert_eq!(merged.entity.properties["Herkunft"], "Veyra");
+        assert!(
+            load_story_entity_impl(
+                &state,
+                REQUEST_ID,
+                &StoryEntityRequest {
+                    project_id: workspace.project.id.to_string(),
+                    entity_id: duplicate.id.to_string(),
+                },
+            )
+            .is_err()
+        );
     }
 }

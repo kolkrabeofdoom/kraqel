@@ -19,6 +19,7 @@ import {
   importMediaAsset,
   listMediaAssets,
   listVisualProfiles,
+  mergeStoryEntities,
   saveStylePreset,
   saveVisualProfile,
   streamTextDraft,
@@ -474,6 +475,38 @@ describe("typed Tauri commands", () => {
           name: "Rhea",
           properties: { Rolle: "Pilotin" },
         },
+      },
+    });
+  });
+
+  it("sends source and target explicitly when merging Story Bible duplicates", async () => {
+    const projectId = requestId as ProjectId;
+    const sourceEntityId = "018f47ea-9b2d-7cc1-98e8-b5f4f6b741a3" as EntityId;
+    const targetEntityId = "018f47ea-9b2d-7cc1-98e8-b5f4f6b741a4" as EntityId;
+    mockedInvoke.mockResolvedValue({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: {
+        entity: {
+          id: targetEntityId,
+          projectId,
+          kind: "character",
+          name: "Mara",
+          properties: {},
+        },
+        outgoingRelations: [],
+        incomingRelations: [],
+        backlinks: [],
+      },
+    });
+
+    await mergeStoryEntities(projectId, sourceEntityId, targetEntityId);
+
+    expect(mockedInvoke).toHaveBeenCalledWith("merge_story_entities", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: { projectId, sourceEntityId, targetEntityId },
       },
     });
   });

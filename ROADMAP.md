@@ -15,6 +15,7 @@
 2. M2-Strukturwerkzeuge
    - [x] Story-Bibel mit Entitäten, Beziehungen, Suche und Szenen-Rückverweisen
      - [x] Browser-E2E für den fachlichen Story-Bibel-Kernablauf
+     - [x] Doppelte Einträge derselben Art atomar samt Referenzen zusammenführen
    - [x] Plotboard und Timeline
      - [x] Getrennte Browser-E2E für Plotboard- und Timeline-Kernabläufe
 3. M3-Datenportabilität und Medien

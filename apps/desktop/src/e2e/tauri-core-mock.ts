@@ -311,6 +311,82 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       writeState(state);
       return null;
     }
+    case "merge_story_entities": {
+      const current = findProject(state, payload.projectId);
+      const source = findStoryEntity(current, payload.sourceEntityId);
+      const target = findStoryEntity(current, payload.targetEntityId);
+      if (source.id === target.id || source.kind !== target.kind) {
+        throw new Error("Invalid E2E story entity merge");
+      }
+      const sourceProfile = current.visualProfiles.find(({ entityId }) => entityId === source.id);
+      const targetProfile = current.visualProfiles.find(({ entityId }) => entityId === target.id);
+      if (sourceProfile && targetProfile) throw new Error("E2E visual profile merge conflict");
+
+      current.storyEntities = current.storyEntities
+        .filter(({ id }) => id !== source.id)
+        .map((entity) =>
+          entity.id === target.id
+            ? { ...entity, properties: { ...source.properties, ...target.properties } }
+            : entity,
+        );
+      current.storyRelations = current.storyRelations
+        .filter(
+          ({ sourceEntityId, targetEntityId }) =>
+            !(
+              (sourceEntityId === source.id && targetEntityId === target.id) ||
+              (sourceEntityId === target.id && targetEntityId === source.id)
+            ),
+        )
+        .map((relation) => ({
+          ...relation,
+          sourceEntityId:
+            relation.sourceEntityId === source.id ? target.id : relation.sourceEntityId,
+          targetEntityId:
+            relation.targetEntityId === source.id ? target.id : relation.targetEntityId,
+        }));
+      current.storyLinks = uniqueBy(
+        current.storyLinks.map((link) => ({
+          ...link,
+          entityId: link.entityId === source.id ? target.id : link.entityId,
+        })),
+        ({ documentId, entityId }) => `${documentId}\0${entityId}`,
+      );
+      current.plotCards = current.plotCards.map((card) => ({
+        ...card,
+        povEntityId: card.povEntityId === source.id ? target.id : card.povEntityId,
+      }));
+      current.timelineEvents = current.timelineEvents.map((event) => ({
+        ...event,
+        entityIds: [...new Set(event.entityIds.map((id) => (id === source.id ? target.id : id)))],
+      }));
+      current.mediaAssets = current.mediaAssets.map((view) => ({
+        ...view,
+        asset: {
+          ...view.asset,
+          links: uniqueBy(
+            view.asset.links.map((link) => ({
+              ...link,
+              targetId:
+                link.targetKind === "entity" && link.targetId === source.id
+                  ? target.id
+                  : link.targetId,
+            })),
+            ({ targetKind, targetId, role }) => `${targetKind}\0${targetId}\0${role}`,
+          ),
+        },
+      }));
+      if (sourceProfile) {
+        current.visualProfiles = current.visualProfiles.map((profile) =>
+          profile.entityId === source.id ? { ...profile, entityId: target.id } : profile,
+        );
+        current.imagePromptDrafts = current.imagePromptDrafts.map((draft) => ({
+          ...draft,
+          entityIds: draft.entityIds.map((id) => (id === source.id ? target.id : id)),
+        }));
+      }
+      writeState(state);
+      return storyEntityDetails(current, target.id);
+    }
     case "create_story_relation": {
       const current = findProject(state, payload.projectId);
       findStoryEntity(current, payload.sourceEntityId);
@@ -1181,6 +1257,16 @@ function reorderByIds<T extends { readonly position: number }>(
   const positions = new Map(orderedIds.map((id, position) => [id, position]));
   items.forEach((item, index) => {
     items[index] = { ...item, position: positions.get(idOf(item))! };
+  });
+}
+
+function uniqueBy<T>(items: readonly T[], keyOf: (item: T) => string): T[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = keyOf(item);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 }
 

@@ -60,3 +60,63 @@ test("Story-Bibel verbindet Suche, gerichtete Beziehung und Szenen-Rückverweis"
   );
   await expect(page.getByRole("textbox", { name: "Text von Szene 1" })).toBeVisible();
 });
+
+test("Story-Bibel führt ein Dublett samt Referenzen bewusst in den geöffneten Eintrag", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByLabel("Projektname").fill("Doppelte Raben");
+  await page.getByRole("button", { name: "Projekt anlegen" }).click();
+  await page.getByRole("button", { name: "Story-Bibel" }).click();
+
+  const createForm = page.locator(".create-entity-form");
+  const entityList = page.locator(".entity-list");
+  await createForm.getByLabel("Name").fill("Mara");
+  await createForm.getByRole("button", { name: "+ Eintrag" }).click();
+  await page.getByRole("button", { name: "+ Eigenschaft" }).click();
+  await page.getByLabel("Eigenschaftsname").fill("Rolle");
+  await page.getByPlaceholder("Wert").fill("Navigatorin");
+  await page.getByRole("button", { name: "Eintrag speichern" }).click();
+
+  await createForm.getByLabel("Name").fill("Mara doppelt");
+  await createForm.getByRole("button", { name: "+ Eintrag" }).click();
+  await page.getByRole("button", { name: "+ Eigenschaft" }).click();
+  await page.getByLabel("Eigenschaftsname").fill("Rolle");
+  await page.getByPlaceholder("Wert").fill("Späherin");
+  await page.getByRole("button", { name: "+ Eigenschaft" }).click();
+  await page.getByLabel("Eigenschaftsname").nth(1).fill("Herkunft");
+  await page.getByPlaceholder("Wert").nth(1).fill("Veyra");
+  await page.getByRole("button", { name: "Eintrag speichern" }).click();
+
+  await createForm.getByLabel("Art").selectOption("location");
+  await createForm.getByLabel("Name").fill("Archiv");
+  await createForm.getByRole("button", { name: "+ Eintrag" }).click();
+
+  await entityList.getByRole("button", { name: /Mara doppelt/ }).click();
+  await page.getByLabel("Beziehungsart").fill("bewacht");
+  await page.getByLabel("Ziel").selectOption({ label: "Archiv" });
+  await page.getByRole("button", { name: "Beziehung anlegen" }).click();
+  await page.getByRole("button", { name: "Mit „Szene 1“ verknüpfen" }).click();
+
+  await entityList.getByRole("button", { name: /^Mara\s+Figur$/ }).click();
+  await page.getByLabel("Doppelten Eintrag wählen").selectOption({ label: "Mara doppelt" });
+  await expect(page.locator(".merge-preview")).toContainText(
+    "1 fehlende Eigenschaften werden ergänzt; 1 unterschiedliche Werte",
+  );
+  await expect(page.locator(".merge-preview")).toContainText(
+    "Rolle: „Navigatorin“ bleibt statt „Späherin“",
+  );
+
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Dublette in „Mara“ zusammenführen" }).click();
+
+  await expect(page.getByRole("status")).toContainText(
+    "„Mara doppelt“ wurde in „Mara“ zusammengeführt.",
+  );
+  await expect(page.getByText("2 Einträge", { exact: true })).toBeVisible();
+  await expect(entityList.getByRole("button", { name: /Mara doppelt/ })).toHaveCount(0);
+  await expect(page.getByLabel("Eigenschaftsname").nth(1)).toHaveValue("Herkunft");
+  await expect(page.getByPlaceholder("Wert").first()).toHaveValue("Navigatorin");
+  await expect(page.locator(".relation-list")).toContainText("Mara → bewacht → Archiv");
+  await expect(page.locator(".backlink-list")).toContainText("Szene 1");
+});
