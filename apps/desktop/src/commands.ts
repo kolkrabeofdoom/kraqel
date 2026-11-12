@@ -759,6 +759,22 @@ export async function deleteStoryEntity(projectId: ProjectId, entityId: EntityId
   );
 }
 
+export async function mergeStoryEntities(
+  projectId: ProjectId,
+  sourceEntityId: EntityId,
+  targetEntityId: EntityId,
+): Promise<StoryEntityDetails> {
+  const response = await callCommand<
+    {
+      readonly projectId: ProjectId;
+      readonly sourceEntityId: EntityId;
+      readonly targetEntityId: EntityId;
+    },
+    StoryEntityDetails
+  >("merge_story_entities", { projectId, sourceEntityId, targetEntityId });
+  return response.data;
+}
+
 export async function createStoryRelation(
   projectId: ProjectId,
   sourceEntityId: EntityId,

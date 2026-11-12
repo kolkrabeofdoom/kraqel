@@ -29,6 +29,18 @@ Schema v1 bleibt unverändert. Die Suche lädt die stabil sortierten Einträge e
 filtert Namen sowie Eigenschaftsschlüssel und -werte mit Rusts Unicode-Kleinschreibung. Dadurch ist
 das Verhalten für nicht-ASCII-Namen korrekt, ohne die bestehende Migration umzudeuten.
 
+KQ-043 ergänzt eine ausdrücklich ausgelöste, transaktionale Dubletten-Zusammenführung. Quelle und
+Ziel müssen verschieden, projektgleich und von derselben Art sein. Das Ziel behält UUID, Name und
+vorhandene Eigenschaftswerte; nur fehlende Eigenschaften werden aus der Quelle ergänzt. Dokument-,
+Relations-, Ereignis-, POV- und Medienreferenzen wechseln vor dem Löschen der Quelle zum Ziel.
+Direkte Quelle-Ziel-Relationen entfallen, weil daraus unzulässige Selbstrelationen würden.
+
+Ein ausschließlich an der Quelle vorhandenes visuelles Profil wird samt Promptreferenzen zum Ziel
+verschoben. Besitzen beide Einträge ein Profil, bricht die gesamte Transaktion als Konflikt ab. Eine
+implizite inhaltliche Vereinigung zweier Profile wäre nicht nachvollziehbar und könnte kanonische
+Bildmerkmale vernichten. Der Vertrag benötigt keine neue Migration und ändert das Snapshotformat
+nicht.
+
 ## Folgen
 
 - Story-Bibel-Daten sind Teil der autoritativen SQLite-Datei und damit automatisch Bestandteil der
@@ -43,3 +55,6 @@ das Verhalten für nicht-ASCII-Namen korrekt, ohne die bestehende Migration umzu
   Command-Adapter bildet dafür nur die benötigte Story-Bibel-Semantik ab.
 - Der Browserlauf ergänzt Repository-, IPC- und Vertragstests, ersetzt aber weder Rust/SQLite noch
   eine Tauri-WebDriver- oder Screenreader-Abnahme.
+- KQ-043 prüft Referenzmigration, Zielvorrang bei Eigenschaftskonflikten, Profilverschiebung und
+  vollständigen Rollback bei zwei Profilen in Rust. Ein zusätzlicher Browserablauf belegt Auswahl,
+  Konfliktvorschau, Bestätigung und sichtbares Ergebnis.

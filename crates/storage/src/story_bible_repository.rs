@@ -31,6 +31,8 @@ pub enum StoryBibleError {
     NotFound,
     /// Gespeicherte Daten verletzen den erwarteten internen Vertrag.
     InvalidStoredData,
+    /// Beide Einträge besitzen Daten, die nicht verlustfrei automatisch vereinigt werden können.
+    MergeConflict,
     /// SQLite- oder Verbindungsfehler der Speicherschicht.
     Storage(StorageError),
     /// Die Systemzeit liegt vor der Unix-Epoche.
@@ -45,6 +47,9 @@ impl fmt::Display for StoryBibleError {
             Self::InvalidStoredData => {
                 formatter.write_str("Gespeicherte Story-Bibel-Daten sind ungültig.")
             }
+            Self::MergeConflict => formatter.write_str(
+                "Die Story-Bibel-Einträge können nicht verlustfrei zusammengeführt werden.",
+            ),
             Self::Storage(error) => error.fmt(formatter),
             Self::InvalidSystemTime => formatter.write_str("Die Systemzeit ist ungültig."),
         }
@@ -58,6 +63,7 @@ impl Error for StoryBibleError {
             Self::InvalidInput
             | Self::NotFound
             | Self::InvalidStoredData
+            | Self::MergeConflict
             | Self::InvalidSystemTime => None,
         }
     }
@@ -220,6 +226,88 @@ impl<'database> StoryBibleRepository<'database> {
         } else {
             Ok(())
         }
+    }
+
+    /// Führt einen doppelten Quell-Eintrag atomar in einen bestehenden Ziel-Eintrag derselben Art.
+    ///
+    /// Der Zielname und vorhandene Ziel-Eigenschaften bleiben maßgeblich. Fehlende Eigenschaften
+    /// sowie sämtliche fachlichen Referenzen werden von der Quelle übernommen. Haben beide
+    /// Einträge ein visuelles Profil, wird ohne Änderung abgebrochen.
+    ///
+    /// # Errors
+    ///
+    /// Liefert einen Fehler bei identischen oder artfremden Einträgen, fehlenden Datensätzen,
+    /// unvereinbaren visuellen Profilen, ungültigen kombinierten Eigenschaften oder SQLite-
+    /// Problemen.
+    pub fn merge_entities(
+        &mut self,
+        project_id: ProjectId,
+        source_entity_id: EntityId,
+        target_entity_id: EntityId,
+    ) -> Result<StoryEntityDetails, StoryBibleError> {
+        if source_entity_id == target_entity_id {
+            return Err(StoryBibleError::InvalidInput);
+        }
+
+        let project = project_id.to_string();
+        let source_id = source_entity_id.to_string();
+        let target_id = target_entity_id.to_string();
+        let transaction = self.database.transaction()?;
+        let source = transaction
+            .query_row(
+                "SELECT id, project_id, kind, name, properties_json FROM entity
+                 WHERE project_id = ?1 AND id = ?2",
+                params![project, source_id],
+                raw_entity,
+            )
+            .optional()?
+            .map(parse_entity)
+            .transpose()?
+            .ok_or(StoryBibleError::NotFound)?;
+        let target = transaction
+            .query_row(
+                "SELECT id, project_id, kind, name, properties_json FROM entity
+                 WHERE project_id = ?1 AND id = ?2",
+                params![project, target_id],
+                raw_entity,
+            )
+            .optional()?
+            .map(parse_entity)
+            .transpose()?
+            .ok_or(StoryBibleError::NotFound)?;
+        if source.kind != target.kind {
+            return Err(StoryBibleError::InvalidInput);
+        }
+
+        let source_has_profile = has_visual_profile(&transaction, project_id, source_entity_id)?;
+        let target_has_profile = has_visual_profile(&transaction, project_id, target_entity_id)?;
+        if source_has_profile && target_has_profile {
+            return Err(StoryBibleError::MergeConflict);
+        }
+
+        let mut merged_properties = target.properties.clone();
+        for (key, value) in source.properties {
+            merged_properties.entry(key).or_insert(value);
+        }
+        let merged_properties_json = validate_and_serialize_properties(&merged_properties)?;
+        let timestamp = current_timestamp()?;
+
+        if source_has_profile {
+            move_visual_profile(&transaction, &project, &source_id, &target_id, &timestamp)?;
+        }
+        retarget_unique_links(&transaction, &project, &source_id, &target_id)?;
+        retarget_relations_and_pov(&transaction, &project, &source_id, &target_id, &timestamp)?;
+        transaction.execute(
+            "UPDATE entity SET properties_json = ?3, updated_at = ?4
+             WHERE project_id = ?1 AND id = ?2",
+            params![project, target_id, merged_properties_json, timestamp],
+        )?;
+        transaction.execute(
+            "DELETE FROM entity WHERE project_id = ?1 AND id = ?2",
+            params![project, source_id],
+        )?;
+        transaction.commit()?;
+        self.load(project_id, target_entity_id)
     }
 
     /// Lädt einen Eintrag einschließlich gerichteter Beziehungen und Dokument-Rückverweise.
@@ -543,6 +631,136 @@ fn require_entity(
     }
 }
 
+fn has_visual_profile(
+    transaction: &Transaction<'_>,
+    project_id: ProjectId,
+    entity_id: EntityId,
+) -> Result<bool, StoryBibleError> {
+    transaction
+        .query_row(
+            "SELECT EXISTS(
+                SELECT 1 FROM visual_profile WHERE project_id = ?1 AND entity_id = ?2
+             )",
+            params![project_id.to_string(), entity_id.to_string()],
+            |row| row.get(0),
+        )
+        .map_err(StoryBibleError::from)
+}
+
+fn move_visual_profile(
+    transaction: &Transaction<'_>,
+    project: &str,
+    source_id: &str,
+    target_id: &str,
+    timestamp: &str,
+) -> Result<(), StoryBibleError> {
+    transaction.execute(
+        "INSERT INTO visual_profile
+            (entity_id, project_id, traits_json, canonical_asset_id, exclusions_json, created_at, updated_at)
+         SELECT ?3, project_id, traits_json, canonical_asset_id, exclusions_json, created_at, ?4
+         FROM visual_profile WHERE project_id = ?1 AND entity_id = ?2",
+        params![project, source_id, target_id, timestamp],
+    )?;
+    transaction.execute(
+        "UPDATE image_prompt_draft_profile SET entity_id = ?3
+         WHERE project_id = ?1 AND entity_id = ?2",
+        params![project, source_id, target_id],
+    )?;
+    transaction.execute(
+        "DELETE FROM visual_profile WHERE project_id = ?1 AND entity_id = ?2",
+        params![project, source_id],
+    )?;
+    Ok(())
+}
+
+fn retarget_unique_links(
+    transaction: &Transaction<'_>,
+    project: &str,
+    source_id: &str,
+    target_id: &str,
+) -> Result<(), StoryBibleError> {
+    transaction.execute(
+        "DELETE FROM link AS source_link
+         WHERE project_id = ?1 AND entity_id = ?2 AND EXISTS (
+             SELECT 1 FROM link AS target_link
+             WHERE target_link.project_id = source_link.project_id
+               AND target_link.document_id = source_link.document_id
+               AND target_link.entity_id = ?3
+               AND target_link.role = source_link.role
+         )",
+        params![project, source_id, target_id],
+    )?;
+    transaction.execute(
+        "UPDATE link SET entity_id = ?3 WHERE project_id = ?1 AND entity_id = ?2",
+        params![project, source_id, target_id],
+    )?;
+    transaction.execute(
+        "DELETE FROM event_entity_link AS source_link
+         WHERE project_id = ?1 AND entity_id = ?2 AND EXISTS (
+             SELECT 1 FROM event_entity_link AS target_link
+             WHERE target_link.project_id = source_link.project_id
+               AND target_link.event_id = source_link.event_id
+               AND target_link.entity_id = ?3
+         )",
+        params![project, source_id, target_id],
+    )?;
+    transaction.execute(
+        "UPDATE event_entity_link SET entity_id = ?3
+         WHERE project_id = ?1 AND entity_id = ?2",
+        params![project, source_id, target_id],
+    )?;
+    transaction.execute(
+        "DELETE FROM asset_link AS source_link
+         WHERE project_id = ?1 AND target_type = 'entity' AND target_id = ?2 AND EXISTS (
+             SELECT 1 FROM asset_link AS target_link
+             WHERE target_link.project_id = source_link.project_id
+               AND target_link.asset_id = source_link.asset_id
+               AND target_link.target_type = 'entity'
+               AND target_link.target_id = ?3
+               AND target_link.role = source_link.role
+         )",
+        params![project, source_id, target_id],
+    )?;
+    transaction.execute(
+        "UPDATE asset_link SET target_id = ?3
+         WHERE project_id = ?1 AND target_type = 'entity' AND target_id = ?2",
+        params![project, source_id, target_id],
+    )?;
+    Ok(())
+}
+
+fn retarget_relations_and_pov(
+    transaction: &Transaction<'_>,
+    project: &str,
+    source_id: &str,
+    target_id: &str,
+    timestamp: &str,
+) -> Result<(), StoryBibleError> {
+    transaction.execute(
+        "DELETE FROM relation WHERE project_id = ?1 AND (
+            (source_entity_id = ?2 AND target_entity_id = ?3)
+            OR (source_entity_id = ?3 AND target_entity_id = ?2)
+         )",
+        params![project, source_id, target_id],
+    )?;
+    transaction.execute(
+        "UPDATE relation SET source_entity_id = ?3, updated_at = ?4
+         WHERE project_id = ?1 AND source_entity_id = ?2",
+        params![project, source_id, target_id, timestamp],
+    )?;
+    transaction.execute(
+        "UPDATE relation SET target_entity_id = ?3, updated_at = ?4
+         WHERE project_id = ?1 AND target_entity_id = ?2",
+        params![project, source_id, target_id, timestamp],
+    )?;
+    transaction.execute(
+        "UPDATE plot_card SET pov_entity_id = ?3, updated_at = ?4
+         WHERE project_id = ?1 AND pov_entity_id = ?2",
+        params![project, source_id, target_id, timestamp],
+    )?;
+    Ok(())
+}
+
 const fn kind_name(kind: EntityKind) -> &'static str {
     match kind {
         EntityKind::Character => "character",
@@ -582,7 +800,10 @@ fn current_timestamp() -> Result<String, StoryBibleError> {
 mod tests {
     use std::collections::BTreeMap;
 
-    use kraqel_domain::{CURRENT_SCHEMA_VERSION, DocumentKind, EntityKind, Project, ProjectId};
+    use kraqel_domain::{
+        CURRENT_SCHEMA_VERSION, DocumentKind, EntityId, EntityKind, Project, ProjectId,
+    };
+    use rusqlite::params;
     use tempfile::tempdir;
 
     use super::{StoryBibleError, StoryBibleRepository};
@@ -716,6 +937,290 @@ mod tests {
             .expect("entity should load");
         assert_eq!(details.backlinks.len(), 1);
         assert_eq!(details.backlinks[0].document_title, "Begegnung");
+    }
+
+    #[test]
+    #[allow(
+        clippy::too_many_lines,
+        reason = "Der vertikale Transaktionstest belegt alle Referenzarten und den atomaren Gesamtvertrag"
+    )]
+    fn merges_duplicate_entities_and_retargets_every_reference_atomically() {
+        let (_root, project, mut opened) = fixture();
+        let scene = {
+            let mut documents = DocumentRepository::new(opened.database_mut());
+            let chapter = documents
+                .create(project.id, None, DocumentKind::Chapter, "Kapitel")
+                .expect("chapter should exist");
+            documents
+                .create(
+                    project.id,
+                    Some(chapter.id),
+                    DocumentKind::Scene,
+                    "Begegnung",
+                )
+                .expect("scene should exist")
+        };
+        let (source, target, peer) = {
+            let mut repository = StoryBibleRepository::new(opened.database_mut());
+            let source = repository
+                .create_entity(
+                    project.id,
+                    EntityKind::Character,
+                    "Mara (Dublette)",
+                    &BTreeMap::from([
+                        ("Rolle".to_owned(), "Späherin".to_owned()),
+                        ("Herkunft".to_owned(), "Veyra".to_owned()),
+                    ]),
+                )
+                .expect("source should exist");
+            let target = repository
+                .create_entity(
+                    project.id,
+                    EntityKind::Character,
+                    "Mara",
+                    &BTreeMap::from([
+                        ("Rolle".to_owned(), "Navigatorin".to_owned()),
+                        ("Ziel".to_owned(), "Dienstag finden".to_owned()),
+                    ]),
+                )
+                .expect("target should exist");
+            let peer = repository
+                .create_entity(project.id, EntityKind::Faction, "Archiv", &BTreeMap::new())
+                .expect("peer should exist");
+            repository
+                .link_document(project.id, scene.id, source.id)
+                .expect("source link should exist");
+            repository
+                .link_document(project.id, scene.id, target.id)
+                .expect("target link should exist");
+            repository
+                .create_relation(project.id, source.id, peer.id, "kennt", &BTreeMap::new())
+                .expect("outgoing relation should exist");
+            repository
+                .create_relation(project.id, peer.id, source.id, "sucht", &BTreeMap::new())
+                .expect("incoming relation should exist");
+            repository
+                .create_relation(
+                    project.id,
+                    source.id,
+                    target.id,
+                    "Dublette",
+                    &BTreeMap::new(),
+                )
+                .expect("direct relation should exist");
+            (source, target, peer)
+        };
+
+        let timeline_id = EntityId::new();
+        let event_id = EntityId::new();
+        let asset_id = EntityId::new();
+        let draft_id = EntityId::new();
+        let connection = opened.database().connection();
+        connection
+            .execute(
+                "INSERT INTO plot_card
+                    (project_id, document_id, storyline_id, pov_entity_id, status, position, updated_at)
+                 VALUES (?2, ?3, NULL, ?1, 'planned', 0, 'unix:1')",
+                params![source.id.to_string(), project.id.to_string(), scene.id.to_string()],
+            )
+            .expect("POV should reference source");
+        connection
+            .execute(
+                "INSERT INTO timeline (id, project_id, name, mode, position, created_at, updated_at)
+                 VALUES (?1, ?2, 'Haupthandlung', 'relative', 0, 'unix:1', 'unix:1')",
+                params![timeline_id.to_string(), project.id.to_string()],
+            )
+            .expect("timeline should exist");
+        connection
+            .execute(
+                "INSERT INTO event
+                    (id, project_id, timeline_id, title, description, time_value, position, created_at, updated_at)
+                 VALUES (?1, ?2, ?3, 'Ankunft', '', NULL, 0, 'unix:1', 'unix:1')",
+                params![event_id.to_string(), project.id.to_string(), timeline_id.to_string()],
+            )
+            .expect("event should exist");
+        for entity_id in [source.id, target.id] {
+            connection
+                .execute(
+                    "INSERT INTO event_entity_link (project_id, event_id, entity_id, created_at)
+                     VALUES (?1, ?2, ?3, 'unix:1')",
+                    params![
+                        project.id.to_string(),
+                        event_id.to_string(),
+                        entity_id.to_string()
+                    ],
+                )
+                .expect("event link should exist");
+        }
+        connection
+            .execute(
+                "INSERT INTO media_asset
+                    (id, project_id, kind, relative_path, thumbnail_path, original_name, title,
+                     mime_type, checksum, byte_count, width, height, provenance, tags_json,
+                     created_at, updated_at)
+                 VALUES (?1, ?2, 'image', 'assets/mara.png', 'assets/thumbnails/mara.png',
+                         'mara.png', 'Mara', 'image/png', ?3, 1, 1, 1, 'imported', '[]',
+                         'unix:1', 'unix:1')",
+                params![asset_id.to_string(), project.id.to_string(), "a".repeat(64)],
+            )
+            .expect("asset should exist");
+        for entity_id in [source.id, target.id] {
+            connection
+                .execute(
+                    "INSERT INTO asset_link
+                        (project_id, asset_id, target_type, target_id, role, created_at)
+                     VALUES (?1, ?2, 'entity', ?3, 'reference', 'unix:1')",
+                    params![
+                        project.id.to_string(),
+                        asset_id.to_string(),
+                        entity_id.to_string()
+                    ],
+                )
+                .expect("asset link should exist");
+        }
+        connection
+            .execute(
+                "INSERT INTO visual_profile
+                    (entity_id, project_id, traits_json, canonical_asset_id, exclusions_json,
+                     created_at, updated_at)
+                 VALUES (?1, ?2, '{\"Augen\":\"grau\"}', ?3, '[]', 'unix:1', 'unix:1')",
+                params![
+                    source.id.to_string(),
+                    project.id.to_string(),
+                    asset_id.to_string()
+                ],
+            )
+            .expect("source profile should exist");
+        connection
+            .execute(
+                "INSERT INTO image_prompt_draft
+                    (id, project_id, name, source_document_id, source_document_revision,
+                     style_preset_id, prompt_text, created_at, updated_at)
+                 VALUES (?1, ?2, 'Mara', ?3, 0, NULL, 'Porträt', 'unix:1', 'unix:1')",
+                params![
+                    draft_id.to_string(),
+                    project.id.to_string(),
+                    scene.id.to_string()
+                ],
+            )
+            .expect("draft should exist");
+        connection
+            .execute(
+                "INSERT INTO image_prompt_draft_profile (draft_id, project_id, entity_id, position)
+                 VALUES (?1, ?2, ?3, 0)",
+                params![
+                    draft_id.to_string(),
+                    project.id.to_string(),
+                    source.id.to_string()
+                ],
+            )
+            .expect("draft profile should exist");
+
+        let merged = StoryBibleRepository::new(opened.database_mut())
+            .merge_entities(project.id, source.id, target.id)
+            .expect("merge should succeed");
+
+        assert_eq!(merged.entity.id, target.id);
+        assert_eq!(merged.entity.name, "Mara");
+        assert_eq!(merged.entity.properties["Rolle"], "Navigatorin");
+        assert_eq!(merged.entity.properties["Herkunft"], "Veyra");
+        assert_eq!(merged.entity.properties["Ziel"], "Dienstag finden");
+        assert_eq!(merged.backlinks.len(), 1);
+        assert_eq!(merged.outgoing_relations.len(), 1);
+        assert_eq!(merged.outgoing_relations[0].target_entity_id, peer.id);
+        assert_eq!(merged.incoming_relations.len(), 1);
+        assert_eq!(merged.incoming_relations[0].source_entity_id, peer.id);
+
+        let connection = opened.database().connection();
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM entity WHERE project_id = ?1 AND id = ?2",
+                    params![project.id.to_string(), source.id.to_string()],
+                    |row| row.get::<_, i64>(0),
+                )
+                .unwrap(),
+            0
+        );
+        for (table, column) in [
+            ("plot_card", "pov_entity_id"),
+            ("event_entity_link", "entity_id"),
+            ("visual_profile", "entity_id"),
+            ("image_prompt_draft_profile", "entity_id"),
+        ] {
+            let count = connection
+                .query_row(
+                    &format!("SELECT COUNT(*) FROM {table} WHERE {column} = ?1"),
+                    [target.id.to_string()],
+                    |row| row.get::<_, i64>(0),
+                )
+                .unwrap();
+            assert_eq!(count, 1, "{table} should reference the target exactly once");
+        }
+        assert_eq!(
+            connection
+                .query_row(
+                    "SELECT COUNT(*) FROM asset_link
+                     WHERE target_type = 'entity' AND target_id = ?1",
+                    [target.id.to_string()],
+                    |row| row.get::<_, i64>(0),
+                )
+                .unwrap(),
+            1
+        );
+    }
+
+    #[test]
+    fn rejects_two_visual_profiles_without_changing_either_entity() {
+        let (_root, project, mut opened) = fixture();
+        let (source, target) = {
+            let mut repository = StoryBibleRepository::new(opened.database_mut());
+            let source = repository
+                .create_entity(
+                    project.id,
+                    EntityKind::Location,
+                    "Alter Hafen",
+                    &BTreeMap::from([("Quelle".to_owned(), "Dublette".to_owned())]),
+                )
+                .unwrap();
+            let target = repository
+                .create_entity(
+                    project.id,
+                    EntityKind::Location,
+                    "Hafen",
+                    &BTreeMap::from([("Kanon".to_owned(), "Ja".to_owned())]),
+                )
+                .unwrap();
+            (source, target)
+        };
+        for entity_id in [source.id, target.id] {
+            opened
+                .database()
+                .connection()
+                .execute(
+                    "INSERT INTO visual_profile
+                        (entity_id, project_id, traits_json, canonical_asset_id, exclusions_json,
+                         created_at, updated_at)
+                     VALUES (?1, ?2, '{}', NULL, '[]', 'unix:1', 'unix:1')",
+                    params![entity_id.to_string(), project.id.to_string()],
+                )
+                .unwrap();
+        }
+
+        assert!(matches!(
+            StoryBibleRepository::new(opened.database_mut())
+                .merge_entities(project.id, source.id, target.id),
+            Err(StoryBibleError::MergeConflict)
+        ));
+        let repository = StoryBibleRepository::new(opened.database_mut());
+        assert_eq!(
+            repository.load(project.id, source.id).unwrap().entity,
+            source
+        );
+        assert_eq!(
+            repository.load(project.id, target.id).unwrap().entity,
+            target
+        );
     }
 
     #[test]

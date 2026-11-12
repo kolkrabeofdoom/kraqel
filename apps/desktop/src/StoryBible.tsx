@@ -15,6 +15,7 @@ import {
   linkStoryEntity,
   listStoryEntities,
   loadStoryEntity,
+  mergeStoryEntities,
   updateStoryEntity,
 } from "./commands";
 
@@ -276,6 +277,30 @@ function EntityEditor({
     [details.entity.id, entities],
   );
   const [targetId, setTargetId] = useState<EntityId | "">(relationTargets[0]?.id ?? "");
+  const mergeCandidates = useMemo(
+    () =>
+      entities.filter(
+        ({ id, kind: candidateKind }) =>
+          id !== details.entity.id && candidateKind === details.entity.kind,
+      ),
+    [details.entity.id, details.entity.kind, entities],
+  );
+  const [mergeSourceId, setMergeSourceId] = useState<EntityId | "">("");
+  const [mergeStatus, setMergeStatus] = useState<string | null>(null);
+  const selectedMergeSourceId = mergeCandidates.some(({ id }) => id === mergeSourceId)
+    ? mergeSourceId
+    : (mergeCandidates[0]?.id ?? "");
+  const mergeSource = mergeCandidates.find(({ id }) => id === selectedMergeSourceId);
+  const mergePropertyAdditions = mergeSource
+    ? Object.keys(mergeSource.properties).filter((key) => !(key in details.entity.properties))
+    : [];
+  const mergePropertyConflicts = mergeSource
+    ? Object.keys(mergeSource.properties).filter(
+        (key) =>
+          key in details.entity.properties &&
+          mergeSource.properties[key] !== details.entity.properties[key],
+      )
+    : [];
   const sceneTitle = documents.find(({ id }) => id === activeDocumentId)?.title;
 
   const save = async (event: FormEvent) => {
@@ -317,6 +342,40 @@ function EntityEditor({
       await onChanged(details.entity.id);
     } catch {
       onError("Die Beziehung konnte nicht angelegt werden.");
+    }
+  };
+
+  const mergeDuplicate = async () => {
+    if (!mergeSource) return;
+    if (
+      !window.confirm(
+        `„${mergeSource.name}“ wird in „${details.entity.name}“ zusammengeführt und danach gelöscht. Alle Referenzen wandern zum geöffneten Eintrag. Fortfahren?`,
+      )
+    ) {
+      return;
+    }
+    setMergeStatus("Einträge werden zusammengeführt …");
+    try {
+      const merged = await mergeStoryEntities(
+        details.entity.projectId,
+        mergeSource.id,
+        details.entity.id,
+      );
+      const mergedProperties = Object.entries(merged.entity.properties).map(([key, value], id) => ({
+        id,
+        key,
+        value,
+      }));
+      setProperties(mergedProperties);
+      setNextPropertyId(mergedProperties.length);
+      setMergeSourceId("");
+      setMergeStatus(`„${mergeSource.name}“ wurde in „${details.entity.name}“ zusammengeführt.`);
+      await onChanged(details.entity.id);
+    } catch {
+      setMergeStatus(null);
+      onError(
+        "Die Einträge konnten nicht zusammengeführt werden. Prüfe, ob beide ein eigenes visuelles Profil besitzen.",
+      );
     }
   };
 
@@ -424,6 +483,61 @@ function EntityEditor({
         </fieldset>
         <button type="submit">Eintrag speichern</button>
       </form>
+
+      <section className="detail-section" aria-labelledby="merge-duplicates-title">
+        <h4 id="merge-duplicates-title">Dublette zusammenführen</h4>
+        <p className="muted">
+          Der geöffnete Eintrag „{details.entity.name}“ bleibt erhalten. Fehlende Eigenschaften und
+          alle Referenzen des gewählten Dubletts werden übernommen; bei unterschiedlichen Werten
+          gewinnt der geöffnete Eintrag. Ungespeicherte Änderungen bitte vorher speichern.
+        </p>
+        {mergeCandidates.length ? (
+          <div className="merge-entity-panel">
+            <label htmlFor="merge-source-entity">Doppelten Eintrag wählen</label>
+            <select
+              id="merge-source-entity"
+              value={selectedMergeSourceId}
+              onChange={(event) => {
+                setMergeSourceId(event.currentTarget.value as EntityId);
+                setMergeStatus(null);
+              }}
+            >
+              {mergeCandidates.map((entity) => (
+                <option key={entity.id} value={entity.id}>
+                  {entity.name}
+                </option>
+              ))}
+            </select>
+            {mergeSource ? (
+              <div className="merge-preview" aria-live="polite">
+                <p>
+                  <strong>Vorschau:</strong> {mergePropertyAdditions.length} fehlende Eigenschaften
+                  werden ergänzt; {mergePropertyConflicts.length} unterschiedliche Werte bleiben
+                  beim geöffneten Eintrag.
+                </p>
+                {mergePropertyConflicts.length ? (
+                  <ul>
+                    {mergePropertyConflicts.map((key) => (
+                      <li key={key}>
+                        <strong>{key}:</strong> „{details.entity.properties[key]}“ bleibt statt „
+                        {mergeSource.properties[key]}“
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
+            <button type="button" className="secondary" onClick={() => void mergeDuplicate()}>
+              Dublette in „{details.entity.name}“ zusammenführen
+            </button>
+          </div>
+        ) : (
+          <p className="muted">Kein weiterer Eintrag derselben Art ist vorhanden.</p>
+        )}
+        <p className="status-line" role="status" aria-live="polite">
+          {mergeStatus}
+        </p>
+      </section>
 
       <section className="detail-section" aria-labelledby="relations-title">
         <h4 id="relations-title">Beziehungen</h4>

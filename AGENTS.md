@@ -44,7 +44,8 @@ Aktuell im Repository und verifiziert:
   Profilen, Stilvorlagen und Bildprompt-Entwürfen im `kraqel-storage`-Crate; sicherer
   Projektlebenszyklus mit Datenbank- und Assetbackup.
 - **Story-Bibel:** typisierte Figuren, Orte, Fraktionen und Gegenstände, freie Eigenschaften,
-  gerichtete Relationen, Unicode-Suche und Szenen-Rückverweise über das bestehende SQLite-Schema.
+  gerichtete Relationen, Unicode-Suche, Szenen-Rückverweise und atomare Dubletten-Zusammenführung
+  über das bestehende SQLite-Schema.
 - **Strukturwerkzeuge:** persistente Szenenkarten, Handlungsstränge, POV/Status sowie parallele
   relative und absolute Zeitebenen mit Szenen- und Entitätslinks.
 - **Versionierung:** deterministische JSON-/Markdown-Snapshots v3, formales Schema und kontrollierte

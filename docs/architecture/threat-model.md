@@ -141,3 +141,10 @@ die offene Clean-VM-Abnahme gelten unverändert auch für `v0.1.0-alpha.3`.
 Verbleibendes Risiko: Die kanonische Vorabprüfung ist nicht vollständig gegen ein gleichzeitiges
 böswilliges Austauschen bereits geprüfter Verzeichnisse abgesichert. Vor der Unterstützung
 unvertrauenswürdiger Projektwurzeln sind handle-relative Betriebssystemzugriffe zu bewerten.
+
+Die KQ-043-Dubletten-Zusammenführung ist eine destruktive Fachoperation und deshalb ausschließlich
+nach expliziter Quell-/Zielauswahl, sichtbarer Eigenschaftskonfliktvorschau und Bestätigung
+erreichbar. Rust prüft Projekt, Art und verschiedene UUIDs erneut und migriert Referenzen sowie
+Quelllöschung in genau einer SQLite-Transaktion. Zwei visuelle Profile oder ungültige kombinierte
+Eigenschaften führen zum vollständigen Rollback; eine automatische Ähnlichkeitserkennung löst den
+Merge niemals selbst aus.

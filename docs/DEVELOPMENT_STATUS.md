@@ -2,7 +2,7 @@
 
 Stand: 12. November 2026
 
-Code-Referenz: KQ-041 (Issue #78)
+Code-Referenz: KQ-043 (Issue #82)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -143,6 +143,13 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   Selbstbeziehungen sind im Vertrag v1 nicht erlaubt. Löschkaskaden entfernen verwaiste Kanten.
 - Szenenlinks werden idempotent angelegt und als Rückverweise angezeigt; aus einem Rückverweis kann
   wieder in die betreffende Szene gewechselt werden.
+- KQ-043 führt ein ausdrücklich gewähltes Dublett derselben Art atomar in den geöffneten
+  Zieleintrag. Ziel-UUID, -Name und vorhandene Eigenschaftswerte bleiben maßgeblich; fehlende
+  Eigenschaften werden ergänzt. Die Oberfläche zeigt abweichende Werte vor der Bestätigung.
+- Dokument-, Relations-, Ereignis-, POV- und Medienreferenzen wechseln vor dem Löschen der Quelle
+  zum Ziel. Ein ausschließlich an der Quelle vorhandenes visuelles Profil wandert samt
+  Promptreferenzen mit. Zwei Profile brechen die gesamte Transaktion konfliktfrei ab; direkte
+  Quelle-Ziel-Relationen werden als sonst unzulässige Selbstrelationen entfernt.
 - Zugängliche React-Oberfläche mit beschrifteten Formularen, sichtbaren Fokuszuständen,
   Tastaturbedienung sowie textlich erkennbarer Beziehungsrichtung. KQ-032 korrigiert den
   Ergebniszähler auf WCAG-AA-Kontrast.
@@ -152,7 +159,8 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   Szenen-Rücksprung in Chromium. Dabei wurden die Listenaktualisierung nach dem Anlegen und der
   asynchrone Zugriff auf React-Ereignisse in Eigenschaftsfeldern korrigiert. KQ-033 bestätigt Suche,
   Ergebnisanzahl, gerichtete Beziehungen und Szenen-Rückverweis zusätzlich mit Windows-Sprachausgabe
-  in der echten Tauri-WebView.
+  in der echten Tauri-WebView. Ein zweiter KQ-043-Ablauf prüft Auswahl, Konfliktvorschau,
+  Bestätigung, Eigenschaftsübernahme sowie erhaltene Beziehung und Rückverweis.
 
 ### Plotboard und parallele Timelines (KQ-007)
 
@@ -509,7 +517,7 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
   keine Herausgeber*innenidentität und schützt nicht, wenn Setup und Sollwert über denselben
   kompromittierten Kanal ersetzt werden. GitHub-Rückdownload sowie isolierte Installation und
   Deinstallation sind geprüft; SmartScreen und gestartete Anwendung bleiben extern abzunehmen.
-- Die vollständige lokale Qualitätskette ist grün: 41 TypeScript-, 95 ausgeführte Rust- und fünfzehn
+- Die vollständige lokale Qualitätskette ist grün: 42 TypeScript-, 97 ausgeführte Rust- und sechzehn
   Playwright-E2E-Tests, Produktions-Frontend-Build, Formatierung, ESLint, Clippy und Typprüfung.
   Zusätzlich bleiben der isolierte Tauri-Debug-Build, der echte Windows-Persistenz-Smoke-Test sowie
   Build, Installation und Deinstallation des unsignierten NSIS-Testartefakts grün. Ein visueller
