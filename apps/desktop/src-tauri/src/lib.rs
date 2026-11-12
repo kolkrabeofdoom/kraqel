@@ -39,6 +39,7 @@ use std::{
     collections::{BTreeMap, HashMap},
     fs,
     path::PathBuf,
+    process::Command,
     sync::Mutex,
     time::{Duration, Instant},
 };
@@ -738,6 +739,22 @@ fn export_manuscript(
     require_current_contract(&request)?;
     let data = export_manuscript_impl(&state, request.request_id, &request.payload)?;
     Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn open_export_directory(
+    state: State<'_, AppState>,
+    request: CommandRequest<ProjectRequest>,
+) -> Result<CommandResponse<()>, CommandError> {
+    require_current_contract(&request)?;
+    let directory =
+        resolve_export_directory(&state, request.request_id, &request.payload.project_id)?;
+    open_directory(&directory).map_err(|_| CommandError::internal(request.request_id))?;
+    Ok(CommandResponse::current(request.request_id, ()))
 }
 
 #[tauri::command]
@@ -2043,6 +2060,55 @@ fn export_manuscript_impl(
         .map_err(|error| map_export_error(request_id, &error))
 }
 
+fn resolve_export_directory(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    raw_project_id: &str,
+) -> Result<PathBuf, CommandError> {
+    let project_id = parse_project_id(request_id, raw_project_id)?;
+    let manager = manager(state, request_id)?;
+    let opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    let project_directory =
+        fs::canonicalize(opened.directory()).map_err(|_| CommandError::internal(request_id))?;
+    let export_directory = project_directory.join("exports");
+    match fs::symlink_metadata(&export_directory) {
+        Ok(metadata) if metadata.file_type().is_symlink() || !metadata.is_dir() => {
+            return Err(CommandError::internal(request_id));
+        }
+        Ok(_) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            fs::create_dir(&export_directory).map_err(|_| CommandError::internal(request_id))?;
+        }
+        Err(_) => return Err(CommandError::internal(request_id)),
+    }
+    let canonical_export =
+        fs::canonicalize(export_directory).map_err(|_| CommandError::internal(request_id))?;
+    if canonical_export.parent() != Some(project_directory.as_path()) {
+        return Err(CommandError::internal(request_id));
+    }
+    Ok(canonical_export)
+}
+
+#[cfg(target_os = "windows")]
+fn open_directory(directory: &std::path::Path) -> std::io::Result<()> {
+    Command::new("explorer.exe")
+        .arg(directory)
+        .spawn()
+        .map(drop)
+}
+
+#[cfg(target_os = "macos")]
+fn open_directory(directory: &std::path::Path) -> std::io::Result<()> {
+    Command::new("open").arg(directory).spawn().map(drop)
+}
+
+#[cfg(all(unix, not(target_os = "macos")))]
+fn open_directory(directory: &std::path::Path) -> std::io::Result<()> {
+    Command::new("xdg-open").arg(directory).spawn().map(drop)
+}
+
 fn preview_ai_context_impl(
     state: &AppState,
     request_id: uuid::Uuid,
@@ -3121,6 +3187,7 @@ pub fn run() {
             reorder_documents,
             delete_document,
             export_manuscript,
+            open_export_directory,
             list_ollama_models,
             list_cloud_provider_statuses,
             save_cloud_credential,
@@ -3218,9 +3285,9 @@ mod tests {
         list_story_entities_impl, list_style_presets_impl, list_visual_profiles_impl,
         load_document_impl, load_story_entity_impl, merge_story_entities_impl, open_workspace_impl,
         prepare_text_generation, preview_ai_context_impl, rename_document_impl,
-        reorder_documents_impl, review_text_suggestion_impl, save_document_impl,
-        save_visual_profile_impl, update_image_prompt_draft_impl, validate_project_name,
-        write_story_entity_impl, write_style_preset_impl,
+        reorder_documents_impl, resolve_export_directory, review_text_suggestion_impl,
+        save_document_impl, save_visual_profile_impl, update_image_prompt_draft_impl,
+        validate_project_name, write_story_entity_impl, write_style_preset_impl,
     };
 
     const REQUEST_ID: Uuid = Uuid::from_u128(0x018f_47ea_9b2d_7cc1_98e8_b5f4_f6b7_41a2);
@@ -3356,6 +3423,18 @@ mod tests {
         )
         .expect("export should be readable");
         assert!(exported_text.contains("Hallo Welt"));
+        let export_directory =
+            resolve_export_directory(&state, REQUEST_ID, &workspace.project.id.to_string())
+                .expect("export directory should resolve from the project id");
+        assert_eq!(
+            export_directory,
+            fs::canonicalize(
+                root.path()
+                    .join(workspace.project.id.to_string())
+                    .join("exports")
+            )
+            .expect("export directory should be canonical")
+        );
         assert_eq!(
             list_projects_impl(&state, REQUEST_ID)
                 .expect("projects should list")

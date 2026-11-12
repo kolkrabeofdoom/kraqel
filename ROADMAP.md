@@ -23,6 +23,7 @@
      - [x] Browser-E2E für Snapshot, Status, Diff und expliziten Commit
    - [x] Export nach Markdown, HTML, DOCX und PDF für die dokumentierte Formatierungsmenge
      - [x] Browser-E2E für Formatwahl, Dateiname und sichtbare Größenbestätigung
+     - [x] Projektgebundenen Exportordner direkt und pfadsicher aus der Oberfläche öffnen
    - [ ] Import und DOCX-Roundtrip
      - [x] Snapshot-v3-Archiv sicher als neues Projekt importieren und Beispielprojekt einbetten
      - [ ] Frei wählbare Snapshotarchive und Text-/DOCX-Dateien über die Oberfläche importieren

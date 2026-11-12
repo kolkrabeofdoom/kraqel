@@ -311,6 +311,12 @@ export async function exportManuscript(
   ).data;
 }
 
+export async function openExportDirectory(projectId: ProjectId): Promise<void> {
+  await callCommand<{ readonly projectId: ProjectId }, null>("open_export_directory", {
+    projectId,
+  });
+}
+
 export async function analyzeContinuity(
   projectId: ProjectId,
 ): Promise<readonly ContinuityFinding[]> {

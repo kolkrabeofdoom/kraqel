@@ -24,6 +24,9 @@ test("Export bietet alle lokalen Manuskriptformate mit Ergebnisbestätigung an",
   await expect(
     page.getByRole("heading", { level: 2, name: "Manuskript exportieren" }),
   ).toBeVisible();
+  const openDirectory = page.getByRole("button", { name: "Exportordner öffnen" });
+  await openDirectory.click();
+  await expect(openDirectory).toBeEnabled();
 
   for (const [label, fileName] of [
     ["Markdown", "manuskript.md"],

@@ -211,22 +211,31 @@ footer {
 }
 
 .workspace-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  display: grid;
+  gap: 0.85rem;
   max-width: 1500px;
   margin: 0 auto 1rem;
   padding: 0.5rem 0.25rem;
 }
 
-.workspace-header h1 {
-  margin: 0.15rem 0 0;
-  font-size: clamp(1.8rem, 4vw, 3rem);
+.workspace-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
-.workspace-actions,
-.workspace-tabs,
+.workspace-identity {
+  min-width: 0;
+}
+
+.workspace-header h1 {
+  margin: 0.15rem 0 0;
+  overflow-wrap: anywhere;
+  font-size: clamp(1.8rem, 3vw, 2.55rem);
+  line-height: 1.05;
+}
+
 .create-entity-form,
 .form-row,
 .relation-form,
@@ -237,9 +246,46 @@ footer {
   gap: 0.65rem;
 }
 
-.workspace-actions {
+.project-overview-button {
+  flex: 0 0 auto;
+}
+
+.workspace-navigation {
+  display: flex;
+  align-items: flex-end;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  gap: 0.75rem 1rem;
+  padding: 0.7rem;
+  border: 1px solid rgba(50, 87, 84, 0.18);
+  border-radius: 0.85rem;
+  background: rgba(255, 253, 248, 0.78);
+  box-shadow: 0 8px 28px rgba(34, 66, 63, 0.07);
+}
+
+.workspace-nav-group {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.workspace-nav-label {
+  color: #596d6c;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.workspace-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.workspace-tabs button {
+  min-height: 2.7rem;
+  padding: 0.55rem 0.75rem;
+  white-space: nowrap;
+  font-size: 0.8rem;
 }
 
 .workspace-tabs button.active {
@@ -1296,6 +1342,10 @@ button.scene-button.active {
   line-height: 1.6;
 }
 
+.export-folder-button {
+  margin-bottom: 1rem;
+}
+
 .export-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1550,14 +1600,30 @@ button.scene-button.active {
     border-bottom: 1px solid rgba(50, 87, 84, 0.2);
   }
 
-  .workspace-header,
   .panel-heading,
   .editor-title-row,
   .story-bible-header,
-  .workspace-actions,
   footer {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .workspace-title-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .project-overview-button {
+    align-self: flex-start;
+  }
+
+  .workspace-navigation {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-tabs button {
+    flex: 1 1 auto;
   }
 
   .editor-meta {

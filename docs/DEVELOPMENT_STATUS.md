@@ -2,7 +2,7 @@
 
 Stand: 12. November 2026
 
-Code-Referenz: KQ-045 (Issue #86)
+Code-Referenz: KQ-046 (Issue #88)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -31,6 +31,9 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 - pnpm- und Cargo-Monorepo mit gelockten Abhängigkeiten.
 - Tauri-2-/React-/TypeScript-Desktop-Shell mit statischer, responsiver Startoberfläche.
+- KQ-046 trennt Projekttitel und Rückkehraktion von einer fachlich gruppierten, responsiven
+  Bereichsnavigation; der Breitbildvertrag und die Gruppenbezeichnungen sind browserseitig geprüft
+  und die echte Windows-Tauri-Ansicht wurde manuell abgenommen.
 - Minimale Tauri-Berechtigung `core:default`, definierte CSP und Windows-Fensterkonfiguration.
 - GitHub-Actions-CI unter `windows-latest` und `ubuntu-latest`.
 - Playwright mit Chromium und einem testexklusiven Browser-Command-Adapter für M1, Story-Bibel,
@@ -196,7 +199,11 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Exporte entstehen atomar und ausschließlich unter `exports/manuskript.<format>` im lokalen
   Projektordner. Symlinks und nicht reguläre Zielobjekte werden abgelehnt.
 - Versionierter Tauri-Command und zugängliche React-Ansicht **Export** bieten alle vier Formate an
-  und melden Dateiname sowie Größe, aber keinen absoluten lokalen Pfad.
+  und melden Dateiname sowie Größe, aber keinen absoluten lokalen Pfad. KQ-046 ergänzt einen Button,
+  der den festen projektgebundenen Exportordner über den Betriebssystem-Dateimanager öffnet.
+- Der neue Backendpfad akzeptiert nur die Projekt-ID, kanonisiert das verwaltete Projektverzeichnis,
+  erzeugt ausschließlich dessen Kind `exports`, lehnt Symlinks und Nicht-Verzeichnisse ab und gibt
+  den absoluten Pfad nicht an die WebView zurück.
 - Automatisierte Tests prüfen alle Formate, Textformatierung und die Ablehnung unbekannter Knoten.
   DOCX und PDF wurden zusätzlich als Seiten gerendert und visuell geprüft; für DOCX war unter
   Windows wegen fehlendem LibreOffice eine Word-basierte Konvertierung nötig.
@@ -519,7 +526,7 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
   keine Herausgeber*innenidentität und schützt nicht, wenn Setup und Sollwert über denselben
   kompromittierten Kanal ersetzt werden. GitHub-Rückdownload sowie isolierte Installation und
   Deinstallation sind geprüft; SmartScreen und gestartete Anwendung bleiben extern abzunehmen.
-- Die vollständige lokale Qualitätskette ist grün: 42 TypeScript-, 97 ausgeführte Rust- und sechzehn
+- Die vollständige lokale Qualitätskette ist grün: 43 TypeScript-, 97 ausgeführte Rust- und siebzehn
   Playwright-E2E-Tests, Produktions-Frontend-Build, Formatierung, ESLint, Clippy und Typprüfung.
   Zusätzlich bleiben der isolierte Tauri-Debug-Build, der echte Windows-Persistenz-Smoke-Test sowie
   Build, Installation und Deinstallation des unsignierten NSIS-Testartefakts grün. Ein visueller
