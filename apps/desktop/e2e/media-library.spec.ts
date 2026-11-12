@@ -24,6 +24,7 @@ test("Medienbibliothek importiert Metadaten und verknüpft die aktive Szene", as
   await page.getByLabel("Titel", { exact: true }).fill("Kolkrabe im Archiv");
   await page.getByLabel("Schlagwörter, durch Komma getrennt").fill("Kolkrabe, Archiv");
   await page.getByRole("button", { name: "Bild lokal importieren" }).click();
+  await page.setViewportSize({ width: 360, height: 900 });
 
   const card = page.locator(".media-card");
   await expect(card.getByRole("img", { name: "Kolkrabe im Archiv" })).toBeVisible();
@@ -36,6 +37,27 @@ test("Medienbibliothek importiert Metadaten und verknüpft die aktive Szene", as
   await card.getByRole("button", { name: "Mit aktiver Szene verknüpfen" }).click();
   const sceneLink = card.getByRole("button", { name: "Szene: Szene 1", exact: true });
   await expect(sceneLink).toBeVisible();
+
+  const cardLayout = await card.evaluate((element) => {
+    const body = element.querySelector<HTMLElement>(".media-card-body");
+    if (!body) throw new Error("Medienkarteninhalt fehlt.");
+    const cardBounds = element.getBoundingClientRect();
+    const clippedChildren = [...body.children].filter((child) => {
+      const bounds = child.getBoundingClientRect();
+      return bounds.left < cardBounds.left - 1 || bounds.right > cardBounds.right + 1;
+    });
+    return {
+      cardOverflows: element.scrollWidth > element.clientWidth + 1,
+      bodyOverflows: body.scrollWidth > body.clientWidth + 1,
+      clippedChildren: clippedChildren.length,
+    };
+  });
+  expect(cardLayout).toEqual({
+    cardOverflows: false,
+    bodyOverflows: false,
+    clippedChildren: 0,
+  });
+
   await sceneLink.click();
   await expect(page.getByRole("textbox", { name: "Text von Szene 1" })).toBeVisible();
 });

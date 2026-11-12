@@ -27,6 +27,7 @@
      - [ ] Frei wählbare Snapshotarchive und Text-/DOCX-Dateien über die Oberfläche importieren
    - [x] Lokale Medienbibliothek mit Metadaten, Links, Backup und Snapshot-Assets
      - [x] Browser-E2E für PNG-Import, Metadaten und Szenenverknüpfung
+     - [x] Medienkarten bei schmalem Fenster und hohem Zoom ohne abgeschnittene Inhalte darstellen
    - [x] Visuelle Profile und projektweite Stilvorlagen
      - [x] Eigenständiger Browser-E2E für Profil-, Stil- und Geltungsbereichspersistenz
 4. Optionale Text-KI, Kontinuitätsprüfung, Prompt-Entwürfe und Bildverträge

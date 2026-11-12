@@ -2,7 +2,7 @@
 
 Stand: 12. November 2026
 
-Code-Referenz: KQ-039 (Issue #74)
+Code-Referenz: KQ-040 (Issue #76)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -286,6 +286,10 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   Manuskript. Der testexklusive Adapter dekodiert keine Bilder, berechnet keine kryptografischen
   Hashes und schreibt keine Dateien; diese Eigenschaften bleiben durch Rust-Tests beziehungsweise
   separate Tauri- und Plattformabnahme belegt.
+- KQ-040 begrenzt die intrinsische Breite von Datei-Inputs und allen weiteren Karteninhalten auf die
+  verfügbare Grid-Spur. Buttons dürfen bei Bedarf mehrzeilig werden; Metadaten wechseln
+  platzabhängig auf weniger Spalten. Der Medien-Playwright-Ablauf prüft bei 360 Pixeln Breite, dass
+  Karte, Inhalt und direkte Bedienelemente keinen horizontalen Überlauf erzeugen.
 
 ### Visuelle Profile und Stilvorlagen (KQ-014)
 

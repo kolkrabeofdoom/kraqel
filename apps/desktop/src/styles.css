@@ -964,13 +964,35 @@ button.scene-button.active {
 
 .media-card-body {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.7rem;
   padding: 1rem;
 }
 
+.media-card-body > *,
+.media-card label,
+.asset-link-form > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.media-card input,
+.media-card select {
+  width: 100%;
+}
+
+.media-card-body > button,
+.asset-link-form > button {
+  min-height: 2.75rem;
+  max-width: 100%;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
 .media-metadata {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
   gap: 0.5rem;
   margin: 0;
 }
@@ -987,10 +1009,12 @@ button.scene-button.active {
 }
 
 .media-metadata dd {
+  max-width: 100%;
   margin: 0.15rem 0 0;
   overflow: hidden;
   font-size: 0.8rem;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .asset-link-form,
@@ -1002,6 +1026,7 @@ button.scene-button.active {
 
 .asset-link-form select {
   flex: 1 1 12rem;
+  width: 100%;
 }
 
 .asset-links .link-chip {
