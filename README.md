@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/kolkrabeofdoom/kraqel/actions/workflows/ci.yml"><img src="https://github.com/kolkrabeofdoom/kraqel/actions/workflows/ci.yml/badge.svg" alt="CI-Status"></a>
-  <a href="https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.3"><img src="https://img.shields.io/badge/Release-0.1.0--alpha.3-c1121f" alt="Aktuelles Release: 0.1.0 Alpha 3"></a>
+  <a href="https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.4"><img src="https://img.shields.io/badge/Release-0.1.0--alpha.4-c1121f" alt="Aktuelles Release: 0.1.0 Alpha 4"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/Lizenz-GPL--3.0--or--later-663399" alt="Lizenz: GPL 3.0 oder später"></a>
   <img src="https://img.shields.io/badge/Plattform-Windows%20x64-0f6cbd" alt="Primärplattform: Windows x64">
   <img src="https://img.shields.io/badge/Prinzip-Offline%20first-287271" alt="Prinzip: Offline first">
@@ -22,14 +22,14 @@ Strukturplanung, Worldbuilding, Medienverwaltung, lokale Versionierung und optio
 einer Desktop-Anwendung. Schreiben steht zuerst; KI bleibt optional, transparent und unter
 menschlicher Kontrolle.
 
-> [!WARNING] **Aktueller Stand: 0.1.0 Alpha 3.** KRAQEL ist ein frühes, öffentliches Prerelease und
+> [!WARNING] **Aktueller Stand: 0.1.0 Alpha 4.** KRAQEL ist ein frühes, öffentliches Prerelease und
 > noch nicht produktionsreif. Arbeite ausschließlich mit aktuellen Sicherungen und niemals mit dem
 > einzigen Exemplar eines Manuskripts. Der Drache kennt inzwischen Undo, aber die Brandschutzordnung
 > nur vom Hörensagen.
 
 ## Inhaltsverzeichnis
 
-- [Alpha 3 herunterladen](#alpha-3-herunterladen)
+- [Alpha 4 herunterladen](#alpha-4-herunterladen)
 - [Wofür KRAQEL gedacht ist](#wofür-kraqel-gedacht-ist)
 - [Grundsätze](#grundsätze)
 - [Funktionsumfang](#funktionsumfang)
@@ -46,35 +46,39 @@ menschlicher Kontrolle.
 - [Mitwirken](#mitwirken)
 - [Lizenz und Inhalte](#lizenz-und-inhalte)
 
-## Alpha 3 herunterladen
+## Alpha 4 herunterladen
 
 ### Fertiges Windows-Setup
 
 Das aktuelle öffentliche Prerelease ist
-**[KRAQEL 0.1.0 Alpha 3](https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.3)**. Es
+**[KRAQEL 0.1.0 Alpha 4](https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.4)**. Es
 richtet sich an testende Personen auf Windows x64 und enthält drei gemeinsam zu prüfende Dateien:
+
+Alpha 4 ergänzt den bewusst bestätigten, atomaren Merge doppelter Story-Bibel-Einträge samt
+Eigenschaften, Referenzen und visuellen Profilen. Der Ablauf wurde zusätzlich in der echten
+Windows-Tauri-App manuell geprüft.
 
 | Datei                                                                                                                                                          | Zweck                                                             |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| [`KRAQEL_0.1.0_windows-x64-setup.exe`](https://github.com/kolkrabeofdoom/kraqel/releases/download/v0.1.0-alpha.3/KRAQEL_0.1.0_windows-x64-setup.exe)           | Unsigniertes NSIS-Setup für das aktuelle Benutzer*innenkonto      |
-| [`KRAQEL_0.1.0_windows-x64-SHA256SUMS.txt`](https://github.com/kolkrabeofdoom/kraqel/releases/download/v0.1.0-alpha.3/KRAQEL_0.1.0_windows-x64-SHA256SUMS.txt) | Veröffentlichte SHA-256-Prüfsumme                                 |
-| [`KRAQEL_0.1.0_windows-x64-build.json`](https://github.com/kolkrabeofdoom/kraqel/releases/download/v0.1.0-alpha.3/KRAQEL_0.1.0_windows-x64-build.json)         | Maschinenlesbares Buildmanifest mit Quellcommit und Werkzeugdaten |
+| [`KRAQEL_0.1.0_windows-x64-setup.exe`](https://github.com/kolkrabeofdoom/kraqel/releases/download/v0.1.0-alpha.4/KRAQEL_0.1.0_windows-x64-setup.exe)           | Unsigniertes NSIS-Setup für das aktuelle Benutzer*innenkonto      |
+| [`KRAQEL_0.1.0_windows-x64-SHA256SUMS.txt`](https://github.com/kolkrabeofdoom/kraqel/releases/download/v0.1.0-alpha.4/KRAQEL_0.1.0_windows-x64-SHA256SUMS.txt) | Veröffentlichte SHA-256-Prüfsumme                                 |
+| [`KRAQEL_0.1.0_windows-x64-build.json`](https://github.com/kolkrabeofdoom/kraqel/releases/download/v0.1.0-alpha.4/KRAQEL_0.1.0_windows-x64-build.json)         | Maschinenlesbares Buildmanifest mit Quellcommit und Werkzeugdaten |
 
-Das Setup ist 233.964.317 Byte beziehungsweise rund 223,13 MiB groß. Es enthält den
+Das Setup ist 233.977.179 Byte beziehungsweise rund 223,14 MiB groß. Es enthält den
 WebView2-Offlineinstaller, damit die Installation nicht erst zur Laufzeit eine Browserkomponente aus
 dem Netz nachladen muss. Der zugehörige Quellstand ist Commit
-[`e3d091771b23b2cfa622495a4f9198b84f34b416`](https://github.com/kolkrabeofdoom/kraqel/commit/e3d091771b23b2cfa622495a4f9198b84f34b416).
+[`24ceb3c627f94ac6e54f8d11b95a201a8e806eed`](https://github.com/kolkrabeofdoom/kraqel/commit/24ceb3c627f94ac6e54f8d11b95a201a8e806eed).
 
 Erwartete SHA-256-Prüfsumme des Setups:
 
 ```text
-93ec0b85e454f9e0f2e776d4d052b2c8e1f7f27837045658831816ab627dff21
+0e6d578d1dfb48e8ecfe6c8be04be3f593f83eff43756f829d30ebad761fb6be
 ```
 
 Unter PowerShell lässt sich der Download so prüfen:
 
 ```powershell
-$expected = "93ec0b85e454f9e0f2e776d4d052b2c8e1f7f27837045658831816ab627dff21"
+$expected = "0e6d578d1dfb48e8ecfe6c8be04be3f593f83eff43756f829d30ebad761fb6be"
 $actual = (Get-FileHash .\KRAQEL_0.1.0_windows-x64-setup.exe -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($actual -ne $expected) { throw "Die Prüfsumme stimmt nicht. Setup nicht starten." }
 "SHA-256 stimmt: $actual"
@@ -82,7 +86,7 @@ if ($actual -ne $expected) { throw "Die Prüfsumme stimmt nicht. Setup nicht sta
 
 ### Unsigned- und SmartScreen-Hinweis
 
-Alpha 3 ist bewusst **nicht mit einem kommerziellen Authenticode-Zertifikat signiert**. Windows kann
+Alpha 4 ist bewusst **nicht mit einem kommerziellen Authenticode-Zertifikat signiert**. Windows kann
 deshalb eine SmartScreen-Warnung anzeigen oder die herausgebende Stelle als unbekannt bezeichnen.
 Das ist für dieses Release erwartbar, aber kein Freibrief für unbekannte Dateien:
 
@@ -106,7 +110,7 @@ Veröffentlichungskanal. Das ausführliche Verfahren steht unter
   registriert und wieder deinstalliert.
 - Die später öffentlich heruntergeladenen drei Dateien sind bytegenau identisch mit dem lokalen
   Build und dem geprüften Entwurf.
-- Windows- und Ubuntu-CI bestanden die Qualitätskette und jeweils 15 Browser-E2E-Abläufe.
+- Windows- und Ubuntu-CI bestanden die Qualitätskette und jeweils 16 Browser-E2E-Abläufe.
 
 Noch offen ist die vollständige manuelle Abnahme von SmartScreen, interaktivem Erststart,
 Projektpersistenz und Deinstallation auf einem unabhängigen Zweitrechner oder einer Clean-VM.
@@ -268,7 +272,7 @@ des KRAQEL-Programmcodes zu unterscheiden.
 
 ## Was noch nicht fertig ist
 
-KRAQEL 0.1.0 Alpha 3 ist ein Entwicklungsstand, keine verschämt als „Beta“ verkleidete
+KRAQEL 0.1.0 Alpha 4 ist ein Entwicklungsstand, keine verschämt als „Beta“ verkleidete
 Fertigbehauptung. Insbesondere fehlen oder bleiben offen:
 
 - externe Windows-Abnahme von SmartScreen, Erststart, Persistenz und Deinstallation,
@@ -524,7 +528,7 @@ metaphysischer Wahrheitsbeweis.
 | M2       | Story-Bibel, Plotboard, Timeline             | Technischer Mindestumfang mit getrennten E2E-Abläufen umgesetzt                              |
 | M3       | Git, Import/Export, Medien, visuelle Profile | Teilweise umgesetzt; freie Archivauswahl und mehrere Import-/Roundtrip-Funktionen fehlen     |
 | M4       | Text-KI, Kontinuität, Prompt-Entwürfe        | Technischer 0.1-Umfang weitgehend vorhanden; reale Providerabnahme und Bildausführung fehlen |
-| M5       | Windows-Release 0.1                          | Alpha 3 veröffentlicht; unabhängige Windows-Abnahme noch offen                               |
+| M5       | Windows-Release 0.1                          | Alpha 4 veröffentlicht; unabhängige Windows-Abnahme noch offen                               |
 | M6 / 0.2 | Bildgenerierung, Varianten, Karten           | Nicht begonnen und ausdrücklich außerhalb von 0.1                                            |
 
 Die maßgebliche, faktenbasierte Übergabe steht in

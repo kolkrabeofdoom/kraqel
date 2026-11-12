@@ -63,6 +63,10 @@ konkreten Ergebnisses aufgezeichnet.
 - KQ-041 wendet den Pfad auf `v0.1.0-alpha.3` aus dem geprüften KQ-040-Commit an. Die Entwurfsassets
   bestanden die isolierte Installation und Deinstallation; der öffentliche Rückdownload ist für
   Setup, Manifest und Prüfsumme bytegleich. Die offenen Clean-VM-Risiken bleiben unverändert.
+- KQ-045 wendet den Pfad auf `v0.1.0-alpha.4` aus dem geprüften KQ-044-Commit an. Release Candidate
+  und öffentlicher Rückdownload bestanden jeweils Hash-, Manifest-, Signatur-, Installations-,
+  Registrierungs- und Deinstallationsprüfung. Bestehende App-Daten blieben unverändert; die offenen
+  Clean-VM-Risiken bleiben bestehen.
 
 ## Evidenz
 

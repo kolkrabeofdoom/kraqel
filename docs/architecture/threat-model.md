@@ -138,6 +138,12 @@ Rückdownload belegen identische Assets; der parallele Betrieb der regulären Ap
 öffentlichen Paket lediglich einen unverfälschten App-Daten-Fingerabdruck. Die Vertrauensgrenzen und
 die offene Clean-VM-Abnahme gelten unverändert auch für `v0.1.0-alpha.3`.
 
+KQ-045 veröffentlicht Alpha 4 aus dem geprüften KQ-044-Commit. Release Candidate und öffentlicher
+Rückdownload sind bytegleich und bestanden jeweils die isolierte Installation und Deinstallation;
+bestehende App-Daten blieben unverändert. Da das installierte Paket auf diesem Rechner nicht gegen
+reale App-Daten gestartet wurde, gelten SmartScreen-, Start- und Clean-VM-Risiken auch für
+`v0.1.0-alpha.4` fort.
+
 Verbleibendes Risiko: Die kanonische Vorabprüfung ist nicht vollständig gegen ein gleichzeitiges
 böswilliges Austauschen bereits geprüfter Verzeichnisse abgesichert. Vor der Unterstützung
 unvertrauenswürdiger Projektwurzeln sind handle-relative Betriebssystemzugriffe zu bewerten.
