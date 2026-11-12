@@ -433,7 +433,7 @@ pub struct DocumentNode {
     pub revision: u64,
 }
 
-/// Versionierter, in SQLite gespeicherter Tiptap-Dokumentinhalt.
+/// Versionierter, in `SQLite` gespeicherter Tiptap-Dokumentinhalt.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EditorDocument {

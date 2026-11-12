@@ -95,13 +95,12 @@ impl<'database> PromptRepository<'database> {
         let style = style_preset_id
             .map(|id| load_style(connection, project_id, id))
             .transpose()?;
-        if let Some(style) = &style {
-            if profiles
+        if let Some(style) = &style
+            && profiles
                 .iter()
                 .any(|profile| !style.applicable_kinds.contains(&profile.kind))
-            {
-                return Err(PromptError::InvalidInput);
-            }
+        {
+            return Err(PromptError::InvalidInput);
         }
         let prompt_text = render_prompt(&document, &profiles, style.as_ref())?;
         Ok(ImagePromptComposition {

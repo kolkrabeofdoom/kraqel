@@ -731,10 +731,10 @@ fn copy_asset_file(
         operation: "Asset für Sicherung lesen",
         source,
     })?;
-    if let Some(expected) = expected_checksum {
-        if format!("{:x}", Sha256::digest(&bytes)) != expected {
-            return Err(ProjectError::InvalidDatabase);
-        }
+    if let Some(expected) = expected_checksum
+        && format!("{:x}", Sha256::digest(&bytes)) != expected
+    {
+        return Err(ProjectError::InvalidDatabase);
     }
     let destination = components
         .iter()

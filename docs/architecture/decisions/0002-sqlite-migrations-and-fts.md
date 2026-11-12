@@ -6,9 +6,10 @@
 ## Kontext
 
 KRAQEL braucht eine transaktionale lokale Autorität, verlässliche Vorwärtsmigrationen und eine
-Offline-Volltextsuche. Das Workspace-Minimum bleibt Rust 1.85; neuere Bibliotheksversionen dürfen
-diese Untergrenze nicht beiläufig anheben. Systemabhängige SQLite-Installationen unterscheiden sich
-zudem darin, ob FTS5 verfügbar ist.
+Offline-Volltextsuche. Bei Annahme dieser ADR lag das Workspace-Minimum bei Rust 1.85; neuere
+Bibliotheksversionen durften diese Untergrenze nicht beiläufig anheben. ADR 0020 hebt das Minimum
+später aus dokumentierten Abhängigkeitsgründen bewusst auf Rust 1.90 an. Systemabhängige
+SQLite-Installationen unterscheiden sich zudem darin, ob FTS5 verfügbar ist.
 
 ## Entscheidung
 

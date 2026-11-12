@@ -418,7 +418,9 @@ mod tests {
     use super::*;
     use kraqel_domain::{CURRENT_SCHEMA_VERSION, EntityId, ProjectId};
     use serde_json::json;
+    use std::io::{Cursor, Read};
     use tempfile::tempdir;
+    use zip::ZipArchive;
     fn fixture() -> (Project, Vec<ExportSourceDocument>) {
         let project_id = ProjectId::new();
         let chapter_id = EntityId::new();
@@ -456,7 +458,7 @@ mod tests {
                     ),
                     content: EditorDocument {
                         version: 1,
-                        document: json!({"type":"doc","content":[ {"type":"paragraph","content":[{"type":"text","text":"Ein "},{"type":"text","text":"kluger","marks":[{"type":"bold"}]},{"type":"text","text":" Kolkrabe.","marks":[{"type":"italic"}]}]}, {"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Erstens"}]}]}]}, {"type":"blockquote","content":[{"type":"paragraph","content":[{"type":"text","text":"Niemals eine Krähe."}]}]} ]}),
+                        document: json!({"type":"doc","content":[ {"type":"paragraph","content":[{"type":"text","text":"Ein "},{"type":"text","text":"kluger","marks":[{"type":"bold"}]},{"type":"text","text":" Kolkrabe.","marks":[{"type":"italic"}]},{"type":"hardBreak"},{"type":"text","text":"Zweite Zeile"}]}, {"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Erstens"}]}]}]}, {"type":"blockquote","content":[{"type":"paragraph","content":[{"type":"text","text":"Niemals eine Krähe."}]}]} ]}),
                     },
                 },
             ],
@@ -486,11 +488,30 @@ mod tests {
                 .expect("html")
                 .contains("<strong>kluger</strong>")
         );
-        assert!(
-            fs::read(root.path().join("exports/manuskript.docx"))
-                .expect("docx")
-                .starts_with(b"PK")
-        );
+        let docx = fs::read(root.path().join("exports/manuskript.docx")).expect("docx");
+        let mut archive = ZipArchive::new(Cursor::new(docx)).expect("valid docx archive");
+        for name in [
+            "[Content_Types].xml",
+            "_rels/.rels",
+            "word/document.xml",
+            "word/styles.xml",
+            "word/_rels/document.xml.rels",
+        ] {
+            assert!(archive.by_name(name).is_ok(), "missing DOCX part {name}");
+        }
+        let mut document = String::new();
+        archive
+            .by_name("word/document.xml")
+            .expect("document part")
+            .read_to_string(&mut document)
+            .expect("UTF-8 document XML");
+        assert!(document.contains("Der Kolkrabe &amp; das Archiv"));
+        assert!(document.contains("<w:b/></w:rPr><w:t xml:space=\"preserve\">kluger</w:t>"));
+        assert!(document.contains("<w:i/></w:rPr><w:t xml:space=\"preserve\"> Kolkrabe.</w:t>"));
+        assert!(document.contains("<w:r><w:br/></w:r>"));
+        assert!(document.contains("<w:t xml:space=\"preserve\">Zweite Zeile</w:t>"));
+        assert!(document.contains("<w:t xml:space=\"preserve\">• </w:t>"));
+        assert!(document.contains("<w:t xml:space=\"preserve\">› </w:t>"));
         assert!(
             fs::read(root.path().join("exports/manuskript.pdf"))
                 .expect("pdf")
