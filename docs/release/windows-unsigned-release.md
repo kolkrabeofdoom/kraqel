@@ -84,15 +84,15 @@ vorgesehenen Release-Commit übereinstimmen.
 
 ## Veröffentlichtes Alpha zurückprüfen
 
-KQ-036 prüfte zunächst den privaten Entwurf. KQ-037 veröffentlichte dieselben unveränderten Assets
-als klar markiertes Prerelease `v0.1.0-alpha.1`; der gleichnamige Tag zeigt auf den geprüften
-Build-Commit. Die drei Assets können in ein neues, ignoriertes Prüfverzeichnis geladen werden:
+KQ-039 veröffentlichte Alpha 2 mit der eingebetteten Beispielvorlage nach demselben Entwurfs- und
+Rückdownloadverfahren. Der Tag zeigt auf den geprüften Build-Commit. Die drei Assets können in ein
+neues, ignoriertes Prüfverzeichnis geladen werden:
 
 ```powershell
-gh release download v0.1.0-alpha.1 --dir artifacts/release-download/v0.1.0-alpha.1
+gh release download v0.1.0-alpha.2 --dir artifacts/release-download/v0.1.0-alpha.2
 pnpm test:release:windows `
-  -ArtifactDirectory artifacts/release-download/v0.1.0-alpha.1 `
-  -ExpectedCommit 5155ed5282cf217c9214cdd0426152ed7c5b8163
+  -ArtifactDirectory artifacts/release-download/v0.1.0-alpha.2 `
+  -ExpectedCommit c35dc47667933d2a2feb008b30dd0235a79cdf6d
 ```
 
 Das Abnahmeskript verlangt exakt Setup, Prüfsummendatei und Buildmanifest. Es prüft SHA-256,
@@ -134,10 +134,10 @@ Dieses Verfahren erzeugt zunächst nur einen privaten Release Candidate. Vor ein
    prüfen; der zurückgestellte Zweitrechnertest kann diesen Nachweis liefern.
 6. Erst nach dokumentierter Abnahme Tag und Release bewusst veröffentlichen.
 
-Für Alpha 1 wurden die Schritte 1 bis 4 ausgeführt und das unveränderte Paket anschließend auf
-ausdrückliche Freigabe als Prerelease veröffentlicht. Schritt 5 bleibt offen; deshalb ist
-`v0.1.0-alpha.1` kein stabiles Release und darf nicht als vollständige M5-Abnahme interpretiert
-werden.
+Für Alpha 1 und Alpha 2 wurden die Schritte 1 bis 4 ausgeführt und die jeweils unveränderten Pakete
+anschließend auf ausdrückliche Freigabe als Prerelease veröffentlicht. Schritt 5 bleibt offen;
+deshalb ist auch `v0.1.0-alpha.2` kein stabiles Release und darf nicht als vollständige M5-Abnahme
+interpretiert werden.
 
 Ein lokaler Build ersetzt weder die Clean-VM-Abnahme noch die Prüfung des tatsächlich
 heruntergeladenen GitHub-Artefakts. Hashes sind nützlich, aber sie tragen keine kleinen Roben und

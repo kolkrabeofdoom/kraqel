@@ -2,7 +2,7 @@
 
 Stand: 12. November 2026
 
-Code-Referenz: KQ-038 (Issue #72)
+Code-Referenz: KQ-039 (Issue #74)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -12,15 +12,15 @@ als vollständige Fachfunktion.
 
 ## Status nach Pflichtenheft-Stufen
 
-| Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| ------------ | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                                                                                                                                                                                                                                                                     |
-| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, Undo/Redo, Wortzählung, Fokusmodus, konfliktgeprüfter Autosave sowie sicheres Umbenennen, Umordnen, Löschen und SQLite-Backup vorhanden. KQ-032 automatisiert Tastatur-, Fokus- und Axe-Prüfungen; KQ-033 bestätigt den Kern manuell mit Windows-Sprachausgabe in der Tauri-WebView.                                                                                                   |
-| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks sind in getrennten Chromium-Abläufen geprüft. KQ-033 bestätigt Story-Bibel-Beziehungen und Rückverweise per Windows-Sprachausgabe; Plotboard und Timelines wurden assistiv stichprobenartig geprüft.                                                                                                                 |
-| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, Medienbibliothek sowie visuelle Profile und Stilvorlagen sind im browserseitigen Kernablauf geprüft. KQ-038 ergänzt einen streng validierten Snapshot-v3-Archivimport als stets neues Projekt sowie eine offline eingebettete Beispielvorlage. Eine allgemeine Archivdateiauswahl, Textimport und DOCX-Roundtrip fehlen.                                                                                            |
-| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Technischer 0.1-Umfang weitgehend umgesetzt:** Textprotokolle, browserseitig geprüfte Offline-Kontinuität und Prompt-Entwürfe sowie Bild-Capability- und Jobverträge vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise und Bildgenerierung fehlen.                                                                                                                                                                                                                                 |
-| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Alpha-Prerelease veröffentlicht:** Debug- und Tauri-Smoke-Tests, isolierter NSIS-Testinstaller, Accessibility-Nachweise sowie ein getrennter unsignierter x64-NSIS-Releasepfad sind vorhanden. GitHub-Rückdownload, SHA-256 sowie isolierte Installation und Deinstallation sind geprüft; dasselbe Artefakt ist als `v0.1.0-alpha.1` veröffentlicht. MSI, Signierung, Updater und ARM64 sind ausgeschlossen; SmartScreen, Anwendungsstart und Persistenz auf Zweitrechner/Clean-VM fehlen. |
-| **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ------------ | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                                                                                                                                                                                                                                                   |
+| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, Undo/Redo, Wortzählung, Fokusmodus, konfliktgeprüfter Autosave sowie sicheres Umbenennen, Umordnen, Löschen und SQLite-Backup vorhanden. KQ-032 automatisiert Tastatur-, Fokus- und Axe-Prüfungen; KQ-033 bestätigt den Kern manuell mit Windows-Sprachausgabe in der Tauri-WebView.                                                                                 |
+| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks sind in getrennten Chromium-Abläufen geprüft. KQ-033 bestätigt Story-Bibel-Beziehungen und Rückverweise per Windows-Sprachausgabe; Plotboard und Timelines wurden assistiv stichprobenartig geprüft.                                                                                               |
+| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, Medienbibliothek sowie visuelle Profile und Stilvorlagen sind im browserseitigen Kernablauf geprüft. KQ-038 ergänzt einen streng validierten Snapshot-v3-Archivimport als stets neues Projekt sowie eine offline eingebettete Beispielvorlage. Eine allgemeine Archivdateiauswahl, Textimport und DOCX-Roundtrip fehlen.                                                                          |
+| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Technischer 0.1-Umfang weitgehend umgesetzt:** Textprotokolle, browserseitig geprüfte Offline-Kontinuität und Prompt-Entwürfe sowie Bild-Capability- und Jobverträge vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise und Bildgenerierung fehlen.                                                                                                                                                                                                               |
+| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Alpha 2 veröffentlicht:** Debug- und Tauri-Smoke-Tests, isolierter NSIS-Testinstaller, Accessibility-Nachweise sowie ein getrennter unsignierter x64-NSIS-Releasepfad sind vorhanden. KQ-039 belegt Build, GitHub-Rückdownload, SHA-256 sowie isolierte Installation und Deinstallation von `v0.1.0-alpha.2` samt Beispielprojekt. MSI, Signierung, Updater und ARM64 sind ausgeschlossen; SmartScreen, Anwendungsstart und Persistenz auf Zweitrechner/Clean-VM fehlen. |
+| **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
 Die funktionalen Anforderungen F01 bis F09 sind damit noch nicht abgenommen. Vorhandene Verträge und
 Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
@@ -50,8 +50,9 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   KQ-036 erzeugte aus Merge-Commit `5155ed5282cf` den 212,98 MiB großen RC, lud genau drei Assets in
   einen privaten GitHub-Entwurf und prüfte den Rückdownload auf denselben SHA-256. Das Setup wurde
   isoliert installiert, registriert und deinstalliert; bestehende reguläre App-Daten blieben
-  unverändert. KQ-037 veröffentlichte exakt diese Assets als Prerelease `v0.1.0-alpha.1`. MSI,
-  Updater, ARM64 und Signierung werden nicht erzeugt.
+  unverändert. KQ-037 veröffentlichte exakt diese Assets als Prerelease `v0.1.0-alpha.1`. KQ-039
+  veröffentlicht den geprüften KQ-038-Stand mit eingebettetem Beispielprojekt als `v0.1.0-alpha.2`.
+  MSI, Updater, ARM64 und Signierung werden nicht erzeugt.
 - GPL-3.0-or-later, Beitrags-, Verhaltens- und Sicherheitsdokumentation vorhanden.
 
 ### Domäne und IPC-Grenze (KQ-002)
@@ -415,7 +416,7 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 1. **Externe Releaseabnahme später auf sauberem Windows durchführen**
    - denselben GitHub-Rückdownload auf einem Zweitrechner oder einer Clean-VM prüfen
    - SmartScreen-Verhalten, interaktiven Start, Projektpersistenz und Deinstallation dokumentieren
-   - Tag oder Release erst nach ausdrücklicher Freigabe veröffentlichen
+   - Ergebnisse vor einem stabilen Release gesondert dokumentieren
 
 ### Bewusst zurückgestellt
 
@@ -503,13 +504,12 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
   keine Herausgeber*innenidentität und schützt nicht, wenn Setup und Sollwert über denselben
   kompromittierten Kanal ersetzt werden. GitHub-Rückdownload sowie isolierte Installation und
   Deinstallation sind geprüft; SmartScreen und gestartete Anwendung bleiben extern abzunehmen.
-- Die vollständige lokale KQ-034-Qualitätskette ist grün: 40 TypeScript-, 91 ausgeführte Rust- und
-  vierzehn Playwright-E2E-Tests, Produktions-Frontend-Build, Formatierung, ESLint, Clippy und
-  Typprüfung. Zusätzlich bleiben der isolierte Tauri-Debug-Build, der echte
-  Windows-Persistenz-Smoke-Test sowie Build, Installation und Deinstallation des unsignierten
-  NSIS-Testartefakts grün. Ein visueller Export-QA-Test bleibt planmäßig ignoriert. Die CI-Matrix
-  unter Windows und Linux ist verbindliche Merge-Voraussetzung; die nativen Windows-Smoke-Tests
-  laufen derzeit bewusst lokal.
+- Die vollständige lokale Qualitätskette ist grün: 41 TypeScript-, 95 ausgeführte Rust- und fünfzehn
+  Playwright-E2E-Tests, Produktions-Frontend-Build, Formatierung, ESLint, Clippy und Typprüfung.
+  Zusätzlich bleiben der isolierte Tauri-Debug-Build, der echte Windows-Persistenz-Smoke-Test sowie
+  Build, Installation und Deinstallation des unsignierten NSIS-Testartefakts grün. Ein visueller
+  Export-QA-Test bleibt planmäßig ignoriert. Die CI-Matrix unter Windows und Linux ist verbindliche
+  Merge-Voraussetzung; die nativen Windows-Smoke-Tests laufen derzeit bewusst lokal.
 - KQ-033 ergänzt eine gemeinsam mit einer hörenden Testperson durchgeführte Windows-Sprachausgabe-
   Prüfung in der isolierten echten Tauri-WebView. Projektanlage, M1-Editor, Autosave-Ansagen,
   Story-Bibel-Beziehungen und Rückverweis wurden vollständig im vereinbarten Kernpfad geprüft; die
@@ -538,6 +538,13 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
   klare Alpha-, Backup-, Unsigned- und SmartScreen-Hinweise und veröffentlichte ihn als Prerelease.
   Der Tag zeigt auf den unveränderten Build-Commit `5155ed5282cf`; Setup, Manifest und Prüfsumme
   behielten ihre GitHub-Digests. Das frühere RC-Tag wurde nicht erzeugt.
+- KQ-039 baute Alpha 2 aus dem sauberen KQ-038-Merge-Commit `c35dc4766793`. Das 223,13 MiB große,
+  unsignierte Setup enthält die offline eingebettete Beispielvorlage. Genau drei Assets wurden als
+  Entwurf hochgeladen, erneut heruntergeladen und gegen Manifest, Commit und SHA-256
+  `3bccda1f1f89383a5a1f2d3b6c006f145eeacadc57578314824b9dc1ccfae3eb` geprüft. Das zurückgeladene
+  Setup installierte und deinstallierte isoliert; bestehende reguläre App-Daten blieben unverändert.
+  Der Tag `v0.1.0-alpha.2` zeigt auf den Build-Commit. Die Anwendung wurde auf diesem Rechner
+  weiterhin nicht gestartet.
 
 ## Wichtige Architekturentscheidungen
 
@@ -616,28 +623,28 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 
 ## Abhängigkeiten und technische Risiken
 
-| Thema                        | Zustand / Risiko                                                                                                                                                                                  | Nächste Kontrolle                                                     |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert                                                                                       | Vor großen Projekten messen; Migration nur mit Evidenz                |
-| Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                                                                                                             | Gemeinsame Fixtures oder spätere Codegenerierung bewerten             |
-| Datenformat                  | Snapshot v3 samt begrenztem Neuimport, Prompt-Entwürfen, Profilen und Hash-Assets; freie Dateiauswahl und Manuskriptroundtrip fehlen                                                              | Fremdarchive fuzztesten; Text-/DOCX-Roundtrip vor F07/F08-Abnahme     |
-| Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                                                                                                                   | Freie eingebettete Schrift und Medienkonzept prüfen                   |
-| Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                                                                                                         | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen              |
-| Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                                                                                                          | Bei jeder Erweiterung Fixtures und Migration prüfen                   |
-| Desktoptests                 | Zwölf Browser-E2E-Suites einschließlich Beispielprojekt, Accessibility-Kern und -Randfällen, echter Windows-Tauri-M1-Smoke, lokaler NSIS-Lebenszyklus sowie bestandene KQ-033/KQ-034-Hörprüfungen | Vor Release mit weiterer Testperson oder NVDA verbreitern             |
-| Windows-Installer            | Debug-Lebenszyklus, unsignierter x64-Releasebau, Rückdownload und isolierte Installation/Deinstallation grün; Alpha 1 als Prerelease veröffentlicht, SmartScreen/Start/Persistenz extern offen    | Zweitrechner oder Clean-VM später manuell                             |
-| CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                                                                                                                     | Caching prüfen, ohne Reproduzierbarkeit zu schwächen                  |
-| Abhängigkeitssicherheit      | GitHub Dependency Graph deaktiviert; Dependency-Review-Job deshalb nicht unterstützt                                                                                                              | Dependency Graph aktivieren oder alternative Audits bewerten          |
-| Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                                                                                                          | Plattformmatrix je Release definieren                                 |
-| Lokale Text-KI               | Protokoll gegen kontrollierten Loopback-Testserver geprüft; echter Ollama-/Modelllauf fehlt                                                                                                       | Mit freiem Testmodell manuell prüfen und Abbruch entwerfen            |
-| Cloudprovider                | Vier Protokolle lokal getestet; echte API-, Kosten-, Aufbewahrungs- und Kontodialog-Abnahme fehlt                                                                                                 | Mit separaten Testkonten und Minimalbudget manuell prüfen             |
-| Schlüsselspeicher            | Native Backends eingebunden; reale Windows-/Linux-Dialoge nicht automatisiert getestet                                                                                                            | Manuelle Plattformabnahme ohne produktive Schlüssel                   |
-| Kontinuitätsprüfung          | Vier Offline-Regeln getestet; exakte Nennungen und grober Zeilendiff begrenzen die Abdeckung                                                                                                      | Mit größeren künstlichen Projekten messen; KI-Kanal separat entwerfen |
-| Medienimport                 | Drei Rasterformate und harte Limits getestet; Bytearray-IPC skaliert nicht für Massenuploads                                                                                                      | Nativen Streamingimport erst nach Messung großer Sammlungen bewerten  |
-| Assetbackup                  | Hash-verifizierte Begleitverzeichnisse getestet; `.kraqel` ist ein portables Snapshotpaket, aber kein fortschreibbares Backup                                                                     | Recovery- und Austauschzweck in der Oberfläche klar getrennt halten   |
-| Visuelle Profile             | Struktur und Referenzen getestet; Stilnamen-Eindeutigkeit nutzt SQLite-NOCASE mit ASCII-Grenze                                                                                                    | Unicode-Kollation bei internationalisierten Vorlagennamen bewerten    |
-| Bildprompt-Entwürfe          | Lokal, referenziell und browserseitig geprüft; kein Providerpfad und keine automatische Rekombination                                                                                             | Tauri-/Screenreader-Abnahme; KQ-016-Grenze getrennt halten            |
-| Bild-Capability-Verträge     | Rust/TypeScript v1 und lokaler Mock getestet; keine produktive Ausführung oder Persistenz                                                                                                         | Vor KQ-017 Freigabebeleg, Ergebnisprüfung, Kosten und Lizenzen klären |
+| Thema                        | Zustand / Risiko                                                                                                                                                                                     | Nächste Kontrolle                                                     |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert                                                                                          | Vor großen Projekten messen; Migration nur mit Evidenz                |
+| Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                                                                                                                | Gemeinsame Fixtures oder spätere Codegenerierung bewerten             |
+| Datenformat                  | Snapshot v3 samt begrenztem Neuimport, Prompt-Entwürfen, Profilen und Hash-Assets; freie Dateiauswahl und Manuskriptroundtrip fehlen                                                                 | Fremdarchive fuzztesten; Text-/DOCX-Roundtrip vor F07/F08-Abnahme     |
+| Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                                                                                                                      | Freie eingebettete Schrift und Medienkonzept prüfen                   |
+| Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                                                                                                            | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen              |
+| Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                                                                                                             | Bei jeder Erweiterung Fixtures und Migration prüfen                   |
+| Desktoptests                 | Zwölf Browser-E2E-Suites einschließlich Beispielprojekt, Accessibility-Kern und -Randfällen, echter Windows-Tauri-M1-Smoke, lokaler NSIS-Lebenszyklus sowie bestandene KQ-033/KQ-034-Hörprüfungen    | Vor Release mit weiterer Testperson oder NVDA verbreitern             |
+| Windows-Installer            | Debug-Lebenszyklus, unsignierter x64-Releasebau, Rückdownload und isolierte Installation/Deinstallation grün; Alpha 2 samt Beispielprojekt veröffentlicht, SmartScreen/Start/Persistenz extern offen | Zweitrechner oder Clean-VM später manuell                             |
+| CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                                                                                                                        | Caching prüfen, ohne Reproduzierbarkeit zu schwächen                  |
+| Abhängigkeitssicherheit      | GitHub Dependency Graph deaktiviert; Dependency-Review-Job deshalb nicht unterstützt                                                                                                                 | Dependency Graph aktivieren oder alternative Audits bewerten          |
+| Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                                                                                                             | Plattformmatrix je Release definieren                                 |
+| Lokale Text-KI               | Protokoll gegen kontrollierten Loopback-Testserver geprüft; echter Ollama-/Modelllauf fehlt                                                                                                          | Mit freiem Testmodell manuell prüfen und Abbruch entwerfen            |
+| Cloudprovider                | Vier Protokolle lokal getestet; echte API-, Kosten-, Aufbewahrungs- und Kontodialog-Abnahme fehlt                                                                                                    | Mit separaten Testkonten und Minimalbudget manuell prüfen             |
+| Schlüsselspeicher            | Native Backends eingebunden; reale Windows-/Linux-Dialoge nicht automatisiert getestet                                                                                                               | Manuelle Plattformabnahme ohne produktive Schlüssel                   |
+| Kontinuitätsprüfung          | Vier Offline-Regeln getestet; exakte Nennungen und grober Zeilendiff begrenzen die Abdeckung                                                                                                         | Mit größeren künstlichen Projekten messen; KI-Kanal separat entwerfen |
+| Medienimport                 | Drei Rasterformate und harte Limits getestet; Bytearray-IPC skaliert nicht für Massenuploads                                                                                                         | Nativen Streamingimport erst nach Messung großer Sammlungen bewerten  |
+| Assetbackup                  | Hash-verifizierte Begleitverzeichnisse getestet; `.kraqel` ist ein portables Snapshotpaket, aber kein fortschreibbares Backup                                                                        | Recovery- und Austauschzweck in der Oberfläche klar getrennt halten   |
+| Visuelle Profile             | Struktur und Referenzen getestet; Stilnamen-Eindeutigkeit nutzt SQLite-NOCASE mit ASCII-Grenze                                                                                                       | Unicode-Kollation bei internationalisierten Vorlagennamen bewerten    |
+| Bildprompt-Entwürfe          | Lokal, referenziell und browserseitig geprüft; kein Providerpfad und keine automatische Rekombination                                                                                                | Tauri-/Screenreader-Abnahme; KQ-016-Grenze getrennt halten            |
+| Bild-Capability-Verträge     | Rust/TypeScript v1 und lokaler Mock getestet; keine produktive Ausführung oder Persistenz                                                                                                            | Vor KQ-017 Freigabebeleg, Ergebnisprüfung, Kosten und Lizenzen klären |
 
 ## Nächste geplante Entwicklungsstufe
 
@@ -645,11 +652,11 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 
 Empfohlener, überprüfbarer Scope:
 
-1. Das veröffentlichte Prerelease `v0.1.0-alpha.1` auf einem Zweitrechner oder einer Clean-VM erneut
+1. Das veröffentlichte Prerelease `v0.1.0-alpha.2` auf einem Zweitrechner oder einer Clean-VM erneut
    herunterladen und den dokumentierten SHA-256 prüfen.
 2. SmartScreen, interaktiven Start, Projekterstellung, Autosave, Wiederöffnen und Deinstallation
    ohne Bestandsdatenrisiko dokumentieren.
-3. Ergebnisse als Grundlage für ein späteres stabiles Release dokumentieren; Alpha 1 bleibt
+3. Ergebnisse als Grundlage für ein späteres stabiles Release dokumentieren; Alpha 2 bleibt
    ausdrücklich ein Prerelease.
 
 Die zusätzliche Installerprüfung auf einem weiteren Windows-Rechner ist bewusst zurückgestellt und
@@ -662,7 +669,7 @@ cd D:\kraqel
 git status
 git branch --show-current
 git log -5 --oneline
-rg "v0.1.0-alpha.1|SmartScreen|Zweitrechner|Clean-VM" README.md docs ROADMAP.md
+rg "v0.1.0-alpha.2|SmartScreen|Zweitrechner|Clean-VM" README.md docs ROADMAP.md
 ```
 
 Danach lesen: `AGENTS.md`, dieses Dokument, `docs/testing/accessibility-acceptance.md`,
@@ -670,6 +677,7 @@ Danach lesen: `AGENTS.md`, dieses Dokument, `docs/testing/accessibility-acceptan
 automatisierbaren Tastatur- und Accessibility-Kern; KQ-033 ergänzt die bestandene manuelle
 Windows-Sprachausgabe-Kernprüfung und KQ-034 die isolierten Randfälle. KQ-035 ergänzt den lokal
 geprüften, bewusst unsignierten Releasepfad; KQ-036 belegt Entwurf, Rückdownload sowie isolierte
-Installation und Deinstallation. KQ-037 veröffentlicht dasselbe Artefakt als Alpha-Prerelease. Als
+Installation und Deinstallation. KQ-037 veröffentlicht dasselbe Artefakt als Alpha 1; KQ-039
+veröffentlicht Alpha 2 samt Beispielprojekt nach erneutem Rückdownload und isolierter Abnahme. Als
 Nächstes bleibt die bewusst zurückgestellte Zweitrechner- oder Clean-VM-Abnahme mit SmartScreen,
 Start und Persistenz.

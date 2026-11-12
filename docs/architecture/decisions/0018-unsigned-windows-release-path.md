@@ -56,6 +56,10 @@ konkreten Ergebnisses aufgezeichnet.
 - KQ-037 veröffentlicht exakt dieses unveränderte Artefakt als klar gekennzeichnetes
   `v0.1.0-alpha.1`-Prerelease. Die Alpha-Kennzeichnung, Release Notes und Prüfsumme machen den
   unfertigen Status sichtbar; sie heben die offenen Abnahmerisiken nicht auf.
+- KQ-039 wendet denselben Pfad auf `v0.1.0-alpha.2` an. Das neue Artefakt stammt aus dem geprüften
+  KQ-038-Commit und enthält die offline eingebettete Beispielvorlage; Rückdownload, Hash sowie
+  isolierte Installation und Deinstallation wurden erneut geprüft. Die offenen Clean-VM-Risiken
+  bleiben unverändert.
 
 ## Evidenz
 

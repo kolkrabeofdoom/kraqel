@@ -4,12 +4,12 @@
 Autorenstudio für Romane, Drehbücher und Rollenspielmodule. Schreiben steht zuerst; KI bleibt
 optional, transparent und immer unter menschlicher Kontrolle.
 
-> Status: **0.1.0 Alpha 1** ist als Windows-x64-Prerelease verfügbar. Noch kein produktiver Einsatz
+> Status: **0.1.0 Alpha 2** ist als Windows-x64-Prerelease verfügbar. Noch kein produktiver Einsatz
 > ohne Backups - der Drache kennt inzwischen Undo, aber die Brandschutzordnung nur vom Hörensagen.
 
 ## Alpha herunterladen
 
-[KRAQEL 0.1.0 Alpha 1](https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.1) enthält
+[KRAQEL 0.1.0 Alpha 2](https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.2) enthält
 ein bewusst unsigniertes NSIS-Setup für Windows x64 mit eingebettetem WebView2-Offlineinstaller.
 Windows kann deshalb eine SmartScreen-Warnung anzeigen. Vor dem Start ist die beigefügte
 SHA-256-Datei zu prüfen; Alpha-Versionen gehören nicht ohne aktuelle Backups an das einzige Exemplar
@@ -33,8 +33,8 @@ unverändert und es findet kein Download statt.
 
 Die Originalinhalte stehen unter CC BY-SA 4.0, enthaltenes Daggerheart-SRD-Material unter der
 Darrington Press Community Gaming License 2.0. Herkunft, Quellcommit und Aufbereitung sind in
-[`examples/NOTICE.md`](examples/NOTICE.md) dokumentiert. Das veröffentlichte Alpha-1-Setup entstand
-vor dieser Ergänzung; das Beispiel gehört daher erst zu einem nachfolgenden Build.
+[`examples/NOTICE.md`](examples/NOTICE.md) dokumentiert. Seit Alpha 2 ist die Vorlage im
+Windows-Setup enthalten.
 
 ## Schnellstart
 
