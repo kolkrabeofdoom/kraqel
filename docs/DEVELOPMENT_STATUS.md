@@ -53,7 +53,8 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   bestehenden Snapshot-v3-Prüfung kontrolliert. Abbruch bleibt neutral. Rust-Tests belegen gültige,
   beschädigte, zu große und ungeeignete Quellen; TypeScript-Vertragstest und Browser-E2E belegen
   leere IPC-Nutzlast, neue Projektkopie, Abbruch und Accessibility. Der echte native Windows-Dialog
-  ist noch manuell zu prüfen.
+  wurde am 12. November 2026 mit gültigem Beispielarchiv, Abbruch und ungültiger Datei manuell
+  geprüft; Import, neutraler Abbruch und bereinigte Fehlermeldung verhielten sich wie vorgesehen.
 - Playwright mit Chromium und einem testexklusiven Browser-Command-Adapter für M1, Story-Bibel,
   Plotboard, Timelines, Medien, visuelle Profile, Kontinuität, Bildprompt-Builder, Versionen und
   Export sowie die eingebettete Beispielvorlage; die CI führt fachlich getrennte Abläufe unter
@@ -685,7 +686,7 @@ sind erst vor Version 0.2 zu klären.
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert                                                                                                                                                                                                                                       | Vor großen Projekten messen; Migration nur mit Evidenz                                                                                     |
 | Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                                                                                                                                                                                                                                                             | Gemeinsame Fixtures oder spätere Codegenerierung bewerten                                                                                  |
-| Datenformat                  | Snapshot v3 samt begrenztem Neuimport, nativer Dateiauswahl, Prompt-Entwürfen, Profilen und Hash-Assets; Text-/DOCX-Import und Manuskriptroundtrip fehlen                                                                                                                                                                                         | Nativen Dialog manuell prüfen, Fremdarchive fuzztesten; Text-/DOCX-Roundtrip vor F07/F08-Abnahme                                           |
+| Datenformat                  | Snapshot v3 samt begrenztem Neuimport, nativer und unter Windows manuell geprüfter Dateiauswahl, Prompt-Entwürfen, Profilen und Hash-Assets; Text-/DOCX-Import und Manuskriptroundtrip fehlen                                                                                                                                                     | Fremdarchive fuzztesten; Text-/DOCX-Roundtrip vor F07/F08-Abnahme                                                                          |
 | Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                                                                                                                                                                                                                                                                   | Freie eingebettete Schrift und Medienkonzept prüfen                                                                                        |
 | Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                                                                                                                                                                                                                                                         | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen                                                                                   |
 | Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                                                                                                                                                                                                                                                          | Bei jeder Erweiterung Fixtures und Migration prüfen                                                                                        |
@@ -710,11 +711,9 @@ sind erst vor Version 0.2 zu klären.
 
 Empfohlener, überprüfbarer Scope:
 
-1. Den echten nativen Snapshotdialog unter Windows kurz mit gültigem Archiv, Abbruch und ungültiger
-   Datei prüfen; Browser-E2E ersetzt diese Plattformprüfung nicht.
-2. Ziel, Formatierungsmenge und Konfliktverhalten für UTF-8-Text-/Markdown-Import festlegen und als
+1. Ziel, Formatierungsmenge und Konfliktverhalten für UTF-8-Text-/Markdown-Import festlegen und als
    kleinsten vertikalen Ablauf implementieren.
-3. DOCX-Einleseumfang und Roundtrip-Garantien getrennt spezifizieren, bevor ein Parser gewählt wird.
+2. DOCX-Einleseumfang und Roundtrip-Garantien getrennt spezifizieren, bevor ein Parser gewählt wird.
 
 Die zusätzliche Installerprüfung auf einem weiteren Windows-Rechner ist bewusst zurückgestellt und
 wird später manuell nachgeholt.
@@ -739,5 +738,6 @@ veröffentlicht Alpha 2 samt Beispielprojekt nach erneutem Rückdownload und iso
 KQ-041 veröffentlicht den responsiven KQ-040-Stand als Alpha 3. KQ-045 veröffentlicht den manuell
 abgenommenen KQ-044-Dubletten-Merge als Alpha 4 und belegt die Bytegleichheit des öffentlichen
 Rückdownloads. KQ-050 ergänzt den frei gewählten, nativen Snapshotimport ohne Pfad- oder
-Archivbyte-IPC. Als Nächstes folgen dessen kurze manuelle Dialogprüfung und anschließend der eng
-definierte Textimport; die bewusst zurückgestellte Zweitrechner- oder Clean-VM-Abnahme bleibt offen.
+Archivbyte-IPC; gültiger Import, Abbruch und ungültige Datei sind im echten Windows-Dialog manuell
+bestätigt. Als Nächstes folgt der eng definierte Textimport; die bewusst zurückgestellte
+Zweitrechner- oder Clean-VM-Abnahme bleibt offen.
