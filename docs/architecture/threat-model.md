@@ -133,6 +133,11 @@ Alpha 2 mit eingebetteter Beispielvorlage. Die größere Binärdatei und das zus
 die Vertrauensgrenzen nicht: Tag, Manifest, Prüfsumme und Setup bleiben gemeinsam vom GitHub-Kanal
 abhängig. Die offene Clean-VM-Abnahme gilt deshalb unverändert auch für `v0.1.0-alpha.2`.
 
+KQ-041 veröffentlicht Alpha 3 aus dem geprüften KQ-040-Commit. Entwurfsprüfung und öffentlicher
+Rückdownload belegen identische Assets; der parallele Betrieb der regulären App verhinderte beim
+öffentlichen Paket lediglich einen unverfälschten App-Daten-Fingerabdruck. Die Vertrauensgrenzen und
+die offene Clean-VM-Abnahme gelten unverändert auch für `v0.1.0-alpha.3`.
+
 Verbleibendes Risiko: Die kanonische Vorabprüfung ist nicht vollständig gegen ein gleichzeitiges
 böswilliges Austauschen bereits geprüfter Verzeichnisse abgesichert. Vor der Unterstützung
 unvertrauenswürdiger Projektwurzeln sind handle-relative Betriebssystemzugriffe zu bewerten.
