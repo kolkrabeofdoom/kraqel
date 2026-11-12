@@ -54,6 +54,8 @@ pub enum ProjectError {
     BackupMissing,
     /// Projektkennung, Name oder Schema-Version sind ungültig.
     InvalidProjectMetadata,
+    /// Ein externer Projektstand konnte nicht sicher initialisiert werden.
+    InvalidImportedData,
     /// Die Datenbank oder Sicherung ist beschädigt beziehungsweise nicht lesbar.
     InvalidDatabase,
     /// Die Systemzeit liegt vor der Unix-Epoche.
@@ -89,6 +91,9 @@ impl fmt::Display for ProjectError {
             Self::BackupAlreadyExists => formatter.write_str("Die Sicherung existiert bereits."),
             Self::BackupMissing => formatter.write_str("Die Sicherung wurde nicht gefunden."),
             Self::InvalidProjectMetadata => formatter.write_str("Die Projektdaten sind ungültig."),
+            Self::InvalidImportedData => {
+                formatter.write_str("Die importierten Projektdaten sind ungültig.")
+            }
             Self::InvalidDatabase => {
                 formatter.write_str("Die Datenbank ist beschädigt oder nicht lesbar.")
             }
@@ -118,6 +123,7 @@ impl Error for ProjectError {
             | Self::BackupAlreadyExists
             | Self::BackupMissing
             | Self::InvalidProjectMetadata
+            | Self::InvalidImportedData
             | Self::InvalidDatabase
             | Self::InvalidSystemTime => None,
         }
@@ -262,6 +268,28 @@ impl ProjectManager {
         relative_path: impl AsRef<Path>,
         project: &Project,
     ) -> Result<ManagedProject, ProjectError> {
+        self.create_project_with_initializer(relative_path, project, |_, _| Ok(()))
+    }
+
+    /// Erstellt und befüllt ein Projekt vollständig im temporären Geschwisterverzeichnis.
+    ///
+    /// Der Initialisierer erhält die bereits migrierte Datenbank und den noch unveröffentlichten
+    /// Projektordner. Schlägt er fehl, entfernt der Manager den gesamten Zwischenstand; das Ziel
+    /// wird erst nach erfolgreicher Initialisierung atomar sichtbar.
+    ///
+    /// # Errors
+    ///
+    /// Liefert einen Fehler bei ungültigen Projektdaten, unsicheren Pfaden, fehlgeschlagener
+    /// Initialisierung oder Veröffentlichung.
+    pub fn create_project_with_initializer<F>(
+        &self,
+        relative_path: impl AsRef<Path>,
+        project: &Project,
+        initializer: F,
+    ) -> Result<ManagedProject, ProjectError>
+    where
+        F: FnOnce(&mut Database, &Path) -> Result<(), ProjectError>,
+    {
         if !is_valid_project_name(&project.name) || project.schema_version != CURRENT_SCHEMA_VERSION
         {
             return Err(ProjectError::InvalidProjectMetadata);
@@ -295,6 +323,7 @@ impl ProjectManager {
             ],
         )?;
         transaction.commit()?;
+        initializer(&mut database, staging.path())?;
         drop(database);
 
         fs::rename(staging.path(), &destination).map_err(|source| ProjectError::Io {
@@ -982,6 +1011,33 @@ mod tests {
         manager
             .open_project(&relative)
             .expect("project should reopen");
+    }
+
+    #[test]
+    fn failed_initializer_never_publishes_a_partial_project() {
+        let root = tempdir().expect("temporary root should exist");
+        let manager = ProjectManager::new(root.path()).expect("manager should open");
+        let project = project("Unvollständiger Import");
+
+        let result = manager.create_project_with_initializer(
+            project.id.to_string(),
+            &project,
+            |_database, directory| {
+                fs::write(directory.join("halbfertig.txt"), b"nicht veroeffentlichen").unwrap();
+                Err(ProjectError::InvalidImportedData)
+            },
+        );
+
+        assert!(matches!(result, Err(ProjectError::InvalidImportedData)));
+        assert!(!root.path().join(project.id.to_string()).exists());
+        assert_eq!(manager.list_projects().unwrap().len(), 0);
+        assert!(fs::read_dir(root.path()).unwrap().all(|entry| {
+            !entry
+                .unwrap()
+                .file_name()
+                .to_string_lossy()
+                .starts_with(".kraqel-stage-")
+        }));
     }
 
     #[test]

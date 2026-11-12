@@ -9,10 +9,10 @@ ihrem Unterbaum ergänzen. Vor jeder Änderung sind mindestens diese Datei und
 KRAQEL ist als quelloffenes, offlinefähiges Autorenstudio für Romane, Drehbücher und
 Rollenspielmodule geplant. Primärplattform ist Windows. Das Repository enthält das M0-Fundament,
 einen browserseitig E2E-geprüften M1-Schreibablauf und M2-Kernabläufe, die M2-Strukturwerkzeuge,
-portable Snapshots und lokale Git-Versionierung, eine lokale Medienbibliothek und visuelle Profile
-aus M3 sowie Kontinuitäts- und Bildprompt-Abläufe aus M4, aber keine produktionsreife Anwendung.
-Verifizierte Implementierungen und geplante Funktionen sind strikt zu unterscheiden; der
-verbindliche Stand steht in `docs/DEVELOPMENT_STATUS.md`.
+portable Snapshots, sicheren Archivimport und lokale Git-Versionierung, eine lokale Medienbibliothek
+und visuelle Profile aus M3 sowie Kontinuitäts- und Bildprompt-Abläufe aus M4, aber keine
+produktionsreife Anwendung. Verifizierte Implementierungen und geplante Funktionen sind strikt zu
+unterscheiden; der verbindliche Stand steht in `docs/DEVELOPMENT_STATUS.md`.
 
 Leitplanken:
 
@@ -50,6 +50,9 @@ Aktuell im Repository und verifiziert:
 - **Versionierung:** deterministische JSON-/Markdown-Snapshots v3, formales Schema und kontrollierte
   lokale Git-Operationen für Init, Status, Diff und Commit; geeignete Assets werden nach SHA-256
   kopiert, Prompt-Quellen referenziell geprüft, SQLite und Nebenartefakte bleiben ausgeschlossen.
+- **Archivimport:** streng begrenzte Snapshot-v3-ZIP-Archive werden vollständig in Rust geprüft und
+  erst danach als neues Projekt mit neuer UUID atomar veröffentlicht; die Oberfläche bietet derzeit
+  nur die offline eingebettete Beispielvorlage, noch keine freie Dateiauswahl.
 - **Export:** streng validierte gemeinsame Manuskriptrepräsentation und lokale, atomare Ausgabe als
   Markdown, eigenständiges HTML, DOCX oder A4-PDF; unbekannte Editorformatierungen werden abgelehnt
   statt verworfen.
@@ -73,15 +76,15 @@ Aktuell im Repository und verifiziert:
 - **Qualität:** Prettier, ESLint, TypeScript-Checks, Vitest, Rust-Tests, rustfmt und Clippy mit
   Warnungen als Fehler sowie getrennte Playwright-Browser-E2E für M1, Story-Bibel, Plotboard,
   Timelines, Medien, visuelle Profile, Kontinuität, Bildprompt-Builder, Versionen, Export und den
-  automatisierbaren Accessibility-Kern; GitHub Actions unter Windows und Linux. Ein separater
-  Windows-Smoke-Test prüft den echten Debug-Build über WebView, Tauri-IPC, Rust und SQLite. Eine
-  manuelle KQ-033-Kernprüfung und die KQ-034-Randfälle mit Windows-Sprachausgabe sind dokumentiert.
-  KQ-035 ergänzt einen lokal geprüften, bewusst unsignierten Windows-x64-Release Candidate mit
-  Offline-WebView2, SHA-256 und Buildmanifest. KQ-036 belegt privaten GitHub-Entwurf, Rückdownload,
-  Prüfsummenabgleich sowie isolierte Installation und Deinstallation; Anwendungsstart, SmartScreen
-  und Persistenz auf einem zweiten Rechner beziehungsweise einer Clean-VM bleiben offen. KQ-037
-  veröffentlicht dasselbe geprüfte Artefakt als `v0.1.0-alpha.1`-Prerelease; es ist ausdrücklich
-  kein stabiles 0.1.0.
+  automatisierbaren Accessibility-Kern sowie die Beispielvorlage; GitHub Actions unter Windows und
+  Linux. Ein separater Windows-Smoke-Test prüft den echten Debug-Build über WebView, Tauri-IPC, Rust
+  und SQLite. Eine manuelle KQ-033-Kernprüfung und die KQ-034-Randfälle mit Windows-Sprachausgabe
+  sind dokumentiert. KQ-035 ergänzt einen lokal geprüften, bewusst unsignierten Windows-x64-Release
+  Candidate mit Offline-WebView2, SHA-256 und Buildmanifest. KQ-036 belegt privaten GitHub-Entwurf,
+  Rückdownload, Prüfsummenabgleich sowie isolierte Installation und Deinstallation; Anwendungsstart,
+  SmartScreen und Persistenz auf einem zweiten Rechner beziehungsweise einer Clean-VM bleiben offen.
+  KQ-037 veröffentlicht dasselbe geprüfte Artefakt als `v0.1.0-alpha.1`-Prerelease; es ist
+  ausdrücklich kein stabiles 0.1.0.
 
 Im Pflichtenheft vorgesehen, aber noch **nicht implementiert oder installiert**: Tailwind, React
 Flow, dnd-kit, KI-basierte Kontinuitätshinweise und produktive Bildgenerierung. Ollama und
@@ -102,7 +105,7 @@ es sehr selbstbewusst kompiliert.
 | `packages/visual-contracts/` | Medien-, Profil-, Stil- und Promptverträge                   | KQ-015-Verträge                         |
 | `crates/domain/`             | Rust-Domäne und versionierte Command-Verträge                | Dokument- und Story-Modell              |
 | `crates/storage/`            | SQLite, Projektlebenszyklus und fachliche Repositories       | Dokumente, Struktur, Medien und Prompts |
-| `crates/git-service/`        | Deterministische Snapshots und Git-Operationen               | Lokaler M3-Mindestumfang                |
+| `crates/git-service/`        | Snapshots, sicherer Archivimport und Git-Operationen         | Lokaler M3-Mindestumfang                |
 | `crates/export/`             | Validierung, Zwischenformat und atomarer Manuskriptexport    | M3-Textformate getestet                 |
 | `crates/ai-service/`         | Textprovider, Schlüssel, Bildregistry und sichere KI-Grenzen | KQ-010/011 und KQ-016-Verträge          |
 | `crates/continuity/`         | Offline-Regeln, Quellenanker und Vorschlags-Diff             | KQ-012-Mindestumfang getestet           |
@@ -111,7 +114,7 @@ es sehr selbstbewusst kompiliert.
 | `docs/release/`              | Releasebau, Artefaktprüfung und Veröffentlichungsablauf      | Windows-0.1-Pfad                        |
 | `docs/specifications/`       | Technisches Pflichtenheft und Abnahmekriterien               | Fachliche Quelle                        |
 | `docs/data-format/`          | Offenes Export- und Command-Format                           | Lokale Verträge dokumentiert            |
-| `examples/`                  | Künstliche Testprojekte und freie Beispielmedien             | Noch leer                               |
+| `examples/`                  | Frei lizenzierte, reproduzierbare Beispielvorlage            | KQ-038 eingebettet und getestet         |
 
 ## Verbindliche Entwicklungsregeln
 
@@ -165,6 +168,7 @@ pnpm build:tauri:smoke:windows  # isolierten Windows-Debug-Build für den Deskto
 pnpm test:tauri:windows         # echten Tauri-/SQLite-Smoke-Test mit lokalen Treibern ausführen
 pnpm check                      # verbindliche Gesamtprüfung inkl. Rust-Tests
 pnpm build                      # alle TypeScript-Pakete und Frontend bauen
+pnpm build:example              # Beispielarchiv aus festgeschriebenem Nachbar-Checkout erzeugen
 cargo test --workspace          # Rust-Tests
 cargo build --workspace         # Rust-Workspace bauen
 ```

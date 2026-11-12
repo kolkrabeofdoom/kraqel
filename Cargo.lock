@@ -2186,6 +2186,7 @@ dependencies = [
 name = "kraqel-git-service"
 version = "0.1.0"
 dependencies = [
+ "kraqel-asset-service",
  "kraqel-domain",
  "kraqel-storage",
  "rusqlite",
@@ -2194,6 +2195,7 @@ dependencies = [
  "sha2",
  "tempfile",
  "uuid",
+ "zip",
 ]
 
 [[package]]

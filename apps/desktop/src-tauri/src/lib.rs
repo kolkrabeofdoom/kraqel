@@ -22,6 +22,7 @@ use kraqel_export::{
 };
 use kraqel_git_service::{
     CommitResult, GitService, GitServiceError, SnapshotSummary, VersionControlStatus,
+    import_snapshot_archive,
 };
 use kraqel_storage::{
     continuity_repository::{ContinuityError, ContinuityRepository},
@@ -45,6 +46,8 @@ use tauri::{Manager as _, State, ipc::Channel};
 use zeroize::Zeroizing;
 
 const AI_RELEASE_LIFETIME: Duration = Duration::from_secs(10 * 60);
+const EXAMPLE_PROJECT_ARCHIVE: &[u8] =
+    include_bytes!("../../../../examples/die-stadt-die-den-dienstag-verkaufte.kraqel");
 
 struct AppState {
     project_root: PathBuf,
@@ -596,6 +599,20 @@ fn create_project(
 ) -> Result<CommandResponse<WorkspaceResponse>, CommandError> {
     require_current_contract(&request)?;
     let data = create_project_impl(&state, request.request_id, request.payload)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn create_example_project(
+    state: State<'_, AppState>,
+    request: CommandRequest<ApplicationStatusRequest>,
+) -> Result<CommandResponse<WorkspaceResponse>, CommandError> {
+    require_current_contract(&request)?;
+    let data = create_example_project_impl(&state, request.request_id)?;
     Ok(CommandResponse::current(request.request_id, data))
 }
 
@@ -1747,6 +1764,17 @@ fn create_project_impl(
         .list(project.id)
         .map_err(|error| map_document_error(request_id, &error))?;
     Ok(WorkspaceResponse { project, documents })
+}
+
+fn create_example_project_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+) -> Result<WorkspaceResponse, CommandError> {
+    let manager = manager(state, request_id)?;
+    let (opened, summary) = import_snapshot_archive(&manager, EXAMPLE_PROJECT_ARCHIVE)
+        .map_err(|error| map_git_error(request_id, &error))?;
+    drop(opened);
+    open_workspace_impl(state, request_id, &summary.project_id.to_string())
 }
 
 fn open_workspace_impl(
@@ -2957,7 +2985,8 @@ fn map_git_error(request_id: uuid::Uuid, error: &GitServiceError) -> CommandErro
         GitServiceError::GitFailed
         | GitServiceError::Database(_)
         | GitServiceError::Io(_)
-        | GitServiceError::Json(_) => CommandError::internal(request_id),
+        | GitServiceError::Json(_)
+        | GitServiceError::Project(_) => CommandError::internal(request_id),
     }
 }
 
@@ -3040,6 +3069,7 @@ pub fn run() {
             validate_project_name,
             list_projects,
             create_project,
+            create_example_project,
             open_workspace,
             create_document,
             load_document,
@@ -3136,16 +3166,17 @@ mod tests {
         SaveDocumentRequest, StoryEntityRequest, StreamTextDraftRequest,
         UpdateImagePromptDraftRequest, ValidateProjectNameRequest, WriteStoryEntityRequest,
         WriteStylePresetRequest, WriteVisualProfileRequest, application_status,
-        compose_image_prompt_impl, create_document_impl, create_image_prompt_draft_impl,
-        create_project_impl, delete_document_impl, delete_image_prompt_draft_impl,
-        export_image_prompt_draft_impl, export_manuscript_impl, import_media_asset_impl,
-        link_story_entity_impl, list_image_prompt_drafts_impl, list_media_assets_impl,
-        list_projects_impl, list_story_entities_impl, list_style_presets_impl,
-        list_visual_profiles_impl, load_document_impl, load_story_entity_impl, open_workspace_impl,
-        prepare_text_generation, preview_ai_context_impl, rename_document_impl,
-        reorder_documents_impl, review_text_suggestion_impl, save_document_impl,
-        save_visual_profile_impl, update_image_prompt_draft_impl, validate_project_name,
-        write_story_entity_impl, write_style_preset_impl,
+        compose_image_prompt_impl, create_document_impl, create_example_project_impl,
+        create_image_prompt_draft_impl, create_project_impl, delete_document_impl,
+        delete_image_prompt_draft_impl, export_image_prompt_draft_impl, export_manuscript_impl,
+        import_media_asset_impl, link_story_entity_impl, list_image_prompt_drafts_impl,
+        list_media_assets_impl, list_projects_impl, list_story_entities_impl,
+        list_style_presets_impl, list_visual_profiles_impl, load_document_impl,
+        load_story_entity_impl, open_workspace_impl, prepare_text_generation,
+        preview_ai_context_impl, rename_document_impl, reorder_documents_impl,
+        review_text_suggestion_impl, save_document_impl, save_visual_profile_impl,
+        update_image_prompt_draft_impl, validate_project_name, write_story_entity_impl,
+        write_style_preset_impl,
     };
 
     const REQUEST_ID: Uuid = Uuid::from_u128(0x018f_47ea_9b2d_7cc1_98e8_b5f4_f6b7_41a2);
@@ -3178,6 +3209,25 @@ mod tests {
 
         assert!(response.data.valid);
         assert!(!json.contains("Dunkelheit"));
+    }
+
+    #[test]
+    fn bundled_example_is_created_offline_as_a_new_workspace() {
+        let root = tempdir().expect("temporary root should exist");
+        let state = AppState {
+            project_root: root.path().to_path_buf(),
+            ai_releases: Mutex::new(HashMap::new()),
+        };
+
+        let workspace = create_example_project_impl(&state, REQUEST_ID)
+            .expect("bundled example should create a workspace");
+
+        assert_eq!(
+            workspace.project.name,
+            "Die Stadt, die den Dienstag verkaufte (Beispiel)"
+        );
+        assert_eq!(workspace.documents.len(), 20);
+        assert_eq!(list_projects_impl(&state, REQUEST_ID).unwrap().len(), 1);
     }
 
     #[test]

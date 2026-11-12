@@ -232,6 +232,14 @@ export async function createProject(name: string): Promise<Workspace> {
   return response.data;
 }
 
+export async function createExampleProject(): Promise<Workspace> {
+  const response = await callCommand<Record<string, never>, Workspace>(
+    "create_example_project",
+    {},
+  );
+  return response.data;
+}
+
 export async function openWorkspace(projectId: ProjectId): Promise<Workspace> {
   const response = await callCommand<{ readonly projectId: ProjectId }, Workspace>(
     "open_workspace",

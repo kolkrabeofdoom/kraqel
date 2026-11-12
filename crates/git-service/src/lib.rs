@@ -16,6 +16,10 @@ use serde_json::{Value, json};
 use sha2::{Digest as _, Sha256};
 use uuid::Uuid;
 
+mod snapshot_import;
+
+pub use snapshot_import::{ImportSummary, import_snapshot_archive};
+
 const SNAPSHOT_DIRECTORY: &str = "snapshot";
 const MANUSCRIPT_DIRECTORY: &str = "manuscript";
 const MAX_GIT_OUTPUT_BYTES: usize = 1024 * 1024;
@@ -110,6 +114,8 @@ pub enum GitServiceError {
     Io(io::Error),
     /// JSON konnte nicht stabil serialisiert oder geprüft werden.
     Json(serde_json::Error),
+    /// Der sichere lokale Projektlebenszyklus hat den Import abgelehnt.
+    Project(kraqel_storage::project_manager::ProjectError),
 }
 
 impl fmt::Display for GitServiceError {
@@ -128,6 +134,7 @@ impl fmt::Display for GitServiceError {
             Self::Json(_) => {
                 formatter.write_str("Das Snapshotformat konnte nicht verarbeitet werden.")
             }
+            Self::Project(_) => formatter.write_str("Das Projekt konnte nicht importiert werden."),
         }
     }
 }
@@ -138,6 +145,7 @@ impl Error for GitServiceError {
             Self::Database(error) => Some(error),
             Self::Io(error) => Some(error),
             Self::Json(error) => Some(error),
+            Self::Project(error) => Some(error),
             _ => None,
         }
     }

@@ -6,6 +6,7 @@ import {
   analyzeContinuity,
   commitProjectSnapshot,
   composeImagePrompt,
+  createExampleProject,
   createImagePromptDraft,
   createStoryEntity,
   deleteDocument,
@@ -75,6 +76,33 @@ describe("typed Tauri commands", () => {
 
     expect(result).toEqual({ valid: true });
     expect(JSON.stringify(result)).not.toContain("Geheimes Manuskript");
+  });
+
+  it("requests an offline example copy without a source path or network location", async () => {
+    const projectId = requestId as ProjectId;
+    mockedInvoke.mockResolvedValue({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: {
+        project: {
+          id: projectId,
+          name: "Die Stadt, die den Dienstag verkaufte (Beispiel)",
+          schemaVersion: 1,
+        },
+        documents: [],
+      },
+    });
+
+    await expect(createExampleProject()).resolves.toMatchObject({
+      project: { id: projectId },
+    });
+    expect(mockedInvoke).toHaveBeenCalledWith("create_example_project", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: {},
+      },
+    });
   });
 
   it("maps unknown rejections to a sanitized internal error", async () => {

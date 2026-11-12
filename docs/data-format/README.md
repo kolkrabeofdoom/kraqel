@@ -37,10 +37,26 @@ Die Veröffentlichung verwendet ein neues Geschwisterverzeichnis und tauscht ans
 kompletten `snapshot/`-Ordner aus. Assetdateien werden beim Erzeugen und Prüfen gegen den im
 Manifest gespeicherten SHA-256 verifiziert. Eine Wiederholung ohne fachliche Änderung ist
 byte-identisch. Die lesende Prüfung kontrolliert Manifest, Formatversion, Projektkennung, feste
-Dateien, Inhaltsdiskriminatoren sowie UUID-basierte Manuskriptdateien. Sie schreibt nichts zurück in
-SQLite; eine vollständige Wiederherstellung in ein neues Projekt ist noch nicht implementiert. Die
-lesende Prüfung akzeptiert weiterhin Formatversion 1 ohne visuelle Daten und Formatversion 2 ohne
-Prompt-Entwürfe; neu erzeugte Snapshots verwenden ausschließlich Version 3.
+Dateien, Inhaltsdiskriminatoren sowie UUID-basierte Manuskriptdateien. Die lesende Prüfung
+akzeptiert weiterhin Formatversion 1 ohne visuelle Daten und Formatversion 2 ohne Prompt-Entwürfe;
+neu erzeugte Snapshots verwenden ausschließlich Version 3.
+
+### Gepackter Snapshot-v3-Import
+
+Ein portables `.kraqel`-Archiv ist ein ZIP-Container, dessen Wurzel exakt den Inhalt eines
+Snapshot-v3-Verzeichnisses enthält. Der Rust-Importer akzeptiert ausschließlich Version 3, höchstens
+128 MiB und 256 reguläre Dateien. Er lehnt absolute oder ausbrechende Pfade, Verzeichnisse,
+Symlinks, doppelte beziehungsweise zusätzliche Einträge und überschrittene Einzeldateigrenzen ab.
+JSON, UUIDs, Diskriminatoren, Hierarchien, sämtliche Querverweise, Schema-Kopie,
+Manuskriptdateiliste sowie Assetpfade und SHA-256 werden vor dem Schreiben geprüft. Bilder werden
+zusätzlich vollständig unter den Grenzen des Medienimports dekodiert.
+
+Der Import überschreibt niemals ein vorhandenes Projekt und übernimmt die Projektkennung der Quelle
+nicht. Jeder Lauf erzeugt eine neue UUID, baut Datenbank, Originale und Vorschaubilder in einem
+Staging-Verzeichnis auf und veröffentlicht das Verzeichnis erst nach erfolgreichem Abschluss atomar.
+Bei einem Fehler bleibt kein sichtbares Teilprojekt zurück. Die Desktopoberfläche verwendet diesen
+Weg derzeit für die eingebettete Beispielvorlage; eine freie Dateiauswahl für externe Archive ist
+noch nicht implementiert.
 
 Git wird im verwalteten Projektordner lokal initialisiert. Eine deny-by-default `.gitignore` gibt
 nur `.gitignore` und `snapshot/**` frei. Add, Status, Diff und Commit erhalten zusätzlich feste

@@ -10,6 +10,7 @@
   },
   "scripts": {
     "build": "pnpm --recursive --if-present build",
+    "build:example": "node scripts/build-example-project.mjs",
     "build:release:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-windows-release.ps1",
     "build:installer:test:windows": "pnpm --filter @kraqel/desktop tauri build --debug --bundles nsis --config src-tauri/tauri.installer-test.conf.json",
     "build:tauri:smoke:windows": "pnpm --filter @kraqel/desktop tauri build --debug --no-bundle --config src-tauri/tauri.smoke.conf.json",

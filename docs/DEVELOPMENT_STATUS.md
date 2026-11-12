@@ -2,7 +2,7 @@
 
 Stand: 12. November 2026
 
-Code-Referenz: KQ-037 (Issue #70)
+Code-Referenz: KQ-038 (Issue #72)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -17,7 +17,7 @@ als vollständige Fachfunktion.
 | **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                                                                                                                                                                                                                                                                     |
 | **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, Undo/Redo, Wortzählung, Fokusmodus, konfliktgeprüfter Autosave sowie sicheres Umbenennen, Umordnen, Löschen und SQLite-Backup vorhanden. KQ-032 automatisiert Tastatur-, Fokus- und Axe-Prüfungen; KQ-033 bestätigt den Kern manuell mit Windows-Sprachausgabe in der Tauri-WebView.                                                                                                   |
 | **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks sind in getrennten Chromium-Abläufen geprüft. KQ-033 bestätigt Story-Bibel-Beziehungen und Rückverweise per Windows-Sprachausgabe; Plotboard und Timelines wurden assistiv stichprobenartig geprüft.                                                                                                                 |
-| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, Medienbibliothek sowie visuelle Profile und Stilvorlagen sind im browserseitigen Kernablauf geprüft. Backup und Snapshot sind vorhanden; Textimport und schreibende Snapshot-Wiederherstellung fehlen.                                                                                                                                                                                                              |
+| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, Medienbibliothek sowie visuelle Profile und Stilvorlagen sind im browserseitigen Kernablauf geprüft. KQ-038 ergänzt einen streng validierten Snapshot-v3-Archivimport als stets neues Projekt sowie eine offline eingebettete Beispielvorlage. Eine allgemeine Archivdateiauswahl, Textimport und DOCX-Roundtrip fehlen.                                                                                            |
 | **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Technischer 0.1-Umfang weitgehend umgesetzt:** Textprotokolle, browserseitig geprüfte Offline-Kontinuität und Prompt-Entwürfe sowie Bild-Capability- und Jobverträge vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise und Bildgenerierung fehlen.                                                                                                                                                                                                                                 |
 | **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Alpha-Prerelease veröffentlicht:** Debug- und Tauri-Smoke-Tests, isolierter NSIS-Testinstaller, Accessibility-Nachweise sowie ein getrennter unsignierter x64-NSIS-Releasepfad sind vorhanden. GitHub-Rückdownload, SHA-256 sowie isolierte Installation und Deinstallation sind geprüft; dasselbe Artefakt ist als `v0.1.0-alpha.1` veröffentlicht. MSI, Signierung, Updater und ARM64 sind ausgeschlossen; SmartScreen, Anwendungsstart und Persistenz auf Zweitrechner/Clean-VM fehlen. |
 | **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                                                                                                                                                                                                                                                       |
@@ -35,7 +35,8 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - GitHub-Actions-CI unter `windows-latest` und `ubuntu-latest`.
 - Playwright mit Chromium und einem testexklusiven Browser-Command-Adapter für M1, Story-Bibel,
   Plotboard, Timelines, Medien, visuelle Profile, Kontinuität, Bildprompt-Builder, Versionen und
-  Export; die CI führt zehn fachlich getrennte Abläufe unter Windows und Linux aus.
+  Export sowie die eingebettete Beispielvorlage; die CI führt fachlich getrennte Abläufe unter
+  Windows und Linux aus.
 - Qualitätskette: Prettier, rustfmt, ESLint, Clippy mit `-D warnings`, TypeScript, Vitest,
   Rust-Tests sowie Frontend- und Workspace-Builds.
 - Separater Windows-Tauri-Smoke-Test mit realem WebView, versionierten IPC-Commands, Rust und
@@ -384,8 +385,28 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   Validierung, Änderungsliste, Unified Diff, Commitbeleg und anschließend sauberem Status gegen den
   testexklusiven In-Memory-Adapter. Echtes Git, Dateisystem, Tauri, WebView und Screenreader bleiben
   getrennt abzunehmen.
-- Die Prüfung ist noch keine schreibende Wiederherstellung: Ein Snapshot wird derzeit nicht in ein
-  neues SQLite-Projekt importiert.
+- Die Ansicht **Versionen** bleibt eine ausschließlich lesende Prüfung des aktuellen
+  Projekt-Snapshotordners; sie überschreibt keinen Projektstand.
+
+### Atomarer Snapshot-v3-Import und Beispielprojekt (KQ-038)
+
+- Ein begrenzter `.kraqel`-ZIP-Container wird vollständig in Rust geprüft: feste Dateimenge und
+  Schema-Kopie, sichere Pfade, Größen und Anzahl, kanonische UUIDs, Dokumenthierarchie, sämtliche
+  fachlichen Referenzen, Assethashes sowie vollständig dekodierte Rasterbilder.
+- Jeder Import erzeugt eine neue Projektkennung und befüllt SQLite, Originalassets und abgeleitete
+  Vorschaubilder in einem Staging-Verzeichnis. Erst ein vollständig erfolgreicher Lauf wird atomar
+  als neues Projekt veröffentlicht; ein Fehler hinterlässt kein sichtbares Teilprojekt.
+- **Die Stadt, die den Dienstag verkaufte** ist aus dem festgeschriebenen Quellcommit
+  `f1a6fd6b3b14852a2a44be617b366cc4c0dbfd2a` reproduzierbar in Snapshot v3 überführt und als rund
+  10,6 MiB große Offlinevorlage eingebettet. Enthalten sind 20 Dokumente, 36 Story-Bibel-Einträge,
+  ein Plotboard, drei Timelines mit 25 Ereignissen, 13 visuelle Profile und 21 optimierte Bilder.
+- Rust-Tests belegen erfolgreichen Mehrfachimport mit unterschiedlichen Projektkennungen,
+  Datenbankinhalte und Vorschaubilder sowie die rückstandsfreie Ablehnung eines manipulierten
+  Archivs. Command-, UI- und Playwright-Tests prüfen den Desktoppfad und zwei unabhängige Kopien.
+- Rechte, Quelle, Transformationen und Archivhash sind in `examples/NOTICE.md` dokumentiert. Die
+  Vorlage benötigt zur Laufzeit weder GitHub noch einen anderen Netzwerkzugriff.
+- Nicht umgesetzt sind eine allgemeine Dateiauswahl für fremde `.kraqel`-Archive, das Überschreiben
+  oder Zusammenführen vorhandener Projekte sowie Text- und DOCX-Import.
 
 ## Offene Aufgaben
 
@@ -421,11 +442,13 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
 - **Backup bleibt zweiteilig:** Eine Sicherung besteht aus `<name>.sqlite3` und `<name>.assets/`.
   Beide Teile werden gemeinsam erzeugt und für medienhaltige Wiederherstellungen benötigt; ein
   einzelnes gepacktes Austauscharchiv ist noch nicht definiert.
-- **Snapshot-Wiederherstellung nur vorbereitet:** Format und Inhalte werden lesend geprüft, aber
-  noch nicht in eine neue Datenbank importiert. F07 ist deshalb noch nicht vollständig abgenommen.
+- **Snapshotimport bewusst begrenzt:** Snapshot v3 kann als neues Projekt importiert werden, die
+  Oberfläche bietet dies derzeit aber nur für die eingebettete Vorlage an. Frei gewählte Archive,
+  v1/v2-Import, Zusammenführen und Überschreiben sind nicht implementiert; F07 ist deshalb noch
+  nicht vollständig abgenommen.
 - **Export ist kein Import:** Die vier Ausgaben sind erzeugbar; ein Roundtrip zurück nach KRAQEL und
-  der im Pflichtenheft genannte Import sind nicht implementiert. F08 ist deshalb nur teilweise
-  erfüllt.
+  der im Pflichtenheft genannte Text-/DOCX-Import sind nicht implementiert. Der Snapshot-v3-Import
+  ersetzt diesen Manuskriptroundtrip nicht; F08 ist deshalb nur teilweise erfüllt.
 - **Exportformatierung bewusst begrenzt:** Links, Code, Tabellen, Fußnoten und Medien werden nicht
   still reduziert, sondern derzeit abgelehnt. PDF verwendet eingebaute Standardschriften; vor einer
   breiteren Unicode-Abnahme ist eine eingebettete freie Schrift zu prüfen.
@@ -539,6 +562,9 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
 - **Portabler Snapshot und kontrolliertes Git:** Nur `.gitignore` und `snapshot/**` sind
   freigegeben; globale Konfiguration, Hooks und interaktive Git-Abläufe bleiben deaktiviert. Die
   erste Wiederherstellungsstufe ist lesende Validierung (ADR 0007).
+- **Neues Projekt statt Überschreiben:** Begrenzte Snapshot-v3-Archive werden vollständig in Rust
+  geprüft, erhalten stets eine neue Projektkennung und werden erst nach erfolgreicher Befüllung
+  atomar veröffentlicht. Die Beispielvorlage ist fest eingebettet und netzunabhängig (ADR 0019).
 - **Ein Exportmodell für vier Renderer:** Die unterstützte Tiptap-Teilmenge wird vor jeder Ausgabe
   vollständig validiert. Renderer erhalten nur das gemeinsame Zwischenformat; Ziele werden lokal und
   atomar veröffentlicht (ADR 0008).
@@ -584,34 +610,34 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
 - **Manuelle Übernahme:** KI-Vorschläge und Bildentwürfe verändern kanonische Inhalte niemals
   automatisch.
 
-Offene Produktentscheidungen aus dem Pflichtenheft: Projektverzeichnis versus zusätzliches
-Austauscharchiv, Umfang des DOCX-Roundtrips sowie Medien-Einbettung je Exportformat. Rechts- und
+Offene Produktentscheidungen aus dem Pflichtenheft: Bedien- und Herkunftsmodell für frei gewählte
+Snapshotarchive, Umfang des DOCX-Roundtrips sowie Medien-Einbettung je Exportformat. Rechts- und
 Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 
 ## Abhängigkeiten und technische Risiken
 
-| Thema                        | Zustand / Risiko                                                                                                                                                                               | Nächste Kontrolle                                                     |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert                                                                                    | Vor großen Projekten messen; Migration nur mit Evidenz                |
-| Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                                                                                                          | Gemeinsame Fixtures oder spätere Codegenerierung bewerten             |
-| Datenformat                  | Snapshot v3 mit Prompt-Entwürfen, Profilen und Hash-Assets; Import und Roundtrip fehlen                                                                                                        | Import/Roundtrip vor vollständiger F07/F08-Abnahme testen             |
-| Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                                                                                                                | Freie eingebettete Schrift und Medienkonzept prüfen                   |
-| Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                                                                                                      | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen              |
-| Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                                                                                                       | Bei jeder Erweiterung Fixtures und Migration prüfen                   |
-| Desktoptests                 | Elf Browser-E2E-Suites einschließlich Accessibility-Kern und -Randfällen, echter Windows-Tauri-M1-Smoke, lokaler NSIS-Lebenszyklus sowie bestandene KQ-033/KQ-034-Hörprüfungen                 | Vor Release mit weiterer Testperson oder NVDA verbreitern             |
-| Windows-Installer            | Debug-Lebenszyklus, unsignierter x64-Releasebau, Rückdownload und isolierte Installation/Deinstallation grün; Alpha 1 als Prerelease veröffentlicht, SmartScreen/Start/Persistenz extern offen | Zweitrechner oder Clean-VM später manuell                             |
-| CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                                                                                                                  | Caching prüfen, ohne Reproduzierbarkeit zu schwächen                  |
-| Abhängigkeitssicherheit      | GitHub Dependency Graph deaktiviert; Dependency-Review-Job deshalb nicht unterstützt                                                                                                           | Dependency Graph aktivieren oder alternative Audits bewerten          |
-| Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                                                                                                       | Plattformmatrix je Release definieren                                 |
-| Lokale Text-KI               | Protokoll gegen kontrollierten Loopback-Testserver geprüft; echter Ollama-/Modelllauf fehlt                                                                                                    | Mit freiem Testmodell manuell prüfen und Abbruch entwerfen            |
-| Cloudprovider                | Vier Protokolle lokal getestet; echte API-, Kosten-, Aufbewahrungs- und Kontodialog-Abnahme fehlt                                                                                              | Mit separaten Testkonten und Minimalbudget manuell prüfen             |
-| Schlüsselspeicher            | Native Backends eingebunden; reale Windows-/Linux-Dialoge nicht automatisiert getestet                                                                                                         | Manuelle Plattformabnahme ohne produktive Schlüssel                   |
-| Kontinuitätsprüfung          | Vier Offline-Regeln getestet; exakte Nennungen und grober Zeilendiff begrenzen die Abdeckung                                                                                                   | Mit größeren künstlichen Projekten messen; KI-Kanal separat entwerfen |
-| Medienimport                 | Drei Rasterformate und harte Limits getestet; Bytearray-IPC skaliert nicht für Massenuploads                                                                                                   | Nativen Streamingimport erst nach Messung großer Sammlungen bewerten  |
-| Assetbackup                  | Hash-verifizierte Begleitverzeichnisse getestet; noch kein einzelnes portables Paket                                                                                                           | Paketformat und atomare Mehrdatei-Verteilung vor externem Austausch   |
-| Visuelle Profile             | Struktur und Referenzen getestet; Stilnamen-Eindeutigkeit nutzt SQLite-NOCASE mit ASCII-Grenze                                                                                                 | Unicode-Kollation bei internationalisierten Vorlagennamen bewerten    |
-| Bildprompt-Entwürfe          | Lokal, referenziell und browserseitig geprüft; kein Providerpfad und keine automatische Rekombination                                                                                          | Tauri-/Screenreader-Abnahme; KQ-016-Grenze getrennt halten            |
-| Bild-Capability-Verträge     | Rust/TypeScript v1 und lokaler Mock getestet; keine produktive Ausführung oder Persistenz                                                                                                      | Vor KQ-017 Freigabebeleg, Ergebnisprüfung, Kosten und Lizenzen klären |
+| Thema                        | Zustand / Risiko                                                                                                                                                                                  | Nächste Kontrolle                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert                                                                                       | Vor großen Projekten messen; Migration nur mit Evidenz                |
+| Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                                                                                                             | Gemeinsame Fixtures oder spätere Codegenerierung bewerten             |
+| Datenformat                  | Snapshot v3 samt begrenztem Neuimport, Prompt-Entwürfen, Profilen und Hash-Assets; freie Dateiauswahl und Manuskriptroundtrip fehlen                                                              | Fremdarchive fuzztesten; Text-/DOCX-Roundtrip vor F07/F08-Abnahme     |
+| Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                                                                                                                   | Freie eingebettete Schrift und Medienkonzept prüfen                   |
+| Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                                                                                                         | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen              |
+| Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                                                                                                          | Bei jeder Erweiterung Fixtures und Migration prüfen                   |
+| Desktoptests                 | Zwölf Browser-E2E-Suites einschließlich Beispielprojekt, Accessibility-Kern und -Randfällen, echter Windows-Tauri-M1-Smoke, lokaler NSIS-Lebenszyklus sowie bestandene KQ-033/KQ-034-Hörprüfungen | Vor Release mit weiterer Testperson oder NVDA verbreitern             |
+| Windows-Installer            | Debug-Lebenszyklus, unsignierter x64-Releasebau, Rückdownload und isolierte Installation/Deinstallation grün; Alpha 1 als Prerelease veröffentlicht, SmartScreen/Start/Persistenz extern offen    | Zweitrechner oder Clean-VM später manuell                             |
+| CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                                                                                                                     | Caching prüfen, ohne Reproduzierbarkeit zu schwächen                  |
+| Abhängigkeitssicherheit      | GitHub Dependency Graph deaktiviert; Dependency-Review-Job deshalb nicht unterstützt                                                                                                              | Dependency Graph aktivieren oder alternative Audits bewerten          |
+| Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                                                                                                          | Plattformmatrix je Release definieren                                 |
+| Lokale Text-KI               | Protokoll gegen kontrollierten Loopback-Testserver geprüft; echter Ollama-/Modelllauf fehlt                                                                                                       | Mit freiem Testmodell manuell prüfen und Abbruch entwerfen            |
+| Cloudprovider                | Vier Protokolle lokal getestet; echte API-, Kosten-, Aufbewahrungs- und Kontodialog-Abnahme fehlt                                                                                                 | Mit separaten Testkonten und Minimalbudget manuell prüfen             |
+| Schlüsselspeicher            | Native Backends eingebunden; reale Windows-/Linux-Dialoge nicht automatisiert getestet                                                                                                            | Manuelle Plattformabnahme ohne produktive Schlüssel                   |
+| Kontinuitätsprüfung          | Vier Offline-Regeln getestet; exakte Nennungen und grober Zeilendiff begrenzen die Abdeckung                                                                                                      | Mit größeren künstlichen Projekten messen; KI-Kanal separat entwerfen |
+| Medienimport                 | Drei Rasterformate und harte Limits getestet; Bytearray-IPC skaliert nicht für Massenuploads                                                                                                      | Nativen Streamingimport erst nach Messung großer Sammlungen bewerten  |
+| Assetbackup                  | Hash-verifizierte Begleitverzeichnisse getestet; `.kraqel` ist ein portables Snapshotpaket, aber kein fortschreibbares Backup                                                                     | Recovery- und Austauschzweck in der Oberfläche klar getrennt halten   |
+| Visuelle Profile             | Struktur und Referenzen getestet; Stilnamen-Eindeutigkeit nutzt SQLite-NOCASE mit ASCII-Grenze                                                                                                    | Unicode-Kollation bei internationalisierten Vorlagennamen bewerten    |
+| Bildprompt-Entwürfe          | Lokal, referenziell und browserseitig geprüft; kein Providerpfad und keine automatische Rekombination                                                                                             | Tauri-/Screenreader-Abnahme; KQ-016-Grenze getrennt halten            |
+| Bild-Capability-Verträge     | Rust/TypeScript v1 und lokaler Mock getestet; keine produktive Ausführung oder Persistenz                                                                                                         | Vor KQ-017 Freigabebeleg, Ergebnisprüfung, Kosten und Lizenzen klären |
 
 ## Nächste geplante Entwicklungsstufe
 

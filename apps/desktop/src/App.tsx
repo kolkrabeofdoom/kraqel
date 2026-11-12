@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import {
+  createExampleProject,
   createProject,
   listProjects,
   openWorkspace,
@@ -55,6 +56,18 @@ export function App() {
     }
   };
 
+  const createExample = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      setWorkspace(await createExampleProject());
+    } catch {
+      setError("Das Beispielprojekt konnte nicht angelegt werden.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (workspace) {
     return (
       <EditorWorkspace
@@ -96,6 +109,22 @@ export function App() {
               Projekt anlegen
             </button>
           </form>
+        </section>
+
+        <section className="project-card" aria-labelledby="example-project-heading">
+          <span className="eyebrow">Mit Inhalt ausprobieren</span>
+          <h2 id="example-project-heading">Die Stadt, die den Dienstag verkaufte</h2>
+          <p>
+            Szenen, Figuren, Timelines, Plotboard und Bilder als vollständig lokale, frei
+            bearbeitbare Beispielkopie.
+          </p>
+          <button type="button" disabled={busy} onClick={() => void createExample()}>
+            Abenteuer ausprobieren
+          </button>
+          <p className="muted">
+            Eigene Inhalte: CC BY-SA 4.0. Daggerheart-SRD-Anteile: DPCGL 2.0. Kein Download beim
+            Anlegen.
+          </p>
         </section>
 
         <section className="project-card" aria-labelledby="projects-heading">
