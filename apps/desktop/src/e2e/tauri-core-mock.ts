@@ -166,6 +166,13 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       writeState(state);
       return workspace(created);
     }
+    case "import_snapshot_project": {
+      if (localStorage.getItem("kraqel-e2e-cancel-snapshot-import") === "1") return null;
+      const created = exampleProject();
+      state.projects.push(created);
+      writeState(state);
+      return workspace(created);
+    }
     case "open_workspace":
       return workspace(findProject(state, payload.projectId));
     case "create_document": {

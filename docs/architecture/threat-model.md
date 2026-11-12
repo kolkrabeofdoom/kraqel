@@ -98,9 +98,11 @@ Der Snapshot-v3-Archivimport ist schreibend, aber absichtlich nicht überschreib
 nur in ein zufällig benanntes Staging-Verzeichnis unter der verwalteten Projektwurzel, vergibt eine
 neue Projektkennung und veröffentlicht erst nach vollständiger Validierung und Befüllung.
 ZIP-Bomben, Pfadtraversal, Symlinks, unbekannte Einträge, manipulierte Referenzen und Bilder werden
-begrenzt oder abgelehnt. Die aktuelle Oberfläche reicht ausschließlich das zur Buildzeit
-eingebettete Archiv an Rust weiter. Vor einer allgemeinen Dateiauswahl für fremde Archive sind
-zusätzliche Fuzztests und die Bedienführung für Herkunft, Lizenz und Fehlerfälle zu bewerten.
+begrenzt oder abgelehnt. Die native Dateiauswahl und das begrenzte Lesen regulärer Dateien bleiben
+in Rust; React erhält weder absoluten Pfad noch Archivbytes. Metadaten werden vor und nach dem
+Öffnen verglichen, wodurch einfache Austauschversuche erkannt werden; ein vollständiger Schutz gegen
+böswillige parallele Dateisystemänderungen ist ohne plattformspezifische Handle-APIs nicht belegt.
+Weitere Fuzztests sowie die Bedienführung für Herkunft und Lizenz bleiben zu bewerten.
 
 Die Bildprovider-Grenze besitzt in Version 0.1 nur Verträge, Registryvalidierung und einen lokalen
 Test-Mock. Es gibt keinen produktiven Adapter, keinen Tauri-Command, keine Jobpersistenz und keine

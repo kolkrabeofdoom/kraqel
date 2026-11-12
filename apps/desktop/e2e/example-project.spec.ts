@@ -39,3 +39,27 @@ test("gebündeltes Beispiel wird als bearbeitbare Offline-Kopie angelegt", async
     page.getByRole("button", { name: /Die Stadt, die den Dienstag verkaufte \(Beispiel\)/u }),
   ).toHaveCount(2);
 });
+
+test("frei gewähltes Projektarchiv wird als neue lokale Kopie geöffnet", async ({ page }) => {
+  await page.getByRole("button", { name: "Projektarchiv auswählen" }).click();
+
+  await expect(
+    page.getByRole("heading", {
+      level: 1,
+      name: "Die Stadt, die den Dienstag verkaufte (Beispiel)",
+    }),
+  ).toBeVisible();
+  await expect(page.getByRole("tree", { name: "Dokumentbaum" })).toContainText(
+    "1 · Der fehlende Morgen",
+  );
+});
+
+test("abgebrochene Archivauswahl bleibt neutral", async ({ page }) => {
+  await page.evaluate(() => localStorage.setItem("kraqel-e2e-cancel-snapshot-import", "1"));
+
+  await page.getByRole("button", { name: "Projektarchiv auswählen" }).click();
+
+  await expect(page.getByRole("heading", { level: 1, name: "KRAQEL" })).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Projektarchiv auswählen" })).toBeEnabled();
+});

@@ -240,6 +240,14 @@ export async function createExampleProject(): Promise<Workspace> {
   return response.data;
 }
 
+export async function importSnapshotProject(): Promise<Workspace | null> {
+  const response = await callCommand<Record<string, never>, Workspace | null>(
+    "import_snapshot_project",
+    {},
+  );
+  return response.data;
+}
+
 export async function openWorkspace(projectId: ProjectId): Promise<Workspace> {
   const response = await callCommand<{ readonly projectId: ProjectId }, Workspace>(
     "open_workspace",

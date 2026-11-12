@@ -18,7 +18,10 @@ use uuid::Uuid;
 
 mod snapshot_import;
 
-pub use snapshot_import::{ImportSummary, import_snapshot_archive};
+pub use snapshot_import::{
+    ImportSummary, MAX_SNAPSHOT_ARCHIVE_BYTES, import_snapshot_archive,
+    import_snapshot_archive_file,
+};
 
 const SNAPSHOT_DIRECTORY: &str = "snapshot";
 const MANUSCRIPT_DIRECTORY: &str = "manuscript";

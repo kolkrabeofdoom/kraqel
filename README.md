@@ -232,9 +232,8 @@ KI-basierte Kontinuitätshinweise sind geplant, aber nicht implementiert.
 - Kontrolliertes lokales Git für Initialisierung, Status, Diff und Commit.
 - Deny-by-default-`.gitignore`: SQLite, Sicherungen, Schlüssel und temporäre Daten bleiben draußen.
 - Streng begrenzter `.kraqel`-/ZIP-Import als stets neues Projekt mit neuer UUID.
-
-Die Oberfläche bietet noch keine freie Auswahl beliebiger externer Archive. Der sichere Importpfad
-wird derzeit durch die eingebettete Beispielvorlage verwendet.
+- Native Auswahl externer Projektarchive ohne Weitergabe von Pfad oder Archivbytes an React. Ein
+  abgebrochener Dialog verändert weder Projektliste noch Fehlermeldung.
 
 ### Optionale Text-KI
 
@@ -527,7 +526,7 @@ metaphysischer Wahrheitsbeweis.
 | M0       | Monorepo, Tauri, Datenbank, CI               | Technisches Fundament umgesetzt                                                              |
 | M1       | Editor, Szenenbaum, Autosave, Backup         | Technischer Mindestumfang mit Browser- und Windows-Smoke-Tests umgesetzt                     |
 | M2       | Story-Bibel, Plotboard, Timeline             | Technischer Mindestumfang mit getrennten E2E-Abläufen umgesetzt                              |
-| M3       | Git, Import/Export, Medien, visuelle Profile | Teilweise umgesetzt; freie Archivauswahl und mehrere Import-/Roundtrip-Funktionen fehlen     |
+| M3       | Git, Import/Export, Medien, visuelle Profile | Teilweise umgesetzt; Snapshotauswahl vorhanden, Text-/DOCX-Import und Roundtrip fehlen       |
 | M4       | Text-KI, Kontinuität, Prompt-Entwürfe        | Technischer 0.1-Umfang weitgehend vorhanden; reale Providerabnahme und Bildausführung fehlen |
 | M5       | Windows-Release 0.1                          | Alpha 4 veröffentlicht; unabhängige Windows-Abnahme noch offen                               |
 | M6 / 0.2 | Bildgenerierung, Varianten, Karten           | Nicht begonnen und ausdrücklich außerhalb von 0.1                                            |
