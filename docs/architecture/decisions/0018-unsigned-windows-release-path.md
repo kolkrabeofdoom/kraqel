@@ -49,13 +49,16 @@ konkreten Ergebnisses aufgezeichnet.
   Setup verteilt.
 - MSI/WiX, Signierung, ARM64, Store-Verteilung und Updater bleiben außerhalb von 0.1 und benötigen
   bei späterem Bedarf neue Entscheidungen.
-- Der Release Candidate ist erst nach Clean-VM- oder Zweitrechnerprüfung sowie Kontrolle des
-  heruntergeladenen Artefakts abgenommen.
+- KQ-036 prüft den privaten GitHub-Entwurf, das erneut heruntergeladene Artefakt sowie dessen
+  isolierte Installation und Deinstallation. Vollständig abgenommen ist der Release Candidate erst
+  nach Anwendungsstart, SmartScreen- und Persistenzprüfung auf einer Clean-VM oder einem
+  Zweitrechner.
 
 ## Evidenz
 
 - `apps/desktop/src-tauri/tauri.release.conf.json`
 - `scripts/build-windows-release.ps1`
+- `scripts/windows-release-artifact-smoke.ps1`
 - `docs/release/windows-unsigned-release.md`
 - [Tauri: Windows Installer](https://v2.tauri.app/distribute/windows-installer/)
 - [Tauri: Konfigurationsreferenz](https://v2.tauri.app/reference/config/#bundleconfig)
