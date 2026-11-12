@@ -79,7 +79,7 @@ if ($actual -ne $expected) { throw 'SHA-256 stimmt nicht überein.' }
 Bei einer Abweichung darf das Setup nicht gestartet werden. Eine passende Prüfsumme belegt nur, dass
 Setup und veröffentlichter Hash zusammengehören. Werden beide über denselben kompromittierten Kanal
 ersetzt, stellt SHA-256 keine Herausgeber*innenidentität her. Deshalb müssen Release-Asset, Manifest
-und Prüfsumme aus dem privaten KRAQEL-GitHub-Repository stammen und der Quellcommit muss mit dem
+und Prüfsumme aus dem offiziellen KRAQEL-GitHub-Repository stammen und der Quellcommit muss mit dem
 vorgesehenen Release-Commit übereinstimmen.
 
 ## Veröffentlichtes Alpha zurückprüfen

@@ -473,8 +473,9 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
 - **Entitätssuche nicht indexiert:** Die Unicode-korrekte Suche filtert derzeit alle Einträge eines
   Projekts in Rust. Vor sehr großen Story-Bibeln sind Messung und gegebenenfalls eine echte
   FTS-Migration nötig.
-- **Dependency Review eingeschränkt:** Der GitHub-Job wird bei privaten Repositories ohne GitHub
-  Advanced Security bewusst übersprungen. Lockfiles und reguläre CI bleiben aktiv.
+- **Dependency Review eingeschränkt:** Das Repository ist öffentlich, sein GitHub Dependency Graph
+  ist jedoch deaktiviert; der separate Review-Job meldet deshalb derzeit „not supported“. Lockfiles
+  und die reguläre Ubuntu-/Windows-CI bleiben aktiv.
 - **Unsigniertes Alpha-Prerelease:** Windows kann SmartScreen-Warnungen anzeigen; SHA-256 bindet
   keine Herausgeber*innenidentität und schützt nicht, wenn Setup und Sollwert über denselben
   kompromittierten Kanal ersetzt werden. GitHub-Rückdownload sowie isolierte Installation und
@@ -600,7 +601,7 @@ Lizenzfragen der Bildprovider sind erst vor Version 0.2 zu klären.
 | Desktoptests                 | Elf Browser-E2E-Suites einschließlich Accessibility-Kern und -Randfällen, echter Windows-Tauri-M1-Smoke, lokaler NSIS-Lebenszyklus sowie bestandene KQ-033/KQ-034-Hörprüfungen                 | Vor Release mit weiterer Testperson oder NVDA verbreitern             |
 | Windows-Installer            | Debug-Lebenszyklus, unsignierter x64-Releasebau, Rückdownload und isolierte Installation/Deinstallation grün; Alpha 1 als Prerelease veröffentlicht, SmartScreen/Start/Persistenz extern offen | Zweitrechner oder Clean-VM später manuell                             |
 | CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                                                                                                                  | Caching prüfen, ohne Reproduzierbarkeit zu schwächen                  |
-| Abhängigkeitssicherheit      | GitHub Dependency Review privat nicht verfügbar                                                                                                                                                | Alternative Audits oder Advanced Security später bewerten             |
+| Abhängigkeitssicherheit      | GitHub Dependency Graph deaktiviert; Dependency-Review-Job deshalb nicht unterstützt                                                                                                           | Dependency Graph aktivieren oder alternative Audits bewerten          |
 | Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                                                                                                       | Plattformmatrix je Release definieren                                 |
 | Lokale Text-KI               | Protokoll gegen kontrollierten Loopback-Testserver geprüft; echter Ollama-/Modelllauf fehlt                                                                                                    | Mit freiem Testmodell manuell prüfen und Abbruch entwerfen            |
 | Cloudprovider                | Vier Protokolle lokal getestet; echte API-, Kosten-, Aufbewahrungs- und Kontodialog-Abnahme fehlt                                                                                              | Mit separaten Testkonten und Minimalbudget manuell prüfen             |
