@@ -320,7 +320,6 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       }
       const sourceProfile = current.visualProfiles.find(({ entityId }) => entityId === source.id);
       const targetProfile = current.visualProfiles.find(({ entityId }) => entityId === target.id);
-      if (sourceProfile && targetProfile) throw new Error("E2E visual profile merge conflict");
 
       current.storyEntities = current.storyEntities
         .filter(({ id }) => id !== source.id)
@@ -376,12 +375,24 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
         },
       }));
       if (sourceProfile) {
-        current.visualProfiles = current.visualProfiles.map((profile) =>
-          profile.entityId === source.id ? { ...profile, entityId: target.id } : profile,
-        );
+        current.visualProfiles = current.visualProfiles
+          .filter(({ entityId }) => entityId !== source.id)
+          .map((profile) =>
+            profile.entityId === target.id
+              ? {
+                  ...profile,
+                  traits: { ...sourceProfile.traits, ...profile.traits },
+                  canonicalAssetId: profile.canonicalAssetId ?? sourceProfile.canonicalAssetId,
+                  exclusions: [...new Set([...profile.exclusions, ...sourceProfile.exclusions])],
+                }
+              : profile,
+          );
+        if (!targetProfile) {
+          current.visualProfiles.push({ ...sourceProfile, entityId: target.id });
+        }
         current.imagePromptDrafts = current.imagePromptDrafts.map((draft) => ({
           ...draft,
-          entityIds: draft.entityIds.map((id) => (id === source.id ? target.id : id)),
+          entityIds: [...new Set(draft.entityIds.map((id) => (id === source.id ? target.id : id)))],
         }));
       }
       writeState(state);

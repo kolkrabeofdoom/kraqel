@@ -31,8 +31,6 @@ pub enum StoryBibleError {
     NotFound,
     /// Gespeicherte Daten verletzen den erwarteten internen Vertrag.
     InvalidStoredData,
-    /// Beide Einträge besitzen Daten, die nicht verlustfrei automatisch vereinigt werden können.
-    MergeConflict,
     /// SQLite- oder Verbindungsfehler der Speicherschicht.
     Storage(StorageError),
     /// Die Systemzeit liegt vor der Unix-Epoche.
@@ -47,9 +45,6 @@ impl fmt::Display for StoryBibleError {
             Self::InvalidStoredData => {
                 formatter.write_str("Gespeicherte Story-Bibel-Daten sind ungültig.")
             }
-            Self::MergeConflict => formatter.write_str(
-                "Die Story-Bibel-Einträge können nicht verlustfrei zusammengeführt werden.",
-            ),
             Self::Storage(error) => error.fmt(formatter),
             Self::InvalidSystemTime => formatter.write_str("Die Systemzeit ist ungültig."),
         }
@@ -63,7 +58,6 @@ impl Error for StoryBibleError {
             Self::InvalidInput
             | Self::NotFound
             | Self::InvalidStoredData
-            | Self::MergeConflict
             | Self::InvalidSystemTime => None,
         }
     }
@@ -231,14 +225,13 @@ impl<'database> StoryBibleRepository<'database> {
     /// Führt einen doppelten Quell-Eintrag atomar in einen bestehenden Ziel-Eintrag derselben Art.
     ///
     /// Der Zielname und vorhandene Ziel-Eigenschaften bleiben maßgeblich. Fehlende Eigenschaften
-    /// sowie sämtliche fachlichen Referenzen werden von der Quelle übernommen. Haben beide
-    /// Einträge ein visuelles Profil, wird ohne Änderung abgebrochen.
+    /// sowie sämtliche fachlichen Referenzen werden von der Quelle übernommen. Visuelle Profile
+    /// werden nach derselben Ziel-vor-Quelle-Regel vereinigt.
     ///
     /// # Errors
     ///
     /// Liefert einen Fehler bei identischen oder artfremden Einträgen, fehlenden Datensätzen,
-    /// unvereinbaren visuellen Profilen, ungültigen kombinierten Eigenschaften oder SQLite-
-    /// Problemen.
+    /// ungültigen kombinierten Eigenschaften oder SQLite-Problemen.
     pub fn merge_entities(
         &mut self,
         project_id: ProjectId,
@@ -281,10 +274,6 @@ impl<'database> StoryBibleRepository<'database> {
 
         let source_has_profile = has_visual_profile(&transaction, project_id, source_entity_id)?;
         let target_has_profile = has_visual_profile(&transaction, project_id, target_entity_id)?;
-        if source_has_profile && target_has_profile {
-            return Err(StoryBibleError::MergeConflict);
-        }
-
         let mut merged_properties = target.properties.clone();
         for (key, value) in source.properties {
             merged_properties.entry(key).or_insert(value);
@@ -293,7 +282,14 @@ impl<'database> StoryBibleRepository<'database> {
         let timestamp = current_timestamp()?;
 
         if source_has_profile {
-            move_visual_profile(&transaction, &project, &source_id, &target_id, &timestamp)?;
+            merge_visual_profiles(
+                &transaction,
+                &project,
+                &source_id,
+                &target_id,
+                target_has_profile,
+                &timestamp,
+            )?;
         }
         retarget_unique_links(&transaction, &project, &source_id, &target_id)?;
         retarget_relations_and_pov(&transaction, &project, &source_id, &target_id, &timestamp)?;
@@ -647,30 +643,118 @@ fn has_visual_profile(
         .map_err(StoryBibleError::from)
 }
 
-fn move_visual_profile(
+fn merge_visual_profiles(
+    transaction: &Transaction<'_>,
+    project: &str,
+    source_id: &str,
+    target_id: &str,
+    target_has_profile: bool,
+    timestamp: &str,
+) -> Result<(), StoryBibleError> {
+    if target_has_profile {
+        merge_existing_visual_profiles(transaction, project, source_id, target_id, timestamp)?;
+    } else {
+        transaction.execute(
+            "INSERT INTO visual_profile
+                (entity_id, project_id, traits_json, canonical_asset_id, exclusions_json, created_at, updated_at)
+             SELECT ?3, project_id, traits_json, canonical_asset_id, exclusions_json, created_at, ?4
+             FROM visual_profile WHERE project_id = ?1 AND entity_id = ?2",
+            params![project, source_id, target_id, timestamp],
+        )?;
+    }
+    retarget_prompt_profile_links(transaction, project, source_id, target_id)?;
+    transaction.execute(
+        "DELETE FROM visual_profile WHERE project_id = ?1 AND entity_id = ?2",
+        params![project, source_id],
+    )?;
+    Ok(())
+}
+
+fn merge_existing_visual_profiles(
     transaction: &Transaction<'_>,
     project: &str,
     source_id: &str,
     target_id: &str,
     timestamp: &str,
 ) -> Result<(), StoryBibleError> {
+    let load = |entity_id: &str| {
+        transaction.query_row(
+            "SELECT traits_json, canonical_asset_id, exclusions_json
+             FROM visual_profile WHERE project_id = ?1 AND entity_id = ?2",
+            params![project, entity_id],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, Option<String>>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            },
+        )
+    };
+    let (source_traits, source_asset, source_exclusions) = load(source_id)?;
+    let (target_traits, target_asset, target_exclusions) = load(target_id)?;
+    let mut traits: BTreeMap<String, String> =
+        serde_json::from_str(&target_traits).map_err(|_| StoryBibleError::InvalidStoredData)?;
+    for (key, value) in serde_json::from_str::<BTreeMap<String, String>>(&source_traits)
+        .map_err(|_| StoryBibleError::InvalidStoredData)?
+    {
+        traits.entry(key).or_insert(value);
+    }
+    let mut exclusions: Vec<String> =
+        serde_json::from_str(&target_exclusions).map_err(|_| StoryBibleError::InvalidStoredData)?;
+    for exclusion in serde_json::from_str::<Vec<String>>(&source_exclusions)
+        .map_err(|_| StoryBibleError::InvalidStoredData)?
+    {
+        if !exclusions.contains(&exclusion) {
+            exclusions.push(exclusion);
+        }
+    }
     transaction.execute(
-        "INSERT INTO visual_profile
-            (entity_id, project_id, traits_json, canonical_asset_id, exclusions_json, created_at, updated_at)
-         SELECT ?3, project_id, traits_json, canonical_asset_id, exclusions_json, created_at, ?4
-         FROM visual_profile WHERE project_id = ?1 AND entity_id = ?2",
-        params![project, source_id, target_id, timestamp],
+        "UPDATE visual_profile
+         SET traits_json = ?3, canonical_asset_id = ?4, exclusions_json = ?5, updated_at = ?6
+         WHERE project_id = ?1 AND entity_id = ?2",
+        params![
+            project,
+            target_id,
+            serialize_profile_part(&traits)?,
+            target_asset.or(source_asset),
+            serialize_profile_part(&exclusions)?,
+            timestamp
+        ],
+    )?;
+    Ok(())
+}
+
+fn retarget_prompt_profile_links(
+    transaction: &Transaction<'_>,
+    project: &str,
+    source_id: &str,
+    target_id: &str,
+) -> Result<(), StoryBibleError> {
+    transaction.execute(
+        "DELETE FROM image_prompt_draft_profile AS source_link
+         WHERE project_id = ?1 AND entity_id = ?2 AND EXISTS (
+             SELECT 1 FROM image_prompt_draft_profile AS target_link
+             WHERE target_link.project_id = source_link.project_id
+               AND target_link.draft_id = source_link.draft_id
+               AND target_link.entity_id = ?3
+         )",
+        params![project, source_id, target_id],
     )?;
     transaction.execute(
         "UPDATE image_prompt_draft_profile SET entity_id = ?3
          WHERE project_id = ?1 AND entity_id = ?2",
         params![project, source_id, target_id],
     )?;
-    transaction.execute(
-        "DELETE FROM visual_profile WHERE project_id = ?1 AND entity_id = ?2",
-        params![project, source_id],
-    )?;
     Ok(())
+}
+
+fn serialize_profile_part<T: serde::Serialize>(value: &T) -> Result<String, StoryBibleError> {
+    let json = serde_json::to_string(value).map_err(|_| StoryBibleError::InvalidStoredData)?;
+    if json.len() > MAX_PROPERTIES_BYTES {
+        return Err(StoryBibleError::InvalidInput);
+    }
+    Ok(json)
 }
 
 fn retarget_unique_links(
@@ -1093,6 +1177,20 @@ mod tests {
             .expect("source profile should exist");
         connection
             .execute(
+                "INSERT INTO visual_profile
+                    (entity_id, project_id, traits_json, canonical_asset_id, exclusions_json,
+                     created_at, updated_at)
+                 VALUES (?1, ?2, '{\"Augen\":\"bernsteinfarben\",\"Haltung\":\"wach\"}', ?3,
+                         '[\"Maske\"]', 'unix:1', 'unix:1')",
+                params![
+                    target.id.to_string(),
+                    project.id.to_string(),
+                    asset_id.to_string()
+                ],
+            )
+            .expect("target profile should exist");
+        connection
+            .execute(
                 "INSERT INTO image_prompt_draft
                     (id, project_id, name, source_document_id, source_document_revision,
                      style_preset_id, prompt_text, created_at, updated_at)
@@ -1115,6 +1213,17 @@ mod tests {
                 ],
             )
             .expect("draft profile should exist");
+        connection
+            .execute(
+                "INSERT INTO image_prompt_draft_profile (draft_id, project_id, entity_id, position)
+                 VALUES (?1, ?2, ?3, 1)",
+                params![
+                    draft_id.to_string(),
+                    project.id.to_string(),
+                    target.id.to_string()
+                ],
+            )
+            .expect("target draft profile should exist");
 
         let merged = StoryBibleRepository::new(opened.database_mut())
             .merge_entities(project.id, source.id, target.id)
@@ -1168,10 +1277,23 @@ mod tests {
                 .unwrap(),
             1
         );
+        let (traits_json, exclusions_json): (String, String) = connection
+            .query_row(
+                "SELECT traits_json, exclusions_json FROM visual_profile
+                 WHERE project_id = ?1 AND entity_id = ?2",
+                params![project.id.to_string(), target.id.to_string()],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let traits: BTreeMap<String, String> = serde_json::from_str(&traits_json).unwrap();
+        assert_eq!(traits["Augen"], "bernsteinfarben");
+        assert_eq!(traits["Haltung"], "wach");
+        let exclusions: Vec<String> = serde_json::from_str(&exclusions_json).unwrap();
+        assert_eq!(exclusions, vec!["Maske"]);
     }
 
     #[test]
-    fn rejects_two_visual_profiles_without_changing_either_entity() {
+    fn merges_two_visual_profiles_with_target_precedence() {
         let (_root, project, mut opened) = fixture();
         let (source, target) = {
             let mut repository = StoryBibleRepository::new(opened.database_mut());
@@ -1193,34 +1315,53 @@ mod tests {
                 .unwrap();
             (source, target)
         };
-        for entity_id in [source.id, target.id] {
-            opened
-                .database()
-                .connection()
-                .execute(
-                    "INSERT INTO visual_profile
-                        (entity_id, project_id, traits_json, canonical_asset_id, exclusions_json,
-                         created_at, updated_at)
-                     VALUES (?1, ?2, '{}', NULL, '[]', 'unix:1', 'unix:1')",
-                    params![entity_id.to_string(), project.id.to_string()],
-                )
-                .unwrap();
-        }
+        let connection = opened.database().connection();
+        connection
+            .execute(
+                "INSERT INTO visual_profile
+                    (entity_id, project_id, traits_json, canonical_asset_id, exclusions_json,
+                     created_at, updated_at)
+                 VALUES (?1, ?2, '{\"Palette\":\"kalt\",\"Licht\":\"Nebel\"}', NULL,
+                         '[\"Mütze\",\"Schnee\"]', 'unix:1', 'unix:1')",
+                params![source.id.to_string(), project.id.to_string()],
+            )
+            .unwrap();
+        connection
+            .execute(
+                "INSERT INTO visual_profile
+                    (entity_id, project_id, traits_json, canonical_asset_id, exclusions_json,
+                     created_at, updated_at)
+                 VALUES (?1, ?2, '{\"Palette\":\"warm\",\"Pose\":\"stehend\"}', NULL,
+                         '[\"Schnee\",\"Regen\"]', 'unix:1', 'unix:1')",
+                params![target.id.to_string(), project.id.to_string()],
+            )
+            .unwrap();
 
+        let merged = StoryBibleRepository::new(opened.database_mut())
+            .merge_entities(project.id, source.id, target.id)
+            .expect("profiles should merge");
+        assert_eq!(merged.entity.id, target.id);
+        assert_eq!(merged.entity.properties["Quelle"], "Dublette");
         assert!(matches!(
-            StoryBibleRepository::new(opened.database_mut())
-                .merge_entities(project.id, source.id, target.id),
-            Err(StoryBibleError::MergeConflict)
+            StoryBibleRepository::new(opened.database_mut()).load(project.id, source.id),
+            Err(StoryBibleError::NotFound)
         ));
-        let repository = StoryBibleRepository::new(opened.database_mut());
-        assert_eq!(
-            repository.load(project.id, source.id).unwrap().entity,
-            source
-        );
-        assert_eq!(
-            repository.load(project.id, target.id).unwrap().entity,
-            target
-        );
+        let (traits_json, exclusions_json): (String, String) = opened
+            .database()
+            .connection()
+            .query_row(
+                "SELECT traits_json, exclusions_json FROM visual_profile
+                 WHERE project_id = ?1 AND entity_id = ?2",
+                params![project.id.to_string(), target.id.to_string()],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let traits: BTreeMap<String, String> = serde_json::from_str(&traits_json).unwrap();
+        assert_eq!(traits["Palette"], "warm");
+        assert_eq!(traits["Pose"], "stehend");
+        assert_eq!(traits["Licht"], "Nebel");
+        let exclusions: Vec<String> = serde_json::from_str(&exclusions_json).unwrap();
+        assert_eq!(exclusions, vec!["Schnee", "Regen", "Mütze"]);
     }
 
     #[test]

@@ -2945,7 +2945,6 @@ fn map_document_error(request_id: uuid::Uuid, error: &DocumentError) -> CommandE
 
 fn map_story_bible_error(request_id: uuid::Uuid, error: &StoryBibleError) -> CommandError {
     match error {
-        StoryBibleError::MergeConflict => CommandError::conflict(request_id),
         StoryBibleError::InvalidInput | StoryBibleError::NotFound => {
             CommandError::invalid_request(request_id, "Die Story-Bibel-Anfrage ist ungültig.")
         }
