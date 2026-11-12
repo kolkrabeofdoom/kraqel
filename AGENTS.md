@@ -76,6 +76,9 @@ Aktuell im Repository und verifiziert:
   automatisierbaren Accessibility-Kern; GitHub Actions unter Windows und Linux. Ein separater
   Windows-Smoke-Test prüft den echten Debug-Build über WebView, Tauri-IPC, Rust und SQLite. Eine
   manuelle KQ-033-Kernprüfung und die KQ-034-Randfälle mit Windows-Sprachausgabe sind dokumentiert.
+  KQ-035 ergänzt einen lokal geprüften, bewusst unsignierten Windows-x64-Release Candidate mit
+  Offline-WebView2, SHA-256 und Buildmanifest; GitHub-Download und externe Installation sind noch
+  nicht abgenommen.
 
 Im Pflichtenheft vorgesehen, aber noch **nicht implementiert oder installiert**: Tailwind, React
 Flow, dnd-kit, KI-basierte Kontinuitätshinweise und produktive Bildgenerierung. Ollama und
