@@ -408,7 +408,7 @@ verbreitern. Details stehen unter [`docs/testing`](docs/testing).
 - Git
 - Node.js 22 oder neuer
 - pnpm 11; das Repository ist auf `pnpm@11.25.0` festgelegt
-- Rust 1.85 oder neuer mit Cargo
+- Rust 1.90 oder neuer mit Cargo
 - Tauri-Systemabhängigkeiten für das jeweilige Betriebssystem
 - unter Windows die erforderliche MSVC-/WebView2-Toolchain
 - unter Linux zusätzlich die Entwicklungsbibliotheken für Tauri, D-Bus und Secret Service

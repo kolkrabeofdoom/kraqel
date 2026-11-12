@@ -1,10 +1,10 @@
 use crate::{Block, ExportError, ExportFormat, Inline, Manuscript, internal};
-use docx_rs::{BreakType, Docx, Paragraph, Run};
 use printpdf::{BuiltinFont, Mm, PdfDocument};
 use std::{
     fmt::Write as _,
     io::{BufWriter, Cursor, Write},
 };
+use zip::{CompressionMethod, ZipWriter, write::SimpleFileOptions};
 
 pub(crate) fn render(
     manuscript: &Manuscript,
@@ -173,44 +173,57 @@ fn escape_html(value: &str) -> String {
 }
 
 fn docx(manuscript: &Manuscript) -> Result<Vec<u8>, ExportError> {
-    let mut document = Docx::new().page_size(12_240, 15_840).add_paragraph(
-        Paragraph::new()
-            .style("Title")
-            .add_run(Run::new().add_text(&manuscript.title).bold().size(44)),
+    let mut document = String::from(
+        r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>"#,
+    );
+    docx_text_paragraph(
+        &mut document,
+        &manuscript.title,
+        Some("Title"),
+        true,
+        false,
+        Some(44),
     );
     for chapter in &manuscript.chapters {
-        document = document.add_paragraph(
-            Paragraph::new()
-                .style("Heading1")
-                .add_run(Run::new().add_text(&chapter.title).bold().size(32)),
+        docx_text_paragraph(
+            &mut document,
+            &chapter.title,
+            Some("Heading1"),
+            true,
+            false,
+            Some(32),
         );
         for scene in &chapter.scenes {
-            document = document.add_paragraph(
-                Paragraph::new()
-                    .style("Heading2")
-                    .add_run(Run::new().add_text(&scene.title).bold().size(26)),
+            docx_text_paragraph(
+                &mut document,
+                &scene.title,
+                Some("Heading2"),
+                true,
+                false,
+                Some(26),
             );
-            document = docx_blocks(document, &scene.blocks, 0);
+            docx_blocks(&mut document, &scene.blocks, 0);
         }
     }
-    let mut cursor = Cursor::new(Vec::new());
-    document.build().pack(&mut cursor).map_err(internal)?;
-    Ok(cursor.into_inner())
+    document.push_str(
+        r#"<w:sectPr><w:pgSz w:w="12240" w:h="15840"/></w:sectPr></w:body></w:document>"#,
+    );
+    package_docx(&document)
 }
-fn docx_blocks(mut document: Docx, blocks: &[Block], depth: usize) -> Docx {
+fn docx_blocks(document: &mut String, blocks: &[Block], depth: usize) {
     for block in blocks {
         match block {
-            Block::Paragraph(inlines) => {
-                document = document.add_paragraph(docx_paragraph(inlines, None));
-            }
+            Block::Paragraph(inlines) => docx_paragraph(document, inlines, None, None),
             Block::Heading(level, inlines) => {
-                document = document.add_paragraph(docx_paragraph(
+                docx_paragraph(
+                    document,
                     inlines,
                     Some(format!("Heading{}", (*level).saturating_add(2).min(6))),
-                ));
+                    None,
+                );
             }
             Block::Quote(children) => {
-                document = docx_prefixed_blocks(document, children, depth, "› ");
+                docx_prefixed_blocks(document, children, depth, "› ");
             }
             Block::BulletList(items) | Block::OrderedList(items) => {
                 for (index, item) in items.iter().enumerate() {
@@ -219,52 +232,111 @@ fn docx_blocks(mut document: Docx, blocks: &[Block], depth: usize) -> Docx {
                     } else {
                         format!("{}.", index + 1)
                     };
-                    document = docx_list_item(document, item, depth, &marker);
+                    docx_list_item(document, item, depth, &marker);
                 }
             }
         }
     }
-    document
 }
-fn docx_list_item(document: Docx, item: &[Block], depth: usize, marker: &str) -> Docx {
+fn docx_list_item(document: &mut String, item: &[Block], depth: usize, marker: &str) {
     let prefix = format!("{}{} ", "  ".repeat(depth), marker);
-    docx_prefixed_blocks(document, item, depth, &prefix)
+    docx_prefixed_blocks(document, item, depth, &prefix);
 }
-fn docx_prefixed_blocks(mut document: Docx, blocks: &[Block], depth: usize, prefix: &str) -> Docx {
+fn docx_prefixed_blocks(document: &mut String, blocks: &[Block], depth: usize, prefix: &str) {
     if let Some((Block::Paragraph(inlines), remainder)) = blocks.split_first() {
-        let paragraph = Paragraph::new().add_run(Run::new().add_text(prefix.to_owned()));
-        document = document.add_paragraph(docx_inlines(paragraph, inlines));
-        docx_blocks(document, remainder, depth + 1)
+        docx_paragraph(document, inlines, None, Some(prefix));
+        docx_blocks(document, remainder, depth + 1);
     } else {
-        document = document
-            .add_paragraph(Paragraph::new().add_run(Run::new().add_text(prefix.to_owned())));
-        docx_blocks(document, blocks, depth + 1)
+        docx_text_paragraph(document, prefix, None, false, false, None);
+        docx_blocks(document, blocks, depth + 1);
     }
 }
-fn docx_paragraph(inlines: &[Inline], style: Option<String>) -> Paragraph {
-    let mut paragraph = Paragraph::new();
+fn docx_paragraph(
+    document: &mut String,
+    inlines: &[Inline],
+    style: Option<String>,
+    prefix: Option<&str>,
+) {
+    document.push_str("<w:p>");
     if let Some(style) = style {
-        paragraph = paragraph.style(&style);
+        let _ = write!(document, r#"<w:pPr><w:pStyle w:val="{style}"/></w:pPr>"#);
     }
-    docx_inlines(paragraph, inlines)
+    if let Some(prefix) = prefix {
+        docx_run(document, prefix, false, false, None);
+    }
+    docx_inlines(document, inlines);
+    document.push_str("</w:p>");
 }
-fn docx_inlines(mut paragraph: Paragraph, inlines: &[Inline]) -> Paragraph {
+fn docx_inlines(document: &mut String, inlines: &[Inline]) {
     for inline in inlines {
-        paragraph = match inline {
-            Inline::HardBreak => paragraph.add_run(Run::new().add_break(BreakType::TextWrapping)),
+        match inline {
+            Inline::HardBreak => document.push_str("<w:r><w:br/></w:r>"),
             Inline::Text { text, bold, italic } => {
-                let mut run = Run::new().add_text(text);
-                if *bold {
-                    run = run.bold();
-                }
-                if *italic {
-                    run = run.italic();
-                }
-                paragraph.add_run(run)
+                docx_run(document, text, *bold, *italic, None);
             }
-        };
+        }
     }
-    paragraph
+}
+fn docx_text_paragraph(
+    document: &mut String,
+    text: &str,
+    style: Option<&str>,
+    bold: bool,
+    italic: bool,
+    size: Option<u16>,
+) {
+    document.push_str("<w:p>");
+    if let Some(style) = style {
+        let _ = write!(document, r#"<w:pPr><w:pStyle w:val="{style}"/></w:pPr>"#);
+    }
+    docx_run(document, text, bold, italic, size);
+    document.push_str("</w:p>");
+}
+fn docx_run(document: &mut String, text: &str, bold: bool, italic: bool, size: Option<u16>) {
+    document.push_str("<w:r>");
+    if bold || italic || size.is_some() {
+        document.push_str("<w:rPr>");
+        if bold {
+            document.push_str("<w:b/>");
+        }
+        if italic {
+            document.push_str("<w:i/>");
+        }
+        if let Some(size) = size {
+            let _ = write!(document, r#"<w:sz w:val="{size}"/>"#);
+        }
+        document.push_str("</w:rPr>");
+    }
+    document.push_str(r#"<w:t xml:space="preserve">"#);
+    document.push_str(&escape_xml(text));
+    document.push_str("</w:t></w:r>");
+}
+fn escape_xml(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+fn package_docx(document: &str) -> Result<Vec<u8>, ExportError> {
+    const CONTENT_TYPES: &str = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>"#;
+    const PACKAGE_RELS: &str = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>"#;
+    const DOCUMENT_RELS: &str = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>"#;
+    const STYLES: &str = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style><w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/></w:style><w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/></w:style><w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/></w:style><w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="heading 3"/></w:style><w:style w:type="paragraph" w:styleId="Heading4"><w:name w:val="heading 4"/></w:style><w:style w:type="paragraph" w:styleId="Heading5"><w:name w:val="heading 5"/></w:style><w:style w:type="paragraph" w:styleId="Heading6"><w:name w:val="heading 6"/></w:style></w:styles>"#;
+
+    let cursor = Cursor::new(Vec::new());
+    let mut archive = ZipWriter::new(cursor);
+    let options = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
+    for (name, content) in [
+        ("[Content_Types].xml", CONTENT_TYPES),
+        ("_rels/.rels", PACKAGE_RELS),
+        ("word/document.xml", document),
+        ("word/styles.xml", STYLES),
+        ("word/_rels/document.xml.rels", DOCUMENT_RELS),
+    ] {
+        archive.start_file(name, options).map_err(internal)?;
+        archive.write_all(content.as_bytes()).map_err(internal)?;
+    }
+    archive.finish().map(Cursor::into_inner).map_err(internal)
 }
 
 fn pdf(manuscript: &Manuscript) -> Result<Vec<u8>, ExportError> {

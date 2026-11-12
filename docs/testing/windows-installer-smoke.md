@@ -8,7 +8,7 @@ deinstalliert sie wieder.
 ## Voraussetzungen
 
 - Windows x64 mit Microsoft Edge WebView2
-- Node.js 22+, pnpm 11+, Rust 1.85+ und die Tauri-Windows-Buildabhängigkeiten
+- Node.js 22+, pnpm 11+, Rust 1.90+ und die Tauri-Windows-Buildabhängigkeiten
 - `tauri-driver` sowie ein zur installierten Edge-Version passender `msedgedriver`
 
 Die Treiber können wie beim [Windows-Tauri-Smoke-Test](windows-tauri-smoke.md) über

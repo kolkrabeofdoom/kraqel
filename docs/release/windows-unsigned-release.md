@@ -14,7 +14,7 @@ die Datei gebunden.
 
 - Windows x64
 - sauberer, vollständig geprüfter und für den Release vorgesehener Git-Commit
-- Node.js 22+, pnpm 11+ und Rust 1.85+
+- Node.js 22+, pnpm 11+ und Rust 1.90+
 - Tauri-Windows-Buildwerkzeuge gemäß Repository- und Tauri-Dokumentation
 - Netzwerkzugang **beim Build**, weil Tauri den WebView2-Offlineinstaller und gegebenenfalls
   NSIS-Werkzeuge bezieht

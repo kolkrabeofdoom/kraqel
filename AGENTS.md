@@ -55,9 +55,11 @@ Aktuell im Repository und verifiziert:
   erst danach als neues Projekt mit neuer UUID atomar veröffentlicht; die Oberfläche bietet derzeit
   nur die offline eingebettete Beispielvorlage, noch keine freie Dateiauswahl.
 - **Export:** streng validierte gemeinsame Manuskriptrepräsentation und lokale, atomare Ausgabe als
-  Markdown, eigenständiges HTML, DOCX oder A4-PDF; unbekannte Editorformatierungen werden abgelehnt
-  statt verworfen. Der Exportordner-Aufruf leitet das feste Ziel ausschließlich serverseitig aus
-  einer validierten Projekt-ID ab und gibt keinen absoluten Pfad über IPC zurück.
+  Markdown, eigenständiges HTML, begrenztes OOXML-DOCX oder A4-PDF; unbekannte Editorformatierungen
+  werden abgelehnt statt verworfen. DOCX und Snapshotarchive verwenden gemeinsam die gepflegte
+  `zip`-9-Reihe; `docx-rs` gehört nicht mehr zum Abhängigkeitsbaum. Der Exportordner-Aufruf leitet
+  das feste Ziel ausschließlich serverseitig aus einer validierten Projekt-ID ab und gibt keinen
+  absoluten Pfad über IPC zurück.
 - **Lokale Text-KI:** providerunabhängige Rust-Grenze, ausschließlich lokaler Ollama-Adapter,
   Modellabfrage und gestreamte, verwerfbare Entwürfe nach expliziter Kontextfreigabe.
 - **Cloud-Text-KI:** OpenAI-, Anthropic-, Gemini- und Mistral-Protokolle, native
@@ -154,7 +156,7 @@ es sehr selbstbewusst kompiliert.
 
 ## Build-, Test- und Prüfkommandos
 
-Voraussetzungen: Node.js 22+, pnpm 11+, Rust 1.85+, die Tauri-Systemabhängigkeiten sowie unter Linux
+Voraussetzungen: Node.js 22+, pnpm 11+, Rust 1.90+, die Tauri-Systemabhängigkeiten sowie unter Linux
 die Entwicklungsdateien für D-Bus/Secret Service.
 
 ```powershell
