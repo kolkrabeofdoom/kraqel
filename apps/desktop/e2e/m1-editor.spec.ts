@@ -28,7 +28,7 @@ test("Projekt, Autosave und Dokumentbaum bleiben über Wiederöffnen konsistent"
   await expect(page.getByText("Gespeichert", { exact: true })).toBeVisible({ timeout: 5_000 });
 
   await page.getByRole("button", { name: "Projektübersicht" }).click();
-  await page.getByRole("button", { name: new RegExp(projectName) }).click();
+  await page.getByRole("button", { name: new RegExp(`${projectName}.*Öffnen`) }).click();
   await expect(page.getByRole("textbox", { name: "Text von Szene 1" })).toContainText(
     manuscriptText,
   );

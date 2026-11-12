@@ -104,6 +104,18 @@ in Rust; React erhält weder absoluten Pfad noch Archivbytes. Metadaten werden v
 böswillige parallele Dateisystemänderungen ist ohne plattformspezifische Handle-APIs nicht belegt.
 Weitere Fuzztests sowie die Bedienführung für Herkunft und Lizenz bleiben zu bewerten.
 
+Der Snapshotexport hält den nativen Zielpfad und sämtliche Archivbytes in Rust. Er erzeugt immer
+zuerst einen validierten Snapshot v3, sortiert Archivpfade stabil, begrenzt Dateianzahl sowie
+komprimierte und unkomprimierte Größe und lehnt Symlinks oder Nicht-Dateien als Ziel ab. Ein
+Dialogabbruch schreibt nichts. Dateisystemrennen zwischen Prüfung und Veröffentlichung bleiben wie
+bei anderen plattformübergreifenden Pfadoperationen ein Restrisiko.
+
+Projektlöschung ist endgültig und daher zweistufig: Der erste UI-Klick aktiviert nur die konkrete
+Bestätigung; der zweite sendet Projekt-ID und Bestätigungsflag. Rust löst ausschließlich die
+UUID-Komponente unter der kanonischen Projektwurzel auf, öffnet die Datenbank, vergleicht die dort
+gespeicherte Projektkennung und entfernt erst danach das Verzeichnis. Dieser Schutz verhindert
+Fehladressierung, ersetzt aber kein Backup gegen eine bewusst bestätigte Fehlentscheidung.
+
 Die Bildprovider-Grenze besitzt in Version 0.1 nur Verträge, Registryvalidierung und einen lokalen
 Test-Mock. Es gibt keinen produktiven Adapter, keinen Tauri-Command, keine Jobpersistenz und keine
 Bildausgabe. Vor KQ-017 müssen Cloudfreigaben wie bei Text kurzlebig und einmalig gebunden,

@@ -3,6 +3,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import {
   commitProjectSnapshot,
   createProjectSnapshot,
+  exportProjectArchive,
   getVersionControlDiff,
   getVersionControlStatus,
   validateProjectSnapshot,
@@ -70,6 +71,26 @@ export function VersionControl({ projectId }: VersionControlProps) {
     }
   };
 
+  const exportArchive = async () => {
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const exported = await exportProjectArchive(projectId);
+      if (exported) {
+        setSummary(exported.snapshot);
+        await refresh();
+        setNotice(
+          `Projektarchiv exportiert: ${exported.fileName} (${exported.byteCount.toLocaleString("de-DE")} Bytes).`,
+        );
+      }
+    } catch {
+      setError("Das Projektarchiv konnte nicht exportiert werden.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const commit = async (event: FormEvent) => {
     event.preventDefault();
     setBusy(true);
@@ -101,6 +122,14 @@ export function VersionControl({ projectId }: VersionControlProps) {
         <div className="version-actions">
           <button type="button" disabled={busy} onClick={() => void createSnapshot()}>
             Snapshot erzeugen
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy}
+            onClick={() => void exportArchive()}
+          >
+            Projektarchiv exportieren
           </button>
           <button
             type="button"

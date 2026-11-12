@@ -125,6 +125,14 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
   switch (command) {
     case "list_projects":
       return state.projects.map(({ project }) => ({ id: project.id, name: project.name }));
+    case "delete_project": {
+      if (payload.confirmed !== true) throw new Error("Missing E2E project deletion confirmation");
+      const index = state.projects.findIndex(({ project }) => project.id === payload.projectId);
+      if (index < 0) throw new Error("Unknown E2E project");
+      state.projects.splice(index, 1);
+      writeState(state);
+      return null;
+    }
     case "create_project": {
       const projectId = crypto.randomUUID() as Project["id"];
       const project: Project = {
@@ -775,6 +783,21 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       current.versionControl.snapshotFiles = renderSnapshotFiles(current);
       writeState(state);
       return snapshotSummary(current);
+    }
+    case "export_project_archive": {
+      if (localStorage.getItem("kraqel-e2e-cancel-snapshot-export") === "1") return null;
+      const current = findProject(state, payload.projectId);
+      current.versionControl.initialized = true;
+      current.versionControl.snapshotFiles = renderSnapshotFiles(current);
+      writeState(state);
+      const byteCount = new TextEncoder().encode(
+        JSON.stringify(current.versionControl.snapshotFiles),
+      ).byteLength;
+      return {
+        fileName: "kraqel-projekt.kraqel",
+        byteCount,
+        snapshot: snapshotSummary(current),
+      };
     }
     case "validate_project_snapshot": {
       const current = findProject(state, payload.projectId);

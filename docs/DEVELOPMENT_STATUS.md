@@ -2,7 +2,7 @@
 
 Stand: 12. November 2026
 
-Code-Referenz: KQ-050 (Issue #96)
+Code-Referenz: KQ-051/KQ-052 (Issues #99/#100)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -17,7 +17,7 @@ als vollständige Fachfunktion.
 | **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                                                                                                                                                                                                                                                                                |
 | **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, Undo/Redo, Wortzählung, Fokusmodus, konfliktgeprüfter Autosave sowie sicheres Umbenennen, Umordnen, Löschen und SQLite-Backup vorhanden. KQ-032 automatisiert Tastatur-, Fokus- und Axe-Prüfungen; KQ-033 bestätigt den Kern manuell mit Windows-Sprachausgabe in der Tauri-WebView.                                                                                                              |
 | **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks sind in getrennten Chromium-Abläufen geprüft. KQ-033 bestätigt Story-Bibel-Beziehungen und Rückverweise per Windows-Sprachausgabe; Plotboard und Timelines wurden assistiv stichprobenartig geprüft.                                                                                                                            |
-| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, Medienbibliothek sowie visuelle Profile und Stilvorlagen sind im browserseitigen Kernablauf geprüft. KQ-038 ergänzt den streng validierten Snapshot-v3-Neuimport und die offline eingebettete Beispielvorlage. KQ-050 ergänzt die native Auswahl frei gewählter `.kraqel`-/ZIP-Archive; Textimport und DOCX-Roundtrip fehlen.                                                                                                  |
+| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, Medienbibliothek sowie visuelle Profile und Stilvorlagen sind im browserseitigen Kernablauf geprüft. KQ-038/KQ-050 ergänzen Snapshot-v3-Neuimport, Beispielvorlage und freie Archivauswahl. KQ-051 ergänzt den nativen `.kraqel`-Export; Textimport und DOCX-Roundtrip fehlen.                                                                                                                                                 |
 | **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Technischer 0.1-Umfang weitgehend umgesetzt:** Textprotokolle, browserseitig geprüfte Offline-Kontinuität und Prompt-Entwürfe sowie Bild-Capability- und Jobverträge vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise und Bildgenerierung fehlen.                                                                                                                                                                                                                                            |
 | **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Alpha 4 veröffentlicht:** Debug- und Tauri-Smoke-Tests, isolierter NSIS-Testinstaller, Accessibility-Nachweise sowie ein getrennter unsignierter x64-NSIS-Releasepfad sind vorhanden. KQ-045 belegt Build, GitHub-Rückdownload und SHA-256 von `v0.1.0-alpha.4`; Release Candidate und öffentlicher Rückdownload wurden isoliert installiert und deinstalliert. MSI, Signierung, Updater und ARM64 sind ausgeschlossen; SmartScreen, Anwendungsstart und Persistenz auf Zweitrechner/Clean-VM fehlen. |
 | **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
@@ -55,6 +55,15 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   leere IPC-Nutzlast, neue Projektkopie, Abbruch und Accessibility. Der echte native Windows-Dialog
   wurde am 12. November 2026 mit gültigem Beispielarchiv, Abbruch und ungültiger Datei manuell
   geprüft; Import, neutraler Abbruch und bereinigte Fehlermeldung verhielten sich wie vorgesehen.
+- KQ-051 erzeugt vor jedem nativen `.kraqel`-Export einen aktuellen, validierten Snapshot v3, packt
+  ihn deterministisch innerhalb der Importgrenzen und veröffentlicht das Archiv über eine temporäre
+  Geschwisterdatei. Zielpfad und Bytes bleiben in Rust. Rust belegt Byte-Stabilität und
+  erfolgreichen Neuimport; Command- und Browsertests belegen datenarme Antwort und neutralen
+  Dialogabbruch. Der echte native Windows-Speicherdialog ist noch manuell zu prüfen.
+- KQ-052 ergänzt die endgültige Projektlöschung auf der Startseite. Die UI verlangt einen zweiten
+  konkreten Klick, der Command ein Bestätigungsflag und der `ProjectManager` übereinstimmende UUIDs
+  in Verzeichnis und Datenbank. Rust-, Command-, Browser- und Accessibility-Tests decken den Ablauf
+  ab; eine Wiederherstellung nach bestätigter Löschung ist absichtlich nicht implementiert.
 - Playwright mit Chromium und einem testexklusiven Browser-Command-Adapter für M1, Story-Bibel,
   Plotboard, Timelines, Medien, visuelle Profile, Kontinuität, Bildprompt-Builder, Versionen und
   Export sowie die eingebettete Beispielvorlage; die CI führt fachlich getrennte Abläufe unter
@@ -113,6 +122,8 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Konsistente SQLite-Sicherungen verwenden die Online-Backup-API, `quick_check`, Schema-Prüfung und
   Dateisynchronisation; bestehende Sicherungen werden nicht überschrieben.
 - Wiederherstellung liest die Sicherung ausschließlich lesend und erzeugt immer ein neues Ziel.
+- Lokale Projekte lassen sich erst nach zweiter sichtbarer Bestätigung löschen. Vor der rekursiven
+  Entfernung müssen UUID-Verzeichnis und gespeicherte Projektkennung übereinstimmen.
 - Datenarme Fehler unterscheiden fehlende Projekte, Datenbanken und Sicherungen sowie beschädigte
   Datenbanken.
 - Tests decken Windows-taugliche Leerzeichen-/Unicodepfade, lange Verzeichnisnamen, Traversal,
@@ -711,9 +722,11 @@ sind erst vor Version 0.2 zu klären.
 
 Empfohlener, überprüfbarer Scope:
 
-1. Ziel, Formatierungsmenge und Konfliktverhalten für UTF-8-Text-/Markdown-Import festlegen und als
+1. Den echten nativen `.kraqel`-Speicherdialog unter Windows kurz mit Export, Abbruch und
+   anschließendem Neuimport prüfen.
+2. Ziel, Formatierungsmenge und Konfliktverhalten für UTF-8-Text-/Markdown-Import festlegen und als
    kleinsten vertikalen Ablauf implementieren.
-2. DOCX-Einleseumfang und Roundtrip-Garantien getrennt spezifizieren, bevor ein Parser gewählt wird.
+3. DOCX-Einleseumfang und Roundtrip-Garantien getrennt spezifizieren, bevor ein Parser gewählt wird.
 
 Die zusätzliche Installerprüfung auf einem weiteren Windows-Rechner ist bewusst zurückgestellt und
 wird später manuell nachgeholt.
@@ -725,7 +738,7 @@ cd D:\kraqel
 git status
 git branch --show-current
 git log -5 --oneline
-rg "KQ-050|Snapshot|Textimport|DOCX-Roundtrip" README.md docs ROADMAP.md
+rg "KQ-05[0-2]|Projektarchiv|Projektlöschung|Textimport" README.md docs ROADMAP.md
 ```
 
 Danach lesen: `AGENTS.md`, dieses Dokument, `docs/testing/accessibility-acceptance.md`,
@@ -739,5 +752,7 @@ KQ-041 veröffentlicht den responsiven KQ-040-Stand als Alpha 3. KQ-045 veröffe
 abgenommenen KQ-044-Dubletten-Merge als Alpha 4 und belegt die Bytegleichheit des öffentlichen
 Rückdownloads. KQ-050 ergänzt den frei gewählten, nativen Snapshotimport ohne Pfad- oder
 Archivbyte-IPC; gültiger Import, Abbruch und ungültige Datei sind im echten Windows-Dialog manuell
-bestätigt. Als Nächstes folgt der eng definierte Textimport; die bewusst zurückgestellte
-Zweitrechner- oder Clean-VM-Abnahme bleibt offen.
+bestätigt. KQ-051 ergänzt den nativen, begrenzten `.kraqel`-Export; KQ-052 die zweistufig bestätigte
+Projektlöschung. Als Nächstes folgen die kurze manuelle Windows-Abnahme des Speicherdialogs und der
+eng definierte Textimport; die bewusst zurückgestellte Zweitrechner- oder Clean-VM-Abnahme bleibt
+offen.

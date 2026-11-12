@@ -36,7 +36,9 @@ test("gebündeltes Beispiel wird als bearbeitbare Offline-Kopie angelegt", async
   await page.getByRole("button", { name: "Abenteuer ausprobieren" }).click();
   await page.getByRole("button", { name: "Projektübersicht" }).click();
   await expect(
-    page.getByRole("button", { name: /Die Stadt, die den Dienstag verkaufte \(Beispiel\)/u }),
+    page.getByRole("button", {
+      name: /Die Stadt, die den Dienstag verkaufte \(Beispiel\).*Öffnen/u,
+    }),
   ).toHaveCount(2);
 });
 

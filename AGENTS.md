@@ -56,6 +56,12 @@ Aktuell im Repository und verifiziert:
   die offline eingebettete Beispielvorlage als auch eine native Auswahl für `.kraqel`- und
   ZIP-Dateien. Pfad und Archivbytes bleiben vollständig in Rust und werden nicht über IPC an React
   gegeben.
+- **Archivexport:** Ein nativer Speicherdialog veröffentlicht einen unmittelbar zuvor erzeugten und
+  geprüften Snapshot v3 als deterministisches `.kraqel`-Archiv. Zielpfad und Archivbytes bleiben in
+  Rust; React erhält nur Dateiname, Größe und Snapshotzusammenfassung.
+- **Projektlöschung:** Die Startseite trennt Öffnen und Löschen. Erst eine zweite sichtbare
+  Bestätigung löst den Rust-Command aus; Rust verlangt zusätzlich ein Bestätigungsflag und prüft
+  Übereinstimmung von Verzeichnis- und Datenbank-UUID vor der endgültigen Entfernung.
 - **Export:** streng validierte gemeinsame Manuskriptrepräsentation und lokale, atomare Ausgabe als
   Markdown, eigenständiges HTML, begrenztes OOXML-DOCX oder A4-PDF; unbekannte Editorformatierungen
   werden abgelehnt statt verworfen. DOCX und Snapshotarchive verwenden gemeinsam die gepflegte

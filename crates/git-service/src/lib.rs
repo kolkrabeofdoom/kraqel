@@ -3,7 +3,8 @@
 use std::{
     collections::BTreeSet,
     error::Error,
-    fmt, fs, io,
+    fmt, fs,
+    io::{self, Cursor, Write as _},
     path::{Path, PathBuf},
     process::{Command, Output},
 };
@@ -15,6 +16,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sha2::{Digest as _, Sha256};
 use uuid::Uuid;
+use zip::{CompressionMethod, ZipWriter, write::SimpleFileOptions};
 
 mod snapshot_import;
 
@@ -75,6 +77,16 @@ pub struct SnapshotSummary {
     /// Anzahl portabler Dateien einschließlich Markdown-Dokumenten.
     pub file_count: u32,
     /// Gesamte Bytegröße der portablen Dateien.
+    pub byte_count: u64,
+}
+
+/// Ergebnis eines portablen, gepackten Snapshot-v3-Exports.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SnapshotArchiveResult {
+    /// Zusammenfassung des unmittelbar zuvor erzeugten Snapshots.
+    pub snapshot: SnapshotSummary,
+    /// Tatsächliche Größe des veröffentlichten ZIP-Containers.
     pub byte_count: u64,
 }
 
@@ -210,6 +222,33 @@ impl<'project> GitService<'project> {
         self.ensure_repository()?;
         self.run_git(&["add", "-A", "--", ".gitignore", SNAPSHOT_DIRECTORY])?;
         self.validate_snapshot(project_id)
+    }
+
+    /// Erzeugt einen aktuellen Snapshot v3 und veröffentlicht ihn als begrenztes `.kraqel`-Archiv.
+    ///
+    /// Das Ziel wird über eine temporäre Geschwisterdatei geschrieben. Vorhandene reguläre Dateien
+    /// dürfen nach vorgelagerter Bestätigung ersetzt werden; Symlinks und Nicht-Dateien werden
+    /// abgelehnt.
+    ///
+    /// # Errors
+    /// Liefert einen Fehler bei ungültigen Projektdaten, unsicheren Zielen, überschrittenen
+    /// Importgrenzen oder fehlgeschlagenen Dateioperationen.
+    pub fn export_snapshot_archive(
+        &self,
+        database: &Database,
+        project_id: ProjectId,
+        destination: &Path,
+    ) -> Result<SnapshotArchiveResult, GitServiceError> {
+        let snapshot = self.create_snapshot(database, project_id)?;
+        if snapshot.format_version != 3 {
+            return Err(GitServiceError::InvalidSnapshot);
+        }
+        let bytes = build_snapshot_archive(&self.project_directory.join(SNAPSHOT_DIRECTORY))?;
+        atomic_write_archive(destination, &bytes)?;
+        Ok(SnapshotArchiveResult {
+            snapshot,
+            byte_count: u64::try_from(bytes.len()).map_err(|_| GitServiceError::InvalidSnapshot)?,
+        })
     }
 
     /// Prüft Manifest, feste JSON-Dateien und UUID-basierte Manuskriptdateien ausschließlich lesend.
@@ -1333,6 +1372,123 @@ fn output_text(output: &Output) -> Result<String, GitServiceError> {
     String::from_utf8(output.stdout.clone()).map_err(|_| GitServiceError::GitFailed)
 }
 
+fn build_snapshot_archive(root: &Path) -> Result<Vec<u8>, GitServiceError> {
+    fn collect(
+        root: &Path,
+        current: &Path,
+        files: &mut Vec<(String, PathBuf, u64)>,
+    ) -> Result<(), GitServiceError> {
+        for entry in fs::read_dir(current)? {
+            let entry = entry?;
+            let file_type = entry.file_type()?;
+            if file_type.is_symlink() {
+                return Err(GitServiceError::InvalidSnapshot);
+            }
+            if file_type.is_dir() {
+                collect(root, &entry.path(), files)?;
+                continue;
+            }
+            if !file_type.is_file() {
+                return Err(GitServiceError::InvalidSnapshot);
+            }
+            let path = entry.path();
+            let relative = path
+                .strip_prefix(root)
+                .map_err(|_| GitServiceError::InvalidSnapshot)?
+                .to_str()
+                .map(|value| value.replace('\\', "/"))
+                .ok_or(GitServiceError::InvalidSnapshot)?;
+            let size = entry.metadata()?.len();
+            files.push((relative, path, size));
+        }
+        Ok(())
+    }
+
+    let mut files = Vec::new();
+    collect(root, root, &mut files)?;
+    files.sort_by(|left, right| left.0.cmp(&right.0));
+    if files.is_empty() || files.len() > 256 {
+        return Err(GitServiceError::InvalidSnapshot);
+    }
+    let total = files.iter().try_fold(0_u64, |total, (_, _, size)| {
+        total
+            .checked_add(*size)
+            .ok_or(GitServiceError::InvalidSnapshot)
+    })?;
+    if total
+        > u64::try_from(MAX_SNAPSHOT_ARCHIVE_BYTES).map_err(|_| GitServiceError::InvalidSnapshot)?
+    {
+        return Err(GitServiceError::InvalidSnapshot);
+    }
+
+    let cursor = Cursor::new(Vec::new());
+    let mut archive = ZipWriter::new(cursor);
+    let options = SimpleFileOptions::default()
+        .compression_method(CompressionMethod::Deflated)
+        .unix_permissions(0o644);
+    for (name, path, _) in files {
+        archive
+            .start_file(name, options)
+            .map_err(|_| GitServiceError::InvalidSnapshot)?;
+        archive.write_all(&fs::read(path)?)?;
+    }
+    let bytes = archive
+        .finish()
+        .map_err(|_| GitServiceError::InvalidSnapshot)?
+        .into_inner();
+    if bytes.len() > MAX_SNAPSHOT_ARCHIVE_BYTES {
+        return Err(GitServiceError::InvalidSnapshot);
+    }
+    Ok(bytes)
+}
+
+fn atomic_write_archive(destination: &Path, bytes: &[u8]) -> Result<(), GitServiceError> {
+    let parent = destination
+        .parent()
+        .filter(|path| !path.as_os_str().is_empty())
+        .ok_or(GitServiceError::InvalidInput)?;
+    let file_name = destination
+        .file_name()
+        .and_then(|name| name.to_str())
+        .filter(|name| !name.is_empty())
+        .ok_or(GitServiceError::InvalidInput)?;
+    let parent_metadata = fs::symlink_metadata(parent)?;
+    if parent_metadata.file_type().is_symlink() || !parent_metadata.is_dir() {
+        return Err(GitServiceError::InvalidInput);
+    }
+    if fs::symlink_metadata(destination)
+        .is_ok_and(|metadata| metadata.file_type().is_symlink() || !metadata.is_file())
+    {
+        return Err(GitServiceError::InvalidInput);
+    }
+
+    let nonce = Uuid::new_v4();
+    let temporary = parent.join(format!(".{file_name}.{nonce}.tmp"));
+    let previous = parent.join(format!(".{file_name}.{nonce}.previous"));
+    let mut file = fs::OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(&temporary)?;
+    file.write_all(bytes).and_then(|()| file.sync_all())?;
+    drop(file);
+
+    let had_destination = destination.exists();
+    if had_destination {
+        fs::rename(destination, &previous)?;
+    }
+    if let Err(error) = fs::rename(&temporary, destination) {
+        let _ = fs::remove_file(&temporary);
+        if had_destination {
+            let _ = fs::rename(&previous, destination);
+        }
+        return Err(GitServiceError::Io(error));
+    }
+    if had_destination {
+        fs::remove_file(previous)?;
+    }
+    Ok(())
+}
+
 fn summarize(
     root: &Path,
     format_version: u16,
@@ -1373,7 +1529,7 @@ fn summarize_directory(
 
 #[cfg(test)]
 mod tests {
-    use super::{GitService, GitServiceError};
+    use super::{GitService, GitServiceError, import_snapshot_archive};
     use kraqel_domain::{CURRENT_SCHEMA_VERSION, EntityId, Project, ProjectId};
     use kraqel_storage::project_manager::ProjectManager;
     use sha2::{Digest as _, Sha256};
@@ -1466,6 +1622,35 @@ mod tests {
         let tracked = super::output_text(&service.run_git(&["ls-files"]).unwrap()).unwrap();
         assert!(!tracked.contains("sqlite"));
         assert!(!tracked.contains("backups"));
+    }
+
+    #[test]
+    fn exports_a_deterministic_archive_that_imports_as_a_new_project() {
+        let (root, id) = fixture();
+        let manager = ProjectManager::new(root.path()).unwrap();
+        let opened = manager.open_project(id.to_string()).unwrap();
+        let service = GitService::new(opened.directory());
+        let destination = root.path().join("projekt.kraqel");
+
+        let first = service
+            .export_snapshot_archive(opened.database(), id, &destination)
+            .expect("archive should export");
+        let first_bytes = fs::read(&destination).unwrap();
+        let second = service
+            .export_snapshot_archive(opened.database(), id, &destination)
+            .expect("existing regular archive should be replaced");
+        let second_bytes = fs::read(&destination).unwrap();
+
+        assert_eq!(first, second);
+        assert_eq!(first_bytes, second_bytes);
+        assert_eq!(first.byte_count, first_bytes.len() as u64);
+
+        let imported_root = tempdir().unwrap();
+        let imported_manager = ProjectManager::new(imported_root.path()).unwrap();
+        let (_, imported) = import_snapshot_archive(&imported_manager, &first_bytes)
+            .expect("exported archive should import");
+        assert_ne!(imported.project_id, id);
+        assert_eq!(imported.document_count, 1);
     }
 
     #[test]

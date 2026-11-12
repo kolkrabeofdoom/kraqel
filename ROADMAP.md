@@ -7,6 +7,7 @@
 - [x] Domänenmodell und typisierte Tauri-Commands
 - [x] SQLite-Schema, Migrationen und FTS5-Migrationstests
 - [x] Lokaler Projektmanager, Backup, Path-Safety und Recovery
+- [x] Lokale Projekte auf der Startseite zweistufig und UUID-geprüft löschen
 
 ## M1 bis M5 - Version 0.1
 
@@ -21,6 +22,7 @@
 3. M3-Datenportabilität und Medien
    - [x] Deterministische Projektsnapshots und lokales Git für Status, Diff und Commit
      - [x] Browser-E2E für Snapshot, Status, Diff und expliziten Commit
+     - [x] Aktuellen Snapshot über nativen Dialog als begrenztes `.kraqel`-Archiv exportieren
    - [x] Export nach Markdown, HTML, DOCX und PDF für die dokumentierte Formatierungsmenge
      - [x] Browser-E2E für Formatwahl, Dateiname und sichtbare Größenbestätigung
      - [x] Projektgebundenen Exportordner direkt und pfadsicher aus der Oberfläche öffnen
