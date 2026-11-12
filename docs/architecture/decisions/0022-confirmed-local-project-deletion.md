@@ -24,6 +24,8 @@ Git-Geschichte gemeinsam und ist nicht innerhalb der Anwendung rückgängig zu m
   endgültig.
 - Backup oder `.kraqel`-Export bleiben eine eigenständige Entscheidung der Nutzer*innen und werden
   nicht automatisch erzwungen.
+- Bestätigungsschritt und endgültige Entfernung einer entbehrlichen Kopie sind in der echten
+  Windows-Tauri-Anwendung manuell geprüft.
 
 ## Evidenz
 

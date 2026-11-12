@@ -64,7 +64,9 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - KQ-052 ergänzt die endgültige Projektlöschung auf der Startseite. Die UI verlangt einen zweiten
   konkreten Klick, der Command ein Bestätigungsflag und der `ProjectManager` übereinstimmende UUIDs
   in Verzeichnis und Datenbank. Rust-, Command-, Browser- und Accessibility-Tests decken den Ablauf
-  ab; eine Wiederherstellung nach bestätigter Löschung ist absichtlich nicht implementiert.
+  ab. Erster Bestätigungsschritt und endgültige Löschung einer entbehrlichen Kopie wurden am 12.
+  November 2026 in der echten Windows-App manuell bestätigt; eine Wiederherstellung nach bestätigter
+  Löschung ist absichtlich nicht implementiert.
 - KQ-053 behebt den im echten Windows-Test gefundenen Git-Fehler `Filename too long` bei
   SHA-256-Assets unter dem langen App-Datenpfad. Jeder kontrollierte Git-Prozess erhält nun lokal
   `-c core.longpaths=true`; globale und systemweite Konfiguration bleiben unangetastet. Ein
@@ -728,11 +730,9 @@ sind erst vor Version 0.2 zu klären.
 
 Empfohlener, überprüfbarer Scope:
 
-1. Die zweistufige Projektlöschung mit einer entbehrlichen Kopie in der echten Windows-App kurz
-   manuell bestätigen.
-2. Ziel, Formatierungsmenge und Konfliktverhalten für UTF-8-Text-/Markdown-Import festlegen und als
+1. Ziel, Formatierungsmenge und Konfliktverhalten für UTF-8-Text-/Markdown-Import festlegen und als
    kleinsten vertikalen Ablauf implementieren.
-3. DOCX-Einleseumfang und Roundtrip-Garantien getrennt spezifizieren, bevor ein Parser gewählt wird.
+2. DOCX-Einleseumfang und Roundtrip-Garantien getrennt spezifizieren, bevor ein Parser gewählt wird.
 
 Die zusätzliche Installerprüfung auf einem weiteren Windows-Rechner ist bewusst zurückgestellt und
 wird später manuell nachgeholt.
@@ -760,5 +760,6 @@ Rückdownloads. KQ-050 ergänzt den frei gewählten, nativen Snapshotimport ohne
 Archivbyte-IPC; gültiger Import, Abbruch und ungültige Datei sind im echten Windows-Dialog manuell
 bestätigt. KQ-051 ergänzt den nativen, begrenzten `.kraqel`-Export; KQ-052 die zweistufig bestätigte
 Projektlöschung. KQ-053 aktiviert Git-Langpfade pro internem Prozess; der reale Windows-Snapshot-
-und Archivexport sind bestätigt. Als Nächstes folgen die kurze manuelle Löschabnahme und der eng
-definierte Textimport; die bewusst zurückgestellte Zweitrechner- oder Clean-VM-Abnahme bleibt offen.
+und Archivexport sowie die zweistufige Löschung einer Testkopie sind bestätigt. Als Nächstes folgt
+der eng definierte Textimport; die bewusst zurückgestellte Zweitrechner- oder Clean-VM-Abnahme
+bleibt offen.
