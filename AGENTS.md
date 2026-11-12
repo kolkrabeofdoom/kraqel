@@ -86,7 +86,9 @@ Aktuell im Repository und verifiziert:
   KQ-037 veröffentlicht dasselbe geprüfte Artefakt als `v0.1.0-alpha.1`-Prerelease; es ist
   ausdrücklich kein stabiles 0.1.0. KQ-039 veröffentlicht aus dem KQ-038-Stand Alpha 2 mit der
   eingebetteten Beispielvorlage; Rückdownload, Hash, isolierte Installation und Deinstallation sind
-  erneut geprüft, während Start und Persistenz auf einer Clean-VM weiter fehlen.
+  erneut geprüft. KQ-041 veröffentlicht Alpha 3 aus dem KQ-040-Stand mit responsiven Medienkarten;
+  Build, Rückdownload und Hashgleichheit sind belegt, während Start und Persistenz auf einer
+  Clean-VM weiter fehlen.
 
 Im Pflichtenheft vorgesehen, aber noch **nicht implementiert oder installiert**: Tailwind, React
 Flow, dnd-kit, KI-basierte Kontinuitätshinweise und produktive Bildgenerierung. Ollama und

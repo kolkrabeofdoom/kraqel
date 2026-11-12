@@ -4,12 +4,12 @@
 Autorenstudio für Romane, Drehbücher und Rollenspielmodule. Schreiben steht zuerst; KI bleibt
 optional, transparent und immer unter menschlicher Kontrolle.
 
-> Status: **0.1.0 Alpha 2** ist als Windows-x64-Prerelease verfügbar. Noch kein produktiver Einsatz
+> Status: **0.1.0 Alpha 3** ist als Windows-x64-Prerelease verfügbar. Noch kein produktiver Einsatz
 > ohne Backups - der Drache kennt inzwischen Undo, aber die Brandschutzordnung nur vom Hörensagen.
 
 ## Alpha herunterladen
 
-[KRAQEL 0.1.0 Alpha 2](https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.2) enthält
+[KRAQEL 0.1.0 Alpha 3](https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.3) enthält
 ein bewusst unsigniertes NSIS-Setup für Windows x64 mit eingebettetem WebView2-Offlineinstaller.
 Windows kann deshalb eine SmartScreen-Warnung anzeigen. Vor dem Start ist die beigefügte
 SHA-256-Datei zu prüfen; Alpha-Versionen gehören nicht ohne aktuelle Backups an das einzige Exemplar

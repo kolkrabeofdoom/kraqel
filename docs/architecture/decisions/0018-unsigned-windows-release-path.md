@@ -60,6 +60,9 @@ konkreten Ergebnisses aufgezeichnet.
   KQ-038-Commit und enthält die offline eingebettete Beispielvorlage; Rückdownload, Hash sowie
   isolierte Installation und Deinstallation wurden erneut geprüft. Die offenen Clean-VM-Risiken
   bleiben unverändert.
+- KQ-041 wendet den Pfad auf `v0.1.0-alpha.3` aus dem geprüften KQ-040-Commit an. Die Entwurfsassets
+  bestanden die isolierte Installation und Deinstallation; der öffentliche Rückdownload ist für
+  Setup, Manifest und Prüfsumme bytegleich. Die offenen Clean-VM-Risiken bleiben unverändert.
 
 ## Evidenz
 
