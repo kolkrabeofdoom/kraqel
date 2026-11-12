@@ -77,8 +77,9 @@ Aktuell im Repository und verifiziert:
   Windows-Smoke-Test prüft den echten Debug-Build über WebView, Tauri-IPC, Rust und SQLite. Eine
   manuelle KQ-033-Kernprüfung und die KQ-034-Randfälle mit Windows-Sprachausgabe sind dokumentiert.
   KQ-035 ergänzt einen lokal geprüften, bewusst unsignierten Windows-x64-Release Candidate mit
-  Offline-WebView2, SHA-256 und Buildmanifest; GitHub-Download und externe Installation sind noch
-  nicht abgenommen.
+  Offline-WebView2, SHA-256 und Buildmanifest. KQ-036 belegt privaten GitHub-Entwurf, Rückdownload,
+  Prüfsummenabgleich sowie isolierte Installation und Deinstallation; Anwendungsstart, SmartScreen
+  und Persistenz auf einem zweiten Rechner beziehungsweise einer Clean-VM bleiben offen.
 
 Im Pflichtenheft vorgesehen, aber noch **nicht implementiert oder installiert**: Tailwind, React
 Flow, dnd-kit, KI-basierte Kontinuitätshinweise und produktive Bildgenerierung. Ollama und
@@ -157,6 +158,7 @@ pnpm test:accessibility:manual:windows # isolierte manuelle Tauri-Randfallprüfu
 pnpm build:installer:test:windows # unsignierten, isolierten Windows-NSIS-Testinstaller bauen
 pnpm test:installer:windows     # Installation, Persistenz und Deinstallation des Testpakets prüfen
 pnpm build:release:windows      # unsignierten Windows-x64-NSIS-Release Candidate samt SHA-256 bauen
+pnpm test:release:windows -ArtifactDirectory <Pfad> -ExpectedCommit <SHA> # Rückdownload prüfen
 pnpm build:tauri:smoke:windows  # isolierten Windows-Debug-Build für den Desktop-Smoke-Test bauen
 pnpm test:tauri:windows         # echten Tauri-/SQLite-Smoke-Test mit lokalen Treibern ausführen
 pnpm check                      # verbindliche Gesamtprüfung inkl. Rust-Tests
@@ -200,6 +202,13 @@ Git-Stand und schreibt Setup, SHA-256 und Buildmanifest unter das ignorierte
 `artifacts/`-Verzeichnis. Verfahren, SmartScreen-Hinweise und Aussagegrenzen stehen in
 `docs/release/windows-unsigned-release.md` und ADR 0018. Ein lokaler Release Candidate ist noch kein
 veröffentlichter oder extern abgenommener Release - auch wenn seine Prüfsumme sehr amtlich schaut.
+
+`scripts/windows-release-artifact-smoke.ps1` prüft genau drei zurückgeladene Releaseassets gegen
+Manifest, SHA-256, Quellcommit und Unsigned-Policy. Es installiert ausschließlich nach
+`%TEMP%\kraqel-release-acceptance`, prüft den HKCU-Deinstallationseintrag und deinstalliert wieder.
+Die reguläre Anwendung wird absichtlich nicht gestartet; ein Fingerabdruck stellt sicher, dass
+vorhandene App-Daten unter `%LOCALAPPDATA%\org.kraqel.desktop` unverändert bleiben. Der echte
+Release-Start samt Persistenz gehört auf einen zweiten Rechner oder eine Clean-VM.
 
 Die manuelle Accessibility-Randfallprüfung verwendet `tauri.accessibility-test.conf.json`, einen
 eigenen Produktnamen, eine eigene Bundle-ID, temporäre App-Daten und den testexklusiven

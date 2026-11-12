@@ -82,6 +82,34 @@ ersetzt, stellt SHA-256 keine Herausgeber*innenidentität her. Deshalb müssen R
 und Prüfsumme aus dem privaten KRAQEL-GitHub-Repository stammen und der Quellcommit muss mit dem
 vorgesehenen Release-Commit übereinstimmen.
 
+## Privaten GitHub-Entwurf zurückprüfen
+
+KQ-036 verwendet den unveröffentlichten, als Prerelease markierten Entwurf `v0.1.0-rc.1`. Ein
+Releaseentwurf erzeugt noch keinen veröffentlichten Git-Tag. Die drei Assets werden in ein neues,
+ignoriertes Prüfverzeichnis geladen:
+
+```powershell
+gh release download v0.1.0-rc.1 --dir artifacts/release-download/v0.1.0-rc.1
+pnpm test:release:windows `
+  -ArtifactDirectory artifacts/release-download/v0.1.0-rc.1 `
+  -ExpectedCommit 5155ed5282cf217c9214cdd0426152ed7c5b8163
+```
+
+Das Abnahmeskript verlangt exakt Setup, Prüfsummendatei und Buildmanifest. Es prüft SHA-256,
+Produkt, Version, sauberen Quellcommit, Current-User-Modus, Offline-WebView2, fehlende
+Updaterartefakte und die nicht vorhandene PE-Zertifikatstabelle. Eine bereits registrierte reguläre
+KRAQEL-Installation führt zum sicheren Abbruch.
+
+Das Setup wird still ausschließlich nach `%TEMP%\kraqel-release-acceptance` installiert. Das Skript
+prüft Version, Installationspfad und HKCU-Deinstallationseintrag und deinstalliert anschließend
+wieder. Vorhandene reguläre App-Daten werden vor und nach dem Vorgang über Pfade, Größen,
+Änderungszeiten und Inhalts-Hashes verglichen, aber weder ausgegeben noch gelöscht.
+
+Auf dem Entwicklungsrechner wird die installierte Anwendung **nicht gestartet**, weil unter
+`%LOCALAPPDATA%\org.kraqel.desktop` bereits schützenswerte App-Daten existieren und die
+Releasekonfiguration absichtlich keinen Testdatenpfad besitzt. Start, SQLite-Persistenz und
+SmartScreen bleiben daher Aufgaben für eine Clean-VM oder einen Zweitrechner.
+
 ## Installation und SmartScreen
 
 Vor der Installation sind Quelle und Prüfsumme zu prüfen. Windows kann bei einem neuen, unsignierten
@@ -96,14 +124,15 @@ muss als neues geprüftes Setup bezogen werden. Downgrades werden abgelehnt.
 
 ## Veröffentlichung und Abnahme
 
-Dieses Verfahren erzeugt zunächst nur einen lokalen Release Candidate. Vor einem GitHub-Release:
+Dieses Verfahren erzeugt zunächst nur einen privaten Release Candidate. Vor einer Veröffentlichung:
 
 1. `pnpm check` und Release-Build auf dem dokumentierten Commit ausführen.
 2. Manifest, Authenticode-Status `NotSigned` und SHA-256 kontrollieren.
-3. Setup, Prüfsummendatei und Manifest gemeinsam als **Entwurf** hochladen.
-4. Installation, Start, Projektpersistenz und Deinstallation auf einer sauberen Windows-x64-
-   Umgebung prüfen; der zurückgestellte Zweitrechnertest kann diesen Nachweis liefern.
-5. Erst nach dokumentierter Abnahme Tag und Release bewusst veröffentlichen.
+3. Setup, Prüfsummendatei und Manifest gemeinsam als **Entwurf** hochladen und zurückprüfen.
+4. Installation und Deinstallation des Rückdownloads in einem isolierten Ziel prüfen.
+5. Start, Projektpersistenz, SmartScreen und Deinstallation auf einer sauberen Windows-x64-Umgebung
+   prüfen; der zurückgestellte Zweitrechnertest kann diesen Nachweis liefern.
+6. Erst nach dokumentierter Abnahme Tag und Release bewusst veröffentlichen.
 
 Ein lokaler Build ersetzt weder die Clean-VM-Abnahme noch die Prüfung des tatsächlich
 heruntergeladenen GitHub-Artefakts. Hashes sind nützlich, aber sie tragen keine kleinen Roben und

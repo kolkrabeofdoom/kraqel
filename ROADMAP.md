@@ -47,7 +47,8 @@
    - [x] Bewusst unsignierten NSIS-Releasepfad mit Offline-WebView2, Prüfsumme und Buildmanifest
          lokal abnehmen
    - [ ] Installer später auf einem weiteren Windows-Rechner gegenprüfen
-   - [ ] GitHub-Releaseentwurf und heruntergeladenes Releasepaket abnehmen
+   - [x] Privaten GitHub-Releaseentwurf, Rückdownload sowie isolierte Installation und
+         Deinstallation abnehmen
 
 ## M6 - Version 0.2
 

@@ -61,6 +61,9 @@
 - der Windows-Releasebau akzeptiert standardmäßig nur einen sauberen Git-Stand, genau ein erwartetes
   unsigniertes NSIS-Artefakt und schreibt Commit, Werkzeugversionen, Dateigröße sowie SHA-256 in ein
   Buildmanifest
+- die Releaseabnahme lädt Setup, Prüfsumme und Manifest erneut von GitHub, gleicht alle drei gegen
+  Commit und Unsigned-Policy ab, installiert nur in ein festes temporäres Ziel und verifiziert, dass
+  vorhandene reguläre App-Daten unverändert bleiben
 
 Dieses Dokument wird mit jeder neuen Vertrauensgrenze aktualisiert.
 
@@ -109,6 +112,12 @@ gemeinsam über das private Repository verteilt und vor Veröffentlichung erneut
 geprüft werden. SmartScreen-Warnungen sind erwartbar; testende Personen dürfen sie nur nach Quellen-
 und Hashprüfung bewusst übergehen. Eine spätere breitere Verteilung erfordert eine erneute Bewertung
 von Signierung und unabhängiger Prüfsummenveröffentlichung.
+
+Der private GitHub-Entwurf und sein Rückdownload verringern Verwechslungs- und Uploadfehler, lösen
+aber nicht das Risiko eines vollständig kompromittierten GitHub-Kontos oder Kanals. Die lokale
+KQ-036-Installation startet die Anwendung absichtlich nicht, weil auf dem Entwicklungsrechner reale
+KRAQEL-App-Daten vorhanden sind. SmartScreen, Erststart und Persistenz müssen deshalb weiterhin in
+einer Umgebung ohne schützenswerte Bestandsdaten geprüft werden.
 
 Verbleibendes Risiko: Die kanonische Vorabprüfung ist nicht vollständig gegen ein gleichzeitiges
 böswilliges Austauschen bereits geprüfter Verzeichnisse abgesichert. Vor der Unterstützung
