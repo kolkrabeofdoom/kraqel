@@ -19,6 +19,11 @@ Alle Renderer erhalten ausschließlich dieses Modell. Dateien werden unter dem f
 Projektunterordner `exports/` über eine temporäre Geschwisterdatei veröffentlicht; Symlinks und
 nicht reguläre Ziele sind unzulässig. Die IPC-Antwort enthält keinen absoluten Pfad.
 
+KQ-046 ergänzt eine explizite Oberfläche zum Öffnen dieses Ordners. Die WebView übergibt nur die
+Projekt-ID. Rust öffnet ausschließlich den kanonischen, verwalteten Kindpfad `exports/`, nachdem
+Symlinks und Nicht-Verzeichnisse abgelehnt wurden; der absolute Pfad wird weiterhin nicht über IPC
+offengelegt.
+
 ## Folgen
 
 - Die unterstützte Semantik ist über alle vier Formate konsistent prüfbar.
@@ -28,3 +33,5 @@ nicht reguläre Ziele sind unzulässig. Die IPC-Antwort enthält keinen absolute
 - Ein Browser-E2E prüft Formatwahl, Dateiname und Größenbestätigung gegen einen testexklusiven
   Command-Adapter. Tatsächliche Dateien, Renderer, Tauri, Dateisystem und Screenreader werden damit
   ausdrücklich nicht abgenommen.
+- KQ-046 prüft den Requestvertrag, die kanonische Pfadauflösung, den Browserbutton und die echte
+  Windows-Tauri-Bedienung; andere Betriebssystem-Dateimanager bleiben separat abzunehmen.

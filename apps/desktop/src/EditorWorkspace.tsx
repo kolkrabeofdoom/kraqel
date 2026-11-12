@@ -37,6 +37,56 @@ interface EditorWorkspaceProps {
   readonly onClose: () => void;
 }
 
+type WorkspaceView =
+  | "manuscript"
+  | "storyBible"
+  | "plotBoard"
+  | "timelines"
+  | "continuity"
+  | "media"
+  | "visuals"
+  | "prompts"
+  | "versions"
+  | "exports"
+  | "textAi";
+
+const navigationGroups: readonly {
+  readonly label: string;
+  readonly items: readonly { readonly view: WorkspaceView; readonly label: string }[];
+}[] = [
+  {
+    label: "Schreiben",
+    items: [
+      { view: "manuscript", label: "Manuskript" },
+      { view: "storyBible", label: "Story-Bibel" },
+    ],
+  },
+  {
+    label: "Planen",
+    items: [
+      { view: "plotBoard", label: "Plotboard" },
+      { view: "timelines", label: "Timelines" },
+      { view: "continuity", label: "Kontinuität" },
+    ],
+  },
+  {
+    label: "Material",
+    items: [
+      { view: "media", label: "Medien" },
+      { view: "visuals", label: "Visuelle Profile" },
+      { view: "prompts", label: "Bildprompts" },
+    ],
+  },
+  {
+    label: "Werkzeuge",
+    items: [
+      { view: "versions", label: "Versionen" },
+      { view: "exports", label: "Export" },
+      { view: "textAi", label: "KI-Entwurf" },
+    ],
+  },
+];
+
 export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspaceProps) {
   const [workspace, setWorkspace] = useState(initialWorkspace);
   const [activeId, setActiveId] = useState<EntityId | null>(
@@ -45,19 +95,7 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
   const [stored, setStored] = useState<StoredDocument | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [view, setView] = useState<
-    | "manuscript"
-    | "storyBible"
-    | "plotBoard"
-    | "timelines"
-    | "continuity"
-    | "media"
-    | "visuals"
-    | "prompts"
-    | "versions"
-    | "exports"
-    | "textAi"
-  >("manuscript");
+  const [view, setView] = useState<WorkspaceView>("manuscript");
   const tree = useMemo(() => buildDocumentTree(workspace.documents), [workspace.documents]);
 
   useEffect(() => {
@@ -220,105 +258,42 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
   return (
     <main className="workspace-shell">
       <header className="workspace-header">
-        <div>
-          <span className="eyebrow">Lokales Projekt</span>
-          <h1>{workspace.project.name}</h1>
-        </div>
-        <div className="workspace-actions">
-          <nav aria-label="Projektbereiche" className="workspace-tabs">
-            <button
-              type="button"
-              className={view === "prompts" ? "active" : "secondary"}
-              aria-current={view === "prompts" ? "page" : undefined}
-              onClick={() => setView("prompts")}
-            >
-              Bildprompts
-            </button>
-            <button
-              type="button"
-              className={view === "media" ? "active" : "secondary"}
-              aria-current={view === "media" ? "page" : undefined}
-              onClick={() => setView("media")}
-            >
-              Medien
-            </button>
-            <button
-              type="button"
-              className={view === "visuals" ? "active" : "secondary"}
-              aria-current={view === "visuals" ? "page" : undefined}
-              onClick={() => setView("visuals")}
-            >
-              Visuelle Profile
-            </button>
-            <button
-              type="button"
-              className={view === "continuity" ? "active" : "secondary"}
-              aria-current={view === "continuity" ? "page" : undefined}
-              onClick={() => setView("continuity")}
-            >
-              Kontinuität
-            </button>
-            <button
-              type="button"
-              className={view === "manuscript" ? "active" : "secondary"}
-              aria-current={view === "manuscript" ? "page" : undefined}
-              onClick={() => setView("manuscript")}
-            >
-              Manuskript
-            </button>
-            <button
-              type="button"
-              className={view === "storyBible" ? "active" : "secondary"}
-              aria-current={view === "storyBible" ? "page" : undefined}
-              onClick={() => setView("storyBible")}
-            >
-              Story-Bibel
-            </button>
-            <button
-              type="button"
-              className={view === "plotBoard" ? "active" : "secondary"}
-              aria-current={view === "plotBoard" ? "page" : undefined}
-              onClick={() => setView("plotBoard")}
-            >
-              Plotboard
-            </button>
-            <button
-              type="button"
-              className={view === "timelines" ? "active" : "secondary"}
-              aria-current={view === "timelines" ? "page" : undefined}
-              onClick={() => setView("timelines")}
-            >
-              Timelines
-            </button>
-            <button
-              type="button"
-              className={view === "versions" ? "active" : "secondary"}
-              aria-current={view === "versions" ? "page" : undefined}
-              onClick={() => setView("versions")}
-            >
-              Versionen
-            </button>
-            <button
-              type="button"
-              className={view === "exports" ? "active" : "secondary"}
-              aria-current={view === "exports" ? "page" : undefined}
-              onClick={() => setView("exports")}
-            >
-              Export
-            </button>
-            <button
-              type="button"
-              className={view === "textAi" ? "active" : "secondary"}
-              aria-current={view === "textAi" ? "page" : undefined}
-              onClick={() => setView("textAi")}
-            >
-              KI-Entwurf
-            </button>
-          </nav>
-          <button type="button" className="secondary" onClick={onClose}>
+        <div className="workspace-title-row">
+          <div className="workspace-identity">
+            <span className="eyebrow">Lokales Projekt</span>
+            <h1>{workspace.project.name}</h1>
+          </div>
+          <button type="button" className="secondary project-overview-button" onClick={onClose}>
             Projektübersicht
           </button>
         </div>
+        <nav aria-label="Projektbereiche" className="workspace-navigation">
+          {navigationGroups.map((group) => (
+            <div
+              key={group.label}
+              className="workspace-nav-group"
+              role="group"
+              aria-label={group.label}
+            >
+              <span className="workspace-nav-label" aria-hidden="true">
+                {group.label}
+              </span>
+              <div className="workspace-tabs">
+                {group.items.map((item) => (
+                  <button
+                    key={item.view}
+                    type="button"
+                    className={view === item.view ? "active" : "secondary"}
+                    aria-current={view === item.view ? "page" : undefined}
+                    onClick={() => setView(item.view)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </nav>
       </header>
 
       {view === "manuscript" ? (

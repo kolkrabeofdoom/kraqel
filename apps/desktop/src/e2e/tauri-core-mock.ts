@@ -757,6 +757,9 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
     }
     case "export_manuscript":
       return manuscriptExportResult(findProject(state, payload.projectId), payload.format);
+    case "open_export_directory":
+      findProject(state, payload.projectId);
+      return null;
     case "analyze_continuity":
       return analyzeUnlinkedMentions(findProject(state, payload.projectId));
     case "create_project_snapshot": {

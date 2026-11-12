@@ -20,6 +20,7 @@ import {
   listMediaAssets,
   listVisualProfiles,
   mergeStoryEntities,
+  openExportDirectory,
   saveStylePreset,
   saveVisualProfile,
   streamTextDraft,
@@ -102,6 +103,24 @@ describe("typed Tauri commands", () => {
         contractVersion: COMMAND_CONTRACT_VERSION,
         requestId,
         payload: {},
+      },
+    });
+  });
+
+  it("opens only the export directory derived from a project id", async () => {
+    const projectId = requestId as ProjectId;
+    mockedInvoke.mockResolvedValue({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: null,
+    });
+
+    await expect(openExportDirectory(projectId)).resolves.toBeUndefined();
+    expect(mockedInvoke).toHaveBeenCalledWith("open_export_directory", {
+      request: {
+        contractVersion: COMMAND_CONTRACT_VERSION,
+        requestId,
+        payload: { projectId },
       },
     });
   });

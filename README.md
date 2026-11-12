@@ -225,6 +225,7 @@ KI-basierte Kontinuitätshinweise sind geplant, aber nicht implementiert.
 
 - Gemeinsame, streng validierte Manuskriptrepräsentation.
 - Atomarer Export als Markdown, eigenständiges HTML, DOCX oder A4-PDF.
+- Direkter, projektgebundener Zugriff auf den lokalen Exportordner über die Exportansicht.
 - Unbekannte Editorformatierungen werden abgelehnt statt stillschweigend verworfen.
 - Deterministische portable Projektsnapshots im formal beschriebenen Format v3.
 - Freigegebene Medien als inhaltsadressierte Dateien unter ihrem SHA-256.
@@ -480,7 +481,7 @@ Die verbindliche Standardkette `pnpm check` umfasst:
 
 Zusätzlich existieren:
 
-- 16 getrennte Playwright-Browser-E2E-Abläufe,
+- 17 getrennte Playwright-Browser-E2E-Abläufe,
 - Windows- und Ubuntu-CI,
 - ein echter Windows-Tauri-Smoke-Test für Start, IPC, Projektanlage, Autosave, SQLite und
   Wiederöffnen,

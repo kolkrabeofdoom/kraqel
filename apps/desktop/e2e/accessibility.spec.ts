@@ -38,6 +38,37 @@ async function expectNoSeriousAccessibilityViolations(page: Page): Promise<void>
   ).toEqual([]);
 }
 
+test("Projekttitel und fachlich gruppierte Navigation konkurrieren nicht um dieselbe Zeile", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1536, height: 768 });
+  await page.goto("/");
+  await page.getByLabel("Projektname").fill("Die Stadt, die den Dienstag verkaufte (Beispiel)");
+  await page.getByRole("button", { name: "Projekt anlegen" }).click();
+
+  const title = page.getByRole("heading", {
+    level: 1,
+    name: "Die Stadt, die den Dienstag verkaufte (Beispiel)",
+  });
+  const navigation = page.getByRole("navigation", { name: "Projektbereiche" });
+  const overview = page.getByRole("button", { name: "Projektübersicht" });
+  const [titleBox, navigationBox, overviewBox] = await Promise.all([
+    title.boundingBox(),
+    navigation.boundingBox(),
+    overview.boundingBox(),
+  ]);
+
+  expect(titleBox).not.toBeNull();
+  expect(navigationBox).not.toBeNull();
+  expect(overviewBox).not.toBeNull();
+  expect(titleBox!.height).toBeLessThan(70);
+  expect(navigationBox!.y).toBeGreaterThanOrEqual(titleBox!.y + titleBox!.height);
+  expect(overviewBox!.y).toBeLessThan(navigationBox!.y);
+  for (const label of ["Schreiben", "Planen", "Material", "Werkzeuge"]) {
+    await expect(page.getByRole("group", { name: label })).toBeVisible();
+  }
+});
+
 test("Kernablauf bleibt per Tastatur erreichbar und zeigt den Fokus", async ({ page }) => {
   await page.goto("/");
 

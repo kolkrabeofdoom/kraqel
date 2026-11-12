@@ -53,6 +53,10 @@
   Providerantworten, Schlüssel, Pfade und fremde Diagnosedaten sind nicht Bestandteil des Fehlers
 - Prompt-Textausgaben verwenden feste UUID-Dateinamen und bleiben unter `exports/prompts` im
   verwalteten Projekt; Snapshot v3 prüft ihre Dokument-, Profil- und Stilreferenzen
+- Der Exportordner-Aufruf akzeptiert über IPC ausschließlich eine Projekt-ID. Rust kanonisiert das
+  verwaltete Projekt, erzeugt nur dessen festes Kind `exports`, lehnt Symlinks und
+  Nicht-Verzeichnisse ab und übergibt erst danach den serverseitig bestimmten Pfad an den
+  Betriebssystem-Dateimanager
 - Betriebssystem-Schlüsselspeicher statt Konfigurationsdateien
 - feste offizielle HTTPS-Endpunkte für Cloudprovider; keine Redirects, Umgebungsproxies oder frei
   konfigurierbaren Produktionsziele

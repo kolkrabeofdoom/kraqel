@@ -56,7 +56,8 @@ Aktuell im Repository und verifiziert:
   nur die offline eingebettete Beispielvorlage, noch keine freie Dateiauswahl.
 - **Export:** streng validierte gemeinsame Manuskriptrepräsentation und lokale, atomare Ausgabe als
   Markdown, eigenständiges HTML, DOCX oder A4-PDF; unbekannte Editorformatierungen werden abgelehnt
-  statt verworfen.
+  statt verworfen. Der Exportordner-Aufruf leitet das feste Ziel ausschließlich serverseitig aus
+  einer validierten Projekt-ID ab und gibt keinen absoluten Pfad über IPC zurück.
 - **Lokale Text-KI:** providerunabhängige Rust-Grenze, ausschließlich lokaler Ollama-Adapter,
   Modellabfrage und gestreamte, verwerfbare Entwürfe nach expliziter Kontextfreigabe.
 - **Cloud-Text-KI:** OpenAI-, Anthropic-, Gemini- und Mistral-Protokolle, native
