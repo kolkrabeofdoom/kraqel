@@ -37,6 +37,57 @@ function Read-CommandVersion {
     return (($output | Out-String).Trim())
 }
 
+function Test-EmbeddedAuthenticodeSignature {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+    $reader = [IO.BinaryReader]::new($stream)
+    try {
+        if ($reader.ReadUInt16() -ne 0x5a4d) {
+            throw "Expected a Windows PE file, but the DOS header is invalid: $Path"
+        }
+
+        $stream.Position = 0x3c
+        $peHeaderOffset = $reader.ReadInt32()
+        if ($peHeaderOffset -lt 0 -or $peHeaderOffset -gt ($stream.Length - 32)) {
+            throw "The PE header offset is outside the file: $Path"
+        }
+
+        $stream.Position = $peHeaderOffset
+        if ($reader.ReadUInt32() -ne 0x00004550) {
+            throw "The Windows PE signature is invalid: $Path"
+        }
+
+        $stream.Position = $peHeaderOffset + 20
+        $optionalHeaderSize = $reader.ReadUInt16()
+        $optionalHeaderOffset = $peHeaderOffset + 24
+        $stream.Position = $optionalHeaderOffset
+        $optionalHeaderMagic = $reader.ReadUInt16()
+        $dataDirectoryOffset = switch ($optionalHeaderMagic) {
+            0x010b { 96 }
+            0x020b { 112 }
+            default { throw "Unsupported PE optional-header format: 0x$($optionalHeaderMagic.ToString('x4'))" }
+        }
+
+        $securityDirectoryOffset = $dataDirectoryOffset + (4 * 8)
+        if ($optionalHeaderSize -lt ($securityDirectoryOffset + 8)) {
+            throw "The PE optional header does not contain a security directory: $Path"
+        }
+
+        $stream.Position = $optionalHeaderOffset + $securityDirectoryOffset
+        $certificateTableOffset = $reader.ReadUInt32()
+        $certificateTableSize = $reader.ReadUInt32()
+        return $certificateTableOffset -ne 0 -or $certificateTableSize -ne 0
+    }
+    finally {
+        $reader.Dispose()
+        $stream.Dispose()
+    }
+}
+
 if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
     throw 'The KRAQEL Windows release must be built on Windows.'
 }
@@ -101,9 +152,8 @@ try {
         throw "Expected exactly $expectedSourceName in $bundleDirectory, found: $found"
     }
 
-    $signature = Get-AuthenticodeSignature -FilePath $sourceInstaller
-    if ($null -ne $signature.SignerCertificate -or $signature.Status -ne 'NotSigned') {
-        throw "Release policy requires an unsigned artifact, but Authenticode status is $($signature.Status)."
+    if (Test-EmbeddedAuthenticodeSignature -Path $sourceInstaller) {
+        throw 'Release policy requires an unsigned artifact, but the setup contains an Authenticode certificate table.'
     }
 
     $outputDirectory = Join-Path $repositoryRoot "artifacts\release\$version\windows-x64\$shortCommit"
@@ -135,7 +185,7 @@ try {
             file = $artifactName
             sizeBytes = $artifact.Length
             sha256 = $sha256
-            authenticodeStatus = [string]$signature.Status
+            authenticodeStatus = 'NotSigned'
         }
         source = [ordered]@{
             commit = $commit
