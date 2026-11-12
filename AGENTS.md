@@ -79,19 +79,21 @@ Aktuell im Repository und verifiziert:
   Warnungen als Fehler sowie getrennte Playwright-Browser-E2E für M1, Story-Bibel, Plotboard,
   Timelines, Medien, visuelle Profile, Kontinuität, Bildprompt-Builder, Versionen, Export und den
   automatisierbaren Accessibility-Kern sowie die Beispielvorlage; GitHub Actions unter Windows und
-  Linux. Ein separater Windows-Smoke-Test prüft den echten Debug-Build über WebView, Tauri-IPC, Rust
-  und SQLite. Eine manuelle KQ-033-Kernprüfung und die KQ-034-Randfälle mit Windows-Sprachausgabe
-  sind dokumentiert. KQ-035 ergänzt einen lokal geprüften, bewusst unsignierten Windows-x64-Release
-  Candidate mit Offline-WebView2, SHA-256 und Buildmanifest. KQ-036 belegt privaten GitHub-Entwurf,
-  Rückdownload, Prüfsummenabgleich sowie isolierte Installation und Deinstallation; Anwendungsstart,
-  SmartScreen und Persistenz auf einem zweiten Rechner beziehungsweise einer Clean-VM bleiben offen.
-  KQ-037 veröffentlicht dasselbe geprüfte Artefakt als `v0.1.0-alpha.1`-Prerelease; es ist
-  ausdrücklich kein stabiles 0.1.0. KQ-039 veröffentlicht aus dem KQ-038-Stand Alpha 2 mit der
-  eingebetteten Beispielvorlage; Rückdownload, Hash, isolierte Installation und Deinstallation sind
-  erneut geprüft. KQ-041 veröffentlicht Alpha 3 aus dem KQ-040-Stand mit responsiven Medienkarten;
-  KQ-045 veröffentlicht Alpha 4 aus dem manuell geprüften KQ-044-Stand mit Dubletten-Merge. Build,
-  Rückdownload und Hashgleichheit sind belegt, während Start und Persistenz auf einer Clean-VM
-  weiter fehlen.
+  Linux. Der aktivierte GitHub Dependency Graph versorgt den separaten Dependency-Review-Job für
+  Pull Requests; Schwachstellenwarnungen sind aktiviert, automatische Sicherheitsupdates bleiben
+  getrennt davon deaktiviert. Ein separater Windows-Smoke-Test prüft den echten Debug-Build über
+  WebView, Tauri-IPC, Rust und SQLite. Eine manuelle KQ-033-Kernprüfung und die KQ-034-Randfälle mit
+  Windows-Sprachausgabe sind dokumentiert. KQ-035 ergänzt einen lokal geprüften, bewusst
+  unsignierten Windows-x64-Release Candidate mit Offline-WebView2, SHA-256 und Buildmanifest. KQ-036
+  belegt privaten GitHub-Entwurf, Rückdownload, Prüfsummenabgleich sowie isolierte Installation und
+  Deinstallation; Anwendungsstart, SmartScreen und Persistenz auf einem zweiten Rechner
+  beziehungsweise einer Clean-VM bleiben offen. KQ-037 veröffentlicht dasselbe geprüfte Artefakt als
+  `v0.1.0-alpha.1`-Prerelease; es ist ausdrücklich kein stabiles 0.1.0. KQ-039 veröffentlicht aus
+  dem KQ-038-Stand Alpha 2 mit der eingebetteten Beispielvorlage; Rückdownload, Hash, isolierte
+  Installation und Deinstallation sind erneut geprüft. KQ-041 veröffentlicht Alpha 3 aus dem
+  KQ-040-Stand mit responsiven Medienkarten; KQ-045 veröffentlicht Alpha 4 aus dem manuell geprüften
+  KQ-044-Stand mit Dubletten-Merge. Build, Rückdownload und Hashgleichheit sind belegt, während
+  Start und Persistenz auf einer Clean-VM weiter fehlen.
 
 Im Pflichtenheft vorgesehen, aber noch **nicht implementiert oder installiert**: Tailwind, React
 Flow, dnd-kit, KI-basierte Kontinuitätshinweise und produktive Bildgenerierung. Ollama und
