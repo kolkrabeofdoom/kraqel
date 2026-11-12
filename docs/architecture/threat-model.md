@@ -36,6 +36,9 @@
   geprüft; Projektdateinamen entstehen nur aus UUID und Hash
 - Backup und portable Snapshots kopieren ausschließlich datenbankreferenzierte Assetpfade und
   verifizieren Originale vor Veröffentlichung beziehungsweise Wiederherstellung gegen SHA-256
+- gepackte Snapshotimporte besitzen Gesamt-, Anzahl- und Einzeldateigrenzen, akzeptieren weder
+  Symlinks noch unbekannte oder ausbrechende ZIP-Einträge und prüfen alle Referenzen sowie Bilder
+  vor der atomaren Veröffentlichung als neues Projekt mit neuer Kennung
 - visuelle Profile und Stilvorlagen sind projektgebunden, größenbegrenzt und werden nur nach
   erneuter Rust-Validierung gespeichert; ihre Commands besitzen keinen Netzwerkpfad
 - Bildprompt-Entwürfe entstehen nur aus explizit gewählter Szene, visuellen Profilen und optionaler
@@ -87,9 +90,13 @@ Kosten noch serverseitige Aufbewahrung, Trainingsnutzung oder Verfügbarkeit der
 produktiver Nutzung sind deren aktuelle Verträge und Datenschutzeinstellungen zu prüfen. Lokale
 Protokolltests ersetzen keine echte Anbieterabnahme.
 
-Die aktuelle Snapshotprüfung ist ausschließlich lesend und validiert den Formatvertrag. Eine
-vollständige Wiederherstellung aus Snapshot ist noch nicht implementiert; ihre Datenverlust- und
-Überschreibungsrisiken müssen vor einer schreibenden Importfunktion gesondert modelliert werden.
+Der Snapshot-v3-Archivimport ist schreibend, aber absichtlich nicht überschreibend: Er importiert
+nur in ein zufällig benanntes Staging-Verzeichnis unter der verwalteten Projektwurzel, vergibt eine
+neue Projektkennung und veröffentlicht erst nach vollständiger Validierung und Befüllung.
+ZIP-Bomben, Pfadtraversal, Symlinks, unbekannte Einträge, manipulierte Referenzen und Bilder werden
+begrenzt oder abgelehnt. Die aktuelle Oberfläche reicht ausschließlich das zur Buildzeit
+eingebettete Archiv an Rust weiter. Vor einer allgemeinen Dateiauswahl für fremde Archive sind
+zusätzliche Fuzztests und die Bedienführung für Herkunft, Lizenz und Fehlerfälle zu bewerten.
 
 Die Bildprovider-Grenze besitzt in Version 0.1 nur Verträge, Registryvalidierung und einen lokalen
 Test-Mock. Es gibt keinen produktiven Adapter, keinen Tauri-Command, keine Jobpersistenz und keine

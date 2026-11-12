@@ -23,6 +23,19 @@ eines Manuskripts.
 - **Offene Architektur:** Austauschbare Provider, keine Konto- oder Cloudpflicht.
 - **Nachvollziehbarkeit:** SQLite ist die lokale Autorität; Git erfasst deterministische Exporte.
 
+## Mitgeliefertes Beispielprojekt
+
+Über **Abenteuer ausprobieren** erzeugt KRAQEL vollständig offline eine frei bearbeitbare Kopie von
+**Die Stadt, die den Dienstag verkaufte**. Das Rollenspielabenteuer demonstriert Szenenbaum,
+Story-Bibel, Plotboard, drei Timelines und eine Medienbibliothek mit 21 Illustrationen. Jede
+Betätigung legt ein neues Projekt mit eigener Kennung an; die eingebettete Vorlage bleibt
+unverändert und es findet kein Download statt.
+
+Die Originalinhalte stehen unter CC BY-SA 4.0, enthaltenes Daggerheart-SRD-Material unter der
+Darrington Press Community Gaming License 2.0. Herkunft, Quellcommit und Aufbereitung sind in
+[`examples/NOTICE.md`](examples/NOTICE.md) dokumentiert. Das veröffentlichte Alpha-1-Setup entstand
+vor dieser Ergänzung; das Beispiel gehört daher erst zu einem nachfolgenden Build.
+
 ## Schnellstart
 
 Vorausgesetzt werden Node.js 22+, pnpm 11+, Rust 1.85+ sowie die
@@ -46,6 +59,7 @@ pnpm check     # Format, Lint, Typen und Tests
 | `docs/architecture`   | Architektur, Entscheidungen und Bedrohungsmodell           |
 | `docs/specifications` | Pflichtenheft und Abnahmekriterien                         |
 | `docs/data-format`    | Offenes Austauschformat                                    |
+| `examples`            | Eingebettetes, frei lizenziertes Beispielprojekt           |
 
 Die aktuelle technische Quelle ist das Pflichtenheft unter `docs/specifications/`. Die nächste
 umsetzbare Arbeit ist in `ROADMAP.md` und den GitHub-Issues beschrieben.

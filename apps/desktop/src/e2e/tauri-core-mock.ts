@@ -160,6 +160,12 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       writeState(state);
       return workspace(created);
     }
+    case "create_example_project": {
+      const created = exampleProject();
+      state.projects.push(created);
+      writeState(state);
+      return workspace(created);
+    }
     case "open_workspace":
       return workspace(findProject(state, payload.projectId));
     case "create_document": {
@@ -746,6 +752,123 @@ function newPlotCard(node: DocumentNode, position: number): PlotCard {
     povEntityId: null,
     status: "planned",
     position,
+  };
+}
+
+function exampleProject(): TestProject {
+  const projectId = crypto.randomUUID() as Project["id"];
+  const project: Project = {
+    id: projectId,
+    name: "Die Stadt, die den Dienstag verkaufte (Beispiel)",
+    schemaVersion: 1 as Project["schemaVersion"],
+  };
+  const intro = newNode(projectId, null, "chapter", "Über dieses Beispiel", 0);
+  const adventure = newNode(projectId, null, "chapter", "Das Abenteuer", 1);
+  const welcome = newNode(projectId, intro.id, "scene", "Willkommen in Veyra", 0);
+  const missingMorning = newNode(projectId, adventure.id, "scene", "1 · Der fehlende Morgen", 0);
+  const mio: StoryEntity = {
+    id: crypto.randomUUID() as EntityId,
+    projectId,
+    kind: "character",
+    name: "Mio Kest",
+    properties: { Rolle: "Fahrperson der Linie 7" },
+  };
+  const consortium: StoryEntity = {
+    id: crypto.randomUUID() as EntityId,
+    projectId,
+    kind: "faction",
+    name: "Chronokonsortium",
+    properties: { Ziel: "Zeit-Zinsen kontrollieren" },
+  };
+  const storyline: Storyline = {
+    id: crypto.randomUUID() as EntityId,
+    projectId,
+    name: "Die Rückkehr des Dienstags",
+    color: "#7c5cff",
+    position: 0,
+  };
+  const timeline: Timeline = {
+    id: crypto.randomUUID() as EntityId,
+    projectId,
+    name: "Zwei Abende",
+    mode: "relative",
+    position: 0,
+  };
+  const event: TimelineEvent = {
+    id: crypto.randomUUID() as EntityId,
+    projectId,
+    timelineId: timeline.id,
+    title: "Abend 1 · 0:00–0:20",
+    description: "Rahmung, Sicherheit und fehlender Dienstag",
+    timeValue: null,
+    position: 0,
+    documentIds: [missingMorning.id],
+    entityIds: [mio.id],
+  };
+  const assetId = crypto.randomUUID() as EntityId;
+  const asset: MediaAsset = {
+    id: assetId,
+    projectId,
+    kind: "image",
+    relativePath: `assets/${assetId}.jpg`,
+    thumbnailPath: `assets/thumbnails/${assetId}.png`,
+    originalName: "npc_mio.jpg",
+    title: "Mio Kest",
+    mimeType: "image/jpeg",
+    checksum: "a".repeat(64),
+    byteCount: 1024,
+    width: 640,
+    height: 640,
+    provenance: "imported",
+    tags: ["Beispielprojekt"],
+    links: [{ targetKind: "entity", targetId: mio.id, role: "Porträt" }],
+  };
+  const storedWelcome = storedDocument(welcome);
+  storedWelcome.plainText = "Veyra hat den Dienstag verkauft.";
+  const storedMorning = storedDocument(missingMorning);
+  storedMorning.plainText = "Mio Kest rettet Menschen aus einer Straßenbahn.";
+  return {
+    project,
+    documents: [storedDocument(intro), storedDocument(adventure), storedWelcome, storedMorning],
+    storyEntities: [mio, consortium],
+    storyRelations: [],
+    storyLinks: [{ documentId: missingMorning.id, entityId: mio.id }],
+    storylines: [storyline],
+    plotCards: [
+      {
+        ...newPlotCard(missingMorning, 0),
+        storylineId: storyline.id,
+        status: "done",
+      },
+    ],
+    timelines: [timeline],
+    timelineEvents: [event],
+    mediaAssets: [
+      {
+        asset,
+        thumbnailDataUrl:
+          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+        fileAvailable: true,
+      },
+    ],
+    visualProfiles: [
+      {
+        entityId: mio.id,
+        projectId,
+        traits: { Rolle: "Fahrperson der Linie 7" },
+        canonicalAssetId: assetId,
+        exclusions: [],
+      },
+    ],
+    stylePresets: [],
+    imagePromptDrafts: [],
+    versionControl: {
+      initialized: false,
+      snapshotFiles: null,
+      committedFiles: {},
+      head: null,
+      commitSequence: 0,
+    },
   };
 }
 
