@@ -64,6 +64,8 @@
   und Arbeitsauftrag und wird vor dem Cloudrequest verbraucht
 - deterministische Snapshots, Prüfsummen und getestete Wiederherstellung
 - deny-by-default Git-Pfadfreigabe; keine globale Git-Konfiguration, Hooks oder interaktiven Prompts
+- Git-Langpfade werden nur mit `-c core.longpaths=true` pro internem Prozess aktiviert; KRAQEL
+  verändert weder globale noch systemweite Git-Konfiguration
 - Abhängigkeitsprüfung und reproduzierbare CI
 - der Windows-Releasebau akzeptiert standardmäßig nur einen sauberen Git-Stand, genau ein erwartetes
   unsigniertes NSIS-Artefakt und schreibt Commit, Werkzeugversionen, Dateigröße sowie SHA-256 in ein

@@ -51,6 +51,8 @@ Aktuell im Repository und verifiziert:
 - **Versionierung:** deterministische JSON-/Markdown-Snapshots v3, formales Schema und kontrollierte
   lokale Git-Operationen für Init, Status, Diff und Commit; geeignete Assets werden nach SHA-256
   kopiert, Prompt-Quellen referenziell geprüft, SQLite und Nebenartefakte bleiben ausgeschlossen.
+  Alle internen Git-Prozesse setzen `core.longpaths=true` ausschließlich pro Aufruf, damit
+  SHA-256-Assets auch unter langen Windows-App-Datenpfaden stagebar bleiben.
 - **Archivimport:** streng begrenzte Snapshot-v3-ZIP-Archive werden vollständig in Rust geprüft und
   erst danach als neues Projekt mit neuer UUID atomar veröffentlicht. Die Oberfläche bietet sowohl
   die offline eingebettete Beispielvorlage als auch eine native Auswahl für `.kraqel`- und

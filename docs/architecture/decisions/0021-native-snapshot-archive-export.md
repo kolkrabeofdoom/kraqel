@@ -23,8 +23,10 @@ einfach weiterzugeben noch über die Oberfläche speicherbar.
 
 - Ein exportiertes `.kraqel`-Archiv kann unmittelbar wieder als neue Projektkopie importiert werden.
 - Der Export aktualisiert bewusst den lokalen Snapshot- und Git-Arbeitsstand.
-- Native Dialogdarstellung und tatsächliches Speichern bleiben zusätzlich manuell auf Windows zu
-  prüfen; Browser-E2E verwendet nur den testexklusiven Command-Adapter.
+- Native Dialogdarstellung und tatsächliches Speichern sind unter Windows manuell bestätigt;
+  Browser-E2E verwendet weiterhin nur den testexklusiven Command-Adapter.
+- Git erhält `core.longpaths=true` ausschließlich pro internem Prozess, damit lange App-Datenpfade
+  mit SHA-256-Assetnamen den vorgelagerten Snapshot nicht blockieren.
 
 ## Evidenz
 
