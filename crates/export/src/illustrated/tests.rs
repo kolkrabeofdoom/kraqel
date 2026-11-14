@@ -252,3 +252,176 @@ fn repeated_source_reordered_captions_are_escaped_without_implicit_images() {
     let text = String::from_utf8(markdown.files["manuskript.md"].clone()).unwrap();
     assert!(!text.contains("![x](https://evil)"));
 }
+
+#[test]
+fn docx_embeds_fifty_verified_pngs_and_is_not_a_text_roundtrip() {
+    use std::io::Read;
+    let root = tempfile::tempdir().unwrap();
+    let (project, docs, mut assets, mut selection) = fixture(root.path(), 50);
+    selection[0].alt_text = "ÄÖÜ & \"<Rabe>\"".to_owned();
+    selection[0].caption = Some("Erste Zeile\nZweite Zeile & <Text>".to_owned());
+    let mut repeated = selection[0].clone();
+    repeated.scene_id = docs[2].node.id;
+    assets[0].links.push(AssetLink {
+        target_kind: AssetTargetKind::Document,
+        target_id: repeated.scene_id,
+        role: "reference".to_owned(),
+    });
+    selection.push(repeated);
+    let first = prepare(
+        root.path(),
+        &project,
+        &docs,
+        &assets,
+        IllustratedFormat::Docx,
+        &selection,
+    )
+    .unwrap();
+    let second = prepare(
+        root.path(),
+        &project,
+        &docs,
+        &assets,
+        IllustratedFormat::Docx,
+        &selection,
+    )
+    .unwrap();
+    assert_eq!(first.files, second.files);
+    assert_eq!(first.files.len(), 2);
+    let bytes = &first.files["manuskript.docx"];
+    assert!(crate::read_docx_roundtrip(bytes).is_err());
+    let manifest: serde_json::Value = serde_json::from_slice(&first.files["medien.json"]).unwrap();
+    let mut archive = zip::ZipArchive::new(Cursor::new(bytes)).unwrap();
+    assert_eq!(archive.len(), 55);
+    for asset in manifest["assets"].as_array().unwrap() {
+        let location = asset["location"].as_str().unwrap();
+        assert!(location.starts_with("word/media/"));
+        let mut png = Vec::new();
+        archive
+            .by_name(location)
+            .unwrap()
+            .read_to_end(&mut png)
+            .unwrap();
+        assert_eq!(hash(&png), asset["exportSha256"]);
+    }
+    let read = |archive: &mut zip::ZipArchive<Cursor<&Vec<u8>>>, name: &str| {
+        let mut text = String::new();
+        archive
+            .by_name(name)
+            .unwrap()
+            .read_to_string(&mut text)
+            .unwrap();
+        let mut reader = quick_xml::Reader::from_str(&text);
+        loop {
+            match reader.read_event().unwrap() {
+                quick_xml::events::Event::Eof => break,
+                quick_xml::events::Event::DocType(_) => panic!("DTD"),
+                _ => {}
+            }
+        }
+        text
+    };
+    let document = read(&mut archive, "word/document.xml");
+    assert_eq!(document.matches("<wp:inline ").count(), 51);
+    assert!(!document.contains("wp:anchor"));
+    assert!(document.contains("descr=\"ÄÖÜ &amp; &quot;&lt;Rabe&gt;&quot;\""));
+    assert!(document.contains("<w:br/>") && document.contains("Zweite Zeile &amp; &lt;Text&gt;"));
+    assert!(document.find("Text 0 bleibt").unwrap() < document.find("<wp:inline").unwrap());
+    assert!(document.find("<wp:inline").unwrap() < document.find("Text 1 bleibt").unwrap());
+    let rels = read(&mut archive, "word/_rels/document.xml.rels");
+    assert_eq!(
+        rels.matches(&format!(
+            "{}/image",
+            "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+        ))
+        .count(),
+        50
+    );
+    assert!(!rels.contains("TargetMode") && !rels.contains("PRIVATE"));
+    let published = publish(root.path(), &first, || Ok(())).unwrap();
+    let folder = root.path().join("exports").join(published.package_name);
+    assert_eq!(fs::read_dir(&folder).unwrap().count(), 2);
+    assert!(!folder.join("assets").exists());
+}
+
+#[test]
+#[ignore = "writes synthetic illustrated DOCX only to an explicitly selected QA folder"]
+fn generate_illustrated_docx_qa() {
+    let output = std::env::var_os("KRAQEL_DOCX_MEDIA_QA_ROOT").expect("explicit QA folder");
+    let output = Path::new(&output);
+    fs::create_dir_all(output).unwrap();
+    let root = tempfile::tempdir().unwrap();
+    let (mut project, mut docs, mut assets, mut selection) = fixture(root.path(), 2);
+    project.name = "Szenenbilder im Manuskript".to_owned();
+    docs[0].node.title = "Kapitel mit Illustrationen".to_owned();
+    for (index, asset) in assets.iter_mut().enumerate() {
+        let (width, height) = if index == 0 { (640, 320) } else { (600, 1000) };
+        let pixels = image::RgbaImage::from_fn(width, height, |x, y| {
+            if x < width / 2 && y < height / 2 {
+                image::Rgba([190, 50, 45, 255])
+            } else if x >= width / 2 && y < height / 2 {
+                image::Rgba([40, 130, 80, 170])
+            } else if x < width / 2 {
+                image::Rgba([40, 80, 170, 255])
+            } else {
+                image::Rgba([230, 180, 60, 100])
+            }
+        });
+        let mut source = Cursor::new(Vec::new());
+        image::DynamicImage::ImageRgba8(pixels)
+            .write_to(&mut source, image::ImageFormat::Png)
+            .unwrap();
+        let prepared =
+            kraqel_asset_service::prepare_image("PRIVATE-fixture.png", &source.into_inner())
+                .unwrap();
+        let stored =
+            kraqel_asset_service::store_image(root.path(), EntityId::new(), &prepared).unwrap();
+        asset.relative_path = stored.relative_path;
+        asset.checksum = prepared.checksum;
+        asset.width = width;
+        asset.height = height;
+        asset.byte_count = prepared.original_bytes.len() as u64;
+        asset.title = if index == 0 {
+            "Querformat mit Transparenz"
+        } else {
+            "Hochformat"
+        }
+        .to_owned();
+        selection[index].expected_checksum = asset.checksum.clone();
+        selection[index].alt_text = format!(
+            "{}: Rot links oben, Grün rechts oben, Blau links unten, Gold rechts unten.",
+            asset.title
+        );
+        selection[index].caption = Some(format!(
+            "Abbildung {}: ÄÖÜ, ß, & und <Klartext>.\nZweite Zeile bleibt sichtbar.",
+            index + 1
+        ));
+    }
+    let mut repeated = selection[0].clone();
+    repeated.scene_id = docs[4].node.id;
+    repeated.caption = Some(
+        "Lange Beschriftung mit Umlauten ÄÖÜ und Satzzeichen & <Text>. "
+            .repeat(20)
+            .chars()
+            .take(1200)
+            .collect(),
+    );
+    assets[0].links.push(AssetLink {
+        target_kind: AssetTargetKind::Document,
+        target_id: repeated.scene_id,
+        role: "reference".to_owned(),
+    });
+    selection.push(repeated);
+    let package = prepare(
+        root.path(),
+        &project,
+        &docs,
+        &assets,
+        IllustratedFormat::Docx,
+        &selection,
+    )
+    .unwrap();
+    for (name, bytes) in package.files {
+        fs::write(output.join(name), bytes).unwrap();
+    }
+}

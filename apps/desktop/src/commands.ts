@@ -125,7 +125,7 @@ export interface CommitResult {
   readonly commitId: string;
 }
 
-export type ExportFormat = "markdown" | "html" | "docx" | "pdf";
+export type ExportFormat = "markdown" | "html" | "docx" | "docx" | "pdf";
 
 export interface ExportResult {
   readonly format: ExportFormat;
@@ -1180,7 +1180,7 @@ export interface ImagePlacement {
 }
 export interface IllustratedResult {
   readonly packageName: string;
-  readonly format: "markdown" | "html";
+  readonly format: "markdown" | "html" | "docx";
   readonly fileCount: number;
   readonly byteCount: number;
   readonly imageCount: number;
@@ -1188,14 +1188,14 @@ export interface IllustratedResult {
 }
 export async function exportIllustratedManuscript(
   projectId: ProjectId,
-  format: "markdown" | "html",
+  format: "markdown" | "html" | "docx",
   placements: readonly ImagePlacement[],
 ): Promise<IllustratedResult> {
   return (
     await callCommand<
       {
         readonly projectId: ProjectId;
-        readonly format: "markdown" | "html";
+        readonly format: "markdown" | "html" | "docx";
         readonly placements: readonly ImagePlacement[];
       },
       IllustratedResult

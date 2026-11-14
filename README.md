@@ -225,9 +225,9 @@ KI-basierte Kontinuitätshinweise sind geplant, aber nicht implementiert.
 
 - Gemeinsame, streng validierte Manuskriptrepräsentation.
 - Atomarer Export als Markdown, eigenständiges HTML, DOCX oder A4-PDF.
-- Eigener Modus **Mit Szenenbildern** für Markdown und HTML: ausdrücklich ausgewählte direkt
-  verknüpfte Bilder am Szenenende mit Reihenfolge, Alttext und optionaler Beschriftung. Jedes Paket
-  enthält metadatenfreie PNG-Ableitungen und einen Herkunftsnachweis unter
+- Eigener Modus **Mit Szenenbildern** für Markdown, HTML und gewöhnliches DOCX: ausdrücklich
+  ausgewählte direkt verknüpfte Bilder am Szenenende mit Reihenfolge, Alttext und optionaler
+  Beschriftung. Jedes Paket enthält metadatenfreie PNG-Ableitungen und einen Herkunftsnachweis unter
   `exports/mit-bildern/<format>-<uuid>/`; frühere Pakete bleiben erhalten. Umfang und Grenzen:
   [`ILLUSTRATED_MANUSCRIPT.md`](docs/data-format/ILLUSTRATED_MANUSCRIPT.md).
 - Direkter, projektgebundener Zugriff auf den lokalen Exportordner über die Exportansicht.
@@ -296,8 +296,7 @@ Fertigbehauptung. Insbesondere fehlen oder bleiben offen:
 
 - externe Windows-Abnahme von SmartScreen, Erststart, Persistenz und Deinstallation,
 - beliebiger DOCX-Import, freie Office-Strukturänderungen und vollständiger Projekt-Roundtrip,
-- Medien im gewöhnlichen DOCX-/PDF-Manuskriptexport und umfassendere Unicode-Schriftunterstützung im
-  PDF,
+- Medien im PDF-Manuskriptexport und umfassendere Unicode-Schriftunterstützung im PDF,
 - reale End-to-End-Abnahme mit Ollama und den vier Cloudprovidern,
 - KI-basierte Kontinuitätshinweise,
 - produktive Bildgenerierung, Variantenvergleich und Kartenmodell,

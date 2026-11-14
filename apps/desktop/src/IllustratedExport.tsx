@@ -94,7 +94,7 @@ export function IllustratedExport({
     setSelection(next);
     setResult(null);
   };
-  const run = async (format: "markdown" | "html") => {
+  const run = async (format: "markdown" | "html" | "docx") => {
     setBusy(true);
     setError(null);
     setResult(null);
@@ -128,8 +128,8 @@ export function IllustratedExport({
       </p>
       <p className="muted">
         Markdown und HTML als vollständiger Ordner mit Bildern und Herkunftsnachweis. Höchstens 50
-        Originale, 200 Bildvorkommen und 128 MiB je Paket. DOCX/PDF mit Bildern folgen separat.
-        Frühere Pakete bleiben erhalten.
+        Originale, 200 Bildvorkommen und 128 MiB je Paket. DOCX bettet Bilder ein; PDF folgt
+        separat. Frühere Pakete bleiben erhalten.
       </p>
       <button type="button" disabled={busy || disabled} onClick={() => void load()}>
         {candidates ? "Bildauswahl neu laden" : "Bildauswahl laden"}
@@ -226,14 +226,18 @@ export function IllustratedExport({
           })
         : null}
       <div className="illustrated-actions">
-        {(["markdown", "html"] as const).map((format) => (
+        {(["markdown", "html", "docx"] as const).map((format) => (
           <button
             key={format}
             type="button"
             disabled={busy || disabled || invalid}
             onClick={() => void run(format)}
           >
-            {format === "html" ? "HTML mit Bildern erzeugen" : "Markdown mit Bildern erzeugen"}
+            {format === "html"
+              ? "HTML mit Bildern erzeugen"
+              : format === "docx"
+                ? "DOCX mit Bildern erzeugen"
+                : "Markdown mit Bildern erzeugen"}
           </button>
         ))}
       </div>
