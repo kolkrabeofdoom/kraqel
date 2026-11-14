@@ -38,11 +38,14 @@
        - [x] Begrenzten DOCX-Import als neue Szene mit expliziter Ablehnung nicht unterstützter
              Inhalte umsetzen
        - [x] Konkreten Roundtrip-Vertragsentwurf mit Strukturmarkern, Office-Grenzen und Abnahme
-             ausarbeiten (KQ-057; fachliche Freigabe noch offen)
+             ausarbeiten (KQ-057; Repräsentation inzwischen mit ADR 0026 festgelegt)
        - [x] Verschachtelten Strukturprototyp mit echten Word-/LibreOffice-Speichervorgängen und
              Word-Textänderung prüfen (KQ-058; Word positiv, LibreOffice-Strukturverlust)
-       - [ ] Flache Repräsentation und erhaltenes Inventar mit beiden Office-Anwendungen prüfen;
-             danach Format festlegen und strukturerhaltenden Roundtrip implementieren
+       - [x] Flache Repräsentation und erhaltenes Inventar durch Speichern und Textbearbeitung in
+             Word/LibreOffice nachweisen (KQ-059 / ADR 0026)
+       - [ ] Gemeinsames kanonisches Manuskriptmodell, produktive Versionsgrammatik und nativen
+             Rust-Reader/Writer mit vollständiger Paketvalidierung implementieren
+       - [ ] Getrennten Austauschmodus in die App einbinden und neue Projektkopie atomar importieren
        - Importvertrag: `docs/data-format/DOCX_IMPORT.md`; Roundtrip-Vorschlag:
          `docs/specifications/DOCX_ROUNDTRIP_CONTRACT_DRAFT.md`
    - [x] Lokale Medienbibliothek mit Metadaten, Links, Backup und Snapshot-Assets

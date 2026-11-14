@@ -1,7 +1,9 @@
 # ADR 0025 DOCX Strukturprototyp und Office Grenzen
 
-Status: vorgeschlagen, Experiment ausgewertet am 14. November 2026; KQ-058 / Issue #113. Keine
-Freigabe einer produktiven Austauschversion oder eines Projektimports.
+Status: untersucht und als gemeinsame Office-Repräsentation verworfen; Experiment vom 14. November
+2026, KQ-058 / Issue #113. Die Folgeentscheidung [ADR 0026](0026-flat-docx-markers.md) wählt flache
+Marker mit erhaltenem Inventar. Keine Freigabe eines produktiven Projektimports durch diesen
+Versuch.
 
 ## Kontext
 

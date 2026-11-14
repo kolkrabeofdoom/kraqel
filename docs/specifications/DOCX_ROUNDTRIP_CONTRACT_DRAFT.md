@@ -1,16 +1,18 @@
 # KRAQEL-DOCX-Roundtrip v1: Vertragsentwurf
 
 Status: Vorschlag zur fachlichen Freigabe, 14. November 2026; KQ-057 / Issue #111. Noch keine
-produktive Implementierung oder angenommene Architekturentscheidung. Der bestehende Fremdimport nach
-ADR 0024 bleibt davon getrennt. Dieser Entwurf konkretisiert die offene Entscheidung aus
-Pflichtenheft Revision 1, Abschnitt 11, und einen Teil von F08/M3. Er schließt deren gesamte Abnahme
-nicht ab.
+produktive Implementierung; die Repräsentation ist inzwischen mit ADR 0026 angenommen. Der
+bestehende Fremdimport nach ADR 0024 bleibt davon getrennt. Dieser Entwurf konkretisiert die offene
+Entscheidung aus Pflichtenheft Revision 1, Abschnitt 11, und einen Teil von F08/M3. Er schließt
+deren gesamte Abnahme nicht ab.
 
 Der anschließend beauftragte Strukturprototyp KQ-058 bestätigt das verschachtelte Modell für den
 untersuchten Word-Build. LibreOffice entfernt äußere Marker und Inventar. Ergebnisse und echte
 Office-Fixtures stehen in [ADR 0025](../architecture/decisions/0025-docx-structure-prototype.md).
-Diese Repräsentation ist deshalb noch nicht als gemeinsamer Office-Vertrag angenommen; ein
-alternativer flacher Aufbau ist vor der produktiven Umsetzung zu prüfen.
+Der anschließende beauftragte Folgeversuch KQ-059 erhält mit flachen Absatzmarkern und Inventar in
+Dokumenteigenschaften die Semantik auch in LibreOffice. Diese Repräsentation ist mit
+[ADR 0026](../architecture/decisions/0026-flat-docx-markers.md) als Grundlage angenommen.
+Produktversion, vollständiger Paketvertrag und native Implementierung stehen weiterhin aus.
 
 ## Ziel und Benutzerablauf
 
@@ -56,30 +58,30 @@ neuen Austauschmodus. Kapitel-/Szenentitel sind eigene Rollen; Szenenüberschrif
 um zwei Ebenen verschoben. Listen verwenden echte OOXML-Nummerierungsdefinitionen; Zitate erhalten
 eine eigene Absatzdarstellung. Sichtbare Präfixe allein bestimmen keine Struktur.
 
-Vorgeschlagen werden verschachtelte OOXML-Content-Controls (`w:sdt`) im Hauptdokument, mit streng
-validierten `w:tag`-Werten aus einem versionierten Namensraum `kraqel:manuscript:1`. Der
-Wurzelmarker kennzeichnet Format und Version. Weitere Marker kennzeichnen Titel, Kapitel, Szene,
-Absatz, Überschrift mit Ebene, Liste mit Art, Listenelement und Zitat. Austauschlokale Kennungen
-sind eindeutig und keine Dateipfade oder Datenbank-UUIDs. Die konkrete Tag-Grammatik, erlaubten
-OOXML-Konstrukte und Paketbestandteile werden im angenommenen ADR samt Fixtures festgeschrieben.
+Nach ADR 0026 werden flache, absatzweite OOXML-Content-Controls (`w:sdt`) eingesetzt. Ein Marker
+kennzeichnet jeweils Titel, Absatz oder Überschrift mit Ebene und bindet sein Inventar über einen
+Digest. Das versionierte Inventar in benutzerdefinierten Dokumenteigenschaften beschreibt Kapitel,
+Szenen, Listen, Elemente und Zitate sowie Eltern und Reihenfolge. Es enthält keine Manuskriptkopie.
+Kennungen sind austauschlokal, keine Pfade oder Datenbank-UUIDs. Experimentelle Grammatik und
+Office-Fixtures sind in ADR 0026 verlinkt; die produktive Version wird vor Rust separat fixiert.
 
-Sichtbarer Text in `word/document.xml` ist die einzige Quelle für importierten Manuskripttext. Kein
-verstecktes JSON-Manuskript darf Word-Änderungen überschreiben. Marker liefern ausschließlich Rollen
-und Grenzen. Doppelte Kennungen, falsche Verschachtelung, widersprüchliche Ebenen oder
-Nummerierungsangaben und Inhalt außerhalb erlaubter Container führen zur Ablehnung. Fremde oder
-fehlende Formatversionen werden nicht anhand sichtbarer Überschriften erraten.
+Sichtbarer Text in `word/document.xml` bleibt die einzige Textquelle. Verstecktes JSON darf keine
+Office-Textänderungen überschreiben. Doppelte Kennungen, falsche Zuordnung, widersprüchliche Ebenen
+oder Nummerierung und unmarkierter Inhalt führen zur Ablehnung. Fehlende oder fremde Versionen
+werden nicht anhand sichtbarer Titel erraten.
 
-Der erste Prototyp muss nachweisen, dass die gewählten Controls auch mehrabsätzige Listenelemente,
-leere Szenen und verschachtelte Zitate in Word und LibreOffice darstellen können. Erst danach wird
-die Repräsentation als ADR angenommen. Falls das nicht gelingt, wird der Vertrag vor der
-Implementierung angepasst; keine stille Verringerung der zugesagten Semantik.
+KQ-059 weist mehrabsätzige Listenelemente, leere Kapitel/Szenen und verschachtelte Zitate für Word
+16.0.20527.20112 und LibreOffice 26.8.3.1 nach. Der native Reader/Writer muss diese Semantik
+unabhängig reproduzieren und alle Paket-/Inhaltsgrenzen durchsetzen. Die Python-Prüfwerkzeuge sind
+kein Produktparser.
 
 ## Nach Bearbeitung in Word oder LibreOffice
 
 Die erste Stufe garantiert Textänderungen innerhalb bestehender markierter Absätze und Titel,
 einschließlich Fett/Kursiv und harter Umbrüche, sofern alle Strukturmarker und unterstützten
-Konstrukte gültig erhalten bleiben. Ein bloßes erneutes Speichern muss mit realen Office-Fixtures
-geprüft werden. Bis dahin gibt es keine pauschale Kompatibilitätszusage für Office-Versionen.
+Konstrukte gültig erhalten bleiben. Tatsächliches Speichern und Textänderungen sind mit den in ADR
+0026 genannten Builds geprüft. Daraus folgt keine pauschale Zusage für andere Office-Versionen oder
+beliebige Strukturänderungen.
 
 Neue/gelöschte/verschobene Kapitel, Szenen, Listen oder Absätze außerhalb des markierten Modells
 sind zunächst nicht zugesagt. Einfügen von Tabellen, Medien, Links, Feldern, Fußnoten, Kommentaren,
@@ -88,10 +90,11 @@ Marker werden nicht heuristisch ergänzt. Layout-only-Änderungen dürfen nur ig
 der endgültige Paketvertrag sie ausdrücklich als semantisch inert erlaubt.
 
 Ein entfernter vollständiger Container kann ohne unabhängiges Inventar nicht als versehentliche
-Löschung erkannt werden. Deshalb enthält der Wurzelmarker zusätzlich ein begrenztes Inventar der
-erwarteten Strukturkennungen und Rollen, ohne Textkopien. Der Import verlangt dieselbe Menge und
-Zuordnung; Textänderungen bleiben erlaubt, Strukturänderungen werden abgelehnt. Das Inventar ist
-ebenfalls untrusted: Es ist ein Konsistenznachweis, keine Signatur oder Authentizitätsgarantie.
+Löschung erkannt werden. Deshalb prüfen die Blattmarker zusätzlich ein begrenztes Inventar der
+erwarteten Kennungen und Rollen in Dokumenteigenschaften, ohne Textkopien. Der Import verlangt
+dieselbe Menge und Zuordnung; Textänderungen bleiben erlaubt, Strukturänderungen werden abgelehnt.
+Das Inventar ist ebenfalls untrusted: Es ist ein Konsistenznachweis, keine Signatur oder
+Authentizitätsgarantie.
 
 Bei Ablehnung bleibt die Quelldatei erhalten. Eine verständliche Meldung nennt die fehlende
 Strukturerhaltung und verweist bei Bedarf auf den getrennten, begrenzten Szenenimport. Es gibt
@@ -132,6 +135,6 @@ erfolgreichem Rendern und Selbstimport atomar ersetzt.
    Browser-E2E und echter Windows-Dateidialog; persistente neue Projektkopie nach Neustart.
 6. `pnpm check`, Windows-/Linux-CI sowie Office-Rendering und semantische Rückimport-Nachweise.
 
-Zur Freigabe steht dieser enge Vertrag mit Textbearbeitung innerhalb erhaltener Struktur. Allgemeine
-Strukturänderungen in Word, Medien und vollständige Projektwiederherstellung würden einen weiteren
-Scope benötigen. Bis zur Freigabe bleiben diese Punkte Planung.
+Die Repräsentation ist mit ADR 0026 festgelegt. Produktiver Paketvertrag, native Implementierung und
+App-Abnahme stehen weiterhin aus. Allgemeine Strukturänderungen in Word, Medien und vollständige
+Projektwiederherstellung würden einen weiteren Scope benötigen.

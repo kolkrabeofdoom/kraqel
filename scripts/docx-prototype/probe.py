@@ -120,7 +120,7 @@ def validate_tree(node):
         validate_tree(child)
 
 
-def write_package(path, model=None):
+def build_parts(model=None):
     model = canonical(sample() if model is None else model)
     validate_tree(model)
     document = el("document")
@@ -219,11 +219,19 @@ def write_package(path, model=None):
         "word/numbering.xml": ET.tostring(numbering, encoding="utf-8", xml_declaration=True),
         "word/_rels/document.xml.rels": ET.tostring(rels, encoding="utf-8", xml_declaration=True),
         "customXml/item1.xml": ET.tostring(inventory, encoding="utf-8", xml_declaration=True)}
+    return parts
+
+
+def write_parts(path, parts):
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for name, data in parts.items():
             entry = zipfile.ZipInfo(name, (2026, 11, 14, 0, 0, 0))
             entry.compress_type = zipfile.ZIP_DEFLATED
             archive.writestr(entry, data)
+
+
+def write_package(path, model=None):
+    write_parts(path, build_parts(model))
 
 
 def read_xml(data):
@@ -263,7 +271,10 @@ def read_parts(path):
 
 def verify(path):
     """Return visible-text model; inventory may only check structure, never supply text."""
-    parts = read_parts(path)
+    return verify_parts(read_parts(path))
+
+
+def verify_parts(parts):
     document = read_xml(parts["word/document.xml"])
     inventories = [read_xml(data) for name, data in parts.items() if name.startswith("customXml/") and name.endswith(".xml")]
     inventories = [root for root in inventories if root.tag == f"{{{M}}}inventory"]

@@ -2,13 +2,16 @@
 
 Stand: 14. November 2026
 
-Code-Referenz: KQ-055 (Issue #107), KQ-056 (Issue #109), KQ-058 (Issue #113; isolierter Prototyp)
+Code-Referenz: KQ-055 (Issue #107), KQ-056 (Issue #109), KQ-058/059 (Issues #113/#115; isolierte
+Prototypen)
 
-Planungsstand: KQ-057 konkretisiert den DOCX-Roundtrip-Vertragsentwurf. Der anschließend beauftragte
-KQ-058-Strukturprototyp bestätigt den untersuchten Word-Speicherfall, zeigt aber Strukturverlust
-beim LibreOffice-Speichern. Die Repräsentation muss vor einer gemeinsamen Office-Garantie weiter
-untersucht werden; produktiver Roundtrip und Formatfreigabe stehen aus. KQ-055, KQ-056 und der
-Vertragsentwurf sind nach grüner Windows-/Linux-CI in `main` zusammengeführt (PR #108, #110, #112).
+Planungsstand: KQ-057 konkretisiert den DOCX-Roundtrip-Vertragsentwurf. KQ-058 zeigt den Verlust
+verschachtelter Marker in LibreOffice. Der beauftragte Folgeversuch KQ-059 bestätigt flache
+Absatzmarker mit einem erhaltenen Inventar in Dokumenteigenschaften: Word und LibreOffice bewahren
+den geprüften Korpus einschließlich echter Textänderungen. ADR 0026 nimmt diese Repräsentation als
+Grundlage für den nächsten nativen Schritt an. Produktiver Roundtrip und vollständige Formatfreigabe
+stehen aus. KQ-055, KQ-056, Vertragsentwurf und erster Prototyp sind nach grüner Windows-/Linux-CI
+in `main` zusammengeführt (PR #108, #110, #112, #114).
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -757,24 +760,25 @@ Medien-Einbettung je Exportformat. Rechts- und Lizenzfragen der Bildprovider sin
 
 ## Nächste geplante Entwicklungsstufe
 
-**M3-Datenportabilität: strukturerhaltenden DOCX-Roundtrip getrennt festlegen.**
+**M3-Datenportabilität: nativen Manuskript- und DOCX-Roundtrip-Kern umsetzen.**
 
 Empfohlener, überprüfbarer Scope:
 
 1. Die native UTF-8-/Markdown-Prüfung ist bestanden; Nachweis und Aussagegrenzen stehen in
    [`testing/native-text-import-acceptance.md`](testing/native-text-import-acceptance.md).
-2. Der enge DOCX-Import ist ausdrücklich freigegeben und mit ADR 0024 umgesetzt. Für den
-   [konkreten Roundtrip-Vertragsentwurf](specifications/DOCX_ROUNDTRIP_CONTRACT_DRAFT.md) sind
-   Strukturmarker, ein Konsistenzinventar, Textänderungen innerhalb erhaltener Office-Struktur und
-   Ablehnungsfälle vorgeschlagen. KQ-058 prüft die verschachtelte Repräsentation isoliert mit echten
-   Office-Fixtures: Word 16.0.20527.20112 erhält 41 Marker, Inventar und Manuskript; auch eine echte
-   Textänderung wird genau übernommen. LibreOffice 26.8.3.1 erhält nur 24 Blattmarker und entfernt
-   das Inventar; die Ausgabe wird abgelehnt. 18 zusätzliche Prototyp-Tests sichern Semantik und
-   Negativfälle. [ADR 0025](architecture/decisions/0025-docx-structure-prototype.md) bleibt deshalb
-   vorgeschlagen. Als Nächstes eine flache Repräsentation samt in beiden Anwendungen erhaltenem
-   Inventar prüfen, bevor ein produktiver Rust-Import beginnt. Der bisherige Writer verliert hohe
-   Überschriftenebenen sowie Listen-/Zitatstruktur; der Import darf diese Informationen nicht
-   heuristisch erfinden.
+2. Der enge DOCX-Import ist mit ADR 0024 umgesetzt. Der
+   [Roundtrip-Vertragsentwurf](specifications/DOCX_ROUNDTRIP_CONTRACT_DRAFT.md) legt den getrennten
+   Manuskriptumfang fest. KQ-058 / ADR 0025 dokumentiert den Verlust verschachtelter Controls in
+   LibreOffice. Der Folgeversuch KQ-059 besteht mit 24 flachen Absatzmarkern, 41 Struktureinträgen
+   und 15 Inventareigenschaften in Word 16.0.20527.20112 und LibreOffice 26.8.3.1. Auch der Weg Word
+   → LibreOffice und echte Textänderungen in beiden Anwendungen sind geprüft. Insgesamt 41
+   Prototyp-Tests bestehen. Die Darstellung ist mit
+   [ADR 0026](architecture/decisions/0026-flat-docx-markers.md) als Grundlage angenommen.
+3. Als Nächstes gemeinsames kanonisches Manuskriptmodell, produktive Versionsgrammatik und nativen
+   Rust-Reader/Writer mit vollständiger Paketvalidierung umsetzen. Die sechs Office-Fixtures sind
+   Regressionseingaben. UI und atomare neue Projektkopie folgen auf den geprüften Kern. Die
+   Python-Werkzeuge bleiben isolierte Prüfwerkzeuge; der gewöhnliche Writer und der Szenenimport
+   sind unverändert. F08/M3 sind dadurch noch nicht vollständig abgenommen.
 
 Die zusätzliche Installerprüfung auf einem weiteren Windows-Rechner ist bewusst zurückgestellt und
 wird später manuell nachgeholt.
@@ -804,7 +808,8 @@ bestätigt. KQ-051 ergänzt den nativen, begrenzten `.kraqel`-Export; KQ-052 die
 Projektlöschung. KQ-053 aktiviert Git-Langpfade pro internem Prozess; der reale Windows-Snapshot-
 und Archivexport sowie die zweistufige Löschung einer Testkopie sind bestätigt. KQ-054 ergänzt den
 automatisiert geprüften, atomaren UTF-8-/Markdown-Import als Szene; dessen nativer Windows-Dialog
-ist am 14. November 2026 im dokumentierten Umfang geprüft. Als Nächstes wird der getrennte
-DOCX-Roundtrip-Vertrag festgelegt; der enge Importumfang ist mit KQ-055/ADR 0024 umgesetzt. Die
-bewusst zurückgestellte Zweitrechner- oder Clean-VM-Abnahme bleibt offen. Für einen Orts- und
-Rechnerwechsel gilt `docs/WORKSTATION_HANDOFF.md`.
+ist am 14. November 2026 im dokumentierten Umfang geprüft. Der enge DOCX-Import ist mit KQ-055/ADR
+0024 umgesetzt. KQ-059/ADR 0026 weist die flache Repräsentation in Word und LibreOffice nach; als
+Nächstes folgt der getrennte native Rust-Kern. Die bewusst zurückgestellte Zweitrechner- oder
+Clean-VM-Abnahme bleibt offen. Für einen Orts- und Rechnerwechsel gilt
+`docs/WORKSTATION_HANDOFF.md`.

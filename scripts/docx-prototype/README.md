@@ -4,6 +4,10 @@ KQ-058 / Issue #113. Isoliertes Experiment zum Vertragsentwurf aus KQ-057, kein 
 freigegebene Austauschversion. Python 3.10 oder neuer, ausschließlich Standardbibliothek. Python ist
 nur für diesen Versuch erforderlich; die App bleibt unverändert.
 
+Der inzwischen beauftragte und geprüfte [Folgeversuch mit flachen Markern](FLAT_MARKERS.md) (KQ-059)
+erhält die Struktur auch in LibreOffice. Dieser Bericht und seine Fixtures bleiben als historischer
+Vergleich und Regressionstest für die verschachtelte Darstellung erhalten.
+
 ## Reproduzieren
 
 Aus dem Repositoryverzeichnis, mit einem verfügbaren Python-Interpreter:
