@@ -121,8 +121,20 @@ export function App() {
   return (
     <main className="project-shell">
       <header className="project-hero">
-        <span className="eyebrow">Offline-first Autorenstudio</span>
-        <h1>KRAQEL</h1>
+        <div className="project-brand">
+          <div className="project-wordmark">
+            <span className="eyebrow">Offline-first Autorenstudio</span>
+            <h1>KRAQEL</h1>
+          </div>
+          <img
+            className="project-author"
+            src="/kolkrabe-author.png"
+            width={1281}
+            height={1227}
+            alt=""
+            aria-hidden="true"
+          />
+        </div>
         <p>
           Geschichten ordnen, ohne sie zu domestizieren. Projekte und Manuskripte bleiben lokal auf
           diesem Gerät.
