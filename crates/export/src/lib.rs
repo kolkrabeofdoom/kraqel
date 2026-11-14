@@ -1,6 +1,7 @@
 //! Validierter, lokaler Manuskriptexport in portable Formate.
 
 mod docx_scene;
+pub mod illustrated;
 mod manuscript;
 mod render;
 mod roundtrip;

@@ -1,10 +1,11 @@
 # Medienexport v1 Vertragsentwurf für Szenenbilder
 
-Status: Vorschlag zur fachlichen Freigabe, 14. November 2026; KQ-062 / Issue #121. **Keine
-implementierte Exportfunktion.** Die Platzierung **am Ende der jeweiligen Szene** wurde ausdrücklich
-ausgewählt. Die übrigen Regeln und Grenzen dieses Dokuments sind der konkrete Vorschlag für die
-Umsetzung. [ADR 0029](../architecture/decisions/0029-scene-media-export-proposal.md) begleitet den
-Entwurf; der bestehende DOCX-Manuskriptaustausch v1 bleibt unverändert.
+Status: vollständig fachlich freigegeben am 14. November 2026; KQ-062 / Issue #121, PR #122 nach
+grüner Windows-/Linux-CI und Dependency Review zusammengeführt. Bilder erscheinen am Szenenende.
+KQ-063 implementiert Rust-Kern und Markdown/HTML nach diesem Vertrag; der verbindliche Teilvertrag
+steht unter [`ILLUSTRATED_MANUSCRIPT.md`](../data-format/ILLUSTRATED_MANUSCRIPT.md). Gewöhnliches
+DOCX/PDF mit Bildern bleiben eigene Stufen. Der DOCX-Text-Roundtrip bleibt unverändert. Der
+historische Dateiname bleibt zur Referenzierung erhalten.
 
 ## Anforderungen und belegter Ausgangsstand
 
@@ -253,5 +254,5 @@ Pflichtfälle:
 - Reine Exporte, Medienverwaltung, Snapshot/Backup und DOCX-Text-Roundtrip bleiben
   regressionsgeprüft.
 
-Dieser Entwurf liefert noch keinen dieser neuen Laufzeitnachweise. F08/M3 bleiben teilweise offen;
-erst Code und dokumentierte Abnahme der einzelnen Stufen dürfen als umgesetzt markiert werden.
+Die Markdown-/HTML-Stufe wird mit KQ-063 und separatem Abnahmeprotokoll nachgewiesen. DOCX/PDF und
+vollständige F08-/M3-Abnahme bleiben offen; jede weitere Stufe benötigt eigene Nachweise.

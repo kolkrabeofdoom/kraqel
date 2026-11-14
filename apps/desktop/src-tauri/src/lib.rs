@@ -49,6 +49,7 @@ use tauri_plugin_dialog::DialogExt as _;
 use zeroize::Zeroizing;
 mod docx_import;
 mod docx_roundtrip;
+mod illustrated_export;
 
 const AI_RELEASE_LIFETIME: Duration = Duration::from_secs(10 * 60);
 const MAX_TEXT_IMPORT_BYTES: usize = 2 * 1024 * 1024;
@@ -932,6 +933,20 @@ fn export_manuscript(
 ) -> Result<CommandResponse<ExportResult>, CommandError> {
     require_current_contract(&request)?;
     let data = export_manuscript_impl(&state, request.request_id, &request.payload)?;
+    Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+async fn export_illustrated_manuscript(
+    state: State<'_, AppState>,
+    request: CommandRequest<illustrated_export::IllustratedRequest>,
+) -> Result<CommandResponse<kraqel_export::illustrated::IllustratedResult>, CommandError> {
+    require_current_contract(&request)?;
+    let data = illustrated_export::export(&state, request.request_id, &request.payload)?;
     Ok(CommandResponse::current(request.request_id, data))
 }
 
@@ -3762,6 +3777,7 @@ pub fn run() {
             import_snapshot_project,
             import_docx_project,
             export_roundtrip_manuscript,
+            export_illustrated_manuscript,
             open_workspace,
             create_document,
             import_text_document,

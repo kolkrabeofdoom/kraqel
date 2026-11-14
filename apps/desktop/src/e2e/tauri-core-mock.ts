@@ -225,6 +225,42 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       writeState(state);
       return workspace(created);
     }
+    case "export_illustrated_manuscript": {
+      const current = findProject(state, payload.projectId);
+      if (localStorage.getItem("kraqel-e2e-illustrated-failure") === "1")
+        throw new Error("private path decoder details");
+      const placements = payload.placements as {
+        sceneId: EntityId;
+        assetId: EntityId;
+        expectedChecksum: string;
+        expectedSceneRevision: number;
+        altText: string;
+      }[];
+      if (!placements.length) throw new Error("empty");
+      for (const item of placements) {
+        const node = current.documents.find((d) => d.node.id === item.sceneId)?.node;
+        const asset = current.mediaAssets.find((m) => m.asset.id === item.assetId)?.asset;
+        if (
+          !node ||
+          !asset ||
+          node.revision !== item.expectedSceneRevision ||
+          asset.checksum !== item.expectedChecksum ||
+          !asset.links.some((l) => l.targetId === node.id && l.targetKind === "document")
+        )
+          throw new Error("invalid");
+      }
+      localStorage.setItem("kraqel-e2e-illustrated-request", JSON.stringify(payload));
+      const count = Number(localStorage.getItem("kraqel-e2e-illustrated-count") ?? "0") + 1;
+      localStorage.setItem("kraqel-e2e-illustrated-count", String(count));
+      return {
+        packageName: `mit-bildern/${String(payload.format)}-test-${count}`,
+        format: payload.format,
+        fileCount: 4,
+        byteCount: 5432,
+        imageCount: new Set(placements.map((p) => p.assetId)).size,
+        placementCount: placements.length,
+      };
+    }
     case "export_roundtrip_manuscript": {
       const current = findProject(state, payload.projectId);
       localStorage.setItem("kraqel-e2e-roundtrip-export", JSON.stringify(current));

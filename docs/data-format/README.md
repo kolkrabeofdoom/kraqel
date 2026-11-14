@@ -97,13 +97,13 @@ Der Writer liest seine Ausgabe vor Veröffentlichung semantisch zurück. KQ-061 
 Exportaktion und den Startseitenimport als atomare neue Projektkopie. Dieser Manuskriptaustausch
 ersetzt keine vollständige Snapshot-v3-Projektkopie.
 
-## Geplanter Medienexport
+## Medienexport für Markdown und HTML
 
-Der [Vertragsentwurf für Szenenbilder](../specifications/MEDIA_EXPORT_CONTRACT_DRAFT.md), KQ-062,
-beschreibt einen eigenen bebilderten Ausgabemodus mit expliziter Auswahl am Szenenende, getrennten
-Paketen je Format und vorgeschlagenem Herkunftsmanifest. Platzierung ist gewählt; übrige Regeln und
-Parameter stehen zur fachlichen Freigabe. Manifestgrammatik, DTOs und Renderer sind noch nicht
-implementiert. Snapshot v3, Editor-Dokument v1 und DOCX-Text-Roundtrip v1 bleiben unverändert.
+KQ-062 ist vollständig fachlich freigegeben, KQ-063 implementiert den
+[bebilderten Manuskriptvertrag v1](ILLUSTRATED_MANUSCRIPT.md). Die eigene Auswahl am Szenenende
+liefert neue vollständige Ordnerpakete mit relativen PNGs und Herkunftsmanifest. DOCX/PDF mit
+Bildern bleiben Folgestufen; Snapshot v3, Editor-Dokument v1 und DOCX-Text-Roundtrip v1 bleiben
+unverändert.
 
 ## Lokales SQLite-Schema und Migrationsstand
 

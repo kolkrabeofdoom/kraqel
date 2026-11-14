@@ -1169,3 +1169,36 @@ function internalContractError(requestId: Uuid): KraqelCommandError {
     retryable: false,
   });
 }
+
+export interface ImagePlacement {
+  readonly sceneId: EntityId;
+  readonly assetId: EntityId;
+  readonly expectedChecksum: string;
+  readonly expectedSceneRevision: number;
+  readonly altText: string;
+  readonly caption: string | null;
+}
+export interface IllustratedResult {
+  readonly packageName: string;
+  readonly format: "markdown" | "html";
+  readonly fileCount: number;
+  readonly byteCount: number;
+  readonly imageCount: number;
+  readonly placementCount: number;
+}
+export async function exportIllustratedManuscript(
+  projectId: ProjectId,
+  format: "markdown" | "html",
+  placements: readonly ImagePlacement[],
+): Promise<IllustratedResult> {
+  return (
+    await callCommand<
+      {
+        readonly projectId: ProjectId;
+        readonly format: "markdown" | "html";
+        readonly placements: readonly ImagePlacement[];
+      },
+      IllustratedResult
+    >("export_illustrated_manuscript", { projectId, format, placements })
+  ).data;
+}
