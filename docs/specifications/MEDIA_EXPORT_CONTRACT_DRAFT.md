@@ -256,5 +256,5 @@ Pflichtfälle:
   regressionsgeprüft.
 
 Die Markdown-/HTML-Stufe wird mit KQ-063 und separatem Abnahmeprotokoll nachgewiesen. KQ-064 ergänzt
-den gewöhnlichen DOCX-Bildwriter mit separater Office-Abnahme; Word steht noch aus. PDF und
-vollständige F08-/M3-Abnahme bleiben offen; jede weitere Stufe benötigt eigene Nachweise.
+den gewöhnlichen DOCX-Bildwriter mit bestandener Word-/LibreOffice-Abnahme. PDF und vollständige
+F08-/M3-Abnahme bleiben offen; jede weitere Stufe benötigt eigene Nachweise.

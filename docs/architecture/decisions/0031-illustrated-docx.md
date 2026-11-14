@@ -1,8 +1,8 @@
 # ADR 0031 Gewöhnliches DOCX mit internen Szenenbildern
 
-Status: technische Entscheidung angenommen am 14. November 2026; KQ-064 / Issue #125. Word-Abnahme
-noch offen, LibreOffice-Abnahme bestanden. Grundlage: freigegebener KQ-062-Vertrag, KQ-063 / ADR
-0030 und Pflichtenheft Revision 1 F08/F09, M3, Abschnitte 10/11.
+Status: technische Entscheidung angenommen am 14. November 2026; KQ-064 / Issue #125.
+Word-/LibreOffice-Abnahme bestanden. Grundlage: freigegebener KQ-062-Vertrag, KQ-063 / ADR 0030 und
+Pflichtenheft Revision 1 F08/F09, M3, Abschnitte 10/11.
 
 ## Entscheidung
 

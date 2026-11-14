@@ -296,8 +296,7 @@ Fertigbehauptung. Insbesondere fehlen oder bleiben offen:
 
 - externe Windows-Abnahme von SmartScreen, Erststart, Persistenz und Deinstallation,
 - beliebiger DOCX-Import, freie Office-Strukturänderungen und vollständiger Projekt-Roundtrip,
-- vollständige Word-Abnahme des DOCX-Bildexports, Medien im PDF-Manuskriptexport und umfassendere
-  Unicode-Schriftunterstützung im PDF,
+- Medien im PDF-Manuskriptexport und umfassendere Unicode-Schriftunterstützung im PDF,
 - reale End-to-End-Abnahme mit Ollama und den vier Cloudprovidern,
 - KI-basierte Kontinuitätshinweise,
 - produktive Bildgenerierung, Variantenvergleich und Kartenmodell,

@@ -102,8 +102,8 @@ ersetzt keine vollständige Snapshot-v3-Projektkopie.
 KQ-062 ist vollständig fachlich freigegeben, KQ-063 implementiert den
 [bebilderten Manuskriptvertrag v1](ILLUSTRATED_MANUSCRIPT.md). Die eigene Auswahl am Szenenende
 liefert neue vollständige Ordnerpakete mit relativen PNGs und Herkunftsmanifest. KQ-064 ergänzt
-gewöhnliches DOCX mit internen PNG-Parts; Word-Abnahme steht noch aus. PDF bleibt eine Folgestufe;
-Snapshot v3, Editor-Dokument v1 und DOCX-Text-Roundtrip v1 bleiben unverändert.
+gewöhnliches DOCX mit internen PNG-Parts und bestandener Word-/LibreOffice-Abnahme. PDF bleibt eine
+Folgestufe; Snapshot v3, Editor-Dokument v1 und DOCX-Text-Roundtrip v1 bleiben unverändert.
 
 ## Lokales SQLite-Schema und Migrationsstand
 
