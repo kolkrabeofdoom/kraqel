@@ -37,9 +37,12 @@
      - [ ] DOCX-Import und Roundtrip-Garantien definieren und implementieren
        - [x] Begrenzten DOCX-Import als neue Szene mit expliziter Ablehnung nicht unterstützter
              Inhalte umsetzen
-       - [ ] Strukturerhaltenden Roundtrip separat spezifizieren und implementieren
+       - [x] Konkreten Roundtrip-Vertragsentwurf mit Strukturmarkern, Office-Grenzen und Abnahme
+             ausarbeiten (KQ-057; fachliche Freigabe noch offen)
+       - [ ] Roundtrip-Vertrag freigeben, Repräsentation mit Office-Fixtures nachweisen und
+             strukturerhaltenden Roundtrip implementieren
        - Importvertrag: `docs/data-format/DOCX_IMPORT.md`; Roundtrip-Vorschlag:
-         `docs/specifications/DOCX_IMPORT_SCOPE_DRAFT.md`
+         `docs/specifications/DOCX_ROUNDTRIP_CONTRACT_DRAFT.md`
    - [x] Lokale Medienbibliothek mit Metadaten, Links, Backup und Snapshot-Assets
      - [x] Browser-E2E für PNG-Import, Metadaten und Szenenverknüpfung
      - [x] Medienkarten bei schmalem Fenster und hohem Zoom ohne abgeschnittene Inhalte darstellen
