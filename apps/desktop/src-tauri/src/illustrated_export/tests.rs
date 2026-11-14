@@ -68,7 +68,11 @@ fn command_publishes_independent_packages_and_sanitizes_bad_sources() {
     let root = tempfile::tempdir().unwrap();
     let (state, mut request) = setup(root.path());
     let id = uuid::Uuid::new_v4();
-    for format in [IllustratedFormat::Html, IllustratedFormat::Markdown] {
+    for format in [
+        IllustratedFormat::Html,
+        IllustratedFormat::Markdown,
+        IllustratedFormat::Docx,
+    ] {
         request.format = format;
         let result = export(&state, id, &request).unwrap();
         let directory = root

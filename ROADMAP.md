@@ -35,8 +35,12 @@
      - [x] Gemeinsamen nativen Medienexport-Kern und Markdown-/HTML-Pakete implementieren und
            abnehmen (KQ-063 / ADR 0030)
      - [ ] Gewöhnliches DOCX mit eingebetteten Szenenbildern und Office-Nachweis ergänzen
+       - [x] Nativen Bildwriter, App-Aktion und Manifestbezug auf interne Parts ergänzen (KQ-064)
+       - [ ] Word-/LibreOffice-Abnahme abschließen (LibreOffice bestanden, Word-Ersteinrichtung
+             offen)
      - [ ] PDF-Schrift-/Unicode-Voraussetzung und bebilderten PDF-Export abnehmen
-     - Vertrag: `docs/data-format/ILLUSTRATED_MANUSCRIPT.md`; DOCX/PDF bleiben gesondert offen
+     - Vertrag: `docs/data-format/ILLUSTRATED_MANUSCRIPT.md`; DOCX-Word-Abnahme/PDF bleiben
+       gesondert offen
    - [ ] Import und DOCX-Roundtrip
      - [x] Snapshot-v3-Archiv sicher als neues Projekt importieren und Beispielprojekt einbetten
      - [x] Frei wählbare Snapshotarchive über einen nativen Dialog als neue Projektkopie importieren

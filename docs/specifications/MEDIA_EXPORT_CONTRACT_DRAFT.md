@@ -3,9 +3,10 @@
 Status: vollständig fachlich freigegeben am 14. November 2026; KQ-062 / Issue #121, PR #122 nach
 grüner Windows-/Linux-CI und Dependency Review zusammengeführt. Bilder erscheinen am Szenenende.
 KQ-063 implementiert Rust-Kern und Markdown/HTML nach diesem Vertrag; der verbindliche Teilvertrag
-steht unter [`ILLUSTRATED_MANUSCRIPT.md`](../data-format/ILLUSTRATED_MANUSCRIPT.md). Gewöhnliches
-DOCX/PDF mit Bildern bleiben eigene Stufen. Der DOCX-Text-Roundtrip bleibt unverändert. Der
-historische Dateiname bleibt zur Referenzierung erhalten.
+steht unter [`ILLUSTRATED_MANUSCRIPT.md`](../data-format/ILLUSTRATED_MANUSCRIPT.md). KQ-064 ergänzt
+den gewöhnlichen DOCX-Bildwriter; die Office-Abnahme wird getrennt dokumentiert. PDF bleibt eine
+eigene Stufe. Der DOCX-Text-Roundtrip bleibt unverändert. Der historische Dateiname bleibt zur
+Referenzierung erhalten.
 
 ## Anforderungen und belegter Ausgangsstand
 
@@ -254,5 +255,6 @@ Pflichtfälle:
 - Reine Exporte, Medienverwaltung, Snapshot/Backup und DOCX-Text-Roundtrip bleiben
   regressionsgeprüft.
 
-Die Markdown-/HTML-Stufe wird mit KQ-063 und separatem Abnahmeprotokoll nachgewiesen. DOCX/PDF und
+Die Markdown-/HTML-Stufe wird mit KQ-063 und separatem Abnahmeprotokoll nachgewiesen. KQ-064 ergänzt
+den gewöhnlichen DOCX-Bildwriter mit separater Office-Abnahme; Word steht noch aus. PDF und
 vollständige F08-/M3-Abnahme bleiben offen; jede weitere Stufe benötigt eigene Nachweise.

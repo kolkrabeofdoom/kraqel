@@ -1,4 +1,4 @@
-//! Illustrated manuscript profile v1: static scenes, relative PNGs, immutable generations.
+//! Illustrated manuscript profile v1: static scenes, relative/embedded PNGs, immutable generations.
 use crate::{ExportSourceDocument, Manuscript, render};
 use kraqel_domain::{AssetTargetKind, DocumentKind, EntityId, MediaAsset, Project};
 use serde::{Deserialize, Serialize};
@@ -11,6 +11,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+mod docx;
 #[cfg(test)]
 mod tests;
 
@@ -38,6 +39,7 @@ impl std::io::Write for SourceBudget {
 pub enum IllustratedFormat {
     Markdown,
     Html,
+    Docx,
 }
 impl IllustratedFormat {
     #[must_use]
@@ -45,12 +47,14 @@ impl IllustratedFormat {
         match self {
             Self::Markdown => "markdown",
             Self::Html => "html",
+            Self::Docx => "docx",
         }
     }
     const fn file(self) -> &'static str {
         match self {
             Self::Markdown => "manuskript.md",
             Self::Html => "manuskript.html",
+            Self::Docx => "manuskript.docx",
         }
     }
 }
@@ -205,8 +209,8 @@ pub fn prepare(
         return Err(invalid());
     }
     let PreparedAssets {
-        mut files,
-        records,
+        files,
+        mut records,
         ids,
     } = prepare_assets(root, &sources)?;
     let mut placements = Vec::new();
@@ -230,6 +234,11 @@ pub fn prepare(
         *position += 1;
     }
     placements.sort_by_key(|p| (p.chapter_position, p.scene_position, p.position));
+    if format == IllustratedFormat::Docx {
+        for asset in &mut records {
+            asset.location = format!("word/media/{}.png", asset.export_sha256);
+        }
+    }
     let manifest = Manifest {
         format: "kraqel-illustrated-manuscript",
         version: 1,
@@ -238,8 +247,24 @@ pub fn prepare(
         assets: records,
         placements,
     };
-    let document = render_document(&manuscript, &manifest)?;
-    let value = serde_json::to_value(&manifest).map_err(|_| invalid())?;
+    finish(&manuscript, &manifest, files)
+}
+
+fn finish(
+    manuscript: &Manuscript,
+    manifest: &Manifest,
+    mut files: BTreeMap<String, Vec<u8>>,
+) -> Result<PreparedPackage, IllustratedError> {
+    let format = manifest.manuscript_format;
+    let invalid = || IllustratedError::Invalid;
+    let document = if format == IllustratedFormat::Docx {
+        let bytes = docx::write(manuscript, manifest, &files)?;
+        files.clear();
+        bytes
+    } else {
+        render_document(manuscript, manifest)?.into_bytes()
+    };
+    let value = serde_json::to_value(manifest).map_err(|_| invalid())?;
     // serde_json's default Map uses sorted keys. No UUIDs or dates enter this manifest.
     let mut json = serde_json::to_vec_pretty(&value).map_err(|_| invalid())?;
     json.push(b'\n');
@@ -247,7 +272,7 @@ pub fn prepare(
         return Err(invalid());
     }
     files.insert("medien.json".to_owned(), json);
-    files.insert(format.file().to_owned(), document.into_bytes());
+    files.insert(format.file().to_owned(), document);
     if files.len() > 64 || files.values().map(Vec::len).sum::<usize>() > MAX_PACKAGE {
         return Err(invalid());
     }
@@ -485,7 +510,9 @@ pub fn publish(
     let destination = directory.join(&generation);
     fs::create_dir(&temporary).map_err(|_| IllustratedError::Internal)?;
     let staging = Staging(temporary);
-    fs::create_dir(staging.0.join("assets")).map_err(|_| IllustratedError::Internal)?;
+    if package.files.keys().any(|name| name.starts_with("assets/")) {
+        fs::create_dir(staging.0.join("assets")).map_err(|_| IllustratedError::Internal)?;
+    }
     let mut total = 0;
     for (name, bytes) in &package.files {
         let path = staging.0.join(name);

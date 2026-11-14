@@ -221,3 +221,10 @@ Schreibsperre schützt den finalen Vergleich bis zum atomaren Umbenennen der neu
 lassen alte Pakete bestehen. Decoderlimits sind keine harte Prozess-RSS-Garantie, und die oben
 beschriebene Dateisystem-Austauschlücke bleibt bestehen. Der DOCX-Text-Roundtrip wird nicht
 erweitert. Siehe `docs/data-format/ILLUSTRATED_MANUSCRIPT.md` und ADR 0030.
+
+KQ-064 / ADR 0031 nutzt denselben validierten Medienkern für gewöhnliches DOCX. Der Writer erzeugt
+ausschließlich interne PNG-Parts, feste interne Bildbeziehungen und Inline-Zeichnungen; Titel und
+Alttext werden als XML-Attribute maskiert. Der native ZIP-Selbstvergleich prüft die vollständige
+erzeugte Part-Allowlist und sämtliche Bytes vor Veröffentlichung. Es gibt keine externen Bilder,
+Makros, OLE-Objekte, Felder oder Erweiterung des Text-Roundtrip-Readers. Office-Metadaten aus
+erneuten Speichervorgängen gehören nicht zum App-Datenmodell oder zum ursprünglichen Manifest.

@@ -210,7 +210,7 @@ fn docx(manuscript: &Manuscript) -> Result<Vec<u8>, ExportError> {
     );
     package_docx(&document)
 }
-fn docx_blocks(document: &mut String, blocks: &[Block], depth: usize) {
+pub(super) fn docx_blocks(document: &mut String, blocks: &[Block], depth: usize) {
     for block in blocks {
         match block {
             Block::Paragraph(inlines) => docx_paragraph(document, inlines, None, None),
@@ -277,7 +277,7 @@ fn docx_inlines(document: &mut String, inlines: &[Inline]) {
         }
     }
 }
-fn docx_text_paragraph(
+pub(super) fn docx_text_paragraph(
     document: &mut String,
     text: &str,
     style: Option<&str>,

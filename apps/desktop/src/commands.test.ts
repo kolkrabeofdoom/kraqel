@@ -54,38 +54,41 @@ beforeEach(() => {
 });
 
 describe("typed Tauri commands", () => {
-  it("exports explicit image selection without paths or file bytes", async () => {
-    mockedInvoke.mockResolvedValue({
-      contractVersion: 1,
-      requestId,
-      data: {
-        packageName: "mit-bildern/html-test",
-        format: "html",
-        fileCount: 3,
-        byteCount: 500,
-        imageCount: 1,
-        placementCount: 1,
-      },
-    });
-    const placements = [
-      {
-        sceneId: requestId as EntityId,
-        assetId: requestId as EntityId,
-        expectedChecksum: "a".repeat(64),
-        expectedSceneRevision: 3,
-        altText: "Bild",
-        caption: null,
-      },
-    ];
-    await exportIllustratedManuscript(requestId as ProjectId, "html", placements);
-    expect(mockedInvoke).toHaveBeenLastCalledWith("export_illustrated_manuscript", {
-      request: {
+  it.each(["markdown", "html", "docx"] as const)(
+    "exports explicit %s image selection without paths or file bytes",
+    async (format) => {
+      mockedInvoke.mockResolvedValue({
         contractVersion: 1,
         requestId,
-        payload: { projectId: requestId, format: "html", placements },
-      },
-    });
-  });
+        data: {
+          packageName: `mit-bildern/${format}-test`,
+          format,
+          fileCount: 3,
+          byteCount: 500,
+          imageCount: 1,
+          placementCount: 1,
+        },
+      });
+      const placements = [
+        {
+          sceneId: requestId as EntityId,
+          assetId: requestId as EntityId,
+          expectedChecksum: "a".repeat(64),
+          expectedSceneRevision: 3,
+          altText: "Bild",
+          caption: null,
+        },
+      ];
+      await exportIllustratedManuscript(requestId as ProjectId, format, placements);
+      expect(mockedInvoke).toHaveBeenLastCalledWith("export_illustrated_manuscript", {
+        request: {
+          contractVersion: 1,
+          requestId,
+          payload: { projectId: requestId, format, placements },
+        },
+      });
+    },
+  );
 
   it("sends a versioned request and accepts the matching response", async () => {
     mockedInvoke.mockResolvedValue({

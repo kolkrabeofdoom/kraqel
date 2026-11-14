@@ -5,7 +5,7 @@ Stand: 14. November 2026
 Code-Referenz: KQ-055 (Issue #107), KQ-056 (Issue #109), KQ-058/059 (Issues #113/#115; isolierte
 Prototypen), KQ-060 (Issue #117; nativer Roundtrip-Kern), KQ-061 (Issue #119; App und neue
 Projektkopie), KQ-062 (Issue #121; freigegebener Medienexport-Vertrag), KQ-063 (Issue #123;
-Rust-Kern und bebildertes Markdown/HTML)
+Rust-Kern und bebildertes Markdown/HTML), KQ-064 (Issue #125; gewöhnlicher DOCX-Bildwriter)
 
 Planungsstand: KQ-057 konkretisiert den DOCX-Roundtrip-Vertragsentwurf. KQ-058 zeigt den Verlust
 verschachtelter Marker in LibreOffice. Der beauftragte Folgeversuch KQ-059 bestätigt flache
@@ -20,8 +20,10 @@ Fixturevergleich ebenfalls mit grüner Windows-/Linux-CI in `main` zusammengefü
 ist ebenfalls mit grüner Windows-/Linux-CI und Dependency Review in `main` zusammengeführt (PR
 #120). KQ-062 ist nach grüner CI in PR #122 zusammengeführt; der gesamte Vertrag ist fachlich
 freigegeben. KQ-063 implementiert den Rust-Kern und den eigenen Modus „Mit Szenenbildern“ für
-Markdown/HTML mit Manifest v1, metadatenfreien PNGs und atomaren neuen Paketgenerationen.
-Gewöhnliches DOCX und PDF mit Bildern bleiben eigene Folgestufen.
+Markdown/HTML mit Manifest v1, metadatenfreien PNGs und atomaren neuen Paketgenerationen. PR #124
+ist nach grüner Windows-/Linux-CI und Dependency Review zusammengeführt (b04cac3). KQ-064 ergänzt
+den gewöhnlichen DOCX-Bildwriter; LibreOffice-Prüfung bestanden, Word-Abnahme wartet auf die
+manuelle Datenschutz-Ersteinrichtung. PDF bleibt eine eigene Folgestufe.
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -312,6 +314,23 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 - Lokal bestehen `pnpm check` mit 154 Rust- und 50 TypeScript-Tests sowie alle 26 Browser-E2E. Vier
   zusätzliche Rust-Helfer für explizit aktivierte visuelle/native QA sind regulär ignoriert.
 - Gewöhnliches DOCX/PDF und vollständige F08-/M3-Abnahme bleiben offen; SQLite bleibt auf Version 6.
+
+### Szenenbilder in gewöhnlichem DOCX (KQ-064)
+
+- Gemeinsamer Rust-Medienexportkern, explizite App-Auswahl und Command v1 akzeptieren zusätzlich
+  `docx`; keine Migration oder neue Bibliothek.
+- PNGs liegen dedupliziert intern unter `word/media/<hash>.png`; Manifest v1 referenziert diese
+  Parts. Nur Inline-Zeichnungen mit eindeutigen Kennungen, Alttexten und proportionalen Maßen,
+  optionale Beschriftungen als Klartext mit echten Umbrüchen; keine externen Bildbeziehungen.
+- Native ZIP-Selbstprüfung aller Parts vor atomarer Veröffentlichung. Alte Pakete bleiben erhalten.
+  Der bisherige DOCX-Text-Roundtrip wird nicht erweitert; sein Reader weist bebildertes DOCX ab.
+- `pnpm check`: 156 Rust- und 52 TypeScript-Tests; fünf explizite QA-Helfer regulär ignoriert. Alle
+  26 Browser-E2E einschließlich DOCX-Aktion und Axe bestehen. Der gezielt erweiterte
+  Wiederverwendungstest besteht zusätzlich mit Clippy.
+- LibreOffice-Abnahme bestanden; echte Word-Abnahme ist wegen der Datenschutz-Ersteinrichtung noch
+  offen. Details im [Abnahmeprotokoll](testing/native-illustrated-docx-acceptance.md).
+- PDF-Schrift-/Unicode-Nachweis und bebildertes PDF bleiben eigene Folgestufen; F08/M3 bleiben
+  teilweise abgenommen.
 
 ### Manuskriptexport (KQ-009)
 
@@ -794,8 +813,8 @@ Medien-Einbettung je Exportformat. Rechts- und Lizenzfragen der Bildprovider sin
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert                                                                                                                                                                                                                                                                                                                                                                                                      | Vor großen Projekten messen; Migration nur mit Evidenz                                                                                     |
 | Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Gemeinsame Fixtures oder spätere Codegenerierung bewerten                                                                                  |
-| Datenformat                  | Snapshot v3 samt begrenztem Neuimport, nativer und unter Windows manuell geprüfter Archivauswahl, Prompt-Entwürfen, Profilen und Hash-Assets; UTF-8-/Markdown-Import automatisiert und im dokumentierten nativen Windows-Kernumfang geprüft; Begrenzter DOCX-Import vorhanden; begrenzter strukturerhaltender Manuskriptroundtrip mit KQ-060/061 umgesetzt                                                                                                                                                       | Gewöhnlichen DOCX-/PDF-Bildexport ergänzen; Fremdarchive fuzztesten                                                                        |
-| Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                                                                                                                                                                                                                                                                                                                                                                                                                                  | Freie eingebettete Schrift und Medienkonzept prüfen                                                                                        |
+| Datenformat                  | Snapshot v3 samt begrenztem Neuimport, nativer und unter Windows manuell geprüfter Archivauswahl, Prompt-Entwürfen, Profilen und Hash-Assets; UTF-8-/Markdown-Import automatisiert und im dokumentierten nativen Windows-Kernumfang geprüft; Begrenzter DOCX-Import vorhanden; begrenzter strukturerhaltender Manuskriptroundtrip mit KQ-060/061 umgesetzt                                                                                                                                                       | Word-Abnahme abschließen; PDF-Bildexport ergänzen; Fremdarchive fuzztesten                                                                 |
+| Exportrenderer               | Markdown/HTML mit Bildern nativ geprüft; DOCX-Bildwriter mit LibreOffice geprüft, Word offen; PDF-Standardschrift begrenzt Unicode, PDF-Medien fehlen                                                                                                                                                                                                                                                                                                                                                            | Word-Abnahme, freie PDF-Schrift und bebildertes PDF prüfen                                                                                 |
 | Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                                                                                                                                                                                                                                                                                                                                                                                                                        | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen                                                                                   |
 | Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                                                                                                                                                                                                                                                                                                                                                                                                                         | Bei jeder Erweiterung Fixtures und Migration prüfen                                                                                        |
 | Desktoptests                 | Zwölf Browser-E2E-Suites einschließlich Beispielprojekt, Accessibility-Kern und -Randfällen, echter Windows-Tauri-M1-Smoke, lokaler NSIS-Lebenszyklus sowie bestandene KQ-033/KQ-034-Hörprüfungen                                                                                                                                                                                                                                                                                                                | Vor Release mit weiterer Testperson oder NVDA verbreitern                                                                                  |
@@ -815,7 +834,8 @@ Medien-Einbettung je Exportformat. Rechts- und Lizenzfragen der Bildprovider sin
 
 ## Nächste geplante Entwicklungsstufe
 
-**M3-Datenportabilität: gewöhnlichen DOCX-Bildexport auf dem gemeinsamen Rust-Kern ergänzen.**
+**M3-Datenportabilität: Word-Abnahme des DOCX-Bildexports abschließen, dann PDF-Schrift und Unicode
+nachweisen.**
 
 Empfohlener, überprüfbarer Scope:
 
@@ -845,10 +865,13 @@ Empfohlener, überprüfbarer Scope:
    ausdrücklich ausgewählte direkte Szenenbilder am Szenenende, Reihenfolge, Alttext, Beschriftung,
    PNG-Ableitungen, Herkunftsmanifest und unveränderliche neue Paketgenerationen. Der konkrete
    [Formatvertrag](data-format/ILLUSTRATED_MANUSCRIPT.md) legt Grammatik und Grenzen fest.
-6. Als Nächstes den gewöhnlichen DOCX-Bildwriter ergänzen und mit Word/LibreOffice abnehmen. Danach
-   folgt PDF mit freier eingebetteter Schrift und vorheriger Unicode-Abnahme. Drehbuchformatierung
-   bleibt eine eigene offene F08-Entscheidung. Der bestehende DOCX-Text-Roundtrip wird nicht um
-   Bilder erweitert. F08/M3 bleiben teilweise abgenommen.
+6. KQ-064 / ADR 0031 ergänzt den gewöhnlichen DOCX-Bildwriter und die App-Aktion. LibreOffice
+   öffnet/speichert das Prüfmanuskript mit identischen Texten, Alttexten und Bildpixeln. Die drei
+   gerenderten Seiten bleiben pixelidentisch. Word-Abnahme wartet auf die vom Nutzer zu erledigende
+   Datenschutz-Ersteinrichtung. Nach dieser Abnahme folgt PDF mit freier eingebetteter Schrift und
+   vorheriger Unicode-Abnahme. Drehbuchformatierung bleibt eine eigene offene F08-Entscheidung. Der
+   bestehende DOCX-Text-Roundtrip wird nicht um Bilder erweitert. F08/M3 bleiben teilweise
+   abgenommen.
 
 Die zusätzliche Installerprüfung auf einem weiteren Windows-Rechner ist bewusst zurückgestellt und
 wird später manuell nachgeholt.
@@ -882,7 +905,8 @@ ist am 14. November 2026 im dokumentierten Umfang geprüft. Der enge DOCX-Import
 0024 umgesetzt. KQ-059/ADR 0026 weist die flache Repräsentation in Word und LibreOffice nach;
 KQ-060/ADR 0027 implementiert den nativen Rust-Kern; KQ-061/ADR 0028 ergänzt App-Einbindung und
 atomare neue Projektkopie. KQ-062 ist vollständig freigegeben und in PR #122 zusammengeführt. KQ-063
-implementiert Rust-Kern und Markdown/HTML mit Szenenbildern; als Nächstes folgt der gewöhnliche
-DOCX-Bildexport, danach PDF mit Schrift-/Unicode-Nachweis. Drehbuchformatierung bleibt getrennt
-offen. Die bewusst zurückgestellte Zweitrechner- oder Clean-VM-Abnahme bleibt offen. Für einen Orts-
-und Rechnerwechsel gilt `docs/WORKSTATION_HANDOFF.md`.
+ist mit grüner CI in PR #124 zusammengeführt. KQ-064 implementiert den gewöhnlichen DOCX-Bildexport;
+als Nächstes folgen der Abschluss der Word-Abnahme und PDF mit Schrift-/Unicode-Nachweis.
+Drehbuchformatierung bleibt getrennt offen. Die bewusst zurückgestellte Zweitrechner- oder
+Clean-VM-Abnahme bleibt offen. Für einen Orts- und Rechnerwechsel gilt
+`docs/WORKSTATION_HANDOFF.md`.
