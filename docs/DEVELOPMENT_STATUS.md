@@ -2,11 +2,13 @@
 
 Stand: 14. November 2026
 
-Code-Referenz: KQ-055 (Issue #107), KQ-056 (Issue #109)
+Code-Referenz: KQ-055 (Issue #107), KQ-056 (Issue #109), KQ-058 (Issue #113; isolierter Prototyp)
 
-Planungsstand: KQ-057 konkretisiert den DOCX-Roundtrip-Vertragsentwurf; fachliche Freigabe und
-Implementierung stehen aus. KQ-055 und KQ-056 sind nach grüner Windows-/Linux-CI in `main`
-zusammengeführt (PR #108 und #110).
+Planungsstand: KQ-057 konkretisiert den DOCX-Roundtrip-Vertragsentwurf. Der anschließend beauftragte
+KQ-058-Strukturprototyp bestätigt den untersuchten Word-Speicherfall, zeigt aber Strukturverlust
+beim LibreOffice-Speichern. Die Repräsentation muss vor einer gemeinsamen Office-Garantie weiter
+untersucht werden; produktiver Roundtrip und Formatfreigabe stehen aus. KQ-055, KQ-056 und der
+Vertragsentwurf sind nach grüner Windows-/Linux-CI in `main` zusammengeführt (PR #108, #110, #112).
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -764,10 +766,15 @@ Empfohlener, überprüfbarer Scope:
 2. Der enge DOCX-Import ist ausdrücklich freigegeben und mit ADR 0024 umgesetzt. Für den
    [konkreten Roundtrip-Vertragsentwurf](specifications/DOCX_ROUNDTRIP_CONTRACT_DRAFT.md) sind
    Strukturmarker, ein Konsistenzinventar, Textänderungen innerhalb erhaltener Office-Struktur und
-   Ablehnungsfälle vorgeschlagen. Nächster Schritt ist die fachliche Freigabe, danach der
-   Repräsentationsnachweis mit echten Office-Fixtures und eine angenommene ADR. Der bisherige Writer
-   verliert hohe Überschriftenebenen sowie Listen-/Zitatstruktur; der Import darf diese
-   Informationen nicht heuristisch erfinden.
+   Ablehnungsfälle vorgeschlagen. KQ-058 prüft die verschachtelte Repräsentation isoliert mit echten
+   Office-Fixtures: Word 16.0.20527.20112 erhält 41 Marker, Inventar und Manuskript; auch eine echte
+   Textänderung wird genau übernommen. LibreOffice 26.8.3.1 erhält nur 24 Blattmarker und entfernt
+   das Inventar; die Ausgabe wird abgelehnt. 18 zusätzliche Prototyp-Tests sichern Semantik und
+   Negativfälle. [ADR 0025](architecture/decisions/0025-docx-structure-prototype.md) bleibt deshalb
+   vorgeschlagen. Als Nächstes eine flache Repräsentation samt in beiden Anwendungen erhaltenem
+   Inventar prüfen, bevor ein produktiver Rust-Import beginnt. Der bisherige Writer verliert hohe
+   Überschriftenebenen sowie Listen-/Zitatstruktur; der Import darf diese Informationen nicht
+   heuristisch erfinden.
 
 Die zusätzliche Installerprüfung auf einem weiteren Windows-Rechner ist bewusst zurückgestellt und
 wird später manuell nachgeholt.

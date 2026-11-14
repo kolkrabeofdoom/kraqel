@@ -39,8 +39,10 @@
              Inhalte umsetzen
        - [x] Konkreten Roundtrip-Vertragsentwurf mit Strukturmarkern, Office-Grenzen und Abnahme
              ausarbeiten (KQ-057; fachliche Freigabe noch offen)
-       - [ ] Roundtrip-Vertrag freigeben, Repräsentation mit Office-Fixtures nachweisen und
-             strukturerhaltenden Roundtrip implementieren
+       - [x] Verschachtelten Strukturprototyp mit echten Word-/LibreOffice-Speichervorgängen und
+             Word-Textänderung prüfen (KQ-058; Word positiv, LibreOffice-Strukturverlust)
+       - [ ] Flache Repräsentation und erhaltenes Inventar mit beiden Office-Anwendungen prüfen;
+             danach Format festlegen und strukturerhaltenden Roundtrip implementieren
        - Importvertrag: `docs/data-format/DOCX_IMPORT.md`; Roundtrip-Vorschlag:
          `docs/specifications/DOCX_ROUNDTRIP_CONTRACT_DRAFT.md`
    - [x] Lokale Medienbibliothek mit Metadaten, Links, Backup und Snapshot-Assets
