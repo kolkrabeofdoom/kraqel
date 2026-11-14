@@ -11,8 +11,11 @@ untersuchten Word-Build. LibreOffice entfernt äußere Marker und Inventar. Erge
 Office-Fixtures stehen in [ADR 0025](../architecture/decisions/0025-docx-structure-prototype.md).
 Der anschließende beauftragte Folgeversuch KQ-059 erhält mit flachen Absatzmarkern und Inventar in
 Dokumenteigenschaften die Semantik auch in LibreOffice. Diese Repräsentation ist mit
-[ADR 0026](../architecture/decisions/0026-flat-docx-markers.md) als Grundlage angenommen.
-Produktversion, vollständiger Paketvertrag und native Implementierung stehen weiterhin aus.
+[ADR 0026](../architecture/decisions/0026-flat-docx-markers.md) als Grundlage angenommen. KQ-060
+ergänzt den [nativen Austauschvertrag v1](../data-format/DOCX_ROUNDTRIP.md) und den
+Rust-Reader/Writer nach [ADR 0027](../architecture/decisions/0027-native-docx-roundtrip.md). Dieser
+ursprüngliche Entwurf beschreibt weiterhin den geplanten Benutzerablauf; dessen App-Einbindung und
+atomare neue Projektkopie stehen aus.
 
 ## Ziel und Benutzerablauf
 

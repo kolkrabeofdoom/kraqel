@@ -43,10 +43,12 @@
              Word-Textänderung prüfen (KQ-058; Word positiv, LibreOffice-Strukturverlust)
        - [x] Flache Repräsentation und erhaltenes Inventar durch Speichern und Textbearbeitung in
              Word/LibreOffice nachweisen (KQ-059 / ADR 0026)
-       - [ ] Gemeinsames kanonisches Manuskriptmodell, produktive Versionsgrammatik und nativen
-             Rust-Reader/Writer mit vollständiger Paketvalidierung implementieren
+       - [x] Gemeinsames kanonisches Manuskriptmodell, produktive Versionsgrammatik und nativen
+             Rust-Reader/Writer mit vollständiger Paketvalidierung implementieren (KQ-060 /
+             ADR 0027)
        - [ ] Getrennten Austauschmodus in die App einbinden und neue Projektkopie atomar importieren
-       - Importvertrag: `docs/data-format/DOCX_IMPORT.md`; Roundtrip-Vorschlag:
+       - Importvertrag: `docs/data-format/DOCX_IMPORT.md`; nativer Austauschvertrag:
+         `docs/data-format/DOCX_ROUNDTRIP.md`; ursprünglicher Roundtrip-Vorschlag:
          `docs/specifications/DOCX_ROUNDTRIP_CONTRACT_DRAFT.md`
    - [x] Lokale Medienbibliothek mit Metadaten, Links, Backup und Snapshot-Assets
      - [x] Browser-E2E für PNG-Import, Metadaten und Szenenverknüpfung

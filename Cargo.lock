@@ -2145,7 +2145,6 @@ dependencies = [
  "kraqel-export",
  "kraqel-git-service",
  "kraqel-storage",
- "quick-xml",
  "serde",
  "serde_json",
  "tauri",
@@ -2172,8 +2171,10 @@ version = "0.1.0"
 dependencies = [
  "kraqel-domain",
  "printpdf",
+ "quick-xml",
  "serde",
  "serde_json",
+ "sha2",
  "tempfile",
  "zip",
 ]

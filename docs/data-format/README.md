@@ -89,6 +89,14 @@ Inhalt, Klartextindex und Position entstehen atomar; ein Abbruch oder Fehler sch
 und Format-Roundtrips gehören nicht zu diesem Vertrag. Der getrennte begrenzte DOCX-Import ist in
 [`DOCX_IMPORT.md`](DOCX_IMPORT.md) dokumentiert; er ergänzt keine Roundtrip-Garantie.
 
+## Nativer DOCX Manuskriptaustausch v1
+
+Der getrennte [Austauschvertrag](DOCX_ROUNDTRIP.md) definiert den nativen Reader/Writer aus KQ-060:
+flache Absatzmarker, ein versioniertes Strukturinventar und vollständig geprüfte Paketbeziehungen.
+Der Writer liest seine Ausgabe vor Veröffentlichung semantisch zurück. Eine neue App-Aktion und der
+atomare Import als neue Projektkopie sind noch nicht implementiert. Dieser Manuskriptaustausch
+ersetzt keine vollständige Snapshot-v3-Projektkopie.
+
 ## Lokales SQLite-Schema und Migrationsstand
 
 Die autoritative lokale Datenbank besitzt die Tabellen `project`, `document`, `entity`, `relation`
