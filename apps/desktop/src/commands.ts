@@ -285,6 +285,17 @@ export async function importTextDocument(
   return response.data;
 }
 
+export async function importDocxDocument(
+  projectId: ProjectId,
+  parentId: EntityId,
+): Promise<DocumentNode | null> {
+  const response = await callCommand<
+    { readonly projectId: ProjectId; readonly parentId: EntityId },
+    DocumentNode | null
+  >("import_docx_document", { projectId, parentId });
+  return response.data;
+}
+
 export async function loadDocument(
   projectId: ProjectId,
   documentId: EntityId,

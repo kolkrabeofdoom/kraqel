@@ -86,7 +86,8 @@ gespeichert. Markdown bildet Blocküberschriften der Ebenen 1 bis 6, Zitate, ung
 geordnete Listen sowie umschlossene Codeblöcke ab. Inline-Markdown und unbekannte Konstrukte bleiben
 als sichtbarer Text erhalten. Der begrenzte Dateistamm wird zum editierbaren Szenentitel. Knoten,
 Inhalt, Klartextindex und Position entstehen atomar; ein Abbruch oder Fehler schreibt nichts. DOCX
-und Format-Roundtrips gehören nicht zu diesem Vertrag.
+und Format-Roundtrips gehören nicht zu diesem Vertrag. Der getrennte begrenzte DOCX-Import ist in
+[`DOCX_IMPORT.md`](DOCX_IMPORT.md) dokumentiert; er ergänzt keine Roundtrip-Garantie.
 
 ## Lokales SQLite-Schema und Migrationsstand
 

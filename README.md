@@ -235,6 +235,11 @@ KI-basierte Kontinuitätshinweise sind geplant, aber nicht implementiert.
 - Nativer UTF-8-Import von `.txt`, `.md` und `.markdown` bis 2 MiB als neue Szene. TXT-Absätze,
   Markdown-Überschriften, Zitate, Listen und Codeblöcke werden in Editor-Dokument v1 überführt;
   unbekannte Syntax bleibt sichtbar. Pfad und Bytes bleiben in Rust.
+- Begrenzter nativer DOCX-Import bis 8 MiB als neue Szene: Absätze, Überschriften, Fett/Kursiv und
+  harte Umbrüche. Nicht unterstützte Inhalte werden abgelehnt; Schriftbild und Seitenlayout werden
+  nicht übernommen. Vertrag und Grenzen stehen in
+  [`docs/data-format/DOCX_IMPORT.md`](docs/data-format/DOCX_IMPORT.md). Ein strukturerhaltender
+  KRAQEL-Roundtrip bleibt offen.
 - Native Auswahl externer Projektarchive ohne Weitergabe von Pfad oder Archivbytes an React. Ein
   abgebrochener Dialog verändert weder Projektliste noch Fehlermeldung.
 - Nativer `.kraqel`-Export eines unmittelbar zuvor erzeugten, validierten Snapshot v3; Zielpfad und
@@ -486,7 +491,7 @@ Die verbindliche Standardkette `pnpm check` umfasst:
 
 Zusätzlich existieren:
 
-- 17 getrennte Playwright-Browser-E2E-Abläufe,
+- getrennte Playwright-Browser-E2E-Abläufe einschließlich des begrenzten DOCX-Imports,
 - Windows- und Ubuntu-CI,
 - ein echter Windows-Tauri-Smoke-Test für Start, IPC, Projektanlage, Autosave, SQLite und
   Wiederöffnen,

@@ -29,3 +29,7 @@ Metaphysik als Datenschnittstelle.
 Der Ablauf ist offline, begrenzt und verlustarm für unbekannte Syntax. Er verspricht ausdrücklich
 keinen CommonMark-Vollimport, keine Medienübernahme, keinen DOCX-Import und keinen Roundtrip zurück
 in das Ursprungsformat. Diese Erweiterungen benötigen eigene Verträge und adversariale Tests.
+
+Die native Windows-Prüfung vom 14. November 2026 bestätigt den dokumentierten Kernumfang; Testfälle
+und Aussagegrenzen stehen unter
+[`../../testing/native-text-import-acceptance.md`](../../testing/native-text-import-acceptance.md).

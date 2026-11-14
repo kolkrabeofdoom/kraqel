@@ -30,7 +30,14 @@
      - [x] Snapshot-v3-Archiv sicher als neues Projekt importieren und Beispielprojekt einbetten
      - [x] Frei wählbare Snapshotarchive über einen nativen Dialog als neue Projektkopie importieren
      - [x] Begrenzte UTF-8-/Markdown-Dateien über einen nativen Dialog als neue Szene importieren
+     - [x] Nativen Textdialog mit gültigem TXT/Markdown, Abbruch, ungültigem UTF-8 und Übergröße
+           prüfen
      - [ ] DOCX-Import und Roundtrip-Garantien definieren und implementieren
+       - [x] Begrenzten DOCX-Import als neue Szene mit expliziter Ablehnung nicht unterstützter
+             Inhalte umsetzen
+       - [ ] Strukturerhaltenden Roundtrip separat spezifizieren und implementieren
+       - Importvertrag: `docs/data-format/DOCX_IMPORT.md`; Roundtrip-Vorschlag:
+         `docs/specifications/DOCX_IMPORT_SCOPE_DRAFT.md`
    - [x] Lokale Medienbibliothek mit Metadaten, Links, Backup und Snapshot-Assets
      - [x] Browser-E2E für PNG-Import, Metadaten und Szenenverknüpfung
      - [x] Medienkarten bei schmalem Fenster und hohem Zoom ohne abgeschnittene Inhalte darstellen

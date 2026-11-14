@@ -47,6 +47,7 @@ use std::{
 use tauri::{AppHandle, Manager as _, State, ipc::Channel};
 use tauri_plugin_dialog::DialogExt as _;
 use zeroize::Zeroizing;
+mod docx_import;
 
 const AI_RELEASE_LIFETIME: Duration = Duration::from_secs(10 * 60);
 const MAX_TEXT_IMPORT_BYTES: usize = 2 * 1024 * 1024;
@@ -757,6 +758,41 @@ async fn import_text_document(
         )
     })?;
     let data = import_text_document_file_impl(
+        &state,
+        request.request_id,
+        &request.payload.project_id,
+        &request.payload.parent_id,
+        &path,
+    )?;
+    Ok(CommandResponse::current(request.request_id, Some(data)))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+async fn import_docx_document(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    request: CommandRequest<ImportTextDocumentRequest>,
+) -> Result<CommandResponse<Option<DocumentNode>>, CommandError> {
+    require_current_contract(&request)?;
+    let selected = app
+        .dialog()
+        .file()
+        .add_filter("DOCX-Dokument", &["docx"])
+        .blocking_pick_file();
+    let Some(selected) = selected else {
+        return Ok(CommandResponse::current(request.request_id, None));
+    };
+    let path = selected.into_path().map_err(|_| {
+        CommandError::invalid_request(
+            request.request_id,
+            "Das ausgewählte DOCX-Dokument ist nicht lokal lesbar.",
+        )
+    })?;
+    let data = import_docx_document_file_impl(
         &state,
         request.request_id,
         &request.payload.project_id,
@@ -2089,6 +2125,26 @@ fn import_text_document_file_impl(
             "Die Textdatei konnte nicht importiert werden. Unterstützt werden unverknüpfte UTF-8-Dateien bis 2 MiB.",
         )
     })?;
+    let manager = manager(state, request_id)?;
+    let mut opened = manager
+        .open_project(project_id.to_string())
+        .map_err(|error| map_project_error(request_id, &error))?;
+    DocumentRepository::new(opened.database_mut())
+        .create_scene_with_content(project_id, parent_id, &title, &content)
+        .map_err(|error| map_document_error(request_id, &error))
+}
+
+fn import_docx_document_file_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    project_id: &str,
+    parent_id: &str,
+    path: &Path,
+) -> Result<DocumentNode, CommandError> {
+    let project_id = parse_project_id(request_id, project_id)?;
+    let parent_id = parse_entity_id(request_id, parent_id)?;
+    let (title, content) = docx_import::read_file(path).map_err(|()| CommandError::invalid_request(request_id,
+        "Das DOCX-Dokument konnte nicht importiert werden. Es ist beschädigt, zu groß oder enthält nicht unterstützte Inhalte."))?;
     let manager = manager(state, request_id)?;
     let mut opened = manager
         .open_project(project_id.to_string())
@@ -3626,6 +3682,7 @@ pub fn run() {
             open_workspace,
             create_document,
             import_text_document,
+            import_docx_document,
             load_document,
             save_document,
             rename_document,
@@ -3802,6 +3859,80 @@ mod tests {
 
         assert!(super::read_text_import(&invalid_utf8).is_err());
         assert!(super::read_text_import(&nul).is_err());
+    }
+
+    #[test]
+    fn docx_import_persists_content_and_rejects_tables_without_creating_a_scene() {
+        let root = tempdir().unwrap();
+        let state = AppState {
+            project_root: root.path().join("projects"),
+            ai_releases: Mutex::default(),
+        };
+        fs::create_dir_all(&state.project_root).unwrap();
+        let workspace = create_project_impl(
+            &state,
+            REQUEST_ID,
+            CreateProjectRequest {
+                name: "DOCX-Probe".to_owned(),
+            },
+        )
+        .unwrap();
+        let chapter = workspace
+            .documents
+            .iter()
+            .find(|node| node.kind == DocumentKind::Chapter)
+            .unwrap();
+        let source = root.path().join("Manuskript.docx");
+        fs::write(
+            &source,
+            super::docx_import::fixture(
+                "<w:p><w:r><w:rPr><w:b/><w:i/></w:rPr><w:t>Grüße aus Köln</w:t></w:r></w:p>",
+                None,
+                &[],
+            ),
+        )
+        .unwrap();
+        let scene = super::import_docx_document_file_impl(
+            &state,
+            REQUEST_ID,
+            &workspace.project.id.to_string(),
+            &chapter.id.to_string(),
+            &source,
+        )
+        .unwrap();
+        let stored = load_document_impl(
+            &state,
+            REQUEST_ID,
+            DocumentRequest {
+                project_id: workspace.project.id.to_string(),
+                document_id: scene.id.to_string(),
+            },
+        )
+        .unwrap();
+        assert_eq!(scene.title, "Manuskript");
+        assert!(stored.plain_text.contains("Grüße aus Köln"));
+        assert_eq!(
+            stored.content.document["content"][0]["content"][0]["marks"],
+            serde_json::json!([{"type":"bold"},{"type":"italic"}])
+        );
+        let before =
+            super::open_workspace_impl(&state, REQUEST_ID, &workspace.project.id.to_string())
+                .unwrap();
+        fs::write(&source, super::docx_import::fixture("<w:tbl/>", None, &[])).unwrap();
+        let error = super::import_docx_document_file_impl(
+            &state,
+            REQUEST_ID,
+            &workspace.project.id.to_string(),
+            &chapter.id.to_string(),
+            &source,
+        )
+        .unwrap_err();
+        let serialized = serde_json::to_string(&error).unwrap();
+        assert!(!serialized.contains(&source.to_string_lossy().to_string()));
+        let after =
+            super::open_workspace_impl(&state, REQUEST_ID, &workspace.project.id.to_string())
+                .unwrap();
+        assert_eq!(before.documents, after.documents);
     }
 
     #[test]
