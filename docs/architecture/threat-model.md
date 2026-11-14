@@ -210,3 +210,11 @@ erreichbar. Rust prüft Projekt, Art und verschiedene UUIDs erneut und migriert 
 Quelllöschung in genau einer SQLite-Transaktion. KQ-044 vereinigt auch zwei visuelle Profile mit
 Zielvorrang und deduplizierten Ausschlüssen; ungültige kombinierte Eigenschaften führen zum
 vollständigen Rollback. Eine automatische Ähnlichkeitserkennung löst den Merge niemals selbst aus.
+
+KQ-062 beschreibt bislang nur den vorgeschlagenen Medienexport-Vertrag, keine zusätzliche Laufzeit-
+Vertrauensgrenze. Eine Umsetzung muss ausschließlich ausdrücklich gewählte direkt verknüpfte
+Szenenbilder aus geprüften Originalbytes ableiten, Metadaten entfernen, Quell-/Ableitungshashes
+nachweisen und neue vollständige Paketgenerationen veröffentlichen. Die vorgeschlagenen Budgets,
+Konfliktprüfungen und Herkunftsregeln sind vor Freigabe unabhängig in Rust umzusetzen und zu testen.
+Eine Paket-Allowlist-Erweiterung des bestehenden DOCX-Text-Roundtrips ist ausdrücklich nicht Teil
+dieses Vorschlags. Siehe `docs/specifications/MEDIA_EXPORT_CONTRACT_DRAFT.md` und ADR 0029.

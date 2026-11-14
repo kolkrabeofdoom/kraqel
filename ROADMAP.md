@@ -28,6 +28,16 @@
    - [x] Export nach Markdown, HTML, DOCX und PDF für die dokumentierte Formatierungsmenge
      - [x] Browser-E2E für Formatwahl, Dateiname und sichtbare Größenbestätigung
      - [x] Projektgebundenen Exportordner direkt und pfadsicher aus der Oberfläche öffnen
+   - [ ] Ausgewählte Szenenbilder in gewöhnlichen Manuskriptexporten ausgeben
+     - [x] Medienexport-Vertragsentwurf mit ausdrücklich gewählter Platzierung am Szenenende,
+           Formatmatrix, Herkunft, Grenzen und Abnahme ausarbeiten (KQ-062 / vorgeschlagene
+           ADR 0029)
+     - [ ] Übrige Vertragsregeln/Parameter fachlich freigeben und Manifestgrammatik fixieren
+     - [ ] Gemeinsamen nativen Medienexport-Kern und Markdown-/HTML-Pakete implementieren und
+           abnehmen
+     - [ ] Gewöhnliches DOCX mit eingebetteten Szenenbildern und Office-Nachweis ergänzen
+     - [ ] PDF-Schrift-/Unicode-Voraussetzung und bebilderten PDF-Export abnehmen
+     - Entwurf: `docs/specifications/MEDIA_EXPORT_CONTRACT_DRAFT.md`; keine neue Laufzeitfunktion
    - [ ] Import und DOCX-Roundtrip
      - [x] Snapshot-v3-Archiv sicher als neues Projekt importieren und Beispielprojekt einbetten
      - [x] Frei wählbare Snapshotarchive über einen nativen Dialog als neue Projektkopie importieren
