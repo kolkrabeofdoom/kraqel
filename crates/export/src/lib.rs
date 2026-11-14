@@ -1,6 +1,23 @@
 //! Validierter, lokaler Manuskriptexport in portable Formate.
 
+mod docx_scene;
+mod manuscript;
 mod render;
+mod roundtrip;
+
+pub use roundtrip::{
+    DocxRoundtripError, read_docx_roundtrip, read_docx_roundtrip_file, write_docx_roundtrip,
+};
+
+/// Liest den bestehenden begrenzten DOCX-Szenenimport aus einer lokalen Datei.
+///
+/// # Errors
+/// Lehnt ungültige Pfade, Inhalte und Ressourcenüberschreitungen ohne Eingabedetails ab.
+pub fn read_docx_scene_file(
+    path: &std::path::Path,
+) -> Result<(String, kraqel_domain::EditorDocument), DocxRoundtripError> {
+    docx_scene::read_file(path).map_err(|()| DocxRoundtripError)
+}
 
 use kraqel_domain::{
     DocumentKind, DocumentNode, EDITOR_DOCUMENT_VERSION, EditorDocument, ImagePromptDraft, Project,
@@ -81,22 +98,22 @@ impl Error for ExportError {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Manuscript {
-    pub(crate) title: String,
-    pub(crate) chapters: Vec<Chapter>,
+pub struct Manuscript {
+    pub title: String,
+    pub chapters: Vec<Chapter>,
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Chapter {
-    pub(crate) title: String,
-    pub(crate) scenes: Vec<Scene>,
+pub struct Chapter {
+    pub title: String,
+    pub scenes: Vec<Scene>,
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Scene {
-    pub(crate) title: String,
-    pub(crate) blocks: Vec<Block>,
+pub struct Scene {
+    pub title: String,
+    pub blocks: Vec<Block>,
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum Block {
+pub enum Block {
     Paragraph(Vec<Inline>),
     Heading(u8, Vec<Inline>),
     BulletList(Vec<Vec<Block>>),
@@ -104,7 +121,7 @@ pub(crate) enum Block {
     Quote(Vec<Block>),
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum Inline {
+pub enum Inline {
     Text {
         text: String,
         bold: bool,
@@ -123,12 +140,42 @@ pub fn export_project(
     documents: &[ExportSourceDocument],
     format: ExportFormat,
 ) -> Result<ExportResult, ExportError> {
-    let bytes = render::render(&build_manuscript(project, documents)?, format)?;
+    let manuscript = Manuscript::from_export_documents(project, documents).map_err(|_| {
+        ExportError::InvalidDocument(
+            "Das Manuskript enthält eine ungültige oder nicht unterstützte Struktur.",
+        )
+    })?;
+    let bytes = render::render(&manuscript, format)?;
     let directory = prepare_export_directory(project_directory)?;
     let file_name = format!("manuskript.{}", format.extension());
     atomic_write(&directory, &file_name, &bytes)?;
     Ok(ExportResult {
         format,
+        file_name,
+        byte_count: u64::try_from(bytes.len()).map_err(internal)?,
+    })
+}
+
+/// Veröffentlicht den vollständig selbstgeprüften Roundtrip atomar unter dem festen Exportnamen.
+///
+/// # Errors
+/// Lehnt ungültige Manuskripte und unsichere Dateiziele vor der Veröffentlichung ab.
+pub fn export_project_roundtrip(
+    project_directory: &Path,
+    project: &Project,
+    documents: &[ExportSourceDocument],
+) -> Result<ExportResult, ExportError> {
+    let manuscript = Manuscript::from_documents(project, documents).map_err(|_| {
+        ExportError::InvalidDocument("Das Manuskript ist für diesen Austausch nicht geeignet.")
+    })?;
+    let bytes = write_docx_roundtrip(&manuscript).map_err(|_| {
+        ExportError::InvalidDocument("Das Manuskript ist für diesen Austausch nicht geeignet.")
+    })?;
+    let directory = prepare_export_directory(project_directory)?;
+    let file_name = "manuskript-roundtrip.docx".to_owned();
+    atomic_write(&directory, &file_name, &bytes)?;
+    Ok(ExportResult {
+        format: ExportFormat::Docx,
         file_name,
         byte_count: u64::try_from(bytes.len()).map_err(internal)?,
     })
@@ -421,7 +468,7 @@ mod tests {
     use std::io::{Cursor, Read};
     use tempfile::tempdir;
     use zip::ZipArchive;
-    fn fixture() -> (Project, Vec<ExportSourceDocument>) {
+    pub(super) fn fixture() -> (Project, Vec<ExportSourceDocument>) {
         let project_id = ProjectId::new();
         let chapter_id = EntityId::new();
         let project = Project {

@@ -3,15 +3,17 @@
 Stand: 14. November 2026
 
 Code-Referenz: KQ-055 (Issue #107), KQ-056 (Issue #109), KQ-058/059 (Issues #113/#115; isolierte
-Prototypen)
+Prototypen), KQ-060 (Issue #117; nativer Roundtrip-Kern)
 
 Planungsstand: KQ-057 konkretisiert den DOCX-Roundtrip-Vertragsentwurf. KQ-058 zeigt den Verlust
 verschachtelter Marker in LibreOffice. Der beauftragte Folgeversuch KQ-059 bestätigt flache
 Absatzmarker mit einem erhaltenen Inventar in Dokumenteigenschaften: Word und LibreOffice bewahren
 den geprüften Korpus einschließlich echter Textänderungen. ADR 0026 nimmt diese Repräsentation als
-Grundlage für den nächsten nativen Schritt an. Produktiver Roundtrip und vollständige Formatfreigabe
-stehen aus. KQ-055, KQ-056, Vertragsentwurf und erster Prototyp sind nach grüner Windows-/Linux-CI
-in `main` zusammengeführt (PR #108, #110, #112, #114).
+Grundlage an. KQ-060 ergänzt das gemeinsame kanonische Manuskriptmodell und den nativen
+Reader/Writer mit eigenem v1-Profil, vollständiger Paketvalidierung und semantischem Selbstimport.
+Die App-Einbindung und neue Projektkopie fehlen. KQ-055, KQ-056, Vertragsentwurf und beide
+Prototypen sind nach grüner Windows-/Linux-CI in `main` zusammengeführt (PR #108, #110, #112, #114,
+#116). Der native Kern wird getrennt auf dem KQ-060-Branch geprüft und zur CI eingereicht.
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -26,7 +28,7 @@ als vollständige Fachfunktion.
 | **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                                                                                                                                                                                                                                                                                |
 | **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, Undo/Redo, Wortzählung, Fokusmodus, konfliktgeprüfter Autosave sowie sicheres Umbenennen, Umordnen, Löschen und SQLite-Backup vorhanden. KQ-032 automatisiert Tastatur-, Fokus- und Axe-Prüfungen; KQ-033 bestätigt den Kern manuell mit Windows-Sprachausgabe in der Tauri-WebView.                                                                                                              |
 | **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks sind in getrennten Chromium-Abläufen geprüft. KQ-033 bestätigt Story-Bibel-Beziehungen und Rückverweise per Windows-Sprachausgabe; Plotboard und Timelines wurden assistiv stichprobenartig geprüft.                                                                                                                            |
-| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, Medienbibliothek sowie visuelle Profile und Stilvorlagen sind im browserseitigen Kernablauf geprüft. KQ-038/KQ-050 ergänzen Snapshot-v3-Neuimport, Beispielvorlage und freie Archivauswahl. KQ-051 ergänzt den nativen `.kraqel`-Export; KQ-054 den begrenzten UTF-8-/Markdown-Import als neue Szene. KQ-055 ergänzt den begrenzten DOCX-Import als neue Szene; der strukturerhaltende Roundtrip fehlt.                        |
+| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, Medienbibliothek sowie visuelle Profile und Stilvorlagen sind im browserseitigen Kernablauf geprüft. KQ-038/KQ-050 ergänzen Snapshot-v3-Neuimport, Beispielvorlage und freie Archivauswahl. KQ-051 ergänzt den nativen `.kraqel`-Export; KQ-054 den begrenzten UTF-8-/Markdown-Import als neue Szene. KQ-055 ergänzt den DOCX-Szenenimport; KQ-060 den nativen Roundtrip-Kern. App-Einbindung und neue Projektkopie fehlen.    |
 | **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Technischer 0.1-Umfang weitgehend umgesetzt:** Textprotokolle, browserseitig geprüfte Offline-Kontinuität und Prompt-Entwürfe sowie Bild-Capability- und Jobverträge vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise und Bildgenerierung fehlen.                                                                                                                                                                                                                                            |
 | **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Alpha 4 veröffentlicht:** Debug- und Tauri-Smoke-Tests, isolierter NSIS-Testinstaller, Accessibility-Nachweise sowie ein getrennter unsignierter x64-NSIS-Releasepfad sind vorhanden. KQ-045 belegt Build, GitHub-Rückdownload und SHA-256 von `v0.1.0-alpha.4`; Release Candidate und öffentlicher Rückdownload wurden isoliert installiert und deinstalliert. MSI, Signierung, Updater und ARM64 sind ausgeschlossen; SmartScreen, Anwendungsstart und Persistenz auf Zweitrechner/Clean-VM fehlen. |
 | **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
@@ -259,6 +261,20 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   tastaturbedienbare Karten- und Ereignisreihenfolge, relative und absolute Zeitmodelle,
   Szenen-/Entitätslinks sowie den Rücksprung ins Manuskript. Der Testadapter bildet hierfür nur die
   bereits vorhandenen Command-Verträge ab; Tauri- und Screenreader-Abnahme bleiben separat offen.
+
+### Nativer DOCX Manuskriptaustausch (KQ-060)
+
+- Gemeinsames kanonisches Manuskriptmodell, strenge Editorattribute und inverser Szenenadapter.
+- Eigenes v1-Profil nach ADR 0027 mit flachen Markern, gebundenem Strukturinventar, vollständiger
+  Paket-/Beziehungsprüfung, Style-Auflösung und überprüfter Nummerierung.
+- Deterministischer Writer mit nativem semantischem Selbstimport vor atomarer Dateiveröffentlichung.
+  Reader und Writer laufen ohne Python, Office oder Netzwerk in Rust.
+- Vier native v1-Fixtures belegen unveränderte Semantik nach echten Word-/LibreOffice-Speichergängen
+  sowie eine echte Word-Textänderung. Alle vier Seiten wurden gerendert und visuell geprüft.
+- Lokal bestehen `pnpm check` mit 138 Rust- und 48 TypeScript-Tests sowie 41 Prototypprüfungen. Das
+  Export-Crate enthält 31 reguläre Tests und drei standardmäßig ignorierte
+  visuelle/Office-QA-Helfer.
+- UI, Commands und atomarer Import als neue Projektkopie sind weiterhin nicht implementiert.
 
 ### Manuskriptexport (KQ-009)
 
@@ -545,7 +561,8 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
 - **Begrenzter Import ist kein Roundtrip:** Die vier Ausgaben, der UTF-8-/Markdown-Import und der
   begrenzte DOCX-Import sind vorhanden. Der DOCX-Import erzeugt eine neue Szene; er rekonstruiert
   keine Kapitel-/Szenenstruktur und übernimmt keine Medien. Ein strukturerhaltender Roundtrip zurück
-  nach KRAQEL bleibt unimplementiert; F08 ist weiterhin nur teilweise erfüllt.
+  nach KRAQEL besitzt mit KQ-060 einen geprüften nativen Kern, aber noch keinen bedienbaren
+  App-Import und keine atomare neue Projektkopie; F08 ist weiterhin nur teilweise erfüllt.
 - **Exportformatierung bewusst begrenzt:** Links, Code, Tabellen, Fußnoten und Medien werden nicht
   still reduziert, sondern derzeit abgelehnt. PDF verwendet eingebaute Standardschriften; vor einer
   breiteren Unicode-Abnahme ist eine eingebettete freie Schrift zu prüfen.
@@ -760,7 +777,7 @@ Medien-Einbettung je Exportformat. Rechts- und Lizenzfragen der Bildprovider sin
 
 ## Nächste geplante Entwicklungsstufe
 
-**M3-Datenportabilität: nativen Manuskript- und DOCX-Roundtrip-Kern umsetzen.**
+**M3-Datenportabilität: nativen DOCX-Kern in die App einbinden und neue Projektkopie importieren.**
 
 Empfohlener, überprüfbarer Scope:
 
@@ -774,11 +791,16 @@ Empfohlener, überprüfbarer Scope:
    → LibreOffice und echte Textänderungen in beiden Anwendungen sind geprüft. Insgesamt 41
    Prototyp-Tests bestehen. Die Darstellung ist mit
    [ADR 0026](architecture/decisions/0026-flat-docx-markers.md) als Grundlage angenommen.
-3. Als Nächstes gemeinsames kanonisches Manuskriptmodell, produktive Versionsgrammatik und nativen
-   Rust-Reader/Writer mit vollständiger Paketvalidierung umsetzen. Die sechs Office-Fixtures sind
-   Regressionseingaben. UI und atomare neue Projektkopie folgen auf den geprüften Kern. Die
-   Python-Werkzeuge bleiben isolierte Prüfwerkzeuge; der gewöhnliche Writer und der Szenenimport
-   sind unverändert. F08/M3 sind dadurch noch nicht vollständig abgenommen.
+3. KQ-060 / [ADR 0027](architecture/decisions/0027-native-docx-roundtrip.md) setzt das gemeinsame
+   kanonische Modell, das eigene Produktionsprofil v1 und den nativen Rust-Reader/Writer um.
+   [Vertrag und Grenzen](data-format/DOCX_ROUNDTRIP.md) sind festgeschrieben. Vier unmittelbar vom
+   Rust-Writer beziehungsweise echten Word-/LibreOffice-Speichervorgängen stammende v1-Fixtures
+   bestehen einschließlich echter Word-Textänderung und visueller Prüfung. Die sechs alten
+   Prototyp-Fixtures bleiben mit explizit testinterner Profilumschreibung zusätzliche Regressionen.
+4. Als Nächstes getrennte UI-/Command-Aktionen und einen vollständig validierten, atomaren Import
+   als neue Projektkopie mit neuen UUIDs implementieren. Abbruch und Fehler dürfen keine sichtbaren
+   Teilprojekte erzeugen. Danach Browser-E2E und echte native Dialog-/Persistenzprüfung ergänzen.
+   Python/Office bleiben Testwerkzeuge; F08/M3 und Medieneinbettung sind noch nicht abgenommen.
 
 Die zusätzliche Installerprüfung auf einem weiteren Windows-Rechner ist bewusst zurückgestellt und
 wird später manuell nachgeholt.
@@ -809,7 +831,7 @@ Projektlöschung. KQ-053 aktiviert Git-Langpfade pro internem Prozess; der reale
 und Archivexport sowie die zweistufige Löschung einer Testkopie sind bestätigt. KQ-054 ergänzt den
 automatisiert geprüften, atomaren UTF-8-/Markdown-Import als Szene; dessen nativer Windows-Dialog
 ist am 14. November 2026 im dokumentierten Umfang geprüft. Der enge DOCX-Import ist mit KQ-055/ADR
-0024 umgesetzt. KQ-059/ADR 0026 weist die flache Repräsentation in Word und LibreOffice nach; als
-Nächstes folgt der getrennte native Rust-Kern. Die bewusst zurückgestellte Zweitrechner- oder
-Clean-VM-Abnahme bleibt offen. Für einen Orts- und Rechnerwechsel gilt
-`docs/WORKSTATION_HANDOFF.md`.
+0024 umgesetzt. KQ-059/ADR 0026 weist die flache Repräsentation in Word und LibreOffice nach;
+KQ-060/ADR 0027 implementiert den getrennten nativen Rust-Kern. Als Nächstes folgen App-Einbindung
+und atomare neue Projektkopie. Die bewusst zurückgestellte Zweitrechner- oder Clean-VM-Abnahme
+bleibt offen. Für einen Orts- und Rechnerwechsel gilt `docs/WORKSTATION_HANDOFF.md`.

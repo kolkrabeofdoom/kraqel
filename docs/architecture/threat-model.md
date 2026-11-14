@@ -153,6 +153,16 @@ plattformübergreifendes TOCTOU-Restfenster. Unbekannte Markdown-Syntax wird sic
 aber nicht als aktives HTML interpretiert; beliebige CommonMark-Erweiterungen sind nicht Teil des
 Vertrags.
 
+Der native DOCX-Roundtrip-Kern (KQ-060 / ADR 0027) verarbeitet alle fremden Pakete ausschließlich in
+Rust, ohne Netzwerk, Python oder Office-Ausführung. Neben den gemeinsamen ZIP-/XML-Budgets prüft er
+eine enge Paket-/Beziehungs-/MIME-Allowlist, versioniertes Inventar, vollständige Markerfolge,
+verwendete Styles und Nummerierung. Sichtbarer Text ist die einzige Textquelle. Die Hashbindung
+erkennt Verlust einzelner Inventarteile, stellt aber keine Herkunftssignatur dar; auch ein neu
+gebundener Baum muss sämtliche Modellregeln erfüllen. Jede Writer-Ausgabe wird vor atomarer
+Dateiveröffentlichung nativ semantisch zurückgelesen. Es gibt noch keinen Roundtrip-Command oder
+Projektimport. Dessen Folgestufe muss neue Identitäten und eine vollständig atomare neue
+Projektkopie erzwingen, ohne vorhandene Daten zu überschreiben.
+
 Der Windows-0.1-Releasepfad ist bewusst unsigniert. SHA-256 erkennt Änderungen nur gegenüber einem
 vertrauenswürdig bezogenen Sollwert und stellt keine Herausgeber*innenidentität her. Werden Setup,
 Manifest und Prüfsumme über denselben kompromittierten Kanal ersetzt, bleibt die Manipulation damit

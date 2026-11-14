@@ -65,6 +65,7 @@ Paket-/Beziehungs-Allowlist, Style-Auflösung, globale Budgets, unbekannte Inhal
 und atomare Veröffentlichung unabhängig in Rust durchsetzen. Keine Netzwerkauflösung oder
 Office-Automation in der App.
 
-Nächster Implementierungsschritt ist ein gemeinsames kanonisches Manuskriptmodell mit nativem
-Reader/Writer für den getrennten Austauschmodus. Die Office-Fixtures sind seine Regressionseingaben.
-UI und neue Projektveröffentlichung folgen auf diesen geprüften Kern.
+KQ-060 setzt das gemeinsame kanonische Manuskriptmodell und den nativen Reader/Writer mit eigenem
+Produktionsprofil v1 um; [ADR 0027](0027-native-docx-roundtrip.md) ergänzt diese Entscheidung. Neue,
+unmittelbar vom Rust-Writer stammende Word-/LibreOffice-Fixtures prüfen den Kern zusätzlich ohne
+Profilumschreibung. UI und neue Projektveröffentlichung folgen als eigene Stufe.
