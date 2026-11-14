@@ -30,14 +30,13 @@
      - [x] Projektgebundenen Exportordner direkt und pfadsicher aus der Oberfläche öffnen
    - [ ] Ausgewählte Szenenbilder in gewöhnlichen Manuskriptexporten ausgeben
      - [x] Medienexport-Vertragsentwurf mit ausdrücklich gewählter Platzierung am Szenenende,
-           Formatmatrix, Herkunft, Grenzen und Abnahme ausarbeiten (KQ-062 / vorgeschlagene
-           ADR 0029)
-     - [ ] Übrige Vertragsregeln/Parameter fachlich freigeben und Manifestgrammatik fixieren
-     - [ ] Gemeinsamen nativen Medienexport-Kern und Markdown-/HTML-Pakete implementieren und
-           abnehmen
+           Formatmatrix, Herkunft, Grenzen und Abnahme ausarbeiten (KQ-062 / angenommene ADR 0029)
+     - [x] Vertragsregeln/Parameter fachlich freigeben und Markdown-/HTML-Manifestgrammatik fixieren
+     - [x] Gemeinsamen nativen Medienexport-Kern und Markdown-/HTML-Pakete implementieren und
+           abnehmen (KQ-063 / ADR 0030)
      - [ ] Gewöhnliches DOCX mit eingebetteten Szenenbildern und Office-Nachweis ergänzen
      - [ ] PDF-Schrift-/Unicode-Voraussetzung und bebilderten PDF-Export abnehmen
-     - Entwurf: `docs/specifications/MEDIA_EXPORT_CONTRACT_DRAFT.md`; keine neue Laufzeitfunktion
+     - Vertrag: `docs/data-format/ILLUSTRATED_MANUSCRIPT.md`; DOCX/PDF bleiben gesondert offen
    - [ ] Import und DOCX-Roundtrip
      - [x] Snapshot-v3-Archiv sicher als neues Projekt importieren und Beispielprojekt einbetten
      - [x] Frei wählbare Snapshotarchive über einen nativen Dialog als neue Projektkopie importieren

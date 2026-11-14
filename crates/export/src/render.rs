@@ -29,7 +29,7 @@ fn markdown(manuscript: &Manuscript) -> String {
     }
     output
 }
-fn markdown_blocks(output: &mut String, blocks: &[Block], depth: usize, prefix: &str) {
+pub(super) fn markdown_blocks(output: &mut String, blocks: &[Block], depth: usize, prefix: &str) {
     for block in blocks {
         match block {
             Block::Paragraph(inlines) => {
@@ -76,7 +76,7 @@ fn markdown_inlines(output: &mut String, inlines: &[Inline]) {
         }
     }
 }
-fn escape_markdown(value: &str) -> String {
+pub(super) fn escape_markdown(value: &str) -> String {
     value
         .chars()
         .flat_map(|character| {
@@ -106,7 +106,7 @@ fn html(manuscript: &Manuscript) -> String {
         body
     )
 }
-fn html_blocks(output: &mut String, blocks: &[Block]) {
+pub(super) fn html_blocks(output: &mut String, blocks: &[Block]) {
     for block in blocks {
         match block {
             Block::Paragraph(inlines) => {
@@ -164,7 +164,7 @@ fn html_inlines(output: &mut String, inlines: &[Inline]) {
         }
     }
 }
-fn escape_html(value: &str) -> String {
+pub(super) fn escape_html(value: &str) -> String {
     value
         .replace('&', "&amp;")
         .replace('<', "&lt;")
