@@ -239,7 +239,9 @@ KI-basierte Kontinuitätshinweise sind geplant, aber nicht implementiert.
   harte Umbrüche. Nicht unterstützte Inhalte werden abgelehnt; Schriftbild und Seitenlayout werden
   nicht übernommen. Vertrag und Grenzen stehen in
   [`docs/data-format/DOCX_IMPORT.md`](docs/data-format/DOCX_IMPORT.md). Ein strukturerhaltender
-  KRAQEL-Roundtrip bleibt offen.
+  KRAQEL-Manuskriptaustausch ist getrennt mit KQ-060/061 umgesetzt: eigener Export zum Wiederimport
+  und Startseitenimport als atomare neue Projektkopie mit neuen Kennungen. Umfang und Grenzen stehen
+  in [`docs/data-format/DOCX_ROUNDTRIP.md`](docs/data-format/DOCX_ROUNDTRIP.md).
 - Native Auswahl externer Projektarchive ohne Weitergabe von Pfad oder Archivbytes an React. Ein
   abgebrochener Dialog verändert weder Projektliste noch Fehlermeldung.
 - Nativer `.kraqel`-Export eines unmittelbar zuvor erzeugten, validierten Snapshot v3; Zielpfad und
@@ -288,7 +290,7 @@ KRAQEL 0.1.0 Alpha 4 ist ein Entwicklungsstand, keine verschämt als „Beta“ 
 Fertigbehauptung. Insbesondere fehlen oder bleiben offen:
 
 - externe Windows-Abnahme von SmartScreen, Erststart, Persistenz und Deinstallation,
-- vollständiger DOCX-Import und belastbarer Manuskript-Roundtrip,
+- beliebiger DOCX-Import, freie Office-Strukturänderungen und vollständiger Projekt-Roundtrip,
 - Medien im Manuskriptexport und umfassendere Unicode-Schriftunterstützung im PDF,
 - reale End-to-End-Abnahme mit Ollama und den vier Cloudprovidern,
 - KI-basierte Kontinuitätshinweise,
@@ -347,7 +349,7 @@ steht in [`docs/architecture/threat-model.md`](docs/architecture/threat-model.md
 ### SQLite als lokale Autorität
 
 Jedes verwaltete Projekt besitzt eine lokale `kraqel.sqlite3`. Der interne Migrationsstand liegt
-aktuell bei `PRAGMA user_version = 5`; die davon getrennte portable Projektschemaversion ist `1`.
+aktuell bei `PRAGMA user_version = 6`; die davon getrennte portable Projektschemaversion ist `1`.
 Migrationen laufen nur vorwärts und atomar. Datenbanken aus unbekannten neueren Versionen werden
 nicht verändert.
 
@@ -532,15 +534,15 @@ metaphysischer Wahrheitsbeweis.
 
 ## Projektstand und Roadmap
 
-| Stufe    | Ziel                                         | Verifizierter Stand                                                                          |
-| -------- | -------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| M0       | Monorepo, Tauri, Datenbank, CI               | Technisches Fundament umgesetzt                                                              |
-| M1       | Editor, Szenenbaum, Autosave, Backup         | Technischer Mindestumfang mit Browser- und Windows-Smoke-Tests umgesetzt                     |
-| M2       | Story-Bibel, Plotboard, Timeline             | Technischer Mindestumfang mit getrennten E2E-Abläufen umgesetzt                              |
-| M3       | Git, Import/Export, Medien, visuelle Profile | Teilweise umgesetzt; Snapshot- und UTF-8-/Markdown-Import vorhanden, DOCX-Roundtrip fehlt    |
-| M4       | Text-KI, Kontinuität, Prompt-Entwürfe        | Technischer 0.1-Umfang weitgehend vorhanden; reale Providerabnahme und Bildausführung fehlen |
-| M5       | Windows-Release 0.1                          | Alpha 4 veröffentlicht; unabhängige Windows-Abnahme noch offen                               |
-| M6 / 0.2 | Bildgenerierung, Varianten, Karten           | Nicht begonnen und ausdrücklich außerhalb von 0.1                                            |
+| Stufe    | Ziel                                         | Verifizierter Stand                                                                                        |
+| -------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| M0       | Monorepo, Tauri, Datenbank, CI               | Technisches Fundament umgesetzt                                                                            |
+| M1       | Editor, Szenenbaum, Autosave, Backup         | Technischer Mindestumfang mit Browser- und Windows-Smoke-Tests umgesetzt                                   |
+| M2       | Story-Bibel, Plotboard, Timeline             | Technischer Mindestumfang mit getrennten E2E-Abläufen umgesetzt                                            |
+| M3       | Git, Import/Export, Medien, visuelle Profile | Teilweise umgesetzt; Snapshot-, Text- und DOCX-Szenenimport sowie begrenzter Manuskriptroundtrip vorhanden |
+| M4       | Text-KI, Kontinuität, Prompt-Entwürfe        | Technischer 0.1-Umfang weitgehend vorhanden; reale Providerabnahme und Bildausführung fehlen               |
+| M5       | Windows-Release 0.1                          | Alpha 4 veröffentlicht; unabhängige Windows-Abnahme noch offen                                             |
+| M6 / 0.2 | Bildgenerierung, Varianten, Karten           | Nicht begonnen und ausdrücklich außerhalb von 0.1                                                          |
 
 Die maßgebliche, faktenbasierte Übergabe steht in
 [`docs/DEVELOPMENT_STATUS.md`](docs/DEVELOPMENT_STATUS.md). Die Arbeitsreihenfolge führt

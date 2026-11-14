@@ -2,6 +2,7 @@ import type { ProjectId } from "@kraqel/domain";
 import { useState } from "react";
 import {
   exportManuscript,
+  exportRoundtripManuscript,
   openExportDirectory,
   type ExportFormat,
   type ExportResult,
@@ -15,17 +16,21 @@ const formats: readonly { format: ExportFormat; label: string; description: stri
 ];
 
 export function Exports({ projectId }: { readonly projectId: ProjectId }) {
-  const [busy, setBusy] = useState<ExportFormat | null>(null);
+  const [busy, setBusy] = useState<ExportFormat | "roundtrip" | null>(null);
   const [openingDirectory, setOpeningDirectory] = useState(false);
   const [result, setResult] = useState<ExportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const run = async (format: ExportFormat) => {
+  const run = async (format: ExportFormat | "roundtrip") => {
     setBusy(format);
     setError(null);
     setResult(null);
     try {
-      setResult(await exportManuscript(projectId, format));
+      setResult(
+        await (format === "roundtrip"
+          ? exportRoundtripManuscript(projectId)
+          : exportManuscript(projectId, format)),
+      );
     } catch {
       setError(
         "Der Export ist gescheitert. Prüfe, ob das Manuskript nur unterstützte Formatierungen enthält.",
@@ -74,6 +79,18 @@ export function Exports({ projectId }: { readonly projectId: ProjectId }) {
           </article>
         ))}
       </div>
+      <article>
+        <h3>DOCX zum Wiederimport</h3>
+        <p>
+          Für die Rückkehr aus Word oder LibreOffice als neue Projektkopie: Kapitel, Szenen und
+          Textformatierungen bleiben erhalten. Ohne Medien, Story-Bibel und weitere Projektdaten.
+          Bearbeite Text innerhalb bestehender Absätze; Strukturänderungen in Office können den
+          Wiederimport verhindern.
+        </p>
+        <button type="button" disabled={busy !== null} onClick={() => void run("roundtrip")}>
+          {busy === "roundtrip" ? "Kolkrabe arbeitet …" : "DOCX zum Wiederimport erzeugen"}
+        </button>
+      </article>
       {result ? (
         <p className="success-banner" role="status">
           Export fertig: <strong>{result.fileName}</strong> (
@@ -86,7 +103,8 @@ export function Exports({ projectId }: { readonly projectId: ProjectId }) {
         </p>
       ) : null}
       <p className="muted">
-        Medien und Import folgen in einer späteren Stufe. Der Kolkrabe führt Buch.
+        Für vollständige Projektkopien einschließlich Medien verwende das Projektarchiv unter
+        Versionen.
       </p>
     </section>
   );

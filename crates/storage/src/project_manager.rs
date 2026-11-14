@@ -843,7 +843,7 @@ fn verify_restore_source(path: &Path) -> Result<(), ProjectError> {
         2 => 15,
         3 => 20,
         4 => 25,
-        5 => 32,
+        5 | 6 => 32,
         _ => return Err(ProjectError::InvalidDatabase),
     };
     if required == expected {

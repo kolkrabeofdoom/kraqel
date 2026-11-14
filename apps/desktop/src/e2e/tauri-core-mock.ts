@@ -181,6 +181,55 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       writeState(state);
       return workspace(created);
     }
+    case "import_docx_project": {
+      const outcome = localStorage.getItem("kraqel-e2e-roundtrip-import");
+      if (outcome === "cancel") return null;
+      if (outcome === "error") throw new Error("private DOCX parser/path details");
+      const saved = localStorage.getItem("kraqel-e2e-roundtrip-export");
+      if (!saved) throw new Error("no exported test manuscript");
+      const source = JSON.parse(saved) as TestProject;
+      const created = structuredClone(source);
+      created.project = { ...source.project, id: crypto.randomUUID() as Project["id"] };
+      const ids = new Map(
+        source.documents.map(({ node }) => [node.id, crypto.randomUUID() as EntityId]),
+      );
+      created.documents = source.documents.map((stored) => ({
+        ...stored,
+        node: {
+          ...stored.node,
+          id: ids.get(stored.node.id)!,
+          projectId: created.project.id,
+          parentId: stored.node.parentId ? ids.get(stored.node.parentId)! : null,
+          revision: 0,
+        },
+      }));
+      created.storyEntities = [];
+      created.storyRelations = [];
+      created.storyLinks = [];
+      created.storylines = [];
+      created.plotCards = [];
+      created.timelines = [];
+      created.timelineEvents = [];
+      created.mediaAssets = [];
+      created.visualProfiles = [];
+      created.stylePresets = [];
+      created.imagePromptDrafts = [];
+      created.versionControl = {
+        initialized: false,
+        snapshotFiles: null,
+        committedFiles: {},
+        head: null,
+        commitSequence: 0,
+      };
+      state.projects.push(created);
+      writeState(state);
+      return workspace(created);
+    }
+    case "export_roundtrip_manuscript": {
+      const current = findProject(state, payload.projectId);
+      localStorage.setItem("kraqel-e2e-roundtrip-export", JSON.stringify(current));
+      return { ...manuscriptExportResult(current, "docx"), fileName: "manuskript-roundtrip.docx" };
+    }
     case "open_workspace":
       return workspace(findProject(state, payload.projectId));
     case "create_document": {

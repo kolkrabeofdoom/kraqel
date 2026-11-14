@@ -261,6 +261,20 @@ export async function importSnapshotProject(): Promise<Workspace | null> {
   return response.data;
 }
 
+export async function importDocxProject(): Promise<Workspace | null> {
+  return (await callCommand<Record<string, never>, Workspace | null>("import_docx_project", {}))
+    .data;
+}
+
+export async function exportRoundtripManuscript(projectId: ProjectId): Promise<ExportResult> {
+  return (
+    await callCommand<{ readonly projectId: ProjectId }, ExportResult>(
+      "export_roundtrip_manuscript",
+      { projectId },
+    )
+  ).data;
+}
+
 export async function openWorkspace(projectId: ProjectId): Promise<Workspace> {
   const response = await callCommand<{ readonly projectId: ProjectId }, Workspace>(
     "open_workspace",

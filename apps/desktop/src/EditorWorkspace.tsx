@@ -554,7 +554,7 @@ function ChapterTree({
         <button
           type="button"
           className="icon-button"
-          aria-label={`Neue Szene in ${chapter.title}`}
+          aria-label={`Neue Szene in ${chapter.title || "Ohne Titel"}`}
           onClick={() => void onAddScene(chapter.id)}
         >
           +
@@ -562,7 +562,7 @@ function ChapterTree({
         <button
           type="button"
           className="compact secondary"
-          aria-label={`Import: Textdatei in ${chapter.title}`}
+          aria-label={`Import: Textdatei in ${chapter.title || "Ohne Titel"}`}
           disabled={importing}
           onClick={() => void onImportScene(chapter.id)}
         >
@@ -571,7 +571,7 @@ function ChapterTree({
         <button
           type="button"
           className="compact secondary"
-          aria-label={`Import: DOCX in ${chapter.title}`}
+          aria-label={`Import: DOCX in ${chapter.title || "Ohne Titel"}`}
           disabled={importing}
           onClick={() => onImportDocx(chapter.id)}
         >
@@ -650,7 +650,7 @@ function TreeNodeLabel({
         }}
       >
         <label>
-          <span className="sr-only">Neuer Titel für {node.title}</span>
+          <span className="sr-only">Neuer Titel für {node.title || "Ohne Titel"}</span>
           <input
             autoFocus
             maxLength={240}
@@ -676,16 +676,16 @@ function TreeNodeLabel({
           className={selected ? "scene-button active" : "scene-button"}
           onClick={onSelect}
         >
-          {node.title}
+          {node.title || "Ohne Titel"}
         </button>
       ) : (
-        <strong>{node.title}</strong>
+        <strong>{node.title || "Ohne Titel"}</strong>
       )}
-      <div className="tree-node-actions" aria-label={`Aktionen für ${node.title}`}>
+      <div className="tree-node-actions" aria-label={`Aktionen für ${node.title || "Ohne Titel"}`}>
         <button
           type="button"
           className="icon-button"
-          aria-label={`${node.title} nach oben`}
+          aria-label={`${node.title || "Ohne Titel"} nach oben`}
           disabled={!canMoveUp}
           onClick={() => onMove(-1)}
         >
@@ -694,7 +694,7 @@ function TreeNodeLabel({
         <button
           type="button"
           className="icon-button"
-          aria-label={`${node.title} nach unten`}
+          aria-label={`${node.title || "Ohne Titel"} nach unten`}
           disabled={!canMoveDown}
           onClick={() => onMove(1)}
         >
@@ -746,7 +746,7 @@ function RichTextEditor({
     immediatelyRender: false,
     editorProps: {
       attributes: {
-        "aria-label": `Text von ${stored.node.title}`,
+        "aria-label": `Text von ${stored.node.title || "Ohne Titel"}`,
         role: "textbox",
       },
     },
@@ -785,7 +785,7 @@ function RichTextEditor({
       <div className="editor-title-row">
         <div>
           <span className="eyebrow">Szene</span>
-          <h2>{stored.node.title}</h2>
+          <h2>{stored.node.title || "Ohne Titel"}</h2>
         </div>
         <div className="editor-meta">
           <span>{wordCount} Wörter</span>

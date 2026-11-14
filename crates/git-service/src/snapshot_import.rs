@@ -382,7 +382,8 @@ fn validate_documents(documents: &[Value]) -> Result<BTreeSet<String>, GitServic
         }
         let kind = string(object, "kind")?;
         if !matches!(kind, "chapter" | "scene")
-            || !valid_name(string(object, "title")?, 240)
+            || string(object, "title")?.chars().count() > 240
+            || string(object, "title")?.contains('\0')
             || unsigned(object, "position").is_none()
             || unsigned(object, "revision").is_none()
             || object.get("plainText").and_then(Value::as_str).is_none()

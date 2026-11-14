@@ -93,8 +93,8 @@ und Format-Roundtrips gehören nicht zu diesem Vertrag. Der getrennte begrenzte 
 
 Der getrennte [Austauschvertrag](DOCX_ROUNDTRIP.md) definiert den nativen Reader/Writer aus KQ-060:
 flache Absatzmarker, ein versioniertes Strukturinventar und vollständig geprüfte Paketbeziehungen.
-Der Writer liest seine Ausgabe vor Veröffentlichung semantisch zurück. Eine neue App-Aktion und der
-atomare Import als neue Projektkopie sind noch nicht implementiert. Dieser Manuskriptaustausch
+Der Writer liest seine Ausgabe vor Veröffentlichung semantisch zurück. KQ-061 ergänzt eine eigene
+Exportaktion und den Startseitenimport als atomare neue Projektkopie. Dieser Manuskriptaustausch
 ersetzt keine vollständige Snapshot-v3-Projektkopie.
 
 ## Lokales SQLite-Schema und Migrationsstand
@@ -105,9 +105,13 @@ JSON-Gültigkeitsprüfungen sind verbindlich. `document_fts` indexiert Titel und
 wird durch Trigger synchron gehalten.
 
 `project.schema_version = 1` bezeichnet weiterhin das portable Projektformat. Der davon getrennte
-interne SQLite-Migrationsstand ist `PRAGMA user_version = 5`. KRAQEL migriert nur vorwärtsgerichtet
+interne SQLite-Migrationsstand ist `PRAGMA user_version = 6`. KRAQEL migriert nur vorwärtsgerichtet
 und atomar; Datenbanken aus unbekannten neueren Versionen werden nicht verändert. Die SQLite-Datei
 selbst ist kein Austauschformat und bleibt ebenso wie WAL-Nebenfiles aus Git ausgeschlossen.
+
+Migration 6 erlaubt verlustfrei importierte leere Dokumenttitel. Der Tabellenumbau erhält Rowids,
+Referenzen und Trigger, prüft alle Fremdschlüssel vor Commit und baut den FTS-Index neu auf. Normale
+neue Titel bleiben nichtleer; importierte Titel werden nicht getrimmt.
 
 Migration 2 ergänzt `storyline`, `plot_card`, `timeline`, `event`, `event_document_link` und
 `event_entity_link`. Eine befüllte v1-Datenbank wird vorwärts migriert, ohne Dokumente oder

@@ -159,9 +159,13 @@ eine enge Paket-/Beziehungs-/MIME-Allowlist, versioniertes Inventar, vollständi
 verwendete Styles und Nummerierung. Sichtbarer Text ist die einzige Textquelle. Die Hashbindung
 erkennt Verlust einzelner Inventarteile, stellt aber keine Herkunftssignatur dar; auch ein neu
 gebundener Baum muss sämtliche Modellregeln erfüllen. Jede Writer-Ausgabe wird vor atomarer
-Dateiveröffentlichung nativ semantisch zurückgelesen. Es gibt noch keinen Roundtrip-Command oder
-Projektimport. Dessen Folgestufe muss neue Identitäten und eine vollständig atomare neue
-Projektkopie erzwingen, ohne vorhandene Daten zu überschreiben.
+Dateiveröffentlichung nativ semantisch zurückgelesen. KQ-061 ergänzt datenarme Command-v1-Aktionen
+und native Auswahl. Ein Import erhält immer neue Projekt-/Dokument-Identitäten, befüllt
+ausschließlich ein leeres Staging-Projekt transaktional und vergleicht alle gespeicherten Inhalte
+vor atomarer Veröffentlichung. Abbruch schreibt nichts; fehlerhafte Inhalte oder Speichergrenzen
+veröffentlichen kein Teilprojekt. Migration 6 erhält Referenzen und FTS beim Tabellenumbau, prüft
+Fremdschlüssel vor Commit und aktiviert sie anschließend auch bei Fehlern erneut. Die
+Dateisystemrennen des bestehenden Projektmanagers bleiben ein Restrisiko.
 
 Der Windows-0.1-Releasepfad ist bewusst unsigniert. SHA-256 erkennt Änderungen nur gegenüber einem
 vertrauenswürdig bezogenen Sollwert und stellt keine Herausgeber*innenidentität her. Werden Setup,
