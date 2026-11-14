@@ -1,9 +1,16 @@
 # KRAQEL-DOCX-Roundtrip v1: Vertragsentwurf
 
 Status: Vorschlag zur fachlichen Freigabe, 14. November 2026; KQ-057 / Issue #111. Noch keine
-Implementierung oder angenommene Architekturentscheidung. Der bestehende Fremdimport nach ADR 0024
-bleibt davon getrennt. Dieser Entwurf konkretisiert die offene Entscheidung aus Pflichtenheft
-Revision 1, Abschnitt 11, und einen Teil von F08/M3. Er schließt deren gesamte Abnahme nicht ab.
+produktive Implementierung oder angenommene Architekturentscheidung. Der bestehende Fremdimport nach
+ADR 0024 bleibt davon getrennt. Dieser Entwurf konkretisiert die offene Entscheidung aus
+Pflichtenheft Revision 1, Abschnitt 11, und einen Teil von F08/M3. Er schließt deren gesamte Abnahme
+nicht ab.
+
+Der anschließend beauftragte Strukturprototyp KQ-058 bestätigt das verschachtelte Modell für den
+untersuchten Word-Build. LibreOffice entfernt äußere Marker und Inventar. Ergebnisse und echte
+Office-Fixtures stehen in [ADR 0025](../architecture/decisions/0025-docx-structure-prototype.md).
+Diese Repräsentation ist deshalb noch nicht als gemeinsamer Office-Vertrag angenommen; ein
+alternativer flacher Aufbau ist vor der produktiven Umsetzung zu prüfen.
 
 ## Ziel und Benutzerablauf
 

@@ -12,6 +12,10 @@ target/
 **/target/
 apps/desktop/src-tauri/gen/
 
+# Experimental Python fixture tools
+__pycache__/
+*.pyc
+
 # Local project and secret data
 .env
 .env.*
