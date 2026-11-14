@@ -2,7 +2,7 @@
 
 Stand: 14. November 2026
 
-Code-Referenz: KQ-055 (Issue #107)
+Code-Referenz: KQ-055 (Issue #107), KQ-056 (Issue #109)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -31,6 +31,11 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 - pnpm- und Cargo-Monorepo mit gelockten Abhängigkeiten.
 - Tauri-2-/React-/TypeScript-Desktop-Shell mit statischer, responsiver Startoberfläche.
+- KQ-056 ergänzt die ausdrücklich ausgewählte lithografische KolkrabeofDoom-Autorenvignette als
+  lokales transparentes PNG neben der Startseiten-H1. Die Figur wird responsiv verkleinert und
+  dekorativ ohne zusätzliche Screenreader-Ansage eingebettet. Herkunft, Grenzen und visuelle Prüfung
+  bei 1180 bis 320 Pixel Breite stehen unter
+  [`design/kolkrabe-wordmark.md`](design/kolkrabe-wordmark.md).
 - KQ-046 trennt Projekttitel und Rückkehraktion von einer fachlich gruppierten, responsiven
   Bereichsnavigation; der Breitbildvertrag und die Gruppenbezeichnungen sind browserseitig geprüft
   und die echte Windows-Tauri-Ansicht wurde manuell abgenommen.

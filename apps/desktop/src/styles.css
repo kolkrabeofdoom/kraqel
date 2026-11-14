@@ -95,8 +95,26 @@ h2 {
 }
 
 .project-hero {
-  max-width: 760px;
   margin-bottom: 3rem;
+}
+
+.project-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(1rem, 4vw, 3rem);
+  margin-bottom: 0.7rem;
+}
+
+.project-wordmark {
+  min-width: 0;
+}
+
+.project-author {
+  display: block;
+  width: clamp(6rem, 20vw, 13rem);
+  height: auto;
+  flex: 0 0 auto;
 }
 
 .project-hero h1 {
@@ -1392,6 +1410,18 @@ button.scene-button.active {
 }
 
 @media (max-width: 520px) {
+  .project-brand {
+    gap: 0.5rem;
+  }
+
+  .project-hero h1 {
+    font-size: clamp(2.7rem, 11.5vw, 4.5rem);
+  }
+
+  .project-author {
+    width: clamp(4.5rem, 20vw, 6rem);
+  }
+
   .export-grid {
     grid-template-columns: 1fr;
   }

@@ -8,6 +8,8 @@
 - [x] SQLite-Schema, Migrationen und FTS5-Migrationstests
 - [x] Lokaler Projektmanager, Backup, Path-Safety und Recovery
 - [x] Lokale Projekte auf der Startseite zweistufig und UUID-geprüft löschen
+- [x] Ausgewählten KolkrabeofDoom als lokale, responsive Autorenvignette am Startseiten-Wortzeichen
+      einbetten
 
 ## M1 bis M5 - Version 0.1
 
