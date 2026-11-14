@@ -15,7 +15,7 @@ Dokumenteigenschaften die Semantik auch in LibreOffice. Diese Repräsentation is
 ergänzt den [nativen Austauschvertrag v1](../data-format/DOCX_ROUNDTRIP.md) und den
 Rust-Reader/Writer nach [ADR 0027](../architecture/decisions/0027-native-docx-roundtrip.md). Dieser
 ursprüngliche Entwurf beschreibt weiterhin den geplanten Benutzerablauf; dessen App-Einbindung und
-atomare neue Projektkopie stehen aus.
+atomare neue Projektkopie sind mit KQ-061 / ADR 0028 im begrenzten Umfang umgesetzt.
 
 ## Ziel und Benutzerablauf
 

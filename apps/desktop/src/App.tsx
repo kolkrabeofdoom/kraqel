@@ -4,6 +4,7 @@ import {
   createProject,
   deleteProject,
   importSnapshotProject,
+  importDocxProject,
   listProjects,
   openWorkspace,
   type ProjectOverview,
@@ -106,6 +107,21 @@ export function App() {
     }
   };
 
+  const importManuscript = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const imported = await importDocxProject();
+      if (imported) setWorkspace(imported);
+    } catch {
+      setError(
+        "Das DOCX-Manuskript konnte nicht importiert werden. Verwende einen KRAQEL-Export zum Wiederimport (v1, höchstens 8 MiB). Die Datei muss vollständig unterstützt sein.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (workspace) {
     return (
       <EditorWorkspace
@@ -190,6 +206,29 @@ export function App() {
           <p className="muted">
             KRAQEL-Archive (.kraqel oder .zip), höchstens 128 MiB. Der Quellpfad bleibt außerhalb
             der Oberfläche.
+          </p>
+        </section>
+
+        <section className="project-card" aria-labelledby="import-manuscript-heading">
+          <span className="eyebrow">Manuskript aus Office</span>
+          <h2 id="import-manuscript-heading">KRAQEL-Manuskript aus DOCX</h2>
+          <p>
+            Importiert einen KRAQEL-Export zum Wiederimport als neues lokales Projekt. Kapitel,
+            Szenen und unterstützte Textformatierungen bleiben erhalten. Vorhandene Projekte und die
+            Quelldatei bleiben unverändert.
+          </p>
+          <p className="muted">
+            Ohne Story-Bibel, Plotboard, Timelines, Medien, Profile, Prompts und Versionsgeschichte.
+            Für vollständige Projektkopien verwende das Projektarchiv. Gewöhnliche DOCX-Dateien
+            kannst du im Editor als einzelne Szene importieren.
+          </p>
+          <button type="button" disabled={busy} onClick={() => void importManuscript()}>
+            Manuskript-DOCX auswählen
+          </button>
+          <p className="muted">
+            KRAQEL-Manuskript v1, höchstens 8 MiB. Projekttitel 1–120 Zeichen, Kapitel- und
+            Szenentitel bis 240 Zeichen. Textänderungen innerhalb bestehender Absätze sind
+            unterstützt; Strukturänderungen in Office können den Wiederimport verhindern.
           </p>
         </section>
 

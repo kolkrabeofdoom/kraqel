@@ -21,6 +21,8 @@ import {
   importTextDocument,
   importDocxDocument,
   importSnapshotProject,
+  importDocxProject,
+  exportRoundtripManuscript,
   exportProjectArchive,
   listMediaAssets,
   listVisualProfiles,
@@ -126,6 +128,22 @@ describe("typed Tauri commands", () => {
         requestId,
         payload: {},
       },
+    });
+  });
+
+  it("selects a roundtrip manuscript without path or bytes and exports with only a project id", async () => {
+    mockedInvoke.mockResolvedValue({
+      contractVersion: COMMAND_CONTRACT_VERSION,
+      requestId,
+      data: null,
+    });
+    await expect(importDocxProject()).resolves.toBeNull();
+    expect(mockedInvoke).toHaveBeenLastCalledWith("import_docx_project", {
+      request: { contractVersion: 1, requestId, payload: {} },
+    });
+    await exportRoundtripManuscript(requestId as ProjectId);
+    expect(mockedInvoke).toHaveBeenLastCalledWith("export_roundtrip_manuscript", {
+      request: { contractVersion: 1, requestId, payload: { projectId: requestId } },
     });
   });
 

@@ -48,6 +48,7 @@ use tauri::{AppHandle, Manager as _, State, ipc::Channel};
 use tauri_plugin_dialog::DialogExt as _;
 use zeroize::Zeroizing;
 mod docx_import;
+mod docx_roundtrip;
 
 const AI_RELEASE_LIFETIME: Duration = Duration::from_secs(10 * 60);
 const MAX_TEXT_IMPORT_BYTES: usize = 2 * 1024 * 1024;
@@ -702,6 +703,54 @@ async fn import_snapshot_project(
     })?;
     let data = import_snapshot_project_file_impl(&state, request.request_id, &path)?;
     Ok(CommandResponse::current(request.request_id, Some(data)))
+}
+
+#[tauri::command]
+async fn import_docx_project(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    request: CommandRequest<ApplicationStatusRequest>,
+) -> Result<CommandResponse<Option<WorkspaceResponse>>, CommandError> {
+    require_current_contract(&request)?;
+    let selected = app
+        .dialog()
+        .file()
+        .set_title("KRAQEL-Manuskript aus DOCX als neues Projekt importieren")
+        .add_filter("KRAQEL-Manuskript DOCX v1", &["docx"])
+        .blocking_pick_file();
+    let Some(selected) = selected else {
+        return Ok(CommandResponse::current(request.request_id, None));
+    };
+    let path = selected.into_path().map_err(|_| {
+        CommandError::invalid_request(
+            request.request_id,
+            "Die ausgewählte Manuskriptdatei ist nicht lokal lesbar.",
+        )
+    })?;
+    let data = import_docx_project_file_impl(&state, request.request_id, &path)?;
+    Ok(CommandResponse::current(request.request_id, Some(data)))
+}
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn export_roundtrip_manuscript(
+    state: State<'_, AppState>,
+    request: CommandRequest<ProjectRequest>,
+) -> Result<CommandResponse<ExportResult>, CommandError> {
+    require_current_contract(&request)?;
+    let data = export_manuscript_mode_impl(
+        &state,
+        request.request_id,
+        &ExportProjectRequest {
+            project_id: request.payload.project_id,
+            format: ExportFormat::Docx,
+        },
+        true,
+    )?;
+    Ok(CommandResponse::current(request.request_id, data))
 }
 
 #[tauri::command]
@@ -2027,6 +2076,25 @@ fn import_snapshot_project_file_impl(
     open_workspace_impl(state, request_id, &summary.project_id.to_string())
 }
 
+fn import_docx_project_file_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    path: &Path,
+) -> Result<WorkspaceResponse, CommandError> {
+    let manager = manager(state, request_id)?;
+    let opened = docx_roundtrip::import_file(&manager, path)
+        .map_err(|_| CommandError::invalid_request(request_id,
+            "Das DOCX-Manuskript ist ungültig, nicht unterstützt oder überschreitet die Importgrenzen."))?;
+    let project_id = opened
+        .directory()
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| CommandError::internal(request_id))?
+        .to_owned();
+    drop(opened);
+    open_workspace_impl(state, request_id, &project_id)
+}
+
 fn export_project_archive_file_impl(
     state: &AppState,
     request_id: uuid::Uuid,
@@ -2518,6 +2586,15 @@ fn export_manuscript_impl(
     request_id: uuid::Uuid,
     request: &ExportProjectRequest,
 ) -> Result<ExportResult, CommandError> {
+    export_manuscript_mode_impl(state, request_id, request, false)
+}
+
+fn export_manuscript_mode_impl(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: &ExportProjectRequest,
+    roundtrip: bool,
+) -> Result<ExportResult, CommandError> {
     let project_id = parse_project_id(request_id, &request.project_id)?;
     let manager = manager(state, request_id)?;
     let mut opened = manager
@@ -2553,8 +2630,12 @@ fn export_manuscript_impl(
                 .map_err(|error| map_document_error(request_id, &error))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    export_project(&project_directory, &project, &documents, request.format)
-        .map_err(|error| map_export_error(request_id, &error))
+    if roundtrip {
+        kraqel_export::export_project_roundtrip(&project_directory, &project, &documents)
+    } else {
+        export_project(&project_directory, &project, &documents, request.format)
+    }
+    .map_err(|error| map_export_error(request_id, &error))
 }
 
 fn resolve_export_directory(
@@ -3679,6 +3760,8 @@ pub fn run() {
             delete_project,
             create_example_project,
             import_snapshot_project,
+            import_docx_project,
+            export_roundtrip_manuscript,
             open_workspace,
             create_document,
             import_text_document,

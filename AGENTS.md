@@ -40,7 +40,7 @@ Aktuell im Repository und verifiziert:
 - **Workspaces:** pnpm-Monorepo für TypeScript, Cargo-Workspace für Rust.
 - **Verträge:** versionierte Request-/Response-Hüllen, UUID-Typen und bereinigte IPC-Fehler in Rust
   und TypeScript.
-- **Persistenz:** SQLite-Migrationsstand 5 mit Fremdschlüsseln, FTS5, Medienmetadaten, visuellen
+- **Persistenz:** SQLite-Migrationsstand 6 mit Fremdschlüsseln, FTS5, Medienmetadaten, visuellen
   Profilen, Stilvorlagen und Bildprompt-Entwürfen im `kraqel-storage`-Crate; sicherer
   Projektlebenszyklus mit Datenbank- und Assetbackup.
 - **Story-Bibel:** typisierte Figuren, Orte, Fraktionen und Gegenstände, freie Eigenschaften,

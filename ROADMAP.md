@@ -34,7 +34,7 @@
      - [x] Begrenzte UTF-8-/Markdown-Dateien über einen nativen Dialog als neue Szene importieren
      - [x] Nativen Textdialog mit gültigem TXT/Markdown, Abbruch, ungültigem UTF-8 und Übergröße
            prüfen
-     - [ ] DOCX-Import und Roundtrip-Garantien definieren und implementieren
+     - [x] DOCX-Import und begrenzte Roundtrip-Garantien definieren und implementieren
        - [x] Begrenzten DOCX-Import als neue Szene mit expliziter Ablehnung nicht unterstützter
              Inhalte umsetzen
        - [x] Konkreten Roundtrip-Vertragsentwurf mit Strukturmarkern, Office-Grenzen und Abnahme
@@ -46,7 +46,8 @@
        - [x] Gemeinsames kanonisches Manuskriptmodell, produktive Versionsgrammatik und nativen
              Rust-Reader/Writer mit vollständiger Paketvalidierung implementieren (KQ-060 /
              ADR 0027)
-       - [ ] Getrennten Austauschmodus in die App einbinden und neue Projektkopie atomar importieren
+       - [x] Getrennten Austauschmodus in die App einbinden und neue Projektkopie atomar importieren
+             (KQ-061 / ADR 0028)
        - Importvertrag: `docs/data-format/DOCX_IMPORT.md`; nativer Austauschvertrag:
          `docs/data-format/DOCX_ROUNDTRIP.md`; ursprünglicher Roundtrip-Vorschlag:
          `docs/specifications/DOCX_ROUNDTRIP_CONTRACT_DRAFT.md`

@@ -20,7 +20,7 @@ const MEDIA_SCHEMA: &str = include_str!("../migrations/0003_media_library.sql");
 const VISUAL_SCHEMA: &str = include_str!("../migrations/0004_visual_profiles.sql");
 const PROMPT_SCHEMA: &str = include_str!("../migrations/0005_image_prompt_drafts.sql");
 /// Aktueller interner SQLite-Migrationsstand.
-pub const CURRENT_DATABASE_VERSION: SchemaVersion = SchemaVersion(5);
+pub const CURRENT_DATABASE_VERSION: SchemaVersion = SchemaVersion(6);
 const BUSY_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Von der Speicherschicht gemeldete Fehler.
@@ -144,6 +144,11 @@ impl Database {
         }
         let mut version = found;
         while version < CURRENT_DATABASE_VERSION {
+            if version == SchemaVersion(5) {
+                self.migrate_imported_titles()?;
+                version = SchemaVersion(6);
+                continue;
+            }
             let transaction = self
                 .connection
                 .transaction_with_behavior(TransactionBehavior::Immediate)?;
@@ -183,6 +188,32 @@ impl Database {
             transaction.commit()?;
         }
         Ok(())
+    }
+
+    fn migrate_imported_titles(&mut self) -> Result<(), StorageError> {
+        // SQLite requires this outside a transaction for its documented table-rebuild procedure.
+        self.connection
+            .execute_batch("PRAGMA foreign_keys = OFF;")?;
+        let result = (|| -> Result<(), StorageError> {
+            let transaction = self
+                .connection
+                .transaction_with_behavior(TransactionBehavior::Immediate)?;
+            transaction.execute_batch(include_str!(
+                "../migrations/0006_imported_document_titles.sql"
+            ))?;
+            let violations: bool = transaction.query_row(
+                "SELECT EXISTS(SELECT 1 FROM pragma_foreign_key_check)",
+                [],
+                |row| row.get(0),
+            )?;
+            if violations {
+                return Err(StorageError::Sqlite(rusqlite::Error::InvalidQuery));
+            }
+            transaction.commit()?;
+            Ok(())
+        })();
+        self.connection.execute_batch("PRAGMA foreign_keys = ON;")?;
+        result
     }
 
     /// Liefert die gespeicherte Schema-Version.
@@ -315,7 +346,7 @@ mod tests {
         let path = directory.path().join("future.sqlite3");
         let connection = Connection::open(&path).expect("database should open");
         connection
-            .pragma_update(None, "user_version", 6)
+            .pragma_update(None, "user_version", 7)
             .expect("future version should be set");
         drop(connection);
 
@@ -325,8 +356,8 @@ mod tests {
         assert!(matches!(
             error,
             StorageError::FutureSchema {
-                found: SchemaVersion(6),
-                supported: SchemaVersion(5)
+                found: SchemaVersion(7),
+                supported: SchemaVersion(6)
             }
         ));
 
@@ -334,7 +365,7 @@ mod tests {
         let version: u32 = connection
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .expect("version should remain readable");
-        assert_eq!(version, 6);
+        assert_eq!(version, 7);
     }
 
     #[test]
@@ -514,6 +545,68 @@ mod tests {
             )
             .unwrap();
         assert_eq!(visual_tables, 2);
+    }
+
+    #[test]
+    fn v5_title_migration_preserves_references_fts_and_delete_triggers() {
+        let directory = tempdir().unwrap();
+        let path = directory.path().join("v5.sqlite3");
+        let connection = Connection::open(&path).unwrap();
+        for schema in [
+            INITIAL_SCHEMA,
+            STRUCTURE_SCHEMA,
+            MEDIA_SCHEMA,
+            VISUAL_SCHEMA,
+            super::PROMPT_SCHEMA,
+        ] {
+            connection.execute_batch(schema).unwrap();
+        }
+        connection.pragma_update(None, "user_version", 5).unwrap();
+        insert_project(&connection);
+        insert_document(&connection, "Suchanker bleibt erhalten");
+        connection.execute("INSERT INTO plot_card (project_id,document_id,position,updated_at) VALUES (?1,?2,0,?3)", params![PROJECT_ID,DOCUMENT_ID,TIMESTAMP]).unwrap();
+        connection.execute("INSERT INTO image_prompt_draft (id,project_id,name,source_document_id,source_document_revision,prompt_text,created_at,updated_at) VALUES (?1,?2,'Probe',?3,0,'Text',?4,?4)", params!["018f47ea-9b2d-7cc1-98e8-b5f4f6b741a4",PROJECT_ID,DOCUMENT_ID,TIMESTAMP]).unwrap();
+        drop(connection);
+        let database = Database::open(&path).unwrap();
+        let db = database.connection();
+        assert_eq!(fts_matches(db, "Suchanker"), 1);
+        for table in ["plot_card", "image_prompt_draft"] {
+            assert_eq!(
+                db.query_row(&format!("SELECT count(*) FROM {table}"), [], |r| r
+                    .get::<_, i64>(0))
+                    .unwrap(),
+                1
+            );
+        }
+        assert_eq!(
+            db.query_row("SELECT count(*) FROM pragma_foreign_key_check", [], |r| r
+                .get::<_, i64>(
+                0
+            ))
+            .unwrap(),
+            0
+        );
+        assert!(
+            db.pragma_query_value::<bool, _>(None, "foreign_keys", |r| r.get(0))
+                .unwrap()
+        );
+        db.execute("UPDATE document SET title='' WHERE id=?1", [DOCUMENT_ID])
+            .unwrap();
+        assert_eq!(fts_matches(db, "Suchanker"), 1);
+        db.execute("DELETE FROM document WHERE id=?1", [DOCUMENT_ID])
+            .unwrap();
+        assert_eq!(fts_matches(db, "Suchanker"), 0);
+        assert_eq!(
+            db.query_row("SELECT count(*) FROM image_prompt_draft", [], |r| r
+                .get::<_, i64>(0))
+                .unwrap(),
+            0
+        );
+        assert_eq!(
+            db.query_row("SELECT count(*) FROM plot_card", [], |r| r.get::<_, i64>(0))
+                .unwrap(),
+            0
+        );
     }
 
     #[test]

@@ -22,7 +22,7 @@ Jede verwaltete Verbindung aktiviert Fremdschlüssel, ein Wartefenster von fünf
 Schreibvorgänge und Migrationen beginnen als `IMMEDIATE`-Transaktion.
 
 `PRAGMA user_version` ist die technische Migrationsversion. Die zentrale aktuelle Version stammt
-ausschließlich aus `kraqel-domain`. Migrationen sind geordnete, eingebettete SQL-Dateien und laufen
+ausschließlich aus `kraqel-storage`. Migrationen sind geordnete, eingebettete SQL-Dateien und laufen
 atomar vorwärts. Eine unbekannte Zukunftsversion wird ohne Schemaänderung abgelehnt.
 
 Der Volltextindex ist eine externe FTS5-Inhaltstabelle für Titel und Klartext von Dokumenten.

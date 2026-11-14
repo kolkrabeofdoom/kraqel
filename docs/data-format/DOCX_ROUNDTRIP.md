@@ -2,10 +2,10 @@
 
 KQ-060 / Issue #117 implementiert den nativen Rust-Kern für das begrenzte Produktionsprofil v1. Die
 Repräsentation folgt ADR 0026; ADR 0027 legt Modell, Validierung und Versionsgrenze fest. Ein
-App-Dialog, Tauri-Commands und der Import als atomare neue Projektkopie fehlen weiterhin.
-Pflichtenheft Revision 1, F08/M3 und die Entscheidung in Abschnitt 11 sind damit teilweise
-umgesetzt. Medien, Story-Bibel, Beziehungen und vollständige Projektwiederherstellung bleiben
-Snapshot v3.
+App-Dialog, zwei zusätzliche Command-v1-Aktionen und atomarer Import als neue Projektkopie sind mit
+KQ-061 / ADR 0028 implementiert. Pflichtenheft Revision 1, F08/M3 und die Entscheidung in Abschnitt
+11 sind damit teilweise umgesetzt. Medien, Story-Bibel, Beziehungen und vollständige
+Projektwiederherstellung bleiben Snapshot v3.
 
 ## Fachliche Semantik
 
@@ -125,6 +125,19 @@ Produktkompatibilität. Negativtests prüfen beschädigte Pakete, Inventare, Mar
 Styles und unbekannte Inhalte. Die Office-Nachweise gelten für den synthetischen Korpus und die
 genannten Builds, nicht für jedes DOCX oder beliebige Office-Bearbeitungen.
 
-Als Nächstes folgen getrennte UI-/Command-Aktionen und ein vollständig validierter, atomarer Import
-als neue Projektkopie mit neuen UUIDs. Erst dessen native und browserseitige Abnahme ergänzt den
-bedienbaren Roundtrip; F08/M3 und Medieneinbettung bleiben getrennt zu bewerten.
+KQ-061 ergänzt den bedienbaren Austausch nach
+[ADR 0028](../architecture/decisions/0028-atomic-docx-project-copy.md). Die Startseite importiert
+als neues Projekt, die Exportansicht erzeugt ein getrenntes DOCX zum Wiederimport.
+`import_docx_project` erhält `{}` und liefert Workspace oder `null`; Pfad und Bytes bleiben in Rust.
+`export_roundtrip_manuscript` erhält nur `projectId` und liefert den bisherigen Export-Ergebnistyp.
+Bestehende Command-Verträge bleiben gültig.
+
+Ein neu identifiziertes Projekt wird in Staging befüllt, jedes Dokument erhält eine neue UUID.
+Einziger Storage-Schreibpfad ist eine Transaktion in einem leeren Projekt; danach wird die gesamte
+Manuskriptsemantik aus SQLite zurückgelesen und verglichen. Erst dann wird das Verzeichnis sichtbar.
+Die App verlangt zusätzlich Projekttitel mit 1–120 Zeichen, Dokumenttitel bis 240 Zeichen und
+höchstens 5 MiB Editor-JSON je Dokument. Leere Kapitel-/Szenentitel und Rand-Leerzeichen bleiben
+unverändert. Die Oberfläche zeigt leere Titel als „Ohne Titel“. SQLite-Migration 6 erhält dafür
+bestehende Dokumente, Rowids, Referenzen und Trigger. Snapshot v3 bleibt unverändert versioniert;
+sein Dokumenttitel-Schema enthält bereits keine Mindestlänge. F08/M3 und Medieneinbettung sind
+weiterhin nur teilweise abgenommen.

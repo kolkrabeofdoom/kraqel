@@ -28,6 +28,14 @@ pub struct StoredDocument {
     pub plain_text: String,
 }
 
+/// Kapitel einer vollständig geprüften neuen Manuskriptkopie, ohne Quellkennungen.
+pub struct ImportedChapter {
+    /// Unveränderter Titel, einschließlich eines leeren Titels.
+    pub title: String,
+    /// Geordnete Szenen mit unverändertem Titel und versioniertem Editorinhalt.
+    pub scenes: Vec<(String, EditorDocument)>,
+}
+
 /// Fachlich unterscheidbare Fehler des Dokument-Repositorys.
 #[derive(Debug)]
 pub enum DocumentError {
@@ -105,6 +113,77 @@ pub struct DocumentRepository<'database> {
 }
 
 impl<'database> DocumentRepository<'database> {
+    /// Befüllt ausschließlich ein leeres Projekt in einer einzigen Transaktion.
+    /// Neue Kennungen werden lokal vergeben; Titel werden nicht getrimmt oder ersetzt.
+    ///
+    /// # Errors
+    /// Lehnt nichtleere Projekte, ungültige Inhalte und überschrittene Speichergrenzen ab.
+    pub fn import_manuscript(
+        &mut self,
+        project_id: ProjectId,
+        chapters: &[ImportedChapter],
+    ) -> Result<(), DocumentError> {
+        let timestamp = current_timestamp()?;
+        let transaction = self.database.transaction()?;
+        validate_project_and_parent(&transaction, project_id, None, DocumentKind::Chapter)?;
+        let count: i64 = transaction.query_row(
+            "SELECT COUNT(*) FROM document WHERE project_id = ?1",
+            [project_id.to_string()],
+            |row| row.get(0),
+        )?;
+        if count != 0 {
+            return Err(DocumentError::InvalidInput);
+        }
+        let mut nodes = 0;
+        for (position, chapter) in chapters.iter().enumerate() {
+            let chapter_id = EntityId::new();
+            let chapter_content = empty_editor_document();
+            let entries = std::iter::once((
+                chapter_id,
+                None,
+                DocumentKind::Chapter,
+                position,
+                &chapter.title,
+                &chapter_content,
+            ))
+            .chain(chapter.scenes.iter().enumerate().map(
+                |(position, (title, content))| {
+                    (
+                        EntityId::new(),
+                        Some(chapter_id),
+                        DocumentKind::Scene,
+                        position,
+                        title,
+                        content,
+                    )
+                },
+            ));
+            for (id, parent, kind, position, title, content) in entries {
+                nodes += 1;
+                if nodes > 4096 {
+                    return Err(DocumentError::InvalidInput);
+                }
+                validate_imported_title(title)?;
+                validate_content(content)?;
+                let json =
+                    serde_json::to_string(content).map_err(|_| DocumentError::InvalidInput)?;
+                if json.len() > MAX_EDITOR_DOCUMENT_BYTES {
+                    return Err(DocumentError::InvalidInput);
+                }
+                transaction.execute(
+                    "INSERT INTO document (id, project_id, parent_id, kind, title, position, revision,
+                     content_json, plain_text, created_at, updated_at)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0, ?7, ?8, ?9, ?9)",
+                    params![id.to_string(), project_id.to_string(), parent.map(|p| p.to_string()),
+                        kind_name(kind), title, i64::try_from(position).map_err(|_| DocumentError::InvalidInput)?,
+                        json, plain_text(content), timestamp],
+                )?;
+            }
+        }
+        transaction.commit()?;
+        Ok(())
+    }
+
     /// Bindet das Repository an eine Projektdatenbank.
     pub const fn new(database: &'database mut Database) -> Self {
         Self { database }
@@ -386,13 +465,13 @@ impl<'database> DocumentRepository<'database> {
         expected_title: &str,
         title: &str,
     ) -> Result<DocumentNode, DocumentError> {
-        validate_title(expected_title)?;
+        validate_imported_title(expected_title)?;
         validate_title(title)?;
         let title = title.trim();
         let timestamp = current_timestamp()?;
         let transaction = self.database.transaction()?;
         let mut node = load_node(&transaction, project_id, document_id)?;
-        if node.title != expected_title.trim() {
+        if node.title != expected_title {
             return Err(DocumentError::RevisionConflict);
         }
         let changed = transaction.execute(
@@ -403,7 +482,7 @@ impl<'database> DocumentRepository<'database> {
                 timestamp,
                 project_id.to_string(),
                 document_id.to_string(),
-                expected_title.trim()
+                expected_title
             ],
         )?;
         if changed != 1 {
@@ -482,7 +561,7 @@ impl<'database> DocumentRepository<'database> {
         expected_revision: u64,
         expected_child_ids: &[EntityId],
     ) -> Result<(), DocumentError> {
-        validate_title(expected_title)?;
+        validate_imported_title(expected_title)?;
         if expected_child_ids
             .iter()
             .copied()
@@ -494,7 +573,7 @@ impl<'database> DocumentRepository<'database> {
         }
         let transaction = self.database.transaction()?;
         let node = load_node(&transaction, project_id, document_id)?;
-        if node.title != expected_title.trim() || node.revision != expected_revision {
+        if node.title != expected_title || node.revision != expected_revision {
             return Err(DocumentError::RevisionConflict);
         }
         let children = sibling_ids(&transaction, project_id, Some(document_id))?;
@@ -510,7 +589,7 @@ impl<'database> DocumentRepository<'database> {
             params![
                 project_id.to_string(),
                 document_id.to_string(),
-                expected_title.trim(),
+                expected_title,
                 i64::try_from(expected_revision).map_err(|_| DocumentError::InvalidInput)?
             ],
         )?;
@@ -686,6 +765,14 @@ fn validate_project_and_parent(
 fn validate_title(title: &str) -> Result<(), DocumentError> {
     let length = title.trim().chars().count();
     if (1..=240).contains(&length) {
+        Ok(())
+    } else {
+        Err(DocumentError::InvalidInput)
+    }
+}
+
+fn validate_imported_title(title: &str) -> Result<(), DocumentError> {
+    if title.chars().count() <= 240 && !title.contains('\0') {
         Ok(())
     } else {
         Err(DocumentError::InvalidInput)
@@ -1200,6 +1287,38 @@ mod tests {
             repository.list(project.id).expect("tree should load").len(),
             101
         );
+    }
+
+    #[test]
+    fn imported_titles_are_exact_and_empty_titles_can_be_renamed_or_deleted() {
+        use super::ImportedChapter;
+        let mut database = crate::Database::open_in_memory().unwrap();
+        let project = project();
+        database.connection().execute("INSERT INTO project (id,name,schema_version,created_at,updated_at) VALUES (?1,?2,1,'now','now')", params![project.id.to_string(),project.name]).unwrap();
+        let mut repository = DocumentRepository::new(&mut database);
+        let chapters = [ImportedChapter {
+            title: String::new(),
+            scenes: vec![("  Titel  ".to_owned(), content("Probe"))],
+        }];
+        repository.import_manuscript(project.id, &chapters).unwrap();
+        let nodes = repository.list(project.id).unwrap();
+        let chapter = nodes
+            .iter()
+            .find(|n| n.kind == DocumentKind::Chapter)
+            .unwrap();
+        let scene = nodes
+            .iter()
+            .find(|n| n.kind == DocumentKind::Scene)
+            .unwrap();
+        assert_eq!(scene.title, "  Titel  ");
+        assert!(repository.import_manuscript(project.id, &chapters).is_err());
+        repository
+            .rename(project.id, scene.id, "  Titel  ", "Benannt")
+            .unwrap();
+        repository
+            .delete(project.id, chapter.id, "", 0, &[scene.id])
+            .unwrap();
+        assert_eq!(repository.list(project.id).unwrap(), []);
     }
 
     fn project() -> Project {
