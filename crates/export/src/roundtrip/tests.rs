@@ -564,7 +564,12 @@ fn existing_exports_do_not_inherit_the_new_roundtrip_size_limit() {
 fn native_v1_writer_survives_real_word_and_libreoffice_saves() {
     let expected = sample().canonicalized().unwrap();
     let generated = include_bytes!("../../tests/fixtures/roundtrip-v1/generated.docx");
-    assert_eq!(write_docx_roundtrip(&sample()).unwrap(), generated);
+    // ZIP creator-OS metadata differs on Windows and Unix; compare every package part.
+    // Repeated generation within one environment is byte-identical and tested separately.
+    assert_eq!(
+        unpack(&write_docx_roundtrip(&sample()).unwrap()),
+        unpack(generated)
+    );
     for bytes in [
         generated.as_slice(),
         include_bytes!("../../tests/fixtures/roundtrip-v1/word-resaved.docx").as_slice(),

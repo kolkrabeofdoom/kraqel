@@ -2,8 +2,10 @@
 
 Synthetic corpus for KQ-060 / Issue #117, produced on 14 November 2026. No private manuscript. The
 native Rust writer creates `generated.docx` directly from `roundtrip::tests::sample`: 41 inventory
-nodes, 24 paragraph/title controls, 15 inventory properties. The regression test requires byte
-equality with a fresh native generation and semantic equality after real Office saves.
+nodes, 24 paragraph/title controls, 15 inventory properties. The regression test requires identical
+package parts with a fresh native generation and semantic equality after real Office saves. ZIP
+creator-OS metadata differs on Windows and Unix; repeated generation within one environment remains
+byte-identical and is tested separately.
 
 | File                       | Provenance                                                 | Expected change |
 | -------------------------- | ---------------------------------------------------------- | --------------- |
