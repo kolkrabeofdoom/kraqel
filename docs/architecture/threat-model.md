@@ -211,10 +211,13 @@ Quelllöschung in genau einer SQLite-Transaktion. KQ-044 vereinigt auch zwei vis
 Zielvorrang und deduplizierten Ausschlüssen; ungültige kombinierte Eigenschaften führen zum
 vollständigen Rollback. Eine automatische Ähnlichkeitserkennung löst den Merge niemals selbst aus.
 
-KQ-062 beschreibt bislang nur den vorgeschlagenen Medienexport-Vertrag, keine zusätzliche Laufzeit-
-Vertrauensgrenze. Eine Umsetzung muss ausschließlich ausdrücklich gewählte direkt verknüpfte
-Szenenbilder aus geprüften Originalbytes ableiten, Metadaten entfernen, Quell-/Ableitungshashes
-nachweisen und neue vollständige Paketgenerationen veröffentlichen. Die vorgeschlagenen Budgets,
-Konfliktprüfungen und Herkunftsregeln sind vor Freigabe unabhängig in Rust umzusetzen und zu testen.
-Eine Paket-Allowlist-Erweiterung des bestehenden DOCX-Text-Roundtrips ist ausdrücklich nicht Teil
-dieses Vorschlags. Siehe `docs/specifications/MEDIA_EXPORT_CONTRACT_DRAFT.md` und ADR 0029.
+KQ-063 setzt den freigegebenen Medienexport-Vertrag für Markdown/HTML in Rust um. Nur ausdrücklich
+gewählte direkt verknüpfte Szenenbilder werden aus eingefrorenen, hashgeprüften Originalbytes
+abgeleitet. Größen-, Pixel-, Mengen- und Paketbudgets gelten unabhängig von der UI; neue PNGs
+enthalten keine übernommenen Metadaten. Das Manifest verwendet paketlokale IDs und lässt private
+Originalnamen, Pfade, Tags und Prompts weg. Bildtexte werden im jeweiligen Ausgabeformat maskiert.
+Ein konsistenter SQLite-Lesestand wird vor Veröffentlichung erneut verglichen; eine kurze
+Schreibsperre schützt den finalen Vergleich bis zum atomaren Umbenennen der neuen Generation. Fehler
+lassen alte Pakete bestehen. Decoderlimits sind keine harte Prozess-RSS-Garantie, und die oben
+beschriebene Dateisystem-Austauschlücke bleibt bestehen. Der DOCX-Text-Roundtrip wird nicht
+erweitert. Siehe `docs/data-format/ILLUSTRATED_MANUSCRIPT.md` und ADR 0030.

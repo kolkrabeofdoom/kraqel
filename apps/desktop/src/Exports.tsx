@@ -1,3 +1,4 @@
+import { IllustratedExport } from "./IllustratedExport";
 import type { ProjectId } from "@kraqel/domain";
 import { useState } from "react";
 import {
@@ -91,6 +92,7 @@ export function Exports({ projectId }: { readonly projectId: ProjectId }) {
           {busy === "roundtrip" ? "Kolkrabe arbeitet …" : "DOCX zum Wiederimport erzeugen"}
         </button>
       </article>
+      <IllustratedExport projectId={projectId} disabled={busy !== null} />
       {result ? (
         <p className="success-banner" role="status">
           Export fertig: <strong>{result.fileName}</strong> (
