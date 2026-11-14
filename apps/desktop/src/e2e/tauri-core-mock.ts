@@ -220,6 +220,44 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       writeState(state);
       return node;
     }
+    case "import_docx_document": {
+      const outcome = localStorage.getItem("kraqel-e2e-docx-import");
+      if (outcome === "cancel") return null;
+      if (outcome === "error") throw new Error("untrusted parser details must not reach UI");
+      const current = findProject(state, payload.projectId);
+      const parentId = payload.parentId as EntityId;
+      const position = current.documents.filter(({ node }) => node.parentId === parentId).length;
+      const node = newNode(current.project.id, parentId, "scene", "DOCX-Probe", position);
+      const imported = storedDocument(node);
+      imported.content = {
+        version: 1,
+        document: {
+          type: "doc",
+          content: [
+            {
+              type: "heading",
+              attrs: { level: 2 },
+              content: [{ type: "text", text: "Überschrift" }],
+            },
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "Importiertes DOCX",
+                  marks: [{ type: "bold" }, { type: "italic" }],
+                },
+              ],
+            },
+          ],
+        },
+      };
+      imported.plainText = "Überschrift\nImportiertes DOCX";
+      current.documents.push(imported);
+      current.plotCards.push(newPlotCard(node, current.plotCards.length));
+      writeState(state);
+      return node;
+    }
     case "load_document": {
       const current = findStoredDocument(findProject(state, payload.projectId), payload.documentId);
       return structuredClone(current);

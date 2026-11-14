@@ -15,6 +15,7 @@ import {
   createDocument,
   deleteDocument,
   importTextDocument,
+  importDocxDocument,
   loadDocument,
   renameDocument,
   reorderDocuments,
@@ -97,6 +98,12 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<WorkspaceView>("manuscript");
+  const [docxChapter, setDocxChapter] = useState<EntityId | null>(null);
+  const [importing, setImporting] = useState(false);
+  const docxHeading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (docxChapter) docxHeading.current?.focus();
+  }, [docxChapter]);
   const tree = useMemo(() => buildDocumentTree(workspace.documents), [workspace.documents]);
 
   useEffect(() => {
@@ -154,6 +161,8 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
   };
 
   const importScene = async (chapterId: EntityId) => {
+    if (importing) return;
+    setImporting(true);
     try {
       const node = await importTextDocument(workspace.project.id, chapterId);
       if (!node) return;
@@ -164,6 +173,27 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
       setError(
         "Die Textdatei konnte nicht importiert werden. Unterstützt werden UTF-8-Dateien bis 2 MiB.",
       );
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const importDocx = async () => {
+    if (!docxChapter || importing) return;
+    setImporting(true);
+    try {
+      const node = await importDocxDocument(workspace.project.id, docxChapter);
+      if (!node) return;
+      setWorkspace((current) => ({ ...current, documents: [...current.documents, node] }));
+      setActiveId(node.id);
+      setError(null);
+    } catch {
+      setError(
+        "Das DOCX-Dokument konnte nicht importiert werden. Es ist beschädigt, zu groß oder enthält nicht unterstützte Inhalte (zum Beispiel Tabellen, Bilder oder Listen).",
+      );
+    } finally {
+      setImporting(false);
+      setDocxChapter(null);
     }
   };
 
@@ -329,6 +359,8 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
                   onSelect={setActiveId}
                   onAddScene={addScene}
                   onImportScene={importScene}
+                  onImportDocx={setDocxChapter}
+                  importing={importing || docxChapter !== null}
                   canMoveUp={index > 0}
                   canMoveDown={index < tree.length - 1}
                   onMove={moveNode}
@@ -341,6 +373,29 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
           </aside>
 
           <section className="editor-panel">
+            {docxChapter ? (
+              <section aria-labelledby="docx-import-heading" className="docx-import-notice">
+                <h2 id="docx-import-heading" ref={docxHeading} tabIndex={-1}>
+                  DOCX als neue Szene
+                </h2>
+                <p>
+                  Übernommen werden Absätze, Überschriften, Fett/Kursiv und Zeilenumbrüche.
+                  Schriftarten und Seitenlayout werden nicht übernommen. Tabellen, Bilder, Fußnoten,
+                  Links, Felder, Änderungen und Listen werden abgelehnt. Maximal 8 MiB.
+                </p>
+                <button type="button" disabled={importing} onClick={() => void importDocx()}>
+                  DOCX-Datei auswählen
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={importing}
+                  onClick={() => setDocxChapter(null)}
+                >
+                  DOCX-Import abbrechen
+                </button>
+              </section>
+            ) : null}
             {error ? <p className="error-banner">{error}</p> : null}
             {loading ? <p className="empty-editor">Szene wird geladen …</p> : null}
             {!loading && stored ? (
@@ -427,6 +482,8 @@ function ChapterTree({
   onSelect,
   onAddScene,
   onImportScene,
+  onImportDocx,
+  importing,
   canMoveUp,
   canMoveDown,
   onMove,
@@ -439,6 +496,8 @@ function ChapterTree({
   readonly onSelect: (id: EntityId) => void;
   readonly onAddScene: (chapterId: EntityId) => Promise<void>;
   readonly onImportScene: (chapterId: EntityId) => Promise<void>;
+  readonly onImportDocx: (chapterId: EntityId) => void;
+  readonly importing: boolean;
   readonly canMoveUp: boolean;
   readonly canMoveDown: boolean;
   readonly onMove: (node: DocumentNode, delta: -1 | 1) => Promise<void>;
@@ -504,9 +563,19 @@ function ChapterTree({
           type="button"
           className="compact secondary"
           aria-label={`Import: Textdatei in ${chapter.title}`}
+          disabled={importing}
           onClick={() => void onImportScene(chapter.id)}
         >
           Import
+        </button>
+        <button
+          type="button"
+          className="compact secondary"
+          aria-label={`Import: DOCX in ${chapter.title}`}
+          disabled={importing}
+          onClick={() => onImportDocx(chapter.id)}
+        >
+          DOCX
         </button>
       </div>
       <div role="group">

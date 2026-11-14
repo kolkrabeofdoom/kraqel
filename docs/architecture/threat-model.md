@@ -1,5 +1,20 @@
 # Bedrohungsmodell (Entwurf)
 
+## KQ-055: Begrenzter DOCX-Eingang
+
+DOCX ist ein nicht vertrauenswürdiges ZIP-/XML-Paket. ADR 0024 und
+[`../data-format/DOCX_IMPORT.md`](../data-format/DOCX_IMPORT.md) begrenzen Archivgröße, Einträge,
+entpackte Daten, Kompressionsverhältnis, XML-Tiefe, Knotenzahl und Text. Die ZIP-Headerkonsistenz
+und doppelte Namen werden ausdrücklich geprüft, bevor Einträge verarbeitet werden. Keine Extraktion,
+Office-Ausführung, Makroausführung oder externe Beziehung ist erlaubt. XML wird namespacebewusst
+ohne DTD-/Entity-Resolver gelesen. Bekannte Hilfsteile bleiben untrusted; Vorschaudaten werden nicht
+gerendert, Content Controls nicht übernommen.
+
+Unbekannte Inhaltssemantik wird vor der einzigen schreibenden Storage-Transaktion abgelehnt. Der
+Import erzeugt eine neue Szene und verändert bestehende Inhalte nicht. Pfade und Rohfehler verlassen
+Rust nicht. Die bestehende TOCTOU-Grenze gegenüber böswilligen parallelen Dateisystemänderungen
+bleibt offen; DOCX ist kein neuer vertrauenswürdiger Projektpfad.
+
 ## Schutzgüter
 
 - unveröffentlichte Manuskripte und Story-Bibel-Daten

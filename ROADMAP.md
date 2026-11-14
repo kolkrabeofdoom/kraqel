@@ -33,7 +33,11 @@
      - [x] Nativen Textdialog mit gültigem TXT/Markdown, Abbruch, ungültigem UTF-8 und Übergröße
            prüfen
      - [ ] DOCX-Import und Roundtrip-Garantien definieren und implementieren
-       - Vorschlag zur fachlichen Entscheidung: `docs/specifications/DOCX_IMPORT_SCOPE_DRAFT.md`
+       - [x] Begrenzten DOCX-Import als neue Szene mit expliziter Ablehnung nicht unterstützter
+             Inhalte umsetzen
+       - [ ] Strukturerhaltenden Roundtrip separat spezifizieren und implementieren
+       - Importvertrag: `docs/data-format/DOCX_IMPORT.md`; Roundtrip-Vorschlag:
+         `docs/specifications/DOCX_IMPORT_SCOPE_DRAFT.md`
    - [x] Lokale Medienbibliothek mit Metadaten, Links, Backup und Snapshot-Assets
      - [x] Browser-E2E für PNG-Import, Metadaten und Szenenverknüpfung
      - [x] Medienkarten bei schmalem Fenster und hohem Zoom ohne abgeschnittene Inhalte darstellen

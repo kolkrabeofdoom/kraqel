@@ -1,7 +1,9 @@
 # DOCX-Import und Roundtrip: Vorschlag für den nächsten Scope
 
-Stand: 14. November 2026. Status: Vorschlag, noch keine angenommene Architekturentscheidung und
-keine implementierte Funktion. Es wird noch kein Parser ausgewählt.
+Stand: 14. November 2026. Der erste Importumfang wurde ausdrücklich freigegeben und ist als
+[ADR 0024](../architecture/decisions/0024-bounded-docx-import.md) beschlossen. Implementierung und
+Grenzen beschreibt der [DOCX-Importvertrag v1](../data-format/DOCX_IMPORT.md), KQ-055 / Issue #107.
+Die unten beschriebene strukturerhaltende Roundtrip-Stufe bleibt ein getrennter Vorschlag.
 
 ## Bezug und vorhandene Grenzen
 
@@ -64,6 +66,6 @@ bleiben bis zur ausdrücklichen fachlichen Klärung entsprechend eingeschränkt.
    leeren Absätzen, Umbrüchen und allen Überschriftenebenen vergleichen.
 5. Bei einer Writer-Erweiterung OOXML-Struktur und reales Rendering erneut prüfen.
 
-Vor Implementierung zu entscheiden: enger Import als neue Szene, Ablehnung nicht unterstützter
-Inhalte und der getrennte Umfang des strukturerhaltenden Roundtrips. Danach ein kleines Issue und
-eine angenommene ADR mit konkreten Limits und Akzeptanzkriterien erstellen.
+Der enge Import als neue Szene und die Ablehnung nicht unterstützter Inhalte sind mit ADR 0024
+beschlossen. Vor der Roundtrip-Implementierung sind deren genauer Umfang und Garantien weiterhin
+getrennt zu entscheiden; die aktuelle Importimplementierung verspricht keinen Projekt-Roundtrip.

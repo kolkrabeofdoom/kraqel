@@ -2,7 +2,7 @@
 
 Stand: 14. November 2026
 
-Code-Referenz: KQ-054 (Issue #105)
+Code-Referenz: KQ-055 (Issue #107)
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -17,7 +17,7 @@ als vollständige Fachfunktion.
 | **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                                                                                                                                                                                                                                                                                |
 | **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, Undo/Redo, Wortzählung, Fokusmodus, konfliktgeprüfter Autosave sowie sicheres Umbenennen, Umordnen, Löschen und SQLite-Backup vorhanden. KQ-032 automatisiert Tastatur-, Fokus- und Axe-Prüfungen; KQ-033 bestätigt den Kern manuell mit Windows-Sprachausgabe in der Tauri-WebView.                                                                                                              |
 | **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks sind in getrennten Chromium-Abläufen geprüft. KQ-033 bestätigt Story-Bibel-Beziehungen und Rückverweise per Windows-Sprachausgabe; Plotboard und Timelines wurden assistiv stichprobenartig geprüft.                                                                                                                            |
-| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, Medienbibliothek sowie visuelle Profile und Stilvorlagen sind im browserseitigen Kernablauf geprüft. KQ-038/KQ-050 ergänzen Snapshot-v3-Neuimport, Beispielvorlage und freie Archivauswahl. KQ-051 ergänzt den nativen `.kraqel`-Export; KQ-054 den begrenzten UTF-8-/Markdown-Import als neue Szene. DOCX-Import und Roundtrip fehlen.                                                                                        |
+| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, Medienbibliothek sowie visuelle Profile und Stilvorlagen sind im browserseitigen Kernablauf geprüft. KQ-038/KQ-050 ergänzen Snapshot-v3-Neuimport, Beispielvorlage und freie Archivauswahl. KQ-051 ergänzt den nativen `.kraqel`-Export; KQ-054 den begrenzten UTF-8-/Markdown-Import als neue Szene. KQ-055 ergänzt den begrenzten DOCX-Import als neue Szene; der strukturerhaltende Roundtrip fehlt.                        |
 | **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Technischer 0.1-Umfang weitgehend umgesetzt:** Textprotokolle, browserseitig geprüfte Offline-Kontinuität und Prompt-Entwürfe sowie Bild-Capability- und Jobverträge vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise und Bildgenerierung fehlen.                                                                                                                                                                                                                                            |
 | **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Alpha 4 veröffentlicht:** Debug- und Tauri-Smoke-Tests, isolierter NSIS-Testinstaller, Accessibility-Nachweise sowie ein getrennter unsignierter x64-NSIS-Releasepfad sind vorhanden. KQ-045 belegt Build, GitHub-Rückdownload und SHA-256 von `v0.1.0-alpha.4`; Release Candidate und öffentlicher Rückdownload wurden isoliert installiert und deinstalliert. MSI, Signierung, Updater und ARM64 sind ausgeschlossen; SmartScreen, Anwendungsstart und Persistenz auf Zweitrechner/Clean-VM fehlen. |
 | **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
@@ -81,6 +81,17 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   November 2026 bestätigt TXT/Markdown, Abbruch, ungültiges UTF-8, Übergröße, Umbenennung und
   Wiederöffnen. Verfahren und Grenzen stehen in
   [`testing/native-text-import-acceptance.md`](testing/native-text-import-acceptance.md).
+- KQ-055 ergänzt den begrenzten DOCX-Import als neue Szene. ADR 0024 und
+  [`data-format/DOCX_IMPORT.md`](data-format/DOCX_IMPORT.md) definieren unterstützte Textsemantik,
+  ZIP-/XML-Grenzen und die ausdrückliche Ablehnung unbekannter Inhaltsknoten. Pfad und Archivbytes
+  bleiben in Rust; Szene und Inhalt entstehen gemeinsam in der vorhandenen Storage-Transaktion. Rust
+  prüft Styles, Namespaces, Ressourcenlimits und unveränderte Daten bei Ablehnung; eine unabhängig
+  mit python-docx erzeugte Fixture ergänzt die Minimalpakete. IPC- und Browserprüfungen decken
+  Dateiauswahlvertrag, Hinweis, Formatübernahme, Abbruch und bereinigte Fehler ab. Die native
+  Windows-Prüfung bestätigt gültige Datei, Abbruch, Tabelle und beschädigte Datei; Verfahren und
+  Aussagegrenzen stehen in
+  [`testing/native-docx-import-acceptance.md`](testing/native-docx-import-acceptance.md). Der
+  Exportwriter und der strukturerhaltende Roundtrip sind nicht Teil dieses Inkrements.
 - Playwright mit Chromium und einem testexklusiven Browser-Command-Adapter für M1, Story-Bibel,
   Plotboard, Timelines, Medien, visuelle Profile, Kontinuität, Bildprompt-Builder, Versionen und
   Export sowie die eingebettete Beispielvorlage; die CI führt fachlich getrennte Abläufe unter
@@ -517,10 +528,10 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
 - **Snapshotimport bewusst begrenzt:** Snapshot v3 kann als neues Projekt über die eingebettete
   Vorlage oder einen nativen Dateidialog importiert werden. v1/v2-Import, Zusammenführen und
   Überschreiben sind nicht implementiert; F07 ist deshalb noch nicht vollständig abgenommen.
-- **Export ist kein Import:** Die vier Ausgaben sind erzeugbar; ein Roundtrip zurück nach KRAQEL und
-  der im Pflichtenheft genannte DOCX-Import sind nicht implementiert. Der begrenzte
-  UTF-8-/Markdown-Import und der Snapshot-v3-Import ersetzen diesen Manuskriptroundtrip nicht; F08
-  ist deshalb nur teilweise erfüllt.
+- **Begrenzter Import ist kein Roundtrip:** Die vier Ausgaben, der UTF-8-/Markdown-Import und der
+  begrenzte DOCX-Import sind vorhanden. Der DOCX-Import erzeugt eine neue Szene; er rekonstruiert
+  keine Kapitel-/Szenenstruktur und übernimmt keine Medien. Ein strukturerhaltender Roundtrip zurück
+  nach KRAQEL bleibt unimplementiert; F08 ist weiterhin nur teilweise erfüllt.
 - **Exportformatierung bewusst begrenzt:** Links, Code, Tabellen, Fußnoten und Medien werden nicht
   still reduziert, sondern derzeit abgelehnt. PDF verwendet eingebaute Standardschriften; vor einer
   breiteren Unicode-Abnahme ist eine eingebettete freie Schrift zu prüfen.
@@ -714,7 +725,7 @@ Medien-Einbettung je Exportformat. Rechts- und Lizenzfragen der Bildprovider sin
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert                                                                                                                                                                                                                                       | Vor großen Projekten messen; Migration nur mit Evidenz                                                                                     |
 | Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                                                                                                                                                                                                                                                             | Gemeinsame Fixtures oder spätere Codegenerierung bewerten                                                                                  |
-| Datenformat                  | Snapshot v3 samt begrenztem Neuimport, nativer und unter Windows manuell geprüfter Archivauswahl, Prompt-Entwürfen, Profilen und Hash-Assets; UTF-8-/Markdown-Import automatisiert und im dokumentierten nativen Windows-Kernumfang geprüft; DOCX-Import und Manuskriptroundtrip fehlen                                                           | DOCX-Scope entscheiden; Fremdarchive fuzztesten; DOCX-Roundtrip vor F07/F08-Abnahme                                                        |
+| Datenformat                  | Snapshot v3 samt begrenztem Neuimport, nativer und unter Windows manuell geprüfter Archivauswahl, Prompt-Entwürfen, Profilen und Hash-Assets; UTF-8-/Markdown-Import automatisiert und im dokumentierten nativen Windows-Kernumfang geprüft; Begrenzter DOCX-Import vorhanden; strukturerhaltender Manuskriptroundtrip fehlt                      | DOCX-Roundtrip festlegen; Fremdarchive fuzztesten; DOCX-Roundtrip vor F07/F08-Abnahme                                                      |
 | Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                                                                                                                                                                                                                                                                   | Freie eingebettete Schrift und Medienkonzept prüfen                                                                                        |
 | Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                                                                                                                                                                                                                                                         | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen                                                                                   |
 | Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                                                                                                                                                                                                                                                          | Bei jeder Erweiterung Fixtures und Migration prüfen                                                                                        |
@@ -735,15 +746,17 @@ Medien-Einbettung je Exportformat. Rechts- und Lizenzfragen der Bildprovider sin
 
 ## Nächste geplante Entwicklungsstufe
 
-**M3-Datenportabilität: DOCX-Import und Roundtrip fachlich eingrenzen.**
+**M3-Datenportabilität: strukturerhaltenden DOCX-Roundtrip getrennt festlegen.**
 
 Empfohlener, überprüfbarer Scope:
 
 1. Die native UTF-8-/Markdown-Prüfung ist bestanden; Nachweis und Aussagegrenzen stehen in
    [`testing/native-text-import-acceptance.md`](testing/native-text-import-acceptance.md).
-2. Den [DOCX-Scope-Vorschlag](specifications/DOCX_IMPORT_SCOPE_DRAFT.md) fachlich entscheiden und
-   Einleseumfang sowie Roundtrip-Garantien getrennt spezifizieren, bevor ein Parser gewählt wird.
-   Der Vorschlag ist noch nicht angenommen; Import und Roundtrip bleiben unimplementiert.
+2. Der enge DOCX-Import ist ausdrücklich freigegeben und mit ADR 0024 umgesetzt. Für den
+   [getrennten Roundtrip-Vorschlag](specifications/DOCX_IMPORT_SCOPE_DRAFT.md) sind unterstützte
+   Struktur, Metadaten, Garantien nach Word-Bearbeitung und Ablehnungsfälle noch festzulegen. Der
+   bisherige Writer verliert hohe Überschriftenebenen sowie Listen-/Zitatstruktur; der Import darf
+   diese Informationen nicht heuristisch erfinden.
 
 Die zusätzliche Installerprüfung auf einem weiteren Windows-Rechner ist bewusst zurückgestellt und
 wird später manuell nachgeholt.
@@ -773,7 +786,7 @@ bestätigt. KQ-051 ergänzt den nativen, begrenzten `.kraqel`-Export; KQ-052 die
 Projektlöschung. KQ-053 aktiviert Git-Langpfade pro internem Prozess; der reale Windows-Snapshot-
 und Archivexport sowie die zweistufige Löschung einer Testkopie sind bestätigt. KQ-054 ergänzt den
 automatisiert geprüften, atomaren UTF-8-/Markdown-Import als Szene; dessen nativer Windows-Dialog
-ist am 14. November 2026 im dokumentierten Umfang geprüft. Als Nächstes wird der
-DOCX-Scope-Vorschlag fachlich entschieden und in einen getrennten Import-/Roundtrip-Vertrag
-überführt. Die bewusst zurückgestellte Zweitrechner- oder Clean-VM-Abnahme bleibt offen. Für einen
-Orts- und Rechnerwechsel gilt `docs/WORKSTATION_HANDOFF.md`.
+ist am 14. November 2026 im dokumentierten Umfang geprüft. Als Nächstes wird der getrennte
+DOCX-Roundtrip-Vertrag festgelegt; der enge Importumfang ist mit KQ-055/ADR 0024 umgesetzt. Die
+bewusst zurückgestellte Zweitrechner- oder Clean-VM-Abnahme bleibt offen. Für einen Orts- und
+Rechnerwechsel gilt `docs/WORKSTATION_HANDOFF.md`.
