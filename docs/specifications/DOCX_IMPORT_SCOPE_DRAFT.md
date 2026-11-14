@@ -3,7 +3,9 @@
 Stand: 14. November 2026. Der erste Importumfang wurde ausdrücklich freigegeben und ist als
 [ADR 0024](../architecture/decisions/0024-bounded-docx-import.md) beschlossen. Implementierung und
 Grenzen beschreibt der [DOCX-Importvertrag v1](../data-format/DOCX_IMPORT.md), KQ-055 / Issue #107.
-Die unten beschriebene strukturerhaltende Roundtrip-Stufe bleibt ein getrennter Vorschlag.
+Die unten beschriebene strukturerhaltende Roundtrip-Stufe bleibt ein getrennter Vorschlag. Der
+konkrete [Roundtrip-Vertragsentwurf v1](DOCX_ROUNDTRIP_CONTRACT_DRAFT.md) beschreibt seit KQ-057 die
+vorgeschlagene Repräsentation, Garantien nach Office-Bearbeitung und Abnahmekriterien.
 
 ## Bezug und vorhandene Grenzen
 
