@@ -1,6 +1,6 @@
 # Entwicklungsstatus
 
-Stand: 12. November 2026
+Stand: 14. November 2026
 
 Code-Referenz: KQ-054 (Issue #105)
 
@@ -77,8 +77,10 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
   und NUL-Freiheit werden geprüft. TXT-Absätze sowie Markdown-Überschriften, Zitate, Listen und
   Codeblöcke werden nach Editor-Dokument v1 übertragen; unbekannte Syntax bleibt sichtbar. Szene,
   Inhalt und Klartextindex entstehen transaktional. Rust-, Command- und Browsertests decken Import,
-  editierbaren Titel, ungültige Inhalte und neutralen Abbruch ab. Der echte native Windows-Dialog
-  ist noch manuell zu prüfen.
+  editierbaren Titel, ungültige Inhalte und neutralen Abbruch ab. Die native Windows-Prüfung am 14.
+  November 2026 bestätigt TXT/Markdown, Abbruch, ungültiges UTF-8, Übergröße, Umbenennung und
+  Wiederöffnen. Verfahren und Grenzen stehen in
+  [`testing/native-text-import-acceptance.md`](testing/native-text-import-acceptance.md).
 - Playwright mit Chromium und einem testexklusiven Browser-Command-Adapter für M1, Story-Bibel,
   Plotboard, Timelines, Medien, visuelle Profile, Kontinuität, Bildprompt-Builder, Versionen und
   Export sowie die eingebettete Beispielvorlage; die CI führt fachlich getrennte Abläufe unter
@@ -712,7 +714,7 @@ Medien-Einbettung je Exportformat. Rechts- und Lizenzfragen der Bildprovider sin
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert                                                                                                                                                                                                                                       | Vor großen Projekten messen; Migration nur mit Evidenz                                                                                     |
 | Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                                                                                                                                                                                                                                                             | Gemeinsame Fixtures oder spätere Codegenerierung bewerten                                                                                  |
-| Datenformat                  | Snapshot v3 samt begrenztem Neuimport, nativer und unter Windows manuell geprüfter Archivauswahl, Prompt-Entwürfen, Profilen und Hash-Assets; UTF-8-/Markdown-Import automatisiert geprüft, nativer Windows-Dialog noch offen; DOCX-Import und Manuskriptroundtrip fehlen                                                                         | Textdialog manuell prüfen; Fremdarchive fuzztesten; DOCX-Roundtrip vor F07/F08-Abnahme                                                     |
+| Datenformat                  | Snapshot v3 samt begrenztem Neuimport, nativer und unter Windows manuell geprüfter Archivauswahl, Prompt-Entwürfen, Profilen und Hash-Assets; UTF-8-/Markdown-Import automatisiert und im dokumentierten nativen Windows-Kernumfang geprüft; DOCX-Import und Manuskriptroundtrip fehlen                                                           | DOCX-Scope entscheiden; Fremdarchive fuzztesten; DOCX-Roundtrip vor F07/F08-Abnahme                                                        |
 | Exportrenderer               | DOCX/PDF gerendert geprüft; PDF-Standardschrift begrenzt Unicode, Medien fehlen                                                                                                                                                                                                                                                                   | Freie eingebettete Schrift und Medienkonzept prüfen                                                                                        |
 | Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                                                                                                                                                                                                                                                         | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen                                                                                   |
 | Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                                                                                                                                                                                                                                                          | Bei jeder Erweiterung Fixtures und Migration prüfen                                                                                        |
@@ -737,9 +739,11 @@ Medien-Einbettung je Exportformat. Rechts- und Lizenzfragen der Bildprovider sin
 
 Empfohlener, überprüfbarer Scope:
 
-1. Den nativen UTF-8-/Markdown-Dialog auf Windows manuell mit gültiger Datei, Abbruch, ungültigem
-   UTF-8 und einer Datei über 2 MiB prüfen.
-2. DOCX-Einleseumfang und Roundtrip-Garantien getrennt spezifizieren, bevor ein Parser gewählt wird.
+1. Die native UTF-8-/Markdown-Prüfung ist bestanden; Nachweis und Aussagegrenzen stehen in
+   [`testing/native-text-import-acceptance.md`](testing/native-text-import-acceptance.md).
+2. Den [DOCX-Scope-Vorschlag](specifications/DOCX_IMPORT_SCOPE_DRAFT.md) fachlich entscheiden und
+   Einleseumfang sowie Roundtrip-Garantien getrennt spezifizieren, bevor ein Parser gewählt wird.
+   Der Vorschlag ist noch nicht angenommen; Import und Roundtrip bleiben unimplementiert.
 
 Die zusätzliche Installerprüfung auf einem weiteren Windows-Rechner ist bewusst zurückgestellt und
 wird später manuell nachgeholt.
@@ -769,6 +773,7 @@ bestätigt. KQ-051 ergänzt den nativen, begrenzten `.kraqel`-Export; KQ-052 die
 Projektlöschung. KQ-053 aktiviert Git-Langpfade pro internem Prozess; der reale Windows-Snapshot-
 und Archivexport sowie die zweistufige Löschung einer Testkopie sind bestätigt. KQ-054 ergänzt den
 automatisiert geprüften, atomaren UTF-8-/Markdown-Import als Szene; dessen nativer Windows-Dialog
-ist noch manuell zu bestätigen. Danach folgt die getrennte DOCX-/Roundtrip-Spezifikation. Die
-bewusst zurückgestellte Zweitrechner- oder Clean-VM-Abnahme bleibt offen. Für einen Orts- und
-Rechnerwechsel gilt `docs/WORKSTATION_HANDOFF.md`.
+ist am 14. November 2026 im dokumentierten Umfang geprüft. Als Nächstes wird der
+DOCX-Scope-Vorschlag fachlich entschieden und in einen getrennten Import-/Roundtrip-Vertrag
+überführt. Die bewusst zurückgestellte Zweitrechner- oder Clean-VM-Abnahme bleibt offen. Für einen
+Orts- und Rechnerwechsel gilt `docs/WORKSTATION_HANDOFF.md`.
