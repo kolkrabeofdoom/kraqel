@@ -1,5 +1,23 @@
 # Bedrohungsmodell (Entwurf)
 
+## KQ-069 A: Gemessener AppContainer-Prototyp, keine Produktgrenze
+
+Der Forschungslauncher startet ausschließlich synthetische Testdaten unter einer eigenen
+AppContainer-SID ohne Capabilities, prüft den suspendierten Root und verwendet einen Job ohne
+Breakaway mit begrenzter Laufzeit. Nur sein TEMP-Datenbereich erhält zusätzliche Rechte. ETW findet
+bei drei vollständigen isolierten App-Läufen keinen Verkehr außerhalb Loopback; der explizite nicht
+isolierte Vergleich zeigt 201 öffentliche WebView2-Ereignisse. Beide Messungen sind gültig. 23
+Tokenstichproben sind keine Vor-Ausführungsattestierung aller 25 Prozesslebenszeiten.
+
+Die CLI bleibt ein nicht isolierter Forschungscontroller mit Diagnosekontrollen, kein freigegebener
+Broker für echte Manuskripte. Normale App-/Installerstarts sind unverändert unisoliert. Öffentliche
+UDP-Zustellung, IPv6, DNS-/OS-/COM-/Shell-Broker und Prozesse außerhalb des Eltern-/Jobbaums sind
+nicht vollständig abgenommen. Loopback-Connects gelingen; der Dateidialog öffnet im Container nicht.
+Keine breite Benutzerprofilfreigabe oder Internetfähigkeit zur Umgehung dieser Grenze. Der Prototyp
+verwendet eine separate Win32-FFI-Grenze; Produktcrates behalten `unsafe_code = forbid`. Q-01/Q-02
+bleiben nicht bestanden. [Protokoll](../testing/native-runtime-isolation.md),
+[beauftragte Richtung A](decisions/0034-webview-network-boundary-proposal.md).
+
 ## KQ-069: Runtime-Dienste auch ohne Projektdaten
 
 Der zusätzliche lokale NetLog zeigt bereits bei leerem Projektbestand Konfigurations-GETs und

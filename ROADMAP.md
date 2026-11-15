@@ -91,9 +91,12 @@
              Export-/Importlauf; unterstützte Maßnahmen und Grenzen dokumentieren
        - [x] KQ-069: ETW mit drei vollständigen App-Läufen, Dokument-CRUD, Medienimport/-Metadaten
              und Export/Neuimport wiederholen; gültige Messung bestätigt öffentlichen Verkehr
-       - [ ] KQ-069: Unterstützte Isolation unter dem bestehenden strikten Ziel untersuchen; eine
-             wirksame Maßnahme erneut mit ETW prüfen. Jede Zielabweichung verlangt Fachentscheid
-             (ADR 0034)
+       - [x] KQ-069 A: AppContainer-Machbarkeitsprototyp mit Tokenprüfungen, lokalem Kernablauf und
+             ETW-Vergleich (0 außerhalb Loopback gegenüber 201 öffentlichen Kontrollereignissen)
+       - [ ] KQ-069 A: Dateidialoge/Austausch und Git-/Providergrenzen gezielt integrieren;
+             UDP/IPv6/DNS/Broker kalibrieren; Fail-closed-Packaging und F08-/M3-Vollprüfung
+       - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
+             ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene
        Zeilen: `docs/testing/F08_M3_ACCEPTANCE_MATRIX.md`
    - [x] Lokale Medienbibliothek mit Metadaten, Links, Backup und Snapshot-Assets
