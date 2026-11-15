@@ -1,5 +1,14 @@
 # F08-/M3-Abnahmematrix
 
+Fortschreibung Datei-/Shell-Austausch:
+[separater Transportprototyp](native-runtime-file-exchange.md) mit nativer Auswahl, zwei
+Handlefreigaben, Unicode-Kopie, gesperrter Nachbardatei, Abbruch und Fehlerpfadtests geprüft.
+Begrenzte gültige ETW-Messung des Controller-/Workerbaums ohne Netzereignisse; finale
+Cleanup-/Berichtsverstärkung separat nativ geprüft. Keine Wiederholung von
+M3-Import/Export/Screenreader unter Produktisolation, kein Nachweis externer COM-/Shell-Dienste.
+Dateiauftrag/App-Testadapter und konkrete Formatimporte bleiben offen. Q-01/Q-02 unverändert **nicht
+bestanden**, #134 offen.
+
 KQ-069 A untersucht die ausdrücklich beauftragte strikte Isolation: Der
 [AppContainer-Prototyp](native-runtime-isolation.md) zeigt bei gültiger ETW-Messung drei
 vollständige App-Läufe mit 0 Ereignissen außerhalb Loopback; derselbe unisolierte Build zeigt 201

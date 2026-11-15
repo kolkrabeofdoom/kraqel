@@ -1,5 +1,23 @@
 # Bedrohungsmodell (Entwurf)
 
+## KQ-069 A: Begrenzter Datei-/Shell-Transport
+
+Der [synthetische Austauschversuch](../testing/native-runtime-file-exchange.md) trennt Shell-Auswahl
+und Dateiverarbeitung: nicht isolierter Controller mit zwei explizit vererbten Datei-Handles, Worker
+im eigenen AppContainer ohne Capabilities. Der Hostordner liegt außerhalb jeder neuen Paket-ACL.
+Ausgewählte Pfade bleiben im Controller, Parser/Nutzbyteverarbeitung im Worker. Die fest bekannte
+synthetische Negativdatei wird nur zu Testzwecken aus dem Wurzelnamen abgeleitet. Gepinnte
+Eingabehandles, Metadatenprüfung gegen Reparse/Cloud/Hardlinks, 8-MiB-Budget, begrenzte Berichte,
+suspendierte Tokenprüfung, Job und Veröffentlichung ohne Überschreiben begrenzen den Versuch.
+Fehler/Abbruch veröffentlichen keine fertige Ausgabe. Kein allgemeiner Shell-/URL-Broker.
+
+Das ist kein freigegebener Broker für echte Dateien. Shell-/COM-Dienste außerhalb des Elternbaums,
+Handler, Dateisystemrennen mit gleichberechtigten lokalen Angreifern, einmalige autorisierte
+App-Aufträge, Abbruch/Lebensdauer und Produktformatbudgets benötigen eigene Nachweise. Die ETW-
+Messung gilt nur für den gemessenen Controller-/Workerbuild und dessen Baum; der finale stärkere
+Cleanup-/Berichtsstand ist separat nativ geprüft. Keine Netzfähigkeit für WebView2 und keine
+fachliche Ausnahme. Produkt unverändert unisoliert, Q-01/Q-02 nicht bestanden.
+
 ## KQ-069 A: Gemessener AppContainer-Prototyp, keine Produktgrenze
 
 Der Forschungslauncher startet ausschließlich synthetische Testdaten unter einer eigenen

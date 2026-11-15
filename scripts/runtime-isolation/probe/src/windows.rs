@@ -1,10 +1,12 @@
 //! Experimental Win32 FFI boundary, deliberately outside the product Cargo workspace.
 //!
 //! All SID/ACL/attribute pointers stay owned and alive until the corresponding call finishes.
-//! Token buffers are aligned, size-bounded allocations. Handles are never inherited; the
+//! Token buffers are aligned, size-bounded allocations. Only exchange's two selected file
+//! handles may be inherited via an explicit handle list; other modes inherit none. The
 //! suspended root enters the kill-on-close job before ResumeThread. Only the fresh validated
 //! TEMP root/data receive additional ACL entries. No firewall or loopback-exemption policy is set.
 #![deny(unsafe_op_in_unsafe_fn)]
+mod exchange;
 use serde_json::{Value, json};
 use std::{
     ffi::c_void,
@@ -274,9 +276,13 @@ struct Attributes {
 }
 impl Attributes {
     fn new(caps: &SECURITY_CAPABILITIES) -> Result<Self> {
+        Self::with_handles(caps, &[])
+    }
+    fn with_handles(caps: &SECURITY_CAPABILITIES, handles: &[HANDLE]) -> Result<Self> {
+        let count = if handles.is_empty() { 1 } else { 2 };
         let mut bytes = 0;
         unsafe {
-            InitializeProcThreadAttributeList(null_mut(), 1, 0, &mut bytes);
+            InitializeProcThreadAttributeList(null_mut(), count, 0, &mut bytes);
         }
         if bytes == 0 {
             return Err(fail("attribute-size"));
@@ -284,7 +290,7 @@ impl Attributes {
         let mut storage = vec![0usize; bytes.div_ceil(size_of::<usize>())];
         let ptr = storage.as_mut_ptr().cast();
         check(
-            unsafe { InitializeProcThreadAttributeList(ptr, 1, 0, &mut bytes) },
+            unsafe { InitializeProcThreadAttributeList(ptr, count, 0, &mut bytes) },
             "initialize-attributes",
         )?;
         let value = Self {
@@ -305,6 +311,22 @@ impl Attributes {
             },
             "set-security-capabilities",
         )?;
+        if !handles.is_empty() {
+            check(
+                unsafe {
+                    UpdateProcThreadAttribute(
+                        ptr,
+                        0,
+                        PROC_THREAD_ATTRIBUTE_HANDLE_LIST as usize,
+                        handles.as_ptr().cast(),
+                        std::mem::size_of_val(handles),
+                        null_mut(),
+                        null(),
+                    )
+                },
+                "set-handle-list",
+            )?;
+        }
         Ok(value)
     }
 }
@@ -715,6 +737,12 @@ fn launch(root: &Path, app: Option<&Path>, resume: bool) -> Result<Value> {
 pub fn main() {
     let args = std::env::args_os().skip(1).collect::<Vec<_>>();
     let result = (|| {
+        if args.len() == 5 && args[0] == "exchange-child" {
+            return exchange::child(&args[1..]);
+        }
+        if args.len() == 2 && args[0] == "exchange" {
+            return exchange::launch(Path::new(&args[1]));
+        }
         if args.len() == 3 && (args[0] == "child" || args[0] == "leaf") {
             let ports = crate::policy::ports(&args[2].to_string_lossy()).ok_or(Failure {
                 stage: "invalid-ports",
@@ -766,7 +794,11 @@ pub fn main() {
     match result {
         Ok(value) => {
             println!("{value}");
-            if value.get("tokenBeforeResume").is_some() && !crate::policy::successful_run(&value) {
+            if value["exchange"] == true && value["passed"] != true
+                || value["exchange"] != true
+                    && value.get("tokenBeforeResume").is_some()
+                    && !crate::policy::successful_run(&value)
+            {
                 std::process::exit(1)
             }
         }

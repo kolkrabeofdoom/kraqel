@@ -4,6 +4,10 @@
 KRAQEL-Start wird nicht verändert. Ergebnis und Grenzen stehen im
 [Versuchsprotokoll](../../docs/testing/native-runtime-isolation.md).
 
+Der neue einmalige `exchange`-Modus untersucht zusätzlich native Shell-Auswahl und zwei gezielte
+Dateihandles.
+[Nachweis, Bedrohungsgrenze und ETW-Buildabgrenzung](../../docs/testing/native-runtime-file-exchange.md).
+
 ## Mechanismus und Abgrenzung
 
 Der eigenständige Rust-Helfer nutzt dokumentierte Win32-AppContainer-APIs: pro Versuch eine eigene
@@ -27,6 +31,37 @@ OR Apache-2.0; im Tool separat gelockt. Keine neue Produktabhängigkeit. Dieses 
 ist GPL-3.0-or-later, wird nicht in Installer aufgenommen und ersetzt keine Prüfung eines künftigen
 Produktlaunchers.
 
+Der Austausch verwendet außerdem die bereits im Produkt-Lockfile vorhandenen `windows 0.62.2`
+(dokumentierte COM-Shell-Schnittstellen) und `sha2 0.10.9` (Worker-Hash), beide MIT OR Apache-2.0.
+Separat gelockte, bestehende Windows-Rust-/RustCrypto-Abhängigkeiten; keine neue
+Produktabhängigkeit, kein Provider, Netzclient oder Laufzeitdownload. Der eigenständige
+Tool-Lockfile löst transitive Versionen unabhängig vom Produkt auf. Lizenz-/Compileprüfung lokal und
+Dependency Review in CI; keine zusätzliche Sicherheitszertifizierung behauptet.
+
+## Synthetischer Datei-/Shell-Austausch unter Windows
+
+```powershell
+$exchangeRoot = Join-Path $env:TEMP ('kraqel-isolation-exchange-' + [guid]::NewGuid().ToString('N'))
+cargo run --locked --manifest-path scripts/runtime-isolation/probe/Cargo.toml -- exchange $exchangeRoot
+```
+
+Im Öffnendialog `input.txt` wählen, im Speicherdialog die vorgeschlagene neue `output.txt`
+speichern. Nur selbst erzeugte Testdateien im separaten `kraqel-exchange-host-…`-Geschwisterordner
+werden akzeptiert; keine realen Manuskripte auswählen. Bestehende Ziele werden auch nach einer
+Shell-Überschreibbestätigung abgelehnt. `Escape` bricht vor dem Workerstart ab. Der Bericht enthält
+keine Hostpfade; `launch.json` mit PID bleibt lokal. Testfixtures werden zur Inspektion erhalten.
+Diese Stufe transportiert nur 1 Byte bis 8 MiB, prüft keine Produktformate und öffnet keine
+beliebigen Ordner/URLs/Programme. Erfolgreicher Exitcode 0 ist eine Transportprüfung, keine
+Produkt-Netzfreigabe. Der `exchange`-Controller führt die Netz-Positivkontrollen des anderen
+`network`-/`app`-Modus nicht aus.
+
+Nach neuer ETW-Aufzeichnung mit dem bestehenden Diagnosehelfer kann dessen `events.xml` mit
+`scripts/m3-network/analyze.py <events.xml> <ready.json> --root-pid <BrokerPID> --mode exchange`
+ausgewertet werden. Der Standardmodus bleibt `desktop` und verlangt weiter einen WebView2-Baum. Der
+Austauschmodus verlangt den Broker `kraqel-isolation-probe.exe` samt Worker, vollständige
+Lebenszeiten, vier Kontrollen und Nullverluste. COM-/Shell-Dienste außerhalb des Prozessbaums sind
+damit nicht kausal erfasst. Kein universeller Offlinebeleg.
+
 ## Bauen und automatische Prüfungen
 
 ```powershell
@@ -40,6 +75,11 @@ Neustartbelege, fehlende Messkontrollen und ungültige Portargumente. Sie änder
 oder Firewallkonfiguration und führen keine Live-Netzversuche aus. Unter Linux laufen diese reinen
 Tests; die CLI selbst verweigert eine Isolationsausführung mit Exitcode 2. CI prüft beide
 Plattformen zusätzlich zum unveränderten Produkt-Workspace.
+
+Vier weitere reine Tests prüfen begrenzten Transport, Namen und Workerberichte. Vier Windows-
+Dateitests prüfen Hardlinks, vorhandene temporäre Dateien, konkurrierende Ziele und Cleanup nach
+Teilkopien. Insgesamt 13 Tests unter Windows, neun reine Tests unter Linux; keine Live-Netz-/
+Profilversuche in diesen Tests.
 
 ## Socket-/Vererbungsversuch unter Windows
 

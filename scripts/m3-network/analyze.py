@@ -61,7 +61,10 @@ def scope(value):
     return "global" if address.is_global else "private-or-link-local"
 
 
-def analyze(path, root_pids, ready):
+def analyze(path, root_pids, ready, mode="desktop"):
+    if mode not in ("desktop", "exchange"):
+        raise ValueError("Unknown bounded measurement mode")
+    root_image = "kraqel-desktop.exe" if mode == "desktop" else "kraqel-isolation-probe.exe"
     process_events = []
     loss = None
     for time, provider, event_id, _, data in events(path):
@@ -83,7 +86,7 @@ def analyze(path, root_pids, ready):
         if pid in current:
             current[pid].end = time
         image = data["ImageName"].replace("/", "\\").rsplit("\\", 1)[-1].lower()
-        root = pid in root_pids and image == "kraqel-desktop.exe"
+        root = pid in root_pids and image == root_image
         if root:
             seen_roots.add(pid)
             root_starts[pid] += 1
@@ -125,8 +128,10 @@ def analyze(path, root_pids, ready):
         problems.append("missing-or-mismatched-root-start")
     if any(count != 1 for count in root_starts.values()):
         problems.append("ambiguous-root-pid-reuse")
-    if not any(process.image == "msedgewebview2.exe" for process in own_processes):
+    if mode == "desktop" and not any(process.image == "msedgewebview2.exe" for process in own_processes):
         problems.append("missing-webview2-process-tree")
+    if mode == "exchange" and any(not any(process.image == root_image and process.parent == root_pid and process.pid != root_pid for process in own_processes) for root_pid in root_pids):
+        problems.append("missing-exchange-worker")
     if loss is None or any(loss.values()):
         problems.append("missing-loss-header-or-lost-events")
     expected_controls = {("TCP", "127.0.0.1"), ("UDP", "127.0.0.1"), ("TCP", "::1"), ("UDP", "::1")}
@@ -140,6 +145,7 @@ def analyze(path, root_pids, ready):
         problems.append("unknown-app-network-destination")
     return {
         "formatVersion": 1,
+        "measurementMode": mode,
         "measurementValid": not problems,
         "measurementProblems": problems,
         "result": "observed-non-loopback-traffic" if outside_loopback else "inconclusive" if problems else "no-non-loopback-traffic-observed",
@@ -154,7 +160,7 @@ def analyze(path, root_pids, ready):
             for (image, event_id, destination), count in sorted(counts.items())
         ],
         "nonLoopbackEvents": outside_loopback,
-        "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths.",
+        "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths. Out-of-tree COM/Shell services are not attributed by this process-tree measurement.",
     }
 
 
@@ -163,9 +169,10 @@ def main():
     parser.add_argument("trace_xml", type=Path)
     parser.add_argument("ready_json", type=Path)
     parser.add_argument("--root-pid", type=int, action="append", required=True)
+    parser.add_argument("--mode", choices=("desktop", "exchange"), default="desktop")
     args = parser.parse_args()
     ready = json.loads(args.ready_json.read_text(encoding="utf-8-sig"))
-    result = analyze(args.trace_xml, args.root_pid, ready)
+    result = analyze(args.trace_xml, args.root_pid, ready, args.mode)
     print(json.dumps(result, indent=2))
     return 0 if result["measurementValid"] and not result["nonLoopbackEvents"] else 1
 

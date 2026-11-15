@@ -1,6 +1,8 @@
 //! Bounded, synthetic AppContainer experiments, not a production launcher.
 #[cfg(any(windows, test))]
 mod policy;
+#[cfg(any(windows, test))]
+mod transfer;
 #[cfg(windows)]
 mod windows;
 
