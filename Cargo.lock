@@ -2145,6 +2145,8 @@ dependencies = [
  "kraqel-domain",
  "kraqel-export",
  "kraqel-git-service",
+ "kraqel-isolation-probe",
+ "kraqel-isolation-test-adapter",
  "kraqel-storage",
  "serde",
  "serde_json",
@@ -2198,6 +2200,21 @@ dependencies = [
  "tempfile",
  "uuid",
  "zip",
+]
+
+[[package]]
+name = "kraqel-isolation-probe"
+version = "0.1.0"
+dependencies = [
+ "kraqel-domain",
+ "kraqel-isolation-test-adapter",
+ "kraqel-storage",
+ "serde",
+ "serde_json",
+ "sha2",
+ "uuid",
+ "windows",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

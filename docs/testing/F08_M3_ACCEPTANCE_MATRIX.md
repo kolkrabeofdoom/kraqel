@@ -1,5 +1,12 @@
 # F08-/M3-Abnahmematrix
 
+Fortschreibung [UI-/Tauri-Testanbindung](native-tauri-file-channel.md): separates echtes
+Forschungsfenster, einmaliger vorab delegierter Einweg-Dateikanal, keine Rendererpfade/Handles,
+Origin-/Fensterprüfung. Native Vorprüfung von Import/Wiederholung/Fensterende unabhängig über SQLite
+bestätigt. Finale Guard-Verstärkungen automatisch geprüft; **finale native Wiederholung,
+Abbruch/Fensterende am Haltepunkt, Auswahl und ETW offen**. UAC-Start abgebrochen; keine neue
+Netzstille-/Assistenz-/Produktabnahme. Q-01/Q-02 weiterhin **nicht bestanden**, #134 offen.
+
 Fortschreibung [typisierter Dateiauftrag und atomarer Import](native-isolated-app-import.md):
 Separater nativer App-Dienst-Testadapter ohne Tauri-/WebView-/GUI-Anbindung; Snapshot-v3-Import im
 AppContainer mit einmaliger ID, Ablauf/Budget und Publish-Guard. Sieben native Importfälle plus

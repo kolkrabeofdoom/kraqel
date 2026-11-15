@@ -58,6 +58,11 @@ jobs:
           cargo clippy --locked --manifest-path scripts/runtime-isolation/probe/Cargo.toml --all-targets -- -D warnings
       - run: pnpm --filter @kraqel/desktop build
       - run: cargo build --workspace
+      - name: Check gated native Tauri isolation UI and origin guards
+        if: runner.os == 'Windows'
+        run: |
+          cargo clippy -p kraqel-desktop --features isolation-ui-test --all-targets -- -D warnings
+          cargo test -p kraqel-desktop --features isolation-ui-test isolation_ui --lib
 
       - name: Install Playwright Chromium with Linux dependencies
         if: runner.os == 'Linux'

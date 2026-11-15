@@ -42,6 +42,7 @@ class Process:
     image: str
     own: bool
     end: str | None = None
+    root_pid: int | None = None
 
     def contains(self, time):
         return self.start <= time and (self.end is None or time <= self.end)
@@ -62,7 +63,7 @@ def scope(value):
 
 
 def analyze(path, root_pids, ready, mode="desktop"):
-    if mode not in ("desktop", "exchange"):
+    if mode not in ("desktop", "exchange", "isolation-ui"):
         raise ValueError("Unknown bounded measurement mode")
     root_image = "kraqel-desktop.exe" if mode == "desktop" else "kraqel-isolation-probe.exe"
     process_events = []
@@ -93,6 +94,7 @@ def analyze(path, root_pids, ready, mode="desktop"):
         parent = number(data["ParentProcessID"])
         own = root or (parent in current and current[parent].own)
         process = Process(pid, parent, time, image, own)
+        process.root_pid = pid if root else current[parent].root_pid if parent in current else None
         generations.append(process)
         current[pid] = process
     by_pid = {}
@@ -132,6 +134,8 @@ def analyze(path, root_pids, ready, mode="desktop"):
         problems.append("missing-webview2-process-tree")
     if mode == "exchange" and any(not any(process.image == root_image and process.parent == root_pid and process.pid != root_pid for process in own_processes) for root_pid in root_pids):
         problems.append("missing-exchange-worker")
+    if mode == "isolation-ui" and any(not any(process.image == "kraqel-desktop.exe" and process.parent == root_pid for process in own_processes) or not any(process.image == "msedgewebview2.exe" and process.root_pid == root_pid for process in own_processes) for root_pid in root_pids):
+        problems.append("missing-isolated-ui-or-webview-tree")
     if loss is None or any(loss.values()):
         problems.append("missing-loss-header-or-lost-events")
     expected_controls = {("TCP", "127.0.0.1"), ("UDP", "127.0.0.1"), ("TCP", "::1"), ("UDP", "::1")}
@@ -169,7 +173,7 @@ def main():
     parser.add_argument("trace_xml", type=Path)
     parser.add_argument("ready_json", type=Path)
     parser.add_argument("--root-pid", type=int, action="append", required=True)
-    parser.add_argument("--mode", choices=("desktop", "exchange"), default="desktop")
+    parser.add_argument("--mode", choices=("desktop", "exchange", "isolation-ui"), default="desktop")
     args = parser.parse_args()
     ready = json.loads(args.ready_json.read_text(encoding="utf-8-sig"))
     result = analyze(args.trace_xml, args.root_pid, ready, args.mode)

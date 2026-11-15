@@ -1,4 +1,5 @@
 [workspace]
+exclude = ["scripts/runtime-isolation/probe"]
 members = [
   "apps/desktop/src-tauri",
   "apps/desktop/isolation-test-adapter",

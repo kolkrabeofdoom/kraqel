@@ -97,10 +97,12 @@
              Hostordner-ACL, nativer Kopie, Fehlerpfadtests und begrenzter ETW-Prüfung belegen
        - [x] KQ-069 A: Typisierten einmaligen Dateiauftrag an isolierten App-Dienst-Testadapter
              anbinden; Snapshotimport mit Abbruch/Ablauf vor Veröffentlichung atomar prüfen
-       - [ ] KQ-069 A: UI-/Tauri-Testanbindung mit sicherem Auftragskanal, nativer Auswahl,
-             Abbruch-/Fehleransagen und Crash-Reconciliation; weitere Formate und
-             Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren; Fail-closed-Packaging und
-             F08-/M3-Vollprüfung
+       - [x] KQ-069 A: Separates UI-/Tauri-Testfeature mit vorab delegiertem Einweg-Dateikanal,
+             Origin-/Fensterprüfung und einmaligem Rust-Grant implementieren
+       - [ ] KQ-069 A: Finalen UI-Build nativ/ETW wiederholen; Abbruch/Fensterende und Auswahl
+             prüfen; danach Auswahl aus laufender App, Assistenz und dauerhafte
+             Crash-Reconciliation; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker
+             kalibrieren; Packaging und F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene

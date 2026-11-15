@@ -2,6 +2,21 @@
 
 Stand: 15. November 2026
 
+**KQ-069 A / UI-/Tauri-Testanbindung und Einweg-Dateikanal:** PR #139 nach grüner Windows-/Linux-CI
+und Dependency Review am Head `2ac11a2` zusammengeführt (`fadf0a6`). Separates Windows-Feature mit
+echtem Forschungsfenster, vier parameterlosen Tauri-Befehlen, Origin-/Fensterprüfung und vorab
+delegiertem Einwegkanal. Keine Rendererpfade/Handles, Hostordner- oder Internetfreigabe. Normaler
+Build ohne Forschungsseite wiederhergestellt. `pnpm check`, Feature-Clippy, beide Builds, 29
+Browser-E2E, 18 Helfer-/Transporttests, ein Origin-Test und 32 Python-Diagnosetests bestanden.
+Nativer UI-Vorversuch: Nutzer bestätigt Wiederholungsablehnung und Fensterende; SQLite/Unicode, neue
+ID, genau eine Kopie und Cleanup unabhängig geprüft. **Nachfolgend verstärkte finale Guards noch
+nicht nativ wiederholt; Abbruch/Fensterende am Haltepunkt und Auswahl offen.** Neuer ETW-Start von
+Windows als abgebrochen gemeldet, keine `ready.json`, Retryentscheidung offen. Keine
+Netzstilleaussage für diesen UI-Build. [Protokoll](testing/native-tauri-file-channel.md),
+[Kanalvertrag](data-format/native-file-channel-v1.md). #134 offen, Q-01/Q-02 für das Produkt nicht
+bestanden, striktes Ziel unverändert. Nächste Arbeit: offene native/ETW-Abnahme, danach Auswahl aus
+laufender App und dauerhafte Auftrags-/Crash-Reconciliation.
+
 **KQ-069 A / typisierter Dateiauftrag und isolierter App-Dienst-Testadapter:** PR #138 mit grüner
 Windows-/Linux-CI und Dependency Review am Head `1a233d1` zusammengeführt (`3f57291`). Separater
 Rust-Testadapter mit `unsafe_code = forbid`, einmaliger gebundener ID, fester Snapshotoperation,

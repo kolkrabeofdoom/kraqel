@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KRAQEL · Isolierter Dateiauftrag</title>
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">KRAQEL · isolierter Forschungstest</p>
+      <h1>Eine lokale Projektkopie</h1>
+      <p>
+        Der Launcher hat ausschließlich das synthetische Testarchiv freigegeben. Dieser Auftrag kann
+        einmal verwendet werden. Es werden keine echten Nutzdateien geöffnet.
+      </p>
+      <p id="status" role="status" aria-live="polite">Nativen Auftrag prüfen …</p>
+      <p id="error" role="alert"></p>
+      <div class="actions">
+        <button id="import" type="button" disabled>Testarchiv importieren</button
+        ><button id="continue" type="button" disabled>Import abschließen</button
+        ><button id="cancel" type="button" disabled>Abbrechen</button>
+      </div>
+      <p>
+        Vor der Übernahme hält dieser Test an. Du kannst den Import abschließen oder den
+        unveröffentlichten Zwischenstand verwerfen.
+      </p>
+      <button id="replay" type="button" disabled>Erneuten Aufruf prüfen</button>
+      <p class="note">Kein regulärer Produktstart und keine vollständige Datenschutzabnahme.</p>
+    </main>
+    <script type="module" src="/src/isolation-test.ts"></script>
+  </body>
+</html>

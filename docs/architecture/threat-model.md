@@ -1,5 +1,21 @@
 # Bedrohungsmodell (Entwurf)
 
+## KQ-069 A: Tauri-Forschungsfeature mit Einweg-Grant
+
+Der [neue Kanal](../data-format/native-file-channel-v1.md) akzeptiert einen begrenzten typisierten
+Auftrag aus einer vor Prozessstart beschriebenen und abgeschlossenen anonymen Pipe. Datei nur
+lesend, Start-Whitelist mit zwei Handles, Empfängerclaim einmalig; Flags vor WebView gelöscht und
+geprüft. Renderer kann keine Handles/Hostpfade oder Freigaben nachliefern. Vier parameterlose lokale
+Befehle, zusätzliche Origin-/Fensterprüfung, keine Core-/Plugin-Berechtigungen. Rust-Mutex entnimmt
+den Grant einmalig. Controllerantwort streng typisiert und größenbegrenzt; kein Shell-/RPC-Kanal.
+Nur Forschungsfeature, feste synthetische Datei, kontrollierter Launcher.
+
+UUID allein authentisiert keinen Peer. Kein Schutz gegen gleichberechtigte/privilegierte lokale
+Angreifer oder vollständiger Nachweis gegen kompromittierte Runtime-Prozesse. Produktstart
+unisoliert; finale Native-/ETW-Wiederholung, UI-Abbruch/Fensterende, Auswahl, Assistenz und
+dauerhafte Crash-/Replay-Reconciliation offen. Vorversuch erfolgreich, finale Guards separat
+automatisch geprüft. UAC-Start abgebrochen, keine neue Netzstilleaussage. Q-01/Q-02 nicht bestanden.
+
 ## KQ-069 A: Einmaliger Auftrag im nativen App-Dienst-Testadapter
 
 Der [isolierte Snapshotimport-Testadapter](../testing/native-isolated-app-import.md) erhält nur

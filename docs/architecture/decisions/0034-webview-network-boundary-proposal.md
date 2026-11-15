@@ -21,6 +21,15 @@ isolierten App-Testadapter mit konkretem atomarem Import; die strikte Zielsetzun
 
 ## Belegter Konflikt
 
+Die [separate Tauri-Testanbindung](../../testing/native-tauri-file-channel.md) ergänzt ein echtes
+Forschungsfenster mit parameterlosen Commands, strikter Origin-/Fensterprüfung und vorab delegiertem
+Einwegkanal. Kernelhandles statt Rendererpfaden oder öffentlichem RPC-Endpunkt; Flags vor
+WebView-Start gelöscht/geprüft. Keine neue Hostordner- oder Netzfähigkeit. Native Vorprüfung
+bestätigt eine Kopie und abgelehnte Wiederholung. Finale Guard-Verstärkungen nur automatisch, noch
+nicht erneut nativ/ETW geprüft; UAC-Start abgebrochen. Keine neue Netzstille- aussage. Auswahl aus
+laufender App, dauerhafte Aufträge/Crash-Reconciliation und Produktintegration offen. Striktes Ziel
+unverändert, keine fachliche Ausnahme.
+
 Der [native App-Dienst-Testadapter](../../testing/native-isolated-app-import.md) bindet einen
 einmaligen Snapshotauftrag an den isolierten Worker. Parser und atomare Veröffentlichung nutzen die
 vorhandenen Rust-Dienste; Ablauf/Abbruch zusätzlich nach vollständigem Aufbau geprüft. ETW des

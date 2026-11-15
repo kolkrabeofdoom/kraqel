@@ -1,0 +1,29 @@
+{
+  "formatVersion": 1,
+  "diagnosticOnly": true,
+  "productionAcceptance": false,
+  "nativeRuns": [
+    {
+      "scenario": "import",
+      "passed": true,
+      "projectCopies": 1,
+      "nativeRendererInvokedTauri": true,
+      "inputHandleNotInheritableBeforeWebview": true,
+      "noStagingResidue": true,
+      "profileRemoved": true,
+      "activeJobProcessesAtEnd": 0,
+      "appContainer": true,
+      "capabilities": 0,
+      "sqliteUnicodeIntegrityForeignKeys": true,
+      "appSha256": "ce199de8d453c9d39765805d59d9d1268aa03384f99f22285b553de296466b57"
+    }
+  ],
+  "etw": {
+    "measured": false
+  },
+  "finalNativeRepeat": "pending",
+  "nativeReplay": "user-confirmed in preflight",
+  "finalAppSha256": "d6728209b8d261a283cbb08cea6944bd5fd7d63ef1aa5d2aea4bbab904d0e4ee",
+  "finalControllerSha256": "f0a30d40464456750ba08d00421c631de960d615745fabff5496aded26052fa7",
+  "etwStartup": "UAC cancelled; no ready.json; retry decision pending"
+}

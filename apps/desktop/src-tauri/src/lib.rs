@@ -1,4 +1,8 @@
+#[cfg(all(windows, feature = "isolation-ui-test"))]
+mod isolation_ui;
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
+#[cfg(all(windows, feature = "isolation-ui-test"))]
+pub use isolation_ui::run as run_isolation_ui_test;
 use kraqel_ai_service::{
     CloudProviderId, CloudTextProvider, CredentialError, CredentialStore, OllamaProvider,
     OsCredentialStore, ReleasedTextContext, TextGenerationRequest, TextModel, TextProvider,

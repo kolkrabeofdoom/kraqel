@@ -746,6 +746,13 @@ pub fn main() {
         if args.len() == 3 && args[0] == "app-import-fixture" {
             return exchange::launch_import(Path::new(&args[1]), &args[2].to_string_lossy());
         }
+        if args.len() == 3 && (args[0] == "ui-fixture" || args[0] == "ui-select") {
+            return exchange::launch_ui(
+                Path::new(&args[1]),
+                Path::new(&args[2]),
+                args[0] == "ui-select",
+            );
+        }
         if args.len() == 2 && args[0] == "exchange-fixture" {
             return exchange::launch_fixture(Path::new(&args[1]));
         }

@@ -1,3 +1,4 @@
+import { isolationCommand } from "./isolation-command-mock";
 import type {
   AssetTargetKind,
   DocumentKind,
@@ -103,6 +104,7 @@ export class Channel<T> {
 }
 
 export async function invoke<T>(command: string, args: InvokeArgs = {}): Promise<T> {
+  if (command.startsWith("isolation_test_")) return (await isolationCommand(command)) as T;
   const request = args.request;
   if (!request || request.contractVersion !== 1) throw new Error("Invalid E2E command request");
 
