@@ -2138,6 +2138,7 @@ name = "kraqel-desktop"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
+ "image",
  "kraqel-ai-service",
  "kraqel-asset-service",
  "kraqel-continuity",

@@ -106,14 +106,18 @@ gewöhnliches DOCX mit internen PNG-Parts und bestandener Word-/LibreOffice-Abna
 PDF mit eingebetteten Schriften und weißen PNG-Nachweisen; Snapshot v3, Editor-Dokument v1 und
 DOCX-Text-Roundtrip v1 bleiben unverändert.
 
-## Drehbuchformatierung: Vorschlag und Abnahmegrenzen
+## Drehbuchformatierung: freigegebener Vertrag und Abnahmegrenzen
 
 KQ-066 legt einen
-[konkreten Vertragsvorschlag](../specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md) mit sechs
+[fachlich freigegebenen Vertrag](../specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md) mit sechs
 Rollen und A4-Profil vor. [ADR 0033](../architecture/decisions/0033-screenplay-contract-proposal.md)
-ist vorgeschlagen; weder Rollen noch neue Formatversionen sind implementiert oder freigegeben. Die
-[F08-/M3-Kriterienmatrix](../testing/F08_M3_ACCEPTANCE_MATRIX.md) zeigt vorhandene Belege und
-fehlende native Gesamtprüfungen. Snapshot v3, DOCX v1 und Editor-Dokument v1 bleiben unverändert.
+ist nach ausdrücklicher Nutzerfreigabe am 15. November 2026 fachlich angenommen; Rollen und neue
+Formatversionen sind noch nicht implementiert. Die
+[F08-/M3-Kriterienmatrix](../testing/F08_M3_ACCEPTANCE_MATRIX.md) zeigt vorhandene Belege und offene
+Restprüfungen. KQ-067 belegt den
+[funktionalen nativen M3-Gesamtlauf](../testing/native-m3-acceptance.md); unabhängige
+Desktop-Netzverkehrs-/assistive Vollabnahme und verbleibende CRUD-Nachweise bleiben offen. Snapshot
+v3, DOCX v1 und Editor-Dokument v1 bleiben unverändert.
 
 ## Lokales SQLite-Schema und Migrationsstand
 

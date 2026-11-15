@@ -6,8 +6,8 @@ Code-Referenz: KQ-055 (Issue #107), KQ-056 (Issue #109), KQ-058/059 (Issues #113
 Prototypen), KQ-060 (Issue #117; nativer Roundtrip-Kern), KQ-061 (Issue #119; App und neue
 Projektkopie), KQ-062 (Issue #121; freigegebener Medienexport-Vertrag), KQ-063 (Issue #123;
 Rust-Kern und bebildertes Markdown/HTML), KQ-064 (Issue #125; gewöhnlicher DOCX-Bildwriter), KQ-065
-(Issue #127; PDF-Schrift-/Unicode-Profil und Szenenbilder), KQ-066 (Issue #129;
-Drehbuchvertragsvorschlag und vollständige F08-/M3-Kriterienmatrix)
+(Issue #127; PDF-Schrift-/Unicode-Profil und Szenenbilder), KQ-066 (Issue #129; Drehbuchvertrag und
+vollständige F08-/M3-Kriterienmatrix), KQ-067 (Issue #131; nativer M3-Gesamtlauf)
 
 Planungsstand: KQ-057 konkretisiert den DOCX-Roundtrip-Vertragsentwurf. KQ-058 zeigt den Verlust
 verschachtelter Marker in LibreOffice. Der beauftragte Folgeversuch KQ-059 bestätigt flache
@@ -29,9 +29,12 @@ sind im dokumentierten Umfang abgenommen. PR #126 ist nach grüner CI zusammenge
 KQ-065 ergänzt vier eingebettete Noto-Sans-Schnitte, explizite Unicode-Prüfung und metrischen
 Umbruch für Text-/Bild-PDF sowie weiße PNG-Nachweise mit nativer RGB-/Maßprüfung. PR #128 ist mit
 grüner Windows-/Linux-CI und Dependency Review zusammengeführt (4679c89); Issue #127 ist
-geschlossen. KQ-066 dokumentiert den noch nicht freigegebenen Drehbuchvertragsvorschlag und die
-F08-/M3-Abnahmematrix. Die Matrix ist vollständig erfasst, der Gesamtumfang bleibt teilweise
-abgenommen.
+geschlossen. KQ-066 dokumentiert Drehbuchvertrag und F08-/M3-Abnahmematrix. PR #130 ist mit grüner
+Windows-/Linux-CI und Dependency Review zusammengeführt (58dea4b); Issue #129 ist geschlossen. Der
+gesamte Vertrag einschließlich Format-/Importrichtungen ist am 15. November 2026 ausdrücklich
+fachlich freigegeben. KQ-067 führt den funktionalen nativen M3-Gesamtlauf durch;
+Drehbuchimplementierung, unabhängige Desktop-Netzverkehrsprüfung und assistive Vollabnahme fehlen
+weiterhin. Die Matrix ist vollständig erfasst, der Gesamtumfang bleibt teilweise abgenommen.
 
 Produktstatus: frühes Entwicklungsfundament, nicht produktionsreif
 
@@ -41,15 +44,15 @@ als vollständige Fachfunktion.
 
 ## Status nach Pflichtenheft-Stufen
 
-| Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| ------------ | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, Undo/Redo, Wortzählung, Fokusmodus, konfliktgeprüfter Autosave sowie sicheres Umbenennen, Umordnen, Löschen und SQLite-Backup vorhanden. KQ-032 automatisiert Tastatur-, Fokus- und Axe-Prüfungen; KQ-033 bestätigt den Kern manuell mit Windows-Sprachausgabe in der Tauri-WebView.                                                                                                                                                                                                                                                          |
-| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks sind in getrennten Chromium-Abläufen geprüft. KQ-033 bestätigt Story-Bibel-Beziehungen und Rückverweise per Windows-Sprachausgabe; Plotboard und Timelines wurden assistiv stichprobenartig geprüft.                                                                                                                                                                                                                                                                        |
-| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, Medienbibliothek sowie visuelle Profile und Stilvorlagen sind im browserseitigen Kernablauf geprüft. KQ-038/KQ-050 ergänzen Snapshot-v3-Neuimport, Beispielvorlage und freie Archivauswahl. KQ-051 ergänzt den nativen `.kraqel`-Export; KQ-054 den begrenzten UTF-8-/Markdown-Import als neue Szene. KQ-055 ergänzt den DOCX-Szenenimport; KQ-060 den nativen Roundtrip-Kern. KQ-061 ergänzt App-Aktionen und atomare neue Projektkopie. Die vollständige F08-/M3-Matrix trennt belegte Teilfunktionen, offene Drehbuchentscheidung und fehlenden nativen Gesamtnachweis. |
-| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Technischer 0.1-Umfang weitgehend umgesetzt:** Textprotokolle, browserseitig geprüfte Offline-Kontinuität und Prompt-Entwürfe sowie Bild-Capability- und Jobverträge vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise und Bildgenerierung fehlen.                                                                                                                                                                                                                                                                                                                                                                                        |
-| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Alpha 4 veröffentlicht:** Debug- und Tauri-Smoke-Tests, isolierter NSIS-Testinstaller, Accessibility-Nachweise sowie ein getrennter unsignierter x64-NSIS-Releasepfad sind vorhanden. KQ-045 belegt Build, GitHub-Rückdownload und SHA-256 von `v0.1.0-alpha.4`; Release Candidate und öffentlicher Rückdownload wurden isoliert installiert und deinstalliert. MSI, Signierung, Updater und ARM64 sind ausgeschlossen; SmartScreen, Anwendungsstart und Persistenz auf Zweitrechner/Clean-VM fehlen.                                                                                                                                             |
-| **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Stufe        | Pflichtenheft-Ziel                                     | Verifizierter Stand                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------ | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M0**       | Monorepo, Tauri, Datenbank, CI, Berechtigungsmodell    | **Technisches Fundament umgesetzt:** Monorepo, Tauri-Shell, CI, minimale Capability, Command-Verträge, SQLite/FTS5 sowie sicherer Projektlebenszyklus mit Backup und Recovery vorhanden.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **M1**       | Editor, Szenenbaum, Autosave, Backup                   | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Projekt-/Kapitel-/Szenenoberfläche, Tiptap, Undo/Redo, Wortzählung, Fokusmodus, konfliktgeprüfter Autosave sowie sicheres Umbenennen, Umordnen, Löschen und SQLite-Backup vorhanden. KQ-032 automatisiert Tastatur-, Fokus- und Axe-Prüfungen; KQ-033 bestätigt den Kern manuell mit Windows-Sprachausgabe in der Tauri-WebView.                                                                                                                                                                                                                                                                                                                           |
+| **M2**       | Story-Bibel, Plotboard, Timeline                       | **Technischer Mindestumfang samt Browser-E2E umgesetzt:** Story-Bibel, persistentes Plotboard sowie parallele relative/absolute Timelines mit Szenen- und Entitätslinks sind in getrennten Chromium-Abläufen geprüft. KQ-033 bestätigt Story-Bibel-Beziehungen und Rückverweise per Windows-Sprachausgabe; Plotboard und Timelines wurden assistiv stichprobenartig geprüft.                                                                                                                                                                                                                                                                                                                                         |
+| **M3**       | Git, Import/Export, Medienbibliothek, visuelle Profile | **Teilweise umgesetzt:** Snapshots, lokales Git, vier Manuskriptexporte, Medienbibliothek sowie visuelle Profile und Stilvorlagen sind im browserseitigen Kernablauf geprüft. KQ-038/KQ-050 ergänzen Snapshot-v3-Neuimport, Beispielvorlage und freie Archivauswahl. KQ-051 ergänzt den nativen `.kraqel`-Export; KQ-054 den begrenzten UTF-8-/Markdown-Import als neue Szene. KQ-055 ergänzt den DOCX-Szenenimport; KQ-060 den nativen Roundtrip-Kern. KQ-061 ergänzt App-Aktionen und atomare neue Projektkopie. Die vollständige F08-/M3-Matrix trennt belegte Teilfunktionen, fehlende Drehbuchimplementierung und offene Offline-/assistive/CRUD-Restprüfungen bei bestandenem funktionalen nativen Gesamtlauf. |
+| **M4**       | Text-KI, Kontinuität, Prompt-Entwürfe, Bildverträge    | **Technischer 0.1-Umfang weitgehend umgesetzt:** Textprotokolle, browserseitig geprüfte Offline-Kontinuität und Prompt-Entwürfe sowie Bild-Capability- und Jobverträge vorhanden. Echte Providerabnahme, KI-Kontinuitätshinweise und Bildgenerierung fehlen.                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| **M5**       | Windows-Release 0.1, Tests, Dokumentation              | **Alpha 4 veröffentlicht:** Debug- und Tauri-Smoke-Tests, isolierter NSIS-Testinstaller, Accessibility-Nachweise sowie ein getrennter unsignierter x64-NSIS-Releasepfad sind vorhanden. KQ-045 belegt Build, GitHub-Rückdownload und SHA-256 von `v0.1.0-alpha.4`; Release Candidate und öffentlicher Rückdownload wurden isoliert installiert und deinstalliert. MSI, Signierung, Updater und ARM64 sind ausgeschlossen; SmartScreen, Anwendungsstart und Persistenz auf Zweitrechner/Clean-VM fehlen.                                                                                                                                                                                                              |
+| **M6 / 0.2** | Bildgenerierung, Referenzkonsistenz, Kartenmodell      | **Nicht begonnen und ausdrücklich außerhalb von 0.1.**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
 Die funktionalen Anforderungen F01 bis F09 sind damit noch nicht abgenommen. Vorhandene Verträge und
 Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
@@ -365,19 +368,48 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 
 ### Drehbuchvertrag und F08-/M3-Abnahmematrix (KQ-066)
 
-- [Vertragsvorschlag](specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md): sechs explizite
-  Absatzrollen, Bearbeitung, konkretes A4-Profil, Schriftprüfung, Formatgrenzen, Versionsfolge und
-  acht spätere Abnahmefälle. Keine fachliche Freigabe oder Implementierung;
-  [ADR 0033](architecture/decisions/0033-screenplay-contract-proposal.md) ist vorgeschlagen.
+- [Fachlich freigegebener Vertrag](specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md): sechs
+  explizite Absatzrollen, Bearbeitung, konkretes A4-Profil, Schriftprüfung, Formatgrenzen,
+  Versionsfolge und acht spätere Abnahmefälle. Nach ausdrücklicher Nutzerfreigabe am 15. November
+  2026 ist [ADR 0033](architecture/decisions/0033-screenplay-contract-proposal.md) fachlich
+  angenommen; die Funktion ist noch nicht implementiert.
 - [Vollständige Kriterienmatrix](testing/F08_M3_ACCEPTANCE_MATRIX.md): Pflichtenheft §§1/3/4/6–11
   gegen Code, Tests, native Protokolle, Einschränkungen und Restprüfungen abgeglichen. Vollständig
   bedeutet hier Erfassung aller einschlägigen Kriterien, nicht bestandene F08-/M3-Vollabnahme.
 - 100-Szenen-Backup und 100-Szenen-/50-Bilder-Exporte sind Einzelbelege. Der kombinierte native
   M3-G01-Lauf mit echten Bildern, App-Neustart, Sicherung/Recovery, Snapshot-Neuimport, Backlinks,
-  Umbenennung und sichtbaren Assetfehlern ist noch auszuführen.
+  Umbenennung und sichtbaren Assetfehlern ist inzwischen durch KQ-067 im dokumentierten funktionalen
+  Umfang bestanden; Offline-Netzverkehrs-/assistive Grenzen bleiben ausdrücklich offen.
 - Reine Dokumentationsstufe: keine neue SQLite-/Editor-/Command-/Snapshot-/DOCX-Version, keine neue
   Schrift oder Laufzeitfunktion. Die 161 Rust-/53 TS-/26 E2E aus PR #128 sind bestehende Evidenz;
   diese Stufe behauptet keinen neuen manuellen Lauf.
+
+### Funktionaler nativer M3-Gesamtlauf (KQ-067)
+
+- Der [Abnahmenachweis](testing/native-m3-acceptance.md) verbindet 100 Szenen, 50 echte
+  PNG-/JPEG-/WebP-Bilder, 102 Assetlinks, Story-Bibel, zwei Timelines, Profil, Stil und
+  Promptquellen.
+- Echte Windows-App: zwei Git-Commits, Szenen-/Figurenumbenennung, vollständiger Prozessneustart,
+  nativer Archivexport, zwei aktuelle Neuimporte und zusätzliche Wiederherstellung des älteren
+  Stands.
+- Rust-QA-Helfer nutzt tatsächliche Backup-/Recovery- und Command-Implementierungen; separat
+  gestartete Recovery-App zeigt erhaltene Inhalte, kanonisches Profilbild, Stil und Ereignislinks.
+- Vollständiger Inventarvergleich sowie unabhängige SQLite-/FK-/Hash-/Decoderprüfung in fünf
+  intakten Projektständen bestanden. Alle vier großen Bildausgaben mit 50 Bildern/100 Vorkommen
+  unabhängig rückgelesen; PDF hat 34 Seiten und 100 passende RGB-Objekte, HTML lädt alle Bilder aus
+  einer kopierten Ausgabe im Offline-Kontext. Große Auswahl ist über Rust geprüft, nicht als 100
+  einzeln betätigte GUI-Checkboxen ausgegeben.
+- Fehlende/veränderte Originale und fehlende Thumbnails sichtbar geprüft; Backup/Exportfehler
+  erhalten frühere Pakete. Native Dateidialoge: Abbruch, ungültiges/übergroßes Archiv und ungültiges
+  DOCX ohne zusätzliche Projekte. Die irreführende Meldung „Vorschaudatei fehlt“ ist korrigiert zu
+  „Bilddatei oder Vorschau nicht verfügbar“ und im neuen nativen Build bestätigt.
+- Abschluss: `pnpm check` mit 162 Rust-/53 TypeScript-Tests, sieben regulär ignorierten expliziten
+  QA-Helfern, alle 26 Browser-E2E und abschließender regulärer Windows-Debug-Build bestanden.
+- Ein regulärer Integrationstest und ein explizit ignorierter, auf eigene Temp-Wurzeln begrenzter
+  QA-Schrittetreiber ergänzen die Reproduktion; beide fehlen im ausgelieferten App-Code.
+- Keine unabhängige Desktop-Netzverkehrsmessung, neue Hörprüfung oder native Medien-CRUD-
+  Vollabnahme. Die Groß-PDF-Seiten sind nicht erneut vollständig visuell geprüft; die Layoutaussage
+  bleibt bei den getrennten KQ-064/065-Korpora. F08/M3 sind weiterhin teilweise abgenommen.
 
 ### Manuskriptexport (KQ-009)
 
@@ -630,9 +662,9 @@ Gerüste sind technische Vorarbeit, keine fertigen Funktionen.
 ### Unmittelbar: 0.1 stabilisieren
 
 1. **F08-/M3-Kriterienmatrix abarbeiten**
-   - fachliche Review des konkreten Drehbuchvertrags und der F08-Importrichtungen
-   - nativen Gesamtlauf M3-G01 gemäß [Matrix](testing/F08_M3_ACCEPTANCE_MATRIX.md) vorbereiten und
-     ausführen; verbleibende fachliche und assistive Restprüfungen dort einzeln nachweisen
+   - der konkrete Drehbuchvertrag und die F08-Importrichtungen sind fachlich freigegeben
+   - der funktionale native Gesamtlauf M3-G01 ist gemäß [Protokoll](testing/native-m3-acceptance.md)
+     bestanden; verbleibende fachliche und assistive Restprüfungen dort einzeln nachweisen
    - nach Drehbuchfreigabe Modell-/Versionsprototyp und Schriftprüfung vor Rendererimplementierung
 
 ### Bewusst zurückgestellt
@@ -663,15 +695,15 @@ Vor 0.2 müssen Akzeptanzkriterien, Abhängigkeiten und Rechtsfragen konkretisie
 - **Snapshotimport bewusst begrenzt:** Snapshot v3 kann als neues Projekt über die eingebettete
   Vorlage oder einen nativen Dateidialog importiert werden. v1/v2-Import, Zusammenführen und
   Überschreiben sind nicht implementiert. Diese Einschränkungen sind keine zusätzlich erfundenen
-  F07-Mussfunktionen; der vollständige native Nachweis der definierten lesenden Wiederherstellung
-  steht gemäß M3-02/03 der Matrix noch aus.
+  F07-Mussfunktionen; der native Nachweis der definierten lesenden Wiederherstellung ist mit KQ-067
+  / M3-02/03 der Matrix im dokumentierten Umfang bestanden. Keine allgemeine Git-Checkout-Funktion.
 - **Begrenzter Import ist kein Roundtrip:** Die vier Ausgaben, der UTF-8-/Markdown-Import und der
   begrenzte DOCX-Import sind vorhanden. Der DOCX-Import erzeugt eine neue Szene; er rekonstruiert
   keine Kapitel-/Szenenstruktur und übernimmt keine Medien. Ein strukturerhaltender Roundtrip zurück
   nach KRAQEL besitzt mit KQ-060 einen geprüften nativen Kern und mit KQ-061 den bedienbaren
   App-Import als atomare neue Projektkopie. Der begrenzte Manuskriptvertrag ist umgesetzt; F08
-  bleibt wegen offener Drehbuch-/Importrichtungsentscheidung und Restprüfungen gemäß Matrix
-  teilweise erfüllt.
+  bleibt wegen fehlender Drehbuchimplementierung und offener Restprüfungen gemäß Matrix teilweise
+  erfüllt; die Format-/Importrichtungen sind fachlich freigegeben.
 - **Exportformatierung bewusst begrenzt:** Links, Code, Tabellen, Fußnoten und eingebettete
   Editor-Bildknoten werden nicht still reduziert, sondern abgelehnt. Direkt verknüpfte Szenenbilder
   sind im eigenen Modus für alle vier Formate umgesetzt. PDF nutzt seit KQ-065 vier eingebettete
@@ -889,11 +921,14 @@ Medien-Einbettung je Exportformat. Rechts- und Lizenzfragen der Bildprovider sin
 
 ## Nächste geplante Entwicklungsstufe
 
-**Nächste Stufe: den KQ-066-Drehbuchvorschlag fachlich entscheiden und den nativen M3-Gesamtlauf
-M3-G01 gemäß [Kriterienmatrix](testing/F08_M3_ACCEPTANCE_MATRIX.md) vorbereiten.**
+**Nächste Stufe: Modell-/Versionsprototyp und Schriftprüfung für den fachlich freigegebenen
+Drehbuchvertrag vorbereiten; verbleibende F08-/M3-Restprüfungen gemäß
+[Matrix](testing/F08_M3_ACCEPTANCE_MATRIX.md) getrennt halten.**
 
-Vertrag und vollständige Kriterienerfassung liegen vor; fachliche Drehbuchfreigabe,
-Drehbuchimplementierung und kombinierte native M3-Vollabnahme fehlen weiterhin.
+Vertrag und Kriterienerfassung liegen vor und sind fachlich freigegeben. Der funktionale kombinierte
+M3-Gesamtlauf ist bestanden; Drehbuchimplementierung, unabhängige
+Desktop-Offline-/Netzverkehrsprüfung, assistive Vollabnahme und verbleibende CRUD-Nachweise sind
+offen.
 
 Empfohlener, überprüfbarer Scope:
 
@@ -966,7 +1001,9 @@ KQ-060/ADR 0027 implementiert den nativen Rust-Kern; KQ-061/ADR 0028 ergänzt Ap
 atomare neue Projektkopie. KQ-062 ist vollständig freigegeben und in PR #122 zusammengeführt. KQ-063
 ist mit grüner CI in PR #124 zusammengeführt. KQ-064 implementiert den gewöhnlichen DOCX-Bildexport;
 Word und LibreOffice sind im dokumentierten Umfang abgenommen. KQ-065 ergänzt das abgenommene
-PDF-Schrift-/Unicode-Profil und bebildertes PDF. KQ-066 erfasst den Drehbuchvertrag als Vorschlag
-und die vollständige F08-/M3-Matrix. Nächste Schritte sind Fachentscheid und der noch offene native
-Gesamtlauf M3-G01. Die bewusst zurückgestellte Zweitrechner- oder Clean-VM-Abnahme bleibt offen. Für
-einen Orts- und Rechnerwechsel gilt `docs/WORKSTATION_HANDOFF.md`.
+PDF-Schrift-/Unicode-Profil und bebildertes PDF. KQ-066 erfasst den inzwischen fachlich
+freigegebenen Drehbuchvertrag und die vollständige F08-/M3-Matrix. KQ-067 belegt den funktionalen
+nativen M3-Gesamtlauf; nächster Implementierungsschritt sind Drehbuch-Modell-/Versions- und
+Schriftprototyp. Die Matrix hält die übrigen Abnahmegrenzen offen. Die bewusst zurückgestellte
+Zweitrechner- oder Clean-VM-Abnahme bleibt offen. Für einen Orts- und Rechnerwechsel gilt
+`docs/WORKSTATION_HANDOFF.md`.

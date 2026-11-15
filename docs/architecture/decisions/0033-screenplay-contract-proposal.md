@@ -1,7 +1,8 @@
 # ADR 0033 Drehbuchrollen und überprüfbare F08-/M3-Abnahme
 
-Status: **vorgeschlagen**, 15. November 2026 · KQ-066 / Issue #129. Keine Implementierungs- oder
-fachliche Freigabe durch diese ADR.
+Status: **fachlich angenommen am 15. November 2026**, nach ausdrücklicher Freigabe des gesamten
+Vertrags durch den Projektinitiator („Der Vertrag passt so“). KQ-066 / Issue #129; Freigabenachtrag
+KQ-067 / Issue #131. Keine Implementierungs- oder Funktionsabnahme.
 
 ## Kontext
 
@@ -29,11 +30,12 @@ ab. „Vollständig“ bezeichnet die Kriterienerfassung, nicht den bestandenen 
 
 ## Folgen und Entscheidungstor
 
-Diese Stufe ändert ausschließlich Dokumentation. SQLite 6, Editor-Dokument v1, Command v1, Snapshot
-v3 und DOCX-Manuskriptaustausch v1 bleiben unverändert. Die sechs Rollen, A4-Maße,
-Schriftauswahlprüfung, Druckauswahl und Ausschlüsse sind zur fachlichen Review vorgelegt. Vor
-Implementierung sind diese Produktentscheidungen ausdrücklich festzuhalten und die ADR entsprechend
-zu aktualisieren. Ein Dokumentationsmerge ist keine automatische Annahme.
+Die Vertragsstufe KQ-066 änderte ausschließlich Dokumentation. SQLite 6, Editor-Dokument v1, Command
+v1, Snapshot v3 und DOCX-Manuskriptaustausch v1 bleiben unverändert. Die sechs Rollen, A4-Maße,
+Schriftauswahlprüfung, Druckauswahl und Ausschlüsse sind durch die explizite Nutzerfreigabe am 15.
+November 2026 fachlich angenommen. Ein Dokumentationsmerge allein hätte keine Annahme ersetzt.
+Technische Versionsgrammatik und Schriftprüfung bleiben vor Implementierung auszuarbeiten. Die
+Freigabe ist keine Funktionsabnahme.
 
 Unabhängig davon kann der native M3-Gesamtkorpus samt Neustart, Backup/Recovery, Snapshot-Neuimport,
 Backlinks und sichtbaren Assetfehlern gemäß Matrix geplant und geprüft werden. Ein dort fehlender

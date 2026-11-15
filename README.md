@@ -515,7 +515,7 @@ Nachweise. Aussagegrenzen gehören zur Testdokumentation – denn ein grüner Ha
 metaphysischer Wahrheitsbeweis.
 
 Der [Drehbuchformatierungsvertrag](docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md) liegt
-als Vorschlag vor; die Funktion ist noch nicht umgesetzt. Die
+fachlich freigegeben vor; die Funktion ist noch nicht umgesetzt. Die
 [F08-/M3-Abnahmematrix](docs/testing/F08_M3_ACCEPTANCE_MATRIX.md) ordnet alle einschlägigen
 Kriterien den vorhandenen Nachweisen und offenen Gesamtprüfungen zu.
 
