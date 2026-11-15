@@ -16,6 +16,8 @@ use windows::{
 use windows_sys::Win32::Storage::FileSystem::*;
 mod app_import;
 pub(super) use app_import::{child as import_child, launch as launch_import};
+mod ui_grant;
+pub(super) use ui_grant::launch as launch_ui;
 
 fn invalid(stage: &'static str) -> Failure {
     Failure { stage, code: -1 }
@@ -40,6 +42,19 @@ impl Drop for SelectionText {
 }
 
 fn choose(host: &Path, save: bool) -> Result<Option<PathBuf>> {
+    choose_named(
+        host,
+        save,
+        if save { "output.txt" } else { "input.txt" },
+        false,
+    )
+}
+fn choose_named(
+    host: &Path,
+    save: bool,
+    suggested: &str,
+    snapshot: bool,
+) -> Result<Option<PathBuf>> {
     // Called on the one-shot controller's sole STA thread, never the renderer's thread.
     com("shell-sta", unsafe {
         CoInitializeEx(None, COINIT_APARTMENTTHREADED).ok()
@@ -90,9 +105,7 @@ fn choose(host: &Path, save: bool) -> Result<Option<PathBuf>> {
         )?;
         com(
             "shell-filename",
-            dialog.SetFileName(PCWSTR(
-                wide(if save { "output.txt" } else { "input.txt" }).as_ptr(),
-            )),
+            dialog.SetFileName(PCWSTR(wide(suggested).as_ptr())),
         )?;
         if let Err(error) = dialog.Show(None) {
             if error.code().0 as u32 == 0x800704c7 {
@@ -114,7 +127,7 @@ fn choose(host: &Path, save: bool) -> Result<Option<PathBuf>> {
             || !path
                 .file_name()
                 .and_then(|n| n.to_str())
-                .is_some_and(transfer::flat_name)
+                .is_some_and(|n| transfer::flat_name(n) || (snapshot && n == "input.kraqel"))
         {
             return Err(invalid("selection-outside-synthetic-root"));
         }
@@ -363,6 +376,34 @@ fn run_worker(
     argument: &str,
     prepare: impl FnOnce(&Path) -> Result<()>,
 ) -> Result<Value> {
+    run_program(
+        root,
+        input,
+        output,
+        Program::Probe {
+            child_mode,
+            argument,
+        },
+        prepare,
+    )
+}
+enum Program<'a> {
+    Probe {
+        child_mode: &'static str,
+        argument: &'a str,
+    },
+    Ui {
+        executable: &'a Path,
+        id: uuid::Uuid,
+    },
+}
+fn run_program(
+    root: &Path,
+    input: &fs::File,
+    output: &fs::File,
+    program: Program<'_>,
+    prepare: impl FnOnce(&Path) -> Result<()>,
+) -> Result<Value> {
     io("create-exchange-root", fs::create_dir(root))?;
     let suffix = root
         .file_name()
@@ -384,11 +425,16 @@ fn run_worker(
     )?;
     low_label(&data)?;
     prepare(&data)?;
-    let executable = bin.join("kraqel-isolation-probe.exe");
-    io(
-        "stage-exchange-worker",
-        fs::copy(io("current-exe", std::env::current_exe())?, &executable),
-    )?;
+    let executable = bin.join(if matches!(program, Program::Ui { .. }) {
+        "kraqel-desktop.exe"
+    } else {
+        "kraqel-isolation-probe.exe"
+    });
+    let source = match &program {
+        Program::Ui { executable, .. } => executable.to_path_buf(),
+        _ => io("current-exe", std::env::current_exe())?,
+    };
+    io("stage-exchange-worker", fs::copy(source, &executable))?;
     let handles = [input.as_raw_handle(), output.as_raw_handle()];
     for handle in handles {
         check(
@@ -406,13 +452,25 @@ fn run_worker(
     let mut startup: STARTUPINFOEXW = unsafe { zeroed() };
     startup.StartupInfo.cb = size_of::<STARTUPINFOEXW>() as u32;
     startup.lpAttributeList = attributes.ptr;
-    let mut command = wide(format!(
-        "\"{}\" {child_mode} \"{}\" {} {} {argument}",
-        executable.display(),
-        data.display(),
-        handles[0] as usize,
-        handles[1] as usize,
-    ));
+    let arguments = match &program {
+        Program::Probe {
+            child_mode,
+            argument,
+        } => format!(
+            "\"{}\" {child_mode} \"{}\" {} {} {argument}",
+            executable.display(),
+            data.display(),
+            handles[0] as usize,
+            handles[1] as usize
+        ),
+        Program::Ui { id, .. } => format!(
+            "\"{}\" ui-grant {} {} {id}",
+            executable.display(),
+            handles[0] as usize,
+            handles[1] as usize
+        ),
+    };
+    let mut command = wide(arguments);
     let system = std::env::var_os("SystemRoot").unwrap_or("C:\\Windows".into());
     let mut environment = Vec::new();
     for (key, value) in [
@@ -500,7 +558,23 @@ fn run_worker(
     if unsafe { ResumeThread(thread_handle.0) } == u32::MAX {
         return Err(fail("exchange-resume"));
     }
-    let finished = unsafe { WaitForSingleObject(process.0, 30000) } == WAIT_OBJECT_0;
+    let finished = if matches!(program, Program::Ui { .. }) {
+        let start = Instant::now();
+        loop {
+            if unsafe { WaitForSingleObject(process.0, 100) } == WAIT_OBJECT_0 {
+                break true;
+            }
+            if root.join("STOP").exists()
+                || start.elapsed() > Duration::from_secs(600)
+                || (start.elapsed() > Duration::from_secs(20)
+                    && !data.join("ui-ready.json").exists())
+            {
+                break false;
+            }
+        }
+    } else {
+        (unsafe { WaitForSingleObject(process.0, 30000) }) == WAIT_OBJECT_0
+    };
     if !finished {
         unsafe {
             TerminateJobObject(job.0, 1);
@@ -516,18 +590,25 @@ fn run_worker(
         TerminateJobObject(job.0, 1);
     }
     let mut accounting: JOBOBJECT_BASIC_ACCOUNTING_INFORMATION = unsafe { zeroed() };
-    check(
-        unsafe {
-            QueryInformationJobObject(
-                job.0,
-                JobObjectBasicAccountingInformation,
-                (&mut accounting as *mut JOBOBJECT_BASIC_ACCOUNTING_INFORMATION).cast(),
-                size_of::<JOBOBJECT_BASIC_ACCOUNTING_INFORMATION>() as u32,
-                null_mut(),
-            )
-        },
-        "exchange-job-accounting",
-    )?;
+    let cleanup_deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        check(
+            unsafe {
+                QueryInformationJobObject(
+                    job.0,
+                    JobObjectBasicAccountingInformation,
+                    (&mut accounting as *mut JOBOBJECT_BASIC_ACCOUNTING_INFORMATION).cast(),
+                    size_of::<JOBOBJECT_BASIC_ACCOUNTING_INFORMATION>() as u32,
+                    null_mut(),
+                )
+            },
+            "exchange-job-accounting",
+        )?;
+        if accounting.ActiveProcesses == 0 || Instant::now() >= cleanup_deadline {
+            break;
+        }
+        thread::sleep(Duration::from_millis(50));
+    }
     drop(worker);
     drop(job);
     let removed = accounting.ActiveProcesses == 0 && profile.remove();

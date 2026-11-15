@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "isolation-test",
+  "description": "Lokales Forschungsfenster ohne Dateisystem-, Shell- oder Netzwerk-Plugins.",
+  "windows": ["isolation-test"],
+  "permissions": []
+}

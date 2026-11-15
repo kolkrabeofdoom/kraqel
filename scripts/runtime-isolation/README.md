@@ -4,6 +4,22 @@
 KRAQEL-Start wird nicht verändert. Ergebnis und Grenzen stehen im
 [Versuchsprotokoll](../../docs/testing/native-runtime-isolation.md).
 
+Neu: [Tauri-Testanbindung](../../docs/testing/native-tauri-file-channel.md) und
+[Einwegkanal](../../docs/data-format/native-file-channel-v1.md). Das Tool stellt zusätzlich eine
+Transportbibliothek ausschließlich für das explizite Windows-Feature `isolation-ui-test` bereit. Sie
+bleibt außerhalb des Produkt-Workspace; Produktcrates behalten `unsafe_code = forbid`. Keine neuen
+Registrypakete, nur vorhandene Serde-/Win32-Funktionen. Normale Builds binden die Bibliothek nicht
+ein und enthalten die Forschungsseite nicht. Finale synthetische UI-Serie mit Import/Wiederholung,
+Abbruch und Fensterende am Haltepunkt einschließlich gültigem ETW bestanden. Native Vorabauswahl und
+Produktabnahme bleiben offen; kein universeller Netzstillebeleg.
+
+`ui-select <neue kraqel-isolation-ui-Wurzel> <gesicherte Forschungs-EXE>` wählt zuerst die feste
+synthetische Datei und startet danach das isolierte Fenster. `ui-fixture` überspringt den Dialog.
+Kein Rendererpfad und kein Container-zu-Host-Auftragskanal. Native Bedienung derzeit durch den
+Nutzer, weil Computer Use einschließlich Neustart mit `Transport closed` ausfällt. Nur tatsächliche
+Ergebnisse protokollieren. `isolation-ui` verlangt im ETW-Auswerter pro Controller App und WebView
+sowie unverändert Kontrollen, vollständige Lebenszeiten und Nullverluste.
+
 Der neue einmalige `exchange`-Modus untersucht zusätzlich native Shell-Auswahl und zwei gezielte
 Dateihandles.
 [Nachweis, Bedrohungsgrenze und ETW-Buildabgrenzung](../../docs/testing/native-runtime-file-exchange.md).

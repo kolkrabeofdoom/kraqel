@@ -55,6 +55,32 @@ class AnalysisTests(unittest.TestCase):
         self.assertTrue(result["measurementValid"])
         self.assertEqual(result["result"], "no-non-loopback-traffic-observed")
 
+    def test_ui_mode_requires_a_real_app_and_webview_for_each_controller(self):
+        self.start(10, 200, 1, "kraqel-isolation-probe.exe")
+        self.start(11, 201, 200, "kraqel-desktop.exe")
+        self.start(12, 202, 201, "msedgewebview2.exe")
+        self.stop(13, 202)
+        self.stop(14, 201)
+        self.stop(15, 200)
+        self.result()
+        self.assertTrue(analyze(self.path, (200,), self.ready, "isolation-ui")["measurementValid"])
+        self.start(16, 300, 1, "kraqel-isolation-probe.exe")
+        self.start(17, 301, 300, "kraqel-desktop.exe")
+        self.stop(18, 301)
+        self.stop(19, 300)
+        self.result()
+        self.assertFalse(analyze(self.path, (200, 300), self.ready, "isolation-ui")["measurementValid"])
+
+    def test_ui_mode_does_not_waive_capture_controls_or_process_ends(self):
+        self.start(10, 200, 1, "kraqel-isolation-probe.exe")
+        self.start(11, 201, 200, "kraqel-desktop.exe")
+        self.start(12, 202, 201, "msedgewebview2.exe")
+        self.result()
+        result = analyze(self.path, (200,), self.ready, "isolation-ui")
+        self.assertIn("process-tree-not-fully-stopped-within-capture", result["measurementProblems"])
+        self.ready["controls"][3]["port"] = 20000
+        self.assertFalse(analyze(self.path, (200,), self.ready, "isolation-ui")["measurementValid"])
+
     def test_exchange_mode_requires_the_exact_broker_and_a_worker(self):
         self.start(10, 200, 1, "kraqel-isolation-probe.exe")
         self.start(11, 201, 200, "kraqel-isolation-probe.exe")

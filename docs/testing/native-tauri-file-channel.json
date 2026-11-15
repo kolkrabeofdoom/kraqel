@@ -1,0 +1,104 @@
+{
+  "formatVersion": 1,
+  "diagnosticOnly": true,
+  "productionAcceptance": false,
+  "nativeRuns": [
+    {
+      "scenario": "import",
+      "passed": true,
+      "projectCopies": 1,
+      "nativeRendererInvokedTauri": true,
+      "inputHandleNotInheritableBeforeWebview": true,
+      "noStagingResidue": true,
+      "profileRemoved": true,
+      "activeJobProcessesAtEnd": 0,
+      "appContainer": true,
+      "capabilities": 0,
+      "sqliteUnicodeIntegrityForeignKeys": true,
+      "appSha256": "d6728209b8d261a283cbb08cea6944bd5fd7d63ef1aa5d2aea4bbab904d0e4ee"
+    },
+    {
+      "scenario": "cancel",
+      "passed": true,
+      "projectCopies": 0,
+      "nativeRendererInvokedTauri": true,
+      "inputHandleNotInheritableBeforeWebview": true,
+      "noStagingResidue": true,
+      "profileRemoved": true,
+      "activeJobProcessesAtEnd": 0,
+      "appContainer": true,
+      "capabilities": 0,
+      "sqliteUnicodeIntegrityForeignKeys": null,
+      "appSha256": "d6728209b8d261a283cbb08cea6944bd5fd7d63ef1aa5d2aea4bbab904d0e4ee"
+    },
+    {
+      "scenario": "close",
+      "passed": true,
+      "projectCopies": 0,
+      "nativeRendererInvokedTauri": true,
+      "inputHandleNotInheritableBeforeWebview": true,
+      "noStagingResidue": true,
+      "profileRemoved": true,
+      "activeJobProcessesAtEnd": 0,
+      "appContainer": true,
+      "capabilities": 0,
+      "sqliteUnicodeIntegrityForeignKeys": null,
+      "appSha256": "d6728209b8d261a283cbb08cea6944bd5fd7d63ef1aa5d2aea4bbab904d0e4ee"
+    }
+  ],
+  "etw": {
+    "startedUtc": "2026-11-15T16:43:07.6028772Z",
+    "stoppedUtc": "2026-11-15T16:46:11.2250015Z",
+    "etlBytes": 1114112,
+    "summary": {
+      "formatVersion": 1,
+      "measurementMode": "isolation-ui",
+      "measurementValid": true,
+      "measurementProblems": [],
+      "result": "no-non-loopback-traffic-observed",
+      "rootStarts": 3,
+      "processLifetimes": {
+        "kraqel-isolation-probe.exe": 3,
+        "conhost.exe": 6,
+        "kraqel-desktop.exe": 3,
+        "msedgewebview2.exe": 18
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "unattributableNetworkEvents": 0,
+      "unknownDestinationEvents": 0,
+      "networkEvents": [
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 13,
+          "destinationScope": "loopback",
+          "count": 13
+        },
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 29,
+          "destinationScope": "loopback",
+          "count": 13
+        }
+      ],
+      "nonLoopbackEvents": 0,
+      "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths. Out-of-tree COM/Shell services are not attributed by this process-tree measurement."
+    }
+  },
+  "nativeReplayConfirmedByUser": true,
+  "nativeActions": "User operated import, checkpoint cancellation, and window close; Computer Use unavailable",
+  "controllerSha256": "f0a30d40464456750ba08d00421c631de960d615745fabff5496aded26052fa7",
+  "selectionMode": "fixed synthetic preauthorization; native picker not exercised in final series",
+  "limits": [
+    "Research feature only; normal product remains unisolated",
+    "No full descendant token/handle attestation or out-of-tree COM/Shell attribution",
+    "No real user files, native picker or screenreader acceptance",
+    "No universal network silence or product privacy acceptance"
+  ]
+}

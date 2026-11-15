@@ -1,0 +1,303 @@
+//! Explicit, Windows-only research feature. Normal application startup never calls this module.
+use kraqel_isolation_test_adapter::{ImportReceipt, OneShotAdapter, TaskControl, TaskError};
+use kraqel_isolation_transport::{ReceivedGrant, receive_from_launcher};
+use kraqel_storage::project_manager::ProjectManager;
+use serde::Serialize;
+use std::{
+    fs,
+    path::PathBuf,
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicBool, AtomicU8, Ordering},
+    },
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
+use tauri::{State, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Receipt {
+    document_count: u32,
+    asset_count: u32,
+    project_id: String,
+}
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct View {
+    phase: &'static str,
+    error: Option<TaskError>,
+    receipt: Option<Receipt>,
+}
+struct Inner {
+    grant: Mutex<Option<ReceivedGrant>>,
+    cancel: AtomicBool,
+    release: AtomicBool,
+    phase: AtomicU8,
+    result: Mutex<(Option<TaskError>, Option<Receipt>)>,
+    data: PathBuf,
+    exit_requested: AtomicBool,
+    renderer_seen: AtomicBool,
+}
+#[derive(Clone)]
+struct UiState(Arc<Inner>);
+fn now() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .ok()
+        .and_then(|d| u64::try_from(d.as_millis()).ok())
+        .unwrap_or(0)
+}
+fn allowed_origin(label: &str, url: &tauri::Url) -> bool {
+    label == "isolation-test"
+        && url.path() == "/isolation-test.html"
+        && matches!(
+            (url.scheme(), url.host_str()),
+            ("http", Some("tauri.localhost")) | ("tauri", Some("localhost"))
+        )
+}
+fn guard(window: &WebviewWindow) -> Result<(), TaskError> {
+    if window
+        .url()
+        .is_ok_and(|url| allowed_origin(window.label(), &url))
+    {
+        Ok(())
+    } else {
+        Err(TaskError::InvalidTask)
+    }
+}
+fn view(inner: &Inner) -> Result<View, TaskError> {
+    let (error, receipt) = inner
+        .result
+        .lock()
+        .map_err(|_| TaskError::ImportFailed)?
+        .clone();
+    let phase = match inner.phase.load(Ordering::SeqCst) {
+        0 => "ready",
+        1 => "running",
+        2 => "awaiting",
+        3 => "done",
+        4 => "cancelled",
+        _ => "failed",
+    };
+    Ok(View {
+        phase,
+        error,
+        receipt,
+    })
+}
+fn finish(inner: &Inner, result: Result<ImportReceipt, TaskError>) {
+    let (error, receipt, phase) = match result {
+        Ok(r) => (
+            None,
+            Some(Receipt {
+                document_count: r.document_count,
+                asset_count: r.asset_count,
+                project_id: r.project_id.to_string(),
+            }),
+            3,
+        ),
+        Err(e) => (Some(e), None, if e == TaskError::Cancelled { 4 } else { 5 }),
+    };
+    if let Ok(mut stored) = inner.result.lock() {
+        *stored = (error, receipt);
+    }
+    inner.phase.store(phase, Ordering::SeqCst);
+    if let Ok(state) =
+        view(inner).and_then(|s| serde_json::to_vec(&s).map_err(|_| TaskError::ImportFailed))
+    {
+        let _ = fs::write(inner.data.join("ui-result.json"), state);
+    }
+}
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)] // Tauri injects owned window/state command arguments.
+fn isolation_test_status(
+    window: WebviewWindow,
+    state: State<'_, UiState>,
+) -> Result<View, TaskError> {
+    guard(&window)?;
+    if !state.0.renderer_seen.swap(true, Ordering::SeqCst) {
+        let _ = fs::write(
+            state.0.data.join("ui-renderer.json"),
+            b"{\"nativeStatusInvoked\":true}",
+        );
+    }
+    view(&state.0)
+}
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)] // Tauri command injection.
+fn isolation_test_continue(
+    window: WebviewWindow,
+    state: State<'_, UiState>,
+) -> Result<(), TaskError> {
+    guard(&window)?;
+    if state.0.phase.load(Ordering::SeqCst) != 2 {
+        return Err(TaskError::InvalidTask);
+    }
+    state.0.release.store(true, Ordering::SeqCst);
+    Ok(())
+}
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)] // Tauri command injection.
+fn isolation_test_cancel(
+    window: WebviewWindow,
+    state: State<'_, UiState>,
+) -> Result<(), TaskError> {
+    guard(&window)?;
+    let mut slot = state.0.grant.lock().map_err(|_| TaskError::ImportFailed)?;
+    if state.0.phase.load(Ordering::SeqCst) >= 3 {
+        return Err(TaskError::AlreadyConsumed);
+    }
+    state.0.cancel.store(true, Ordering::SeqCst);
+    state.0.release.store(true, Ordering::SeqCst);
+    if let Some(grant) = slot.take() {
+        drop(grant);
+        finish(&state.0, Err(TaskError::Cancelled));
+    }
+    Ok(())
+}
+#[tauri::command]
+async fn isolation_test_import(
+    window: WebviewWindow,
+    state: State<'_, UiState>,
+    app: tauri::AppHandle,
+) -> Result<View, TaskError> {
+    guard(&window)?;
+    let inner = Arc::clone(&state.0);
+    let mut grant = {
+        let mut slot = inner.grant.lock().map_err(|_| TaskError::ImportFailed)?;
+        let grant = slot.take().ok_or(TaskError::AlreadyConsumed)?;
+        inner.phase.store(1, Ordering::SeqCst);
+        grant
+    };
+    let worker = Arc::clone(&inner);
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        let manager = ProjectManager::new(worker.data.join("app/projects"))
+            .map_err(|_| TaskError::ImportFailed)?;
+        OneShotAdapter::new(grant.task.task_id).execute(
+            &grant.task,
+            &mut grant.input,
+            &manager,
+            || {
+                let staged = fs::read_dir(manager.root()).is_ok_and(|mut entries| {
+                    entries.any(|e| {
+                        e.is_ok_and(|e| {
+                            e.file_name()
+                                .to_string_lossy()
+                                .starts_with(".kraqel-stage-")
+                        })
+                    })
+                });
+                if staged {
+                    worker.phase.store(2, Ordering::SeqCst);
+                    while !worker.release.load(Ordering::SeqCst)
+                        && !worker.cancel.load(Ordering::SeqCst)
+                        && now() < grant.task.expires_unix_ms
+                    {
+                        std::thread::sleep(Duration::from_millis(50));
+                    }
+                    worker.phase.store(1, Ordering::SeqCst);
+                }
+                TaskControl {
+                    now_unix_ms: now(),
+                    cancelled: worker.cancel.load(Ordering::SeqCst),
+                }
+            },
+        )
+    })
+    .await
+    .map_err(|_| TaskError::ImportFailed)
+    .and_then(|result| result);
+    finish(&inner, result);
+    if inner.exit_requested.load(Ordering::SeqCst) {
+        app.exit(0);
+    }
+    view(&inner)
+}
+
+/// Runs only with a validated native grant inside the research container.
+pub fn run() {
+    let Ok(grant) = receive_from_launcher() else {
+        eprintln!("Isolationstest: kein gültiger nativer Auftrag.");
+        std::process::exit(2)
+    };
+    let data = grant.data_root.clone();
+    if fs::create_dir_all(data.join("app/projects")).is_err()
+        || fs::create_dir_all(data.join("webview")).is_err()
+    {
+        std::process::exit(2);
+    }
+    let inner = Arc::new(Inner {
+        grant: Mutex::new(Some(grant)),
+        cancel: AtomicBool::new(false),
+        release: AtomicBool::new(false),
+        phase: AtomicU8::new(0),
+        result: Mutex::new((None, None)),
+        data: data.clone(),
+        exit_requested: AtomicBool::new(false),
+        renderer_seen: AtomicBool::new(false),
+    });
+    let _ = fs::write(
+        data.join("ui-ready.json"),
+        b"{\"channelVersion\":1,\"taskBound\":true,\"handleInheritanceCleared\":true}",
+    );
+    let mut context = tauri::generate_context!();
+    context.config_mut().identifier = "org.kraqel.desktop.isolation-ui-test".into();
+    context.config_mut().app.windows.clear();
+    let state = UiState(Arc::clone(&inner));
+    let app = tauri::Builder::default()
+        .manage(state)
+        .invoke_handler(tauri::generate_handler![
+            isolation_test_status,
+            isolation_test_import,
+            isolation_test_continue,
+            isolation_test_cancel
+        ])
+        .setup(move |app| {
+            WebviewWindowBuilder::new(
+                app,
+                "isolation-test",
+                WebviewUrl::App("isolation-test.html".into()),
+            )
+            .title("KRAQEL Isolierter Dateiauftrag")
+            .inner_size(880., 620.)
+            .data_directory(data.join("webview"))
+            .build()?;
+            Ok(())
+        })
+        .build(context);
+    if let Ok(app) = app {
+        app.run(move |_, event| {
+            if let tauri::RunEvent::ExitRequested { api, .. } = event
+                && matches!(inner.phase.load(Ordering::SeqCst), 1 | 2)
+            {
+                api.prevent_exit();
+                inner.exit_requested.store(true, Ordering::SeqCst);
+                inner.cancel.store(true, Ordering::SeqCst);
+                inner.release.store(true, Ordering::SeqCst);
+            }
+        });
+    } else {
+        eprintln!("Isolationstest: Fensterstart fehlgeschlagen.");
+        std::process::exit(2);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn only_the_bundled_research_window_can_invoke_commands() {
+        assert!(allowed_origin(
+            "isolation-test",
+            &tauri::Url::parse("http://tauri.localhost/isolation-test.html").unwrap()
+        ));
+        for (label, url) in [
+            ("main", "http://tauri.localhost/isolation-test.html"),
+            ("isolation-test", "http://localhost/isolation-test.html"),
+            ("isolation-test", "https://example.com/isolation-test.html"),
+            ("isolation-test", "http://tauri.localhost/index.html"),
+        ] {
+            assert!(!allowed_origin(label, &tauri::Url::parse(url).unwrap()));
+        }
+    }
+}

@@ -338,6 +338,7 @@ dependencies = [
  "kraqel-domain",
  "kraqel-isolation-test-adapter",
  "kraqel-storage",
+ "serde",
  "serde_json",
  "sha2",
  "uuid",

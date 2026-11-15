@@ -1,0 +1,60 @@
+:root {
+  color: #17383a;
+  background: #f6f5ee;
+  font:
+    18px/1.6 system-ui,
+    sans-serif;
+}
+body {
+  margin: 0;
+}
+main {
+  max-width: 720px;
+  margin: 3rem auto;
+  padding: 0 2rem;
+}
+h1 {
+  font:
+    2.5rem Georgia,
+    serif;
+}
+.eyebrow {
+  color: #087d79;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+button {
+  border: 2px solid #087d79;
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.9rem;
+  background: #fff;
+  color: #124b49;
+  font: inherit;
+  cursor: pointer;
+}
+button:focus-visible {
+  outline: 3px solid #17292e;
+  outline-offset: 3px;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+#status {
+  padding: 1rem;
+  border-left: 4px solid #087d79;
+  background: #e5efea;
+}
+#error {
+  color: #a02121;
+  font-weight: 600;
+}
+.note {
+  font-size: 0.85rem;
+}

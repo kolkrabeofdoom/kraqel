@@ -6,12 +6,17 @@ rust-version = "1.90"
 license = "GPL-3.0-or-later"
 publish = false
 
-# Research tool only. Never linked into or packaged with the desktop application.
+# Research tool and transport boundary. Linked only by the explicit Tauri research feature.
 [workspace]
+
+[lib]
+name = "kraqel_isolation_transport"
+path = "src/transport.rs"
 
 [dependencies]
 serde_json = "=1.0.154"
 sha2 = "=0.10.9"
+serde = { version = "1", features = ["derive"] }
 
 [target.'cfg(windows)'.dependencies]
 kraqel-isolation-test-adapter = { path = "../../../apps/desktop/isolation-test-adapter" }
@@ -19,4 +24,4 @@ kraqel-storage = { path = "../../../crates/storage" }
 kraqel-domain = { path = "../../../crates/domain" }
 uuid = { version = "1", features = ["v4", "serde"] }
 windows = { version = "=0.62.2", features = ["Win32_System_Com", "Win32_UI_Shell"] }
-windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_Security_Isolation", "Win32_Storage_FileSystem", "Win32_System_Threading", "Win32_System_JobObjects"] }
+windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_Security_Isolation", "Win32_Storage_FileSystem", "Win32_System_Threading", "Win32_System_JobObjects", "Win32_System_Pipes"] }

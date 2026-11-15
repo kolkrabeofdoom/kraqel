@@ -13,6 +13,13 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
+[features]
+isolation-ui-test = ["dep:kraqel-isolation-probe", "dep:kraqel-isolation-test-adapter"]
+
+[target.'cfg(windows)'.dependencies]
+kraqel-isolation-probe = { path = "../../../scripts/runtime-isolation/probe", optional = true }
+kraqel-isolation-test-adapter = { path = "../isolation-test-adapter", optional = true }
+
 [dependencies]
 base64 = "0.22"
 kraqel-ai-service = { path = "../../../crates/ai-service" }
