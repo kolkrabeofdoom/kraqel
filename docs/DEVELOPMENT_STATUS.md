@@ -17,10 +17,11 @@ Prozessneustart bestanden. B-Original/Thumbnail sind entfernt, der kanonische Ve
 Profillöschung korrekt geleert. Bild A, seine Metadaten/Hashes/Dateien, Szenenlink, Dokumente und
 Figur sind unverändert; SQLite-/FK-Prüfung fehlerfrei. Der Nutzer bestätigt den manuellen
 kanonischen Bildwechsel und die Profil-/Stil-/Fehleransagen mit „alles gut“. Vier folgende
-Bildexporte sind per Tastatur erzeugt und unabhängig nachgeprüft. Die gesonderte
-Lösch-/Export-Hörrückmeldung und weitere allgemeine assistive F08-Randfälle bleiben offen. PR #135
-hat auf Stand `291788b` vollständig grüne CI; dieser Stand wurde erfolgreich neu gebündelt und für
-Neustart/Export verwendet. 163 Rust-/53 TypeScript-Tests, 27 Browser-E2E und zwölf
+Bildexporte sind per Tastatur erzeugt und unabhängig nachgeprüft. Die letzte konkrete Hörfrage zu
+Löschungen, Export-Bedienelementen und Erfolgen ist mit „Ja passt, alles gut“ bestätigt. KQ-068s
+benannte native Prüfungen sind abgeschlossen; weitere allgemeine assistive F08-Randfälle bleiben
+offen. PR #135 hat auf Stand `291788b` vollständig grüne CI; dieser Stand wurde erfolgreich neu
+gebündelt und für Neustart/Export verwendet. 163 Rust-/53 TypeScript-Tests, 27 Browser-E2E und zwölf
 ETW-Auswertungstests bestanden. Formate/Schema unverändert. M3-05/M3-10 sind **N** im Korpus;
 Q-01/Q-02 und fehlende Drehbuchimplementierung verhindern weiterhin die Gesamtfreigabe.
 
@@ -943,15 +944,15 @@ Medien-Einbettung je Exportformat. Rechts- und Lizenzfragen der Bildprovider sin
 
 ## Nächste geplante Entwicklungsstufe
 
-**Nächste Stufe: KQ-068s abschließende Hörliste ergänzen und den gemessenen WebView2-Netzbefund
-KQ-069 / #134 klären. Danach Modell-/Versionsprototyp und Schriftprüfung für den freigegebenen
-Drehbuchvertrag; Grenzen gemäß [Matrix](testing/F08_M3_ACCEPTANCE_MATRIX.md) beibehalten.**
+**Nächste Stufe: Den gemessenen WebView2-Netzbefund KQ-069 / #134 klären. Danach
+Modell-/Versionsprototyp und Schriftprüfung für den freigegebenen Drehbuchvertrag; Grenzen gemäß
+[Matrix](testing/F08_M3_ACCEPTANCE_MATRIX.md) beibehalten.**
 
 Vertrag und Kriterienerfassung liegen vor und sind fachlich freigegeben. Der funktionale kombinierte
 M3-Gesamtlauf ist bestanden. KQ-068 hat den unabhängigen Netztest durchgeführt und öffentlichen
 WebView2-Verkehr gefunden; die Netzabnahme ist nicht bestanden. Drehbuchimplementierung, assistive
-Vollabnahme und die abschließende Lösch-/Export-Hörrückmeldung bleiben offen; der native
-GUI-CRUD-Korpus einschließlich Neustart ist bestanden.
+Vollabnahme bleiben offen; der native GUI-CRUD-Korpus einschließlich Neustart und die gezeigte
+abschließende Lösch-/Export-Hörprobe sind bestanden.
 
 Empfohlener, überprüfbarer Scope:
 

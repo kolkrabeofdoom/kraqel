@@ -85,10 +85,11 @@ eine GUI-Abnahme. Die oben dokumentierte tatsächliche GUI-Folge ergänzt ihn se
 Windows-Sprachausgabe wurde aus der vorhandenen Installation gestartet. Nutzer-Rückmeldung:
 „Sprachausgabe funktioniert bestens“. Die spätere konkrete Frage zu Profil-/Stilerfolg und den
 ausgelösten Bildersatz-/Profilfehlern beantwortet der Nutzer mit „alles gut“. Damit sind diese
-gezeigten Ansagen manuell bestätigt. Für die danach ausgeführten Löschmeldungen und vier
-Export-Erfolge ist eine gesonderte Hörrückmeldung angefragt; ohne Antwort wird keine entsprechende
-Hörabnahme behauptet. Weitere F08-Randfälle und eine allgemeine
-WCAG-/Dokument-Screenreader-Konformität werden nicht daraus abgeleitet.
+gezeigten Ansagen manuell bestätigt. Auch die abschließende konkrete Frage zu Löschmeldungen,
+Export-Bedienelementen und den vier Erfolgsmeldungen beantwortet der Nutzer am 15. November 2026 mit
+„Ja passt, alles gut“. Die gezeigte native Hörprobe ist damit im dokumentierten Korpus bestanden.
+Weitere F08-Randfälle und eine allgemeine WCAG-/Dokument-Screenreader- Konformität werden nicht
+daraus abgeleitet.
 
 Tatsächlich korrigiert:
 
@@ -202,7 +203,8 @@ vollständig beendet und der aktuelle Stand erfolgreich neu gebündelt. Nach der
 auch die zweite Coverage-Instanz geschlossen und der reguläre Debug-Build erfolgreich
 wiederhergestellt. Die produktive App wurde dabei nicht gestartet.
 
-Offen bleiben die angefragte abschließende Lösch-/Export-Hörrückmeldung, weitere allgemeine
-assistive F08-Randfälle und der separate Netzbefund #134. GUI-CRUD und Prozessneustart sind im
-dokumentierten Korpus bestanden. Das Pflichtenheft verlangt außerdem die weiterhin fehlende
-Drehbuchimplementierung und weitere getrennte F01–F09-/M5-Abnahmen. Keine Gesamtfreigabe.
+KQ-068s benannte native CRUD-, Neustart-, Tastatur- und Hörprüfungen sind abgeschlossen. Offen
+bleiben weitere allgemeine assistive F08-Randfälle und der separate Netzbefund #134. GUI-CRUD und
+Prozessneustart sind im dokumentierten Korpus bestanden. Das Pflichtenheft verlangt außerdem die
+weiterhin fehlende Drehbuchimplementierung und weitere getrennte F01–F09-/M5-Abnahmen. Keine
+Gesamtfreigabe.

@@ -83,8 +83,8 @@
        - [x] Manuellen kanonischen Bildwechsel, bestätigte GUI-Löschfolge und Neustart abnehmen
              (KQ-068 / #133)
        - [x] Vier bebilderte Exporte nach Löschung/Neustart per Tastatur erzeugen und rücklesen
-       - [ ] Abschließende Lösch-/Export-Hörrückmeldung und allgemeine assistive F08-Randfälle
-             ergänzen
+       - [x] Abschließende Lösch-/Export-Hörprobe mit Nutzerbestätigung abnehmen (KQ-068)
+       - [ ] Weitere allgemeine assistive F08-Randfälle ergänzen
        - [ ] WebView2-Netzbefund klären und Laufzeitgrenze ausdrücklich entscheiden; Q-01/Q-02 erst
              anhand neuer Evidenz freigeben (KQ-069 / #134)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene

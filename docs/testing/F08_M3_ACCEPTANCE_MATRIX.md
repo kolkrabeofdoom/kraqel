@@ -6,8 +6,9 @@ jetzt **N**. Der Nutzer bestätigt den manuellen kanonischen Bildwechsel und die
 Profil-/Stil-/Fehleransagen. Die drei ausdrücklich freigegebenen GUI-Löschungen,
 Datei-/Referenzprüfung und vollständiger Prozessneustart sind bestanden. Bild A, Tags, Szenenlink
 und Figur bleiben unverändert. Vier anschließende bebilderte Exporte sind per Tastatur erzeugt und
-unabhängig rückgelesen; die abschließende Lösch-/Export-Hörrückmeldung ist angefragt. Keine
-pauschale assistive F08- oder WCAG-Freigabe.
+unabhängig rückgelesen. Der Nutzer bestätigt auch Löschmeldungen, Export-Bedienelemente und Erfolge
+mit „Ja passt, alles gut“. Die gezeigte Hörprobe ist bestanden; keine pauschale assistive F08- oder
+WCAG-Freigabe.
 
 **Q-01/Q-02: gemessen, nicht bestanden.** Windows-ETW findet öffentlichen Verkehr von
 WebView2-Nachfahren ohne Provideraufruf. Der bisher fehlende Gesamtnachweis ist durch diesen
@@ -165,7 +166,8 @@ Nachweis offen; Teilnachweise werden nicht hochgestuft.
 2. Funktionaler M3-G01-Lauf in KQ-067 bestanden; irreführende Medienstatusmeldung korrigiert und
    nativ erneut geprüft. KQ-068 schließt die nativen CRUD-Restprüfungen einschließlich bestätigter
    Löschung und Neustart; Q-01/Q-02 bleiben wegen des gemessenen WebView2-Verkehrs in #134 offen.
-   Die letzte Lösch-/Export-Hörrückmeldung und weitere assistive F08-Randfälle bleiben getrennt.
+   Die abschließende Lösch-/Export-Hörprobe ist ebenfalls bestätigt; weitere allgemeine assistive
+   F08-Randfälle bleiben getrennt.
 3. Nach Drehbuchfreigabe Modell-/Versions- und Schriftprototyp, dann Renderer und DB-01–DB-08;
    Status zeilenweise mit tatsächlichen Nachweisen aktualisieren.
 4. Vor stabilem 0.1 die übrigen F01–F09-/M5- und Abhängigkeitsrisiken separat schließen.

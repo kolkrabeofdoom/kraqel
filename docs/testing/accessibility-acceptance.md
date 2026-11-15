@@ -7,10 +7,11 @@ Medien-Linkwähler/-artikel, Erfolgs-Liveregionen und Fehleralarme für Medien/v
 Nutzer bestätigt zunächst „Sprachausgabe funktioniert bestens“ und anschließend die konkret
 angefragten Profil-/Stilerfolge und Bildersatz-/Profilfehler mit „alles gut“. Die bestätigten
 GUI-Löschungen und ihr Prozessneustart sind durchgeführt. Danach sind Bildcheckbox, Alttext,
-Bildunterschrift und alle vier bebilderten Exporte per Tastatur mit sichtbarem Fokus geprüft; eine
-gesonderte Hörrückmeldung zu Lösch- und Export-Erfolgen ist angefragt. Keine pauschale assistive
-F08-, Dokument- oder WCAG-Konformität. Die folgende KQ-033-/KQ-034-Matrix bleibt ein historischer
-Beleg.
+Bildunterschrift und alle vier bebilderten Exporte per Tastatur mit sichtbarem Fokus geprüft. Die
+abschließende konkrete Frage zu Löschmeldungen, Export-Bedienelementen und Erfolgen beantwortet der
+Nutzer mit „Ja passt, alles gut“; die gezeigte native Hörprobe ist bestanden. Keine pauschale
+assistive F08-, Dokument- oder WCAG-Konformität. Die folgende KQ-033-/KQ-034-Matrix bleibt ein
+historischer Beleg.
 
 Diese Matrix trennt automatisiert belegte Browserprüfungen von einer echten Hörprüfung mit
 assistiver Technik. Axe und der Browser-Accessibility-Tree finden viele strukturelle Fehler, hören

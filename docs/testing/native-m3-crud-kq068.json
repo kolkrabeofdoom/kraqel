@@ -63,5 +63,13 @@
       "internalRgbMatchesSource": true,
       "embeddedFonts": 4
     }
-  ]
+  ],
+  "hearingAcceptance": {
+    "date": "2026-11-15",
+    "reader": "Windows Narrator",
+    "scope": "Shown native deletion messages, illustrated-export controls and success messages",
+    "userConfirmation": "Ja passt, alles gut",
+    "passed": true,
+    "generalWcagOrDocumentConformance": false
+  }
 }
