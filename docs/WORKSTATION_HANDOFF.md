@@ -5,6 +5,56 @@ Code und Projektdokumentation; ein `.kraqel`-Archiv transportiert Manuskript, St
 Medien. Wer beides verwechselt, erhält entweder fehlende Kapitel oder einen sehr literarischen
 Commitverlauf.
 
+## Aktuelle Entwicklungsübergabe · 15. November 2026
+
+Entwicklungsstand: [PR #140](https://github.com/kolkrabeofdoom/kraqel/pull/140), KQ-069 A /
+[Issue #134](https://github.com/kolkrabeofdoom/kraqel/issues/134). PR #139 ist nach grüner CI
+zusammengeführt (`fadf0a6`). PR #140 enthält die UI-/Tauri- Testanbindung und den einmaligen
+Einweg-Dateiauftragskanal einschließlich finaler Nachweise. Die abschließende Übergabe wird mit
+diesem PR nach vollständig grüner CI nach `main` übernommen. Beim Wiederbeginn den tatsächlichen
+GitHub-Merge-Status prüfen; danach `main` aktualisieren. Falls der PR noch offen ist, liegt die
+gesamte Arbeit auf `test/kq-069-isolated-tauri-channel`.
+
+Bestanden: `pnpm check`, normaler und Forschungs-Tauri-Build, Feature-Clippy, 29 Browser-E2E, 18
+Helfer-/Transporttests, ein Tauri-Origin-Test und 32 Python-Diagnosetests. Drei finale native
+Sitzungen prüfen Import/Wiederholungsablehnung, Abbruch und direktes Fensterschließen am Haltepunkt.
+SQLite/Unicode, neue Projekt-ID, Kopienzahl und Cleanup sind unabhängig bestätigt. Gültiges ETW
+vom 15. November, 16:43:07–16:46:11 UTC: drei vollständige App-/WebView-Bäume, vier Kontrollen,
+Nullverluste, 0 Ereignisse außerhalb Loopback; Loopback-Disconnects getrennt ausgewiesen.
+
+**Das strikte Datenschutzziel bleibt bestehen.** Normale App-Starts sind weiterhin unisoliert;
+Q-01/Q-02 für das Produkt sind nicht bestanden. Nur feste synthetische Vorabfreigaben sind im
+Forschungsfeature geprüft. Keine allgemeine Freigabe realer Manuskripte, externer Broker oder
+kompromittierter Runtime-Prozesse; #134 bleibt offen.
+
+Als Nächstes: native Vorab-Dateiauswahl (`ui-select`) und deren Abbruch prüfen. Die erfolgreiche
+finale UI-Serie verwendete `ui-fixture`; der vorherige unvollständige Auswahldialoglauf ist kein
+Abnahmenachweis. Danach Auswahl aus einer laufenden App, assistive Abnahme und dauerhafte
+Auftrags-/Replay-/Crash-Reconciliation. Weitere Formate, Git-/Credential-/Providergrenzen,
+öffentliche UDP-/IPv6-/DNS-/Broker-Gegenproben und Produkt-/Installerintegration folgen separat.
+
+Für die Fortsetzung zuerst lesen:
+
+1. `AGENTS.md`, [Entwicklungsstatus](DEVELOPMENT_STATUS.md), [Roadmap](../ROADMAP.md) und #134.
+2. [ADR 0034](architecture/decisions/0034-webview-network-boundary-proposal.md) und
+   [Bedrohungsmodell](architecture/threat-model.md).
+3. [Kanalvertrag](data-format/native-file-channel-v1.md),
+   [native UI-/ETW-Nachweise und Buildanleitung](testing/native-tauri-file-channel.md) sowie
+   [Toolanleitung](../scripts/runtime-isolation/README.md).
+
+Der Quellcode einschließlich synthetischer `.kraqel`-Fixture ist vollständig versioniert. Builds,
+temporäre Testprojekte, WebView-Profile, lokale PID-Journale und rohe ETW/XML-Dateien bleiben auf
+diesem Rechner. Auf dem anderen Rechner neue TEMP-Wurzeln, neue Builds/Hashes, neue Journale und bei
+Bedarf einen neuen ETW-Lauf erzeugen. Historische JSON-Aggregate sind Nachweise dieses Rechners,
+keine lokale Abnahme des anderen Rechners. Alte absolute TEMP-/Workspacepfade nicht übernehmen. Es
+gibt keine erforderlichen, nur in einem lokalen `work`-Ordner liegenden Quelldateien.
+
+Hier geprüft: Node.js 26.13.1, pnpm 11.25.0, Rust/Cargo 1.100.0, Windows/WebView2. Maßgeblich für
+die Installation bleiben `packageManager`, `engines` und `rust-version` im Repository. Das
+Isolationsfeature benötigt Windows; die übrige CI prüft auch Linux. Computer Use war hier mit
+`Transport closed` ausgefallen, daher erfolgte die native Fensterbedienung durch den Nutzer.
+Verfügbarkeit auf dem anderen Rechner neu prüfen, keine alternative Windows-Automation annehmen.
+
 ## Diesen Rechner sauber verlassen
 
 1. Nur auf einem geprüften, sauberen `main` enden:
@@ -17,10 +67,10 @@ Commitverlauf.
    git log -1 --oneline
    ```
 
-2. Für jedes Schreibprojekt in KRAQEL unter **Versionen** zuerst einen Snapshot erzeugen und danach
-   **Projektarchiv exportieren** wählen. Das erzeugte `.kraqel`-Archiv an einem privaten,
-   vertrauenswürdigen Ort ablegen. Manuskripte und API-Schlüssel gehören nicht ins öffentliche
-   Repository.
+2. Wenn zusätzlich Schreibprojekte wechseln sollen, in KRAQEL unter **Versionen** zuerst einen
+   Snapshot erzeugen und danach **Projektarchiv exportieren** wählen. Das erzeugte `.kraqel`-Archiv
+   an einem privaten, vertrauenswürdigen Ort ablegen. Manuskripte und API-Schlüssel gehören nicht
+   ins öffentliche Repository.
 3. Optional die Übertragung mit `Get-FileHash <Archiv.kraqel> -Algorithm SHA256` auf beiden Rechnern
    vergleichen.
 

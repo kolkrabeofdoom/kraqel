@@ -2,6 +2,11 @@
 
 Stand: 15. November 2026
 
+**Rechnerwechsel:** Die vollständige [Entwicklungsübergabe](WORKSTATION_HANDOFF.md) enthält den
+Stand von PR #140, geprüfte native/ETW-Ergebnisse, Startanweisungen und den nächsten Scope in #134.
+Code und synthetische Fixtures sind in Git; maschinenspezifische Builds/Rohdiagnosen bleiben lokal.
+Fortsetzung nach geprüftem Merge auf aktualisiertem `main`, striktes Datenschutzziel unverändert.
+
 **KQ-069 A / UI-/Tauri-Testanbindung und Einweg-Dateikanal:** PR #139 nach grüner Windows-/Linux-CI
 und Dependency Review am Head `2ac11a2` zusammengeführt (`fadf0a6`). Separates Windows-Feature mit
 echtem Forschungsfenster, parameterlosen Tauri-Befehlen, Origin-/Fensterprüfung und einmaliger
