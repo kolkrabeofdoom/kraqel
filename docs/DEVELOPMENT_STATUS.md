@@ -2,6 +2,22 @@
 
 Stand: 15. November 2026
 
+**KQ-069 A / gezielter Datei-/Shell-Austausch:** PR #137 nach grüner Windows-/Linux-CI und
+Dependency Review am Head `f5f1d35` zusammengeführt (`84b31f9`). Der getrennte Rust-Forschungshelfer
+überträgt jetzt synthetische Dateien aus nativer Öffnen-/Speichern-Auswahl über genau zwei explizit
+vererbte Dateihandles an einen AppContainer-Worker ohne Capabilities. Keine Paket-ACL auf dem
+Hostordner, keine Parser im Host, keine neuen Netzfähigkeiten. Drei native Unicode-Kopien mit
+unabhängig gleichem SHA-256, verweigertem Nachbardateizugriff und vollständiger Bereinigung;
+Öffnen-Abbruch ohne Worker/Ausgabe. 13 Rust- und 30 Python-Tests prüfen unter anderem Grenzen,
+Teilkopie-Bereinigung und Überschreibschutz. Gültige ETW-Messung des ersten Austauschbuilds: vier
+Kontrollen, kein Verlust, vollständige Prozessenden, null Netzereignisse im Broker-/Workerbaum.
+Finaler Build nach stärkerer Cleanup-/Berichtsprüfung nativ erneut geprüft, nicht erneut ETW-
+gemessen. Externe COM-/Shell-Dienste und Produktintegration sind weiterhin offen.
+[Protokoll und genaue Grenzen](testing/native-runtime-file-exchange.md). Das strikte Pflichtenheft
+bleibt unverändert; Q-01/Q-02 für das Produkt nicht bestanden, #134 offen. Nächster Schritt:
+typisierter einmaliger Dateiauftrag an einen isolierten App-Testadapter, danach konkreter Import mit
+bestehender Rust-Validierung und atomarer Veröffentlichung; keine allgemeine Shell-Freigabe.
+
 **KQ-069 A / technische Laufzeitisolation:** PR #136 ist mit vollständig grüner CI am Head `d4e2c64`
 zusammengeführt (`caaa694`). Der Nutzer beauftragt Richtung A aus ADR 0034 und hält das strikte
 Datenschutzziel ausdrücklich fest. Ein separater AppContainer-Forschungslauncher prüft Root-Tokens

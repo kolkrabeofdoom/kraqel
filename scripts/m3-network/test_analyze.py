@@ -55,6 +55,39 @@ class AnalysisTests(unittest.TestCase):
         self.assertTrue(result["measurementValid"])
         self.assertEqual(result["result"], "no-non-loopback-traffic-observed")
 
+    def test_exchange_mode_requires_the_exact_broker_and_a_worker(self):
+        self.start(10, 200, 1, "kraqel-isolation-probe.exe")
+        self.start(11, 201, 200, "kraqel-isolation-probe.exe")
+        self.stop(12, 201)
+        self.stop(13, 200)
+        self.result()
+        result = analyze(self.path, (200,), self.ready, "exchange")
+        self.assertTrue(result["measurementValid"])
+        self.assertEqual(result["measurementMode"], "exchange")
+        self.assertFalse(analyze(self.path, (200,), self.ready)["measurementValid"])
+        self.assertFalse(analyze(self.path, (100,), self.ready, "exchange")["measurementValid"])
+
+    def test_exchange_never_waives_controls_lifetimes_or_public_traffic(self):
+        self.start(10, 200, 1, "kraqel-isolation-probe.exe")
+        self.start(11, 201, 200, "kraqel-isolation-probe.exe")
+        self.event(12, NETWORK, 10, {"PID": 200, "daddr": "1.1.1.1"})
+        self.stop(13, 200)
+        self.result()
+        result = analyze(self.path, (200,), self.ready, "exchange")
+        self.assertEqual(result["nonLoopbackEvents"], 1)
+        self.assertIn("process-tree-not-fully-stopped-within-capture", result["measurementProblems"])
+        self.ready["controls"][3]["port"] = 20000
+        self.assertFalse(analyze(self.path, (200,), self.ready, "exchange")["measurementValid"])
+
+    def test_exchange_without_worker_and_unknown_modes_are_rejected(self):
+        self.start(10, 200, 1, "kraqel-isolation-probe.exe")
+        self.stop(11, 200)
+        self.result()
+        result = analyze(self.path, (200,), self.ready, "exchange")
+        self.assertIn("missing-exchange-worker", result["measurementProblems"])
+        with self.assertRaises(ValueError):
+            analyze(self.path, (200,), self.ready, "arbitrary-image.exe")
+
     def test_loopback_is_separate_from_public_traffic(self):
         self.event(4, NETWORK, 12, {"PID": 101, "daddr": "127.0.0.1"})
         self.event(4, NETWORK, 28, {"PID": 101, "daddr": "::ffff:127.0.0.1"})

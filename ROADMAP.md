@@ -93,8 +93,12 @@
              und Export/Neuimport wiederholen; gültige Messung bestätigt öffentlichen Verkehr
        - [x] KQ-069 A: AppContainer-Machbarkeitsprototyp mit Tokenprüfungen, lokalem Kernablauf und
              ETW-Vergleich (0 außerhalb Loopback gegenüber 201 öffentlichen Kontrollereignissen)
-       - [ ] KQ-069 A: Dateidialoge/Austausch und Git-/Providergrenzen gezielt integrieren;
-             UDP/IPv6/DNS/Broker kalibrieren; Fail-closed-Packaging und F08-/M3-Vollprüfung
+       - [x] KQ-069 A: Synthetischen Datei-/Shell-Austausch mit zwei Handlefreigaben statt
+             Hostordner-ACL, nativer Kopie, Fehlerpfadtests und begrenzter ETW-Prüfung belegen
+       - [ ] KQ-069 A: Einmaligen typisierten Dateiauftrag an isolierten App-Testadapter anbinden;
+             konkreten Import atomar prüfen; weitere Dateidialoge/Austausch und Git-/Providergrenzen
+             integrieren; UDP/IPv6/DNS/Broker kalibrieren; Fail-closed-Packaging und
+             F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene

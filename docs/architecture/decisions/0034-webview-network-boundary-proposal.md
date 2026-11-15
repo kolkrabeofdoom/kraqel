@@ -10,6 +10,15 @@ AppContainer-Forschungslauncher und gültige ETW-Vergleiche. Lokal schreiben, ne
 HTML/PDF exportieren funktioniert; der Dateidialog scheitert. Die 0 beobachteten Ereignisse
 außerhalb Loopback im Prototyp ändern die fehlende Isolation des normalen Starts nicht.
 
+Der anschließende [Datei-/Shell-Transportversuch](../../testing/native-runtime-file-exchange.md)
+belegt native Auswahl im separaten Hostcontroller und begrenzten Bytetransport über zwei explizite
+Handles in einen Worker ohne Capabilities. Der Hostordner erhält keine Paket-ACL; nicht ausgewählte
+Dateien bleiben über ihren Pfad unlesbar. Kein beliebiger Shell-Aufruf oder Produktbroker
+freigegeben. Der gültige ETW-Ausschnitt erfasst keine Netzereignisse im Controller-/Workerbaum;
+außerhalb laufende COM-/Shell-Dienste sind damit nicht abgenommen. Der spätere finale Cleanup-Stand
+ist separat nativ geprüft. Nächster Scope ist ein typisierter einmaliger Dateiauftrag an einen
+isolierten App-Testadapter mit konkretem atomarem Import; die strikte Zielsetzung bleibt bestehen.
+
 ## Belegter Konflikt
 
 Pflichtenheft Revision 1 verlangt Offlinefähigkeit, keine Telemetrie ab Werk und keine Übertragung

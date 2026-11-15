@@ -1,0 +1,566 @@
+//! One-shot synthetic Shell broker. No format parsing, shell execution or network APIs here.
+use super::*;
+use crate::transfer;
+use std::{
+    ffi::OsString,
+    fs::OpenOptions,
+    os::windows::{
+        fs::OpenOptionsExt,
+        io::{AsRawHandle, FromRawHandle},
+    },
+};
+use windows::{
+    Win32::{System::Com::*, UI::Shell::*},
+    core::{Interface, PCWSTR},
+};
+use windows_sys::Win32::Storage::FileSystem::*;
+
+fn invalid(stage: &'static str) -> Failure {
+    Failure { stage, code: -1 }
+}
+fn com<T>(stage: &'static str, value: windows::core::Result<T>) -> Result<T> {
+    value.map_err(|e| Failure {
+        stage,
+        code: e.code().0.into(),
+    })
+}
+struct Apartment;
+impl Drop for Apartment {
+    fn drop(&mut self) {
+        unsafe { CoUninitialize() };
+    }
+}
+struct SelectionText(windows::core::PWSTR);
+impl Drop for SelectionText {
+    fn drop(&mut self) {
+        unsafe { CoTaskMemFree(Some(self.0.0.cast())) };
+    }
+}
+
+fn choose(host: &Path, save: bool) -> Result<Option<PathBuf>> {
+    // Called on the one-shot controller's sole STA thread, never the renderer's thread.
+    com("shell-sta", unsafe {
+        CoInitializeEx(None, COINIT_APARTMENTTHREADED).ok()
+    })?;
+    let _apartment = Apartment;
+    let dialog: IFileDialog = if save {
+        com("save-dialog", unsafe {
+            CoCreateInstance(&FileSaveDialog, None, CLSCTX_INPROC_SERVER)
+        })?
+    } else {
+        com("open-dialog", unsafe {
+            CoCreateInstance(&FileOpenDialog, None, CLSCTX_INPROC_SERVER)
+        })?
+    };
+    let folder: IShellItem = com("shell-folder", unsafe {
+        SHCreateItemFromParsingName(PCWSTR(wide(host).as_ptr()), None)
+    })?;
+    let second: IFileDialog2 = com("shell-navigation-interface", dialog.cast())?;
+    unsafe {
+        com("shell-navigation-root", second.SetNavigationRoot(&folder))?;
+        com("shell-folder", dialog.SetFolder(&folder))?;
+        com("shell-default-folder", dialog.SetDefaultFolder(&folder))?;
+        com(
+            "shell-options",
+            dialog.SetOptions(
+                FOS_FORCEFILESYSTEM
+                    | FOS_NOCHANGEDIR
+                    | FOS_PATHMUSTEXIST
+                    | FOS_DONTADDTORECENT
+                    | FOS_NODEREFERENCELINKS
+                    | if save {
+                        FOS_OVERWRITEPROMPT
+                    } else {
+                        FOS_FILEMUSTEXIST
+                    },
+            ),
+        )?;
+        com(
+            "shell-title",
+            dialog.SetTitle(PCWSTR(
+                wide(if save {
+                    "KRAQEL Austauschprobe: neue Ausgabe"
+                } else {
+                    "KRAQEL Austauschprobe: synthetische Eingabe"
+                })
+                .as_ptr(),
+            )),
+        )?;
+        com(
+            "shell-filename",
+            dialog.SetFileName(PCWSTR(
+                wide(if save { "output.txt" } else { "input.txt" }).as_ptr(),
+            )),
+        )?;
+        if let Err(error) = dialog.Show(None) {
+            if error.code().0 as u32 == 0x800704c7 {
+                return Ok(None);
+            }
+            return Err(Failure {
+                stage: "shell-show",
+                code: error.code().0.into(),
+            });
+        }
+        let item = com("shell-result", dialog.GetResult())?;
+        let text = SelectionText(com(
+            "shell-filesystem-path",
+            item.GetDisplayName(SIGDN_FILESYSPATH),
+        )?);
+        let path = PathBuf::from(text.0.to_string().map_err(|_| invalid("shell-path-text"))?);
+        // Shell navigation is guidance; this independent allowlist is the security check.
+        if path.parent() != Some(host)
+            || !path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(transfer::flat_name)
+        {
+            return Err(invalid("selection-outside-synthetic-root"));
+        }
+        Ok(Some(path))
+    }
+}
+
+fn host_for(root: &Path) -> Result<PathBuf> {
+    let suffix = root
+        .file_name()
+        .and_then(|n| n.to_str())
+        .and_then(|n| n.strip_prefix("kraqel-isolation-"))
+        .ok_or(invalid("exchange-root-name"))?;
+    Ok(root
+        .parent()
+        .ok_or(invalid("exchange-root-parent"))?
+        .join(format!("kraqel-exchange-host-{suffix}")))
+}
+
+fn file_info(file: &fs::File) -> Result<BY_HANDLE_FILE_INFORMATION> {
+    let mut info = unsafe { zeroed() };
+    check(
+        unsafe { GetFileInformationByHandle(file.as_raw_handle(), &mut info) },
+        "selected-file-info",
+    )?;
+    // Reject reparse/cloud placeholders, directories and multiply-linked files, without hydrating.
+    let forbidden = FILE_ATTRIBUTE_REPARSE_POINT
+        | FILE_ATTRIBUTE_DIRECTORY
+        | FILE_ATTRIBUTE_OFFLINE
+        | FILE_ATTRIBUTE_RECALL_ON_OPEN
+        | FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS;
+    if info.dwFileAttributes & forbidden != 0 || info.nNumberOfLinks != 1 {
+        return Err(invalid("selected-file-not-plain-local"));
+    }
+    Ok(info)
+}
+struct Pending {
+    path: PathBuf,
+    file: Option<fs::File>,
+}
+impl Pending {
+    fn create(path: PathBuf) -> Result<Self> {
+        let file = io(
+            "create-selected-output",
+            OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .share_mode(0)
+                .open(&path),
+        )?;
+        Ok(Self {
+            path,
+            file: Some(file),
+        })
+    }
+    fn close(&mut self) {
+        self.file.take();
+    }
+    fn publish(&mut self, destination: &Path) -> Result<()> {
+        self.close();
+        check(
+            unsafe {
+                MoveFileExW(
+                    wide(&self.path).as_ptr(),
+                    wide(destination).as_ptr(),
+                    MOVEFILE_WRITE_THROUGH,
+                )
+            },
+            "exchange-publish-no-replace",
+        )
+    }
+}
+impl Drop for Pending {
+    fn drop(&mut self) {
+        self.close();
+        let _ = fs::remove_file(&self.path);
+    }
+}
+// Even a failure before job assignment must terminate the still-suspended child.
+struct Worker(Handle, Handle);
+impl Drop for Worker {
+    fn drop(&mut self) {
+        unsafe {
+            TerminateProcess(self.0.0, 1);
+            WaitForSingleObject(self.0.0, 5000);
+        }
+    }
+}
+
+pub(super) fn child(args: &[OsString]) -> Result<Value> {
+    let data = Path::new(&args[0]);
+    let token = token_facts(unsafe { GetCurrentProcess() }, None)?;
+    if token["isAppContainer"] != true || token["capabilityCount"] != 0 {
+        return Err(invalid("exchange-child-token"));
+    }
+    let parse = |value: &OsString| {
+        value
+            .to_str()
+            .and_then(|n| n.parse::<usize>().ok())
+            .filter(|n| *n != 0 && *n != usize::MAX)
+            .ok_or(invalid("exchange-child-argument"))
+    };
+    let input_handle = parse(&args[1])?;
+    let output_handle = parse(&args[2])?;
+    if input_handle == output_handle {
+        return Err(invalid("exchange-duplicate-handle"));
+    }
+    let expected = parse(&args[3])? as u64;
+    let mut input = unsafe { fs::File::from_raw_handle(input_handle as HANDLE) };
+    let mut output = unsafe { fs::File::from_raw_handle(output_handle as HANDLE) };
+    file_info(&input)?;
+    file_info(&output)?;
+    let host = host_for(data.parent().ok_or(invalid("exchange-data-root"))?)?;
+    let denied = fs::File::open(host.join("withheld.txt"))
+        .err()
+        .and_then(|e| e.raw_os_error())
+        == Some(5);
+    if !denied {
+        return Err(invalid("unselected-file-not-denied"));
+    }
+    let hash = io(
+        "bounded-copy",
+        transfer::copy_exact(&mut input, &mut output, expected),
+    )?;
+    io("flush-exchange", output.sync_all())?;
+    let report = json!({"bytes":expected,"sha256":hash,"unselectedFileAccessDenied":denied,"token":token,"passed":true});
+    write_json(&data.join("exchange.json"), &report)?;
+    Ok(json!({"exchangeChildComplete":true}))
+}
+
+pub(super) fn launch(root: &Path) -> Result<Value> {
+    if !crate::policy::valid_root(root, false) {
+        return Err(invalid("exchange-needs-fresh-temp-root"));
+    }
+    let host = host_for(root)?;
+    // Separate sibling: no inheritable package ACL may reach unselected host files.
+    io("create-host-root", fs::create_dir(&host))?;
+    io(
+        "seed-input",
+        fs::write(
+            host.join("input.txt"),
+            "KRAQEL Austauschprobe: ÄÖÜ ß Ελληνικά Кириллица.\n",
+        ),
+    )?;
+    io(
+        "seed-withheld",
+        fs::write(
+            host.join("withheld.txt"),
+            "Not selected. No package grant.\n",
+        ),
+    )?;
+    let cancelled = || json!({"exchange":true,"cancelled":true,"passed":true,"transferred":false,"productionAcceptance":false});
+    let Some(source) = choose(&host, false)? else {
+        return Ok(cancelled());
+    };
+    if source.file_name() != Some(std::ffi::OsStr::new("input.txt")) {
+        return Err(invalid("exchange-only-synthetic-input"));
+    }
+    let Some(destination) = choose(&host, true)? else {
+        return Ok(cancelled());
+    };
+    if destination.exists() {
+        return Err(invalid("exchange-refuses-overwrite"));
+    }
+    let input = io(
+        "open-selected-input",
+        OpenOptions::new()
+            .read(true)
+            .share_mode(FILE_SHARE_READ)
+            .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT)
+            .open(source),
+    )?;
+    let info = file_info(&input)?;
+    let length = (u64::from(info.nFileSizeHigh) << 32) | u64::from(info.nFileSizeLow);
+    if length == 0 || length > transfer::LIMIT {
+        return Err(invalid("exchange-size-budget"));
+    }
+    // create_new and a no-replace rename protect existing targets, including races.
+    let mut pending = Pending::create(host.join("pending-transfer.tmp"))?;
+    let output = pending.file.as_ref().unwrap();
+    file_info(output)?;
+    io("create-exchange-root", fs::create_dir(root))?;
+    let suffix = root
+        .file_name()
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .strip_prefix("kraqel-isolation-")
+        .unwrap();
+    let mut profile = Profile::create(suffix)?;
+    grant(root, profile.sid, FILE_GENERIC_READ | FILE_GENERIC_EXECUTE)?;
+    let bin = root.join("bin");
+    let data = root.join("data");
+    io("create-exchange-bin", fs::create_dir(&bin))?;
+    io("create-exchange-data", fs::create_dir(&data))?;
+    grant(
+        &data,
+        profile.sid,
+        FILE_GENERIC_READ | FILE_GENERIC_WRITE | FILE_GENERIC_EXECUTE | DELETE | FILE_DELETE_CHILD,
+    )?;
+    low_label(&data)?;
+    let executable = bin.join("kraqel-isolation-probe.exe");
+    io(
+        "stage-exchange-worker",
+        fs::copy(io("current-exe", std::env::current_exe())?, &executable),
+    )?;
+    let handles = [input.as_raw_handle(), output.as_raw_handle()];
+    for handle in handles {
+        check(
+            unsafe { SetHandleInformation(handle, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT) },
+            "allow-selected-handle-inheritance",
+        )?;
+    }
+    let caps = SECURITY_CAPABILITIES {
+        AppContainerSid: profile.sid,
+        Capabilities: null_mut(),
+        CapabilityCount: 0,
+        Reserved: 0,
+    };
+    let attributes = Attributes::with_handles(&caps, &handles)?;
+    let mut startup: STARTUPINFOEXW = unsafe { zeroed() };
+    startup.StartupInfo.cb = size_of::<STARTUPINFOEXW>() as u32;
+    startup.lpAttributeList = attributes.ptr;
+    let mut command = wide(format!(
+        "\"{}\" exchange-child \"{}\" {} {} {}",
+        executable.display(),
+        data.display(),
+        handles[0] as usize,
+        handles[1] as usize,
+        length
+    ));
+    let system = std::env::var_os("SystemRoot").unwrap_or("C:\\Windows".into());
+    let mut environment = Vec::new();
+    for (key, value) in [
+        ("APPDATA", data.clone()),
+        ("LOCALAPPDATA", data.clone()),
+        ("PATH", PathBuf::from(&system).join("System32")),
+        ("SystemRoot", PathBuf::from(&system)),
+        ("TEMP", data.clone()),
+        ("TMP", data.clone()),
+        ("USERPROFILE", data.clone()),
+        ("WINDIR", PathBuf::from(&system)),
+    ] {
+        environment.extend(wide(format!("{key}={}", value.display())));
+    }
+    environment.push(0);
+    let job = Handle(unsafe { CreateJobObjectW(null(), null()) });
+    if job.0.is_null() {
+        return Err(fail("exchange-create-job"));
+    }
+    let mut limits: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = unsafe { zeroed() };
+    limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+    check(
+        unsafe {
+            SetInformationJobObject(
+                job.0,
+                JobObjectExtendedLimitInformation,
+                (&limits as *const JOBOBJECT_EXTENDED_LIMIT_INFORMATION).cast(),
+                size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
+            )
+        },
+        "exchange-job-limit",
+    )?;
+    let mut info: PROCESS_INFORMATION = unsafe { zeroed() };
+    let created = unsafe {
+        CreateProcessW(
+            wide(&executable).as_ptr(),
+            command.as_mut_ptr(),
+            null(),
+            null(),
+            1,
+            EXTENDED_STARTUPINFO_PRESENT
+                | CREATE_UNICODE_ENVIRONMENT
+                | CREATE_SUSPENDED
+                | CREATE_NO_WINDOW,
+            environment.as_ptr().cast(),
+            wide(&data).as_ptr(),
+            &startup.StartupInfo,
+            &mut info,
+        )
+    };
+    // Preserve CreateProcess's error before subsequent Win32 calls.
+    let creation_error = (created == 0).then(|| fail("exchange-create-worker"));
+    let worker = (created != 0).then(|| Worker(Handle(info.hProcess), Handle(info.hThread)));
+    for handle in handles {
+        check(
+            unsafe { SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0) },
+            "reset-handle-inheritance",
+        )?;
+    }
+    if let Some(error) = creation_error {
+        return Err(error);
+    }
+    let worker = worker.ok_or(invalid("exchange-missing-worker"))?;
+    let process = &worker.0;
+    let thread_handle = &worker.1;
+    if unsafe { AssignProcessToJobObject(job.0, process.0) } == 0 {
+        let error = fail("exchange-assign-job");
+        unsafe {
+            TerminateProcess(process.0, 1);
+            WaitForSingleObject(process.0, 5000);
+        }
+        return Err(error);
+    }
+    let token = token_facts(process.0, Some(profile.sid))?;
+    if token["isAppContainer"] != true
+        || token["capabilityCount"] != 0
+        || token["expectedIdentity"] != true
+    {
+        return Err(invalid("exchange-suspended-token"));
+    }
+    write_json(
+        &root.join("launch.json"),
+        &json!({"pid":info.dwProcessId,"token":token}),
+    )?;
+    if unsafe { ResumeThread(thread_handle.0) } == u32::MAX {
+        return Err(fail("exchange-resume"));
+    }
+    let finished = unsafe { WaitForSingleObject(process.0, 30000) } == WAIT_OBJECT_0;
+    if !finished {
+        unsafe {
+            TerminateJobObject(job.0, 1);
+            WaitForSingleObject(process.0, 5000);
+        }
+    }
+    let mut code = 1;
+    check(
+        unsafe { GetExitCodeProcess(process.0, &mut code) },
+        "exchange-exit-code",
+    )?;
+    unsafe {
+        TerminateJobObject(job.0, 1);
+    }
+    let mut accounting: JOBOBJECT_BASIC_ACCOUNTING_INFORMATION = unsafe { zeroed() };
+    check(
+        unsafe {
+            QueryInformationJobObject(
+                job.0,
+                JobObjectBasicAccountingInformation,
+                (&mut accounting as *mut JOBOBJECT_BASIC_ACCOUNTING_INFORMATION).cast(),
+                size_of::<JOBOBJECT_BASIC_ACCOUNTING_INFORMATION>() as u32,
+                null_mut(),
+            )
+        },
+        "exchange-job-accounting",
+    )?;
+    drop(worker);
+    drop(job);
+    drop(input);
+    pending.close();
+    let removed = accounting.ActiveProcesses == 0 && profile.remove();
+    if !finished || code != 0 || !removed {
+        return Err(invalid("exchange-worker-or-cleanup-failed"));
+    }
+    let mut report_bytes = Vec::new();
+    io(
+        "exchange-worker-report",
+        io(
+            "open-exchange-report",
+            fs::File::open(data.join("exchange.json")),
+        )?
+        .take(4097)
+        .read_to_end(&mut report_bytes),
+    )?;
+    if report_bytes.len() > 4096 {
+        return Err(invalid("exchange-report-too-large"));
+    }
+    let worker: Value =
+        serde_json::from_slice(&report_bytes).map_err(|_| invalid("exchange-report-invalid"))?;
+    if !transfer::valid_worker(&worker, length)
+        || io("exchange-output-size", fs::metadata(&pending.path))?.len() != length
+    {
+        return Err(invalid("exchange-report-mismatch"));
+    }
+    pending.publish(&destination)?;
+    let report = json!({"formatVersion":1,"exchange":true,"passed":true,"transferred":true,"inheritedFileHandles":2,"hostDirectoryAclGranted":false,"tokenBeforeResume":token,"worker":worker,"processExitCode":code,"activeJobProcessesAtEnd":accounting.ActiveProcesses,"profileRemoved":removed,"productionAcceptance":false});
+    write_json(&root.join("result.json"), &report)?;
+    Ok(report)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    struct Fixture(PathBuf);
+    impl Fixture {
+        fn new() -> Self {
+            let path = std::env::temp_dir().join(format!(
+                "kraqel-isolation-files-{}-{}",
+                std::process::id(),
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos()
+            ));
+            fs::create_dir(&path).unwrap();
+            Self(path)
+        }
+    }
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            // Flat, exclusively synthetic fixtures, no recursive filesystem operation.
+            for item in fs::read_dir(&self.0).unwrap() {
+                fs::remove_file(item.unwrap().path()).unwrap();
+            }
+            fs::remove_dir(&self.0).unwrap();
+        }
+    }
+    #[test]
+    fn pending_creation_never_owns_an_existing_file() {
+        let root = Fixture::new();
+        let path = root.0.join("existing.tmp");
+        fs::write(&path, b"preserve").unwrap();
+        assert!(Pending::create(path.clone()).is_err());
+        assert_eq!(fs::read(path).unwrap(), b"preserve");
+    }
+    #[test]
+    fn publication_cannot_replace_a_destination_created_during_transfer() {
+        let root = Fixture::new();
+        let path = root.0.join("pending.tmp");
+        let destination = root.0.join("output.txt");
+        {
+            let mut pending = Pending::create(path.clone()).unwrap();
+            pending.file.as_mut().unwrap().write_all(b"new").unwrap();
+            fs::write(&destination, b"preserve").unwrap();
+            assert!(pending.publish(&destination).is_err());
+        }
+        assert_eq!(fs::read(destination).unwrap(), b"preserve");
+        assert!(!path.exists());
+    }
+    #[test]
+    fn failed_copy_closes_and_removes_partial_output() {
+        let root = Fixture::new();
+        let path = root.0.join("pending.tmp");
+        {
+            let mut pending = Pending::create(path.clone()).unwrap();
+            assert!(
+                transfer::copy_exact(&b"short"[..], pending.file.as_mut().unwrap(), 20).is_err()
+            );
+        }
+        assert!(!path.exists());
+    }
+    #[test]
+    fn plain_file_metadata_rejects_hardlinks() {
+        let root = Fixture::new();
+        let path = root.0.join("input.txt");
+        fs::write(&path, b"synthetic").unwrap();
+        assert!(file_info(&fs::File::open(&path).unwrap()).is_ok());
+        fs::hard_link(&path, root.0.join("alias.txt")).unwrap();
+        assert!(file_info(&fs::File::open(path).unwrap()).is_err());
+    }
+}

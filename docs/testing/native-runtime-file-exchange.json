@@ -1,0 +1,86 @@
+{
+  "formatVersion": 1,
+  "diagnosticOnly": true,
+  "productionAcceptance": false,
+  "testData": "Synthetic Unicode text only",
+  "nativeSuccessfulCopies": 3,
+  "independentInputOutputHashMatches": 3,
+  "noPendingFileAfterSuccess": true,
+  "finalNativeResult": {
+    "activeJobProcessesAtEnd": 0,
+    "exchange": true,
+    "formatVersion": 1,
+    "hostDirectoryAclGranted": false,
+    "inheritedFileHandles": 2,
+    "passed": true,
+    "processExitCode": 0,
+    "productionAcceptance": false,
+    "profileRemoved": true,
+    "tokenBeforeResume": {
+      "capabilityCount": 0,
+      "expectedIdentity": true,
+      "isAppContainer": true
+    },
+    "transferred": true,
+    "worker": {
+      "bytes": 70,
+      "passed": true,
+      "sha256": "5e406f423178df6e2ada87509d8c4f17b96a83c2179cb8f4d4b2db6036a42215",
+      "token": {
+        "capabilityCount": 0,
+        "expectedIdentity": null,
+        "isAppContainer": true
+      },
+      "unselectedFileAccessDenied": true
+    }
+  },
+  "openDialogCancellation": {
+    "cancelled": true,
+    "exchange": true,
+    "passed": true,
+    "productionAcceptance": false,
+    "transferred": false
+  },
+  "etw": {
+    "measuredBinarySha256": "a1141ae3c13de414ae23574691c1cfee7c3ae959d2d37775524d4d99097e4dc6",
+    "startedUtc": "2026-11-15T14:32:52.6755605Z",
+    "rawEtlBytes": 720896,
+    "summary": {
+      "formatVersion": 1,
+      "measurementMode": "exchange",
+      "measurementValid": true,
+      "measurementProblems": [],
+      "result": "no-non-loopback-traffic-observed",
+      "rootStarts": 1,
+      "processLifetimes": {
+        "kraqel-isolation-probe.exe": 2,
+        "conhost.exe": 2
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "unattributableNetworkEvents": 0,
+      "unknownDestinationEvents": 0,
+      "networkEvents": [],
+      "nonLoopbackEvents": 0,
+      "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths. Out-of-tree COM/Shell services are not attributed by this process-tree measurement."
+    },
+    "stoppedUtc": "2026-11-15T14:34:11.8374532Z"
+  },
+  "finalNativeBinary": {
+    "sha256": "dc69059160785db0ff73fab2a51fb5c22edf702389d5bab42b93bf1918fd5ad0",
+    "measuredByEtw": false,
+    "changesAfterMeasuredBuild": "Stronger pending-file ownership/cleanup and bounded worker-report validation"
+  },
+  "limits": [
+    "Synthetic standalone transport; no product commands integrated",
+    "No attribution of out-of-tree COM/Shell services",
+    "No global privacy/offline acceptance",
+    "Open-dialog cancellation checked; save-dialog cancellation and assistive app acceptance remain open"
+  ]
+}
