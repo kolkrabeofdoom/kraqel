@@ -41,7 +41,7 @@
            ADR 0032)
      - Vertrag: `docs/data-format/ILLUSTRATED_MANUSCRIPT.md`; alle vier Formate im dokumentierten
        Teilumfang
-   - [ ] Import und DOCX-Roundtrip
+   - [x] Begrenzter Import und DOCX-Manuskriptaustausch im dokumentierten Umfang
      - [x] Snapshot-v3-Archiv sicher als neues Projekt importieren und Beispielprojekt einbetten
      - [x] Frei wählbare Snapshotarchive über einen nativen Dialog als neue Projektkopie importieren
      - [x] Begrenzte UTF-8-/Markdown-Dateien über einen nativen Dialog als neue Szene importieren
@@ -64,6 +64,17 @@
        - Importvertrag: `docs/data-format/DOCX_IMPORT.md`; nativer Austauschvertrag:
          `docs/data-format/DOCX_ROUNDTRIP.md`; ursprünglicher Roundtrip-Vorschlag:
          `docs/specifications/DOCX_ROUNDTRIP_CONTRACT_DRAFT.md`
+   - [ ] F08-/M3-Gesamtumfang fachlich entscheiden und vollständig abnehmen
+     - [x] Konkreten Drehbuchvertragsvorschlag und vollständige Kriterienmatrix ausarbeiten (KQ-066
+           / vorgeschlagene ADR 0033; keine Funktionsfreigabe)
+     - [ ] Drehbuchrollen, A4-Profil, Schriftauswahlprüfung und Format-/Importrichtungen fachlich
+           entscheiden
+     - [ ] Nach Freigabe Modell-/Versionsprototyp und Schriftprüfung, danach Renderer und
+           DB-01–DB-08
+     - [ ] Nativen Gesamtlauf M3-G01 mit 100 Szenen/50 Bildern, Neustart, Backup/Recovery,
+           Snapshot-Neuimport, Umbenennung, Backlinks und sichtbaren Assetfehlern durchführen
+     - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene
+       Zeilen: `docs/testing/F08_M3_ACCEPTANCE_MATRIX.md`
    - [x] Lokale Medienbibliothek mit Metadaten, Links, Backup und Snapshot-Assets
      - [x] Browser-E2E für PNG-Import, Metadaten und Szenenverknüpfung
      - [x] Medienkarten bei schmalem Fenster und hohem Zoom ohne abgeschnittene Inhalte darstellen

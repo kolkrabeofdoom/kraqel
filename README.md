@@ -514,6 +514,11 @@ Screenreader-Ausgabe, echte Exportdateien und Betriebssystemintegration benötig
 Nachweise. Aussagegrenzen gehören zur Testdokumentation – denn ein grüner Haken ist kein
 metaphysischer Wahrheitsbeweis.
 
+Der [Drehbuchformatierungsvertrag](docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md) liegt
+als Vorschlag vor; die Funktion ist noch nicht umgesetzt. Die
+[F08-/M3-Abnahmematrix](docs/testing/F08_M3_ACCEPTANCE_MATRIX.md) ordnet alle einschlägigen
+Kriterien den vorhandenen Nachweisen und offenen Gesamtprüfungen zu.
+
 ## Repositorystruktur
 
 | Pfad                         | Verantwortung                                                |

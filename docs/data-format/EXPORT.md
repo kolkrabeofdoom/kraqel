@@ -15,7 +15,11 @@ ersetzt.
 - Blockzitate
 
 Andere Tiptap-Knoten oder -Markierungen werden nicht still entfernt: Der Export wird abgelehnt.
-Insbesondere Medien, Links, Tabellen, Fußnoten und Codeblöcke gehören noch nicht zu v1.
+Insbesondere eingebettete Editor-Bildknoten, Links, Tabellen, Fußnoten und Codeblöcke gehören nicht
+zu dieser Blockgrammatik. Der getrennte [Szenenbildmodus](ILLUSTRATED_MANUSCRIPT.md) unterstützt
+ausdrücklich gewählte direkt verknüpfte Bilder für alle vier Ausgabeformate. PDF nutzt seit KQ-065
+vier eingebettete Noto-Sans-Schnitte mit expliziter Glyphenprüfung; fehlende Glyphen werden
+abgewiesen.
 
 ## Sicherheits- und Datenschutzgrenze
 
@@ -24,3 +28,8 @@ Projektordner; Symlink-Ziele und nicht reguläre Dateien werden abgelehnt. IPC-A
 Format, relativen Dateinamen und Bytezahl, niemals den absoluten lokalen Pfad.
 
 Import und Roundtrip sind keine Eigenschaft dieses Formats und werden getrennt spezifiziert.
+
+Drehbuchrollen sind noch keine unterstützte Semantik. Der
+[Vertragsvorschlag](../specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md) und die
+[F08-/M3-Matrix](../testing/F08_M3_ACCEPTANCE_MATRIX.md) trennen geplante Erweiterung, vorhandene
+Belege und offene Abnahme.
