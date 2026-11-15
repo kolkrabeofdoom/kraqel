@@ -22,6 +22,14 @@ Strukturplanung, Worldbuilding, Medienverwaltung, lokale Versionierung und optio
 einer Desktop-Anwendung. Schreiben steht zuerst; KI bleibt optional, transparent und unter
 menschlicher Kontrolle.
 
+KRAQEL enthält keine eigene Telemetrie. Der native KQ-068-Netztest hat jedoch öffentliche
+Netzverbindungen der eingebetteten Windows-WebView2-Laufzeit nachgewiesen, ohne dass ein Provider
+aufgerufen wurde. Transportmetadaten belegen keinen Manuskript-Upload, erlauben aber auch keine
+pauschale Zusage vollständiger Netzstille der Desktop-App. Die Laufzeitgrenze wird in
+[KQ-069 / Issue #134](https://github.com/kolkrabeofdoom/kraqel/issues/134) weiter untersucht;
+Q-01/Q-02 bleiben offen. Microsoft beschreibt die eigene Diagnosedatenerfassung unter
+[Daten und Datenschutz in WebView2](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/data-privacy).
+
 > [!WARNING] **Aktueller Stand: 0.1.0 Alpha 4.** KRAQEL ist ein frühes, öffentliches Prerelease und
 > noch nicht produktionsreif. Arbeite ausschließlich mit aktuellen Sicherungen und niemals mit dem
 > einzigen Exemplar eines Manuskripts. Der Drache kennt inzwischen Undo, aber die Brandschutzordnung

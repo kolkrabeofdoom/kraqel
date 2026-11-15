@@ -1,0 +1,74 @@
+{
+  "formatVersion": 1,
+  "measurementValid": false,
+  "measurementProblems": ["process-tree-not-fully-stopped-within-capture"],
+  "result": "observed-non-loopback-traffic",
+  "rootStarts": 1,
+  "processLifetimes": {
+    "kraqel-desktop.exe": 1,
+    "conhost.exe": 1,
+    "msedgewebview2.exe": 20
+  },
+  "loss": {
+    "EventsLost": 0,
+    "BuffersLost": 0
+  },
+  "positiveControls": {
+    "expected": 4,
+    "observed": 4
+  },
+  "unattributableNetworkEvents": 0,
+  "unknownDestinationEvents": 0,
+  "networkEvents": [
+    {
+      "image": "msedgewebview2.exe",
+      "eventId": 10,
+      "destinationScope": "global",
+      "count": 100
+    },
+    {
+      "image": "msedgewebview2.exe",
+      "eventId": 11,
+      "destinationScope": "global",
+      "count": 130
+    },
+    {
+      "image": "msedgewebview2.exe",
+      "eventId": 12,
+      "destinationScope": "global",
+      "count": 15
+    },
+    {
+      "image": "msedgewebview2.exe",
+      "eventId": 13,
+      "destinationScope": "global",
+      "count": 17
+    },
+    {
+      "image": "msedgewebview2.exe",
+      "eventId": 13,
+      "destinationScope": "loopback",
+      "count": 3
+    },
+    {
+      "image": "msedgewebview2.exe",
+      "eventId": 29,
+      "destinationScope": "loopback",
+      "count": 3
+    }
+  ],
+  "nonLoopbackEvents": 262,
+  "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths.",
+  "provenance": {
+    "issue": 133,
+    "sourceBase": "c7629c3e19454b9633e8ff88ccd86ef454ff19be",
+    "testedExecutableSha256": "dc4152e963c5a35e92e1a36d713eb4de70b2b4690f61c548751497ef76b835ac",
+    "webview2": "157.0.4341.60",
+    "readyUtc": "2026-11-15T11:42:07.7012587Z",
+    "conversionCompleteUtc": "2026-11-15T12:02:15.5611520Z",
+    "traceLimitMinutes": 20,
+    "rawEtlSha256": "c08b0d57191395c275d4f3a8b64a14e5879c94df375c92dfdd8deadde5890fcc",
+    "rawEtlBytes": 18874368,
+    "rootPid": 8676
+  }
+}

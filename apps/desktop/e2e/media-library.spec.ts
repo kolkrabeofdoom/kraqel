@@ -24,9 +24,14 @@ test("Medienbibliothek importiert Metadaten und verknüpft die aktive Szene", as
   await page.getByLabel("Titel", { exact: true }).fill("Kolkrabe im Archiv");
   await page.getByLabel("Schlagwörter, durch Komma getrennt").fill("Kolkrabe, Archiv");
   await page.getByRole("button", { name: "Bild lokal importieren" }).click();
+  await expect(page.getByRole("status")).toHaveText("Bild „Kolkrabe im Archiv“ importiert.");
   await page.setViewportSize({ width: 360, height: 900 });
 
   const card = page.locator(".media-card");
+  await expect(page.getByRole("article", { name: "Bild: Kolkrabe im Archiv" })).toBeVisible();
+  await expect(
+    card.getByRole("combobox", { name: "Weiteres Linkziel für Kolkrabe im Archiv" }),
+  ).toBeVisible();
   await expect(card.getByRole("img", { name: "Kolkrabe im Archiv" })).toBeVisible();
   await expect(card.getByLabel("Titel", { exact: true })).toHaveValue("Kolkrabe im Archiv");
   await expect(card.getByLabel("Schlagwörter", { exact: true })).toHaveValue("Kolkrabe, Archiv");
@@ -35,6 +40,9 @@ test("Medienbibliothek importiert Metadaten und verknüpft die aktive Szene", as
   await expect(card.getByTitle("7a".repeat(32))).toHaveText(`${"7a".repeat(8)}…`);
 
   await card.getByRole("button", { name: "Mit aktiver Szene verknüpfen" }).click();
+  await expect(page.getByRole("status")).toHaveText(
+    "Bild „Kolkrabe im Archiv“ mit Szene: Szene 1 verknüpft.",
+  );
   const sceneLink = card.getByRole("button", { name: "Szene: Szene 1", exact: true });
   await expect(sceneLink).toBeVisible();
 
@@ -60,4 +68,29 @@ test("Medienbibliothek importiert Metadaten und verknüpft die aktive Szene", as
 
   await sceneLink.click();
   await expect(page.getByRole("textbox", { name: "Text von Szene 1" })).toBeVisible();
+});
+
+test("Medienimport meldet ungültige Dateien als Alarm und bleibt bedienbar", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("Projektname").fill("M3 Fehleransage");
+  await page.getByRole("button", { name: "Projekt anlegen" }).click();
+  await page.getByRole("button", { name: "Medien", exact: true }).click();
+  await page.getByLabel("PNG, JPEG oder WebP auswählen").setInputFiles({
+    name: "ungueltig.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("Kein Bild"),
+  });
+  await page.getByRole("button", { name: "Bild lokal importieren" }).click();
+  await expect(page.getByRole("alert")).toContainText("Das Bild konnte nicht importiert werden.");
+  await expect(page.getByRole("button", { name: "Bild lokal importieren" })).toBeEnabled();
+  await expect(page.locator(".media-card")).toHaveCount(0);
+  await page.getByLabel("PNG, JPEG oder WebP auswählen").setInputFiles({
+    name: "gueltig.png",
+    mimeType: "image/png",
+    buffer: onePixelPng,
+  });
+  await page.getByRole("button", { name: "Bild lokal importieren" }).click();
+  await expect(page.getByRole("status")).toContainText("importiert.");
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(page.locator(".media-card")).toHaveCount(1);
 });

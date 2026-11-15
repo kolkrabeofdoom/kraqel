@@ -36,6 +36,7 @@ export function VisualProfiles({ projectId }: { readonly projectId: ProjectId })
   const [applicableKinds, setApplicableKinds] = useState<readonly EntityKind[]>(["character"]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState("");
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -77,6 +78,7 @@ export function VisualProfiles({ projectId }: { readonly projectId: ProjectId })
     if (!selectedEntityId) return;
     setBusy(true);
     setError(null);
+    setStatus("");
     try {
       await saveVisualProfile(
         projectId,
@@ -86,6 +88,7 @@ export function VisualProfiles({ projectId }: { readonly projectId: ProjectId })
         parseLines(exclusions),
       );
       await refresh();
+      setStatus("Visuelles Profil gespeichert.");
     } catch {
       setError(
         "Das visuelle Profil konnte nicht gespeichert werden. Prüfe doppelte oder leere Werte.",
@@ -103,10 +106,13 @@ export function VisualProfiles({ projectId }: { readonly projectId: ProjectId })
       return;
     }
     setBusy(true);
+    setError(null);
+    setStatus("");
     try {
       await deleteVisualProfile(projectId, selectedEntityId);
       await refresh();
       setPendingDelete(null);
+      setStatus("Visuelles Profil gelöscht.");
     } catch {
       setError("Das visuelle Profil konnte nicht gelöscht werden.");
     } finally {
@@ -118,6 +124,7 @@ export function VisualProfiles({ projectId }: { readonly projectId: ProjectId })
     event.preventDefault();
     setBusy(true);
     setError(null);
+    setStatus("");
     try {
       await saveStylePreset(
         projectId,
@@ -128,6 +135,7 @@ export function VisualProfiles({ projectId }: { readonly projectId: ProjectId })
       );
       resetPreset();
       await refresh();
+      setStatus(`Stilvorlage „${presetName.trim()}“ gespeichert.`);
     } catch {
       setError(
         "Die Stilvorlage konnte nicht gespeichert werden. Name, Regeln und Geltungsbereich müssen eindeutig sein.",
@@ -152,11 +160,14 @@ export function VisualProfiles({ projectId }: { readonly projectId: ProjectId })
       return;
     }
     setBusy(true);
+    setError(null);
+    setStatus("");
     try {
       await deleteStylePreset(projectId, preset.id);
       if (presetId === preset.id) resetPreset();
       await refresh();
       setPendingDelete(null);
+      setStatus(`Stilvorlage „${preset.name}“ gelöscht.`);
     } catch {
       setError("Die Stilvorlage konnte nicht gelöscht werden.");
     } finally {
@@ -180,7 +191,12 @@ export function VisualProfiles({ projectId }: { readonly projectId: ProjectId })
           <p>Kernmerkmale, unerwünschte Abweichungen und wiederverwendbare Stilregeln.</p>
         </div>
       </header>
-      {error ? <p className="error-banner">{error}</p> : null}
+      {error ? (
+        <p className="error-banner" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <p role="status">{status}</p>
 
       <div className="visual-layout">
         <form className="panel-stack" onSubmit={(event) => void submitProfile(event)}>

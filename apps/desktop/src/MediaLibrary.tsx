@@ -39,6 +39,7 @@ export function MediaLibrary({
   const [tags, setTags] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState("");
 
   const refresh = useCallback(async () => {
     const [nextAssets, entities, timelines] = await Promise.all([
@@ -87,6 +88,7 @@ export function MediaLibrary({
     if (!file || !title.trim() || file.size > MAX_FILE_BYTES) return;
     setBusy(true);
     setError(null);
+    setStatus("");
     try {
       await importMediaAsset(
         projectId,
@@ -99,6 +101,7 @@ export function MediaLibrary({
       setTitle("");
       setTags("");
       await refresh();
+      setStatus(`Bild „${title.trim()}“ importiert.`);
     } catch {
       setError(
         "Das Bild konnte nicht importiert werden. Unterstützt werden gültige PNG-, JPEG- und WebP-Dateien bis 25 MiB.",
@@ -171,7 +174,12 @@ export function MediaLibrary({
         </button>
       </form>
 
-      {error ? <p className="error-banner">{error}</p> : null}
+      {error ? (
+        <p className="error-banner" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <p role="status">{status}</p>
       {assets.length === 0 ? (
         <p className="empty-editor">Noch keine Bilder. Der Bilderschrank hallt dezent.</p>
       ) : (
@@ -186,6 +194,7 @@ export function MediaLibrary({
               onChanged={refresh}
               onSelectDocument={onSelectDocument}
               onError={setError}
+              onStatus={setStatus}
             />
           ))}
         </div>
@@ -202,6 +211,7 @@ function MediaCard({
   onChanged,
   onSelectDocument,
   onError,
+  onStatus,
 }: {
   readonly projectId: ProjectId;
   readonly view: MediaAssetView;
@@ -210,6 +220,7 @@ function MediaCard({
   readonly onChanged: () => Promise<void>;
   readonly onSelectDocument: (id: EntityId) => void;
   readonly onError: (message: string | null) => void;
+  readonly onStatus: (message: string) => void;
 }) {
   const [title, setTitle] = useState(view.asset.title);
   const [tags, setTags] = useState(view.asset.tags.join(", "));
@@ -221,12 +232,14 @@ function MediaCard({
     [targets],
   );
 
-  const run = async (operation: () => Promise<unknown>, message: string) => {
+  const run = async (operation: () => Promise<unknown>, message: string, success: string) => {
     setBusy(true);
     onError(null);
+    onStatus("");
     try {
       await operation();
       await onChanged();
+      onStatus(success);
     } catch {
       onError(message);
     } finally {
@@ -239,10 +252,11 @@ function MediaCard({
       () =>
         changeMediaAssetLink(true, projectId, view.asset.id, target.kind, target.id, "reference"),
       "Die Bildverknüpfung konnte nicht gespeichert werden.",
+      `Bild „${title}“ mit ${target.label} verknüpft.`,
     );
 
   return (
-    <article className="media-card">
+    <article className="media-card" aria-label={`Bild: ${view.asset.title}`}>
       {view.thumbnailDataUrl ? (
         <img src={view.thumbnailDataUrl} alt={view.asset.title} />
       ) : (
@@ -272,6 +286,7 @@ function MediaCard({
             void run(
               () => updateMediaAsset(projectId, view.asset.id, title.trim(), parseTags(tags)),
               "Die Medienmetadaten konnten nicht gespeichert werden.",
+              `Metadaten für „${title.trim()}“ gespeichert.`,
             )
           }
         >
@@ -303,7 +318,11 @@ function MediaCard({
             disabled={busy}
             onChange={(event) => {
               const replacement = event.target.files?.[0];
-              if (!replacement || replacement.size > MAX_FILE_BYTES) return;
+              if (!replacement) return;
+              if (replacement.size > MAX_FILE_BYTES) {
+                onError("Die ausgewählte Ersatzdatei ist größer als 25 MiB.");
+                return;
+              }
               void run(
                 async () =>
                   replaceMediaAsset(
@@ -313,6 +332,7 @@ function MediaCard({
                     Array.from(new Uint8Array(await replacement.arrayBuffer())),
                   ),
                 "Das Ersatzbild konnte nicht validiert oder gespeichert werden.",
+                `Bildinhalt für „${title}“ ersetzt.`,
               );
             }}
           />
@@ -323,12 +343,21 @@ function MediaCard({
           ({ targetKind, targetId }) =>
             targetKind === activeTarget.kind && targetId === activeTarget.id,
         ) ? (
-          <button type="button" className="secondary" onClick={() => void linkTarget(activeTarget)}>
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy}
+            onClick={() => void linkTarget(activeTarget)}
+          >
             Mit aktiver Szene verknüpfen
           </button>
         ) : null}
         <div className="asset-link-form">
-          <select value={targetValue} onChange={(event) => setTargetValue(event.target.value)}>
+          <select
+            aria-label={`Weiteres Linkziel für ${view.asset.title}`}
+            value={targetValue}
+            onChange={(event) => setTargetValue(event.target.value)}
+          >
             <option value="">Weiteres Linkziel wählen</option>
             {targets.map((target) => (
               <option key={`${target.kind}:${target.id}`} value={`${target.kind}:${target.id}`}>
@@ -380,6 +409,7 @@ function MediaCard({
                           link.role,
                         ),
                       "Die Bildverknüpfung konnte nicht entfernt werden.",
+                      `Verknüpfung von „${title}“ zu ${target?.label ?? link.targetId} entfernt.`,
                     )
                   }
                 >
@@ -402,6 +432,7 @@ function MediaCard({
             void run(
               () => deleteMediaAsset(projectId, view.asset.id),
               "Das Bild konnte nicht gelöscht werden.",
+              `Bild „${title}“ gelöscht.`,
             );
           }}
         >

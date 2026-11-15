@@ -2,6 +2,13 @@
 
 Stand: 11. November 2026
 
+Fortschreibung vom 15. November 2026: [KQ-068](native-m3-coverage.md) ergänzt benannte
+Medien-Linkwähler/-artikel, Erfolgs-Liveregionen und Fehleralarme für Medien/visuelle Profile. Die
+native Windows-Sprachausgabe wurde erneut gestartet; der Nutzer bestätigt allgemein „funktioniert
+bestens“. Für spätere Profil-/Stil-/Fehler-/Exportfälle fehlt weiterhin eine einzeln zugeordnete
+Hörliste. Diese Ergänzung erklärt keine vollständige F08-/M3-Hörabnahme; die folgende
+KQ-033-/KQ-034-Matrix bleibt ein historischer Beleg.
+
 Diese Matrix trennt automatisiert belegte Browserprüfungen von einer echten Hörprüfung mit
 assistiver Technik. Axe und der Browser-Accessibility-Tree finden viele strukturelle Fehler, hören
 aber keine Ausgabe. Ein grüner Roboter ist noch keine zuhörende Testperson.

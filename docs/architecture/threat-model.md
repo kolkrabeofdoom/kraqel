@@ -1,5 +1,19 @@
 # Bedrohungsmodell (Entwurf)
 
+## KQ-068: Gemessene Windows-Laufzeitgrenze
+
+ETW findet ohne Provideraufruf öffentliche Netzverbindungen von WebView2-Nachfahren der isolierten
+App. Seiten-CSP und fehlender eigener Telemetriecode verhindern nicht nachweislich sämtlichen
+Windows-Laufzeitverkehr. Transportmetadaten belegen weder HTTP-Zweck noch Upload. Rohdiagnosen mit
+fremden Prozess-/Netzmetadaten bleiben lokal außerhalb von Git.
+
+Q-01/Q-02 sind nicht freigegeben. [Issue #134](https://github.com/kolkrabeofdoom/kraqel/issues/134)
+verlangt Ursachenklärung, unterstützte App-Maßnahmen und gegebenenfalls einen ausdrücklichen
+Fachentscheid zur Laufzeitgrenze. Startseite/README präzisieren die Telemetrieaussage.
+OS-/Firewalländerungen oder unsichere Browserflags sind keine Abnahme des Produkts. Siehe
+[Protokoll](../testing/native-m3-coverage.md) und
+[Microsofts WebView2-Datenschutzdokumentation](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/data-privacy).
+
 ## KQ-055: Begrenzter DOCX-Eingang
 
 DOCX ist ein nicht vertrauenswürdiges ZIP-/XML-Paket. ADR 0024 und

@@ -278,7 +278,10 @@ export function App() {
         </p>
       ) : null}
       <footer>
-        <span>Keine Cloudpflicht. Keine Telemetrie ab Werk.</span>
+        <span>
+          Keine Cloudpflicht. Keine KRAQEL-Telemetrie. Unter Windows kann die WebView2-Laufzeit
+          eigene Netzverbindungen aufbauen.
+        </span>
         <span>GPL-3.0-or-later</span>
       </footer>
     </main>

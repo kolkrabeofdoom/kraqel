@@ -2,6 +2,24 @@
 
 Stand: 15. November 2026
 
+**Fortschreibung KQ-068 / Issue #133:** PR #132 ist mit grüner Windows-/Linux-CI und Dependency
+Review zusammengeführt (`c7629c3`); Issue #131 ist geschlossen. Die KQ-067-Aussagen bleiben
+historische Belege. Neu: native Medien-/Profil-/Stil-CRUD-Teilprüfungen, zugängliche Status-/
+Fehleransagen und eine unabhängige ETW-Messung. Sie findet öffentlichen Verkehr von
+WebView2-Nachfahren ohne Provideraufruf: Q-01/Q-02 sind **nicht bestanden**.
+[KQ-069 / #134](https://github.com/kolkrabeofdoom/kraqel/issues/134) klärt Ursache, unterstützte
+Maßnahmen und die fachlich zu entscheidende Laufzeitgrenze. Keine Uploadbehauptung aus
+Transportmetadaten; README/Startseite präzisieren die Telemetrieaussage.
+
+[Protokoll](testing/native-m3-coverage.md): PNG-Anlage, Metadaten/Tags, Szenenlink, abgelehnter und
+gültiger WebP-Ersatz, separate JPEG-Variante sowie Profil-/Stil-Anlage und Bearbeitung nativ
+bestanden. Ein zusätzlicher Rust-Integrationstest belegt Ersatz-/Lösch-Dateikonsistenz und
+Referenzintegrität. Kanonischer GUI-Bildwechsel, bestätigte GUI-Löschfolge, neuer CRUD-Neustart und
+vollständige Hörliste warten auf konkrete manuelle Rückmeldung. Die allgemeine Nutzerbestätigung zur
+Windows-Sprachausgabe ersetzt keine Hörliste späterer Fälle. 27 Browser-E2E, neuer Rust-Kerntest und
+zwölf ETW-Auswertungstests bestanden. Formate/Schema unverändert. F08/M3 bleiben teilweise
+abgenommen, die Drehbuchimplementierung fehlt weiter.
+
 Code-Referenz: KQ-055 (Issue #107), KQ-056 (Issue #109), KQ-058/059 (Issues #113/#115; isolierte
 Prototypen), KQ-060 (Issue #117; nativer Roundtrip-Kern), KQ-061 (Issue #119; App und neue
 Projektkopie), KQ-062 (Issue #121; freigegebener Medienexport-Vertrag), KQ-063 (Issue #123;
@@ -921,14 +939,14 @@ Medien-Einbettung je Exportformat. Rechts- und Lizenzfragen der Bildprovider sin
 
 ## Nächste geplante Entwicklungsstufe
 
-**Nächste Stufe: Modell-/Versionsprototyp und Schriftprüfung für den fachlich freigegebenen
-Drehbuchvertrag vorbereiten; verbleibende F08-/M3-Restprüfungen gemäß
-[Matrix](testing/F08_M3_ACCEPTANCE_MATRIX.md) getrennt halten.**
+**Nächste Stufe: KQ-068s manuelle Restschritte abschließen und den gemessenen WebView2-Netzbefund
+KQ-069 / #134 klären. Danach Modell-/Versionsprototyp und Schriftprüfung für den freigegebenen
+Drehbuchvertrag; Grenzen gemäß [Matrix](testing/F08_M3_ACCEPTANCE_MATRIX.md) beibehalten.**
 
 Vertrag und Kriterienerfassung liegen vor und sind fachlich freigegeben. Der funktionale kombinierte
-M3-Gesamtlauf ist bestanden; Drehbuchimplementierung, unabhängige
-Desktop-Offline-/Netzverkehrsprüfung, assistive Vollabnahme und verbleibende CRUD-Nachweise sind
-offen.
+M3-Gesamtlauf ist bestanden. KQ-068 hat den unabhängigen Netztest durchgeführt und öffentlichen
+WebView2-Verkehr gefunden; die Netzabnahme ist nicht bestanden. Drehbuchimplementierung, assistive
+Vollabnahme und benannte GUI-CRUD-Restnachweise bleiben offen.
 
 Empfohlener, überprüfbarer Scope:
 
