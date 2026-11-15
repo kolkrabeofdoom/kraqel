@@ -2,10 +2,11 @@
 
 Fortschreibung [UI-/Tauri-Testanbindung](native-tauri-file-channel.md): separates echtes
 Forschungsfenster, einmaliger vorab delegierter Einweg-Dateikanal, keine Rendererpfade/Handles,
-Origin-/Fensterprüfung. Native Vorprüfung von Import/Wiederholung/Fensterende unabhängig über SQLite
-bestätigt. Finale Guard-Verstärkungen automatisch geprüft; **finale native Wiederholung,
-Abbruch/Fensterende am Haltepunkt, Auswahl und ETW offen**. UAC-Start abgebrochen; keine neue
-Netzstille-/Assistenz-/Produktabnahme. Q-01/Q-02 weiterhin **nicht bestanden**, #134 offen.
+Origin-/Fensterprüfung. Finaler Build nativ dreimal mit Import/Wiederholung, Abbruch und Fensterende
+am Haltepunkt bestanden; SQLite/Unicode und Cleanup unabhängig bestätigt. Gültiges ETW desselben
+Builds: drei vollständige Bäume, vier Kontrollen, Nullverluste, 0 Ereignisse außerhalb Loopback. Nur
+synthetischer Fixturemodus; native Vorabauswahl, Assistenz und Produkt-Vollabnahme offen. Keine
+universelle Netzstille oder externe Brokerattestierung. Q-01/Q-02 **nicht bestanden**, #134 offen.
 
 Fortschreibung [typisierter Dateiauftrag und atomarer Import](native-isolated-app-import.md):
 Separater nativer App-Dienst-Testadapter ohne Tauri-/WebView-/GUI-Anbindung; Snapshot-v3-Import im

@@ -12,9 +12,11 @@ Nur Forschungsfeature, feste synthetische Datei, kontrollierter Launcher.
 
 UUID allein authentisiert keinen Peer. Kein Schutz gegen gleichberechtigte/privilegierte lokale
 Angreifer oder vollständiger Nachweis gegen kompromittierte Runtime-Prozesse. Produktstart
-unisoliert; finale Native-/ETW-Wiederholung, UI-Abbruch/Fensterende, Auswahl, Assistenz und
-dauerhafte Crash-/Replay-Reconciliation offen. Vorversuch erfolgreich, finale Guards separat
-automatisch geprüft. UAC-Start abgebrochen, keine neue Netzstilleaussage. Q-01/Q-02 nicht bestanden.
+unisoliert. Finaler Build nativ mit Import/Wiederholung, Abbruch und Fensterende am Haltepunkt
+bestanden; keine Stagingreste, alle Jobs/Profile bereinigt. Gültiges ETW: drei vollständige Bäume,
+vier Kontrollen, keine Verluste, 0 Ereignisse außerhalb Loopback. Keine vollständige Nachfahren-
+Token-/Handleattestierung oder externe COM-/Shell-Zuordnung. Vorabauswahl, Auswahl aus laufender
+App, Assistenz und dauerhafte Crash-/Replay-Reconciliation offen. Q-01/Q-02 nicht bestanden.
 
 ## KQ-069 A: Einmaliger Auftrag im nativen App-Dienst-Testadapter
 

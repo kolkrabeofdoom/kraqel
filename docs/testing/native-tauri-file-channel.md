@@ -36,39 +36,62 @@ Abbruch an und verzögert den Prozessausstieg bis zum Ergebnis. Der Controller b
 auf zehn Minuten und wartet nach Jobende auf Nullprozesse vor Profilentfernung. Harte
 Absturz-Reconciliation bleibt offen.
 
-## Nachweise und ausdrücklich offene Abnahme
+## Finale native Nachweise
 
-Ein nativer Vorversuch wurde manuell durch den Nutzer bedient, weil Computer Use einschließlich
-Neuinitialisierung mit `Transport closed` ausfiel. WebView-JavaScript hat den echten Tauri-
-Statusbefehl aufgerufen; Import und Abschluss erzeugten eine Projektkopie mit zwei Dokumenten. Der
-Nutzer meldet die sichtbare Wiederholungsablehnung: „Dieser Auftrag ist bereits verbraucht. Es wurde
-kein zweites Projekt angelegt.“ Anschließend bestätigt er das Fensterschließen.
+Der Nutzer bediente drei frische Sitzungen des finalen Forschungsbuilds, weil Computer Use
+einschließlich Neuinitialisierung mit `Transport closed` ausfiel. Alle Sitzungen verwendeten
+`ui-fixture`: vorab fest freigegebene synthetische Datei, kein neuer nativer Auswahldialog.
 
-Unabhängige Nur-Lese-Prüfung nach Prozessende: neue Projekt-ID, exakter Unicode-Text,
-`integrity_check = ok`, keine Fremdschlüsselfehler, genau eine Projektkopie, kein Stagingrest.
-Root-AppContainer mit null Capabilities, null aktive Jobprozesse, Profil entfernt. Verifizierer:
-`scripts/runtime-isolation/verify_tauri_ui.py`, lokales Journal `{scenario, root, pid}` ohne Git.
+| Ablauf                                         | Bestätigtes Ergebnis                                                                         |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Import, Abschluss, Wiederholung, Fensterende   | genau eine neue Kopie mit zwei Dokumenten; erneuter Aufruf mit `ALREADY_CONSUMED` abgewiesen |
+| Import, Abbruch am Haltepunkt, Fensterende     | `CANCELLED`, keine Projektkopie und kein Stagingrest                                         |
+| Import, Fenster direkt am Haltepunkt schließen | nativer Abbruch vor Prozessende, `CANCELLED`, keine Kopie und kein Stagingrest               |
 
-**Dieser Vorversuch ist nicht die vollständige native Abnahme des finalen Standes.** Danach wurden
-Empfängerinitialisierung, Startup-Freigabeprüfung, Jobbereinigung und Controllerantwort- Schema
-verstärkt. Die abschließenden Guards sind automatisch geprüft. Der native Vorversuch hat App-SHA-256
-`ce199de8d453c9d39765805d59d9d1268aa03384f99f22285b553de296466b57`. Der finale Forschungsbuild hat
-SHA-256 `d6728209b8d261a283cbb08cea6944bd5fd7d63ef1aa5d2aea4bbab904d0e4ee`. Native Wiederholung des
-finalen Builds, Abbruch/Fensterende am Haltepunkt und neue Dateiauswahl bleiben offen; keine
-assistive Hörabnahme behauptet.
+In allen drei Fällen hat WebView-JavaScript den echten Tauri-Statusbefehl aufgerufen. Root-Tokens
+vor Fortsetzung auf erwartete SID/null Capabilities geprüft; Empfänger prüft nochmals und liest
+gelöschte Vererbungsflags zurück. Keine vollständige Token-/Handleattestierung jedes WebView-
+Nachfahren behauptet. Null aktive Jobprozesse und alle drei Profile entfernt.
+
+`verify_tauri_ui.py` prüft nach Prozessende unabhängig: neue ID und genau eine Kopie im Erfolgsfall,
+exakter Unicode-Text, `integrity_check = ok`, keine Fremdschlüsselfehler und null Verzeichnisreste
+in beiden Abbruchfällen. Die Wiederholungsablehnung bestätigt der Nutzer wörtlich; nachfolgend
+bestätigt er jeweils Fensterende, Abbruch und direktes Schließen am Haltepunkt.
+
+App-SHA-256 aller drei gestagten finalen Builds:
+`d6728209b8d261a283cbb08cea6944bd5fd7d63ef1aa5d2aea4bbab904d0e4ee`. Controller-SHA im
+[bereinigten Ergebnis](native-tauri-file-channel.json). Kein Rust-Code nach der Messung geändert.
+Der frühere Vorversuch und die unvollständige Aufzeichnung ohne gestartete App werden nicht als
+finale Abnahme verwendet.
+
+## ETW des finalen Builds
+
+15. November 2026, **16:43:07–16:46:11 UTC**, nach erneuter manueller UAC-Bestätigung. ETL:
+    1.114.112 Byte, Rohdaten lokal. Drei separat beim Start notierte Controller samt
+    App/WebView-Baum: 3 Controller, 3 App-, 18 WebView- und 6 Console-Host-Lebenszeiten, vollständig
+    beendet. Vier beobachtete TCP-/UDP-Kontrollen für IPv4/IPv6, Nullverluste, keine unbekannten
+    Ziele oder Zuordnungen: **0 Ereignisse außerhalb Loopback**. 26 Loopback-Disconnect-Ereignisse
+    werden getrennt ausgewiesen; keine HTTP-/Upload- oder universelle Netzstilleaussage daraus.
+
+Die Messung gilt nur für diese synthetischen UI-Pfade und den erfassten Prozessbaum. Externe
+COM-/Shell-Dienste und kompromittierte Runtime-Prozesse sind damit nicht vollständig abgenommen.
+Native Dateiauswahl gehört nicht zu dieser finalen Serie. Historische und unvollständige Traces
+ersetzen keine fehlenden Pfade; der strenge Auswerter verweigert diese weiterhin.
+
+## Automatische Prüfungen und verbleibende Grenze
 
 `pnpm check`, Feature-Clippy mit Warnungen als Fehler, normaler und Forschungs-Tauri-Build
-erfolgreich. 29 Browser-E2E einschließlich zwei neuer UI-Abläufe bestanden. Diese beiden nutzen
-ausdrücklich nur den Browseradapter, keine native Isolation. Vier Transporttests prüfen
-Framegrenzen/EOF/unerlaubte Felder, Bindung/Budget/Ablauf und einmaligen Empfängeranspruch; 13
-bestehende Helfertests bestehen. Ein Tauri-Featuretest prüft die Origin-/Fenstergrenze. 32
-Python-Diagnosetests bestehen; neuer Modus `isolation-ui` verlangt für jeden Controller einen echten
-App- und WebView-Baum sowie unverändert Kontrollen, vollständige Enden und Nullverluste.
+erfolgreich. 29 Browser-E2E einschließlich zwei neuer UI-Abläufe bestanden; diese verwenden nur den
+Browseradapter, keine native Isolation. Vier Transporttests prüfen Framegrenzen/EOF, unerlaubte
+Felder, Bindung/Budget/Ablauf und einmaligen Empfängeranspruch. 13 bestehende Helfertests plus
+Controllerantwort-Test bestehen. Ein Tauri-Featuretest prüft Origin/Fenster. 32 Python-Diagnosetests
+bestehen; `isolation-ui` verlangt pro Controller App und WebView sowie unverändert Kontrollen,
+vollständige Enden und Nullverluste.
 
-**Kein neuer ETW-Nachweis:** Windows meldet den angeforderten Helferstart als durch den Benutzer
-abgebrochen; `ready.json` wurde nicht erzeugt. Die Frage nach einer erneuten UAC-Abfrage ist offen.
-Kein Trace gestartet und keine Aussage über Netzstille dieses UI-Builds. Historische Messungen aus
-#137–#139 ersetzen diese fehlende Messung nicht. Rohdiagnosen/Prozessdetails bleiben lokal.
+Normaler Debug-Build wiederhergestellt, seine Dist enthält keine Forschungsseite. Keine regulären
+App-Daten geöffnet. Native Vorab-Dateiauswahl, assistive Hörabnahme, Auswahl aus einer laufenden App
+und dauerhafter Auftrags-/Crash-Lebenszyklus sind weiter offen. Keine Freigabe realer Manuskripte
+oder produktiver Launcher. **Q-01/Q-02 bleiben für das Produkt nicht bestanden.**
 
 ## Reproduzieren und fortsetzen
 
@@ -89,7 +112,7 @@ Kanal ohne erneute Auswahl. Keine realen Manuskripte auswählen.
 
 Nach neuer ETW-Aufzeichnung die separat notierten Controller-PIDs im Modus `isolation-ui` auswerten.
 `verify_tauri_ui.py <lokales Journal> --trace <ETW-Wurzel>` prüft Import (`import`), Abbruch
-(`cancel`) und Fensterende während des Haltepunkts (`close`) unabhängig. Erst tatsächliche
+(`cancel`) und Fensterende während des Haltepunkts (`close`) unabhängig. Nur tatsächlich gemessene
 Ergebnisse fortschreiben. Normalen Debug-Build ohne Forschungsfeature anschließend wieder bauen.
 
 Weitere Produktarbeit: Auswahl aus einer bereits laufenden regulären App, dauerhafter sicherer

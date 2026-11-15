@@ -9,7 +9,9 @@ Neu: [Tauri-Testanbindung](../../docs/testing/native-tauri-file-channel.md) und
 Transportbibliothek ausschließlich für das explizite Windows-Feature `isolation-ui-test` bereit. Sie
 bleibt außerhalb des Produkt-Workspace; Produktcrates behalten `unsafe_code = forbid`. Keine neuen
 Registrypakete, nur vorhandene Serde-/Win32-Funktionen. Normale Builds binden die Bibliothek nicht
-ein und enthalten die Forschungsseite nicht. Finale native/ETW-Abnahme offen.
+ein und enthalten die Forschungsseite nicht. Finale synthetische UI-Serie mit Import/Wiederholung,
+Abbruch und Fensterende am Haltepunkt einschließlich gültigem ETW bestanden. Native Vorabauswahl und
+Produktabnahme bleiben offen; kein universeller Netzstillebeleg.
 
 `ui-select <neue kraqel-isolation-ui-Wurzel> <gesicherte Forschungs-EXE>` wählt zuerst die feste
 synthetische Datei und startet danach das isolierte Fenster. `ui-fixture` überspringt den Dialog.
