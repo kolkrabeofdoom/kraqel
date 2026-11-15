@@ -80,8 +80,11 @@
              WebView2-Verkehr gefunden, keine bestandene Netzfreigabe (KQ-068)
        - [x] Native CRUD-Teilprüfung und Rust-Datei-/Referenztest ergänzen; Status-/Fehleransagen
              und Linkwählerbeschriftung korrigieren (KQ-068)
-       - [ ] Manuellen kanonischen Bildwechsel, bestätigte GUI-Löschfolge, Neustart und vollständige
-             Hörliste nachholen (KQ-068 / #133)
+       - [x] Manuellen kanonischen Bildwechsel, bestätigte GUI-Löschfolge und Neustart abnehmen
+             (KQ-068 / #133)
+       - [x] Vier bebilderte Exporte nach Löschung/Neustart per Tastatur erzeugen und rücklesen
+       - [ ] Abschließende Lösch-/Export-Hörrückmeldung und allgemeine assistive F08-Randfälle
+             ergänzen
        - [ ] WebView2-Netzbefund klären und Laufzeitgrenze ausdrücklich entscheiden; Q-01/Q-02 erst
              anhand neuer Evidenz freigeben (KQ-069 / #134)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene

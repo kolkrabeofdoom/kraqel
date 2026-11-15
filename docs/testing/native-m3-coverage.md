@@ -6,10 +6,10 @@
     M3/10 und [F08-/M3-Matrix](F08_M3_ACCEPTANCE_MATRIX.md). Der angenommene Drehbuchvertrag wird
     hier nicht implementiert.
 
-**Ergebnis: Teilprüfungen bestanden; keine vollständige F08-/M3-Freigabe.** Der unabhängige Netztest
-findet öffentlichen WebView2-Verkehr. Die noch ausstehenden manuellen Schritte werden unten
-ausdrücklich getrennt gehalten. Ein angelegter Prüfplan und ein grüner Rust-Test ersetzen keine
-tatsächlich ausgeführte GUI- oder Hörprüfung.
+**Ergebnis: Nativer Medien-/Profil-/Stil-CRUD einschließlich Löschung und Neustart bestanden; keine
+vollständige F08-/M3-Freigabe.** Der unabhängige Netztest findet öffentlichen WebView2-Verkehr. Die
+ergänzten manuellen Schritte und ihre tatsächlichen Belege stehen unten; ein angelegter Prüfplan und
+ein grüner Rust-Test ersetzen keine GUI- oder Hörprüfung.
 
 ## Umgebung und reproduzierbarer Umfang
 
@@ -29,23 +29,45 @@ SHA-256 `dc4152e963c5a35e92e1a36d713eb4de70b2b4690f61c548751497ef76b835ac`. Die 
 Footeränderung ist keine Wiederholung dieses nativen Laufs. SQLite 6, Command/Editor/DOCX v1 und
 Snapshot v3 bleiben unverändert. Keine neue Laufzeitabhängigkeit.
 
+Die bestätigten GUI-Löschungen erfolgen noch im ersten Build. Danach wird dieser Prozess vollständig
+beendet, der aktuelle Stand `291788b` einschließlich des korrigierten Footers neu gebündelt und als
+neuer Coverage-Prozess gestartet. SHA-256:
+`bcc3697af82b62dbf757732869858e6e27c60b1f4c9b76b56a4cc264f7f42ae8`. Neustartansichten und alle vier
+folgenden Tastatur-Exporte verwenden diesen zweiten Build.
+
 ## Native CRUD-Bedienung und unabhängige Integritätskontrolle
 
-| Prüffall                | Tatsächlicher Nachweis                                                                                                                                                                                |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Anlage/Lesen            | PNG `crud-a.png` über den echten Dialog importiert, Titel „CRUD Variante A“, Tags „Test, Tusche“, Vorschau/Format/Maße sichtbar                                                                       |
-| Metadaten               | Titel nativ auf „CRUD Variante A geändert“ geändert und gespeichert; Statusmeldung sichtbar                                                                                                           |
-| Szenenlink              | Nativ mit „Szene 1“ verknüpft; Chip und benannter Linkzielwähler vorhanden                                                                                                                            |
-| Ungültiger Ersatz       | Synthetische `invalid.png` enthält Text statt Bild; Ersatz abgelehnt und verständliche Fehlermeldung angezeigt                                                                                        |
-| Gültiger Ersatz         | `crud-b.webp` über den echten Dialog ersetzt; Format jetzt WebP, Titel/Tags und Szenenlink erhalten                                                                                                   |
-| Eigenständige Variante  | `crud-c.jpg` nativ als „CRUD Variante B“ zusätzlich importiert; beide Bilder unabhängig vorhanden. Kein Variantenvergleich oder Elternmodell behauptet                                                |
-| Profil                  | Kernmerkmale und Ausschluss nativ angelegt; anschließend „Gefieder: tiefschwarz“ gespeichert                                                                                                          |
-| Profilfehler            | Doppelte Schlüssel „Augen“ nativ abgelehnt; gültige Korrektur danach erfolgreich gespeichert                                                                                                          |
-| Stilvorlage             | „CRUD Tusche“ mit Regeln und Geltungsbereich Figuren/Orte nativ angelegt, anschließend auf „CRUD Tusche geändert“ bearbeitet                                                                          |
-| SQLite-/Dateikontrolle  | Unabhängige Nur-Lese-Abfrage: zwei Assets (WebP/JPEG), ein Szenenlink, ein Profil, ein Stilpreset, eine Figur; Original-/Thumbnailhashes lokal inventarisiert                                         |
-| Kanonischer Bildwechsel | Noch offen: Der Windows-Bedienhelfer verweigert Klicks auf das WebView2-Auswahl-Unterfenster. Konkreter manueller Wechsel A → Speichern → B → Speichern angefragt; ohne Rückmeldung kein GUI-Nachweis |
-| GUI-Löschung            | Noch offen: Aktionsbestätigung für genau Bild B, Profil von CRUD Rabe und Stil „CRUD Tusche geändert“ angefragt. Keine GUI-Löschung ohne diese Bestätigung                                            |
-| Prozessneustart         | In KQ-067 für den großen Korpus belegt; für die neuen CRUD-Änderungen nach Abschluss der manuellen Schritte erneut prüfen                                                                             |
+| Prüffall                | Tatsächlicher Nachweis                                                                                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Anlage/Lesen            | PNG `crud-a.png` über den echten Dialog importiert, Titel „CRUD Variante A“, Tags „Test, Tusche“, Vorschau/Format/Maße sichtbar                               |
+| Metadaten               | Titel nativ auf „CRUD Variante A geändert“ geändert und gespeichert; Statusmeldung sichtbar                                                                   |
+| Szenenlink              | Nativ mit „Szene 1“ verknüpft; Chip und benannter Linkzielwähler vorhanden                                                                                    |
+| Ungültiger Ersatz       | Synthetische `invalid.png` enthält Text statt Bild; Ersatz abgelehnt und verständliche Fehlermeldung angezeigt                                                |
+| Gültiger Ersatz         | `crud-b.webp` über den echten Dialog ersetzt; Format jetzt WebP, Titel/Tags und Szenenlink erhalten                                                           |
+| Eigenständige Variante  | `crud-c.jpg` nativ als „CRUD Variante B“ zusätzlich importiert; beide Bilder unabhängig vorhanden. Kein Variantenvergleich oder Elternmodell behauptet        |
+| Profil                  | Kernmerkmale und Ausschluss nativ angelegt; anschließend „Gefieder: tiefschwarz“ gespeichert                                                                  |
+| Profilfehler            | Doppelte Schlüssel „Augen“ nativ abgelehnt; gültige Korrektur danach erfolgreich gespeichert                                                                  |
+| Stilvorlage             | „CRUD Tusche“ mit Regeln und Geltungsbereich Figuren/Orte nativ angelegt, anschließend auf „CRUD Tusche geändert“ bearbeitet                                  |
+| SQLite-/Dateikontrolle  | Unabhängige Nur-Lese-Abfrage: zwei Assets (WebP/JPEG), ein Szenenlink, ein Profil, ein Stilpreset, eine Figur; Original-/Thumbnailhashes lokal inventarisiert |
+| Kanonischer Bildwechsel | Manueller Wechsel A → B durch Nutzerrückmeldung bestätigt; B vor Löschung zusätzlich in GUI und SQLite nachgewiesen                                           |
+| GUI-Löschung            | Nach konkreter Nutzerfreigabe alle drei Datensätze über die jeweilige zweite App-Bestätigung gelöscht; Dateien und Referenzen unabhängig geprüft              |
+| Prozessneustart         | Coverage-Prozess beendet, aktueller Build neu gestartet; gelöschte Daten bleiben weg, Bild A, Tags, Link und Figur bleiben erhalten                           |
+
+Der Nutzer bestätigt den angefragten manuellen Bildwechsel A → Speichern → B → Speichern zusammen
+mit der Profil-/Stil-/Fehler-Hörprüfung mit „alles gut“. Bild B ist vor der Löschung zusätzlich
+unmittelbar in GUI und SQLite als kanonisches Asset nachgewiesen. Anschließend bestätigt der Nutzer
+ausdrücklich die drei benannten GUI-Löschungen. Jede wird tatsächlich über die zweistufige
+App-Aktion ausgeführt; Erfolgsstatus und leere Profil-/Stilansicht werden beobachtet. Ein neues
+Vorherinventar berücksichtigt den vom Nutzer gespeicherten Bildwechsel.
+
+Nach der Bildlöschung sind Original und Thumbnail von B entfernt, das Profil ist noch vorhanden und
+sein kanonischer Verweis ist `NULL`. Erst danach werden Profil und Stil gelöscht. Unabhängige
+Nur-Lese-Abfragen und SHA-256-Vergleiche bestätigen: Bild A samt sämtlichen Metadaten und beiden
+Dateien, seine Tags, der Szenenlink, beide Dokumente und die Figur bleiben unverändert.
+`integrity_check=ok`, keine Fremdschlüsselverletzung. Nach vollständigem Prozessneustart sind
+dieselben Ergebnisse in GUI und SQLite vorhanden. Der
+[bereinigte Prüfbericht](native-m3-crud-kq068.json) hält diese Ergebnisse fest; die vollständigen
+synthetischen SQLite-/Dateiinventare bleiben lokal.
 
 Der neue reguläre Rust-Integrationstest
 `native_m3_crud_keeps_files_identity_and_references_consistent` durchläuft reale Commands, SQLite
@@ -55,16 +77,18 @@ verändern das Inventar nicht, gültiger Ersatz erhält ID/Metadaten/Links und k
 alte Dateien verschwinden. Ent-/Verknüpfung, tatsächliche Assetlöschung samt Dateien und Freigabe
 des kanonischen Verweises, alternatives kanonisches Bild, Stiländerung mit stabiler ID,
 Profil-/Stillöschung, erhaltene Figur und anderes Asset, `foreign_key_check` und anschließende
-Snapshot-Erzeugung sind ebenfalls bestanden. Dies ist **native Kernabdeckung A**, keine
-nachträgliche GUI-Abnahme der offenen Zeilen.
+Snapshot-Erzeugung sind ebenfalls bestanden. Dies ist **native Kernabdeckung A**, kein Ersatz für
+eine GUI-Abnahme. Die oben dokumentierte tatsächliche GUI-Folge ergänzt ihn separat.
 
 ## Screenreader und gefundene Bedienlücken
 
 Windows-Sprachausgabe wurde aus der vorhandenen Installation gestartet. Nutzer-Rückmeldung:
-„Sprachausgabe funktioniert bestens“. Das ist eine allgemeine Funktionsbestätigung während der
-anfänglichen Medienprüfung, keine einzeln zugeordnete Hörliste sämtlicher späterer Fehler- und
-Exportpfade. Für Profil-/Stilspeicherung und die später ausgelösten Fehler ist eine konkrete
-Hörrückmeldung angefragt; die umfassende F08-/M3-Hörabnahme bleibt offen.
+„Sprachausgabe funktioniert bestens“. Die spätere konkrete Frage zu Profil-/Stilerfolg und den
+ausgelösten Bildersatz-/Profilfehlern beantwortet der Nutzer mit „alles gut“. Damit sind diese
+gezeigten Ansagen manuell bestätigt. Für die danach ausgeführten Löschmeldungen und vier
+Export-Erfolge ist eine gesonderte Hörrückmeldung angefragt; ohne Antwort wird keine entsprechende
+Hörabnahme behauptet. Weitere F08-Randfälle und eine allgemeine
+WCAG-/Dokument-Screenreader-Konformität werden nicht daraus abgeleitet.
 
 Tatsächlich korrigiert:
 
@@ -81,6 +105,29 @@ technische Bereitstellung, nicht ihren Klang. Browser-E2E prüfen Import-Erfolg,
 Mediennavigation, fehlerhaften Import mit anschließendem Erfolg sowie Profilfehler, Erhaltung
 gespeicherter Werte und bestätigte Profil-/Stillöschung. Die bestehenden KQ-033-/KQ-034-Hörnachweise
 bleiben historische, begrenzte Belege.
+
+## Vier Bildexporte nach den Löschungen und dem Neustart
+
+Im neuen Coverage-Prozess wird nur Bild A als direktes Szenenbild angeboten. Über **Tab und
+Leertaste** wird es ausdrücklich ausgewählt; anschließend werden Alternativtext und Bildunterschrift
+per Tastatur eingegeben. Der sichtbare Fokus erreicht nacheinander alle vier Exportknöpfe; jeder
+wird mit **Eingabetaste** ausgelöst. Alle vier Erfolgsmeldungen zeigen ein Bild und ein Vorkommen.
+Die zuvor gelöschte Variante B wird weder angeboten noch exportiert.
+
+Die vier tatsächlich erzeugten Pakete werden unabhängig mit Python-Standardbibliothek, Pillow und
+pypdf rückgelesen. Alle Manifeste behalten den erwarteten Quellhash, die genaue Bildauswahl,
+Position, Alttext und Bildunterschrift; sämtliche Ausgabe-PNGs entsprechen dem WebP-Original
+pixelgenau. DOCX enthält dieselben PNG-Bytes als internen ZIP-Part und den vereinbarten Alttext. PDF
+enthält einen passenden RGB-Bildstrom, eine Seite und alle vier erwarteten eingebetteten Schriften;
+die gerenderte Seite ist ohne Überlagerungen oder abgeschnittene Beschreibungen geprüft. Das ist
+eine Einzelkorpusprüfung, keine neue Office-GUI- oder universelle Layoutabnahme. Hashes stehen im
+[Prüfbericht](native-m3-crud-kq068.json).
+
+Der Markdown-PNG-Pfad ist auf diesem Rechner exakt 260 Zeichen lang. Für das unabhängige
+Python-Rücklesen wird deshalb das Windows-NT-Langpfadpräfix verwendet; die Datei ist tatsächlich
+vorhanden und korrekt. Keine OS-Richtlinie wurde geändert. Der Punkt am Ende der
+Markdown-Bildunterschrift ist vertragsgemäß maskiert. Ein einfacher unmaskierter Textvergleich wäre
+hier kein sinnvoller Dateinachweis.
 
 ## Unabhängiger Windows-Netztest
 
@@ -150,10 +197,12 @@ abgesichert und in beiden CI-Betriebssystemen ausgeführt.
 explizite QA-Helfer, rustfmt/Clippy/ESLint/TypeScript/Prettier grün. Abschließende Formatprüfung,
 Python-Tests und erneute 27 Browser-E2E ebenfalls bestanden. Der isolierte gebündelte
 Coverage-Debug-Build und der abschließende Frontend-Build bestanden; die übliche Vite-Warnung zum
-großen JavaScript-Chunk bleibt unverändert. Der Coverage-Prozess bleibt wegen der angefragten
-manuellen Schritte geöffnet; sein Executable wird nicht im laufenden Betrieb durch einen regulären
-Build ersetzt.
+großen JavaScript-Chunk bleibt unverändert. Der Coverage-Prozess wurde für den belegten Neustart
+vollständig beendet und der aktuelle Stand erfolgreich neu gebündelt. Nach der Exportprüfung wurde
+auch die zweite Coverage-Instanz geschlossen und der reguläre Debug-Build erfolgreich
+wiederhergestellt. Die produktive App wurde dabei nicht gestartet.
 
-Offen bleiben die oben benannten manuellen GUI-/Hörschritte, erneuter CRUD-Prozessneustart und der
-separate Netzbefund #134. Das Pflichtenheft verlangt außerdem die weiterhin fehlende
+Offen bleiben die angefragte abschließende Lösch-/Export-Hörrückmeldung, weitere allgemeine
+assistive F08-Randfälle und der separate Netzbefund #134. GUI-CRUD und Prozessneustart sind im
+dokumentierten Korpus bestanden. Das Pflichtenheft verlangt außerdem die weiterhin fehlende
 Drehbuchimplementierung und weitere getrennte F01–F09-/M5-Abnahmen. Keine Gesamtfreigabe.
