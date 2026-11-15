@@ -95,9 +95,11 @@
              ETW-Vergleich (0 außerhalb Loopback gegenüber 201 öffentlichen Kontrollereignissen)
        - [x] KQ-069 A: Synthetischen Datei-/Shell-Austausch mit zwei Handlefreigaben statt
              Hostordner-ACL, nativer Kopie, Fehlerpfadtests und begrenzter ETW-Prüfung belegen
-       - [ ] KQ-069 A: Einmaligen typisierten Dateiauftrag an isolierten App-Testadapter anbinden;
-             konkreten Import atomar prüfen; weitere Dateidialoge/Austausch und Git-/Providergrenzen
-             integrieren; UDP/IPv6/DNS/Broker kalibrieren; Fail-closed-Packaging und
+       - [x] KQ-069 A: Typisierten einmaligen Dateiauftrag an isolierten App-Dienst-Testadapter
+             anbinden; Snapshotimport mit Abbruch/Ablauf vor Veröffentlichung atomar prüfen
+       - [ ] KQ-069 A: UI-/Tauri-Testanbindung mit sicherem Auftragskanal, nativer Auswahl,
+             Abbruch-/Fehleransagen und Crash-Reconciliation; weitere Formate und
+             Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren; Fail-closed-Packaging und
              F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)

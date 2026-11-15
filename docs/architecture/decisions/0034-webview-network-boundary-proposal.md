@@ -21,6 +21,15 @@ isolierten App-Testadapter mit konkretem atomarem Import; die strikte Zielsetzun
 
 ## Belegter Konflikt
 
+Der [native App-Dienst-Testadapter](../../testing/native-isolated-app-import.md) bindet einen
+einmaligen Snapshotauftrag an den isolierten Worker. Parser und atomare Veröffentlichung nutzen die
+vorhandenen Rust-Dienste; Ablauf/Abbruch zusätzlich nach vollständigem Aufbau geprüft. ETW des
+finalen Builds: gültige Kontrollen, keine Netzereignisse in acht Controller-/Workerbäumen. **Keine
+Tauri-/WebView-/GUI-Anbindung und keine reale Nutzdateiauswahl.** UUID/Ablaufzeit ersetzen keinen
+produktiven authentisierten Auftragskanal. Nach Commitbeginn keine Rücknahmegarantie;
+Crash-Reconciliation, externe COM-/Shell-Dienste und Produktintegration offen. Keine neue
+Netzfähigkeit oder fachliche Ausnahme.
+
 Pflichtenheft Revision 1 verlangt Offlinefähigkeit, keine Telemetrie ab Werk und keine Übertragung
 von Manuskripttexten, Bildern oder Metadaten bei Cloud-Opt-out (§1, §5, §10). KQ-068 misst
 öffentliche WebView2-Verbindungen. KQ-069 reproduziert Konfigurations- und Komponentenupdate-Starts

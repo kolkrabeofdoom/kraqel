@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "apps/desktop/src-tauri",
+  "apps/desktop/isolation-test-adapter",
   "crates/ai-service",
   "crates/asset-service",
   "crates/continuity",

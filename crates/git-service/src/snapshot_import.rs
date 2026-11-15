@@ -116,6 +116,23 @@ pub fn import_snapshot_archive(
     manager: &ProjectManager,
     archive: &[u8],
 ) -> Result<(ManagedProject, ImportSummary), GitServiceError> {
+    import_snapshot_archive_with_publish_guard(manager, archive, || Ok(()))
+}
+
+/// Prüft eine zusätzliche Freigabe nach vollständiger Initialisierung, unmittelbar vor dem
+/// atomaren Veröffentlichen. Ablehnung entfernt den unveröffentlichten Zwischenstand.
+///
+/// # Errors
+/// Liefert die normalen Importfehler oder die Ablehnung des Publish-Guards. Nach erfolgreichem
+/// Guard beginnt die Veröffentlichung; ein späterer Abbruch kann sie nicht zurücknehmen.
+pub fn import_snapshot_archive_with_publish_guard<F>(
+    manager: &ProjectManager,
+    archive: &[u8],
+    before_publish: F,
+) -> Result<(ManagedProject, ImportSummary), GitServiceError>
+where
+    F: FnOnce() -> Result<(), ProjectError>,
+{
     let data = parse_snapshot(archive)?;
     let project_id = ProjectId::new();
     let project = Project {
@@ -133,7 +150,8 @@ pub fn import_snapshot_archive(
     let name = project.name.clone();
     let opened = manager
         .create_project_with_initializer(&relative, &project, |database, directory| {
-            populate_project(database, directory, project_id, &data)
+            populate_project(database, directory, project_id, &data)?;
+            before_publish()
         })
         .map_err(GitServiceError::Project)?;
     Ok((

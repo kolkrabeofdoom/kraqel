@@ -1,0 +1,120 @@
+{
+  "formatVersion": 1,
+  "diagnosticOnly": true,
+  "productionAcceptance": false,
+  "binarySha256": "ae68e135917e22830faabf1165f5f2fb2c7720ee59711b6f36fa83fc01ae0589",
+  "sourceArchiveSha256": "0851429c4406aa09cec2e972c350ff0d23ef9eaa0deecc8b3d078225b3fc50d0",
+  "sourceArchiveBytes": 11915,
+  "nativeRuns": [
+    {
+      "scenario": "valid",
+      "passed": true,
+      "error": null,
+      "publishedProjectCopies": 1,
+      "baselineHashUnchanged": true,
+      "integrityAndForeignKeys": true,
+      "noStagingResidue": true,
+      "replayRejected": true
+    },
+    {
+      "scenario": "invalid",
+      "passed": true,
+      "error": "IMPORT_FAILED",
+      "publishedProjectCopies": 0,
+      "baselineHashUnchanged": true,
+      "integrityAndForeignKeys": true,
+      "noStagingResidue": true,
+      "replayRejected": true
+    },
+    {
+      "scenario": "expired",
+      "passed": true,
+      "error": "EXPIRED",
+      "publishedProjectCopies": 0,
+      "baselineHashUnchanged": true,
+      "integrityAndForeignKeys": true,
+      "noStagingResidue": true,
+      "replayRejected": true
+    },
+    {
+      "scenario": "cancelled",
+      "passed": true,
+      "error": "CANCELLED",
+      "publishedProjectCopies": 0,
+      "baselineHashUnchanged": true,
+      "integrityAndForeignKeys": true,
+      "noStagingResidue": true,
+      "replayRejected": true
+    },
+    {
+      "scenario": "cancel-at-publish",
+      "passed": true,
+      "error": "CANCELLED",
+      "publishedProjectCopies": 0,
+      "baselineHashUnchanged": true,
+      "integrityAndForeignKeys": true,
+      "noStagingResidue": true,
+      "replayRejected": true
+    },
+    {
+      "scenario": "expire-at-publish",
+      "passed": true,
+      "error": "EXPIRED",
+      "publishedProjectCopies": 0,
+      "baselineHashUnchanged": true,
+      "integrityAndForeignKeys": true,
+      "noStagingResidue": true,
+      "replayRejected": true
+    },
+    {
+      "scenario": "wrong-id",
+      "passed": true,
+      "error": "INVALID_TASK",
+      "publishedProjectCopies": 0,
+      "baselineHashUnchanged": true,
+      "integrityAndForeignKeys": true,
+      "noStagingResidue": true,
+      "replayRejected": true
+    },
+    {
+      "scenario": "copy",
+      "passed": true
+    }
+  ],
+  "etw": {
+    "startedUtc": "2026-11-15T15:06:16.8123959Z",
+    "stoppedUtc": "2026-11-15T15:07:15.5148038Z",
+    "etlBytes": 589824,
+    "summary": {
+      "formatVersion": 1,
+      "measurementMode": "exchange",
+      "measurementValid": true,
+      "measurementProblems": [],
+      "result": "no-non-loopback-traffic-observed",
+      "rootStarts": 8,
+      "processLifetimes": {
+        "kraqel-isolation-probe.exe": 16,
+        "conhost.exe": 16
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "unattributableNetworkEvents": 0,
+      "unknownDestinationEvents": 0,
+      "networkEvents": [],
+      "nonLoopbackEvents": 0,
+      "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths. Out-of-tree COM/Shell services are not attributed by this process-tree measurement."
+    }
+  },
+  "limits": [
+    "Headless native application services; no Tauri IPC, WebView or screenreader acceptance",
+    "Synthetic fixtures only; no real user files or native picker exercised in this step",
+    "No causal attribution of out-of-tree COM/Shell services",
+    "No product privacy/offline acceptance"
+  ]
+}

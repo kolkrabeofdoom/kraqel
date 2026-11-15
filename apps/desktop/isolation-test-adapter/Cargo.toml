@@ -1,0 +1,24 @@
+[package]
+name = "kraqel-isolation-test-adapter"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish = false
+
+# Headless native application-service adapter; never linked into the normal Tauri app.
+[dependencies]
+kraqel-domain = { path = "../../../crates/domain" }
+kraqel-git-service = { path = "../../../crates/git-service" }
+kraqel-storage = { path = "../../../crates/storage" }
+serde = { version = "1", features = ["derive"] }
+sha2 = "0.10"
+uuid = { version = "1", features = ["serde", "v4"] }
+
+[dev-dependencies]
+serde_json = "1"
+tempfile = "3"
+
+[lints]
+workspace = true

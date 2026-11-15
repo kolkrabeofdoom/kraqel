@@ -22,7 +22,7 @@ mod snapshot_import;
 
 pub use snapshot_import::{
     ImportSummary, MAX_SNAPSHOT_ARCHIVE_BYTES, import_snapshot_archive,
-    import_snapshot_archive_file,
+    import_snapshot_archive_file, import_snapshot_archive_with_publish_guard,
 };
 
 const SNAPSHOT_DIRECTORY: &str = "snapshot";

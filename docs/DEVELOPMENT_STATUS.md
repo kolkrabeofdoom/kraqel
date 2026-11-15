@@ -2,6 +2,25 @@
 
 Stand: 15. November 2026
 
+**KQ-069 A / typisierter Dateiauftrag und isolierter App-Dienst-Testadapter:** PR #138 mit grüner
+Windows-/Linux-CI und Dependency Review am Head `1a233d1` zusammengeführt (`3f57291`). Separater
+Rust-Testadapter mit `unsafe_code = forbid`, einmaliger gebundener ID, fester Snapshotoperation,
+Ablauf-/Größenprüfung und bereinigten Antworten. Publish-Guard im bestehenden atomaren Importer:
+Abbruch/Ablauf nach SQLite-Aufbau verwerfen den unveröffentlichten Zwischenstand. Sieben neue
+Adaptertests und 13 Helfertests erfolgreich. Sieben native Importfälle plus Kopieregression im
+AppContainer ohne Capabilities bestanden; unabhängige SQLite-/Unicode-/Hash-/Bestandsprüfung und
+Bereinigung bestätigt. Gültiges ETW **desselben finalen Builds**: acht Controllerbäume, vier
+Kontrollen, Nullverluste, vollständige Prozessenden, keine Netzereignisse.
+[Protokoll](testing/native-isolated-app-import.md),
+[Forschungsvertrag v1](data-format/native-file-task-v1.schema.json). **Headless-App-Dienste, kein
+Tauri-/WebView-/GUI-Adapter integriert**; feste synthetische Fixture, keine erneute native Auswahl
+oder assistive Abnahme. Normales Tauri unverändert unisoliert. Q-01/Q-02 weiter nicht bestanden,
+#134 offen, striktes Datenschutzziel unverändert. Nächster Scope: UI-/Tauri-Testanbindung mit
+sicherem Auftragskanal, nativer Auswahl, Abbruch-/Fehleransagen und Neustart-/Crash-Reconciliation;
+danach übrige Formate, Broker-/Netz-/Packaginggrenzen. `pnpm check`, gezielter Abschlusslauf mit
+sieben Adaptertests, normaler Tauri-Debug-Build, Clippy/rustfmt und 30 Python-Diagnosetests
+erfolgreich; Fixture bytegleich reproduziert. Keine regulären App-Daten geöffnet.
+
 **KQ-069 A / gezielter Datei-/Shell-Austausch:** PR #137 nach grüner Windows-/Linux-CI und
 Dependency Review am Head `f5f1d35` zusammengeführt (`84b31f9`). Der getrennte Rust-Forschungshelfer
 überträgt jetzt synthetische Dateien aus nativer Öffnen-/Speichern-Auswahl über genau zwei explizit

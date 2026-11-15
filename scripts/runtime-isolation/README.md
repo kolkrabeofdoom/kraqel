@@ -62,6 +62,44 @@ Austauschmodus verlangt den Broker `kraqel-isolation-probe.exe` samt Worker, vol
 Lebenszeiten, vier Kontrollen und Nullverluste. COM-/Shell-Dienste außerhalb des Prozessbaums sind
 damit nicht kausal erfasst. Kein universeller Offlinebeleg.
 
+## Typisierter nativer App-Dienst-Testadapter
+
+[Vertrag und Nachweis](../../docs/testing/native-isolated-app-import.md). Der separate
+Workspace-Baustein `apps/desktop/isolation-test-adapter` verwendet normale Import-/Storage-Dienste
+mit `unsafe_code = forbid`, ohne Tauri/WebView. Die Produkt-App bindet ihn nicht ein. Keine neuen
+Registry-Abhängigkeiten im Produkt; das Tool bindet vorhandene Produktcrates/UUID ein. Gemeinsame
+Versionen aus dem Produkt-Lockfile übernommen, insbesondere `zip 9.5.1`, `rusqlite 0.39.0`,
+`image 0.25.9`. Keine Runtime-Downloads oder Git-/Provideraufrufe im Importpfad. Transitive Lizenzen
+entsprechen den vorhandenen Produktabhängigkeiten.
+
+```powershell
+python scripts/runtime-isolation/make_import_fixture.py
+cargo test -p kraqel-isolation-test-adapter
+cargo build --locked --manifest-path scripts/runtime-isolation/probe/Cargo.toml
+$importRoot = Join-Path $env:TEMP ('kraqel-isolation-appimp-' + [guid]::NewGuid().ToString('N'))
+scripts/runtime-isolation/probe/target/debug/kraqel-isolation-probe.exe app-import-fixture $importRoot valid
+```
+
+Weitere feste Fälle: `invalid`, `expired`, `cancelled`, `cancel-at-publish`, `expire-at-publish`,
+`wrong-id`. Pro Aufruf neue Wurzel. Ausschließlich eingebettete Testfixture, **keine nativen Dialoge
+oder frei wählbaren Nutzdateien**. Vor Dispatch entsteht im Container eine synthetische Testbasis.
+Erwartete Ablehnungen ergeben eine erfolgreiche Harnessprüfung (`passed: true`), aber keine
+Importkopie; den Importstatus zeigt `worker.error` beziehungsweise `worker.receipt`.
+
+Auftrags-/Antwortgrenzen: 2/4 KiB. Antwort nur neue Projekt-ID, Zähler, Größe/Hash oder stabile
+Codes. 8-MiB-Forschungsrahmen ersetzt keine Produktbudgets. Abbruch/Ablauf nach Initialisierung
+verwerfen Staging; nach Commitfreigabe ist Abbruch zu spät. Kein automatischer Retry oder dauerhafte
+Crash-/Replay-Reconciliation. `worker-lifecycle.json`, `launch.json`, eventuelle bereinigte
+`child-error.json` und Rohdiagnosen bleiben lokal. `exchange-fixture <neue Wurzel>` prüft die
+bisherige Kopie mit festem Input/Output ohne Dialog; `exchange` behält native Auswahl.
+
+`verify_app_import.py <lokales runs.json> <ETW-Wurzel>` prüft die acht dokumentierten Fälle über
+SQLite im Nur-Lese-Modus, Hashes und den ETW-Auswerter (`exchange`). Das lokale Journal ist eine
+Liste `{scenario, root, pid}` aus `Start-Process -PassThru`, kein Git-Artefakt. Nur bereinigte
+Resultate veröffentlichen. Sieben Adaptertests laufen mit `cargo test --workspace`; 13 Helfertests
+weiterhin separat in CI. Funktionstests brauchen keine Administratorrechte und ändern keine
+Firewall-/Sicherheitsregeln.
+
 ## Bauen und automatische Prüfungen
 
 ```powershell

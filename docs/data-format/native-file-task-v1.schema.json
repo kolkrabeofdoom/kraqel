@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kraqel.invalid/schemas/research/native-file-task-v1",
+  "title": "KRAQEL research-only native file task v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractVersion",
+    "taskId",
+    "operation",
+    "byteCount",
+    "issuedUnixMs",
+    "expiresUnixMs"
+  ],
+  "properties": {
+    "contractVersion": { "const": 1 },
+    "taskId": { "type": "string", "format": "uuid" },
+    "operation": { "const": "importSnapshotV3" },
+    "byteCount": { "type": "integer", "minimum": 1, "maximum": 8388608 },
+    "issuedUnixMs": { "type": "integer", "minimum": 0 },
+    "expiresUnixMs": { "type": "integer", "minimum": 1 }
+  },
+  "$comment": "Rust additionally binds taskId to the controller grant, enforces non-nil identity and lifetime <= 60000ms, checks the clock/cancellation before reads and publication, and consumes every attempted execution. This is not a product IPC or broker authorization protocol."
+}

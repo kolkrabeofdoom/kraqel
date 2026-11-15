@@ -740,6 +740,15 @@ pub fn main() {
         if args.len() == 5 && args[0] == "exchange-child" {
             return exchange::child(&args[1..]);
         }
+        if args.len() == 5 && args[0] == "import-child" {
+            return exchange::import_child(&args[1..]);
+        }
+        if args.len() == 3 && args[0] == "app-import-fixture" {
+            return exchange::launch_import(Path::new(&args[1]), &args[2].to_string_lossy());
+        }
+        if args.len() == 2 && args[0] == "exchange-fixture" {
+            return exchange::launch_fixture(Path::new(&args[1]));
+        }
         if args.len() == 2 && args[0] == "exchange" {
             return exchange::launch(Path::new(&args[1]));
         }
@@ -803,6 +812,16 @@ pub fn main() {
             }
         }
         Err(error) => {
+            if args.len() == 5
+                && args[0] == "import-child"
+                && token_facts(unsafe { GetCurrentProcess() }, None)
+                    .is_ok_and(|t| t["isAppContainer"] == true && t["capabilityCount"] == 0)
+            {
+                let _ = write_json(
+                    &Path::new(&args[1]).join("child-error.json"),
+                    &json!({"stage":error.stage,"code":error.code}),
+                );
+            }
             eprintln!(
                 "{}",
                 json!({"stage":error.stage,"code":error.code,"productionAcceptance":false})
