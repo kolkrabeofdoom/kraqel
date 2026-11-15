@@ -28,7 +28,7 @@
    - [x] Export nach Markdown, HTML, DOCX und PDF für die dokumentierte Formatierungsmenge
      - [x] Browser-E2E für Formatwahl, Dateiname und sichtbare Größenbestätigung
      - [x] Projektgebundenen Exportordner direkt und pfadsicher aus der Oberfläche öffnen
-   - [ ] Ausgewählte Szenenbilder in gewöhnlichen Manuskriptexporten ausgeben
+   - [x] Ausgewählte Szenenbilder in gewöhnlichen Manuskriptexporten ausgeben
      - [x] Medienexport-Vertragsentwurf mit ausdrücklich gewählter Platzierung am Szenenende,
            Formatmatrix, Herkunft, Grenzen und Abnahme ausarbeiten (KQ-062 / angenommene ADR 0029)
      - [x] Vertragsregeln/Parameter fachlich freigeben und Markdown-/HTML-Manifestgrammatik fixieren
@@ -37,8 +37,10 @@
      - [x] Gewöhnliches DOCX mit eingebetteten Szenenbildern und Office-Nachweis ergänzen
        - [x] Nativen Bildwriter, App-Aktion und Manifestbezug auf interne Parts ergänzen (KQ-064)
        - [x] Word-/LibreOffice-Abnahme abschließen (beide bestanden; KQ-064)
-     - [ ] PDF-Schrift-/Unicode-Voraussetzung und bebilderten PDF-Export abnehmen
-     - Vertrag: `docs/data-format/ILLUSTRATED_MANUSCRIPT.md`; PDF bleibt gesondert offen
+     - [x] PDF-Schrift-/Unicode-Voraussetzung und bebilderten PDF-Export abnehmen (KQ-065 /
+           ADR 0032)
+     - Vertrag: `docs/data-format/ILLUSTRATED_MANUSCRIPT.md`; alle vier Formate im dokumentierten
+       Teilumfang
    - [ ] Import und DOCX-Roundtrip
      - [x] Snapshot-v3-Archiv sicher als neues Projekt importieren und Beispielprojekt einbetten
      - [x] Frei wählbare Snapshotarchive über einen nativen Dialog als neue Projektkopie importieren

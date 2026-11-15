@@ -13,7 +13,9 @@ use kraqel_domain::EntityId;
 use sha2::{Digest as _, Sha256};
 
 mod export;
-pub use export::{ExportImage, prepare_export_image, read_export_original};
+pub use export::{
+    ExportImage, prepare_export_image, prepare_pdf_export_image, read_export_original,
+};
 
 pub const MAX_ASSET_BYTES: usize = 25 * 1024 * 1024;
 pub const MAX_DIMENSION: u32 = 16_384;

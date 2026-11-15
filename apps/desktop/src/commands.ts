@@ -1180,7 +1180,7 @@ export interface ImagePlacement {
 }
 export interface IllustratedResult {
   readonly packageName: string;
-  readonly format: "markdown" | "html" | "docx";
+  readonly format: ExportFormat;
   readonly fileCount: number;
   readonly byteCount: number;
   readonly imageCount: number;
@@ -1188,14 +1188,14 @@ export interface IllustratedResult {
 }
 export async function exportIllustratedManuscript(
   projectId: ProjectId,
-  format: "markdown" | "html" | "docx",
+  format: ExportFormat,
   placements: readonly ImagePlacement[],
 ): Promise<IllustratedResult> {
   return (
     await callCommand<
       {
         readonly projectId: ProjectId;
-        readonly format: "markdown" | "html" | "docx";
+        readonly format: ExportFormat;
         readonly placements: readonly ImagePlacement[];
       },
       IllustratedResult

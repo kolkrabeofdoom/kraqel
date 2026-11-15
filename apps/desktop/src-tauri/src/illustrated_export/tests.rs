@@ -72,6 +72,7 @@ fn command_publishes_independent_packages_and_sanitizes_bad_sources() {
         IllustratedFormat::Html,
         IllustratedFormat::Markdown,
         IllustratedFormat::Docx,
+        IllustratedFormat::Pdf,
     ] {
         request.format = format;
         let result = export(&state, id, &request).unwrap();

@@ -94,7 +94,7 @@ export function IllustratedExport({
     setSelection(next);
     setResult(null);
   };
-  const run = async (format: "markdown" | "html" | "docx") => {
+  const run = async (format: "markdown" | "html" | "docx" | "pdf") => {
     setBusy(true);
     setError(null);
     setResult(null);
@@ -128,8 +128,13 @@ export function IllustratedExport({
       </p>
       <p className="muted">
         Markdown und HTML als vollständiger Ordner mit Bildern und Herkunftsnachweis. Höchstens 50
-        Originale, 200 Bildvorkommen und 128 MiB je Paket. DOCX bettet Bilder ein; PDF folgt
-        separat. Frühere Pakete bleiben erhalten.
+        Originale, 200 Bildvorkommen und 128 MiB je Paket. DOCX und PDF betten Bilder ein. Frühere
+        Pakete bleiben erhalten.
+      </p>
+      <p className="muted">
+        PDF verwendet eingebettete Schriften für Lateinisch, Griechisch und Kyrillisch. Nicht
+        unterstützte Zeichen oder zu große Bildabschnitte führen zum Fehler. Bildbeschreibungen
+        erscheinen sichtbar im PDF.
       </p>
       <button type="button" disabled={busy || disabled} onClick={() => void load()}>
         {candidates ? "Bildauswahl neu laden" : "Bildauswahl laden"}
@@ -226,7 +231,7 @@ export function IllustratedExport({
           })
         : null}
       <div className="illustrated-actions">
-        {(["markdown", "html", "docx"] as const).map((format) => (
+        {(["markdown", "html", "docx", "pdf"] as const).map((format) => (
           <button
             key={format}
             type="button"
@@ -237,7 +242,9 @@ export function IllustratedExport({
               ? "HTML mit Bildern erzeugen"
               : format === "docx"
                 ? "DOCX mit Bildern erzeugen"
-                : "Markdown mit Bildern erzeugen"}
+                : format === "pdf"
+                  ? "PDF mit Bildern erzeugen"
+                  : "Markdown mit Bildern erzeugen"}
           </button>
         ))}
       </div>

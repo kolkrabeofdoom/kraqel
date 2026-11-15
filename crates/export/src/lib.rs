@@ -3,6 +3,7 @@
 mod docx_scene;
 pub mod illustrated;
 mod manuscript;
+mod pdf;
 mod render;
 mod roundtrip;
 

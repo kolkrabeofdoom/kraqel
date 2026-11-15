@@ -54,7 +54,7 @@ beforeEach(() => {
 });
 
 describe("typed Tauri commands", () => {
-  it.each(["markdown", "html", "docx"] as const)(
+  it.each(["markdown", "html", "docx", "pdf"] as const)(
     "exports explicit %s image selection without paths or file bytes",
     async (format) => {
       mockedInvoke.mockResolvedValue({

@@ -4,9 +4,9 @@ Status: vollständig fachlich freigegeben am 14. November 2026; KQ-062 / Issue #
 grüner Windows-/Linux-CI und Dependency Review zusammengeführt. Bilder erscheinen am Szenenende.
 KQ-063 implementiert Rust-Kern und Markdown/HTML nach diesem Vertrag; der verbindliche Teilvertrag
 steht unter [`ILLUSTRATED_MANUSCRIPT.md`](../data-format/ILLUSTRATED_MANUSCRIPT.md). KQ-064 ergänzt
-den gewöhnlichen DOCX-Bildwriter; die Office-Abnahme wird getrennt dokumentiert. PDF bleibt eine
-eigene Stufe. Der DOCX-Text-Roundtrip bleibt unverändert. Der historische Dateiname bleibt zur
-Referenzierung erhalten.
+den gewöhnlichen DOCX-Bildwriter; die Office-Abnahme wird getrennt dokumentiert. KQ-065 ergänzt PDF
+mit Schrift-/Unicode-Abnahme. Der DOCX-Text-Roundtrip bleibt unverändert. Der historische Dateiname
+bleibt zur Referenzierung erhalten.
 
 ## Anforderungen und belegter Ausgangsstand
 
@@ -94,12 +94,12 @@ Hochskalierung gesetzt, keine schwebenden Objekte. Für PDF wird ebenfalls nie v
 beschnitten. Die erste Bildhöhe ist auf eine vollständig verfügbare Inhaltsseite begrenzt;
 Bildbeschreibung und Beschriftung dürfen weder abgeschnitten noch überlagert werden.
 
-**PDF-Voraussetzung:** Der bisherige Renderer verwendet eingebaute Helvetica-Schriften und hat eine
-offene Unicode-Grenze. Die bebilderte PDF-Stufe benötigt vor Freigabe eine überprüfte freie
-einbettbare Schrift, dokumentierte Lizenz und nachgewiesene Glyphenabdeckung für den gesamten
-Auftrag einschließlich Bildtexte. Nicht abbildbare Zeichen führen zum Fehler. PDF/UA-Konformität
-wird mit sichtbarer Bildbeschreibung allein ausdrücklich nicht behauptet. Eine passende Schrift und
-die erforderlichen Renderer-Erweiterungen sind noch nicht ausgewählt oder implementiert.
+**PDF-Voraussetzung mit KQ-065 erfüllt:** Vier festgeschriebene Noto-Sans-Schnitte mit
+SIL-OFL-1.1-Lizenz werden vollständig eingebettet. Glyphenprüfung und NFC, metrischer Umbruch, weiße
+PNG-Nachweise und native Pixelprüfung sind implementiert und separat abgenommen. Der
+[Formatvertrag](../data-format/ILLUSTRATED_MANUSCRIPT.md) definiert den begrenzten
+Unicode-/Shaping-Umfang und zusätzliche PDF-Budgets. Nicht darstellbare Zeichen führen zum Fehler;
+keine PDF/UA-, PDF/A- oder PDF/X-Zusage.
 
 ## Bildableitungen und Metadaten
 

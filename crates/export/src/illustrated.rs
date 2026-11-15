@@ -40,6 +40,7 @@ pub enum IllustratedFormat {
     Markdown,
     Html,
     Docx,
+    Pdf,
 }
 impl IllustratedFormat {
     #[must_use]
@@ -48,6 +49,7 @@ impl IllustratedFormat {
             Self::Markdown => "markdown",
             Self::Html => "html",
             Self::Docx => "docx",
+            Self::Pdf => "pdf",
         }
     }
     const fn file(self) -> &'static str {
@@ -55,6 +57,7 @@ impl IllustratedFormat {
             Self::Markdown => "manuskript.md",
             Self::Html => "manuskript.html",
             Self::Docx => "manuskript.docx",
+            Self::Pdf => "manuskript.pdf",
         }
     }
 }
@@ -97,42 +100,44 @@ fn text_valid(value: &str, max: usize, multiline: bool) -> bool {
 }
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct AssetRecord {
-    id: String,
-    source_sha256: String,
-    source_mime_type: String,
-    source_byte_count: u64,
-    source_width: u32,
-    source_height: u32,
-    provenance: &'static str,
-    export_sha256: String,
-    export_mime_type: &'static str,
-    export_byte_count: usize,
-    export_width: u32,
-    export_height: u32,
-    location: String,
-}
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct PlacementRecord {
-    chapter_position: usize,
-    scene_position: usize,
-    position: usize,
-    asset_id: String,
-    title: String,
-    alt_text: String,
+pub(crate) struct AssetRecord {
+    pub(crate) id: String,
+    pub(crate) source_sha256: String,
+    pub(crate) source_mime_type: String,
+    pub(crate) source_byte_count: u64,
+    pub(crate) source_width: u32,
+    pub(crate) source_height: u32,
+    pub(crate) provenance: &'static str,
+    pub(crate) export_sha256: String,
+    pub(crate) export_mime_type: &'static str,
+    pub(crate) export_byte_count: usize,
+    pub(crate) export_width: u32,
+    pub(crate) export_height: u32,
+    pub(crate) location: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    caption: Option<String>,
+    pub(crate) pdf_image_id: Option<String>,
 }
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct Manifest {
-    format: &'static str,
-    version: u8,
-    manuscript_format: IllustratedFormat,
-    manuscript_file: &'static str,
-    assets: Vec<AssetRecord>,
-    placements: Vec<PlacementRecord>,
+pub(crate) struct PlacementRecord {
+    pub(crate) chapter_position: usize,
+    pub(crate) scene_position: usize,
+    pub(crate) position: usize,
+    pub(crate) asset_id: String,
+    pub(crate) title: String,
+    pub(crate) alt_text: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) caption: Option<String>,
+}
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct Manifest {
+    pub(crate) format: &'static str,
+    pub(crate) version: u8,
+    pub(crate) manuscript_format: IllustratedFormat,
+    pub(crate) manuscript_file: &'static str,
+    pub(crate) assets: Vec<AssetRecord>,
+    pub(crate) placements: Vec<PlacementRecord>,
 }
 
 pub struct PreparedPackage {
@@ -212,7 +217,7 @@ pub fn prepare(
         files,
         mut records,
         ids,
-    } = prepare_assets(root, &sources)?;
+    } = prepare_assets(root, &sources, format)?;
     let mut placements = Vec::new();
     let mut positions = BTreeMap::new();
     for item in selection {
@@ -261,6 +266,8 @@ fn finish(
         let bytes = docx::write(manuscript, manifest, &files)?;
         files.clear();
         bytes
+    } else if format == IllustratedFormat::Pdf {
+        crate::pdf::illustrated(manuscript, manifest, &files)?
     } else {
         render_document(manuscript, manifest)?.into_bytes()
     };
@@ -332,6 +339,7 @@ struct PreparedAssets {
 fn prepare_assets(
     root: &Path,
     sources: &BTreeMap<String, &MediaAsset>,
+    format: IllustratedFormat,
 ) -> Result<PreparedAssets, IllustratedError> {
     let invalid = || IllustratedError::Invalid;
     let mut files = BTreeMap::new();
@@ -354,8 +362,12 @@ fn prepare_assets(
         if bytes.len() as u64 != asset.byte_count || hash(&bytes) != **checksum {
             return Err(invalid());
         }
-        let image = kraqel_asset_service::prepare_export_image(&bytes, &asset.mime_type)
-            .map_err(|_| invalid())?;
+        let image = if format == IllustratedFormat::Pdf {
+            kraqel_asset_service::prepare_pdf_export_image(&bytes, &asset.mime_type)
+        } else {
+            kraqel_asset_service::prepare_export_image(&bytes, &asset.mime_type)
+        }
+        .map_err(|_| invalid())?;
         if image.source_width != asset.width || image.source_height != asset.height {
             return Err(invalid());
         }
@@ -370,12 +382,13 @@ fn prepare_assets(
             source_width: asset.width,
             source_height: asset.height,
             provenance: "imported",
-            export_sha256,
+            export_sha256: export_sha256.clone(),
             export_mime_type: "image/png",
             export_byte_count: image.png.len(),
             export_width: image.width,
             export_height: image.height,
             location: location.clone(),
+            pdf_image_id: (format == IllustratedFormat::Pdf).then(|| format!("i{export_sha256}")),
         };
         files.insert(location, image.png);
         ids.insert((*checksum).clone(), id);

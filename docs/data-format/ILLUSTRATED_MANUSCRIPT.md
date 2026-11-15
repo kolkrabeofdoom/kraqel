@@ -1,11 +1,10 @@
 # Bebildertes Manuskript v1
 
 KQ-063 / Issue #123 implementiert den vollständig freigegebenen Medienexport-Vertrag aus KQ-062 für
-**Markdown und HTML**; KQ-064 / Issue #125 ergänzt **gewöhnliches DOCX**. Der Modus „Mit
-Szenenbildern“ gibt ausdrücklich ausgewählte, direkt verknüpfte Bilder am Szenenende aus. Andere
-Projektdaten und ungewählte Bilder werden nicht eingesammelt. PDF mit Bildern bleibt eine eigene
-Folgestufe; der DOCX-Text-Roundtrip, Editor-Dokument v1 und Snapshot v3 ändern ihre Version oder
-Grammatik nicht.
+**Markdown und HTML**; KQ-064 / Issue #125 ergänzt **gewöhnliches DOCX**, KQ-065 / Issue #127
+**PDF**. Der Modus „Mit Szenenbildern“ gibt ausdrücklich ausgewählte, direkt verknüpfte Bilder am
+Szenenende aus. Andere Projektdaten und ungewählte Bilder werden nicht eingesammelt. Der
+DOCX-Text-Roundtrip, Editor-Dokument v1 und Snapshot v3 ändern ihre Version oder Grammatik nicht.
 
 ## Auftragsvertrag
 
@@ -29,11 +28,11 @@ Grammatik nicht.
 ```
 
 Das Beispiel ist schematisch, seine Kennungen/Hashes sind keine Testdateireferenzen. `format` ist
-genau `markdown`, `html` oder `docx`. `caption` ist eine Zeichenkette oder `null`; Alternativtext
-ist nichtleer und wird außen getrimmt. Unbekannte Felder werden abgewiesen. Keine Pfade oder Bytes
-in der Anfrage. Der ursprüngliche Bildtitel wird aus SQLite gelesen, nicht vom Browser geliefert.
-Ein Asset-/Szenenpaar darf nur einmal vorkommen. Die Arrayreihenfolge bestimmt die Bildreihenfolge
-innerhalb jeder Szene; Rust ordnet Szenen nach dem kanonischen Manuskriptbaum.
+genau `markdown`, `html`, `docx` oder `pdf`. `caption` ist eine Zeichenkette oder `null`;
+Alternativtext ist nichtleer und wird außen getrimmt. Unbekannte Felder werden abgewiesen. Keine
+Pfade oder Bytes in der Anfrage. Der ursprüngliche Bildtitel wird aus SQLite gelesen, nicht vom
+Browser geliefert. Ein Asset-/Szenenpaar darf nur einmal vorkommen. Die Arrayreihenfolge bestimmt
+die Bildreihenfolge innerhalb jeder Szene; Rust ordnet Szenen nach dem kanonischen Manuskriptbaum.
 
 Die Antwort enthält ausschließlich `packageName`, `format`, `fileCount`, `byteCount`, `imageCount`
 und `placementCount`. `packageName` ist ein relativer Name unter dem projektgebundenen Exportordner.
@@ -44,9 +43,9 @@ ausgewählte unterschiedliche Quellen; identische PNG-Ableitungen werden als Dat
 
 Ein neues Paket liegt unter `exports/mit-bildern/<format>-<uuid>/` und enthält genau:
 
-- `manuskript.md`, `manuskript.html` oder `manuskript.docx`;
+- `manuskript.md`, `manuskript.html`, `manuskript.docx` oder `manuskript.pdf`;
 - `medien.json` in UTF-8, LF, eingerückt, sortierte Objektschlüssel, abschließender Zeilenumbruch;
-- bei Markdown/HTML `assets/<exportSha256>.png` für jede unterschiedliche Ableitung;
+- bei Markdown/HTML/PDF `assets/<exportSha256>.png` für jede unterschiedliche Ableitung;
 - bei DOCX werden diese PNGs ausschließlich intern unter `word/media/<exportSha256>.png`
   eingebettet.
 
@@ -61,19 +60,20 @@ nicht zu v1.
 `medien.json` besitzt exakt die Wurzelfelder `format`, `version`, `manuscriptFormat`,
 `manuscriptFile`, `assets`, `placements`:
 
-| Feld                                 | Bedeutung                                                                                |
-| ------------------------------------ | ---------------------------------------------------------------------------------------- |
-| `format`, `version`                  | `kraqel-illustrated-manuscript`, Zahl `1`                                                |
-| `manuscriptFormat`, `manuscriptFile` | `markdown` / `manuskript.md`, `html` / `manuskript.html` oder `docx` / `manuskript.docx` |
-| `assets`                             | Nach `sourceSha256` sortierte Einträge mit lokalen Kennungen `m0001` usw.                |
-| `placements`                         | Nach Kapitel-/Szenen-/Bildposition sortierte Vorkommen                                   |
+| Feld                                 | Bedeutung                                                                                                          |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `format`, `version`                  | `kraqel-illustrated-manuscript`, Zahl `1`                                                                          |
+| `manuscriptFormat`, `manuscriptFile` | `markdown` / `manuskript.md`, `html` / `manuskript.html`, `docx` / `manuskript.docx` oder `pdf` / `manuskript.pdf` |
+| `assets`                             | Nach `sourceSha256` sortierte Einträge mit lokalen Kennungen `m0001` usw.                                          |
+| `placements`                         | Nach Kapitel-/Szenen-/Bildposition sortierte Vorkommen                                                             |
 
 Ein Asset hat exakt `id`, `sourceSha256`, `sourceMimeType`, `sourceByteCount`, `sourceWidth`,
 `sourceHeight`, `provenance`, `exportSha256`, `exportMimeType`, `exportByteCount`, `exportWidth`,
-`exportHeight`, `location`. Herkunft ist `imported`, Export-MIME `image/png`, Hashes sind 64 kleine
-Hexzeichen. `location` entspricht bei Markdown/HTML exakt `assets/<exportSha256>.png`, bei DOCX
-exakt `word/media/<exportSha256>.png`. Originalmaße gelten vor der Orientierung, Exportmaße danach.
-Der Quellhash bindet die Originalbytes, der Exporthash die PNG-Bytes.
+`exportHeight`, `location`; nur bei PDF zusätzlich `pdfImageId`. Herkunft ist `imported`,
+Export-MIME `image/png`, Hashes sind 64 kleine Hexzeichen. `location` entspricht bei
+Markdown/HTML/PDF exakt `assets/<exportSha256>.png`, bei DOCX exakt `word/media/<exportSha256>.png`.
+Originalmaße gelten vor der Orientierung, Exportmaße danach. Der Quellhash bindet die Originalbytes,
+der Exporthash die PNG-Bytes.
 
 Ein Vorkommen hat exakt `chapterPosition`, `scenePosition`, `position`, `assetId`, `title`,
 `altText` und optional `caption`. Positionen sind nullbasiert, `assetId` referenziert eine lokale
@@ -139,9 +139,9 @@ Animationsfixtures. Konflikt- und Fehlertests prüfen die Veröffentlichung ohne
 Browser-E2E prüft Auswahl, Bildtexte, beide Ausgaben, erneutes Laden, Fehler und Axe. Native und
 visuelle Ausgabeprüfung wird im separaten Abnahmeprotokoll dokumentiert.
 
-Der DOCX-Bildwriter ist mit KQ-064 ergänzt; die Office-Abnahme wird getrennt dokumentiert. Als
-Nächstes folgt die PDF-Stufe mit vorheriger Schrift-/Unicode-Abnahme. Dies erweitert keinen
-DOCX-Wiederimport und erfüllt F08/M3 weiterhin nur im dokumentierten Teilumfang.
+Der DOCX-Bildwriter ist mit KQ-064 und Office-Abnahme ergänzt, PDF mit KQ-065 und separater
+Schrift-/Unicode- sowie nativer/visueller Abnahme. Dies erweitert keinen DOCX-Wiederimport und
+belegt F08/M3 weiterhin nur im dokumentierten Teilumfang.
 
 ## Gewöhnliches DOCX mit Bildern
 
@@ -171,3 +171,51 @@ Wiederholbarkeit wird mit der gelockten Toolchain getestet, nicht als allgemeine
 Office-Speicherbytegleichheit versprochen. Word/LibreOffice dürfen bei erneutem Speichern Metadaten,
 Layoutdetails und interne Dateinamen ändern. Der Herkunftsnachweis bezieht sich auf die
 ursprüngliche KRAQEL-Ausgabe. Der Roundtrip-v1-Reader weist dieses gewöhnliche DOCX ausdrücklich ab.
+
+## PDF Schrift Unicode und Bildnachweis
+
+KQ-065 / ADR 0032 gilt für bebildertes **und reines Text-PDF**. Noto Sans 2.008 wird in Regular,
+Bold, Italic und BoldItalic vollständig eingebettet; Originaldateien, Lizenz, Copyright und Hashes
+liegen unter `crates/export/fonts/`. Keine Systemfont- oder Netzwerkabhängigkeit. Glyphenprüfung und
+Abmessungen stammen aus genau diesen vier Dateien. Die Zusatzabhängigkeit `unicode-normalization`
+0.1.25 ist MIT/Apache-2.0-lizenziert; MIT-Text unter `docs/licenses/`.
+
+Jeder Text wird zur Ausgabe nach NFC normalisiert. CRLF/CR werden zu LF, Tabs zu vier Leerzeichen.
+Geprüft werden Manuskript, Überschriften, generierte Listenzeichen sowie gewählte Bildtitel,
+Alttexte und Beschriftungen. Die Zeichengruppen sind U+0020–02FF, U+0370–052F, U+1E00–1FFF,
+U+2000–206F, U+20A0–20CF, U+2100–214F, U+2190–21FF, U+2200–22FF und U+25A0–25FF; **zusätzlich muss
+jeder konkrete Glyph im verwendeten Schnitt existieren**. LF wird als Zeilenumbruch geplant. U+00AD,
+U+200B–200F, U+2028–202E und U+2060–206F sind ausgeschlossen. Nach NFC verbleibende kombinierende
+Zeichen, Emoji, CJK und komplexe Schriften oder Schriften mit Schreibrichtung von rechts nach links
+werden abgewiesen. Die Bereiche behaupten keine vollständige Abdeckung. Beispielsweise wird der in
+diesen Dateien fehlende Pfeil U+2192 abgewiesen. Kein stilles Ersetzen oder Weglassen; SQLite bleibt
+unverändert.
+
+A4 beträgt 210×297 mm. Der Inhaltsbereich verwendet linke/bottom Grenze 56,7 pt, obere Grenze 785 pt
+und 481,8 pt Breite. Textbaselines werden mit der tatsächlichen maximalen Font-Oberlänge berechnet;
+Vorschübe bestimmen Umbruch und gemischte Schriftläufe. Harte Umbrüche, Leerzeichen, Fett/Kursiv,
+Listen und Zitate bleiben sichtbar. Überlange Einzelwörter dürfen zeichenweise umbrechen.
+Proportionale intrinsische Bildgröße bei 96 dpi, höchstens Satzbreite und 540 pt Höhe, mit weiterer
+proportionaler Layoutbegrenzung, damit Bildbeschreibung und Beschriftung vollständig auf dieselbe
+Seite passen. Lange Ableitungen werden dabei nicht neu gerastert. Ein Abschnitt, dessen Texte allein
+eine Inhaltsseite überschreiten, ist ungültig; kein abgeschnittener Teilexport.
+
+Die PNG-Ableitung verwendet weiterhin RGBA8 und dieselben Filter-/Encoderparameter, aber vollständig
+opaken weißen Hintergrund. Pro Kanal: `(Farbe * Alpha + 255 * (255 - Alpha) + 127) / 255` mit
+Ganzzahldivision. `assets/<exportSha256>.png` enthält exakt diese Bytes. Die PDF bettet dieselben
+RGB-Pixel mit 8 Bit je Kanal und ohne Softmask verlustfrei ein. Zum Anzeigen reicht allein die PDF;
+für den vollständigen Herkunftsnachweis müssen Manifest und PNGs mitgegeben werden.
+
+`pdfImageId` ist `i<exportSha256>` und steht als Name `/KRAQELImageId` am tatsächlichen
+PDF-Bild-XObject. Der native Rückleser vergleicht für jedes Bild RGB-Hash, Breite, Höhe und Profil
+mit den Nachweis-PNGs, bevor veröffentlicht wird. Wiederverwendung darf mehrere gleich zugeordnete
+Bildobjekte erzeugen. Bei anderen Formaten fehlt dieses additive Feld. Der Alternativtext erscheint
+zusätzlich sichtbar als `Bildbeschreibung: …`; die optionale Beschriftung folgt als eigener Text.
+Dies ist keine Zusage eines getaggten PDF oder von PDF/UA.
+
+Zusätzlich zu sämtlichen bisherigen Grenzen gelten gleichzeitig: 8 MiB Textbytes vor Normalisierung,
+100000 geplante Zeilen, 2048 Seiten und 128 MiB unkomprimierte RGB-Pixelbytes über **alle**
+Bildvorkommen. Ein häufig verwendetes großes Bild kann diese letzte Grenze verletzen, obwohl es nur
+einmal als Original/Nachweisdatei gespeichert wird. Fehler veröffentlichen keine neue Generation.
+PDF-Containerbytes sind wegen interner IDs/Metadaten nicht reproduzierbar zugesagt; Manifest und
+Ableitungen bleiben bytegleich. Keine Änderung am DOCX-Text-Roundtrip oder Snapshot v3.
