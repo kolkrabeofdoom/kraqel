@@ -97,13 +97,14 @@ Der Writer liest seine Ausgabe vor Veröffentlichung semantisch zurück. KQ-061 
 Exportaktion und den Startseitenimport als atomare neue Projektkopie. Dieser Manuskriptaustausch
 ersetzt keine vollständige Snapshot-v3-Projektkopie.
 
-## Medienexport für Markdown HTML und DOCX
+## Medienexport für Markdown HTML DOCX und PDF
 
 KQ-062 ist vollständig fachlich freigegeben, KQ-063 implementiert den
 [bebilderten Manuskriptvertrag v1](ILLUSTRATED_MANUSCRIPT.md). Die eigene Auswahl am Szenenende
 liefert neue vollständige Ordnerpakete mit relativen PNGs und Herkunftsmanifest. KQ-064 ergänzt
-gewöhnliches DOCX mit internen PNG-Parts und bestandener Word-/LibreOffice-Abnahme. PDF bleibt eine
-Folgestufe; Snapshot v3, Editor-Dokument v1 und DOCX-Text-Roundtrip v1 bleiben unverändert.
+gewöhnliches DOCX mit internen PNG-Parts und bestandener Word-/LibreOffice-Abnahme. KQ-065 ergänzt
+PDF mit eingebetteten Schriften und weißen PNG-Nachweisen; Snapshot v3, Editor-Dokument v1 und
+DOCX-Text-Roundtrip v1 bleiben unverändert.
 
 ## Lokales SQLite-Schema und Migrationsstand
 

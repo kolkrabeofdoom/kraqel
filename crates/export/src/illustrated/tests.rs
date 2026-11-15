@@ -345,6 +345,125 @@ fn docx_embeds_fifty_verified_pngs_and_is_not_a_text_roundtrip() {
 }
 
 #[test]
+fn pdf_has_fifty_white_proof_pngs_matching_embedded_rgb_and_atomic_failure() {
+    let root = tempfile::tempdir().unwrap();
+    let (project, docs, assets, selection) = fixture(root.path(), 50);
+    let first = prepare(
+        root.path(),
+        &project,
+        &docs,
+        &assets,
+        IllustratedFormat::Pdf,
+        &selection,
+    )
+    .unwrap();
+    let second = prepare(
+        root.path(),
+        &project,
+        &docs,
+        &assets,
+        IllustratedFormat::Pdf,
+        &selection,
+    )
+    .unwrap();
+    assert_eq!(first.files.len(), 52);
+    assert_eq!(first.files["medien.json"], second.files["medien.json"]);
+    let manifest: serde_json::Value = serde_json::from_slice(&first.files["medien.json"]).unwrap();
+    let document = printpdf::lopdf::Document::load_mem(&first.files["manuskript.pdf"]).unwrap();
+    let embedded: Vec<_> = document
+        .objects
+        .values()
+        .filter_map(|o| o.as_stream().ok())
+        .filter(|s| s.dict.has(b"KRAQELImageId"))
+        .collect();
+    assert_eq!(embedded.len(), 50);
+    for asset in manifest["assets"].as_array().unwrap() {
+        let location = asset["location"].as_str().unwrap();
+        let png = &first.files[location];
+        assert_eq!(hash(png), asset["exportSha256"]);
+        assert_eq!(*png, second.files[location]);
+        let pixels = image::load_from_memory(png).unwrap().to_rgba8();
+        assert!(pixels.pixels().all(|p| p[3] == 255));
+        let rgb = image::load_from_memory(png).unwrap().to_rgb8();
+        let id = asset["pdfImageId"].as_str().unwrap().as_bytes();
+        let found = embedded
+            .iter()
+            .find(|s| s.dict.get(b"KRAQELImageId").unwrap().as_name().unwrap() == id)
+            .unwrap();
+        assert_eq!(
+            found
+                .decompressed_content()
+                .unwrap_or_else(|_| found.content.clone()),
+            rgb.into_raw()
+        );
+    }
+    let result = publish(root.path(), &first, || Ok(())).unwrap();
+    let old = root.path().join("exports").join(result.package_name);
+    let mut invalid = selection.clone();
+    invalid[0].alt_text = "Nicht unterstützt 🙂".to_owned();
+    assert!(
+        prepare(
+            root.path(),
+            &project,
+            &docs,
+            &assets,
+            IllustratedFormat::Pdf,
+            &invalid
+        )
+        .is_err()
+    );
+    assert!(publish(root.path(), &first, || Err(IllustratedError::Conflict)).is_err());
+    assert!(old.join("manuskript.pdf").exists());
+    assert_eq!(
+        fs::read_dir(root.path().join("exports/mit-bildern"))
+            .unwrap()
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn pdf_distinguishes_equal_rgb_bytes_with_different_image_dimensions() {
+    let root = tempfile::tempdir().unwrap();
+    let (project, docs, mut assets, mut selection) = fixture(root.path(), 2);
+    let pixels = image::RgbaImage::from_pixel(2, 3, image::Rgba([0, 30, 100, 128]));
+    let mut bytes = Cursor::new(Vec::new());
+    image::DynamicImage::ImageRgba8(pixels)
+        .write_to(&mut bytes, image::ImageFormat::Png)
+        .unwrap();
+    let prepared =
+        kraqel_asset_service::prepare_image("synthetic.png", &bytes.into_inner()).unwrap();
+    let stored =
+        kraqel_asset_service::store_image(root.path(), EntityId::new(), &prepared).unwrap();
+    assets[1].relative_path = stored.relative_path;
+    assets[1].checksum = prepared.checksum;
+    assets[1].byte_count = prepared.original_bytes.len() as u64;
+    assets[1].width = 2;
+    assets[1].height = 3;
+    selection[1].expected_checksum = assets[1].checksum.clone();
+    let package = prepare(
+        root.path(),
+        &project,
+        &docs,
+        &assets,
+        IllustratedFormat::Pdf,
+        &selection,
+    )
+    .unwrap();
+    assert_eq!(package.image_count, 2);
+    let document = printpdf::lopdf::Document::load_mem(&package.files["manuskript.pdf"]).unwrap();
+    assert_eq!(
+        document
+            .objects
+            .values()
+            .filter_map(|o| o.as_stream().ok())
+            .filter(|s| s.dict.has(b"KRAQELImageId"))
+            .count(),
+        2
+    );
+}
+
+#[test]
 #[ignore = "writes synthetic illustrated DOCX only to an explicitly selected QA folder"]
 fn generate_illustrated_docx_qa() {
     let output = std::env::var_os("KRAQEL_DOCX_MEDIA_QA_ROOT").expect("explicit QA folder");
@@ -421,6 +540,94 @@ fn generate_illustrated_docx_qa() {
         &selection,
     )
     .unwrap();
+    for (name, bytes) in package.files {
+        fs::write(output.join(name), bytes).unwrap();
+    }
+}
+
+#[test]
+#[ignore = "writes synthetic illustrated PDF only to an explicitly selected QA folder"]
+fn generate_illustrated_pdf_qa() {
+    let output = std::env::var_os("KRAQEL_PDF_MEDIA_QA_ROOT").expect("explicit QA folder");
+    let output = Path::new(&output);
+    fs::create_dir_all(output).unwrap();
+    let root = tempfile::tempdir().unwrap();
+    let (mut project, mut docs, mut assets, mut selection) = fixture(root.path(), 2);
+    project.name = "PDF Schrift und Szenenbilder ÄÖÜ".to_owned();
+    docs[1].content.document = json!({"type":"doc","content":[
+        {"type":"paragraph","content":[{"type":"text","text":"Unicode: A\u{308}ÖÜ ß é Ελληνικά Кириллица € ","marks":[{"type":"bold"}]},{"type":"text","text":"kursiv und fett kursiv", "marks":[{"type":"italic"},{"type":"bold"}]}]},
+        {"type":"blockquote","content":[{"type":"paragraph","content":[{"type":"text","text":"Zitat mit sichtbaren Leerzeichen und Umlauten."}]}]},
+        {"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Ein Listeneintrag mit Überlänge: ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"}]}]}]}
+    ]});
+    docs[0].node.title = "Kapitel mit Illustrationen".to_owned();
+    for (index, asset) in assets.iter_mut().enumerate() {
+        let (width, height) = if index == 0 { (640, 320) } else { (600, 1000) };
+        let pixels = image::RgbaImage::from_fn(width, height, |x, y| {
+            if x < width / 2 && y < height / 2 {
+                image::Rgba([190, 50, 45, 255])
+            } else if x >= width / 2 && y < height / 2 {
+                image::Rgba([40, 130, 80, 170])
+            } else if x < width / 2 {
+                image::Rgba([40, 80, 170, 255])
+            } else {
+                image::Rgba([230, 180, 60, 100])
+            }
+        });
+        let mut source = Cursor::new(Vec::new());
+        image::DynamicImage::ImageRgba8(pixels)
+            .write_to(&mut source, image::ImageFormat::Png)
+            .unwrap();
+        let prepared =
+            kraqel_asset_service::prepare_image("PRIVATE-fixture.png", &source.into_inner())
+                .unwrap();
+        let stored =
+            kraqel_asset_service::store_image(root.path(), EntityId::new(), &prepared).unwrap();
+        asset.relative_path = stored.relative_path;
+        asset.checksum = prepared.checksum;
+        asset.width = width;
+        asset.height = height;
+        asset.byte_count = prepared.original_bytes.len() as u64;
+        asset.title = if index == 0 {
+            "Querformat mit Transparenz"
+        } else {
+            "Hochformat"
+        }
+        .to_owned();
+        selection[index].expected_checksum = asset.checksum.clone();
+        selection[index].alt_text = format!(
+            "{}: Rot links oben, Grün rechts oben, Blau links unten, Gold rechts unten.",
+            asset.title
+        );
+        selection[index].caption = Some(format!(
+            "Abbildung {}: ÄÖÜ, ß, & und <Klartext>.\nZweite Zeile bleibt sichtbar.",
+            index + 1
+        ));
+    }
+    let mut repeated = selection[0].clone();
+    repeated.scene_id = docs[4].node.id;
+    repeated.caption = Some(
+        "Lange Beschriftung mit Umlauten ÄÖÜ und Satzzeichen & <Text>. "
+            .repeat(20)
+            .chars()
+            .take(1200)
+            .collect(),
+    );
+    assets[0].links.push(AssetLink {
+        target_kind: AssetTargetKind::Document,
+        target_id: repeated.scene_id,
+        role: "reference".to_owned(),
+    });
+    selection.push(repeated);
+    let package = prepare(
+        root.path(),
+        &project,
+        &docs,
+        &assets,
+        IllustratedFormat::Pdf,
+        &selection,
+    )
+    .unwrap();
+    fs::create_dir_all(output.join("assets")).unwrap();
     for (name, bytes) in package.files {
         fs::write(output.join(name), bytes).unwrap();
     }

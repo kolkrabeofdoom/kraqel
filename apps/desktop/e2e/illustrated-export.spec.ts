@@ -46,6 +46,8 @@ test("explizite Szenenbilder ergeben getrennte Pakete mit Alttext und neutralem 
   await expect(page.getByRole("status")).toContainText("markdown-test-2");
   await page.getByRole("button", { name: "DOCX mit Bildern erzeugen" }).click();
   await expect(page.getByRole("status")).toContainText("docx-test-3");
+  await page.getByRole("button", { name: "PDF mit Bildern erzeugen" }).click();
+  await expect(page.getByRole("status")).toContainText("pdf-test-4");
   await page.evaluate(() => localStorage.setItem("kraqel-e2e-illustrated-failure", "1"));
   await action.click();
   await expect(page.getByRole("alert")).toContainText("nicht erzeugt");

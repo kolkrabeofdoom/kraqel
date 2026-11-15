@@ -228,3 +228,13 @@ Alttext werden als XML-Attribute maskiert. Der native ZIP-Selbstvergleich prüft
 erzeugte Part-Allowlist und sämtliche Bytes vor Veröffentlichung. Es gibt keine externen Bilder,
 Makros, OLE-Objekte, Felder oder Erweiterung des Text-Roundtrip-Readers. Office-Metadaten aus
 erneuten Speichervorgängen gehören nicht zum App-Datenmodell oder zum ursprünglichen Manifest.
+
+KQ-065 / ADR 0032 verwendet ausschließlich vier festgeschriebene, mitgelieferte TTFs statt
+Systemschriften oder heruntergeladener Fonts. NFC und vollständige Glyphenprüfung gehen der
+PDF-Erzeugung voraus; nicht unterstützte Zeichen werden nicht still ersetzt. Der eigene PDF-Writer
+bettet nur geprüfte RGB-Pixel ein. Ein natives Rücklesen vergleicht vor Veröffentlichung Bildhash,
+Abmessungen, Farbprofil und Manifestkennung; PNG-Nachweise enthalten dieselben Pixel auf Weiß.
+Text-, Zeilen-, Seiten- und RGB-Budgets begrenzen zusätzlich den Auftrag. Der Rückleser verarbeitet
+hier ausschließlich die eigene Ausgabe, keine fremden PDFs. Schriftdateien und neue Bibliotheken
+bringen weiterhin Parser-/Lieferkettenrisiken mit; Herkunft, Versionen und Lizenzen sind
+dokumentiert. Es gibt keine PDF-Import-, aktive Inhalts- oder universelle Shaping-Funktion.

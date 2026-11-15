@@ -34,7 +34,7 @@ export function Exports({ projectId }: { readonly projectId: ProjectId }) {
       );
     } catch {
       setError(
-        "Der Export ist gescheitert. Prüfe, ob das Manuskript nur unterstützte Formatierungen enthält.",
+        "Der Export ist gescheitert. Prüfe Formatierungen und bei PDF auch den unterstützten Zeichenumfang und die Layoutgrenzen.",
       );
     } finally {
       setBusy(null);

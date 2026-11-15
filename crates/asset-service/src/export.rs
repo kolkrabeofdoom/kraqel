@@ -68,6 +68,21 @@ impl Write for BoundedPng {
 /// # Errors
 /// Rejects animation, mismatched MIME, malformed sources and resource-limit violations.
 pub fn prepare_export_image(bytes: &[u8], mime: &str) -> Result<ExportImage, AssetError> {
+    prepare_image_for_export(bytes, mime, false)
+}
+
+/// Produces the same bounded derivative with alpha composited onto white for PDF.
+/// # Errors
+/// Rejects the same unsupported sources and budget violations as the transparent profile.
+pub fn prepare_pdf_export_image(bytes: &[u8], mime: &str) -> Result<ExportImage, AssetError> {
+    prepare_image_for_export(bytes, mime, true)
+}
+
+fn prepare_image_for_export(
+    bytes: &[u8],
+    mime: &str,
+    white: bool,
+) -> Result<ExportImage, AssetError> {
     if bytes.is_empty() || bytes.len() > MAX_ASSET_BYTES {
         return Err(AssetError::TooLarge);
     }
@@ -146,7 +161,8 @@ pub fn prepare_export_image(bytes: &[u8], mime: &str) -> Result<ExportImage, Ass
     } else {
         image
     };
-    let image = image.to_rgba8();
+    let mut image = image.to_rgba8();
+    composite_white(&mut image, white)?;
     let mut output = BoundedPng(Vec::new());
     image::codecs::png::PngEncoder::new_with_quality(
         &mut output,
@@ -167,6 +183,22 @@ pub fn prepare_export_image(bytes: &[u8], mime: &str) -> Result<ExportImage, Ass
         source_width,
         source_height,
     })
+}
+
+fn composite_white(image: &mut image::RgbaImage, white: bool) -> Result<(), AssetError> {
+    if !white {
+        return Ok(());
+    }
+    for pixel in image.pixels_mut() {
+        let alpha = u32::from(pixel[3]);
+        for channel in &mut pixel.0[..3] {
+            *channel =
+                u8::try_from((u32::from(*channel) * alpha + 255 * (255 - alpha) + 127) / 255)
+                    .map_err(|_| AssetError::InvalidImage)?;
+        }
+        pixel[3] = 255;
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -202,6 +234,21 @@ mod tests {
         );
         assert!(prepare_export_image(&source, "image/jpeg").is_err());
         assert!(prepare_export_image(b"private file", "image/png").is_err());
+    }
+    #[test]
+    fn pdf_derivative_is_white_opaque_and_deterministic() {
+        let source = png();
+        let first = prepare_pdf_export_image(&source, "image/png").unwrap();
+        assert_eq!(
+            first.png,
+            prepare_pdf_export_image(&source, "image/png").unwrap().png
+        );
+        let pixels = image::load_from_memory(&first.png).unwrap().to_rgba8();
+        assert_eq!(pixels.get_pixel(0, 0).0, [157, 175, 202, 255]);
+        assert_ne!(
+            first.png,
+            prepare_export_image(&source, "image/png").unwrap().png
+        );
     }
     #[test]
     fn jpeg_orientation_is_applied_and_mpf_rejected() {
