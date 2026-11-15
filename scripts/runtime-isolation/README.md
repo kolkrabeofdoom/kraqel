@@ -1,0 +1,130 @@
+# AppContainer-Forschungshelfer für KQ-069
+
+**Nur synthetische Daten. Kein produktiver Launcher und keine Sicherheitsfreigabe.** Der normale
+KRAQEL-Start wird nicht verändert. Ergebnis und Grenzen stehen im
+[Versuchsprotokoll](../../docs/testing/native-runtime-isolation.md).
+
+## Mechanismus und Abgrenzung
+
+Der eigenständige Rust-Helfer nutzt dokumentierte Win32-AppContainer-APIs: pro Versuch eine eigene
+Profilidentität, null Capabilities, `CREATE_SUSPENDED`, Tokenprüfung vor `ResumeThread` und ein Job
+Object mit `KILL_ON_JOB_CLOSE` ohne Breakaway-Freigabe. Es gibt keinen automatischen unisolierten
+Fallback. Die Root-Identität ist vor Ausführung geprüft; Nachfahren-Tokens werden zusätzlich
+stichprobenartig gelesen. Das ist keine vollständige Attestierung jedes Nachfahren vor dessen erstem
+Befehl.
+
+Nur ein neuer direkter TEMP-Unterordner `kraqel-isolation-…` wird akzeptiert. Der Helfer kopiert das
+Testprogramm nach `bin`, ergänzt für die eigene Paket-SID Lese-/Ausführungsrechte und gibt
+ausschließlich `data` zusätzliche Schreib-, Umbenennungs- und Löschrechte mit Low-Integrity-Label.
+Vorhandene DACL-Einträge bleiben erhalten; Workspace, Benutzerprofil und Systemdateien erhalten
+keine zusätzlichen Freigaben. Kein Firewallregel-, Loopback-Ausnahme-, OS-Diagnose- oder
+Sicherheitsdienstwechsel. Kein `internetClient` und kein Abschalten von TLS oder Browser-Sandbox.
+
+Das Tool ist ein separates Cargo-Workspace unter `probe/`, damit die erforderliche kleine
+Win32-FFI-Grenze nicht in die Produktcrates gelangt. Deren `unsafe_code = forbid` bleibt bestehen.
+`windows-sys 0.61.2` und `serde_json 1.0.154` sind bereits im Produkt-Lockfile vorhanden, beide MIT
+OR Apache-2.0; im Tool separat gelockt. Keine neue Produktabhängigkeit. Dieses Forschungswerkzeug
+ist GPL-3.0-or-later, wird nicht in Installer aufgenommen und ersetzt keine Prüfung eines künftigen
+Produktlaunchers.
+
+## Bauen und automatische Prüfungen
+
+```powershell
+cargo build --locked --manifest-path scripts/runtime-isolation/probe/Cargo.toml
+cargo test --locked --manifest-path scripts/runtime-isolation/probe/Cargo.toml
+cargo clippy --locked --manifest-path scripts/runtime-isolation/probe/Cargo.toml --all-targets -- -D warnings
+```
+
+Fünf Tests prüfen gefährliche Root-/Profilnamen, vorhandene Verzeichnisse, unvollständige
+Neustartbelege, fehlende Messkontrollen und ungültige Portargumente. Sie ändern keine AppContainer-
+oder Firewallkonfiguration und führen keine Live-Netzversuche aus. Unter Linux laufen diese reinen
+Tests; die CLI selbst verweigert eine Isolationsausführung mit Exitcode 2. CI prüft beide
+Plattformen zusätzlich zum unveränderten Produkt-Workspace.
+
+## Socket-/Vererbungsversuch unter Windows
+
+```powershell
+$probeRoot = Join-Path $env:TEMP ('kraqel-isolation-network-' + [guid]::NewGuid().ToString('N'))
+cargo run --locked --manifest-path scripts/runtime-isolation/probe/Cargo.toml -- network $probeRoot
+```
+
+Der nicht isolierte Controller kalibriert lokale TCP-/UDP-Empfänger für IPv4/IPv6 mit einem
+bekannten Byte und prüft einen TCP-Handshake zu `1.1.1.1:443`. Der isolierte Prozess und sein selbst
+gestarteter Nachfahre versuchen dieselben lokalen Ziele sowie feste öffentliche TCP-/UDP-Ziele
+(`1.1.1.1`, `2606:4700:4700::1111`); UDP verwendet nur das Testbyte 42 auf Port 9. Eine feste
+DNS-Probe betrifft ausschließlich `example.com`. Keine Manuskripte, Provideraufrufe oder variablen
+Zielhosts. Öffentliche Adressen erscheinen nicht in der bereinigten Ausgabe.
+
+`WSAEACCES` zählt als beobachtete synchrone Zugriffsverweigerung. Timeout, fehlende
+IPv6-Erreichbarkeit und erfolgreicher UDP-API-Aufruf werden nicht als Blockaden gewertet.
+`send_to`-Erfolg belegt keine Zustellung. Der Test verlangt für seine vollständige
+Socket-Sperraussage alle Verweigerungen und liefert im dokumentierten Versuch deshalb korrekt
+**Exitcode 1**. Das ist kein vollständiger IPv6-, UDP-, DNS- oder Broker-Nachweis.
+
+## Native App mit neuer Testdatenwurzel
+
+Nur einen selbst gebauten Testbuild verwenden. Die App muss ausdrücklich in `data/app` arbeiten;
+kein produktives Projekt einspielen. Die Zusatzkonfiguration liegt außerhalb der künftigen
+Ausgabewurzel, damit diese bis zum Launcherstart noch nicht existiert:
+
+```powershell
+$appRoot = Join-Path $env:TEMP ('kraqel-isolation-app-' + [guid]::NewGuid().ToString('N'))
+$configPath = Join-Path $env:TEMP ('kraqel-isolation-config-' + [guid]::NewGuid().ToString('N') + '.json')
+@{
+  identifier = 'org.kraqel.desktop.isolation-probe'
+  productName = 'KRAQEL Isolation Probe'
+  app = @{
+    appDirectoriesOverride = (Join-Path $appRoot 'data/app')
+    windows = @(@{ title = 'KRAQEL AppContainer Probe'; width = 1180; height = 780; minWidth = 760; minHeight = 560 })
+  }
+  bundle = @{ active = $false }
+} | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $configPath -Encoding utf8
+pnpm --filter @kraqel/desktop tauri build --debug --no-bundle --config $configPath
+cargo run --locked --manifest-path scripts/runtime-isolation/probe/Cargo.toml -- app $appRoot (Resolve-Path target/debug/kraqel-desktop.exe).Path
+```
+
+Die echte App darf sichtbar bedient und normal geschlossen werden. Das Tool wartet höchstens zehn
+Minuten, beim Socketversuch 30 Sekunden. Eine eigene `STOP`-Datei in der Versuchswurzel beendet nur
+den eigenen Job. Nach erfolgreichem Ende kann derselbe synthetische Datenbestand erneut geöffnet
+werden:
+
+```powershell
+cargo run --locked --manifest-path scripts/runtime-isolation/probe/Cargo.toml -- resume $appRoot
+```
+
+`resume` verlangt bestätigte Profilentfernung, null verbliebene Jobprozesse, normalen Exit und
+passende frühere AppContainer-Identität. Ein noch vorhandenes Profil wird nicht übernommen. Die
+Identität wird aus dem begrenzten Versuchsnamen erneut erzeugt; ihre SID bleibt dadurch für die
+Testdatei-ACLs stabil. Binärdatei und Schreibordner müssen weiterhin innerhalb der eigenen
+TEMP-Wurzel liegen. `inspect <PID,PID,…>` liest lediglich Tokenmerkmale ausgewählter Prozesse. Es
+ist eine Diagnose, keine Autorisierung oder lückenlose Prozessüberwachung.
+
+Die Kindumgebung wird aus festen Windows-Systempfaden und der eigenen Testwurzel aufgebaut; die
+normale Benutzerumgebung, WebView2-Overrides und Providergeheimnisse werden nicht vererbt.
+Git-Pfade, beliebige Dateidialoge, Schlüsselspeicher und Cloudprovider sind damit noch nicht als
+vollständige Produktfunktionen integriert. Der Launcher selbst bleibt ein nicht isolierter
+Testcontroller mit Positivkontrollen und ist keine geprüfte Brokergrenze für echte Daten.
+
+Ergebnisse liegen in `result.json`, `data/child.json`, `data/leaf.json`; `launch.json` und
+`identity.json` enthalten nur lokal aufzubewahrende Prozess-/Profilzuordnung. Der Normalpfad
+entfernt ausschließlich das eigene AppContainer-Profil nach Beenden des Jobs; synthetische
+Testdateien bleiben zur Prüfung erhalten. Ein abrupt abgebrochener Controller ist kein geprüfter
+Deinstallationspfad. **Exitcode 0 bedeutet einen erfolgreich abgeschlossenen Diagnoselauf, keine
+Produktfreigabe**; `productionAcceptance` bleibt immer `false`.
+
+Nach allen Versuchen den normalen Debug-Build wiederherstellen:
+
+```powershell
+pnpm --filter @kraqel/desktop tauri build --debug --no-bundle
+```
+
+ETW wird getrennt mit dem [bestehenden Helfer](../m3-network/README.md) erhoben. Pro Start die
+Root-PID aus `launch.json` und den Executable-SHA festhalten; alle App-/WebView2-Prozesse vor dem
+Trace-Ende schließen. Roh-ETL/XML bleiben außerhalb Git. Ein expliziter unisolierter Vergleich ist
+ein eigener Diagnosefall, niemals ein Fallback. Unterschiedliche Umgebungen, Profilzustände und
+Laufzeiten im Protokoll benennen; keine automatische kausale Gleichsetzung von Zählwerten.
+
+Primärquellen:
+[AppContainer für klassische Apps](https://learn.microsoft.com/en-us/windows/win32/secauthz/appcontainer-for-legacy-applications-),
+[Start mit Security Capabilities](https://learn.microsoft.com/en-us/windows/win32/secauthz/implementing-an-appcontainer),
+[Tokeninformation](https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-gettokeninformation).

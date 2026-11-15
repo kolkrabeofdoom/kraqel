@@ -1,0 +1,213 @@
+{
+  "formatVersion": 1,
+  "diagnosticOnly": true,
+  "productionAcceptance": false,
+  "sourceBase": "caaa69408816960e29278c0a0f5cfe12bc347dfc",
+  "windowsBuild": "26200",
+  "nativeExecutableSha256": "163dddd363bdbfe919f87f56db4d18cf0af92c7e4d1f7238ad14f84d871f5d8b",
+  "measuredLauncherSha256": "21518114c39c45f7ecfe4254e9ff6ab5d117cd6faedea0b73458044faef209a9",
+  "finalLauncherSha256": "bd3210c7075e522a44dd6d14161e3af054814a74138b381a105f2e5517845142",
+  "traceStartedUtc": "2026-11-15T13:42:57.8682553Z",
+  "traceStoppedUtc": "2026-11-15T13:53:44.7124624Z",
+  "convertedUtc": "2026-11-15T13:53:46.6899113Z",
+  "rawEtlBytes": 6488064,
+  "allMeasuredAppEndsBeforeTraceStop": true,
+  "measuredProfilesRemoved": 3,
+  "tokenSnapshots": [
+    {
+      "case": 1,
+      "observedProcesses": 8,
+      "byImage": {
+        "kraqel-desktop.exe": 1,
+        "conhost.exe": 1,
+        "msedgewebview2.exe": 6
+      },
+      "allObservedTokensAppContainer": true,
+      "allObservedCapabilityCountsZero": true
+    },
+    {
+      "case": 2,
+      "observedProcesses": 8,
+      "byImage": {
+        "kraqel-desktop.exe": 1,
+        "conhost.exe": 1,
+        "msedgewebview2.exe": 6
+      },
+      "allObservedTokensAppContainer": true,
+      "allObservedCapabilityCountsZero": true
+    },
+    {
+      "case": 3,
+      "observedProcesses": 7,
+      "byImage": {
+        "kraqel-desktop.exe": 1,
+        "msedgewebview2.exe": 6
+      },
+      "allObservedTokensAppContainer": true,
+      "allObservedCapabilityCountsZero": true
+    }
+  ],
+  "tokenSnapshotLimit": "Point-in-time observations; not attestation of every process before its first instruction.",
+  "workflow": {
+    "projectCreated": true,
+    "savedUnicodeTextVerifiedAfterRestart": true,
+    "documentNodes": 2,
+    "sqliteIntegrityOk": true,
+    "foreignKeyErrors": 0,
+    "htmlBytes": 742,
+    "htmlTextVerified": true,
+    "pdfBytes": 2480595,
+    "pdfPages": 1,
+    "pdfUnicodeTextVerified": true,
+    "imageImportCompleted": false,
+    "nativeFileDialogObservedInContainer": false,
+    "nativeFileDialogObservedInControl": true,
+    "controlUsedSameExecutable": true,
+    "controlEnvironmentMatched": false
+  },
+  "finalCliNativeSmoke": {
+    "activeJobProcessesAtEnd": 0,
+    "appMode": true,
+    "deadlineOrStop": false,
+    "diagnosticOnly": true,
+    "formatVersion": 1,
+    "localPositiveControls": 4,
+    "processExitCode": 0,
+    "productionAcceptance": false,
+    "profileRemoved": true,
+    "publicIpv4TcpControlConnected": true,
+    "resumed": true,
+    "tokenBeforeResume": {
+      "capabilityCount": 0,
+      "expectedIdentity": true,
+      "isAppContainer": true
+    }
+  },
+  "socketProbe": {
+    "activeJobProcessesAtEnd": 0,
+    "appMode": false,
+    "child": {
+      "attempts": [
+        {
+          "accessDenied": false,
+          "case": "tcp-loopback-v4",
+          "errorCode": null
+        },
+        {
+          "accessDenied": false,
+          "case": "tcp-loopback-v6",
+          "errorCode": null
+        },
+        {
+          "accessDenied": true,
+          "case": "tcp-public-v4",
+          "errorCode": 10013
+        },
+        {
+          "accessDenied": false,
+          "case": "tcp-public-v6",
+          "errorCode": 10051
+        },
+        {
+          "accessDenied": false,
+          "case": "udp-loopback-v4",
+          "errorCode": null
+        },
+        {
+          "accessDenied": false,
+          "case": "udp-loopback-v6",
+          "errorCode": null
+        },
+        {
+          "accessDenied": false,
+          "case": "udp-public-v4",
+          "errorCode": null
+        },
+        {
+          "accessDenied": false,
+          "case": "udp-public-v6",
+          "errorCode": 10051
+        }
+      ],
+      "fixedExampleDns": {
+        "errorCode": 11001,
+        "resolved": false
+      },
+      "passed": false,
+      "token": {
+        "capabilityCount": 0,
+        "expectedIdentity": null,
+        "isAppContainer": true
+      }
+    },
+    "deadlineOrStop": false,
+    "diagnosticOnly": true,
+    "formatVersion": 1,
+    "leaf": {
+      "attempts": [
+        {
+          "accessDenied": false,
+          "case": "tcp-loopback-v4",
+          "errorCode": null
+        },
+        {
+          "accessDenied": false,
+          "case": "tcp-loopback-v6",
+          "errorCode": null
+        },
+        {
+          "accessDenied": true,
+          "case": "tcp-public-v4",
+          "errorCode": 10013
+        },
+        {
+          "accessDenied": false,
+          "case": "tcp-public-v6",
+          "errorCode": 10051
+        },
+        {
+          "accessDenied": false,
+          "case": "udp-loopback-v4",
+          "errorCode": null
+        },
+        {
+          "accessDenied": false,
+          "case": "udp-loopback-v6",
+          "errorCode": null
+        },
+        {
+          "accessDenied": false,
+          "case": "udp-public-v4",
+          "errorCode": null
+        },
+        {
+          "accessDenied": false,
+          "case": "udp-public-v6",
+          "errorCode": 10051
+        }
+      ],
+      "fixedExampleDns": {
+        "errorCode": 11001,
+        "resolved": false
+      },
+      "passed": false,
+      "token": {
+        "capabilityCount": 0,
+        "expectedIdentity": null,
+        "isAppContainer": true
+      }
+    },
+    "localPositiveControls": 4,
+    "processExitCode": 1,
+    "productionAcceptance": false,
+    "profileRemoved": true,
+    "publicIpv4TcpControlConnected": true,
+    "resumed": false,
+    "tokenBeforeResume": {
+      "capabilityCount": 0,
+      "expectedIdentity": true,
+      "isAppContainer": true
+    }
+  },
+  "limits": "Synthetic bounded prototype only. No complete F08/M3, payload, DNS/broker, public IPv6 or public UDP delivery acceptance. The normal application remains unchanged."
+}

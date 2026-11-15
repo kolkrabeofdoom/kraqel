@@ -1,5 +1,12 @@
 # F08-/M3-Abnahmematrix
 
+KQ-069 A untersucht die ausdrücklich beauftragte strikte Isolation: Der
+[AppContainer-Prototyp](native-runtime-isolation.md) zeigt bei gültiger ETW-Messung drei
+vollständige App-Läufe mit 0 Ereignissen außerhalb Loopback; derselbe unisolierte Build zeigt 201
+öffentliche WebView2-Ereignisse. Projekt/Autosave/Neustart/HTML/PDF im synthetischen Korpus geprüft,
+Dateidialoge/Austausch, weitere Broker-/UDP-/IPv6-Pfade und vollständige assistive/funktionale
+Wiederholung offen. Kein produktiver Launcher eingebunden: **Q-01/Q-02 bleiben nicht bestanden**.
+
 **Fortschreibung KQ-068 / Issue #133:** PR #132 ist grün zusammengeführt (`c7629c3`).
 [Restprüfungsprotokoll](native-m3-coverage.md): M3-05 und M3-10 sind im dokumentierten CRUD-Korpus
 jetzt **N**. Der Nutzer bestätigt den manuellen kanonischen Bildwechsel und die

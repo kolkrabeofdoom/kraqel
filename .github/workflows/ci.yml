@@ -47,6 +47,11 @@ jobs:
         run: python -m unittest discover -s scripts/docx-prototype -v
       - name: Verify ETW attribution, NetLog redaction and diagnostic guards
         run: python -m unittest discover -s scripts/m3-network -v
+      - name: Check isolated AppContainer research tool without running live network probes
+        run: |
+          cargo fmt --manifest-path scripts/runtime-isolation/probe/Cargo.toml -- --check
+          cargo test --locked --manifest-path scripts/runtime-isolation/probe/Cargo.toml
+          cargo clippy --locked --manifest-path scripts/runtime-isolation/probe/Cargo.toml --all-targets -- -D warnings
       - run: pnpm --filter @kraqel/desktop build
       - run: cargo build --workspace
 
