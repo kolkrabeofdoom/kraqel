@@ -1,5 +1,22 @@
 # Bedrohungsmodell (Entwurf)
 
+## KQ-069 A: Einmaliger Auftrag im nativen App-Dienst-Testadapter
+
+Der [isolierte Snapshotimport-Testadapter](../testing/native-isolated-app-import.md) erhält nur
+delegierte Handles und einen begrenzten typisierten Auftrag: gebundene UUID, feste Operation,
+Version, Größe und höchstens 60 Sekunden Lebensdauer. Jeder Versuch verbraucht die Instanz; kein
+automatischer Retry. Formatparser/SQLite bleiben im Worker ohne Capabilities. Publish-Guard nach
+vollständigem Aufbau im Stagingordner: Abbruch/Ablauf entfernen den Zwischenstand. Nach Freigabe
+beginnt der Commit; spätere Fehler bedeuten keinen garantierten Rollback.
+
+Native Serie bestätigt neue ID, Unicode, Integrität/Fremdschlüssel, bytegleiche Testbasis, Replay-
+Ablehnung und Cleanup. Gültiges ETW des finalen Builds: keine Netzereignisse im Controller-/
+Workerbaum. Kein Nachweis für externe COM-/Shell-Dienste, integrierten WebView, echte Nutzdaten oder
+Produktstarts. UUID/Zeitfelder alleine autorisieren keinen beliebigen Auftraggeber; nur der eigene
+einmalige Forschungscontroller erzeugt die Freigabe. Sicherer UI-/Tauri-Auftragskanal, dauerhafte
+Replay-/Crash-Reconciliation, echte Auswahl und assistive Abnahme fehlen. Keine neuen
+Hostordnerrechte, Provider oder Shell-Aufrufe. Q-01/Q-02 nicht bestanden; #134 offen.
+
 ## KQ-069 A: Begrenzter Datei-/Shell-Transport
 
 Der [synthetische Austauschversuch](../testing/native-runtime-file-exchange.md) trennt Shell-Auswahl

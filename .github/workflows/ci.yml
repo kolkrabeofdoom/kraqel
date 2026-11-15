@@ -45,6 +45,10 @@ jobs:
           python-version: "3.12"
       - name: Verify experimental DOCX structure fixtures
         run: python -m unittest discover -s scripts/docx-prototype -v
+      - name: Verify reproducible synthetic isolation import fixture
+        run: |
+          python scripts/runtime-isolation/make_import_fixture.py
+          git diff --exit-code -- scripts/runtime-isolation/fixtures/input.kraqel
       - name: Verify ETW attribution, NetLog redaction and diagnostic guards
         run: python -m unittest discover -s scripts/m3-network -v
       - name: Check isolated AppContainer research tool without running live network probes

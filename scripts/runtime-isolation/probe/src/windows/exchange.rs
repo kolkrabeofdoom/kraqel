@@ -14,6 +14,8 @@ use windows::{
     core::{Interface, PCWSTR},
 };
 use windows_sys::Win32::Storage::FileSystem::*;
+mod app_import;
+pub(super) use app_import::{child as import_child, launch as launch_import};
 
 fn invalid(stage: &'static str) -> Failure {
     Failure { stage, code: -1 }
@@ -244,6 +246,12 @@ pub(super) fn child(args: &[OsString]) -> Result<Value> {
 }
 
 pub(super) fn launch(root: &Path) -> Result<Value> {
+    launch_inner(root, false)
+}
+pub(super) fn launch_fixture(root: &Path) -> Result<Value> {
+    launch_inner(root, true)
+}
+fn launch_inner(root: &Path, fixture: bool) -> Result<Value> {
     if !crate::policy::valid_root(root, false) {
         return Err(invalid("exchange-needs-fresh-temp-root"));
     }
@@ -265,13 +273,21 @@ pub(super) fn launch(root: &Path) -> Result<Value> {
         ),
     )?;
     let cancelled = || json!({"exchange":true,"cancelled":true,"passed":true,"transferred":false,"productionAcceptance":false});
-    let Some(source) = choose(&host, false)? else {
+    let Some(source) = (if fixture {
+        Some(host.join("input.txt"))
+    } else {
+        choose(&host, false)?
+    }) else {
         return Ok(cancelled());
     };
     if source.file_name() != Some(std::ffi::OsStr::new("input.txt")) {
         return Err(invalid("exchange-only-synthetic-input"));
     }
-    let Some(destination) = choose(&host, true)? else {
+    let Some(destination) = (if fixture {
+        Some(host.join("output.txt"))
+    } else {
+        choose(&host, true)?
+    }) else {
         return Ok(cancelled());
     };
     if destination.exists() {
@@ -294,6 +310,59 @@ pub(super) fn launch(root: &Path) -> Result<Value> {
     let mut pending = Pending::create(host.join("pending-transfer.tmp"))?;
     let output = pending.file.as_ref().unwrap();
     file_info(output)?;
+    let diagnostics = run_worker(
+        root,
+        &input,
+        output,
+        "exchange-child",
+        &length.to_string(),
+        |_| Ok(()),
+    )?;
+    drop(input);
+    pending.close();
+    let data = root.join("data");
+    let mut report_bytes = Vec::new();
+    io(
+        "exchange-worker-report",
+        io(
+            "open-exchange-report",
+            fs::File::open(data.join("exchange.json")),
+        )?
+        .take(4097)
+        .read_to_end(&mut report_bytes),
+    )?;
+    if report_bytes.len() > 4096 {
+        return Err(invalid("exchange-report-too-large"));
+    }
+    let worker: Value =
+        serde_json::from_slice(&report_bytes).map_err(|_| invalid("exchange-report-invalid"))?;
+    if !transfer::valid_worker(&worker, length)
+        || io("exchange-output-size", fs::metadata(&pending.path))?.len() != length
+    {
+        return Err(invalid("exchange-report-mismatch"));
+    }
+    pending.publish(&destination)?;
+    let mut report = diagnostics;
+    report["formatVersion"] = json!(1);
+    report["exchange"] = json!(true);
+    report["passed"] = json!(true);
+    report["transferred"] = json!(true);
+    report["inheritedFileHandles"] = json!(2);
+    report["hostDirectoryAclGranted"] = json!(false);
+    report["worker"] = worker;
+    write_json(&root.join("result.json"), &report)?;
+    Ok(report)
+}
+
+// Shared research runner: only static child modes and controller-generated numeric/UUID arguments.
+fn run_worker(
+    root: &Path,
+    input: &fs::File,
+    output: &fs::File,
+    child_mode: &'static str,
+    argument: &str,
+    prepare: impl FnOnce(&Path) -> Result<()>,
+) -> Result<Value> {
     io("create-exchange-root", fs::create_dir(root))?;
     let suffix = root
         .file_name()
@@ -314,6 +383,7 @@ pub(super) fn launch(root: &Path) -> Result<Value> {
         FILE_GENERIC_READ | FILE_GENERIC_WRITE | FILE_GENERIC_EXECUTE | DELETE | FILE_DELETE_CHILD,
     )?;
     low_label(&data)?;
+    prepare(&data)?;
     let executable = bin.join("kraqel-isolation-probe.exe");
     io(
         "stage-exchange-worker",
@@ -337,12 +407,11 @@ pub(super) fn launch(root: &Path) -> Result<Value> {
     startup.StartupInfo.cb = size_of::<STARTUPINFOEXW>() as u32;
     startup.lpAttributeList = attributes.ptr;
     let mut command = wide(format!(
-        "\"{}\" exchange-child \"{}\" {} {} {}",
+        "\"{}\" {child_mode} \"{}\" {} {} {argument}",
         executable.display(),
         data.display(),
         handles[0] as usize,
         handles[1] as usize,
-        length
     ));
     let system = std::env::var_os("SystemRoot").unwrap_or("C:\\Windows".into());
     let mut environment = Vec::new();
@@ -461,36 +530,17 @@ pub(super) fn launch(root: &Path) -> Result<Value> {
     )?;
     drop(worker);
     drop(job);
-    drop(input);
-    pending.close();
     let removed = accounting.ActiveProcesses == 0 && profile.remove();
+    write_json(
+        &root.join("worker-lifecycle.json"),
+        &json!({"finished":finished,"processExitCode":code,"activeJobProcessesAtEnd":accounting.ActiveProcesses,"profileRemoved":removed}),
+    )?;
     if !finished || code != 0 || !removed {
         return Err(invalid("exchange-worker-or-cleanup-failed"));
     }
-    let mut report_bytes = Vec::new();
-    io(
-        "exchange-worker-report",
-        io(
-            "open-exchange-report",
-            fs::File::open(data.join("exchange.json")),
-        )?
-        .take(4097)
-        .read_to_end(&mut report_bytes),
-    )?;
-    if report_bytes.len() > 4096 {
-        return Err(invalid("exchange-report-too-large"));
-    }
-    let worker: Value =
-        serde_json::from_slice(&report_bytes).map_err(|_| invalid("exchange-report-invalid"))?;
-    if !transfer::valid_worker(&worker, length)
-        || io("exchange-output-size", fs::metadata(&pending.path))?.len() != length
-    {
-        return Err(invalid("exchange-report-mismatch"));
-    }
-    pending.publish(&destination)?;
-    let report = json!({"formatVersion":1,"exchange":true,"passed":true,"transferred":true,"inheritedFileHandles":2,"hostDirectoryAclGranted":false,"tokenBeforeResume":token,"worker":worker,"processExitCode":code,"activeJobProcessesAtEnd":accounting.ActiveProcesses,"profileRemoved":removed,"productionAcceptance":false});
-    write_json(&root.join("result.json"), &report)?;
-    Ok(report)
+    Ok(
+        json!({"tokenBeforeResume":token,"processExitCode":code,"activeJobProcessesAtEnd":accounting.ActiveProcesses,"profileRemoved":removed,"productionAcceptance":false}),
+    )
 }
 
 #[cfg(test)]

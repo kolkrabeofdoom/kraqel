@@ -2201,6 +2201,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "kraqel-isolation-test-adapter"
+version = "0.1.0"
+dependencies = [
+ "kraqel-domain",
+ "kraqel-git-service",
+ "kraqel-storage",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "uuid",
+]
+
+[[package]]
 name = "kraqel-storage"
 version = "0.1.0"
 dependencies = [

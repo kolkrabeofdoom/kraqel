@@ -1,5 +1,13 @@
 # F08-/M3-Abnahmematrix
 
+Fortschreibung [typisierter Dateiauftrag und atomarer Import](native-isolated-app-import.md):
+Separater nativer App-Dienst-Testadapter ohne Tauri-/WebView-/GUI-Anbindung; Snapshot-v3-Import im
+AppContainer mit einmaliger ID, Ablauf/Budget und Publish-Guard. Sieben native Importfälle plus
+Kopieregression und unabhängige SQLite-/Hash-/Unicodeprüfung bestanden. Gültiges ETW des finalen
+Builds ohne Netzereignisse im Controller-/Workerbaum. Keine reale Nutzdatei, native Auswahl,
+assistive oder Produkt-Vollabnahme; externe Broker und Crash-Reconciliation offen. Q-01/Q-02
+unverändert **nicht bestanden**, #134 offen.
+
 Fortschreibung Datei-/Shell-Austausch:
 [separater Transportprototyp](native-runtime-file-exchange.md) mit nativer Auswahl, zwei
 Handlefreigaben, Unicode-Kopie, gesperrter Nachbardatei, Abbruch und Fehlerpfadtests geprüft.
