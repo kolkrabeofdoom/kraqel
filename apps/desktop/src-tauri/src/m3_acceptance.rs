@@ -740,6 +740,245 @@ fn check_history(root: &Path, native: bool) {
 }
 
 #[test]
+#[allow(clippy::too_many_lines)] // One ordered lifecycle checks files and cross-repository references.
+fn native_m3_crud_keeps_files_identity_and_references_consistent() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path();
+    let c = seed(root);
+    let app = state(root);
+    let request_id = uuid::Uuid::new_v4();
+    let project = ProjectId::parse(&c.project).unwrap();
+    let character = EntityId::parse(&c.character).unwrap();
+    let manager = ProjectManager::new(&app.project_root).unwrap();
+    let directory = manager
+        .open_project(&c.project)
+        .unwrap()
+        .directory()
+        .to_path_buf();
+    let profile = list_visual_profiles_impl(&app, request_id, &c.project)
+        .unwrap()
+        .remove(0);
+    let original_id = profile.canonical_asset_id.unwrap();
+    let variants = list_media_assets_impl(&app, request_id, &c.project).unwrap();
+    let original = variants
+        .iter()
+        .find(|v| v.asset.id == original_id)
+        .unwrap()
+        .asset
+        .clone();
+    let alternate = variants
+        .iter()
+        .find(|v| v.asset.id != original_id)
+        .unwrap()
+        .asset
+        .clone();
+    // Independent imported images are variants; neither a parent model nor a comparison UI is implied.
+    assert_eq!(variants.len(), 50);
+    assert_ne!(alternate.checksum, original.checksum);
+    let before = inventory(&app, &c.project);
+    let duplicate = import_media_asset_impl(
+        &app,
+        request_id,
+        &ImportMediaRequest {
+            project_id: c.project.clone(),
+            file_name: original.original_name.clone(),
+            title: "Duplicate must not overwrite".into(),
+            tags: vec![],
+            bytes: fs::read(directory.join(&original.relative_path)).unwrap(),
+        },
+    )
+    .unwrap();
+    assert_eq!(duplicate.asset, original);
+    assert_eq!(inventory(&app, &c.project), before);
+    let updated = update_media_asset_impl(
+        &app,
+        request_id,
+        &UpdateMediaRequest {
+            project_id: c.project.clone(),
+            asset_id: original_id.to_string(),
+            title: "CRUD Variante geändert".into(),
+            tags: vec!["Tusche".into(), "Nacht".into()],
+        },
+    )
+    .unwrap();
+    assert_eq!(updated.asset.links, original.links);
+    assert_eq!(updated.asset.checksum, original.checksum);
+    let mut replacement = ReplaceMediaRequest {
+        project_id: c.project.clone(),
+        asset_id: original_id.to_string(),
+        file_name: "invalid.png".into(),
+        bytes: vec![0, 1, 2],
+    };
+    let before_rejection = inventory(&app, &c.project);
+    assert!(replace_media_asset_impl(&app, request_id, &replacement).is_err());
+    replacement.file_name = alternate.original_name.clone();
+    replacement.bytes = fs::read(directory.join(&alternate.relative_path)).unwrap();
+    assert!(replace_media_asset_impl(&app, request_id, &replacement).is_err());
+    assert_eq!(inventory(&app, &c.project), before_rejection);
+    assert!(directory.join(&original.relative_path).is_file());
+    let mut encoded = Cursor::new(Vec::new());
+    DynamicImage::ImageRgb8(RgbImage::from_pixel(231, 117, Rgb([31, 73, 127])))
+        .write_to(&mut encoded, ImageFormat::Png)
+        .unwrap();
+    replacement.file_name = "replacement.png".into();
+    replacement.bytes = encoded.into_inner();
+    let replaced = replace_media_asset_impl(&app, request_id, &replacement).unwrap();
+    assert!(replaced.file_available);
+    assert_eq!(replaced.asset.id, original_id);
+    assert_eq!(replaced.asset.title, updated.asset.title);
+    assert_eq!(replaced.asset.tags, updated.asset.tags);
+    assert_eq!(replaced.asset.links, original.links);
+    assert_eq!((replaced.asset.width, replaced.asset.height), (231, 117));
+    assert_ne!(replaced.asset.checksum, original.checksum);
+    assert!(!directory.join(&original.relative_path).exists());
+    assert!(!directory.join(&original.thumbnail_path).exists());
+    assert!(directory.join(&replaced.asset.relative_path).is_file());
+    assert_eq!(
+        list_visual_profiles_impl(&app, request_id, &c.project).unwrap()[0].canonical_asset_id,
+        Some(original_id)
+    );
+    let link = AssetLinkRequest {
+        project_id: c.project.clone(),
+        asset_id: original_id.to_string(),
+        target_kind: AssetTargetKind::Document,
+        target_id: c.scene.clone(),
+        role: "reference".into(),
+    };
+    let unlinked = change_media_link_impl(&app, request_id, &link, false).unwrap();
+    assert_eq!(unlinked.asset.links.len(), original.links.len() - 1);
+    assert_eq!(
+        change_media_link_impl(&app, request_id, &link, true)
+            .unwrap()
+            .asset
+            .links,
+        original.links
+    );
+    // Every command reopens the real SQLite project, rather than observing cached frontend state.
+    let persisted = list_media_assets_impl(&app, request_id, &c.project).unwrap();
+    assert_eq!(
+        persisted
+            .iter()
+            .find(|v| v.asset.id == original_id)
+            .unwrap(),
+        &replaced
+    );
+    delete_media_asset_impl(
+        &app,
+        request_id,
+        &MediaAssetRequest {
+            project_id: c.project.clone(),
+            asset_id: original_id.to_string(),
+        },
+    )
+    .unwrap();
+    assert!(!directory.join(&replaced.asset.relative_path).exists());
+    assert!(!directory.join(&replaced.asset.thumbnail_path).exists());
+    assert_eq!(
+        list_media_assets_impl(&app, request_id, &c.project)
+            .unwrap()
+            .len(),
+        49
+    );
+    assert_eq!(
+        list_visual_profiles_impl(&app, request_id, &c.project).unwrap()[0].canonical_asset_id,
+        None
+    );
+    let saved = save_visual_profile_impl(
+        &app,
+        request_id,
+        &WriteVisualProfileRequest {
+            project_id: c.project.clone(),
+            entity_id: c.character.clone(),
+            traits: BTreeMap::from([("Gefieder".into(), "schwarz".into())]),
+            canonical_asset_id: Some(alternate.id.to_string()),
+            exclusions: vec!["blaue Augen".into()],
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        list_visual_profiles_impl(&app, request_id, &c.project).unwrap(),
+        vec![saved]
+    );
+    let preset = list_style_presets_impl(&app, request_id, &c.project)
+        .unwrap()
+        .remove(0);
+    let changed = write_style_preset_impl(
+        &app,
+        request_id,
+        &WriteStylePresetRequest {
+            project_id: c.project.clone(),
+            preset_id: Some(preset.id.to_string()),
+            name: "Tusche geändert".into(),
+            visual_rules: BTreeMap::from([("Linien".into(), "fein".into())]),
+            applicable_kinds: vec![EntityKind::Character, EntityKind::Location],
+        },
+        false,
+    )
+    .unwrap();
+    assert_eq!(changed.id, preset.id);
+    assert_eq!(
+        list_style_presets_impl(&app, request_id, &c.project).unwrap(),
+        vec![changed]
+    );
+    delete_style_preset_impl(
+        &app,
+        request_id,
+        &StylePresetRequest {
+            project_id: c.project.clone(),
+            preset_id: preset.id.to_string(),
+        },
+    )
+    .unwrap();
+    delete_visual_profile_impl(
+        &app,
+        request_id,
+        &StoryEntityRequest {
+            project_id: c.project.clone(),
+            entity_id: c.character.clone(),
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        list_visual_profiles_impl(&app, request_id, &c.project).unwrap(),
+        vec![]
+    );
+    assert_eq!(
+        list_style_presets_impl(&app, request_id, &c.project).unwrap(),
+        vec![]
+    );
+    let mut opened = manager.open_project(&c.project).unwrap();
+    assert!(
+        StoryBibleRepository::new(opened.database_mut())
+            .list(project, None, None)
+            .unwrap()
+            .iter()
+            .any(|e| e.id == character)
+    );
+    assert_eq!(
+        list_media_assets_impl(&app, request_id, &c.project)
+            .unwrap()
+            .iter()
+            .find(|v| v.asset.id == alternate.id)
+            .unwrap()
+            .asset,
+        alternate
+    );
+    assert!(
+        !opened
+            .database_mut()
+            .connection()
+            .prepare("PRAGMA foreign_key_check")
+            .unwrap()
+            .exists([])
+            .unwrap()
+    );
+    // Snapshot construction checks references after profile/preset removal, including prompt sources.
+    GitService::new(opened.directory())
+        .create_snapshot(opened.database(), project)
+        .unwrap();
+}
+
+#[test]
 fn integrated_m3_corpus_preserves_backlinks_through_backup_and_two_imports() {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path();

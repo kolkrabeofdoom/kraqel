@@ -1,0 +1,75 @@
+{
+  "formatVersion": 1,
+  "project": "6b795881-e585-43dd-b1be-aacc30c9a803",
+  "canonicalBVerifiedBeforeDeletion": true,
+  "assetBOriginalAndThumbnailRemoved": true,
+  "canonicalReferenceClearedBeforeProfileDeletion": true,
+  "profileAndStyleDeleted": true,
+  "remainingAssetMetadataAndHashesUnchanged": true,
+  "documentsEntityAndSceneLinkUnchanged": true,
+  "databaseIntegrityCheck": "ok",
+  "foreignKeyViolations": 0,
+  "restartPersistenceVerified": true,
+  "postRestartExecutableSha256": "bcc3697af82b62dbf757732869858e6e27c60b1f4c9b76b56a4cc264f7f42ae8",
+  "exports": [
+    {
+      "format": "docx",
+      "package": "docx-8aa58faa-784d-4381-a933-2e85a3ec1e60",
+      "images": 1,
+      "placements": 1,
+      "sourceSha256": "9e794717c6fbf4e4c27e308e5ccbafb73546f7f89b3a59ac68ba31ae731594d1",
+      "exportSha256": "6d87f24825c157adeb6f163f0c37eeee470b0cdfc6dbceef7c75c6a2bded504f",
+      "manifestSha256": "d0b73499b78f1b6bfd3efd84b2a737d70ba82378e01024fd8235a6be65e610f4",
+      "manuscriptSha256": "e6850318bf64d89e5ed631a368bdf5d0e33741e4b585c8e63a66542eeb9908c1",
+      "altAndCaptionPreserved": true,
+      "imageRgbMatchesSource": true
+    },
+    {
+      "format": "html",
+      "package": "html-8c252597-d571-4937-99fa-0d6daed14311",
+      "images": 1,
+      "placements": 1,
+      "sourceSha256": "9e794717c6fbf4e4c27e308e5ccbafb73546f7f89b3a59ac68ba31ae731594d1",
+      "exportSha256": "6d87f24825c157adeb6f163f0c37eeee470b0cdfc6dbceef7c75c6a2bded504f",
+      "manifestSha256": "af97dbc64b5985c34ac42115d1a3da1ccb95bf4d238bc1fae935776837112091",
+      "manuscriptSha256": "16b54a5c63e73901d2eacdf2ea18a8f01d6e5b1064ba6603a52a9e9631d8d826",
+      "altAndCaptionPreserved": true,
+      "imageRgbMatchesSource": true
+    },
+    {
+      "format": "markdown",
+      "package": "markdown-89125607-f011-4d11-ae1b-7a04c1c67165",
+      "images": 1,
+      "placements": 1,
+      "sourceSha256": "9e794717c6fbf4e4c27e308e5ccbafb73546f7f89b3a59ac68ba31ae731594d1",
+      "exportSha256": "6d87f24825c157adeb6f163f0c37eeee470b0cdfc6dbceef7c75c6a2bded504f",
+      "manifestSha256": "6ce3ec6f0ee9acea93016e60df6d8318779571b35c2c077a6e079b39e660599e",
+      "manuscriptSha256": "36a7683964e4c29850c0eabf2ae06775d5176d7fb15894d0b02052bc7869e873",
+      "altAndCaptionPreserved": true,
+      "imageRgbMatchesSource": true
+    },
+    {
+      "format": "pdf",
+      "package": "pdf-4a34e0ba-1461-476a-9422-ec5c2f964a5b",
+      "images": 1,
+      "placements": 1,
+      "sourceSha256": "9e794717c6fbf4e4c27e308e5ccbafb73546f7f89b3a59ac68ba31ae731594d1",
+      "exportSha256": "6d87f24825c157adeb6f163f0c37eeee470b0cdfc6dbceef7c75c6a2bded504f",
+      "manifestSha256": "19380f08763278af90054be0d17d60389b15a864ca1e63aa2504a36fbb10536e",
+      "manuscriptSha256": "c285a174d33174c5c37c5afb0180c6379626e96f28de8db9cc496f8ee4ee1b76",
+      "altAndCaptionPreserved": true,
+      "imageRgbMatchesSource": true,
+      "pages": 1,
+      "internalRgbMatchesSource": true,
+      "embeddedFonts": 4
+    }
+  ],
+  "hearingAcceptance": {
+    "date": "2026-11-15",
+    "reader": "Windows Narrator",
+    "scope": "Shown native deletion messages, illustrated-export controls and success messages",
+    "userConfirmation": "Ja passt, alles gut",
+    "passed": true,
+    "generalWcagOrDocumentConformance": false
+  }
+}

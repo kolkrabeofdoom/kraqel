@@ -76,6 +76,17 @@
            durchführen (KQ-067)
      - [ ] Unabhängigen Desktop-Netzverkehrs-/Offline-Gesamtnachweis, assistive Vollabnahme und
            verbleibende native Medien-CRUD-Prüfungen gemäß Matrix ergänzen
+       - [x] ETW-Netzmessung mit App-/WebView2-Zuordnung und Kontrollen durchführen; öffentlicher
+             WebView2-Verkehr gefunden, keine bestandene Netzfreigabe (KQ-068)
+       - [x] Native CRUD-Teilprüfung und Rust-Datei-/Referenztest ergänzen; Status-/Fehleransagen
+             und Linkwählerbeschriftung korrigieren (KQ-068)
+       - [x] Manuellen kanonischen Bildwechsel, bestätigte GUI-Löschfolge und Neustart abnehmen
+             (KQ-068 / #133)
+       - [x] Vier bebilderte Exporte nach Löschung/Neustart per Tastatur erzeugen und rücklesen
+       - [x] Abschließende Lösch-/Export-Hörprobe mit Nutzerbestätigung abnehmen (KQ-068)
+       - [ ] Weitere allgemeine assistive F08-Randfälle ergänzen
+       - [ ] WebView2-Netzbefund klären und Laufzeitgrenze ausdrücklich entscheiden; Q-01/Q-02 erst
+             anhand neuer Evidenz freigeben (KQ-069 / #134)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene
        Zeilen: `docs/testing/F08_M3_ACCEPTANCE_MATRIX.md`
    - [x] Lokale Medienbibliothek mit Metadaten, Links, Backup und Snapshot-Assets

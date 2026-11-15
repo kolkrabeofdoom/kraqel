@@ -45,6 +45,8 @@ jobs:
           python-version: "3.12"
       - name: Verify experimental DOCX structure fixtures
         run: python -m unittest discover -s scripts/docx-prototype -v
+      - name: Verify ETW process attribution and measurement guards
+        run: python -m unittest discover -s scripts/m3-network -v
       - run: pnpm --filter @kraqel/desktop build
       - run: cargo build --workspace
 

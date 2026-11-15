@@ -2,6 +2,17 @@
 
 Stand: 11. November 2026
 
+Fortschreibung vom 15. November 2026: [KQ-068](native-m3-coverage.md) ergänzt benannte
+Medien-Linkwähler/-artikel, Erfolgs-Liveregionen und Fehleralarme für Medien/visuelle Profile. Der
+Nutzer bestätigt zunächst „Sprachausgabe funktioniert bestens“ und anschließend die konkret
+angefragten Profil-/Stilerfolge und Bildersatz-/Profilfehler mit „alles gut“. Die bestätigten
+GUI-Löschungen und ihr Prozessneustart sind durchgeführt. Danach sind Bildcheckbox, Alttext,
+Bildunterschrift und alle vier bebilderten Exporte per Tastatur mit sichtbarem Fokus geprüft. Die
+abschließende konkrete Frage zu Löschmeldungen, Export-Bedienelementen und Erfolgen beantwortet der
+Nutzer mit „Ja passt, alles gut“; die gezeigte native Hörprobe ist bestanden. Keine pauschale
+assistive F08-, Dokument- oder WCAG-Konformität. Die folgende KQ-033-/KQ-034-Matrix bleibt ein
+historischer Beleg.
+
 Diese Matrix trennt automatisiert belegte Browserprüfungen von einer echten Hörprüfung mit
 assistiver Technik. Axe und der Browser-Accessibility-Tree finden viele strukturelle Fehler, hören
 aber keine Ausgabe. Ein grüner Roboter ist noch keine zuhörende Testperson.
