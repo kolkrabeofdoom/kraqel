@@ -50,6 +50,8 @@ use zeroize::Zeroizing;
 mod docx_import;
 mod docx_roundtrip;
 mod illustrated_export;
+#[cfg(test)]
+mod m3_acceptance;
 
 const AI_RELEASE_LIFETIME: Duration = Duration::from_secs(10 * 60);
 const MAX_TEXT_IMPORT_BYTES: usize = 2 * 1024 * 1024;

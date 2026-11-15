@@ -247,7 +247,7 @@ function MediaCard({
         <img src={view.thumbnailDataUrl} alt={view.asset.title} />
       ) : (
         <div className="missing-media" role="status">
-          Vorschaudatei fehlt
+          Bilddatei oder Vorschau nicht verfügbar
         </div>
       )}
       <div className="media-card-body">

@@ -1,20 +1,21 @@
-# Drehbuchformatierung: Vertragsvorschlag v1
+# Drehbuchformatierung: fachlich freigegebener Vertrag v1
 
-Stand: 15. November 2026 · KQ-066 / Issue #129 · **Vorschlag, weder fachlich freigegeben noch
-implementiert.** Codebasis: `4679c893e021c44ff9b471cac0783458e7640f2b` (PR #128 grün
-zusammengeführt).
+Stand: 15. November 2026 · KQ-066 / Issue #129 · **Am 15. November 2026 vom Projektinitiator
+fachlich freigegeben; noch nicht implementiert.** Codebasis:
+`4679c893e021c44ff9b471cac0783458e7640f2b` (PR #128 grün zusammengeführt).
 
-## 1. Quelle und Entscheidungsspielraum
+## 1. Quelle und fachliche Freigabe
 
 Das [Pflichtenheft Revision 1](KRAQEL_Technisches_Pflichtenheft_v0.1_Revision_1.pdf) nennt
 Drehbücher als Produktziel (§1), definierte Formatierungen für F08 (§3), Datenportabilität in M3
 (§8) und nachvollziehbare Exporte (§10). §11 lässt den Umfang der Drehbuchformatierung ausdrücklich
 offen. Es schreibt **keine** Absatzrollen, Schrift, Papiergröße oder Branchenkonformität vor.
 
-Die nachfolgenden Maße, Rollen, Bedienabläufe und Versionsgrenzen sind konkrete KRAQEL-Vorschläge.
-Sie sind kein behaupteter Film-/Fernsehstandard und keine Zusage bestimmter Seitenlaufzeiten.
-Freigabe dieses Dokuments entscheidet den Scope; erst spätere Implementierung und dokumentierte
-Abnahme machen daraus unterstütztes Produktverhalten. Siehe
+Die nachfolgenden Maße, Rollen, Bedienabläufe und Versionsgrenzen sind fachlich freigegebene
+KRAQEL-Festlegungen. Sie sind kein behaupteter Film-/Fernsehstandard und keine Zusage bestimmter
+Seitenlaufzeiten. Die ausdrückliche Freigabe „Der Vertrag passt so“ am 15. November 2026 entscheidet
+diesen Scope einschließlich der Format-/Importrichtungen. Erst spätere Implementierung und
+dokumentierte Abnahme machen daraus unterstütztes Produktverhalten. Siehe
 [ADR 0033](../architecture/decisions/0033-screenplay-contract-proposal.md) und
 [F08-/M3-Matrix](../testing/F08_M3_ACCEPTANCE_MATRIX.md).
 
@@ -25,18 +26,19 @@ Renderer lehnen unbekannte Knoten/Attribute ab. Ein eingerückter Absatz ist des
 Dialog, und eine Überschrift ist noch kein Szenenkopf. DOCX-Manuskriptaustausch v1 erhält
 ausschließlich seine dokumentierte Textsemantik, kein Seitenlayout und keine Drehbuchtypen.
 
-Vorgeschlagen wird eine explizite Rolle je Drehbuchabsatz innerhalb einer bestehenden KRAQEL-Szene.
-Kapitel-/Szenenbaum, IDs, Story-Bibel und Medienlinks bleiben fachlich maßgeblich. Prosa- und
-Drehbuchszenen dürfen im selben Projekt vorkommen; es wird kein globaler Projektgenrewechsel
-verlangt. Es gibt keine automatische Erkennung aus Großbuchstaben, Einzügen, Figurennamen oder
-`INT./EXT.`.
+Fachlich vorgesehen ist eine explizite Rolle je Drehbuchabsatz innerhalb einer bestehenden
+KRAQEL-Szene. Kapitel-/Szenenbaum, IDs, Story-Bibel und Medienlinks bleiben fachlich maßgeblich.
+Prosa- und Drehbuchszenen dürfen im selben Projekt vorkommen; es wird kein globaler
+Projektgenrewechsel verlangt. Es gibt keine automatische Erkennung aus Großbuchstaben, Einzügen,
+Figurennamen oder `INT./EXT.`.
 
 ## 3. Rollen und kanonisches Modell
 
-Vorgeschlagener neuer Block: `screenplayBlock` mit genau `attrs.role` aus der folgenden Menge und
-Inline-Inhalt aus Text, Fett/Kursiv und harten Umbrüchen. Keine Listen, Zitate oder verschachtelten
-Drehbuchblöcke innerhalb dieses Blocks. Reihenfolge, Rolle, Unicode, Leerzeichen, leere Blöcke und
-Inline-Markierungen sind kanonische Semantik; Einzüge und Schrift sind Ausgabeprofil.
+Fachlich festgelegter neuer Block: `screenplayBlock` mit genau `attrs.role` aus der folgenden Menge
+und Inline-Inhalt aus Text, Fett/Kursiv und harten Umbrüchen. Keine Listen, Zitate oder
+verschachtelten Drehbuchblöcke innerhalb dieses Blocks. Reihenfolge, Rolle, Unicode, Leerzeichen,
+leere Blöcke und Inline-Markierungen sind kanonische Semantik; Einzüge und Schrift sind
+Ausgabeprofil.
 
 | Maschinenrolle  | Sichtbare Bezeichnung | Bedeutung und Ausgabe                                               |
 | --------------- | --------------------- | ------------------------------------------------------------------- |
@@ -83,8 +85,8 @@ Dokument-/Medien-IDs erhalten. Kein schreibender Provider- oder Netzwerkpfad.
 
 ## 5. Erstes Layoutprofil: `kraqel-screenplay-a4-v1`
 
-Dieses festgeschriebene Profil ist der Vorschlag für die erste Stufe. US Letter und individuell
-konfigurierbare Profile folgen nur nach eigener Entscheidung. Es gibt kein automatisches
+Dieses festgeschriebene Profil ist für die erste Stufe fachlich freigegeben. US Letter und
+individuell konfigurierbare Profile folgen nur nach eigener Entscheidung. Es gibt kein automatisches
 Papierformat je Betriebssystem und keine Zusage „eine Seite = eine Minute“.
 
 | Eigenschaft              | Vorschlag                                                                          |
@@ -121,7 +123,7 @@ Szenen. Bei gemischten Projekten werden Prosa-Szenen nicht automatisch ausgelass
 ausdrücklich auf reine Drehbuchszenen eingeschränkt sein, sonst Fehler vor Veröffentlichung. Ein
 PDF-Titelblatt, Kopf-/Fußzeilen, Seitenzahlen und Revisionsfarben sind nicht Teil von Stufe 1.
 
-## 6. Format- und Importmatrix des Vorschlags
+## 6. Format- und Importmatrix des freigegebenen Umfangs
 
 | Weg                               | Vorgeschlagene Garantie                                                            | Begrenzung                                                                     |
 | --------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
@@ -197,6 +199,6 @@ oder Bibliotheksdiagnosen in Fehlermeldungen.
 | DB-07 | Markdown-/HTML-Maskierung sowie Öffnung/Speicherung von DOCX in Word und LibreOffice; spätere v2-Rollenmarker separat rücklesen                                   |
 | DB-08 | Native App mit synthetischen Drehbuchszenen, Abbruch/Fehler, Ausgabealterhalt, expliziter Szenenauswahl und abgewiesenem Bildmodus                                |
 
-Erster nächster Schritt nach fachlicher Freigabe: Modell-/Versionsprototyp mit DB-01 bis DB-03 und
-Schriftprüfung, danach Renderer und Office-Abnahme. Ein Merge dieser Dokumentation bedeutet weder
-Funktionsabnahme noch automatische Freigabe aller vorgeschlagenen Produktentscheidungen.
+Fachlich freigegebener nächster Implementierungsschritt: Modell-/Versionsprototyp mit DB-01 bis
+DB-03 und Schriftprüfung, danach Renderer und Office-Abnahme. Die fachliche Freigabe ist keine
+Funktionsabnahme; der anschließende M3-Gesamttest implementiert keine Drehbuchfunktion.

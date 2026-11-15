@@ -1,0 +1,18 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "KRAQEL M3 Gesamttest",
+  "identifier": "org.kraqel.desktop.m3-test",
+  "app": {
+    "appDirectoriesOverride": "$TEMP/kraqel-m3-acceptance-20261115",
+    "windows": [
+      {
+        "title": "KRAQEL M3 Gesamttest",
+        "width": 1180,
+        "height": 780,
+        "minWidth": 760,
+        "minHeight": 560
+      }
+    ]
+  },
+  "bundle": { "active": false }
+}
