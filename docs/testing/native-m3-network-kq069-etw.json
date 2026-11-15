@@ -1,0 +1,69 @@
+{
+  "formatVersion": 1,
+  "measurementValid": true,
+  "measurementProblems": [],
+  "result": "observed-non-loopback-traffic",
+  "rootStarts": 3,
+  "processLifetimes": {
+    "kraqel-desktop.exe": 3,
+    "conhost.exe": 3,
+    "msedgewebview2.exe": 24,
+    "git.exe": 10
+  },
+  "loss": {
+    "EventsLost": 0,
+    "BuffersLost": 0
+  },
+  "positiveControls": {
+    "expected": 4,
+    "observed": 4
+  },
+  "unattributableNetworkEvents": 0,
+  "unknownDestinationEvents": 0,
+  "networkEvents": [
+    {
+      "image": "msedgewebview2.exe",
+      "eventId": 10,
+      "destinationScope": "global",
+      "count": 76
+    },
+    {
+      "image": "msedgewebview2.exe",
+      "eventId": 11,
+      "destinationScope": "global",
+      "count": 95
+    },
+    {
+      "image": "msedgewebview2.exe",
+      "eventId": 12,
+      "destinationScope": "global",
+      "count": 12
+    },
+    {
+      "image": "msedgewebview2.exe",
+      "eventId": 13,
+      "destinationScope": "global",
+      "count": 6
+    },
+    {
+      "image": "msedgewebview2.exe",
+      "eventId": 13,
+      "destinationScope": "loopback",
+      "count": 9
+    },
+    {
+      "image": "msedgewebview2.exe",
+      "eventId": 18,
+      "destinationScope": "global",
+      "count": 67
+    },
+    {
+      "image": "msedgewebview2.exe",
+      "eventId": 29,
+      "destinationScope": "loopback",
+      "count": 9
+    }
+  ],
+  "nonLoopbackEvents": 256,
+  "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths."
+}

@@ -48,3 +48,44 @@ offen; der Helfer verändert die Anwendung nicht, um ein besseres Messergebnis z
 Werkzeuggrundlage:
 [logman create trace](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/logman-create-trace),
 [tracerpt](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/tracerpt).
+
+## Ergänzende lokale NetLog-Diagnose (KQ-069)
+
+NetLog unterscheidet URL-Start-Ereignisse und feste öffentliche Routenklassen. Es ist kein
+vollständiger Windows-Netzmonitor und kein Upload-Inhaltsaudit. **Exitcode 0 heißt nur erfolgreich
+ausgewertet, niemals Netzfreigabe.** Auch null Starts setzen `networkSilenceClaim` nicht auf wahr.
+Default-NetLogs können URLs, Kennungen und Header enthalten: ausschließlich außerhalb Git lokal
+aufbewahren, nicht an externe Viewer, Issues oder PRs übertragen. Nur synthetische Projekte nutzen.
+
+Die Vorbereitung verlangt Python 3.10+, einen frischen direkten TEMP-Unterordner mit dem Präfix
+`kraqel-m3-acceptance-` und die lokalen Quellen der gelockten wry-Version 0.57.1. Vorhandene Wurzeln
+und WebView2-Umgebungsüberschreibungen werden abgelehnt. Beispiel aus der Repositorywurzel:
+
+```powershell
+$diagnosticRoot = Join-Path $env:TEMP 'kraqel-m3-acceptance-netlog-NEW'
+# Den tatsächlich vorhandenen Cargo-Quellpfad einsetzen:
+python scripts/m3-network/prepare_netlog.py $diagnosticRoot --wry-source '<Cargo registry>/wry-0.57.1'
+pnpm --filter @kraqel/desktop tauri build --debug --no-bundle --config "$diagnosticRoot/diagnostic.conf.json"
+```
+
+Der Helfer übernimmt die geprüften wry-Defaults ausdrücklich, weil `additionalBrowserArgs` sie
+ersetzt. Nur zwei Loggingargumente kommen hinzu. Er verändert weder produktive Konfiguration noch
+OS-/Firewall-/Datenschutzregeln. Vor dem Start PID, Executable-SHA, Uhrzeit und Projektbestand
+festhalten. App ohne Provideraufruf bedienen, anschließend sauber schließen und alle Nachfahren
+beenden. **Vor jedem Neustart** die abgeschlossene `netlog.json` in einen neuen Dateinamen unter
+`raw/` verschieben: Der nächste Start verwendet denselben Logpfad. JSON erst nach App-Ende
+auswerten; unvollständige oder größere Dateien als 32 MiB werden abgelehnt.
+
+```powershell
+python scripts/m3-network/netlog.py "$diagnosticRoot/raw/baseline.json"
+python -m unittest discover -s scripts/m3-network -v
+# Nach allen Diagnoseläufen den normalen lokalen Debug-Build wiederherstellen:
+pnpm --filter @kraqel/desktop tauri build --debug --no-bundle
+```
+
+Die Projektion gibt keine beliebigen Hosts, IPs, Pfade, Queries, Credentials, Header oder Bodies
+aus; nur fest erlaubte öffentliche Hosts und feste Routenklassen. Deklarierte Streamgrößen sind
+keine übertragenen Nutzdatenmengen. Starts und unterschiedliche Source-IDs werden getrennt gezählt;
+mehrere Starts können zu derselben Quelle gehören. Fehlende Inhalte beweisen keine fehlende
+Übertragung.
+[KQ-069-Ergebnis und Maßnahmenbewertung](../../docs/testing/native-m3-webview-network.md).

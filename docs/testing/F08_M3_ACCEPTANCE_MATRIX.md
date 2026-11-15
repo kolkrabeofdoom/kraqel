@@ -10,6 +10,12 @@ unabhängig rückgelesen. Der Nutzer bestätigt auch Löschmeldungen, Export-Bed
 mit „Ja passt, alles gut“. Die gezeigte Hörprobe ist bestanden; keine pauschale assistive F08- oder
 WCAG-Freigabe.
 
+KQ-069 ergänzt die [NetLog-Diagnose](native-m3-webview-network.md): Konfigurations- und
+Komponentenupdate-Starts schon ohne Projekte; keine Inhalte-/Netzfreigabe. Unterstützte Maßnahmen
+sind bewertet, keine Unterdrückung implementiert. Der erneute ETW-Lauf ist mit allen Prozessenden,
+Dokument-CRUD, Medienimport/-Metadaten, Export/Neuimport und drei App-Starts gültig, bestätigt aber
+256 öffentliche WebView2-Transportereignisse. ADR 0034 bleibt Entscheidungsvorlage; #134 offen.
+
 **Q-01/Q-02: gemessen, nicht bestanden.** Windows-ETW findet öffentlichen Verkehr von
 WebView2-Nachfahren ohne Provideraufruf. Der bisher fehlende Gesamtnachweis ist durch diesen
 konkreten Befund ersetzt; [KQ-069 / #134](https://github.com/kolkrabeofdoom/kraqel/issues/134) hält

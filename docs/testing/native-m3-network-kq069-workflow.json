@@ -1,0 +1,21 @@
+{
+  "formatVersion": 1,
+  "syntheticOnly": true,
+  "sourceScene1UnchangedInCopy": true,
+  "approvedProbeDeletedOnlyInSource": true,
+  "sourceDocumentCount": 2,
+  "archiveCopyDocumentCount": 3,
+  "mediaTagsPersisted": true,
+  "mediaOriginalShaMatchesDatabase": true,
+  "thumbnailExists": true,
+  "sourceHtmlContainsSavedText": true,
+  "sourceAndCopyIntegrityOk": true,
+  "foreignKeyErrors": 0,
+  "archiveBytes": 4133,
+  "archiveSha256": "cc670353951d37a4356878a23851216e3d809ca1580a5456e385ac1450185866",
+  "traceStartedUtc": "2026-11-15T13:14:35.3066022Z",
+  "traceStoppedUtc": "2026-11-15T13:21:29.1087884Z",
+  "convertedUtc": "2026-11-15T13:21:31.6587335Z",
+  "allAppStopsRecordedBeforeTraceStop": true,
+  "rawEtlBytes": 8781824
+}

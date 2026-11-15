@@ -2,6 +2,21 @@
 
 Stand: 15. November 2026
 
+**Fortschreibung KQ-069 / Issue #134:** PR #135 ist nach grüner Windows-/Linux-CI und Dependency
+Review am Head `202c5b2` zusammengeführt (`d685937`); Issue #133 geschlossen. Die lokale
+NetLog-Diagnose reproduziert schon ohne Projekte zwei Konfigurations-GET-Starts und drei
+Komponentenupdate-POST-Starts. Korpus/HTML-Export sowie Neustart/Archivimport/Änderung zeigen
+weitere Komponentenupdate-Starts. Keine Body- oder vollständige Uploadprüfung. 27 Python-Tests
+prüfen ETW-/NetLog-Auswertung und isolierte Vorbereitung. Nach erneuter UAC-Freigabe ist der
+ETW-Wiederholungslauf mit Dokument-CRUD, Medienimport/-Metadaten, HTML-/Archivexport, Neuimport und
+drei vollständigen App-Prozessläufen gültig: 4/4 Kontrollen, kein Verlust, alle Prozessenden; 256
+öffentliche Transportereignisse ausschließlich aus WebView2. Kein Upload-Inhaltsnachweis.
+`pnpm check` und Wiederherstellung des normalen Debug-Builds erfolgreich. Unterstützte Maßnahmen
+sind [bewertet](testing/native-m3-webview-network.md), keine Unterdrückung implementiert.
+[ADR 0034](architecture/decisions/0034-webview-network-boundary-proposal.md) ist eine offene
+Entscheidungsvorlage. Empfehlung: striktes Pflichtenheftziel beibehalten und technische Isolation
+zunächst untersuchen. Q-01/Q-02 unverändert nicht bestanden; #134 bleibt offen.
+
 **Fortschreibung KQ-068 / Issue #133:** PR #132 ist mit grüner Windows-/Linux-CI und Dependency
 Review zusammengeführt (`c7629c3`); Issue #131 ist geschlossen. Die KQ-067-Aussagen bleiben
 historische Belege. Neu: native Medien-/Profil-/Stil-CRUD-Teilprüfungen, zugängliche Status-/
