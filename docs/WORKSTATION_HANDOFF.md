@@ -33,6 +33,12 @@ Abnahmenachweis. Danach Auswahl aus einer laufenden App, assistive Abnahme und d
 Auftrags-/Replay-/Crash-Reconciliation. Weitere Formate, Git-/Credential-/Providergrenzen,
 öffentliche UDP-/IPv6-/DNS-/Broker-Gegenproben und Produkt-/Installerintegration folgen separat.
 
+GitHub zeigt außerdem drei bestehende, noch offene Dependabot-Meldungen:
+[`lopdf` · hoch · #8](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/8),
+[`glib` · mittel · #7](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/7) und
+[`minimatch` · mittel · #6](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/6). Sie
+wurden durch die UI-/Isolationsarbeit nicht behoben; Erreichbarkeit und Updates separat prüfen.
+
 Für die Fortsetzung zuerst lesen:
 
 1. `AGENTS.md`, [Entwicklungsstatus](DEVELOPMENT_STATUS.md), [Roadmap](../ROADMAP.md) und #134.
