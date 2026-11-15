@@ -1,0 +1,124 @@
+{
+  "formatVersion": 1,
+  "diagnosticOnly": true,
+  "sourceCommit": "d6859378f86146980aaaddfc32afdfe3eb27feeb",
+  "executableSha256": "2a62f2be296e5816c8d0536fe358a3370b41bd6ca8d72e55022220591219a2b5",
+  "networkSilenceClaim": false,
+  "cases": [
+    {
+      "formatVersion": 1,
+      "diagnosticOnly": true,
+      "eventCount": 1119,
+      "decodedRequestStarts": 5,
+      "beginEventsMissingUrl": 0,
+      "unknownEventTypes": 0,
+      "uploadRelatedEventCount": 20,
+      "declaredUploadStreamSizes": [
+        {
+          "bytes": 1306,
+          "initEvents": 1
+        },
+        {
+          "bytes": 1316,
+          "initEvents": 1
+        },
+        {
+          "bytes": 1332,
+          "initEvents": 1
+        },
+        {
+          "bytes": 1342,
+          "initEvents": 1
+        },
+        {
+          "bytes": 5298,
+          "initEvents": 1
+        }
+      ],
+      "httpStatusCodes": {
+        "200": 5
+      },
+      "requestGroups": [
+        {
+          "originKind": "network-origin",
+          "host": "edge.microsoft.com",
+          "routeClass": "component-updater-route",
+          "method": "POST",
+          "initiator": "other-or-opaque",
+          "startEvents": 5,
+          "distinctSources": 5
+        }
+      ],
+      "networkSilenceClaim": false,
+      "limits": "Request-start events are not HTTP wire-request counts. No paths, queries, credentials, IP addresses, headers or body contents are exported. Missing content cannot prove absence of manuscript transmission. NetLog does not cover every Windows broker or runtime path.",
+      "case": "etw-workflow-1",
+      "rawSha256": "07fbda5eb060b7901a21fc63887acd8bfb4e3373016e7efacfff36b75880835f"
+    },
+    {
+      "formatVersion": 1,
+      "diagnosticOnly": true,
+      "eventCount": 543,
+      "decodedRequestStarts": 1,
+      "beginEventsMissingUrl": 0,
+      "unknownEventTypes": 0,
+      "uploadRelatedEventCount": 4,
+      "declaredUploadStreamSizes": [
+        {
+          "bytes": 5687,
+          "initEvents": 1
+        }
+      ],
+      "httpStatusCodes": {
+        "200": 1
+      },
+      "requestGroups": [
+        {
+          "originKind": "network-origin",
+          "host": "edge.microsoft.com",
+          "routeClass": "component-updater-route",
+          "method": "POST",
+          "initiator": "other-or-opaque",
+          "startEvents": 1,
+          "distinctSources": 1
+        }
+      ],
+      "networkSilenceClaim": false,
+      "limits": "Request-start events are not HTTP wire-request counts. No paths, queries, credentials, IP addresses, headers or body contents are exported. Missing content cannot prove absence of manuscript transmission. NetLog does not cover every Windows broker or runtime path.",
+      "case": "etw-workflow-2",
+      "rawSha256": "db7844ae1d05f8536adf9abd290dc3e41923349b33369e88e77faab8493facac"
+    },
+    {
+      "formatVersion": 1,
+      "diagnosticOnly": true,
+      "eventCount": 555,
+      "decodedRequestStarts": 1,
+      "beginEventsMissingUrl": 0,
+      "unknownEventTypes": 0,
+      "uploadRelatedEventCount": 4,
+      "declaredUploadStreamSizes": [
+        {
+          "bytes": 5688,
+          "initEvents": 1
+        }
+      ],
+      "httpStatusCodes": {
+        "200": 1
+      },
+      "requestGroups": [
+        {
+          "originKind": "network-origin",
+          "host": "edge.microsoft.com",
+          "routeClass": "component-updater-route",
+          "method": "POST",
+          "initiator": "other-or-opaque",
+          "startEvents": 1,
+          "distinctSources": 1
+        }
+      ],
+      "networkSilenceClaim": false,
+      "limits": "Request-start events are not HTTP wire-request counts. No paths, queries, credentials, IP addresses, headers or body contents are exported. Missing content cannot prove absence of manuscript transmission. NetLog does not cover every Windows broker or runtime path.",
+      "case": "etw-workflow-3",
+      "rawSha256": "1dbe4fb13ef1776df0986ce56b10f9dbc6d22fa7b8b6064c8745947dce7097a3"
+    }
+  ]
+}

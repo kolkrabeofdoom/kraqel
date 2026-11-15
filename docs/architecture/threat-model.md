@@ -1,5 +1,17 @@
 # Bedrohungsmodell (Entwurf)
 
+## KQ-069: Runtime-Dienste auch ohne Projektdaten
+
+Der zusätzliche lokale NetLog zeigt bereits bei leerem Projektbestand Konfigurations-GETs und
+POST-Starts an der Komponentenupdate-Route. Das grenzt den Dienst ein, beweist aber keine zulässigen
+Body-Inhalte oder fehlende Projektübertragung in anderen Abläufen. NetLog ist keine vollständige
+Windows-Netzgrenze. Rohlogs mit URLs/Kennungen/Headers bleiben lokal; Git enthält nur eine
+eingeschränkte Projektion. Der nach Nutzerfreigabe wiederholte ETW-Lauf hat vollständige
+Prozessenden, vier positive Kontrollen und keine Verluste; 256 öffentliche WebView2-Ereignisse
+bestätigen den Befund. Keine Unterdrückungsmaßnahme implementiert. Q-01/Q-02 bleiben nicht
+bestanden. [Protokoll](../testing/native-m3-webview-network.md) und
+[offene Entscheidungsvorlage ADR 0034](decisions/0034-webview-network-boundary-proposal.md).
+
 ## KQ-068: Gemessene Windows-Laufzeitgrenze
 
 ETW findet ohne Provideraufruf öffentliche Netzverbindungen von WebView2-Nachfahren der isolierten

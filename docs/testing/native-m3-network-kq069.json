@@ -1,0 +1,138 @@
+{
+  "formatVersion": 1,
+  "webView2Version": "157.0.4341.60",
+  "sourceCommit": "d6859378f86146980aaaddfc32afdfe3eb27feeb",
+  "executableSha256": "ab026592fcfc3281844d62fe9386f7edc44d156b227007c4ae82a6c7920b3e57",
+  "cases": [
+    {
+      "formatVersion": 1,
+      "diagnosticOnly": true,
+      "eventCount": 1150,
+      "decodedRequestStarts": 5,
+      "beginEventsMissingUrl": 0,
+      "unknownEventTypes": 0,
+      "uploadRelatedEventCount": 12,
+      "declaredUploadStreamSizes": [
+        {
+          "bytes": 1306,
+          "initEvents": 1
+        },
+        {
+          "bytes": 1314,
+          "initEvents": 1
+        },
+        {
+          "bytes": 4902,
+          "initEvents": 1
+        }
+      ],
+      "httpStatusCodes": {
+        "200": 5
+      },
+      "requestGroups": [
+        {
+          "originKind": "network-origin",
+          "host": "config.edge.skype.com",
+          "routeClass": "configuration-route",
+          "method": "GET",
+          "initiator": "other-or-opaque",
+          "startEvents": 2,
+          "distinctSources": 2
+        },
+        {
+          "originKind": "network-origin",
+          "host": "edge.microsoft.com",
+          "routeClass": "component-updater-route",
+          "method": "POST",
+          "initiator": "other-or-opaque",
+          "startEvents": 3,
+          "distinctSources": 3
+        }
+      ],
+      "networkSilenceClaim": false,
+      "limits": "Request-start events are not HTTP wire-request counts. No paths, queries, credentials, IP addresses, headers or body contents are exported. Missing content cannot prove absence of manuscript transmission. NetLog does not cover every Windows broker or runtime path.",
+      "case": "baseline",
+      "rawSha256": "728534a474b4f69078cd3cea99fcaa9953ff669599d8a7d9f9a62ce859510a98"
+    },
+    {
+      "formatVersion": 1,
+      "diagnosticOnly": true,
+      "eventCount": 635,
+      "decodedRequestStarts": 2,
+      "beginEventsMissingUrl": 0,
+      "unknownEventTypes": 0,
+      "uploadRelatedEventCount": 8,
+      "declaredUploadStreamSizes": [
+        {
+          "bytes": 1320,
+          "initEvents": 1
+        },
+        {
+          "bytes": 5094,
+          "initEvents": 1
+        }
+      ],
+      "httpStatusCodes": {
+        "200": 2
+      },
+      "requestGroups": [
+        {
+          "originKind": "network-origin",
+          "host": "edge.microsoft.com",
+          "routeClass": "component-updater-route",
+          "method": "POST",
+          "initiator": "other-or-opaque",
+          "startEvents": 2,
+          "distinctSources": 2
+        }
+      ],
+      "networkSilenceClaim": false,
+      "limits": "Request-start events are not HTTP wire-request counts. No paths, queries, credentials, IP addresses, headers or body contents are exported. Missing content cannot prove absence of manuscript transmission. NetLog does not cover every Windows broker or runtime path.",
+      "case": "project-export",
+      "rawSha256": "f10e222f0bf050766123db318f2e3cadeb5b557f824cdc34a2c5e82ab65b3a14"
+    },
+    {
+      "formatVersion": 1,
+      "diagnosticOnly": true,
+      "eventCount": 847,
+      "decodedRequestStarts": 3,
+      "beginEventsMissingUrl": 0,
+      "unknownEventTypes": 0,
+      "uploadRelatedEventCount": 12,
+      "declaredUploadStreamSizes": [
+        {
+          "bytes": 1310,
+          "initEvents": 1
+        },
+        {
+          "bytes": 1338,
+          "initEvents": 1
+        },
+        {
+          "bytes": 5099,
+          "initEvents": 1
+        }
+      ],
+      "httpStatusCodes": {
+        "200": 3
+      },
+      "requestGroups": [
+        {
+          "originKind": "network-origin",
+          "host": "edge.microsoft.com",
+          "routeClass": "component-updater-route",
+          "method": "POST",
+          "initiator": "other-or-opaque",
+          "startEvents": 3,
+          "distinctSources": 3
+        }
+      ],
+      "networkSilenceClaim": false,
+      "limits": "Request-start events are not HTTP wire-request counts. No paths, queries, credentials, IP addresses, headers or body contents are exported. Missing content cannot prove absence of manuscript transmission. NetLog does not cover every Windows broker or runtime path.",
+      "case": "restart-import",
+      "rawSha256": "ac86fa71e8c34136f4e5df551b7c064d9043e5854e478df6559eb0c03f61b0bc"
+    }
+  ],
+  "networkSilenceClaim": false,
+  "newEtwCaptureStarted": true
+}

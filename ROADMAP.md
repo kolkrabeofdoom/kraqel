@@ -87,6 +87,13 @@
        - [ ] Weitere allgemeine assistive F08-Randfälle ergänzen
        - [ ] WebView2-Netzbefund klären und Laufzeitgrenze ausdrücklich entscheiden; Q-01/Q-02 erst
              anhand neuer Evidenz freigeben (KQ-069 / #134)
+       - [x] KQ-069: NetLog-Ursachendiagnose mit leerem Projektbestand und synthetischem
+             Export-/Importlauf; unterstützte Maßnahmen und Grenzen dokumentieren
+       - [x] KQ-069: ETW mit drei vollständigen App-Läufen, Dokument-CRUD, Medienimport/-Metadaten
+             und Export/Neuimport wiederholen; gültige Messung bestätigt öffentlichen Verkehr
+       - [ ] KQ-069: Unterstützte Isolation unter dem bestehenden strikten Ziel untersuchen; eine
+             wirksame Maßnahme erneut mit ETW prüfen. Jede Zielabweichung verlangt Fachentscheid
+             (ADR 0034)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene
        Zeilen: `docs/testing/F08_M3_ACCEPTANCE_MATRIX.md`
    - [x] Lokale Medienbibliothek mit Metadaten, Links, Backup und Snapshot-Assets
