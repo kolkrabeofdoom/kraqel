@@ -1,11 +1,9 @@
 //! Durable native recovery authority, deliberately gated to synthetic research sessions.
-//! DPAPI authenticates sealed state for this Windows account; it does not attest same-user code.
+//! Local HMAC authority; no account recovery, domain backup or DPAPI path.
 use super::*;
+use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
 use std::os::windows::fs::{MetadataExt, OpenOptionsExt};
-use windows_sys::Win32::Security::Cryptography::{
-    CRYPT_INTEGER_BLOB, CRYPTPROTECT_UI_FORBIDDEN, CryptProtectData, CryptUnprotectData,
-};
 use windows_sys::Win32::System::SystemServices::JOB_OBJECT_QUERY;
 
 #[derive(Serialize, Deserialize)]
@@ -17,45 +15,41 @@ struct Authority {
     ticket: RestartTicket,
 }
 
-fn protect(bytes: &[u8], decrypt: bool) -> Result<Vec<u8>> {
-    if bytes.is_empty() || bytes.len() > 32768 {
+const MAGIC: &[u8] = b"KRAQEL-BROKER-AUTHORITY\0\x02";
+const MAX_SEAL: usize = 32768;
+const TAG_LEN: usize = 32;
+type HmacSha256 = Hmac<Sha256>;
+
+fn sign(bytes: &[u8], key: &[u8; 32]) -> Result<Vec<u8>> {
+    if bytes.is_empty() || bytes.len() > MAX_SEAL - MAGIC.len() - TAG_LEN {
         return Err(invalid("broker-seal-size"));
     }
-    let input = CRYPT_INTEGER_BLOB {
-        cbData: bytes.len() as u32,
-        pbData: bytes.as_ptr().cast_mut(),
-    };
-    let mut output: CRYPT_INTEGER_BLOB = unsafe { zeroed() };
-    let ok = unsafe {
-        if decrypt {
-            CryptUnprotectData(
-                &input,
-                null_mut(),
-                null(),
-                null(),
-                null(),
-                CRYPTPROTECT_UI_FORBIDDEN,
-                &mut output,
-            )
-        } else {
-            // No LOCAL_MACHINE flag: no machine-wide decryption authority.
-            CryptProtectData(
-                &input,
-                null(),
-                null(),
-                null(),
-                null(),
-                CRYPTPROTECT_UI_FORBIDDEN,
-                &mut output,
-            )
-        }
-    };
-    check(ok, "broker-seal-authentication")?;
-    let _allocation = Local(output.pbData.cast());
-    if output.pbData.is_null() || output.cbData == 0 || output.cbData > 32768 {
-        return Err(invalid("broker-seal-output"));
+    let mut mac = HmacSha256::new_from_slice(key).map_err(|_| invalid("broker-mac-key"))?;
+    mac.update(MAGIC);
+    mac.update(bytes);
+    let mut sealed = MAGIC.to_vec();
+    sealed.extend_from_slice(&mac.finalize().into_bytes());
+    sealed.extend_from_slice(bytes);
+    Ok(sealed)
+}
+fn verify<'a>(sealed: &'a [u8], key: &[u8; 32]) -> Result<&'a [u8]> {
+    let offset = MAGIC.len() + TAG_LEN;
+    if sealed.len() <= offset || sealed.len() > MAX_SEAL || !sealed.starts_with(MAGIC) {
+        return Err(invalid("broker-seal-frame"));
     }
-    Ok(unsafe { std::slice::from_raw_parts(output.pbData, output.cbData as usize) }.to_vec())
+    let bytes = &sealed[offset..];
+    let mut mac = HmacSha256::new_from_slice(key).map_err(|_| invalid("broker-mac-key"))?;
+    mac.update(MAGIC);
+    mac.update(bytes);
+    mac.verify_slice(&sealed[MAGIC.len()..offset])
+        .map_err(|_| invalid("broker-seal-authentication"))?;
+    Ok(bytes)
+}
+fn read_key(root: &Path) -> Result<[u8; 32]> {
+    let file = open_file(&root.join("control/authority.key"), false, false)?;
+    let mut bytes = Vec::new();
+    io("broker-key-read", file.take(33).read_to_end(&mut bytes))?;
+    bytes.try_into().map_err(|_| invalid("broker-key-size"))
 }
 
 fn private_directory(path: &Path) -> Result<()> {
@@ -252,13 +246,24 @@ fn root_hash(root: &Path) -> [u8; 32] {
 }
 fn seal(root: &Path, authority: &Authority) -> Result<()> {
     let bytes = serde_json::to_vec(authority).map_err(|_| invalid("broker-authority-encode"))?;
-    let protected = protect(&bytes, false)?;
+    let mut key = [0u8; 32];
+    getrandom::fill(&mut key).map_err(|_| invalid("broker-key-random"))?;
+    let mut key_file = io(
+        "broker-key-create",
+        OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(root.join("control/authority.key")),
+    )?;
+    io("broker-key-write", key_file.write_all(&key))?;
+    io("broker-key-sync", key_file.sync_all())?;
+    let protected = sign(&bytes, &key)?;
     let mut file = io(
         "broker-seal-create",
         OpenOptions::new()
             .write(true)
             .create_new(true)
-            .open(root.join("control/authority.dpapi")),
+            .open(root.join("control/authority.mac")),
     )?;
     io("broker-seal-write", file.write_all(&protected))?;
     io("broker-seal-sync", file.sync_all())
@@ -267,14 +272,15 @@ fn authenticate(root: &Path) -> Result<Authority> {
     if root.join("control/retired").exists() {
         return Err(invalid("broker-retired"));
     }
-    let file = open_file(&root.join("control/authority.dpapi"), false, false)?;
+    let file = open_file(&root.join("control/authority.mac"), false, false)?;
     let mut bytes = Vec::new();
     io("broker-seal-read", file.take(32769).read_to_end(&mut bytes))?;
-    let decoded = protect(&bytes, true)?;
+    let key = read_key(root)?;
+    let decoded = verify(&bytes, &key)?;
     let authority: Authority =
-        serde_json::from_slice(&decoded).map_err(|_| invalid("broker-seal-shape"))?;
+        serde_json::from_slice(decoded).map_err(|_| invalid("broker-seal-shape"))?;
     let ticket = &authority.ticket;
-    if authority.version != 1
+    if authority.version != 2
         || authority.root_sha256 != root_hash(root)
         || authority.controller_sha256 != hash(&io("broker-current-exe", std::env::current_exe())?)?
         || ticket.session_id != session(root)?
@@ -309,9 +315,11 @@ pub(super) fn verify_container_denials(process: HANDLE, root: &Path) -> Result<(
     )?;
     let result = (|| {
         for (path, rights) in [
-            (root.join("control/authority.dpapi"), GENERIC_READ),
-            (root.join("control/authority.dpapi"), GENERIC_WRITE),
+            (root.join("control/authority.mac"), GENERIC_READ),
+            (root.join("control/authority.mac"), GENERIC_WRITE),
             (root.join("control/owner.lock"), GENERIC_READ),
+            (root.join("control/authority.key"), GENERIC_READ),
+            (root.join("control/authority.key"), GENERIC_WRITE),
             (root.join("bin/kraqel-desktop.exe"), GENERIC_WRITE),
         ] {
             let raw = unsafe {
@@ -415,7 +423,7 @@ pub(in super::super::super) fn seed(root: &Path, app: &Path, point: &str) -> Res
     seal(
         &root,
         &Authority {
-            version: 1,
+            version: 2,
             root_sha256: root_hash(&root),
             controller_sha256: hash(&io("broker-current-exe", std::env::current_exe())?)?,
             ticket: ticket.clone(),
@@ -545,7 +553,7 @@ fn child(arguments: &[&std::ffi::OsStr], expected: i32) -> Result<()> {
     }
 }
 fn negative_recovery_checks(root: &Path) -> Result<usize> {
-    let authority_path = root.join("control/authority.dpapi");
+    let authority_path = root.join("control/authority.mac");
     let original = io("broker-negative-read-seal", fs::read(&authority_path))?;
     let journal = hash(&root.join("data/app/tasks/tasks.sqlite3"))?;
     let rejected = || {
@@ -569,21 +577,22 @@ fn negative_recovery_checks(root: &Path) -> Result<usize> {
         Ok(())
     };
     // Deliberate test-host mutations, never a renderer capability.
-    let decoded = protect(&original, true)?;
+    let key = read_key(root)?;
+    let decoded = verify(&original, &key)?;
     for case in 0..6 {
         let mut authority: Authority =
-            serde_json::from_slice(&decoded).map_err(|_| invalid("broker-negative-decode"))?;
+            serde_json::from_slice(decoded).map_err(|_| invalid("broker-negative-decode"))?;
         match case {
-            1 => authority.version = 2,
+            1 => authority.version = 1,
             2 => authority.root_sha256 = [0; 32],
             3 => authority.controller_sha256 = [0; 32],
             4 => authority.ticket.app_sha256 = [0; 32],
             5 => authority.ticket.session_id = Uuid::new_v4(),
             _ => (),
         }
-        let mut sealed = protect(
+        let mut sealed = sign(
             &serde_json::to_vec(&authority).map_err(|_| invalid("broker-negative-encode"))?,
-            false,
+            &key,
         )?;
         if case == 0 {
             let index = sealed.len() / 2;
@@ -597,7 +606,11 @@ fn negative_recovery_checks(root: &Path) -> Result<usize> {
         )?;
         outcome?;
     }
-    for relative in ["control/authority.dpapi", "data/app/tasks/tasks.sqlite3"] {
+    for relative in [
+        "control/authority.mac",
+        "control/authority.key",
+        "data/app/tasks/tasks.sqlite3",
+    ] {
         let path = root.join(relative);
         let backup = path.with_extension("negative-backup");
         io("broker-negative-hide", fs::rename(&path, &backup))?;
@@ -608,7 +621,19 @@ fn negative_recovery_checks(root: &Path) -> Result<usize> {
     let lock = open_file(&root.join("control/owner.lock"), true, false)?;
     rejected()?;
     drop(lock);
-    Ok(9)
+    for bad_key in [vec![0; 31], vec![0; 32]] {
+        io(
+            "broker-negative-key-write",
+            fs::write(root.join("control/authority.key"), bad_key),
+        )?;
+        let outcome = rejected();
+        io(
+            "broker-negative-key-restore",
+            fs::write(root.join("control/authority.key"), key),
+        )?;
+        outcome?;
+    }
+    Ok(12)
 }
 
 pub(in super::super::super) fn series(root: &Path, app: &Path) -> Result<Value> {
@@ -663,7 +688,7 @@ pub(in super::super::super) fn series(root: &Path, app: &Path) -> Result<Value> 
         cases.push(json!({"point":point,"controllerCrashExitCode":86,"recoveryProcesses":2,"appGenerations":5,"negativeChecks":negative_checks+1,"passed":true,"profileRemoved":true,"localRoot":case_root}));
         write_json(&root.join("progress.json"), &json!({"cases":cases}))?;
     }
-    let report = json!({"formatVersion":1,"researchOnly":true,"productionAcceptance":false,"passed":true,"controllerCrashes":6,"recoveryProcesses":12,"appGenerations":30,"negativeChecks":60,"cases":cases,"networkMeasurement":false});
+    let report = json!({"formatVersion":1,"researchOnly":true,"productionAcceptance":false,"passed":true,"controllerCrashes":6,"recoveryProcesses":12,"appGenerations":30,"negativeChecks":78,"cases":cases,"networkMeasurement":false});
     write_json(&root.join("result.json"), &report)?;
     Ok(report)
 }
@@ -672,15 +697,24 @@ pub(in super::super::super) fn series(root: &Path, app: &Path) -> Result<Value> 
 mod tests {
     use super::*;
     #[test]
-    fn dpapi_authenticates_and_rejects_corruption_and_oversized_input() {
+    fn hmac_authenticates_and_rejects_wrong_keys_mutation_truncation_and_legacy() {
+        let key = [7; 32];
         let bytes = b"synthetic recovery authority, no manuscript";
-        let mut sealed = protect(bytes, false).unwrap();
-        assert_eq!(protect(&sealed, true).unwrap(), bytes);
-        let index = sealed.len() / 2;
-        sealed[index] ^= 1;
-        assert!(protect(&sealed, true).is_err());
-        assert!(protect(&[], true).is_err());
-        assert!(protect(&vec![0; 32769], true).is_err());
+        let sealed = sign(bytes, &key).unwrap();
+        assert_eq!(verify(&sealed, &key).unwrap(), bytes);
+        assert!(verify(&sealed, &[8; 32]).is_err());
+        for i in 0..sealed.len() {
+            let mut bad = sealed.clone();
+            bad[i] ^= 1;
+            assert!(verify(&bad, &key).is_err());
+            assert!(verify(&sealed[..i], &key).is_err());
+        }
+        let mut trailing = sealed.clone();
+        trailing.push(0);
+        assert!(verify(&trailing, &key).is_err());
+        assert!(verify(b"legacy-dpapi-data", &key).is_err());
+        assert!(sign(&[], &key).is_err());
+        assert!(sign(&vec![0; MAX_SEAL], &key).is_err());
     }
     #[test]
     fn exclusive_owner_lock_releases_after_drop_and_rejects_hardlinks() {

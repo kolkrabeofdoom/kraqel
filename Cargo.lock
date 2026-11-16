@@ -2206,6 +2206,8 @@ dependencies = [
 name = "kraqel-isolation-probe"
 version = "0.1.0"
 dependencies = [
+ "getrandom 0.4.3",
+ "hmac",
  "kraqel-domain",
  "kraqel-isolation-test-adapter",
  "kraqel-storage",

@@ -123,6 +123,41 @@ class AnalysisTests(unittest.TestCase):
         self.assertEqual(result["nonLoopbackEvents"], 1)
         self.assertEqual(result["result"], "observed-non-loopback-traffic")
 
+    def broker_tree(self, worker=True, web=True, complete=True):
+        self.start(10, 200, 1, "kraqel-isolation-probe.exe")
+        if worker:
+            self.start(11, 201, 200, "kraqel-isolation-probe.exe")
+        self.start(12, 202, 201 if worker else 200, "kraqel-desktop.exe")
+        if web:
+            self.start(13, 203, 202, "msedgewebview2.exe")
+            if complete:
+                self.stop(15, 203)
+        self.stop(16, 202)
+        if worker:
+            self.stop(17, 201)
+        self.stop(18, 200)
+        self.result()
+        return analyze(self.path, (200,), self.ready, "broker-ui")
+
+    def test_broker_ui_accepts_nested_fully_ended_gui_and_includes_broker_traffic(self):
+        self.assertTrue(self.broker_tree()["measurementValid"])
+        self.event(14, NETWORK, 12, {"PID": 201, "daddr": "1.1.1.1"})
+        self.result()
+        result = analyze(self.path, (200,), self.ready, "broker-ui")
+        self.assertTrue(result["measurementValid"])
+        self.assertEqual(result["nonLoopbackEvents"], 1)
+
+    def test_broker_ui_rejects_direct_app_without_broker(self):
+        self.assertIn("missing-broker-ui-descendant-tree", self.broker_tree(worker=False)["measurementProblems"])
+
+    def test_broker_ui_rejects_missing_webview(self):
+        self.assertIn("missing-broker-ui-descendant-tree", self.broker_tree(web=False)["measurementProblems"])
+
+    def test_broker_ui_never_waives_process_ends_or_controls(self):
+        self.assertIn("process-tree-not-fully-stopped-within-capture", self.broker_tree(complete=False)["measurementProblems"])
+        self.ready["controls"][3]["port"] = 20000
+        self.assertIn("incomplete-tcp-udp-ipv4-ipv6-positive-controls", analyze(self.path, (200,), self.ready, "broker-ui")["measurementProblems"])
+
     def test_descendant_and_pid_reuse_are_lifetime_bound(self):
         self.start(4, 102, 101, "child.exe")
         self.stop(7, 102)

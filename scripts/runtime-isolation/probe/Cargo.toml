@@ -19,9 +19,11 @@ sha2 = "=0.10.9"
 serde = { version = "1", features = ["derive"] }
 
 [target.'cfg(windows)'.dependencies]
+hmac = "=0.12.1"
+getrandom = "=0.4.3"
 kraqel-isolation-test-adapter = { path = "../../../apps/desktop/isolation-test-adapter" }
 kraqel-storage = { path = "../../../crates/storage" }
 kraqel-domain = { path = "../../../crates/domain" }
 uuid = { version = "1", features = ["v4", "serde"] }
 windows = { version = "=0.62.2", features = ["Win32_System_Com", "Win32_UI_Shell"] }
-windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_Security_Cryptography", "Win32_Security_Isolation", "Win32_Storage_FileSystem", "Win32_System_Threading", "Win32_System_JobObjects", "Win32_System_SystemServices", "Win32_System_Pipes", "Win32_UI_WindowsAndMessaging"] }
+windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_Security_Isolation", "Win32_Storage_FileSystem", "Win32_System_Threading", "Win32_System_JobObjects", "Win32_System_SystemServices", "Win32_System_Pipes", "Win32_UI_WindowsAndMessaging"] }

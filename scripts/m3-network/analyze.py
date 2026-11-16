@@ -63,7 +63,7 @@ def scope(value):
 
 
 def analyze(path, root_pids, ready, mode="desktop"):
-    if mode not in ("desktop", "exchange", "isolation-ui"):
+    if mode not in ("desktop", "exchange", "isolation-ui", "broker-ui"):
         raise ValueError("Unknown bounded measurement mode")
     root_image = "kraqel-desktop.exe" if mode == "desktop" else "kraqel-isolation-probe.exe"
     process_events = []
@@ -136,6 +136,20 @@ def analyze(path, root_pids, ready, mode="desktop"):
         problems.append("missing-exchange-worker")
     if mode == "isolation-ui" and any(not any(process.image == "kraqel-desktop.exe" and process.parent == root_pid for process in own_processes) or not any(process.image == "msedgewebview2.exe" and process.root_pid == root_pid for process in own_processes) for root_pid in root_pids):
         problems.append("missing-isolated-ui-or-webview-tree")
+    if mode == "broker-ui":
+        def has_broker_gui(root_pid):
+            return any(
+                broker.image == root_image and broker.parent == root_pid and broker.root_pid == root_pid
+                and any(
+                    app.image == "kraqel-desktop.exe" and app.parent == broker.pid
+                    and app.root_pid == root_pid and broker.contains(app.start)
+                    and any(web.image == "msedgewebview2.exe" and web.parent == app.pid
+                            and web.root_pid == root_pid and app.contains(web.start)
+                            for web in own_processes)
+                    for app in own_processes)
+                for broker in own_processes)
+        if any(not has_broker_gui(root_pid) for root_pid in root_pids):
+            problems.append("missing-broker-ui-descendant-tree")
     if loss is None or any(loss.values()):
         problems.append("missing-loss-header-or-lost-events")
     expected_controls = {("TCP", "127.0.0.1"), ("UDP", "127.0.0.1"), ("TCP", "::1"), ("UDP", "::1")}
@@ -173,7 +187,7 @@ def main():
     parser.add_argument("trace_xml", type=Path)
     parser.add_argument("ready_json", type=Path)
     parser.add_argument("--root-pid", type=int, action="append", required=True)
-    parser.add_argument("--mode", choices=("desktop", "exchange", "isolation-ui"), default="desktop")
+    parser.add_argument("--mode", choices=("desktop", "exchange", "isolation-ui", "broker-ui"), default="desktop")
     args = parser.parse_args()
     ready = json.loads(args.ready_json.read_text(encoding="utf-8-sig"))
     result = analyze(args.trace_xml, args.root_pid, ready, args.mode)
