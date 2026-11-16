@@ -26,12 +26,13 @@ abgelehnt. Die 60-Sekunden-Frist beginnt nach Auswahl; die Empfangswartezeit bet
 Sekunden und reagiert auf den App-Abbruch. Anschließend nutzt Rust den vorhandenen atomaren Importer
 mit Publish-Guard. Der ursprüngliche Einwegkanal v1 bleibt ein eigener Modus.
 
-Pro Sitzung ein Versuch, auch bei Dialogabbruch. Erneute Auswahl, dauerhafte Aufträge und
-Crash-Reconciliation bleiben Folgearbeit. Controllerdialog und Appfenster sind getrennte native
-Fenster. Bei bereits angefordertem Sitzungsende wird keine Abbruchantwort mehr an die beendete App
-geschrieben. Ein lokaler Forschungsmodus `ui-live-transfer-hold` hält nach 1.024 Archivbytes und
-belegt gesendete/empfangene Bytezahlen, höchstens 60 Sekunden. Kein Rendererparameter und keine
-zusätzliche Dateifreigabe.
+Pro Sitzung ein Versuch, auch bei Dialogabbruch. Der Forschungsadapter ergänzt inzwischen
+[dauerhaften Verbrauch und konservative Crash-Reconciliation](native-task-journal-v1.md). Erneute
+Auswahl und integrierter isolierter GUI-Neustart bleiben Folgearbeit. Controllerdialog und
+Appfenster sind getrennte native Fenster. Bei bereits angefordertem Sitzungsende wird keine
+Abbruchantwort mehr an die beendete App geschrieben. Ein lokaler Forschungsmodus
+`ui-live-transfer-hold` hält nach 1.024 Archivbytes und belegt gesendete/empfangene Bytezahlen,
+höchstens 60 Sekunden. Kein Rendererparameter und keine zusätzliche Dateifreigabe.
 [Fensterende-Nachweise und Grenzen](../testing/native-live-window-close.md).
 
 Tests: neuer Decoderfall prüft jede Verkürzung einer gültigen Nachricht, falsche Bindung, Ablauf,

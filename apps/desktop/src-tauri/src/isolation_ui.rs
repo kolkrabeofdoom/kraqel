@@ -1,5 +1,5 @@
 //! Explicit, Windows-only research feature. Normal application startup never calls this module.
-use kraqel_isolation_test_adapter::{ImportReceipt, OneShotAdapter, TaskControl, TaskError};
+use kraqel_isolation_test_adapter::{DurableStore, ImportReceipt, TaskControl, TaskError};
 use kraqel_isolation_transport::{
     LiveSession, ReceivedGrant, receive_from_launcher, receive_live_session,
 };
@@ -40,6 +40,7 @@ struct Inner {
     exit_requested: AtomicBool,
     renderer_seen: AtomicBool,
     focus_probe: Mutex<Vec<FocusSample>>,
+    store: Mutex<DurableStore>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -111,6 +112,14 @@ fn isolation_test_focus_probe(
 enum Source {
     Prepared(ReceivedGrant),
     Live(LiveSession),
+}
+impl Source {
+    fn task_id(&self) -> uuid::Uuid {
+        match self {
+            Self::Prepared(grant) => grant.task.task_id,
+            Self::Live(session) => session.task_id(),
+        }
+    }
 }
 #[derive(Clone)]
 struct UiState(Arc<Inner>);
@@ -224,6 +233,13 @@ fn isolation_test_cancel(
     state.0.cancel.store(true, Ordering::SeqCst);
     state.0.release.store(true, Ordering::SeqCst);
     if let Some(grant) = slot.take() {
+        let mut store = state
+            .0
+            .store
+            .lock()
+            .map_err(|_| TaskError::StateUnavailable)?;
+        store.claim(grant.task_id())?;
+        store.refuse(TaskError::Cancelled)?;
         drop(grant);
         finish(&state.0, Err(TaskError::Cancelled));
     }
@@ -251,8 +267,16 @@ async fn isolation_test_import(
     };
     let worker = Arc::clone(&inner);
     let result = tauri::async_runtime::spawn_blocking(move || {
-        let (task, mut input): (_, Box<dyn std::io::Read + Send>) = match source {
-            Source::Prepared(grant) => (grant.task, Box::new(grant.input)),
+        let mut store = worker
+            .store
+            .lock()
+            .map_err(|_| TaskError::StateUnavailable)?;
+        store.claim(source.task_id())?;
+        let selected: Result<(_, Box<dyn std::io::Read + Send>), TaskError> = (|| match source {
+            Source::Prepared(grant) => Ok((
+                grant.task,
+                Box::new(grant.input) as Box<dyn std::io::Read + Send>,
+            )),
             Source::Live(session) => {
                 let Some((task, input)) = session
                     .select(|| worker.cancel.load(Ordering::SeqCst))
@@ -266,22 +290,24 @@ async fn isolation_test_import(
                 else {
                     return Err(TaskError::Cancelled);
                 };
-                (task, Box::new(input))
+                Ok((task, Box::new(input) as Box<dyn std::io::Read + Send>))
+            }
+        })();
+        let (task, mut input) = match selected {
+            Ok(selected) => selected,
+            Err(error) => {
+                store.refuse(error)?;
+                return Err(error);
             }
         };
-        let manager = ProjectManager::new(worker.data.join("app/projects"))
-            .map_err(|_| TaskError::ImportFailed)?;
-        OneShotAdapter::new(task.task_id).execute(&task, &mut input, &manager, || {
-            let staged = fs::read_dir(manager.root()).is_ok_and(|mut entries| {
-                entries.any(|e| {
-                    e.is_ok_and(|e| {
-                        e.file_name()
-                            .to_string_lossy()
-                            .starts_with(".kraqel-stage-")
-                    })
-                })
-            });
-            if staged {
+        store.execute(
+            &task,
+            &mut input,
+            || TaskControl {
+                now_unix_ms: now(),
+                cancelled: worker.cancel.load(Ordering::SeqCst),
+            },
+            || {
                 worker.phase.store(2, Ordering::SeqCst);
                 while !worker.release.load(Ordering::SeqCst)
                     && !worker.cancel.load(Ordering::SeqCst)
@@ -290,12 +316,13 @@ async fn isolation_test_import(
                     std::thread::sleep(Duration::from_millis(50));
                 }
                 worker.phase.store(1, Ordering::SeqCst);
-            }
-            TaskControl {
-                now_unix_ms: now(),
-                cancelled: worker.cancel.load(Ordering::SeqCst),
-            }
-        })
+                TaskControl {
+                    now_unix_ms: now(),
+                    cancelled: worker.cancel.load(Ordering::SeqCst),
+                }
+            },
+            |_| {},
+        )
     })
     .await
     .map_err(|_| TaskError::ImportFailed)
@@ -324,6 +351,13 @@ pub fn run() {
         std::process::exit(2);
     }
     let live = matches!(&grant, Source::Live(_));
+    let store = ProjectManager::new(data.join("app/projects"))
+        .map_err(|_| TaskError::StateUnavailable)
+        .and_then(|manager| DurableStore::open(&data.join("app/tasks"), &manager));
+    let Ok(store) = store else {
+        eprintln!("Isolationstest: Auftragszustand nicht verfügbar.");
+        std::process::exit(2);
+    };
     let inner = Arc::new(Inner {
         grant: Mutex::new(Some(grant)),
         cancel: AtomicBool::new(false),
@@ -334,6 +368,7 @@ pub fn run() {
         exit_requested: AtomicBool::new(false),
         renderer_seen: AtomicBool::new(false),
         focus_probe: Mutex::new(Vec::new()),
+        store: Mutex::new(store),
     });
     let ready = if live {
         b"{\"channelVersion\":2,\"sessionBound\":true,\"selectionPending\":true,\"handleInheritanceCleared\":true}".as_slice()

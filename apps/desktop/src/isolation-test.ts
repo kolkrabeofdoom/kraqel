@@ -87,6 +87,9 @@ const errors: Record<string, string> = {
   IMPORT_FAILED: "Der Import konnte nicht abgeschlossen werden.",
   LENGTH_MISMATCH: "Die Dateigröße stimmt nicht mit der Freigabe überein.",
   READ_FAILED: "Die freigegebene Datei konnte nicht gelesen werden.",
+  INTERRUPTED: "Der frühere Import wurde unterbrochen. Der Auftrag bleibt verbraucht.",
+  STATE_UNAVAILABLE:
+    "Der Auftragszustand konnte nicht sicher bestätigt werden. Der Auftrag bleibt gesperrt.",
 };
 function render(view: View) {
   probePhase = view.phase;

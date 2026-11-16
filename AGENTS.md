@@ -287,6 +287,13 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
+KQ-069-Forschung: `apps/desktop/isolation-test-adapter/` enthält den dauerhaften Auftragsstore;
+`apps/desktop/src-tauri/src/isolation_ui.rs` bindet ihn ausschließlich im Windows-Forschungsfeature
+ein. [Journalvertrag](docs/data-format/native-task-journal-v1.md) und
+[Crash-Nachweise](docs/testing/native-task-reconciliation.md) vor Folgeänderungen lesen. Verbrauchte
+Kennungen niemals durch Journal-Neuanlage oder automatische Wiederaufnahme erneut freigeben. Normale
+App-Starts bleiben unisoliert; Forschungsbelege sind keine Produktfreigabe.
+
 Eine neue Session beginnt mit:
 
 1. `git status`, `git branch --show-current` und `git log -5 --oneline`.

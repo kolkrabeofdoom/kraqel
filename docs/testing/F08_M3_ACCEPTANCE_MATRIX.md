@@ -1,5 +1,12 @@
 # F08-/M3-Abnahmematrix
 
+Auftrags-Fortschreibung 16. November: Dauerhafter Verbrauch und konservative Reconciliation im
+Forschungsadapter implementiert. Sieben echte Windows-Testprozess-Kills, erneutes Öffnen,
+Replay-Sperre und bytegleicher Bestand geprüft. Native Erfolg-/Abbruchrückprüfung bestätigt Journal,
+Kopienzahl und Cleanup. [Nachweis und Buildgrenzen](native-task-reconciliation.md). Integrierter
+isolierter GUI-Neustart und neuer ETW-Beleg fehlen; keine Produkt- oder assistive Vollabnahme.
+Q-01/Q-02 für das Produkt unverändert nicht bestanden.
+
 Neueste Fortschreibung 16. November: Live-Auswahl mit Replay sowie Fensterende bei offenem Dialog
 und nach echtem Teiltransfer funktional belegt. Frischer ETW-Vergleich am unveränderten finalen
 App-/Controllerpaar: drei vollständige Bäume, 19 WebView2-Lebenszeiten, vier Kontrollen,

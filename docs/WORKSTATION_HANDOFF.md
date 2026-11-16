@@ -7,6 +7,15 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 15. November 2026
 
+Neueste Fortschreibung 16. November: Dauerhafter Auftragsverbrauch und konservative
+Crash-Reconciliation im Forschungsadapter, vor der nativen Auswahl im Tauri-Forschungsfeature
+angebunden. Sieben neue Windows-Integrationstests mit sieben echten Prozess-Kills bestehen;
+Bestandsdaten bleiben bytegleich, Replay bleibt gesperrt. Native Erfolg-/Abbruchrückprüfung mit
+Replay, Journal und Cleanup bestätigt. [Vertrag](data-format/native-task-journal-v1.md),
+[Buildbindung und Nachweis](testing/native-task-reconciliation.md). Nächster Scope: authentisierter
+Neustart derselben isolierten GUI mit stabiler Ablage und integrierte Crash-Serie; Controller
+verlangen bisher frische Forschungswurzeln. Kein neuer ETW-Beleg, keine Produktfreigabe.
+
 Neueste Fortschreibung 16. November: Assistive Erfolg-/Fehlerpfade mit Replay, passenden Ansagen und
 Fokus nativ bestätigt. 34 Browser-E2E bestanden; zusätzliche begrenzte Forschungsdiagnose enthält
 ausschließlich feste Zustandswerte.

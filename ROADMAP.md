@@ -113,9 +113,11 @@
              vollständige Bäume, vier Kontrollen, Nullverluste, 0 Nicht-Loopback-Ereignisse
        - [x] KQ-069 A: Assistive Erfolg-/Fehlerpfade mit Replay und Fokus nativ prüfen; begrenzte
              lokale Diagnose und 34 Browser-E2E, keine Vollabnahme oder neuer ETW-Beleg
-       - [ ] KQ-069 A: Assistive Restfälle und dauerhafte Crash-Reconciliation; weitere
-             Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren; Packaging und
-             F08-/M3-Vollprüfung
+       - [x] KQ-069 A: Dauerhaften Verbrauch und konservative Reconciliation im Forschungsadapter
+             mit sieben Prozess-Kills prüfen; isolierte GUI mit Erfolg/Abbruch/Replay rückprüfen
+       - [ ] KQ-069 A: Authentisierten isolierten GUI-Neustart mit stabiler Ablage und integrierter
+             Crash-Serie abnehmen; assistive Restfälle; weitere Formate/Git-/Providergrenzen;
+             UDP/IPv6/DNS/Broker kalibrieren; Packaging und F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene

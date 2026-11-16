@@ -1,5 +1,14 @@
 # Bedrohungsmodell (Entwurf)
 
+Auftrags-Fortschreibung: Das Forschungsjournal verbraucht die native Kennung vor Auswahl/Lesen,
+serialisiert Bearbeitung/Reconciliation per SQLite-Eigentümersperre und speichert den Commit-Receipt
+vor finalem Rename. Wiederanlauf publiziert niemals Zwischenstände; fehlender oder unklarer Zustand
+blockiert statt neu freizugeben. Keine neuen Rendererpfade, Hostordner-ACLs oder Netzrechte.
+[Vertrag mit Restbedrohungen](../data-format/native-task-journal-v1.md) und
+[Prozess-Kill-/Desktopnachweise](../testing/native-task-reconciliation.md). Keine Attestierung gegen
+kompromittierte Prozesse mit gleichen Schreibrechten, Stromausfälle oder externe Broker;
+integrierter isolierter GUI-Neustart, neuer ETW-Beleg und Produktabnahme bleiben offen.
+
 Assistive Fortschreibung: Die Forschungsseite ergänzt eine lokale Fokusdiagnose mit strengem
 Enum-/Bool-DTO, Ablehnung unbekannter Felder, gleicher Origin-/Fensterprüfung und festem Ziel
 `ui-focus.json` in der bestehenden Forschungsdatenfreigabe. Höchstens 64 Einträge/16 KiB; keine

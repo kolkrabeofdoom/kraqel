@@ -1,5 +1,15 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+Auftrags-Fortschreibung 16. November: Das Forschungsfeature bindet einen privaten, an die lokale
+Projektwurzel gebundenen SQLite-Auftragsstore vor Auswahl/Lesen ein. Dauerhafter Verbrauch,
+exklusive Sperre, eigene Zwischenverzeichnisse und persistierter Commit-Receipt erlauben
+konservative Wiederanlaufzuordnung ohne erneutes Lesen oder automatische Veröffentlichung. Keine
+neuen Capabilities, Hostordnerfreigaben, Rendererparameter oder Produktabhängigkeiten.
+[Vertrag und Bedrohungsgrenzen](../../data-format/native-task-journal-v1.md),
+[Windows-Prozess-Kills und native Rückprüfung](../../testing/native-task-reconciliation.md).
+Integrierter isolierter GUI-Neustart und neuer ETW-Nachweis dieses Builds fehlen; striktes Ziel und
+offene Produktabnahme unverändert.
+
 Assistive Fortschreibung 16. November: Erfolg-/Fehlerpfade der Forschungsseite mit Replay und Fokus
 nativ bestätigt. Eine auf feste Enum-/Bool-Werte begrenzte lokale Diagnose ergänzt die
 Forschungsbefehle ohne neue Dateifreigaben, Netzwerkrechte oder Produktintegration.

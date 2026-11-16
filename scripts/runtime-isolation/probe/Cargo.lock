@@ -353,7 +353,9 @@ dependencies = [
  "kraqel-domain",
  "kraqel-git-service",
  "kraqel-storage",
+ "rusqlite",
  "serde",
+ "serde_json",
  "sha2",
  "uuid",
 ]

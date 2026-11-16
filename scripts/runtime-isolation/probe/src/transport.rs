@@ -94,6 +94,11 @@ mod native {
         pub data_root: PathBuf,
     }
     impl LiveSession {
+        /// Native controller binding; never supplied by the renderer.
+        pub fn task_id(&self) -> Uuid {
+            self.expected
+        }
+
         pub fn select(mut self, cancelled: impl Fn() -> bool) -> Result<LiveReply, ChannelError> {
             self.request.write_all(&[1]).map_err(|_| ChannelError::Io)?;
             drop(self.request);

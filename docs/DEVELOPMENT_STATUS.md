@@ -1,5 +1,16 @@
 # Entwicklungsstatus
 
+Auftrags-Fortschreibung, 16. November 2026: Forschungsadapter ergänzt dauerhaft verbrauchte IDs,
+SQLite-Journal, exklusive Eigentümersperre und konservative Reconciliation vor neuen Importen.
+Sieben hart beendete native Rust-Testprozesse prüfen die Veröffentlichungsgrenzen; sieben neue
+aktive Integrationstests und sieben bisherige Adaptertests bestehen auf Windows. Erfolg und Abbruch
+mit Replay im isolierten Desktopfenster bestätigt; Journal/Kopienzahl/Cleanup unabhängig geprüft.
+[Vertrag](data-format/native-task-journal-v1.md) und
+[Nachweis](testing/native-task-reconciliation.md). Kein integrierter Crash-/Neustartnachweis der
+isolierten GUI, kein neuer ETW-Beleg und keine Produktfreigabe. Nächster Scope: authentisierter
+isolierter Neustart mit stabiler Ablage und native Crash-/Reconciliation-Serie. Striktes Ziel,
+offene Brokergrenzen und fehlende Produkt-Q-01/Q-02-Abnahme bleiben unverändert.
+
 Assistive Fortschreibung, 16. November 2026: Forschungsseite führt den Fokus zu verfügbaren
 Folgeaktionen und erhält bewusste Navigation. Native Erfolg-/Fehlerpfade einschließlich Replay mit
 Sprachausgabe und Fokus bestätigt; DOM-Diagnose, SQLite/Kopienzahl und Cleanup unabhängig geprüft.
