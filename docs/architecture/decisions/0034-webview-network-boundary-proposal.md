@@ -1,12 +1,20 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+Fensterende-ETW, 16. November:
+[Eigener frischer Beleg](../../testing/native-combined-window-close-etw.md) des unveränderten
+gesicherten Paars mit Automatik und beiden nativen Fensterendepfaden inklusive Recovery. Acht
+Kontrollen, Nullverluste, alle 942 Enden explizit, 0 beobachtete Nicht-Loopback-/536 getrennte
+Loopback-Ereignisse. Unabhängiger MAC-/Daten-/Lebenszeitaudit bestanden. Keine neue
+Runtime-/Domänenausnahme, kein Produkt- oder externer Dienstnachweis. Nächster Scope: geschützte
+Produktablage und authentisierte Updates/Migration; weitere F08-/Dienstgrenzen offen.
+
 Kombinierter Hauptfensterschluss, 16. November:
 [Eigener Funktionsbeleg](../../testing/native-combined-window-close.md) für offenen Dialog und
 Teiltransfer, danach authentisierte Recovery und neue Aufträge bestanden. App unverändert; neue
 native Helfermodi mit konsistenter manueller Modusprüfung, regulärem Ende, Threadjoin und
-Jobleerstand. Verworfener Erstlauf bleibt unbestanden. Neuer Helferhash benötigt eigenes frisches
-ETW; keine Übertragung früherer Nachweise oder Produkt-/Dienstfreigabe. Striktes Datenschutzziel
-unverändert, Produktablage/Updates/Migration und weitere F08-Randfälle offen.
+Jobleerstand. Verworfener Erstlauf bleibt unbestanden. Eigener frischer ETW-Beleg inzwischen oben
+verlinkt; keine Übertragung früherer Nachweise oder Produkt-/Dienstfreigabe. Striktes
+Datenschutzziel unverändert, Produktablage/Updates/Migration und weitere F08-Randfälle offen.
 
 Tastatur und ETW des manuellen Brokerpaars, 16. November: Eigener frischer
 [Nachweis](../../testing/native-combined-assistive-restart-etw.md) mit automatischer Serie und vier

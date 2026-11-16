@@ -140,7 +140,9 @@
              Zustände, acht Kontrollen, Nullverluste, alle 906 Enden, 0 Nicht-Loopback
        - [x] KQ-069 A: Kombinierter Hauptfensterschluss bei offenem Dialog und Teiltransfer;
              reguläre Enden, Recovery/Replay und neue Aufträge geprüft, 16 Apps/zwei legitime Kopien
-       - [ ] KQ-069 A: Frisches ETW des Fensterende-Paars und weitere allgemeine
+       - [x] KQ-069 A: Eigener frischer ETW-Netzvergleich des Fensterende-Paars einschließlich
+             beider Pfade; acht Kontrollen, Nullverluste, alle 942 Enden, 0 Nicht-Loopback
+       - [ ] KQ-069 A: Geschützte Produktablage/Updates/Migration und weitere allgemeine
              Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
              integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker
              kalibrieren; Packaging und F08-/M3-Vollprüfung

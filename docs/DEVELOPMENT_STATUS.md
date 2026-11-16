@@ -1,5 +1,20 @@
 # Entwicklungsstatus
 
+Frischer ETW-Netzvergleich des Fensterende-Paars, 16. November: Unverändertes gesichertes Paar in
+zwei getrennten gültigen Phasen geprüft. Automatik: neun Fälle/72 Apps/54 abgewiesene Folgeaktionen;
+manuell: beide Hauptfensterschlüsse einschließlich nativer Auswahl, Teiltransfer und Recovery/
+Replay/neuen Aufträgen, 16 Apps. Acht Kontrollen, Nullverluste, keine Zuordnungslücken; 119 Broker,
+88 Apps, 528 WebViews, 207 Console-Hosts, alle 942 Enden explizit. 0 beobachtete Nicht-Loopback- und
+536 getrennte Loopback-Ereignisse. Unabhängige MAC-/Ketten-/Hash-/SQLite-/Unicode-/Lebenszeitaudits
+bestanden: 22 unterschiedliche verbrauchte Aufträge, genau 13 legitime Kopien, kein Replay-Duplikat.
+Alle elf Profile entfernt, Messungen/Prozesse beendet. 36 Diagnose-Tests und Format-/Diff-/Hash-/
+Faktenprüfung bestanden; kein Runtimeumbau oder neuer Build.
+[Nachweis](testing/native-combined-window-close-etw.md),
+[Aggregate/Hashes](testing/native-combined-window-close-etw.json). Nächster Scope: geschützte
+dauerhafte Produktablage und authentisierte Updates/Migration. Weitere allgemeine Fensterende-/
+F08-Randfälle, externe Dienste und Produktintegration offen; striktes Ziel unverändert,
+Produkt-Q-01/Q-02 nicht bestanden.
+
 Kombinierte Fensterendeprüfung, 16. November: Native Hauptfensterschlüsse bei offenem Dateidialog
 und während eines echten Teiltransfers mit dem korrigierten Helfer bestanden. App unverändert; zwei
 reguläre initiale App-/Brokerenden 0, Auswahlthreads beendet, alte Aufträge `CANCELLED` ohne Kopie.
@@ -11,10 +26,10 @@ beendet; verworfener Erstlauf wegen inkonsistenter manueller Modusprüfung ausdr
 dessen prozessfreies Profil gezielt entfernt, keine Autorität repariert oder wiederverwendet. 31
 aktive Helfertests, Helfer-Clippy und `pnpm check` bestanden, kein vollständiger Appbuild.
 [Nachweis](testing/native-combined-window-close.md),
-[Aggregate/Hashes](testing/native-combined-window-close.json). Nächster Schritt: frischer ETW-
-Netzvergleich des neuen Fensterende-Paars; vorige Netzbelege nicht übertragen. Produktablage,
-Updates/Migration, weitere allgemeine Fensterende-/F08-Randfälle und externe Dienste offen. Striktes
-Datenschutzziel unverändert, Produkt-Q-01/Q-02 nicht bestanden.
+[Aggregate/Hashes](testing/native-combined-window-close.json). Damals nächster Schritt (inzwischen
+oben belegt): frischer ETW- Netzvergleich des neuen Fensterende-Paars; vorige Netzbelege nicht
+übertragen. Produktablage, Updates/Migration, weitere allgemeine Fensterende-/F08-Randfälle und
+externe Dienste offen. Striktes Datenschutzziel unverändert, Produkt-Q-01/Q-02 nicht bestanden.
 
 Tastatur und frisches ETW des manuellen Brokerpaars, 16. November: Eigener Tastaturvorlauf sowie
 alle vier gemessenen Wiederanlaufzustände ausschließlich per Tastatur laut menschlicher Bestätigung

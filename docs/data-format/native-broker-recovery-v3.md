@@ -74,8 +74,9 @@ Appzustand muss `CANCELLED` ohne Receipt sein, beim Teiltransfer müssen Sender 
 übereinstimmend 1.024 Bytes belegen. Der Fensterendebeleg erzeugt keinen Abschluss-MAC. Erst eine
 separate authentisierte Recovery mit Replay- und Altanfrageprüfung darf einen Folgeauftrag
 freigeben. Die nativen Funktionsbelege stehen im
-[kombinierten Fensterendenachweis](../testing/native-combined-window-close.md). Ein eigener frischer
-ETW-Beleg dieses neuen Helferpaars bleibt erforderlich; ältere Hashpaare nicht übertragen.
+[kombinierten Fensterendenachweis](../testing/native-combined-window-close.md). Der
+[eigene frische ETW-Beleg](../testing/native-combined-window-close-etw.md) dieses gesicherten
+Helferpaars liegt inzwischen vor; ältere Hashpaare nicht übertragen.
 
 `ui-combined-series <frische Controllerwurzel> <Forschungs-App>` verbindet sechs Crashpunkte mit
 gebundenem Live-Transport sowie Abbruch-, ungültige-Datei- und 1.024-Byte-Teiltransferfällen. Danach

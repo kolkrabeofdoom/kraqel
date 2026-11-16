@@ -1,0 +1,313 @@
+{
+  "formatVersion": 1,
+  "researchOnly": true,
+  "productionAcceptance": false,
+  "runtimeSourceCommit": "0727e332e645ad4fcd3760f795a3632230dc2fc5",
+  "appSourceCommit": "9f5a7ee8c56220bb90f10c4f304c9b0f01cd43ee",
+  "analyzerSha256": "387d4f37634261e7149b80e54353ea8104977190483c80c290b09b64eb58f9ff",
+  "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+  "controllerSha256": "1b5c0efa771f58a7e1274369d391b92a2c788aa1d64756e6ef4530b2f2555b4f",
+  "restartTicketVersion": 3,
+  "durableAuthorityVersion": 3,
+  "measurementValid": true,
+  "nonLoopbackEvents": 0,
+  "separateLoopbackEvents": 536,
+  "positiveControls": {
+    "expected": 8,
+    "observed": 8
+  },
+  "explicitProcessStops": 942,
+  "processLifetimes": {
+    "kraqel-isolation-probe.exe": 119,
+    "conhost.exe": 207,
+    "kraqel-desktop.exe": 88,
+    "msedgewebview2.exe": 528
+  },
+  "measuredTaskStates": {
+    "interrupted": 5,
+    "succeeded": 13,
+    "failed": 4
+  },
+  "distinctMeasuredTasks": 22,
+  "legitimateMeasuredCopies": 13,
+  "phases": [
+    {
+      "formatVersion": 1,
+      "measurementMode": "broker-ui",
+      "measurementValid": true,
+      "measurementProblems": [],
+      "result": "no-non-loopback-traffic-observed",
+      "rootStarts": 1,
+      "processLifetimes": {
+        "kraqel-isolation-probe.exe": 109,
+        "conhost.exe": 181,
+        "kraqel-desktop.exe": 72,
+        "msedgewebview2.exe": 432
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "unattributableNetworkEvents": 0,
+      "unknownDestinationEvents": 0,
+      "networkEvents": [
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 13,
+          "destinationScope": "loopback",
+          "count": 216
+        },
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 29,
+          "destinationScope": "loopback",
+          "count": 216
+        }
+      ],
+      "nonLoopbackEvents": 0,
+      "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths. Out-of-tree COM/Shell services are not attributed by this process-tree measurement.",
+      "captureReadyUtc": "2026-11-16T11:54:19.7983416Z",
+      "traceStoppedUtc": "2026-11-16T11:57:03.1022851Z",
+      "convertedUtc": "2026-11-16T11:57:03.7870977Z",
+      "etlBytes": 4325376,
+      "lifecycleAudit": {
+        "independentLifecycleAuditPassed": true,
+        "rootStarts": 1,
+        "orderedAppGenerationsMatched": 72,
+        "explicitProcessStops": 794,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 109,
+          "conhost.exe": 181,
+          "kraqel-desktop.exe": 72,
+          "msedgewebview2.exe": 432
+        },
+        "brokerExitCodes": {
+          "0": 37,
+          "86": 18,
+          "1": 54
+        },
+        "appExitCodes": {
+          "0": 18,
+          "77": 54
+        },
+        "seedAppExitCodes": {
+          "0": 18
+        },
+        "webViewsPerAppDistribution": {
+          "6": 72
+        }
+      },
+      "dataAudit": {
+        "independentAuditPassed": true,
+        "authorityAndSettlementMacsVerified": true,
+        "rootAndProgramBindingsVerified": true,
+        "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+        "controllerSha256": "1b5c0efa771f58a7e1274369d391b92a2c788aa1d64756e6ef4530b2f2555b4f",
+        "taskStates": {
+          "interrupted": 5,
+          "succeeded": 11,
+          "failed": 2
+        },
+        "cases": [
+          {
+            "point": "claimed",
+            "mode": "fixture",
+            "states": ["interrupted", "succeeded"],
+            "projectCopies": 1,
+            "distinctTasks": 2,
+            "appGenerations": 8
+          },
+          {
+            "point": "reading",
+            "mode": "fixture",
+            "states": ["interrupted", "succeeded"],
+            "projectCopies": 1,
+            "distinctTasks": 2,
+            "appGenerations": 8
+          },
+          {
+            "point": "prepared",
+            "mode": "fixture",
+            "states": ["interrupted", "succeeded"],
+            "projectCopies": 1,
+            "distinctTasks": 2,
+            "appGenerations": 8
+          },
+          {
+            "point": "commitIntent",
+            "mode": "fixture",
+            "states": ["interrupted", "succeeded"],
+            "projectCopies": 1,
+            "distinctTasks": 2,
+            "appGenerations": 8
+          },
+          {
+            "point": "published",
+            "mode": "fixture",
+            "states": ["succeeded", "succeeded"],
+            "projectCopies": 2,
+            "distinctTasks": 2,
+            "appGenerations": 8
+          },
+          {
+            "point": "completed",
+            "mode": "fixture",
+            "states": ["succeeded", "succeeded"],
+            "projectCopies": 2,
+            "distinctTasks": 2,
+            "appGenerations": 8
+          },
+          {
+            "point": "completed",
+            "mode": "cancel",
+            "states": ["failed", "succeeded"],
+            "projectCopies": 1,
+            "distinctTasks": 2,
+            "appGenerations": 8
+          },
+          {
+            "point": "completed",
+            "mode": "invalid",
+            "states": ["failed", "succeeded"],
+            "projectCopies": 1,
+            "distinctTasks": 2,
+            "appGenerations": 8
+          },
+          {
+            "point": "reading",
+            "mode": "partial",
+            "states": ["interrupted", "succeeded"],
+            "projectCopies": 1,
+            "distinctTasks": 2,
+            "appGenerations": 8
+          }
+        ]
+      }
+    },
+    {
+      "formatVersion": 1,
+      "measurementMode": "isolation-ui",
+      "measurementValid": true,
+      "measurementProblems": [],
+      "result": "no-non-loopback-traffic-observed",
+      "rootStarts": 10,
+      "processLifetimes": {
+        "kraqel-isolation-probe.exe": 10,
+        "conhost.exe": 26,
+        "kraqel-desktop.exe": 16,
+        "msedgewebview2.exe": 96
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "unattributableNetworkEvents": 0,
+      "unknownDestinationEvents": 0,
+      "networkEvents": [
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 13,
+          "destinationScope": "loopback",
+          "count": 52
+        },
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 29,
+          "destinationScope": "loopback",
+          "count": 52
+        }
+      ],
+      "nonLoopbackEvents": 0,
+      "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths. Out-of-tree COM/Shell services are not attributed by this process-tree measurement.",
+      "captureReadyUtc": "2026-11-16T11:57:03.8266294Z",
+      "traceStoppedUtc": "2026-11-16T11:58:09.6731155Z",
+      "convertedUtc": "2026-11-16T11:58:10.1215109Z",
+      "etlBytes": 2752512,
+      "lifecycleAudit": {
+        "independentLifecycleAuditPassed": true,
+        "rootStarts": 10,
+        "orderedAppGenerationsMatched": 16,
+        "explicitProcessStops": 148,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 10,
+          "conhost.exe": 26,
+          "kraqel-desktop.exe": 16,
+          "msedgewebview2.exe": 96
+        },
+        "brokerExitCodes": {
+          "0": 8,
+          "86": 2
+        },
+        "appExitCodes": {
+          "0": 4,
+          "77": 12
+        },
+        "webViewsPerAppDistribution": {
+          "6": 16
+        }
+      },
+      "dataAudit": {
+        "formatVersion": 1,
+        "researchOnly": true,
+        "productionAcceptance": false,
+        "independentAuditPassed": true,
+        "authorityAndSettlementMacsVerified": true,
+        "rootAndProgramBindingsVerified": true,
+        "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+        "controllerSha256": "1b5c0efa771f58a7e1274369d391b92a2c788aa1d64756e6ef4530b2f2555b4f",
+        "cases": [
+          {
+            "case": "closeDialog",
+            "humanReportedMainWindowClose": true,
+            "initialAppExitCode": 0,
+            "initialBrokerExitCode": 0,
+            "selectionThreadJoined": true,
+            "dialogCloseMessages": 7,
+            "distinctTasks": 2,
+            "taskStates": ["failed:CANCELLED", "succeeded"],
+            "legitimateCopies": 1,
+            "appGenerations": 8,
+            "recoveryProcesses": 3,
+            "earlyNextGrantMeasured": false,
+            "profileRemoved": true
+          },
+          {
+            "case": "closePartial",
+            "humanReportedMainWindowClose": true,
+            "initialAppExitCode": 0,
+            "initialBrokerExitCode": 0,
+            "selectionThreadJoined": true,
+            "dialogCloseMessages": 0,
+            "distinctTasks": 2,
+            "taskStates": ["failed:CANCELLED", "succeeded"],
+            "legitimateCopies": 1,
+            "appGenerations": 8,
+            "recoveryProcesses": 3,
+            "earlyNextGrantMeasured": false,
+            "profileRemoved": true,
+            "partialTransfer": {
+              "bytesSent": 1024,
+              "payloadBytesReceived": 1024,
+              "expectedBytes": 11915
+            }
+          }
+        ],
+        "appGenerations": 16,
+        "distinctTasks": 4,
+        "legitimateCopies": 2,
+        "networkMeasurement": false
+      },
+      "humanConfirmedBothMainWindowClosePaths": true,
+      "retirementAfterCapture": true
+    }
+  ],
+  "limits": "Captured process lifetimes and exercised paths only. No HTTP/content/upload or complete out-of-tree COM/Shell/DNS/broker attribution. No product acceptance or privacy exception."
+}

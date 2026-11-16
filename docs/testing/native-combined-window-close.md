@@ -1,5 +1,10 @@
 # KQ-069: Fensterende im kombinierten Live-/Neustartpfad
 
+Fortschreibung:
+[Eigener frischer ETW-Beleg desselben gesicherten Paars](native-combined-window-close-etw.md)
+einschließlich beider Fensterendepfade inzwischen bestanden. Die folgenden Ergebnisse und JSON-
+Aggregate dokumentieren den vorherigen Funktionslauf, nicht die neue ETW-Population.
+
 Stand: 16. November 2026. Ausschließlich Windows-Forschung und synthetische Testarchive.
 [Bereinigte Aggregate](native-combined-window-close.json),
 [Brokervertrag v3](../data-format/native-broker-recovery-v3.md). Striktes Datenschutzziel

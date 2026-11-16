@@ -288,11 +288,20 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 ## Übergabe zwischen Codex-Sessions
 
 Aktuell:
+[Eigener frischer ETW-Netzbeleg des Fensterende-Paars](docs/testing/native-combined-window-close-etw.md)
+mit unveränderten gesicherten Binaries bestanden: automatische Serie plus beide nativen
+Hauptfensterschlüsse und Wiederherstellung. Acht Kontrollen, Nullverluste, alle 942 Enden explizit,
+0 beobachtete Nicht-Loopback-/536 getrennte Loopback-Ereignisse. Daten/MACs/Lebenszeiten unabhängig
+geprüft; Profile entfernt, Messungen/Prozesse beendet. Nur dokumentierte Hashes und Lebenszeiten,
+keine externe Dienst-/Produktabnahme. Nächster Scope: geschützte dauerhafte Produktablage und
+authentisierter Update-/Migrationspfad; allgemeine F08-/Dienstgrenzen separat prüfen.
+
+Aktuell:
 [Kombinierter Hauptfensterschluss bei offenem Dialog und Teiltransfer](docs/testing/native-combined-window-close.md)
 mit korrigiertem Helfer bestanden; App unverändert. Native Abbruch-/Thread-/Jobbelege sowie
 authentisierte Wiederanlauf-/Folgeauftragsketten unabhängig geprüft. Verworfener Erstlauf bleibt
-unbestanden; keine Reparatur oder Wiederverwendung seiner Autorität. Neuer Helferhash benötigt einen
-frischen ETW-Beleg beider Fensterendepfade; vorherige Nachweise nicht übertragen. Weitere allgemeine
+unbestanden; keine Reparatur oder Wiederverwendung seiner Autorität. Eigener frischer ETW-Beleg
+beider Fensterendepfade oben verlinkt; vorherige Nachweise nicht übertragen. Weitere allgemeine
 Fensterende-/F08-Prüfungen, Produktablage/Updates/Migration und externe Dienste offen.
 
 Vorheriges gesichertes Paar:

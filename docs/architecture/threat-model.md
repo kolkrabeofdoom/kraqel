@@ -1,12 +1,20 @@
 # Bedrohungsmodell (Entwurf)
 
+[Eigener frischer ETW-Netzbeleg des Fensterende-Paars](../testing/native-combined-window-close-etw.md):
+Automatik und beide echten Hauptfensterschlüsse samt Wiederherstellung in getrennten gültigen
+Phasen. Acht Kontrollen, Nullverluste, 942 explizite Enden, 0 beobachtete Nicht-Loopback-/536
+getrennte Loopback-Ereignisse. MAC-/Daten-/Lebenszeiten unabhängig abgeglichen; gilt ausschließlich
+für das gesicherte Hashpaar und diese Pfade. Keine vollständige externe COM-/Shell-/DNS-/Broker-
+Attribution oder Produktabnahme; striktes Ziel unverändert. Nächster Scope: Produktablage sowie
+authentisierter Update-/Migrationspfad, weitere allgemeine F08-/Dienstgrenzen separat.
+
 [Kombinierte Fensterendeprüfung](../testing/native-combined-window-close.md): Eigener nativer Dialog
 und Teiltransfer enden beim Hauptfensterschluss regulär mit `CANCELLED`; kein Abschlussbeleg allein
 aus dem Fensterende. Erst authentisierte Recovery/Replay-Abwehr erlaubt expliziten neuen Auftrag.
 Auswahlthreadjoin und Jobleerstand belegt. Inkonsistente neue Modusprüfung blockierte den Erstlauf
-korrekt; behoben und mit frischer Autorität erneut geprüft, kein Journal-/Keyreset. Neuer Helferhash
-besitzt noch keinen eigenen ETW-Beleg; funktionale Prüfung ist keine Netzabnahme. Striktes Ziel und
-offene externe Dienst-/Produktgrenzen bleiben unverändert.
+korrekt; behoben und mit frischer Autorität erneut geprüft, kein Journal-/Keyreset. Eigener frischer
+ETW-Beleg dieses Helferhashs inzwischen oben verlinkt; funktionale Prüfung ist keine Netzabnahme.
+Striktes Ziel und offene externe Dienst-/Produktgrenzen bleiben unverändert.
 
 Eigener
 [frischer ETW-Beleg des manuellen Brokerpaars](../testing/native-combined-assistive-restart-etw.md):
