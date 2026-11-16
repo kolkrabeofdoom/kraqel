@@ -66,6 +66,7 @@ enum Expect {
     ReuseDenied,
     ManualRecovery,
     Failed,
+    WindowClose,
 }
 fn valid_summary(value: &RecoverySummary, point: CrashPoint, projects: u32) -> bool {
     value.published == point.publishes()
@@ -280,11 +281,13 @@ fn generation_with_options(
             RestartEventKind::Replay,
         ],
         Expect::Failed => &[RestartEventKind::Renderer, RestartEventKind::Finished],
+        Expect::WindowClose => &[RestartEventKind::Renderer, RestartEventKind::Finished],
     };
     let start = Instant::now();
     let mut received = 0;
     let mut buffer = Vec::new();
     let mut summary = None;
+    let mut window_exit_seen = false;
     loop {
         if let Some(live) = &mut bridge {
             live.service(
@@ -341,7 +344,12 @@ fn generation_with_options(
             }
         }
         let exited = unsafe { WaitForSingleObject(worker.0.0, 20) } == WAIT_OBJECT_0;
-        if matches!(expect, Expect::ManualRecovery) && exited {
+        if matches!(expect, Expect::WindowClose) && exited && !window_exit_seen {
+            // Drain once more after observing exit: Finished may arrive during WaitForSingleObject.
+            window_exit_seen = true;
+            continue;
+        }
+        if matches!(expect, Expect::ManualRecovery | Expect::WindowClose) && exited {
             if received < expected.len() || !buffer.is_empty() {
                 return Err(invalid("manual-recovery-closed-before-replay"));
             }
@@ -358,8 +366,10 @@ fn generation_with_options(
             }
             break;
         }
-        if !matches!(expect, Expect::Reject | Expect::ManualRecovery)
-            && received == expected.len()
+        if !matches!(
+            expect,
+            Expect::Reject | Expect::ManualRecovery | Expect::WindowClose
+        ) && received == expected.len()
             && buffer.is_empty()
         {
             break;
@@ -372,6 +382,14 @@ fn generation_with_options(
         if exited || root.join("STOP").exists() || start.elapsed() > Duration::from_secs(limit) {
             return Err(invalid("restart-checkpoint-or-recovery-missing"));
         }
+    }
+    if matches!(expect, Expect::WindowClose) {
+        let mode = live_mode.ok_or(invalid("combined-close-policy"))?;
+        let report = bridge
+            .as_mut()
+            .ok_or(invalid("combined-close-bridge"))?
+            .finish_window_close(mode)?;
+        write_json(&root.join("window-close-transport.json"), &report)?;
     }
     if matches!(expect, Expect::ReuseDenied) && bridge.as_ref().is_some_and(live::Bridge::selected)
     {
@@ -440,10 +458,14 @@ fn generation_with_options(
         unsafe { GetExitCodeProcess(worker.0.0, &mut code) },
         "restart-exit-code",
     )?;
-    if matches!(expect, Expect::ManualRecovery) && code != 0 {
+    if matches!(expect, Expect::ManualRecovery | Expect::WindowClose) && code != 0 {
         return Err(invalid("manual-recovery-unclean-exit"));
     }
-    if !matches!(expect, Expect::Reject | Expect::ManualRecovery) && code != 77 {
+    if !matches!(
+        expect,
+        Expect::Reject | Expect::ManualRecovery | Expect::WindowClose
+    ) && code != 77
+    {
         return Err(invalid("restart-wrong-kill-exit"));
     }
     write_json(
@@ -657,6 +679,41 @@ pub(in super::super) fn launch_assistive(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn window_close_requires_terminal_event_and_never_accepts_recovery_or_replay() {
+        let expected = [RestartEventKind::Renderer, RestartEventKind::Finished];
+        assert!(expected_event(
+            Expect::WindowClose,
+            &expected,
+            0,
+            RestartEventKind::Renderer
+        ));
+        assert!(expected_event(
+            Expect::WindowClose,
+            &expected,
+            1,
+            RestartEventKind::Finished
+        ));
+        for event in [
+            RestartEventKind::Replay,
+            RestartEventKind::Recovered,
+            RestartEventKind::Checkpoint,
+        ] {
+            assert!(!expected_event(Expect::WindowClose, &expected, 1, event));
+        }
+        assert!(!expected_event(
+            Expect::WindowClose,
+            &expected,
+            0,
+            RestartEventKind::Finished
+        ));
+        assert!(!expected_event(
+            Expect::WindowClose,
+            &expected,
+            2,
+            RestartEventKind::Finished
+        ));
+    }
     #[test]
     fn manual_recovery_waits_for_real_replay_and_bounds_additional_calls() {
         let expected = [

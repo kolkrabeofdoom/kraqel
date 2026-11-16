@@ -332,7 +332,10 @@ fn authenticate(root: &Path) -> Result<Authority> {
             || ticket.session_id != session(root)?
             || !ticket.valid_for(ticket.launch_id)
             || ticket.recovery
-            || (!ticket.automatic && authority.live_mode != Some(super::live::LiveMode::Native))
+            || (!ticket.automatic
+                && !authority
+                    .live_mode
+                    .is_some_and(super::live::LiveMode::manual_selection))
             || ticket.app_sha256 != app_pin
         {
             return Err(invalid("broker-authority-binding"));
@@ -478,7 +481,7 @@ fn seed_with(
         task_id: Uuid::new_v4(),
         launch_id: Uuid::new_v4(),
         recovery: false,
-        automatic: mode != Some(super::live::LiveMode::Native),
+        automatic: !mode.is_some_and(super::live::LiveMode::manual_selection),
         source: if mode.is_some() {
             kraqel_isolation_transport::RestartSource::Live
         } else {
@@ -508,7 +511,9 @@ fn seed_with(
         &ticket,
         ticket.launch_id,
         GenerationOptions {
-            expect: if matches!(
+            expect: if mode.is_some_and(super::live::LiveMode::window_close) {
+                Expect::WindowClose
+            } else if matches!(
                 mode,
                 Some(super::live::LiveMode::Cancel | super::live::LiveMode::Invalid)
             ) {
@@ -518,10 +523,44 @@ fn seed_with(
             },
             index: 0,
             durable_job: Some(&name),
-            crash_controller: true,
+            crash_controller: !mode.is_some_and(super::live::LiveMode::window_close),
             live_mode: mode,
         },
     )?;
+    if mode.is_some_and(super::live::LiveMode::window_close) {
+        let outcome: Value = serde_json::from_slice(&io(
+            "combined-close-outcome",
+            fs::read(root.join("data/ui-result.json")),
+        )?)
+        .map_err(|_| invalid("combined-close-outcome-shape"))?;
+        if outcome["phase"] != "cancelled"
+            || outcome["error"] != "CANCELLED"
+            || !outcome["receipt"].is_null()
+        {
+            return Err(invalid("combined-close-not-cancelled"));
+        }
+        if mode == Some(super::live::LiveMode::ClosePartial) {
+            let sent: Value = serde_json::from_slice(&io(
+                "combined-close-sent",
+                fs::read(root.join("control/live-00.json")),
+            )?)
+            .map_err(|_| invalid("combined-close-sent-shape"))?;
+            let received: Value = serde_json::from_slice(&io(
+                "combined-close-received",
+                fs::read(root.join("data/transfer-received.json")),
+            )?)
+            .map_err(|_| invalid("combined-close-received-shape"))?;
+            if sent["bytesSent"] != 1024
+                || sent["partial"] != true
+                || received["payloadBytesReceived"] != 1024
+            {
+                return Err(invalid("combined-close-partial-not-proved"));
+            }
+        }
+        let report = json!({"researchOnly":true,"productionAcceptance":false,"windowClosePassed":true,"networkMeasurement":false,"outcome":outcome});
+        write_json(&root.join("window-close.json"), &report)?;
+        return Ok(report);
+    }
     Err(invalid("broker-seed-did-not-crash"))
 }
 
@@ -588,7 +627,12 @@ pub(in super::super::super) fn recover(root: &Path, action: &str) -> Result<Valu
     let expected_published = ticket.point.publishes()
         && !matches!(
             authority.live_mode,
-            Some(super::live::LiveMode::Cancel | super::live::LiveMode::Invalid)
+            Some(
+                super::live::LiveMode::Cancel
+                    | super::live::LiveMode::Invalid
+                    | super::live::LiveMode::CloseDialog
+                    | super::live::LiveMode::ClosePartial
+            )
         );
     if summary.published != expected_published
         || summary.project_count != authority.previous_projects + u32::from(expected_published)

@@ -1,5 +1,13 @@
 # Bedrohungsmodell (Entwurf)
 
+[Kombinierte Fensterendeprüfung](../testing/native-combined-window-close.md): Eigener nativer Dialog
+und Teiltransfer enden beim Hauptfensterschluss regulär mit `CANCELLED`; kein Abschlussbeleg allein
+aus dem Fensterende. Erst authentisierte Recovery/Replay-Abwehr erlaubt expliziten neuen Auftrag.
+Auswahlthreadjoin und Jobleerstand belegt. Inkonsistente neue Modusprüfung blockierte den Erstlauf
+korrekt; behoben und mit frischer Autorität erneut geprüft, kein Journal-/Keyreset. Neuer Helferhash
+besitzt noch keinen eigenen ETW-Beleg; funktionale Prüfung ist keine Netzabnahme. Striktes Ziel und
+offene externe Dienst-/Produktgrenzen bleiben unverändert.
+
 Eigener
 [frischer ETW-Beleg des manuellen Brokerpaars](../testing/native-combined-assistive-restart-etw.md):
 Automatik und vier manuelle Tastatur-Wiederanläufe in getrennten gültigen Phasen; acht Kontrollen,

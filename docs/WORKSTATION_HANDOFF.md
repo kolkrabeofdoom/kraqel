@@ -7,6 +7,17 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 16. November 2026
 
+Neuester Stand: [Kombinierte Fensterendeprüfung](testing/native-combined-window-close.md) für
+offenen nativen Dateidialog und Teiltransfer bestanden. Gesichertes finales Paar mit Helferhash
+`1b5c0efa771f58a7e1274369d391b92a2c788aa1d64756e6ef4530b2f2555b4f`, App unverändert. Nach Schließen
+reguläres Ende/Threadjoin/Jobleerstand, Abbruch ohne Kopie; danach je Recovery, gesperrte
+Altanfragen, neuer Auftrag und zweifache Wiederherstellung geprüft. 16 Apps, vier Aufträge, zwei
+legitime Kopien; unabhängige MAC-/Datenprüfung, 31 Helfertests/Clippy und `pnpm check` bestanden.
+Alle Profile einschließlich des verworfenen Erstlaufs bereinigt, Prozesse beendet. Nächster Scope:
+frischer ETW-Netzvergleich des neuen Paars mit beiden Fensterendepfaden, keine Übertragung älterer
+Netzbelege. Rohdaten/Schlüssel lokal; auf anderem Rechner frische Testwurzeln verwenden. Striktes
+Datenschutzziel unverändert, keine Produktfreigabe.
+
 Neuester Nachweis:
 [Tastatur und frisches ETW des manuellen Brokerpaars](testing/native-combined-assistive-restart-etw.md).
 Eigener Tastaturvorlauf plus vier gemessene Wiederanlaufzustände menschlich bestätigt und nativ

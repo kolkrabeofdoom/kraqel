@@ -138,9 +138,12 @@
              nativem Replay-Gegenbeleg prüfen; zwei Erstversuche abgelehnt, Tastaturabnahme separat
        - [x] KQ-069 A: Tastaturprüfung und eigenes frisches ETW des manuellen Brokerpaars; vier
              Zustände, acht Kontrollen, Nullverluste, alle 906 Enden, 0 Nicht-Loopback
-       - [ ] KQ-069 A: Weitere kombinierte Fensterendeprüfung; dauerhaften authentisierten
-             Produktbroker integrieren/abnehmen; weitere Formate/Git-/Providergrenzen;
-             UDP/IPv6/DNS/Broker kalibrieren; Packaging und F08-/M3-Vollprüfung
+       - [x] KQ-069 A: Kombinierter Hauptfensterschluss bei offenem Dialog und Teiltransfer;
+             reguläre Enden, Recovery/Replay und neue Aufträge geprüft, 16 Apps/zwei legitime Kopien
+       - [ ] KQ-069 A: Frisches ETW des Fensterende-Paars und weitere allgemeine
+             Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
+             integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker
+             kalibrieren; Packaging und F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene

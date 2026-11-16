@@ -1,5 +1,21 @@
 # Entwicklungsstatus
 
+Kombinierte Fensterendeprüfung, 16. November: Native Hauptfensterschlüsse bei offenem Dateidialog
+und während eines echten Teiltransfers mit dem korrigierten Helfer bestanden. App unverändert; zwei
+reguläre initiale App-/Brokerenden 0, Auswahlthreads beendet, alte Aufträge `CANCELLED` ohne Kopie.
+Teiltransfer beidseitig 1.024 von 11.915 Bytes. Anschließend je vorzeitigen Folgeauftrag abweisen,
+authentisierte Recovery/Replay-Abwehr, ausdrücklich neuen Auftrag und zweifache Recovery prüfen:
+insgesamt 16 Apps, vier unterschiedliche Aufträge, genau zwei legitime Kopien. Unabhängige
+MAC-/Ketten-/Hash-/SQLite-/Unicode-Prüfung bestanden. Beide finalen Profile entfernt, Prozesse
+beendet; verworfener Erstlauf wegen inkonsistenter manueller Modusprüfung ausdrücklich unbestanden,
+dessen prozessfreies Profil gezielt entfernt, keine Autorität repariert oder wiederverwendet. 31
+aktive Helfertests, Helfer-Clippy und `pnpm check` bestanden, kein vollständiger Appbuild.
+[Nachweis](testing/native-combined-window-close.md),
+[Aggregate/Hashes](testing/native-combined-window-close.json). Nächster Schritt: frischer ETW-
+Netzvergleich des neuen Fensterende-Paars; vorige Netzbelege nicht übertragen. Produktablage,
+Updates/Migration, weitere allgemeine Fensterende-/F08-Randfälle und externe Dienste offen. Striktes
+Datenschutzziel unverändert, Produkt-Q-01/Q-02 nicht bestanden.
+
 Tastatur und frisches ETW des manuellen Brokerpaars, 16. November: Eigener Tastaturvorlauf sowie
 alle vier gemessenen Wiederanlaufzustände ausschließlich per Tastatur laut menschlicher Bestätigung
 erfolgreich; Ansagen/Fokus und native Replay-Aufrufe vor Fensterende gegengeprüft.

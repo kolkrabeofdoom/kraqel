@@ -288,12 +288,21 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 ## Übergabe zwischen Codex-Sessions
 
 Aktuell:
+[Kombinierter Hauptfensterschluss bei offenem Dialog und Teiltransfer](docs/testing/native-combined-window-close.md)
+mit korrigiertem Helfer bestanden; App unverändert. Native Abbruch-/Thread-/Jobbelege sowie
+authentisierte Wiederanlauf-/Folgeauftragsketten unabhängig geprüft. Verworfener Erstlauf bleibt
+unbestanden; keine Reparatur oder Wiederverwendung seiner Autorität. Neuer Helferhash benötigt einen
+frischen ETW-Beleg beider Fensterendepfade; vorherige Nachweise nicht übertragen. Weitere allgemeine
+Fensterende-/F08-Prüfungen, Produktablage/Updates/Migration und externe Dienste offen.
+
+Vorheriges gesichertes Paar:
 [Tastaturprüfung und eigener frischer ETW-Beleg des manuellen Brokerpaars](docs/testing/native-combined-assistive-restart-etw.md).
 Tastaturbedienung menschlich bestätigt, native Replay-/Fokus-/Endebelege vorhanden; zusätzliche
 Pointer-Ereignisse erlauben keine unabhängige Eingabemethodenbestimmung. Zwei gültige Phasen, acht
 Kontrollen, Nullverluste, alle 906 Enden explizit, 0 Nicht-Loopback-/514 getrennte Loopback-
 Ereignisse. Gilt nur für die dokumentierten Hashes/Lebenszeiten; externe Dienste und Produkt offen.
-Nächster Scope: weitere kombinierte Fensterendeprüfung, danach Produktablage/Updates/Migration.
+Damals nächster Scope: weitere kombinierte Fensterendeprüfung, danach
+Produktablage/Updates/Migration.
 
 Aktuell:
 [Kombinierte assistive Wiederanlauf-/Fehlerprüfung](docs/testing/native-combined-assistive-restart.md)

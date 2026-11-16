@@ -1,5 +1,13 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+Kombinierter Hauptfensterschluss, 16. November:
+[Eigener Funktionsbeleg](../../testing/native-combined-window-close.md) für offenen Dialog und
+Teiltransfer, danach authentisierte Recovery und neue Aufträge bestanden. App unverändert; neue
+native Helfermodi mit konsistenter manueller Modusprüfung, regulärem Ende, Threadjoin und
+Jobleerstand. Verworfener Erstlauf bleibt unbestanden. Neuer Helferhash benötigt eigenes frisches
+ETW; keine Übertragung früherer Nachweise oder Produkt-/Dienstfreigabe. Striktes Datenschutzziel
+unverändert, Produktablage/Updates/Migration und weitere F08-Randfälle offen.
+
 Tastatur und ETW des manuellen Brokerpaars, 16. November: Eigener frischer
 [Nachweis](../../testing/native-combined-assistive-restart-etw.md) mit automatischer Serie und vier
 manuellen Wiederanläufen. Acht Kontrollen, Nullverluste, 906 explizite Enden, 0 Nicht-Loopback-/514

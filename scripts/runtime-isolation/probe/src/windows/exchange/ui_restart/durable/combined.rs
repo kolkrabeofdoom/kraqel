@@ -91,6 +91,11 @@ pub(in super::super::super::super) fn seed_live(
     if mode == LiveMode::Partial && point != CrashPoint::Reading {
         return Err(invalid("combined-partial-point"));
     }
+    // Completed is deliberately unreachable before the manual confirmation. No crash pause
+    // may block cancellation in the window-close paths.
+    if mode.window_close() && point != CrashPoint::Completed {
+        return Err(invalid("combined-close-point"));
+    }
     seed_with(root, app, point, Some(mode))
 }
 pub(in super::super::super::super) fn next_live(root: &Path) -> Result<Value> {

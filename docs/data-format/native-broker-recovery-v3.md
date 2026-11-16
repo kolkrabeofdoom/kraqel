@@ -59,6 +59,24 @@ entfernt das Profil, eröffnet keine GUI und löscht weder Projekte noch Journal
 
 ## Forschungsmodi und Grenzen
 
+Zusätzliche begrenzte Fensterendemodi des Forschungshelfers:
+`ui-broker-live-seed <frische Wurzel> <App> completed closeDialog|closePartial`. Beide verwenden
+native Auswahl und deaktivierte Bedienungsautomatik. `completed` darf vor Fensterende nicht erreicht
+werden; andere Crashpunkte werden vor Sitzungsanlage abgelehnt, damit kein Crash-Haltepunkt die
+Abbruchbehandlung blockiert. `closeDialog` verlangt die gezielte native Schließnachricht an den
+eigenen Auswahlthread; `closePartial` hält genau 1.024 Bytes maximal 60 Sekunden. Die Zeitgrenze des
+Dateiauftrags wird dadurch nicht verlängert. Kein zusätzlicher Rendererparameter oder Grant.
+
+Erfolg verlangt Renderer-/Terminalereignis, reguläres Appende 0, beendeten Auswahlthread innerhalb
+der begrenzten Bereinigung und leeren Job. Ausschließlich die konkrete Broken-Pipe-Abbruchantwort
+des Dialogs darf als erwarteter Transportabschluss gelten; sonstige Fehler bleiben Fehler. Der
+Appzustand muss `CANCELLED` ohne Receipt sein, beim Teiltransfer müssen Sender und Empfänger
+übereinstimmend 1.024 Bytes belegen. Der Fensterendebeleg erzeugt keinen Abschluss-MAC. Erst eine
+separate authentisierte Recovery mit Replay- und Altanfrageprüfung darf einen Folgeauftrag
+freigeben. Die nativen Funktionsbelege stehen im
+[kombinierten Fensterendenachweis](../testing/native-combined-window-close.md). Ein eigener frischer
+ETW-Beleg dieses neuen Helferpaars bleibt erforderlich; ältere Hashpaare nicht übertragen.
+
 `ui-combined-series <frische Controllerwurzel> <Forschungs-App>` verbindet sechs Crashpunkte mit
 gebundenem Live-Transport sowie Abbruch-, ungültige-Datei- und 1.024-Byte-Teiltransferfällen. Danach
 jeweils Wiederanlauf, ausdrücklich neuer vollständiger Live-Auftrag, erneuter Controllerverlust,

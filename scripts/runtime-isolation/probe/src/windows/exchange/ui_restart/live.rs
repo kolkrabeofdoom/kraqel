@@ -15,6 +15,16 @@ pub(super) enum LiveMode {
     Cancel,
     Invalid,
     Partial,
+    CloseDialog,
+    ClosePartial,
+}
+impl LiveMode {
+    pub(super) fn manual_selection(self) -> bool {
+        self == Self::Native || self.window_close()
+    }
+    pub(super) fn window_close(self) -> bool {
+        matches!(self, Self::CloseDialog | Self::ClosePartial)
+    }
 }
 
 pub(super) struct Bridge {
@@ -112,7 +122,10 @@ impl Bridge {
             )?;
             io("combined-write-fixture", fixture.write_all(bytes))?;
             drop(fixture);
-            let selected = if mode == LiveMode::Native {
+            let selected = if matches!(
+                mode,
+                LiveMode::Native | LiveMode::CloseDialog | LiveMode::ClosePartial
+            ) {
                 choose_named(&host, false, "input.kraqel", true)?
             } else {
                 Some(host.join("input.kraqel"))
@@ -159,11 +172,8 @@ impl Bridge {
                 writer.write_all(&(frame.len() as u32).to_le_bytes()),
             )?;
             io("combined-task", writer.write_all(&frame))?;
-            let amount = if mode == LiveMode::Partial {
-                1024
-            } else {
-                size
-            };
+            let partial = matches!(mode, LiveMode::Partial | LiveMode::ClosePartial);
+            let amount = if partial { 1024 } else { size };
             let copied = io(
                 "combined-copy",
                 std::io::copy(&mut input.take(amount), &mut writer),
@@ -173,10 +183,15 @@ impl Bridge {
             }
             write_json(
                 &root.join(format!("control/live-{index:02}.json")),
-                &json!({"requestReceived":true,"bytesSent":copied,"expectedBytes":size,"partial":mode==LiveMode::Partial,"nativeDialog":mode==LiveMode::Native}),
+                &json!({"requestReceived":true,"bytesSent":copied,"expectedBytes":size,"partial":partial,"nativeDialog":matches!(mode, LiveMode::Native | LiveMode::CloseDialog | LiveMode::ClosePartial)}),
             )?;
-            if mode == LiveMode::Partial {
-                let deadline = Instant::now() + Duration::from_secs(45);
+            if partial {
+                let deadline = Instant::now()
+                    + Duration::from_secs(if mode == LiveMode::ClosePartial {
+                        60
+                    } else {
+                        45
+                    });
                 while !stop.load(Ordering::SeqCst) && Instant::now() < deadline {
                     thread::sleep(Duration::from_millis(20));
                 }
@@ -188,6 +203,44 @@ impl Bridge {
     pub(super) fn selected(&self) -> bool {
         self.consumed
     }
+    pub(super) fn finish_window_close(&mut self, mode: LiveMode) -> Result<Value> {
+        if !mode.window_close() || !self.consumed {
+            return Err(invalid("combined-close-no-selection"));
+        }
+        self.stop.store(true, Ordering::SeqCst);
+        drop(self.request_child.take());
+        drop(self.response_child.take());
+        drop(self.response.take());
+        let task = self
+            .thread
+            .take()
+            .ok_or(invalid("combined-close-no-thread"))?;
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let mut messages = 0;
+        while !task.is_finished() && Instant::now() < deadline {
+            messages +=
+                super::super::ui_live::close_owned_dialog(self.thread_id.load(Ordering::SeqCst));
+            thread::sleep(Duration::from_millis(20));
+        }
+        if !task.is_finished() {
+            // Never detach a privileged selection thread after a successful report.
+            std::process::exit(2);
+        }
+        if let Err(error) = task.join().map_err(|_| invalid("combined-close-thread"))?
+            && !expected_close_error(mode, &error)
+        {
+            return Err(error);
+        }
+        if mode == LiveMode::CloseDialog && messages == 0 {
+            return Err(invalid("combined-close-dialog-not-observed"));
+        }
+        Ok(json!({"selectionThreadJoined":true,"dialogCloseMessages":messages}))
+    }
+}
+fn expected_close_error(mode: LiveMode, error: &Failure) -> bool {
+    mode == LiveMode::CloseDialog
+        && error.stage == "combined-dialog-cancel"
+        && matches!(error.code, 109 | 232)
 }
 impl Drop for Bridge {
     fn drop(&mut self) {
@@ -207,5 +260,53 @@ impl Drop for Bridge {
             }
             let _ = task.join();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn manual_selection_is_limited_to_native_and_window_close_modes() {
+        for mode in [
+            LiveMode::Native,
+            LiveMode::CloseDialog,
+            LiveMode::ClosePartial,
+        ] {
+            assert!(mode.manual_selection());
+        }
+        for mode in [
+            LiveMode::Fixture,
+            LiveMode::Partial,
+            LiveMode::Cancel,
+            LiveMode::Invalid,
+        ] {
+            assert!(!mode.manual_selection());
+        }
+    }
+    #[test]
+    fn close_accepts_only_the_cancel_reply_broken_pipe_after_dialog_teardown() {
+        for code in [109, 232] {
+            let error = Failure {
+                stage: "combined-dialog-cancel",
+                code,
+            };
+            assert!(expected_close_error(LiveMode::CloseDialog, &error));
+            assert!(!expected_close_error(LiveMode::ClosePartial, &error));
+        }
+        assert!(!expected_close_error(
+            LiveMode::CloseDialog,
+            &Failure {
+                stage: "combined-dialog-cancel",
+                code: 5
+            }
+        ));
+        assert!(!expected_close_error(
+            LiveMode::CloseDialog,
+            &Failure {
+                stage: "combined-copy",
+                code: 109
+            }
+        ));
     }
 }
