@@ -1,5 +1,12 @@
 # F08-/M3-Abnahmematrix
 
+ETW-Fortschreibung 16. November: Das gesicherte Neustart-Paar ist mit neuer gültiger Messung belegt:
+28 vollständige App-Generationen, 144 WebViews, vier Kontrollen, Nullverluste, 0 Ereignisse
+außerhalb Loopback und 144 getrennte Loopback-Ereignisse. Native Crash-Serie und Daten/Cleanup im
+Messlauf unabhängig bestätigt. [Nachweis](native-ui-restart-etw.md),
+[Aggregate](native-ui-restart-etw.json). Keine externe Broker-, assistive Voll- oder Produktabnahme;
+Q-01/Q-02 unverändert nicht bestanden.
+
 Neustart-Fortschreibung 16. November: Integrierter isolierter GUI-Neustart innerhalb desselben
 Controllers nativ bestanden. 28 Generationen mit sechs Crashpunkten, zweifachem Wiederanlauf,
 Altimportabwehr und vier negativen Starts; unabhängige Journal-/SQLite-/Unicode-/Cleanup-Prüfung

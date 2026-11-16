@@ -1,5 +1,15 @@
 # Entwicklungsstatus
 
+ETW-Fortschreibung, 16. November 2026: Das gesicherte unveränderte Neustart-Paar ist nun frisch
+gemessen. Gültige Erfassung mit vier Kontrollen, Nullverlusten, 28 vollständig zugeordneten
+App-Generationen und 144 WebView-Lebenszeiten: 0 Ereignisse außerhalb Loopback, 144
+Loopback-Ereignisse getrennt. Native Crash-/Wiederanlaufserie, Journal/SQLite/Unicode und Cleanup im
+Messlauf unabhängig bestätigt. [Nachweis](testing/native-ui-restart-etw.md),
+[Aggregate und genaue Hashes](testing/native-ui-restart-etw.json). Erfassung beendet, Rohdaten
+lokal; keine Runtimeänderung. Nächster Scope: assistive Wiederanlaufprüfung, Controller-Crash und
+dauerhafter Broker; externe Brokergrenzen und Produktintegration weiter offen. Striktes Ziel
+unverändert, #134 und Produkt-Q-01/Q-02 weiterhin nicht bestanden. Frühere Stufen folgen.
+
 Neustart-Fortschreibung, 16. November 2026: Authentisierter Forschungs-Neustart innerhalb desselben
 lebenden Controllers implementiert. Frische anonyme Pipes, exakte OS-Identität, Launch-Bindung und
 Programmhash vor WebView-Aufbau geprüft. Finale native Serie mit 28 Generationen bestanden: sechs

@@ -1,5 +1,13 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+ETW-Fortschreibung 16. November: Frischer gültiger Nachweis exakt des unveränderten gesicherten
+Neustart-Paars. 28 App-Generationen mit vollständiger Endezuordnung, 144 WebViews, vier Kontrollen,
+Nullverluste und 0 Ereignisse außerhalb Loopback; 144 Loopback-Ereignisse separat. Native Serie und
+Daten/Cleanup im Messlauf unabhängig geprüft. [Nachweis](../../testing/native-ui-restart-etw.md),
+[Hashbindung und Aggregate](../../testing/native-ui-restart-etw.json). Keine Erweiterung der
+Vertrauensgrenze auf externe COM-/Shell-/DNS-/Broker oder kompromittierte Prozesse. Striktes Ziel,
+fehlende Produktabnahme und offene Controller-Crash-/Dauerbrokerintegration bleiben unverändert.
+
 Neustart-Fortschreibung 16. November: Gebundene Starttickets über frische anonyme Pipes ermöglichen
 den Neustart derselben Forschungs-GUI mit unveränderter Identität, Ablage und Programmhash innerhalb
 eines lebenden Controllers. Suspendierte Root-Tokenprüfung und empfangsseitige SID-/Hash-/Launch-

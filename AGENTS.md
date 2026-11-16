@@ -287,6 +287,11 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
+Der [ETW-Neustartnachweis](docs/testing/native-ui-restart-etw.md) gilt ausschließlich für sein
+gesichertes App-/Controllerhashpaar und die vollständig zugeordneten Prozesslebenszeiten. Eine
+Code-/Binäränderung erhält diese Netzabnahme nicht automatisch; keine Produkt- oder externe
+Brokerfreigabe daraus ableiten.
+
 Der [Neustartvertrag](docs/data-format/native-ui-restart-v1.md) bindet GUI-Generationen
 ausschließlich innerhalb desselben lebenden Forschungscontrollers. Frische Pipes/Launch-Bindungen,
 genaue OS-Identität, Programmhash und Job-Leerstand dürfen nicht durch gelesene Diagnosedateien

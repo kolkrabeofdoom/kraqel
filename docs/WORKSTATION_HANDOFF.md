@@ -7,6 +7,16 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 15. November 2026
 
+Neuester Nachweis 16. November: Frischer gültiger ETW-Netzvergleich exakt des gesicherten
+Neustart-Paars bestanden. Ein Controllerbaum mit 28 Apps, 144 WebViews und insgesamt 202 explizit
+beendeten Lebenszeiten; vier Kontrollen, Nullverluste, 0 Ereignisse außerhalb Loopback und 144
+getrennte Loopback-Ereignisse. Auch unter ETW sind Crash/Reconciliation/Altimportabwehr sowie
+SQLite/Unicode/Kopienzahl/Cleanup unabhängig bestätigt.
+[Nachweis](testing/native-ui-restart-etw.md),
+[Aggregate und Hashes](testing/native-ui-restart-etw.json). Rohdaten lokal, Erfassung beendet,
+Programme unverändert. Nächster Scope: assistive Wiederanlaufprüfung, Controller-Crash/dauerhafter
+Broker und externe Grenzen. Keine Produktfreigabe; striktes Ziel unverändert.
+
 Neuester Stand 16. November: Integrierte isolierte GUI-Crash-/Neustartserie bestanden, 28
 Generationen desselben App-/Controllerpaars. Gleicher lebender Controller, OS-Identität und
 Datenwurzel; frische Pipes/Launch-Bindungen je Start. Sechs Crashpunkte, je zwei Reconciliations und

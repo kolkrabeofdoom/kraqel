@@ -4,8 +4,10 @@ Finale Serie bestanden, Exitcode des Controllers 0. [Bereinigte Aggregate](nativ
 App-SHA-256: `ca4e70a39a96ec6c642863494be616c47a7e9243afc4ba20726606ddf7c54324`. Controller-SHA-256:
 `12cee20170c7672f959703d592d370f57b7cb90311fed524330f2dd05208508f`. Nach dieser Serie keine weiteren
 Runtimeänderungen. Das geprüfte Paar ist getrennt lokal gesichert; der normale Debug-Build
-anschließend wiederhergestellt. Kein neuer ETW-Beleg dieses Paars, frühere Hashnachweise werden
-nicht übertragen.
+anschließend wiederhergestellt. Ein späterer
+[frischer ETW-Lauf desselben unveränderten Paars](native-ui-restart-etw.md) ist inzwischen gültig
+abgenommen; der hier dokumentierte ursprüngliche Funktionslauf bleibt ein eigener Nachweis. Frühere
+Hashnachweise werden nicht übertragen.
 
 Stand: 16. November 2026.
 [Startticket und Bedrohungsgrenze](../data-format/native-ui-restart-v1.md). Striktes Datenschutzziel
@@ -80,7 +82,6 @@ Browserprüfungen aus. Die Crash-Serie mit geöffneten nativen Fenstern läuft a
 
 ## Noch offen
 
-Frischer ETW-Netzvergleich genau des neuen App-/Controllerpaars, assistive Wiederanlauf-Hörprüfung,
-Controllerabsturz und dauerhafter Produktbroker, weitere Formate, externe COM-/Shell-/DNS-/Broker-
-Grenzen, Produkt-/Packaging-Integration und Stromausfallabnahme. Keine universelle Netzstille oder
-Produktfreigabe aus dem funktionalen Neustarttest ableiten.
+Assistive Wiederanlauf-Hörprüfung, Controllerabsturz und dauerhafter Produktbroker, weitere Formate,
+externe COM-/Shell-/DNS-/Broker- Grenzen, Produkt-/Packaging-Integration und Stromausfallabnahme.
+Keine universelle Netzstille oder Produktfreigabe aus dem funktionalen Neustarttest ableiten.

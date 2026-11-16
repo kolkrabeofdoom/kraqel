@@ -98,6 +98,7 @@ Nur Wiederanlauf innerhalb desselben lebenden Controllers. Ein anderer Controlle
 bestehende Forschungswurzel übernehmen; der CLI-Start verlangt weiterhin eine frische Wurzel.
 Absturz des Controllers, dauerhafter authentisierter Produktbroker, Stromausfälle, weitere Formate
 und vollständige Nachfahren-/externe Brokerattestierung bleiben offen. Die autonome Serie belegt
-keine gehörte Screenreader-Ausgabe oder vollständige native Fokusabnahme. Keine neue ETW-Messung und
-keine Übertragung alter Netzbelege auf geänderte Binärdateien.
+keine gehörte Screenreader-Ausgabe oder vollständige native Fokusabnahme. Ein
+[frischer gültiger ETW-Nachweis](../testing/native-ui-restart-etw.md) gilt ausschließlich für das
+dokumentierte unveränderte Paar, ohne Übertragung alter Netzbelege auf geänderte Binärdateien.
 [Nachweis und Buildbindung](../testing/native-ui-restart.md).

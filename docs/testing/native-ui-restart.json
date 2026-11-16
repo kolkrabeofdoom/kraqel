@@ -35,6 +35,7 @@
   "profileRemoved": true,
   "unisolatedStartWithoutValidChannelExitCode": 2,
   "newEtwMeasurement": false,
+  "subsequentEtwEvidence": "native-ui-restart-etw.json",
   "manualScreenreaderAcceptance": false,
   "controllerCrashRecoveryTested": false
 }

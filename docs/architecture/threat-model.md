@@ -1,5 +1,12 @@
 # Bedrohungsmodell (Entwurf)
 
+ETW-Fortschreibung: Das gesicherte Neustart-Paar besitzt jetzt einen neuen gültigen Netzbeleg: 28
+zeitlich abgeglichene App-Generationen, alle 202 Prozesslebenszeiten explizit beendet, vier
+Kontrollen, Nullverluste, keine unbekannten Ziele/Zuordnungslücken, 0 Nicht-Loopback-Ereignisse; 144
+Loopback-Ereignisse separat. [Nachweis und Grenzen](../testing/native-ui-restart-etw.md). Keine
+Runtimeänderung oder zusätzliche Fähigkeit. Dieser Transportmetadatenbefund attestiert weder Inhalte
+noch externe Dienste oder kompromittierte Prozesse; Produkt-Q-01/Q-02 bleiben offen.
+
 Neustart-Fortschreibung: Forschungsstarts sind an einmalige anonyme Pipes, Launch-ID, exakte
 AppContainer-SID, abgeleitete Datenwurzel und Programmhash gebunden. Flags vor WebView gelöscht und
 geprüft; keine Rendererhandles, Tickets, Quellen oder Crashpunkte. Der lebende Controller behält

@@ -118,9 +118,11 @@
        - [x] KQ-069 A: Authentisierten isolierten GUI-Neustart innerhalb desselben Controllers mit
              stabiler Ablage prüfen; 28 Generationen mit Crash/zweifachem
              Wiederanlauf/Altimportabwehr
-       - [ ] KQ-069 A: Neues finales Paar per ETW messen; assistive Wiederanlaufprüfung und
-             Controller-Crash/dauerhaften Broker abnehmen; weitere Formate/Git-/Providergrenzen;
-             UDP/IPv6/DNS/Broker kalibrieren; Packaging und F08-/M3-Vollprüfung
+       - [x] KQ-069 A: Gesichertes Neustart-Paar frisch per ETW messen; 28 App-Generationen, 144
+             WebViews, vier Kontrollen, Nullverluste und 0 Nicht-Loopback-Ereignisse
+       - [ ] KQ-069 A: Assistive Wiederanlaufprüfung und Controller-Crash/dauerhaften Broker
+             abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren;
+             Packaging und F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene
