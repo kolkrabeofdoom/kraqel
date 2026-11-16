@@ -287,6 +287,19 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
+Datenschutzblocker des neuen Brokerkandidaten: DPAPI-Domänencontroller-/RPC-Grenze vor
+Produktintegration belegen oder Primitive ersetzen. Keine Freigabe allein aus einem ETW-Appbaum;
+keine OS-/Domänenausnahme. Details im Broker-Wiederanlaufvertrag.
+
+Aktuelle Broker-Grundlage:
+[dauerhafte native Wiederherstellung](docs/data-format/native-broker-recovery-v1.md) und
+[Controller-Crash-Nachweis](docs/testing/native-controller-crash.md). Nur der neue explizite
+Brokerpfad darf eine bestehende synthetische Wurzel übernehmen: DPAPI-Beleg, exklusive Sperre,
+Wurzel-/Programmhashbindung, Jobleerstand und frische Pipes sind verpflichtend. Niemals aus
+Diagnose-JSON/PIDs neue Autorität ableiten oder fehlende Journale ersetzen. Neuer Brokerhash hat
+noch keinen eigenen ETW-Beleg; Produktintegration und Produktabnahme bleiben offen. Das strikte
+Datenschutzziel bleibt unverändert.
+
 Der [v2-Netznachweis](docs/testing/native-assistive-restart-etw.md) umfasst das exakt gesicherte
 v2-Paar mit automatischer Serie und beiden manuellen Wiederanlaufpfaden. Nur seine Hashes und
 vollständig erfassten Lebenszeiten sind belegt; kein automatischer Übertrag auf Folgeänderungen,

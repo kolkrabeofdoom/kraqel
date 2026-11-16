@@ -1,5 +1,22 @@
 # Bedrohungsmodell (Entwurf)
 
+Offene externe Primitive: Kontogeschützte DPAPI kann laut
+[Microsoft](https://learn.microsoft.com/en-us/troubleshoot/windows-server/identity/dpapi-masterkey-backup-failures)
+Domänencontroller-/RPC-Pfade für Masterkey-Backup/-Wiederherstellung nutzen. Ein ETW-Appbaum allein
+belegt diese Grenze nicht. Die Forschungsimplementierung darf deshalb erst nach gesondertem Nachweis
+unter dem strikten Ziel oder Ersatz der Primitive produktiv integriert werden. Keine
+Domänen-/OS-Richtlinienänderung als Freigabeersatz.
+
+Controllerverlust: [Dauerhafter nativer Beleg](../data-format/native-broker-recovery-v1.md)
+authentisiert Wiederanlauf gegenüber dem Container; geschützte DACL, nicht vererbte exklusive
+Sperre, Wurzel-/App-/Brokerhashbindung, Jobleerstand und frische Startpipes. Jobzuweisung bei
+Prozesserzeugung verhindert die bisherige nachträgliche Zuweisung im neuen Brokerpfad.
+[Native Crash-/Negativserie](../testing/native-controller-crash.md) bestanden. DPAPI ist keine
+Attestierung fremder Prozesse desselben Kontos; kein Schutz gegen Kontokompromittierung,
+Administrationsrechte oder beliebige Manipulation der containerbeschreibbaren Journale.
+Authentisierte Produktupdates/-migration und kombinierte Live-Aufträge fehlen. Neuer Broker ohne
+eigenen ETW-Beleg; striktes Ziel und fehlende Produktabnahme unverändert.
+
 ETW v2: Das neue gesicherte Paar besitzt nun einen eigenen gültigen Netzbeleg mit Automatik und
 beiden manuellen Wiederanlaufpfaden: drei vollständige Bäume, 32 App-Generationen, 238 explizite
 Prozessenden, vier Kontrollen, Nullverluste, 0 Nicht-Loopback-Ereignisse. 176 Loopback-Ereignisse

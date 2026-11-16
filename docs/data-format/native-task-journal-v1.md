@@ -72,6 +72,12 @@ Fehler bereits bei der Start-Reconciliation beendet den Forschungsstart vor WebV
 
 ## Grenzen
 
+Fortschreibung 16. November: Der neue explizite
+[Broker-Wiederanlaufvertrag](native-broker-recovery-v1.md) ergänzt authentisierte Übernahme nach
+Controllerverlust für synthetische Forschungsablagen. Der Journalvertrag selbst wird dadurch nicht
+zu einer Autorität; alte Launcherpfade behalten ihre bisherigen Grenzen. Produktintegration und
+neuer ETW-Nachweis des Brokers bleiben offen.
+
 Geprüft sind Prozessabbrüche und wiederholtes Öffnen des Stores, keine Stromausfälle,
 Datenträgerdefekte, verlorenen Verzeichniseinträge oder beliebige Manipulationen durch Prozesse mit
 denselben Schreibrechten. SQLite-FULL allein beweist keine plattformübergreifende

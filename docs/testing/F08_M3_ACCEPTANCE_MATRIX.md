@@ -1,5 +1,11 @@
 # F08-/M3-Abnahmematrix
 
+Controller-Crash 16. November: Getrennter Forschungsbroker mit dauerhafter nativer Autorität,
+exklusiver Sperre und Jobzuweisung bei Prozesserzeugung geprüft. Sechs harte Controllerenden, zwölf
+neue Wiederanlaufprozesse, 30 App-Generationen, 60 Ablehnungen; Journal/Kopien/SQLite/Unicode
+unabhängig bestätigt. [Nachweis und Grenzen](native-controller-crash.md). Kein produktiver Broker,
+kein eigener neuer ETW-/Hörbeleg; Produkt-Q-01/Q-02 weiterhin nicht bestanden.
+
 ETW v2 am 16. November: Eigener gültiger Netzbeleg des gesicherten v2-Paars mit automatischer Serie
 und beiden manuellen Pfaden. 32 Apps/168 WebViews vollständig erfasst, vier Kontrollen,
 Nullverluste, 0 Nicht-Loopback- und 176 getrennte Loopback-Ereignisse; native Daten/Cleanup geprüft.

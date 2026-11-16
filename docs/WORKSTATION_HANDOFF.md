@@ -7,6 +7,21 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 15. November 2026
 
+Zusätzlicher Produktblocker: DPAPI-Domänencontroller-/RPC-Grenze gesondert prüfen oder Primitive
+ersetzen. Keine Produktintegration allein aufgrund eines unauffälligen ETW-Appbaums;
+[Vertrag](data-format/native-broker-recovery-v1.md). Striktes Ziel unverändert.
+
+Neuester Stand 16. November: Controller-Crash-Serie und dauerhafte native Wiederanlaufautorität im
+Forschungslauncher bestanden: sechs harte Controllerenden, zwölf neue Broker-Wiederanläufe, 30
+App-Generationen, 60 Ablehnungsfälle. [Vertrag](data-format/native-broker-recovery-v1.md),
+[Nachweis und gesicherte Hashes](testing/native-controller-crash.md). Daten unabhängig geprüft,
+Profile entfernt, Prozesse beendet. Gesichertes Paar lokal unter
+`%TEMP%\\kraqel-kq069-controller-broker-build-20261116-03`; alte Paare unverändert erhalten.
+Nächster Scope: eigener ETW-Netzvergleich dieses neuen Paars, danach kombinierter Live-/Neustartpfad
+und Produktbrokerintegration. Alter ETW-Beleg ist keine Freigabe des neuen Brokers. Produktstart
+weiter unisoliert; striktes Datenschutzziel und offene Produkt-Q-01/Q-02 unverändert. Frühere
+Übergabeschritte folgen.
+
 Neuester Nachweis 16. November: Frisches ETW exakt des gesicherten v2-Paars bestanden,
 einschließlich automatischer 28-Start-Serie und beider manueller Wiederanlaufpfade. Drei
 Controllerbäume mit 32 Apps/168 WebViews, alle 238 Lebenszeiten explizit beendet; vier Kontrollen,

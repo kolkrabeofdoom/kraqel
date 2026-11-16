@@ -1,5 +1,23 @@
 # Entwicklungsstatus
 
+Produktblocker der neuen Broker-Grundlage: Kontogeschützte DPAPI besitzt mögliche externe
+Domänencontroller-/RPC-Pfade. Vor Produktintegration unter dem strikten Ziel belegen oder ersetzen;
+ein unauffälliger Appbaum allein genügt nicht.
+[Vertrauensgrenze](data-format/native-broker-recovery-v1.md).
+
+Controller-Crash, 16. November 2026: Dauerhafte authentisierte Wiederanlaufgrundlage im getrennten
+Forschungslauncher implementiert. DPAPI-geschützter nativer Beleg, geschützte Brokerablage,
+exklusive Sperre, Programm-/Wurzelbindung, Jobzuweisung bei Prozesserzeugung und tatsächliche
+Container-Zugriffsverweigerungen. Finale native Serie: sechs Controller-Kills, zwölf neue
+Wiederanlaufprozesse, 30 App-Generationen und 60 abgewehrte Fehlversuche bestanden. Journal,
+Kopienzahl, SQLite/Unicode/Receipt/Fremdschlüssel unabhängig geprüft; Profile entfernt, Prozesse
+beendet. [Vertrag](data-format/native-broker-recovery-v1.md),
+[Nachweis/Buildgrenzen](testing/native-controller-crash.md). Nächster Schritt: frisches ETW des
+separat gesicherten neuen Paars; danach kombinierter Live-/Neustartpfad und
+Produktbrokerintegration. Kein fertiger Produktbroker, keine neue Hör-/Netzabnahme. Normale Starts
+bleiben unisoliert, striktes Ziel unverändert; #134 und Produkt-Q-01/Q-02 nicht bestanden. Folgende
+Absätze sind frühere Stufen mit eigenen Hashgrenzen.
+
 ETW v2, 16. November 2026: Das gesicherte unveränderte v2-Paar ist frisch mit automatischer Serie
 und beiden manuellen Wiederanlaufpfaden gemessen. Gültige Erfassung: drei Controllerbäume, 32
 App-Generationen, 168 WebViews, alle 238 Lebenszeiten explizit beendet; vier Kontrollen,

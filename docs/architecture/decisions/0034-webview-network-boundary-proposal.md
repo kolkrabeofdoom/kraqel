@@ -1,5 +1,20 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+Produktintegration des DPAPI-basierten Forschungsbrokers bleibt zusätzlich gesperrt, solange
+mögliche Domänencontroller-/RPC-Pfade nicht unter dem strikten Ziel belegt oder die Primitive
+ersetzt sind. Keine OS-/Domänenrichtlinienänderung und keine stillschweigende Metadatenausnahme;
+[Vertrag und Primärquelle](../../data-format/native-broker-recovery-v1.md).
+
+Controller-Fortschreibung 16. November: Expliziter Forschungsbroker darf nach Controllerverlust
+bestehende synthetische Ablage ausschließlich nach DPAPI-/Programm-/Wurzelprüfung, exklusiver Sperre
+und Jobleerstand übernehmen. Kein neuer Importgrant. Geschützte native Kontrollablage und
+Jobzuweisung bei Prozesserzeugung; Containerzugriffe unter dem tatsächlichen Token verweigert.
+[Vertrag](../../data-format/native-broker-recovery-v1.md),
+[native Serie](../../testing/native-controller-crash.md): sechs Controller-Kills, zwölf neue
+Wiederanlaufprozesse, 30 App-Generationen, 60 Ablehnungen und unabhängige Datenprüfung bestanden.
+Kein Produktbroker, kein neuer ETW-Beleg; Produktintegration und externe Grenzen weiter offen.
+Striktes Ziel unverändert.
+
 ETW v2 am 16. November: Neuer gültiger Nachweis exakt des unveränderten gesicherten v2-Paars,
 einschließlich beider manueller Wiederanlaufpfade und automatischer Serie. 32 App-Generationen, 168
 WebViews, vier Kontrollen, Nullverluste, 0 Nicht-Loopback-Ereignisse; 176 Loopback-Ereignisse

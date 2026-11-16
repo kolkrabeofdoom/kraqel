@@ -124,7 +124,10 @@
              ergänzen; Ansagen/Fokus/Replay und zusätzliche Tastaturnutzung bestätigen
        - [x] KQ-069 A: Gesichertes v2-Paar mit Automatik und manuellen Pfaden per ETW messen; 32
              App-Generationen, vier Kontrollen, Nullverluste, 0 Nicht-Loopback-Ereignisse
-       - [ ] KQ-069 A: Controller-Crash/dauerhaften authentisierten Broker abnehmen; weitere
+       - [x] KQ-069 A: Dauerhafte native Wiederanlaufautorität im Forschungsbroker und echte
+             Controller-Crash-Serie prüfen; sechs Kills, zwölf Wiederanläufe, 60 Ablehnungen
+       - [ ] KQ-069 A: Neues Brokerpaar frisch per ETW messen; kombinierten Live-/Neustartpfad und
+             dauerhaften authentisierten Produktbroker integrieren/abnehmen; weitere
              Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren; Packaging und
              F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit

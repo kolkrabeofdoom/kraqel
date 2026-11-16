@@ -1,5 +1,16 @@
 # AppContainer-Forschungshelfer für KQ-069
 
+Neu: `ui-controller-crash-series <frische kraqel-isolation-controller-UUID-Wurzel> <Forschungs-EXE>`
+prüft sechs harte Controller-Kills, zwölf Wiederanläufe in neuen Brokerprozessen und 60
+Ablehnungsfälle. Nur dieser explizite Brokerpfad erlaubt dauerhafte Übernahme einer bestehenden
+synthetischen Ablage nach DPAPI-/Hash-/Wurzelbindung, exklusiver Sperre und Jobleerstand.
+[Vertrag](../../docs/data-format/native-broker-recovery-v1.md),
+[Nachweis und exakte Buildgrenzen](../../docs/testing/native-controller-crash.md).
+`ui-broker-seed <frische Neustartwurzel> <Forschungs-EXE> <Crashpunkt>` beendet sich absichtlich mit
+Code 86. `ui-broker-recover <bestehende Neustartwurzel> first|second|retire` verlangt den passenden
+gesicherten Broker und gibt niemals eine neue Importkennung frei. Separates neues Paar ohne
+ETW-Freigabe, kein fertiger Produktbroker; normale Starts bleiben unisoliert.
+
 Aktueller Startticketvertrag: [v2](../../docs/data-format/native-ui-restart-v2.md), ohne Downgrade.
 `ui-assistive-interrupted` beziehungsweise `ui-assistive-completed` mit frischer gebundener
 Neustartwurzel und passender Forschungs-EXE bereiten einen synthetischen Crash vor und lassen den
@@ -15,7 +26,8 @@ Starts. Nur eingebettete synthetische Fixture, kein Dateidialog; Forschungsfenst
 [Kanal und Grenzen](../../docs/data-format/native-ui-restart-v1.md),
 [Reproduktion und Nachweis](../../docs/testing/native-ui-restart.md).
 [Frischer ETW-Beleg nur für das dokumentierte Hashpaar](../../docs/testing/native-ui-restart-etw.md).
-Kein Produktlauncher; ein anderer Controller darf keine vorhandene Wurzel übernehmen.
+Kein Produktlauncher; dieser ältere Serienpfad darf keine vorhandene Wurzel übernehmen. Dafür ist
+ausschließlich der neue authentisierte Brokerpfad vorgesehen.
 
 `ui-live-transfer-hold <neue TEMP-Forschungswurzel> <Forschungs-EXE>` hält nach dem nativen
 Dateidialog und genau 1.024 übertragenen Archivbytes. Sender- und Empfängerzähler bleiben lokal.
