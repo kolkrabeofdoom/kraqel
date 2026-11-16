@@ -1,5 +1,17 @@
 # Entwicklungsstatus
 
+Neustart-Fortschreibung, 16. November 2026: Authentisierter Forschungs-Neustart innerhalb desselben
+lebenden Controllers implementiert. Frische anonyme Pipes, exakte OS-Identität, Launch-Bindung und
+Programmhash vor WebView-Aufbau geprüft. Finale native Serie mit 28 Generationen bestanden: sechs
+Crashpunkte, je zwei Wiederanläufe und abgewehrter Altimport, vier abgewiesene Fehlstarts.
+Journal/SQLite/Unicode/Kopienzahl und Cleanup unabhängig bestätigt.
+[Vertrag](data-format/native-ui-restart-v1.md), [Nachweis](testing/native-ui-restart.md) und
+[Aggregate](testing/native-ui-restart.json). 35 Browser-E2E bestanden. Nächster Scope: frischer
+ETW-Vergleich genau dieses gesicherten App-/Controllerpaars und assistive Wiederanlaufprüfung.
+Controllerabsturz, dauerhafter Produktbroker, externe Brokergrenzen und Produktintegration bleiben
+offen. Keine neue Netzfreigabe; striktes Ziel und fehlende Produkt-Q-01/Q-02-Abnahme unverändert.
+Die folgenden Absätze beschreiben frühere Stufen und deren Buildgrenzen.
+
 Auftrags-Fortschreibung, 16. November 2026: Forschungsadapter ergänzt dauerhaft verbrauchte IDs,
 SQLite-Journal, exklusive Eigentümersperre und konservative Reconciliation vor neuen Importen.
 Sieben hart beendete native Rust-Testprozesse prüfen die Veröffentlichungsgrenzen; sieben neue

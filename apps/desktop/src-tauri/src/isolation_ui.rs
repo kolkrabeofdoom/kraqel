@@ -1,9 +1,12 @@
 //! Explicit, Windows-only research feature. Normal application startup never calls this module.
 use kraqel_isolation_test_adapter::{DurableStore, ImportReceipt, TaskControl, TaskError};
 use kraqel_isolation_transport::{
-    LiveSession, ReceivedGrant, receive_from_launcher, receive_live_session,
+    CrashPoint, LiveSession, ReceivedGrant, RestartEventKind, receive_from_launcher,
+    receive_live_session, receive_restart,
 };
+mod restart;
 use kraqel_storage::project_manager::ProjectManager;
+use restart::RestartControl;
 use serde::{Deserialize, Serialize};
 use std::{
     fs,
@@ -29,6 +32,8 @@ struct View {
     phase: &'static str,
     error: Option<TaskError>,
     receipt: Option<Receipt>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    recovered: Option<bool>,
 }
 struct Inner {
     grant: Mutex<Option<Source>>,
@@ -41,8 +46,26 @@ struct Inner {
     renderer_seen: AtomicBool,
     focus_probe: Mutex<Vec<FocusSample>>,
     store: Mutex<DurableStore>,
+    restart: Option<Arc<RestartControl>>,
 }
 
+impl Inner {
+    fn claim(&self, store: &mut DurableStore, id: uuid::Uuid) -> Result<(), TaskError> {
+        store.claim(id).inspect_err(|error| {
+            if let Some(restart) = &self.restart
+                && *error == TaskError::AlreadyConsumed
+            {
+                restart.event(RestartEventKind::ReuseRejected, None);
+            }
+        })
+    }
+    fn control(&self) -> TaskControl {
+        TaskControl {
+            now_unix_ms: now(),
+            cancelled: self.cancel.load(Ordering::SeqCst),
+        }
+    }
+}
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 enum FocusEvent {
@@ -112,12 +135,14 @@ fn isolation_test_focus_probe(
 enum Source {
     Prepared(ReceivedGrant),
     Live(LiveSession),
+    Synthetic(uuid::Uuid),
 }
 impl Source {
     fn task_id(&self) -> uuid::Uuid {
         match self {
             Self::Prepared(grant) => grant.task.task_id,
             Self::Live(session) => session.task_id(),
+            Self::Synthetic(id) => *id,
         }
     }
 }
@@ -166,6 +191,11 @@ fn view(inner: &Inner) -> Result<View, TaskError> {
         phase,
         error,
         receipt,
+        recovered: inner
+            .restart
+            .as_ref()
+            .filter(|r| r.ticket.recovery)
+            .map(|_| true),
     })
 }
 fn finish(inner: &Inner, result: Result<ImportReceipt, TaskError>) {
@@ -199,6 +229,9 @@ fn isolation_test_status(
 ) -> Result<View, TaskError> {
     guard(&window)?;
     if !state.0.renderer_seen.swap(true, Ordering::SeqCst) {
+        if let Some(restart) = &state.0.restart {
+            restart.event(RestartEventKind::Renderer, None);
+        }
         let _ = fs::write(
             state.0.data.join("ui-renderer.json"),
             b"{\"nativeStatusInvoked\":true}",
@@ -256,6 +289,9 @@ async fn isolation_test_import(
     let source = {
         let mut slot = inner.grant.lock().map_err(|_| TaskError::ImportFailed)?;
         let Some(grant) = slot.take() else {
+            if let Some(restart) = &inner.restart {
+                restart.event(RestartEventKind::Replay, None);
+            }
             let _ = fs::write(
                 inner.data.join("ui-replay.json"),
                 b"{\"replayRejected\":true}",
@@ -271,12 +307,19 @@ async fn isolation_test_import(
             .store
             .lock()
             .map_err(|_| TaskError::StateUnavailable)?;
-        store.claim(source.task_id())?;
+        worker.claim(&mut store, source.task_id())?;
+        if let Some(restart) = &worker.restart {
+            restart.checkpoint(CrashPoint::Claimed);
+        }
         let selected: Result<(_, Box<dyn std::io::Read + Send>), TaskError> = (|| match source {
             Source::Prepared(grant) => Ok((
                 grant.task,
                 Box::new(grant.input) as Box<dyn std::io::Read + Send>,
             )),
+            Source::Synthetic(id) => {
+                let control = Arc::clone(worker.restart.as_ref().ok_or(TaskError::InvalidTask)?);
+                Ok(restart::synthetic(id, control))
+            }
             Source::Live(session) => {
                 let Some((task, input)) = session
                     .select(|| worker.cancel.load(Ordering::SeqCst))
@@ -300,13 +343,10 @@ async fn isolation_test_import(
                 return Err(error);
             }
         };
-        store.execute(
+        let receipt = store.execute(
             &task,
             &mut input,
-            || TaskControl {
-                now_unix_ms: now(),
-                cancelled: worker.cancel.load(Ordering::SeqCst),
-            },
+            || worker.control(),
             || {
                 worker.phase.store(2, Ordering::SeqCst);
                 while !worker.release.load(Ordering::SeqCst)
@@ -316,13 +356,18 @@ async fn isolation_test_import(
                     std::thread::sleep(Duration::from_millis(50));
                 }
                 worker.phase.store(1, Ordering::SeqCst);
-                TaskControl {
-                    now_unix_ms: now(),
-                    cancelled: worker.cancel.load(Ordering::SeqCst),
+                worker.control()
+            },
+            |point| {
+                if let Some(restart) = &worker.restart {
+                    restart.milestone(point);
                 }
             },
-            |_| {},
-        )
+        )?;
+        if let Some(restart) = &worker.restart {
+            restart.checkpoint(CrashPoint::Completed);
+        }
+        Ok(receipt)
     })
     .await
     .map_err(|_| TaskError::ImportFailed)
@@ -334,14 +379,29 @@ async fn isolation_test_import(
     view(&inner)
 }
 
+type Startup = (PathBuf, Option<Source>, Option<Arc<RestartControl>>);
+fn receive_source() -> Result<Startup, kraqel_isolation_transport::ChannelError> {
+    if std::env::args().nth(1).as_deref() == Some("ui-restart") {
+        receive_restart().map(|grant| {
+            let source =
+                (!grant.ticket.recovery).then_some(Source::Synthetic(grant.ticket.task_id));
+            (
+                grant.data_root.clone(),
+                source,
+                Some(Arc::new(RestartControl::new(grant))),
+            )
+        })
+    } else if std::env::args().nth(1).as_deref() == Some("ui-live") {
+        receive_live_session()
+            .map(|session| (session.data_root.clone(), Some(Source::Live(session)), None))
+    } else {
+        receive_from_launcher()
+            .map(|grant| (grant.data_root.clone(), Some(Source::Prepared(grant)), None))
+    }
+}
 /// Runs only with a validated native grant inside the research container.
 pub fn run() {
-    let received = if std::env::args().nth(1).as_deref() == Some("ui-live") {
-        receive_live_session().map(|session| (session.data_root.clone(), Source::Live(session)))
-    } else {
-        receive_from_launcher().map(|grant| (grant.data_root.clone(), Source::Prepared(grant)))
-    };
-    let Ok((data, grant)) = received else {
+    let Ok((data, grant, restart)) = receive_source() else {
         eprintln!("Isolationstest: kein gültiger nativer Auftrag.");
         std::process::exit(2)
     };
@@ -350,16 +410,24 @@ pub fn run() {
     {
         std::process::exit(2);
     }
-    let live = matches!(&grant, Source::Live(_));
+    let live = matches!(&grant, Some(Source::Live(_)));
     let store = ProjectManager::new(data.join("app/projects"))
         .map_err(|_| TaskError::StateUnavailable)
         .and_then(|manager| DurableStore::open(&data.join("app/tasks"), &manager));
-    let Ok(store) = store else {
+    let Ok(mut store) = store else {
         eprintln!("Isolationstest: Auftragszustand nicht verfügbar.");
         std::process::exit(2);
     };
+    let recovered = restart
+        .as_ref()
+        .filter(|restart| restart.ticket.recovery)
+        .map(|restart| restart::recover(&mut store, &data, restart))
+        .transpose();
+    let Ok(recovered) = recovered else {
+        std::process::exit(2);
+    };
     let inner = Arc::new(Inner {
-        grant: Mutex::new(Some(grant)),
+        grant: Mutex::new(grant),
         cancel: AtomicBool::new(false),
         release: AtomicBool::new(false),
         phase: AtomicU8::new(0),
@@ -369,13 +437,21 @@ pub fn run() {
         renderer_seen: AtomicBool::new(false),
         focus_probe: Mutex::new(Vec::new()),
         store: Mutex::new(store),
+        restart: restart.clone(),
     });
-    let ready = if live {
-        b"{\"channelVersion\":2,\"sessionBound\":true,\"selectionPending\":true,\"handleInheritanceCleared\":true}".as_slice()
+    if let Some(result) = recovered {
+        finish(&inner, result);
+    }
+    let ready = if let Some(restart) = &restart {
+        serde_json::json!({"restartVersion":1,"recoveryOnly":restart.ticket.recovery,"handleInheritanceCleared":true})
+    } else if live {
+        serde_json::json!({"channelVersion":2,"sessionBound":true,"selectionPending":true,"handleInheritanceCleared":true})
     } else {
-        b"{\"channelVersion\":1,\"taskBound\":true,\"handleInheritanceCleared\":true}".as_slice()
+        serde_json::json!({"channelVersion":1,"taskBound":true,"handleInheritanceCleared":true})
     };
-    let _ = fs::write(data.join("ui-ready.json"), ready);
+    if let Ok(bytes) = serde_json::to_vec(&ready) {
+        let _ = fs::write(data.join("ui-ready.json"), bytes);
+    }
     let mut context = tauri::generate_context!();
     context.config_mut().identifier = "org.kraqel.desktop.isolation-ui-test".into();
     context.config_mut().app.windows.clear();
@@ -398,6 +474,14 @@ pub fn run() {
             .title("KRAQEL Isolierter Dateiauftrag")
             .inner_size(880., 620.)
             .data_directory(data.join("webview"))
+            .on_page_load(move |window, payload| {
+                if payload.event() == tauri::webview::PageLoadEvent::Finished
+                    && allowed_origin("isolation-test", payload.url())
+                    && let Some(restart) = &restart
+                {
+                    let _ = window.eval(restart::automation(restart.ticket.recovery));
+                }
+            })
             .build()?;
             Ok(())
         })

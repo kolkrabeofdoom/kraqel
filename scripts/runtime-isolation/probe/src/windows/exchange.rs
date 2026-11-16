@@ -18,8 +18,10 @@ mod app_import;
 pub(super) use app_import::{child as import_child, launch as launch_import};
 mod ui_grant;
 mod ui_live;
+mod ui_restart;
 pub(super) use ui_grant::launch as launch_ui;
 pub(super) use ui_live::launch as launch_live_ui;
+pub(super) use ui_restart::launch as launch_restart_series;
 
 fn invalid(stage: &'static str) -> Failure {
     Failure { stage, code: -1 }

@@ -1,5 +1,14 @@
 # Bedrohungsmodell (Entwurf)
 
+Neustart-Fortschreibung: Forschungsstarts sind an einmalige anonyme Pipes, Launch-ID, exakte
+AppContainer-SID, abgeleitete Datenwurzel und Programmhash gebunden. Flags vor WebView gelöscht und
+geprüft; keine Rendererhandles, Tickets, Quellen oder Crashpunkte. Der lebende Controller behält
+Identität/Ablage und wartet vor jedem Neustart auf Job-Leerstand. Native 28-Generationen-Serie und
+unabhängige Datenprüfung bestanden. [Vertrauensgrenzen](../data-format/native-ui-restart-v1.md),
+[Nachweis](../testing/native-ui-restart.md). Funktionale Zusammenfassungen erteilen keine Hostrechte
+und attestieren keinen kompromittierten Container. Controller-Crash, dauerhafter Broker, externe
+Dienste, neuer ETW-Beleg und Produktabnahme bleiben offen.
+
 Auftrags-Fortschreibung: Das Forschungsjournal verbraucht die native Kennung vor Auswahl/Lesen,
 serialisiert Bearbeitung/Reconciliation per SQLite-Eigentümersperre und speichert den Commit-Receipt
 vor finalem Rename. Wiederanlauf publiziert niemals Zwischenstände; fehlender oder unklarer Zustand

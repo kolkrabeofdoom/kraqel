@@ -115,8 +115,11 @@
              lokale Diagnose und 34 Browser-E2E, keine Vollabnahme oder neuer ETW-Beleg
        - [x] KQ-069 A: Dauerhaften Verbrauch und konservative Reconciliation im Forschungsadapter
              mit sieben Prozess-Kills prüfen; isolierte GUI mit Erfolg/Abbruch/Replay rückprüfen
-       - [ ] KQ-069 A: Authentisierten isolierten GUI-Neustart mit stabiler Ablage und integrierter
-             Crash-Serie abnehmen; assistive Restfälle; weitere Formate/Git-/Providergrenzen;
+       - [x] KQ-069 A: Authentisierten isolierten GUI-Neustart innerhalb desselben Controllers mit
+             stabiler Ablage prüfen; 28 Generationen mit Crash/zweifachem
+             Wiederanlauf/Altimportabwehr
+       - [ ] KQ-069 A: Neues finales Paar per ETW messen; assistive Wiederanlaufprüfung und
+             Controller-Crash/dauerhaften Broker abnehmen; weitere Formate/Git-/Providergrenzen;
              UDP/IPv6/DNS/Broker kalibrieren; Packaging und F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)

@@ -7,6 +7,17 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 15. November 2026
 
+Neuester Stand 16. November: Integrierte isolierte GUI-Crash-/Neustartserie bestanden, 28
+Generationen desselben App-/Controllerpaars. Gleicher lebender Controller, OS-Identität und
+Datenwurzel; frische Pipes/Launch-Bindungen je Start. Sechs Crashpunkte, je zwei Reconciliations und
+Altimportabwehr; vier ungültige Starts verworfen. Genau zwei Kopien, vier unterbrochene Aufträge,
+keine Zwischenreste, alle Jobs leer und Profil entfernt.
+[Vertrag](data-format/native-ui-restart-v1.md), [Nachweis und Hashes](testing/native-ui-restart.md),
+[Aggregate](testing/native-ui-restart.json). Nächster Scope: neuer ETW-Netzvergleich mit exakt dem
+gesicherten Paar, danach assistive Wiederanlaufprüfung. Controllerabsturz/dauerhafter Broker und
+Produktintegration weiterhin offen; striktes Datenschutzziel unverändert. Frühere Stände folgen zur
+historischen Einordnung.
+
 Neueste Fortschreibung 16. November: Dauerhafter Auftragsverbrauch und konservative
 Crash-Reconciliation im Forschungsadapter, vor der nativen Auswahl im Tauri-Forschungsfeature
 angebunden. Sieben neue Windows-Integrationstests mit sieben echten Prozess-Kills bestehen;

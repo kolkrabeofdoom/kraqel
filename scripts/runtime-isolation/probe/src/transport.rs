@@ -55,9 +55,9 @@ mod native {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::{fs::File, os::windows::io::FromRawHandle, path::PathBuf, ptr::null_mut};
     use uuid::Uuid;
-    static CLAIMED: AtomicBool = AtomicBool::new(false);
+    pub(super) static CLAIMED: AtomicBool = AtomicBool::new(false);
 
-    fn claim(flag: &AtomicBool) -> bool {
+    pub(super) fn claim(flag: &AtomicBool) -> bool {
         flag.compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
             .is_ok()
     }
@@ -254,7 +254,7 @@ mod native {
         })
     }
 
-    fn contained() -> bool {
+    pub(super) fn contained() -> bool {
         let mut token = null_mut();
         if unsafe { OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token) } == 0 {
             return false;
@@ -467,6 +467,14 @@ mod native {
 }
 #[cfg(windows)]
 pub use native::{LiveSession, ReceivedGrant, receive_from_launcher, receive_live_session};
+
+#[cfg(windows)]
+mod restart;
+#[cfg(windows)]
+pub use restart::{
+    CrashPoint, RecoverySummary, RestartEvent, RestartEventKind, RestartGrant, RestartTicket,
+    receive_restart,
+};
 
 #[cfg(test)]
 mod tests {

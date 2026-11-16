@@ -5,6 +5,7 @@ type View = {
   phase: "ready" | "running" | "awaiting" | "done" | "cancelled" | "failed";
   error: string | null;
   receipt: { documentCount: number } | null;
+  recovered?: boolean;
 };
 const status = document.querySelector<HTMLParagraphElement>("#status")!;
 const error = document.querySelector<HTMLParagraphElement>("#error")!;
@@ -92,12 +93,15 @@ const errors: Record<string, string> = {
     "Der Auftragszustand konnte nicht sicher bestätigt werden. Der Auftrag bleibt gesperrt.",
 };
 function render(view: View) {
+  if (view.recovered) flowStarted = true;
   probePhase = view.phase;
   const messages = {
     ready: "Ein einmaliger nativer Dateiauftrag ist bereit.",
     running: "Testarchiv wird geprüft …",
     awaiting: "Die Projektkopie ist vorbereitet. Import abschließen oder abbrechen.",
-    done: `Projektkopie angelegt: ${view.receipt?.documentCount ?? 0} Dokumente.`,
+    done: view.recovered
+      ? `Früherer Auftrag wiederhergestellt: ${view.receipt?.documentCount ?? 0} Dokumente. Keine neue Projektkopie angelegt.`
+      : `Projektkopie angelegt: ${view.receipt?.documentCount ?? 0} Dokumente.`,
     cancelled: "Import abgebrochen. Keine Projektkopie angelegt.",
     failed: "Der Import wurde nicht abgeschlossen.",
   };

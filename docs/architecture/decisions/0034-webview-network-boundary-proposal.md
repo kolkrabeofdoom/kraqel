@@ -1,5 +1,14 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+Neustart-Fortschreibung 16. November: Gebundene Starttickets über frische anonyme Pipes ermöglichen
+den Neustart derselben Forschungs-GUI mit unveränderter Identität, Ablage und Programmhash innerhalb
+eines lebenden Controllers. Suspendierte Root-Tokenprüfung und empfangsseitige SID-/Hash-/Launch-
+Prüfung vor WebView-Aufbau; keine neuen Capabilities oder Rendererbefehle. Finale Serie mit 28
+Generationen, sechs Crashpunkten, zweifachem Wiederanlauf, Altimportabwehr und vier negativen Starts
+bestanden. [Vertrag](../../data-format/native-ui-restart-v1.md),
+[Nachweis und Buildbindung](../../testing/native-ui-restart.md). Controllerabsturz/dauerhafter
+Produktbroker und neuer ETW-Beleg dieses Paars bleiben offen; striktes Ziel unverändert.
+
 Auftrags-Fortschreibung 16. November: Das Forschungsfeature bindet einen privaten, an die lokale
 Projektwurzel gebundenen SQLite-Auftragsstore vor Auswahl/Lesen ein. Dauerhafter Verbrauch,
 exklusive Sperre, eigene Zwischenverzeichnisse und persistierter Commit-Receipt erlauben

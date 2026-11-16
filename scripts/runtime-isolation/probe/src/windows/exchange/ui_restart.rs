@@ -1,0 +1,458 @@
+//! Same live controller, exact profile/data/executable; each generation gets fresh kernel pipes.
+use super::*;
+use kraqel_isolation_transport::{
+    CrashPoint, RecoverySummary, RestartEvent, RestartEventKind, RestartTicket, write_frame,
+};
+use sha2::{Digest as _, Sha256};
+use uuid::Uuid;
+use windows_sys::Win32::System::Pipes::{CreatePipe, PeekNamedPipe};
+
+fn pipe() -> Result<(fs::File, fs::File)> {
+    let mut read = null_mut();
+    let mut write = null_mut();
+    check(
+        unsafe { CreatePipe(&mut read, &mut write, null(), 4096) },
+        "restart-create-pipe",
+    )?;
+    Ok(unsafe {
+        (
+            fs::File::from_raw_handle(read),
+            fs::File::from_raw_handle(write),
+        )
+    })
+}
+fn hash(path: &Path) -> Result<[u8; 32]> {
+    let mut file = io("restart-hash-open", fs::File::open(path))?;
+    let mut hash = Sha256::new();
+    let mut block = [0u8; 16384];
+    loop {
+        let n = io("restart-hash-read", file.read(&mut block))?;
+        if n == 0 {
+            break;
+        }
+        hash.update(&block[..n]);
+    }
+    Ok(hash.finalize().into())
+}
+fn environment(data: &Path) -> Vec<u16> {
+    let system = std::env::var_os("SystemRoot").unwrap_or("C:\\Windows".into());
+    let mut environment = Vec::new();
+    for (key, value) in [
+        ("APPDATA", data.to_path_buf()),
+        ("LOCALAPPDATA", data.to_path_buf()),
+        ("PATH", PathBuf::from(&system).join("System32")),
+        ("SystemRoot", PathBuf::from(&system)),
+        ("TEMP", data.to_path_buf()),
+        ("TMP", data.to_path_buf()),
+        ("USERPROFILE", data.to_path_buf()),
+        ("WINDIR", PathBuf::from(&system)),
+    ] {
+        environment.extend(wide(format!("{key}={}", value.display())));
+    }
+    environment.push(0);
+    environment
+}
+#[derive(Clone, Copy)]
+enum Expect {
+    Crash,
+    Recovery,
+    Reject,
+    ReuseDenied,
+}
+fn valid_summary(value: &RecoverySummary, point: CrashPoint, projects: u32) -> bool {
+    value.published == point.publishes()
+        && value.project_count == projects
+        && value.document_count == if point.publishes() { 2 } else { 0 }
+        && value.staging_empty
+        && value.replay_blocked
+}
+
+fn generation(
+    root: &Path,
+    profile: &Profile,
+    ticket: &RestartTicket,
+    argument: Uuid,
+    expect: Expect,
+    index: usize,
+) -> Result<Option<RecoverySummary>> {
+    let executable = root.join("bin/kraqel-desktop.exe");
+    // Negative hash tickets still start only the original pinned executable.
+    let (startup, mut send) = pipe()?;
+    write_frame(&mut send, ticket).map_err(|_| invalid("restart-ticket-frame"))?;
+    drop(send);
+    let (mut events, event_writer) = pipe()?;
+    let handles = [startup.as_raw_handle(), event_writer.as_raw_handle()];
+    for h in handles {
+        check(
+            unsafe { SetHandleInformation(h, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT) },
+            "restart-inherit",
+        )?;
+    }
+    let caps = SECURITY_CAPABILITIES {
+        AppContainerSid: profile.sid,
+        Capabilities: null_mut(),
+        CapabilityCount: 0,
+        Reserved: 0,
+    };
+    let attrs = Attributes::with_handles(&caps, &handles)?;
+    let mut startup_info: STARTUPINFOEXW = unsafe { zeroed() };
+    startup_info.StartupInfo.cb = size_of::<STARTUPINFOEXW>() as u32;
+    startup_info.lpAttributeList = attrs.ptr;
+    let mut command = wide(format!(
+        "\"{}\" ui-restart {} {} {argument}",
+        executable.display(),
+        handles[0] as usize,
+        handles[1] as usize
+    ));
+    let data = root.join("data");
+    let env = environment(&data);
+    let job = Handle(unsafe { CreateJobObjectW(null(), null()) });
+    if job.0.is_null() {
+        return Err(fail("restart-create-job"));
+    }
+    let mut limits: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = unsafe { zeroed() };
+    limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+    check(
+        unsafe {
+            SetInformationJobObject(
+                job.0,
+                JobObjectExtendedLimitInformation,
+                (&limits as *const JOBOBJECT_EXTENDED_LIMIT_INFORMATION).cast(),
+                size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
+            )
+        },
+        "restart-job-limits",
+    )?;
+    let mut info: PROCESS_INFORMATION = unsafe { zeroed() };
+    let created = unsafe {
+        CreateProcessW(
+            wide(&executable).as_ptr(),
+            command.as_mut_ptr(),
+            null(),
+            null(),
+            1,
+            EXTENDED_STARTUPINFO_PRESENT
+                | CREATE_UNICODE_ENVIRONMENT
+                | CREATE_SUSPENDED
+                | CREATE_NO_WINDOW,
+            env.as_ptr().cast(),
+            wide(&data).as_ptr(),
+            &startup_info.StartupInfo,
+            &mut info,
+        )
+    };
+    let error = (created == 0).then(|| fail("restart-create-process"));
+    let worker = (created != 0).then(|| Worker(Handle(info.hProcess), Handle(info.hThread)));
+    for h in handles {
+        check(
+            unsafe { SetHandleInformation(h, HANDLE_FLAG_INHERIT, 0) },
+            "restart-reset-inheritance",
+        )?;
+    }
+    drop(startup);
+    drop(event_writer);
+    if let Some(error) = error {
+        return Err(error);
+    }
+    let worker = worker.ok_or(invalid("restart-worker"))?;
+    check(
+        unsafe { AssignProcessToJobObject(job.0, worker.0.0) },
+        "restart-assign-job",
+    )?;
+    let token = token_facts(worker.0.0, Some(profile.sid))?;
+    if token["isAppContainer"] != true
+        || token["capabilityCount"] != 0
+        || token["expectedIdentity"] != true
+    {
+        return Err(invalid("restart-token"));
+    }
+    write_json(
+        &root.join(format!("launch-{index:02}.json")),
+        &json!({"pid":info.dwProcessId,"token":token,"recovery":ticket.recovery,"point":ticket.point}),
+    )?;
+    if unsafe { ResumeThread(worker.1.0) } == u32::MAX {
+        return Err(fail("restart-resume"));
+    }
+    let expected: &[RestartEventKind] = match expect {
+        Expect::Crash => &[RestartEventKind::Renderer, RestartEventKind::Checkpoint],
+        Expect::Recovery => &[
+            RestartEventKind::Recovered,
+            RestartEventKind::Renderer,
+            RestartEventKind::Replay,
+            RestartEventKind::Replay,
+        ],
+        Expect::Reject => &[],
+        Expect::ReuseDenied => &[RestartEventKind::Renderer, RestartEventKind::ReuseRejected],
+    };
+    let start = Instant::now();
+    let mut received = 0;
+    let mut buffer = Vec::new();
+    let mut summary = None;
+    loop {
+        let mut available = 0;
+        let peek = unsafe {
+            PeekNamedPipe(
+                events.as_raw_handle(),
+                null_mut(),
+                0,
+                null_mut(),
+                &mut available,
+                null_mut(),
+            )
+        };
+        if peek == 0
+            && std::io::Error::last_os_error().raw_os_error() != Some(ERROR_BROKEN_PIPE as i32)
+        {
+            return Err(fail("restart-peek"));
+        }
+        if available > 0 {
+            if buffer.len() + available as usize > 4096 {
+                return Err(invalid("restart-event-budget"));
+            }
+            let old = buffer.len();
+            buffer.resize(old + available as usize, 0);
+            io("restart-event-read", events.read_exact(&mut buffer[old..]))?;
+            while buffer.len() >= 4 {
+                let size = u32::from_le_bytes(buffer[..4].try_into().unwrap()) as usize;
+                if size == 0 || size > 2048 {
+                    return Err(invalid("restart-event-frame"));
+                }
+                if buffer.len() < 4 + size {
+                    break;
+                }
+                let event: RestartEvent = serde_json::from_slice(&buffer[4..4 + size])
+                    .map_err(|_| invalid("restart-event-shape"))?;
+                buffer.drain(..4 + size);
+                if event.launch_id != ticket.launch_id
+                    || expected.get(received) != Some(&event.kind)
+                    || (event.kind == RestartEventKind::Recovered) != event.summary.is_some()
+                {
+                    return Err(invalid("restart-event-binding-or-order"));
+                }
+                if let Some(value) = event.summary {
+                    summary = Some(value);
+                }
+                received += 1;
+            }
+        }
+        let exited = unsafe { WaitForSingleObject(worker.0.0, 20) } == WAIT_OBJECT_0;
+        if matches!(expect, Expect::Reject) && exited {
+            let mut code = 0;
+            check(
+                unsafe { GetExitCodeProcess(worker.0.0, &mut code) },
+                "restart-rejected-exit",
+            )?;
+            if code != 2 || received != 0 || !buffer.is_empty() {
+                return Err(invalid("restart-not-rejected"));
+            }
+            break;
+        }
+        if !matches!(expect, Expect::Reject) && received == expected.len() && buffer.is_empty() {
+            break;
+        }
+        if exited || root.join("STOP").exists() || start.elapsed() > Duration::from_secs(45) {
+            return Err(invalid("restart-checkpoint-or-recovery-missing"));
+        }
+    }
+    // Includes WebView descendants; wait for zero before reusing the same identity/data root.
+    check(
+        unsafe { TerminateJobObject(job.0, 77) },
+        "restart-terminate-job",
+    )?;
+    let deadline = Instant::now() + Duration::from_secs(10);
+    loop {
+        let mut accounting: JOBOBJECT_BASIC_ACCOUNTING_INFORMATION = unsafe { zeroed() };
+        check(
+            unsafe {
+                QueryInformationJobObject(
+                    job.0,
+                    JobObjectBasicAccountingInformation,
+                    (&mut accounting as *mut JOBOBJECT_BASIC_ACCOUNTING_INFORMATION).cast(),
+                    size_of::<JOBOBJECT_BASIC_ACCOUNTING_INFORMATION>() as u32,
+                    null_mut(),
+                )
+            },
+            "restart-job-accounting",
+        )?;
+        if accounting.ActiveProcesses == 0 {
+            break;
+        }
+        if Instant::now() >= deadline {
+            return Err(invalid("restart-job-not-empty"));
+        }
+        thread::sleep(Duration::from_millis(20));
+    }
+    let mut code = 0;
+    check(
+        unsafe { GetExitCodeProcess(worker.0.0, &mut code) },
+        "restart-exit-code",
+    )?;
+    if !matches!(expect, Expect::Reject) && code != 77 {
+        return Err(invalid("restart-wrong-kill-exit"));
+    }
+    write_json(
+        &root.join(format!("generation-{index:02}.json")),
+        &json!({"processExitCode":code,"activeJobProcessesAtEnd":0,"receivedEvents":received,"recovery":ticket.recovery,"summary":summary}),
+    )?;
+    Ok(summary)
+}
+
+pub(in super::super) fn launch(root: &Path, app: &Path) -> Result<Value> {
+    if !crate::policy::valid_root(root, false) {
+        return Err(invalid("restart-needs-fresh-root"));
+    }
+    let session = root
+        .file_name()
+        .and_then(|s| s.to_str())
+        .and_then(|s| s.strip_prefix("kraqel-isolation-ui-restart-"))
+        .and_then(|s| Uuid::parse_str(s).ok())
+        .filter(|u| !u.is_nil())
+        .ok_or(invalid("restart-root-binding"))?;
+    if root.file_name()
+        != Some(std::ffi::OsStr::new(&format!(
+            "kraqel-isolation-ui-restart-{}",
+            session.simple()
+        )))
+    {
+        return Err(invalid("restart-root-canonical-name"));
+    }
+    io("restart-create-root", fs::create_dir(root))?;
+    let mut profile = Profile::create(&format!("ui-restart-{}", session.simple()))?;
+    grant(root, profile.sid, FILE_GENERIC_READ | FILE_GENERIC_EXECUTE)?;
+    let data = root.join("data");
+    let bin = root.join("bin");
+    io("restart-create-data", fs::create_dir(&data))?;
+    io("restart-create-bin", fs::create_dir(&bin))?;
+    grant(
+        &data,
+        profile.sid,
+        FILE_GENERIC_READ | FILE_GENERIC_WRITE | FILE_GENERIC_EXECUTE | DELETE | FILE_DELETE_CHILD,
+    )?;
+    low_label(&data)?;
+    let executable = bin.join("kraqel-desktop.exe");
+    io("restart-stage-app", fs::copy(app, &executable))?;
+    let pin = hash(&executable)?;
+    let mut cases = Vec::new();
+    let mut projects = 0;
+    let mut index = 0;
+    for point in CrashPoint::ALL {
+        if hash(&executable)? != pin {
+            return Err(invalid("restart-executable-changed"));
+        }
+        let mut ticket = RestartTicket {
+            version: 1,
+            session_id: session,
+            task_id: Uuid::new_v4(),
+            launch_id: Uuid::new_v4(),
+            recovery: false,
+            point,
+            app_sha256: pin,
+        };
+        generation(
+            root,
+            &profile,
+            &ticket,
+            ticket.launch_id,
+            Expect::Crash,
+            index,
+        )?;
+        index += 1;
+        ticket.recovery = true;
+        projects += u32::from(point.publishes());
+        for _ in 0..2 {
+            ticket.launch_id = Uuid::new_v4();
+            let summary = generation(
+                root,
+                &profile,
+                &ticket,
+                ticket.launch_id,
+                Expect::Recovery,
+                index,
+            )?
+            .ok_or(invalid("restart-no-summary"))?;
+            index += 1;
+            if !valid_summary(&summary, point, projects) {
+                return Err(invalid("restart-reconciliation-mismatch"));
+            }
+        }
+        ticket.recovery = false;
+        ticket.launch_id = Uuid::new_v4();
+        let before = hash(&data.join("app/tasks/tasks.sqlite3"))?;
+        generation(
+            root,
+            &profile,
+            &ticket,
+            ticket.launch_id,
+            Expect::ReuseDenied,
+            index,
+        )?;
+        index += 1;
+        if hash(&data.join("app/tasks/tasks.sqlite3"))? != before {
+            return Err(invalid("restart-reuse-modified-journal"));
+        }
+        cases.push(json!({"point":point,"passed":true,"published":point.publishes(),"projectCount":projects,"stagingEmpty":true,"replayBlocked":true,"recoveryPasses":2,"staleImportBlocked":true}));
+    }
+    let journal = hash(&data.join("app/tasks/tasks.sqlite3"))?;
+    for bad in 0..4 {
+        let mut ticket = RestartTicket {
+            version: 1,
+            session_id: session,
+            task_id: Uuid::new_v4(),
+            launch_id: Uuid::new_v4(),
+            recovery: true,
+            point: CrashPoint::Prepared,
+            app_sha256: pin,
+        };
+        let argument = if bad == 0 {
+            Uuid::new_v4()
+        } else {
+            ticket.launch_id
+        };
+        match bad {
+            1 => ticket.session_id = Uuid::new_v4(),
+            2 => ticket.app_sha256 = [0; 32],
+            3 => ticket.version = 2,
+            _ => (),
+        }
+        generation(root, &profile, &ticket, argument, Expect::Reject, index)?;
+        index += 1;
+        if hash(&data.join("app/tasks/tasks.sqlite3"))? != journal {
+            return Err(invalid("restart-rejected-start-modified-journal"));
+        }
+    }
+    let removed = profile.remove();
+    let report = json!({"formatVersion":1,"researchOnly":true,"productionAcceptance":false,"passed":removed,"profileRemoved":removed,"activeJobProcessesAtEnd":0,"sameIdentityAndData":true,"generations":index,"crashCases":cases,"rejectedStarts":4,"newProjects":projects,"networkMeasurement":false});
+    write_json(&root.join("result.json"), &report)?;
+    if !removed {
+        return Err(invalid("restart-profile-cleanup"));
+    }
+    Ok(report)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn recovery_evidence_requires_counts_cleanup_and_consumption() {
+        let value = RecoverySummary {
+            published: true,
+            document_count: 2,
+            project_count: 1,
+            staging_empty: true,
+            replay_blocked: true,
+        };
+        assert!(valid_summary(&value, CrashPoint::Published, 1));
+        assert!(!valid_summary(&value, CrashPoint::Prepared, 1));
+        assert!(!valid_summary(&value, CrashPoint::Published, 2));
+        for index in 0..4 {
+            let mut bad = value.clone();
+            match index {
+                0 => bad.published = false,
+                1 => bad.document_count = 3,
+                2 => bad.staging_empty = false,
+                _ => bad.replay_blocked = false,
+            }
+            assert!(!valid_summary(&bad, CrashPoint::Published, 1));
+        }
+    }
+}

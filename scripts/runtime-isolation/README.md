@@ -1,5 +1,13 @@
 # AppContainer-Forschungshelfer für KQ-069
 
+`ui-crash-series <frische kraqel-isolation-ui-restart-UUID-Wurzel> <Forschungs-EXE>` führt autonom
+28 Generationen derselben isolierten GUI mit stabiler Identität/Ablage aus. Frische gebundene
+Starttickets, sechs harte Crashpunkte, je zwei Reconciliations, Altimportabwehr und vier negative
+Starts. Nur eingebettete synthetische Fixture, kein Dateidialog; Forschungsfenster nicht bedienen.
+[Kanal und Grenzen](../../docs/data-format/native-ui-restart-v1.md),
+[Reproduktion und Nachweis](../../docs/testing/native-ui-restart.md). Kein neuer ETW-Beleg oder
+Produktlauncher; ein anderer Controller darf keine vorhandene Wurzel übernehmen.
+
 `ui-live-transfer-hold <neue TEMP-Forschungswurzel> <Forschungs-EXE>` hält nach dem nativen
 Dateidialog und genau 1.024 übertragenen Archivbytes. Sender- und Empfängerzähler bleiben lokal.
 Innerhalb von 60 Sekunden das Hauptfenster schließen, ohne eine Veröffentlichung auszulösen. Der

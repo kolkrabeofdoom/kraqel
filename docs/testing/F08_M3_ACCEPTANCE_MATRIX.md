@@ -1,5 +1,11 @@
 # F08-/M3-Abnahmematrix
 
+Neustart-Fortschreibung 16. November: Integrierter isolierter GUI-Neustart innerhalb desselben
+Controllers nativ bestanden. 28 Generationen mit sechs Crashpunkten, zweifachem Wiederanlauf,
+Altimportabwehr und vier negativen Starts; unabhängige Journal-/SQLite-/Unicode-/Cleanup-Prüfung
+bestanden. [Nachweis](native-ui-restart.md), [Aggregate](native-ui-restart.json). Kein neuer
+ETW-Beleg, Controller-Crash-, assistiver Voll- oder Produktnachweis. Q-01/Q-02 unverändert offen.
+
 Auftrags-Fortschreibung 16. November: Dauerhafter Verbrauch und konservative Reconciliation im
 Forschungsadapter implementiert. Sieben echte Windows-Testprozess-Kills, erneutes Öffnen,
 Replay-Sperre und bytegleicher Bestand geprüft. Native Erfolg-/Abbruchrückprüfung bestätigt Journal,

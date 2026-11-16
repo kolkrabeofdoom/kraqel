@@ -1,6 +1,21 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
+test("restored outcomes focus replay and never offer a fresh import", async ({ page }) => {
+  for (const result of ["done", "interrupted"]) {
+    await page.goto(`/isolation-test.html?isolationRecovered=${result}`);
+    const replay = page.getByRole("button", { name: "Erneuten Aufruf prüfen" });
+    await expect(replay).toBeFocused();
+    await expect(page.getByRole("button", { name: "Testarchiv importieren" })).toBeDisabled();
+    if (result === "done")
+      await expect(page.getByRole("status")).toContainText("Keine neue Projektkopie");
+    else await expect(page.getByRole("alert")).toContainText("unterbrochen");
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("alert")).toContainText("bereits verbraucht");
+    await expect(replay).toBeFocused();
+  }
+});
+
 test("delayed selection hands focus to completion after a transient background pointer event", async ({
   page,
 }) => {

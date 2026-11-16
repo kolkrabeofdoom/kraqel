@@ -287,6 +287,12 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
+Der [Neustartvertrag](docs/data-format/native-ui-restart-v1.md) bindet GUI-Generationen
+ausschließlich innerhalb desselben lebenden Forschungscontrollers. Frische Pipes/Launch-Bindungen,
+genaue OS-Identität, Programmhash und Job-Leerstand dürfen nicht durch gelesene Diagnosedateien
+ersetzt werden. [Native Crash-Serie](docs/testing/native-ui-restart.md); deren Funktionsnachweis ist
+kein Netznachweis. Keine Wiederverwendung einer vorhandenen Wurzel durch einen fremden Controller.
+
 KQ-069-Forschung: `apps/desktop/isolation-test-adapter/` enthält den dauerhaften Auftragsstore;
 `apps/desktop/src-tauri/src/isolation_ui.rs` bindet ihn ausschließlich im Windows-Forschungsfeature
 ein. [Journalvertrag](docs/data-format/native-task-journal-v1.md) und

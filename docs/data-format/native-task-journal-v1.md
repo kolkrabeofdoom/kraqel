@@ -80,8 +80,9 @@ vollständige Abwehr konkurrierender privilegierter Dateisystemmanipulation. Ein
 Containerprozess kann seine eigene beschreibbare Forschungsablage manipulieren; das Journal ersetzt
 weder die OS-Grenze noch einen authentisierten künftigen Produktbroker.
 
-Die vorhandenen Controller verlangen weiterhin eine frische Forschungswurzel pro Lauf. Ein
-authentisierter Neustart derselben isolierten GUI mit stabiler Ablage ist noch nicht als
-Controllerablauf implementiert beziehungsweise nativ abgenommen. Die Reconciliation läuft in der
-Tauri-Startanbindung, der vollständige isolierte Crash-/Neustartpfad bleibt ein eigener nächster
-Nachweis. [Prüfergebnisse und Buildbindung](../testing/native-task-reconciliation.md).
+Ein Controlleraufruf verlangt weiterhin eine frische Forschungswurzel. Der ergänzte
+[Neustartkanal v1](native-ui-restart-v1.md) behält innerhalb desselben lebenden Controllers
+Identität/Ablage über mehrere GUI-Generationen; die integrierte Crash-/Reconciliation-Serie ist
+[nativ geprüft](../testing/native-ui-restart.md). Übernahme einer bestehenden Wurzel durch einen
+anderen Controller oder Wiederanlauf nach Controllerabsturz bleiben ausgeschlossen und offen. Die
+frühere reine Adapterstufe hat eine eigene [Buildbindung](../testing/native-task-reconciliation.md).
