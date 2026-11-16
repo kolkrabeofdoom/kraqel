@@ -109,7 +109,8 @@ fn choose_named(
             "shell-filename",
             dialog.SetFileName(PCWSTR(wide(suggested).as_ptr())),
         )?;
-        if let Err(error) = dialog.Show(None) {
+        let shown = dialog.Show(None);
+        if let Err(error) = shown {
             if error.code().0 as u32 == 0x800704c7 {
                 return Ok(None);
             }
@@ -699,6 +700,31 @@ mod tests {
         );
         assert!(scoped_selection(&sibling.0.join("input.kraqel"), &root.0, true).is_err());
         assert!(scoped_selection(&canonical.join("input.kraqel:stream"), &root.0, true).is_err());
+    }
+    #[test]
+    #[ignore = "opens and automatically cancels a native synthetic Shell dialog; not for CI"]
+    fn native_owned_dialog_can_be_closed_and_joins() {
+        let root = Fixture::new();
+        let owner = unsafe { GetCurrentThreadId() };
+        let closer = std::thread::spawn(move || {
+            let deadline = Instant::now() + Duration::from_secs(5);
+            loop {
+                let posted = super::ui_live::close_owned_dialog(owner);
+                if posted > 0 {
+                    return posted;
+                }
+                if Instant::now() >= deadline {
+                    return 0;
+                }
+                std::thread::sleep(Duration::from_millis(50));
+            }
+        });
+        assert!(
+            choose_named(&root.0, false, "input.kraqel", true)
+                .unwrap()
+                .is_none()
+        );
+        assert!(closer.join().unwrap() > 0);
     }
     #[test]
     fn pending_creation_never_owns_an_existing_file() {

@@ -1,5 +1,15 @@
 # Bedrohungsmodell (Entwurf)
 
+Fensterende-Fortschreibung: Der Forschungscontroller schließt bei Appende seine Pipe-Duplikate,
+begrenzt den Auswahlthread-Abschluss auf fünf Sekunden und sendet Schließnachrichten ausschließlich
+an Dialogfenster seines eigenen Prozesses und ermittelten Auswahlthreads mit Klasse `#32770`. Keine
+rendererbestimmten Fensterhandles, Prozess-IDs oder Shell-Verben. Nativ bestätigte
+Dialog-/Teiltransferabbrüche samt Cleanup sind
+[gesondert belegt](../testing/native-live-window-close.md). Die neue OS-API-Featureauswahl erweitert
+nur den getrennten Forschungshelfer, keine Produkt- Capabilities oder Netzrechte. Kein neuer
+ETW-Nachweis dieses Codes, keine Abwehr kompromittierter Runtime-/OS-Prozesse und keine
+Produktfreigabe.
+
 Fortschreibung Live-Kanal: Der Replay-Anzeigefehler nach Importfehler ist korrigiert und als
 Browserregression geprüft; Rust protokolliert Ablehnung datenarm. Neue native Erfolg-/Fehler-/
 Fensterendeserie und ETW des korrigierten Forschungsbuilds: drei vollständige Bäume, vier positive

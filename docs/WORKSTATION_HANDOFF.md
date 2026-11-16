@@ -7,6 +7,14 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 15. November 2026
 
+Neuester funktionaler Nachweis 16. November: Fensterende bei offenem Dateidialog und nach echtem
+Teiltransfer bestanden. Eigener Prozess/Thread/Dialogklasse vor Schließnachricht geprüft,
+Auswahlthread begrenzt beendet; keine Projektkopien oder Stagingreste. Bytezähler belegen 1.024
+empfangene von 11.915 erwarteten Bytes.
+[Buildgrenzen und Reproduktion](testing/native-live-window-close.md). Kein neuer ETW-Nachweis dieses
+geänderten Stands. Nächste Abnahme: neuer Netzvergleich, Screenreader/Fokus und dauerhafter
+Auftragslebenszyklus. Striktes Datenschutzziel unverändert.
+
 Aktualisierung 16. November: Replay-/Fehlerprüfung und Fensterende am Publish-Haltepunkt bestanden.
 Neuer gültiger ETW-Nachweis für drei vollständige Forschungs-App-Bäume: 0 Ereignisse außerhalb
 Loopback, vier Kontrollen, Nullverluste. Replay-Anzeigefehler korrigiert.

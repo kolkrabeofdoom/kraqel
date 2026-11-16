@@ -1,5 +1,12 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+Fortschreibung 16. November: Der getrennte Live-Auswahlprototyp beendet bei Fensterende auch offenen
+Dateidialog und nachgewiesenen Teiltransfer. Schließnachrichten sind auf eigenen Prozess, eigenen
+Auswahlthread und Dialogklasse beschränkt; Pipe-Duplikate werden geschlossen und der Threadabschluss
+wird begrenzt abgewartet. [Nachweise und Buildgrenzen](../../testing/native-live-window-close.md).
+Keine Produktintegration oder neue Netzwerkfähigkeit. Der vorherige ETW-Nachweis wird nicht auf
+diesen geänderten Binärstand übertragen. Striktes Ziel unverändert; Produkt-Q-01/Q-02 bleiben offen.
+
 Status: **Untersuchungsrichtung A ausdrücklich beauftragt am 15. November 2026.** Nutzerauftrag:
 technische Laufzeitisolation, „Das strikte Datenschutzziel bleibt bestehen.“ KQ-069 / Issue #134.
 Keine Produktarchitektur- oder Netzfreigabe und keine Änderung des Pflichtenhefts. B gehört nicht

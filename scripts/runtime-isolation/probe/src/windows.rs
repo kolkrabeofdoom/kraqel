@@ -746,8 +746,12 @@ pub fn main() {
         if args.len() == 3 && args[0] == "app-import-fixture" {
             return exchange::launch_import(Path::new(&args[1]), &args[2].to_string_lossy());
         }
-        if args.len() == 3 && args[0] == "ui-live" {
-            return exchange::launch_live_ui(Path::new(&args[1]), Path::new(&args[2]));
+        if args.len() == 3 && (args[0] == "ui-live" || args[0] == "ui-live-transfer-hold") {
+            return exchange::launch_live_ui(
+                Path::new(&args[1]),
+                Path::new(&args[2]),
+                args[0] == "ui-live-transfer-hold",
+            );
         }
         if args.len() == 3 && (args[0] == "ui-fixture" || args[0] == "ui-select") {
             return exchange::launch_ui(

@@ -1,5 +1,11 @@
 # AppContainer-Forschungshelfer für KQ-069
 
+`ui-live-transfer-hold <neue TEMP-Forschungswurzel> <Forschungs-EXE>` hält nach dem nativen
+Dateidialog und genau 1.024 übertragenen Archivbytes. Sender- und Empfängerzähler bleiben lokal.
+Innerhalb von 60 Sekunden das Hauptfenster schließen, ohne eine Veröffentlichung auszulösen. Der
+normale `ui-live`-Modus enthält diesen Transferhaltepunkt nicht.
+[Fensterende-Nachweise und Buildgrenzen](../../docs/testing/native-live-window-close.md).
+
 `ui-live <neue kraqel-isolation-ui-Wurzel> <Forschungs-EXE>` startet zuerst das Forschungsfenster.
 Erst der Importknopf fordert die native Auswahl der synthetischen `input.kraqel` an. Zwei anonyme
 Pipes, ein festes Auswahlsignal und ein Versuch pro Sitzung.

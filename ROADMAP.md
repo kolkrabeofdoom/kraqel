@@ -107,8 +107,10 @@
              implementieren und funktional nativ prüfen; SQLite/Unicode und Cleanup bestätigt
        - [x] KQ-069 A: Replay nach Erfolg/Fehler, Fensterende am Publish-Haltepunkt und ETW des
              korrigierten Forschungsbuilds prüfen; drei vollständige Bäume ohne Nicht-Loopback
-       - [ ] KQ-069 A: Appende bei offenem Dialog/Transfer, assistive Fokus-/Fehlerprüfung und
-             dauerhafte Crash-Reconciliation; weitere Formate/Git-/Providergrenzen;
+       - [x] KQ-069 A: Appende bei offenem Dateidialog und nach nachgewiesenem Teiltransfer prüfen;
+             Auswahlthread und Cleanup bestätigt, Controller-Buildgrenzen dokumentiert
+       - [ ] KQ-069 A: Netzvergleich des neuen Fensterende-Stands, assistive Fokus-/Fehlerprüfung
+             und dauerhafte Crash-Reconciliation; weitere Formate/Git-/Providergrenzen;
              UDP/IPv6/DNS/Broker kalibrieren; Packaging und F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)

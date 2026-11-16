@@ -135,6 +135,25 @@ mod native {
                 self.response
                     .read_exact(&mut bytes[old..])
                     .map_err(|_| ChannelError::Io)?;
+                if bytes.len() >= 5 && bytes[0] == 1 {
+                    let header = u32::from_le_bytes(
+                        bytes[1..5]
+                            .try_into()
+                            .map_err(|_| ChannelError::InvalidFrame)?,
+                    ) as usize;
+                    if header > MAX_FRAME {
+                        return Err(ChannelError::InvalidFrame);
+                    }
+                    let payload = bytes.len().saturating_sub(5 + header);
+                    if payload > 0 {
+                        let progress = serde_json::to_vec(
+                            &serde_json::json!({"payloadBytesReceived":payload}),
+                        )
+                        .map_err(|_| ChannelError::Io)?;
+                        std::fs::write(self.data_root.join("transfer-received.json"), progress)
+                            .map_err(|_| ChannelError::Io)?;
+                    }
+                }
             }
             let now = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)

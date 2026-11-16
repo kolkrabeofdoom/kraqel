@@ -1,5 +1,14 @@
 # Entwicklungsstatus
 
+Fensterende-Fortschreibung, 16. November 2026: Offenen nativen Dateidialog bei Appende gezielt
+schließen und Auswahlthread begrenzt abwarten; final nativ mit Exitcodes 0, `CANCELLED`, beendetem
+Thread und leerer Projektwurzel bestätigt. Teiltransfer nach 1.024 von 11.915 Bytes
+sender-/empfängerseitig nachgewiesen und durch Fensterende verworfen. Cleanup in beiden Fällen
+bestätigt. [Nachweise, Zwischenfehler und Buildgrenzen](testing/native-live-window-close.md). Kein
+neuer ETW-Lauf für diese geänderten Binaries; nächste Abnahme: Netzvergleich dieses Stands,
+assistive Fokus-/Fehlerprüfung und dauerhafter Auftrags-/Crash-Lebenszyklus. Striktes Ziel
+unverändert, #134 und Produkt-Q-01/Q-02 bleiben offen.
+
 KQ-069-Fortschreibung 16. November: Replay nach Erfolg/Importfehler und Fensterende am
 Publish-Haltepunkt nativ bestanden; überschriebenen Replay-Hinweis korrigiert und browserseitig
 regressionsgeprüft. Drei vollständige Läufe desselben korrigierten Forschungsbuilds mit gültigem

@@ -15,7 +15,9 @@ Controller verarbeitet genau einen Auftrag und zeigt den nativen Öffnendialog. 
 vorher selbst erzeugte synthetische `input.kraqel` ist zugelassen. Dateiöffnung nur lesend,
 Reparse-/Offline-/Hardlinkprüfung und bestehendes Forschungsbudget von 8 MiB; keine Formatparser im
 Host. Auswahl und Transfer laufen auf einem eigenen Thread, während die Jobüberwachung aktiv bleibt.
-Bei noch laufender Auswahl am Sitzungsende verweigert der Controller den Erfolg.
+Beim Appende setzt der Controller Abbruch, schließt seine Pipe-Duplikate und fordert nur eigene
+Dateidialoge des eigenen Auswahlthreads mit Dialogklasse `#32770` per `WM_CLOSE` zum Schließen auf.
+Höchstens fünf Sekunden auf den Thread warten; fehlender Abschluss bleibt ein Fehler.
 
 Antwort bis EOF: entweder exakt ein Byte `0` für Auswahlabbruch oder Byte `1`, vier Byte
 Little-Endian-JSON-Länge (1–2048), typisierter FileTask v1 und exakt `byteCount` Archivbytes.
@@ -26,8 +28,11 @@ mit Publish-Guard. Der ursprüngliche Einwegkanal v1 bleibt ein eigener Modus.
 
 Pro Sitzung ein Versuch, auch bei Dialogabbruch. Erneute Auswahl, dauerhafte Aufträge und
 Crash-Reconciliation bleiben Folgearbeit. Controllerdialog und Appfenster sind getrennte native
-Fenster; bei Appende während einer Auswahl kann der Controller den Versuch als unvollständig
-beenden. Automatisches Schließen des Shell-Dialogs und assistive Fokusführung sind noch zu prüfen.
+Fenster. Bei bereits angefordertem Sitzungsende wird keine Abbruchantwort mehr an die beendete App
+geschrieben. Ein lokaler Forschungsmodus `ui-live-transfer-hold` hält nach 1.024 Archivbytes und
+belegt gesendete/empfangene Bytezahlen, höchstens 60 Sekunden. Kein Rendererparameter und keine
+zusätzliche Dateifreigabe.
+[Fensterende-Nachweise und Grenzen](../testing/native-live-window-close.md).
 
 Tests: neuer Decoderfall prüft jede Verkürzung einer gültigen Nachricht, falsche Bindung, Ablauf,
 zusätzliche Bytes, neutrale Abbruchantwort und übergroßen Frame. Bestehende 18
@@ -36,5 +41,6 @@ und unabhängige SQLite-/Cleanup-Prüfung bestehen. Replay nach Erfolg/Fehler so
 Publish-Haltepunkt nativ geprüft; Replay-Ansage bleibt nun über Statusaktualisierungen erhalten. ETW
 des korrigierten Forschungsbuilds: drei vollständige Bäume, vier Kontrollen, Nullverluste, 0
 Nicht-Loopback-Ereignisse. [Buildgrenzen und Aggregate](../testing/native-live-file-selection.md).
-Appende während Auswahl/Transfer und assistive Abnahme bleiben offen. Striktes Datenschutzziel
-unverändert; Q-01/Q-02 für das Produkt bleiben nicht bestanden.
+Appende bei offenem Dialog/Teiltransfer funktional bestätigt. Neuer ETW-Lauf dieses geänderten
+Stands und assistive Abnahme bleiben offen. Striktes Datenschutzziel unverändert; Q-01/Q-02 für das
+Produkt bleiben nicht bestanden.
