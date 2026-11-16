@@ -120,7 +120,9 @@
              Wiederanlauf/Altimportabwehr
        - [x] KQ-069 A: Gesichertes Neustart-Paar frisch per ETW messen; 28 App-Generationen, 144
              WebViews, vier Kontrollen, Nullverluste und 0 Nicht-Loopback-Ereignisse
-       - [ ] KQ-069 A: Assistive Wiederanlaufprüfung und Controller-Crash/dauerhaften Broker
+       - [x] KQ-069 A: Startticket v2 und manuelle Wiederanlaufprüfung mit Windows-Sprachausgabe
+             ergänzen; Ansagen/Fokus/Replay und zusätzliche Tastaturnutzung bestätigen
+       - [ ] KQ-069 A: Neues v2-Prüfpaar frisch per ETW messen; Controller-Crash/dauerhaften Broker
              abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren;
              Packaging und F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit

@@ -443,7 +443,7 @@ pub fn run() {
         finish(&inner, result);
     }
     let ready = if let Some(restart) = &restart {
-        serde_json::json!({"restartVersion":1,"recoveryOnly":restart.ticket.recovery,"handleInheritanceCleared":true})
+        serde_json::json!({"restartVersion":restart.ticket.version,"recoveryOnly":restart.ticket.recovery,"automatic":restart.ticket.automatic,"handleInheritanceCleared":true})
     } else if live {
         serde_json::json!({"channelVersion":2,"sessionBound":true,"selectionPending":true,"handleInheritanceCleared":true})
     } else {
@@ -479,7 +479,7 @@ pub fn run() {
                     && allowed_origin("isolation-test", payload.url())
                     && let Some(restart) = &restart
                 {
-                    let _ = window.eval(restart::automation(restart.ticket.recovery));
+                    restart.start_automation(&window);
                 }
             })
             .build()?;

@@ -1,5 +1,12 @@
 # Bedrohungsmodell (Entwurf)
 
+Assistive Fortschreibung: Startticket v2 erlaubt deaktivierte Bedienungsautomatik nur für
+Wiederherstellung. Alte Versionen/fehlendes Pflichtflag werden nicht durch Defaults akzeptiert.
+Keine neuen Grants, Rendererparameter, Hostzugriffe oder Netzrechte; die manuelle Betrachtungsfrist
+erneuert keine Dateiautorisierung. [Vertrag](../data-format/native-ui-restart-v2.md),
+[getrennte Hör-/Diagnosenachweise](../testing/native-assistive-restart.md). Für das neue Paar fehlt
+frisches ETW, der v1-Beleg bleibt ausschließlich an v1-Hashes gebunden.
+
 ETW-Fortschreibung: Das gesicherte Neustart-Paar besitzt jetzt einen neuen gültigen Netzbeleg: 28
 zeitlich abgeglichene App-Generationen, alle 202 Prozesslebenszeiten explizit beendet, vier
 Kontrollen, Nullverluste, keine unbekannten Ziele/Zuordnungslücken, 0 Nicht-Loopback-Ereignisse; 144

@@ -287,6 +287,12 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
+Aktueller Forschungs-Startticketvertrag: [v2](docs/data-format/native-ui-restart-v2.md). Manuelle
+Wiederherstellung darf die Bedienungsautomatik deaktivieren, erteilt aber keinen Importgrant.
+Hörbestätigung und technische Diagnose sind getrennte Nachweise;
+[Assistenzprotokoll](docs/testing/native-assistive-restart.md). Der v1-ETW-Beleg bleibt separat und
+wird nicht auf v2 übertragen.
+
 Der [ETW-Neustartnachweis](docs/testing/native-ui-restart-etw.md) gilt ausschließlich für sein
 gesichertes App-/Controllerhashpaar und die vollständig zugeordneten Prozesslebenszeiten. Eine
 Code-/Binäränderung erhält diese Netzabnahme nicht automatisch; keine Produkt- oder externe

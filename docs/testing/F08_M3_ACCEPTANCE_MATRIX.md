@@ -1,5 +1,11 @@
 # F08-/M3-Abnahmematrix
 
+Assistiver Wiederanlauf 16. November: Unterbrechungs-/Abschluss-/Replay-Ansagen mit
+Windows-Sprachausgabe bestätigt; native Aufrufe, Daten und Cleanup gegengeprüft. Tastaturnutzung
+menschlich bestätigt, aus dem Log allein nicht beweisbar. Erster Versuch ohne Replay nicht als
+bestanden gewertet. [Nachweis](native-assistive-restart.md). Neues v2-Paar ohne eigenen ETW-Beleg;
+keine assistive Voll- oder Produktabnahme, Q-01/Q-02 bleiben nicht bestanden.
+
 ETW-Fortschreibung 16. November: Das gesicherte Neustart-Paar ist mit neuer gültiger Messung belegt:
 28 vollständige App-Generationen, 144 WebViews, vier Kontrollen, Nullverluste, 0 Ereignisse
 außerhalb Loopback und 144 getrennte Loopback-Ereignisse. Native Crash-Serie und Daten/Cleanup im

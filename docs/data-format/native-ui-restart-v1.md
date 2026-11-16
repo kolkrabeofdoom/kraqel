@@ -1,5 +1,9 @@
 # Authentisierter Forschungs-Neustart · v1
 
+Historischer Vertrag des gesicherten v1-Paars. Aktueller Quellcode verwendet
+[Startticket v2](native-ui-restart-v2.md) für manuell prüfbaren Wiederanlauf. Hash-/Netzbelege
+dieser früheren Stufe werden nicht auf v2-Binaries übertragen.
+
 KQ-069 / #134, 16. November 2026. Ausschließlich synthetische Daten, separater Controller und
 Windows-Feature `isolation-ui-test`. Ergänzt das [Auftragsjournal v1](native-task-journal-v1.md);
 kein Produktlauncher, öffentlicher Broker oder Wiederanlauf nach Controllerabsturz.

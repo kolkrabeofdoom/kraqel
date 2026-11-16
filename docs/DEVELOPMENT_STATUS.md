@@ -1,5 +1,16 @@
 # Entwicklungsstatus
 
+Assistiver Wiederanlauf, 16. November 2026: Startticket v2 ermöglicht manuelle Prüfung ohne
+Bedienungsautomatik oder neuen Importgrant. Konkrete Unterbrechungs-/Abschluss-/Replay-Ansagen und
+Fokus mit Windows-Sprachausgabe bestätigt; native Aufrufe, Journal/Kopienzahl und Cleanup belegt.
+Tastaturnutzung menschlich bestätigt, aus dem Fokuslog allein nicht beweisbar. Ein erster Lauf ohne
+Replay wurde nicht akzeptiert und erfolgreich wiederholt.
+[Vertrag](data-format/native-ui-restart-v2.md), [Nachweis](testing/native-assistive-restart.md),
+[Aggregate](testing/native-assistive-restart.json). Automatische v2-Serie mit 28 Starts und 35
+Browser-E2E bestanden. Neues Paar separat gesichert, noch ohne eigenen ETW-Beleg. Nächster Scope:
+frisches ETW dieses v2-Paars, Controller-Crash/dauerhafter Broker und externe Grenzen. Striktes Ziel
+unverändert, Produkt-Q-01/Q-02 nicht bestanden. Frühere Stufen folgen.
+
 ETW-Fortschreibung, 16. November 2026: Das gesicherte unveränderte Neustart-Paar ist nun frisch
 gemessen. Gültige Erfassung mit vier Kontrollen, Nullverlusten, 28 vollständig zugeordneten
 App-Generationen und 144 WebView-Lebenszeiten: 0 Ereignisse außerhalb Loopback, 144

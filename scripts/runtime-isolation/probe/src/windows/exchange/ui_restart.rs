@@ -58,6 +58,7 @@ enum Expect {
     Recovery,
     Reject,
     ReuseDenied,
+    ManualRecovery,
 }
 fn valid_summary(value: &RecoverySummary, point: CrashPoint, projects: u32) -> bool {
     value.published == point.publishes()
@@ -183,6 +184,11 @@ fn generation(
         ],
         Expect::Reject => &[],
         Expect::ReuseDenied => &[RestartEventKind::Renderer, RestartEventKind::ReuseRejected],
+        Expect::ManualRecovery => &[
+            RestartEventKind::Recovered,
+            RestartEventKind::Renderer,
+            RestartEventKind::Replay,
+        ],
     };
     let start = Instant::now();
     let mut received = 0;
@@ -224,7 +230,7 @@ fn generation(
                     .map_err(|_| invalid("restart-event-shape"))?;
                 buffer.drain(..4 + size);
                 if event.launch_id != ticket.launch_id
-                    || expected.get(received) != Some(&event.kind)
+                    || !expected_event(expect, expected, received, event.kind)
                     || (event.kind == RestartEventKind::Recovered) != event.summary.is_some()
                 {
                     return Err(invalid("restart-event-binding-or-order"));
@@ -236,6 +242,12 @@ fn generation(
             }
         }
         let exited = unsafe { WaitForSingleObject(worker.0.0, 20) } == WAIT_OBJECT_0;
+        if matches!(expect, Expect::ManualRecovery) && exited {
+            if received < expected.len() || !buffer.is_empty() {
+                return Err(invalid("manual-recovery-closed-before-replay"));
+            }
+            break;
+        }
         if matches!(expect, Expect::Reject) && exited {
             let mut code = 0;
             check(
@@ -247,10 +259,18 @@ fn generation(
             }
             break;
         }
-        if !matches!(expect, Expect::Reject) && received == expected.len() && buffer.is_empty() {
+        if !matches!(expect, Expect::Reject | Expect::ManualRecovery)
+            && received == expected.len()
+            && buffer.is_empty()
+        {
             break;
         }
-        if exited || root.join("STOP").exists() || start.elapsed() > Duration::from_secs(45) {
+        let limit = if matches!(expect, Expect::ManualRecovery) {
+            600
+        } else {
+            45
+        };
+        if exited || root.join("STOP").exists() || start.elapsed() > Duration::from_secs(limit) {
             return Err(invalid("restart-checkpoint-or-recovery-missing"));
         }
     }
@@ -287,7 +307,10 @@ fn generation(
         unsafe { GetExitCodeProcess(worker.0.0, &mut code) },
         "restart-exit-code",
     )?;
-    if !matches!(expect, Expect::Reject) && code != 77 {
+    if matches!(expect, Expect::ManualRecovery) && code != 0 {
+        return Err(invalid("manual-recovery-unclean-exit"));
+    }
+    if !matches!(expect, Expect::Reject | Expect::ManualRecovery) && code != 77 {
         return Err(invalid("restart-wrong-kill-exit"));
     }
     write_json(
@@ -297,7 +320,7 @@ fn generation(
     Ok(summary)
 }
 
-pub(in super::super) fn launch(root: &Path, app: &Path) -> Result<Value> {
+fn initialize(root: &Path, app: &Path) -> Result<(Uuid, Profile, [u8; 32])> {
     if !crate::policy::valid_root(root, false) {
         return Err(invalid("restart-needs-fresh-root"));
     }
@@ -317,7 +340,7 @@ pub(in super::super) fn launch(root: &Path, app: &Path) -> Result<Value> {
         return Err(invalid("restart-root-canonical-name"));
     }
     io("restart-create-root", fs::create_dir(root))?;
-    let mut profile = Profile::create(&format!("ui-restart-{}", session.simple()))?;
+    let profile = Profile::create(&format!("ui-restart-{}", session.simple()))?;
     grant(root, profile.sid, FILE_GENERIC_READ | FILE_GENERIC_EXECUTE)?;
     let data = root.join("data");
     let bin = root.join("bin");
@@ -332,6 +355,24 @@ pub(in super::super) fn launch(root: &Path, app: &Path) -> Result<Value> {
     let executable = bin.join("kraqel-desktop.exe");
     io("restart-stage-app", fs::copy(app, &executable))?;
     let pin = hash(&executable)?;
+    Ok((session, profile, pin))
+}
+fn expected_event(
+    expect: Expect,
+    expected: &[RestartEventKind],
+    received: usize,
+    kind: RestartEventKind,
+) -> bool {
+    if matches!(expect, Expect::ManualRecovery) && received >= 2 {
+        received < 16 && kind == RestartEventKind::Replay
+    } else {
+        expected.get(received) == Some(&kind)
+    }
+}
+pub(in super::super) fn launch(root: &Path, app: &Path) -> Result<Value> {
+    let (session, mut profile, pin) = initialize(root, app)?;
+    let data = root.join("data");
+    let executable = root.join("bin/kraqel-desktop.exe");
     let mut cases = Vec::new();
     let mut projects = 0;
     let mut index = 0;
@@ -340,11 +381,12 @@ pub(in super::super) fn launch(root: &Path, app: &Path) -> Result<Value> {
             return Err(invalid("restart-executable-changed"));
         }
         let mut ticket = RestartTicket {
-            version: 1,
+            version: RestartTicket::VERSION,
             session_id: session,
             task_id: Uuid::new_v4(),
             launch_id: Uuid::new_v4(),
             recovery: false,
+            automatic: true,
             point,
             app_sha256: pin,
         };
@@ -395,11 +437,12 @@ pub(in super::super) fn launch(root: &Path, app: &Path) -> Result<Value> {
     let journal = hash(&data.join("app/tasks/tasks.sqlite3"))?;
     for bad in 0..4 {
         let mut ticket = RestartTicket {
-            version: 1,
+            version: RestartTicket::VERSION,
             session_id: session,
             task_id: Uuid::new_v4(),
             launch_id: Uuid::new_v4(),
             recovery: true,
+            automatic: true,
             point: CrashPoint::Prepared,
             app_sha256: pin,
         };
@@ -411,7 +454,7 @@ pub(in super::super) fn launch(root: &Path, app: &Path) -> Result<Value> {
         match bad {
             1 => ticket.session_id = Uuid::new_v4(),
             2 => ticket.app_sha256 = [0; 32],
-            3 => ticket.version = 2,
+            3 => ticket.version = 1,
             _ => (),
         }
         generation(root, &profile, &ticket, argument, Expect::Reject, index)?;
@@ -429,9 +472,99 @@ pub(in super::super) fn launch(root: &Path, app: &Path) -> Result<Value> {
     Ok(report)
 }
 
+pub(in super::super) fn launch_assistive(
+    root: &Path,
+    app: &Path,
+    completed: bool,
+) -> Result<Value> {
+    let (session, mut profile, pin) = initialize(root, app)?;
+    let point = if completed {
+        CrashPoint::Completed
+    } else {
+        CrashPoint::Prepared
+    };
+    let mut ticket = RestartTicket {
+        version: RestartTicket::VERSION,
+        session_id: session,
+        task_id: Uuid::new_v4(),
+        launch_id: Uuid::new_v4(),
+        recovery: false,
+        automatic: true,
+        point,
+        app_sha256: pin,
+    };
+    generation(root, &profile, &ticket, ticket.launch_id, Expect::Crash, 0)?;
+    ticket.recovery = true;
+    ticket.automatic = false;
+    ticket.launch_id = Uuid::new_v4();
+    let summary = generation(
+        root,
+        &profile,
+        &ticket,
+        ticket.launch_id,
+        Expect::ManualRecovery,
+        1,
+    )?
+    .ok_or(invalid("manual-recovery-summary"))?;
+    if !valid_summary(&summary, point, u32::from(completed)) {
+        return Err(invalid("manual-recovery-result"));
+    }
+    let removed = profile.remove();
+    let report = json!({"formatVersion":1,"researchOnly":true,"productionAcceptance":false,"passed":removed,"profileRemoved":removed,"activeJobProcessesAtEnd":0,"manualRecovery":true,"screenreaderAcceptanceRequiresUserReport":true,"point":point,"generations":2,"summary":summary,"networkMeasurement":false});
+    write_json(&root.join("result.json"), &report)?;
+    if !removed {
+        return Err(invalid("manual-recovery-profile-cleanup"));
+    }
+    Ok(report)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn manual_recovery_waits_for_real_replay_and_bounds_additional_calls() {
+        let expected = [
+            RestartEventKind::Recovered,
+            RestartEventKind::Renderer,
+            RestartEventKind::Replay,
+        ];
+        assert!(expected_event(
+            Expect::ManualRecovery,
+            &expected,
+            0,
+            RestartEventKind::Recovered
+        ));
+        assert!(!expected_event(
+            Expect::ManualRecovery,
+            &expected,
+            0,
+            RestartEventKind::Replay
+        ));
+        assert!(expected_event(
+            Expect::ManualRecovery,
+            &expected,
+            3,
+            RestartEventKind::Replay
+        ));
+        assert!(!expected_event(
+            Expect::ManualRecovery,
+            &expected,
+            3,
+            RestartEventKind::Checkpoint
+        ));
+        assert!(!expected_event(
+            Expect::ManualRecovery,
+            &expected,
+            16,
+            RestartEventKind::Replay
+        ));
+        assert!(!expected_event(
+            Expect::Recovery,
+            &expected,
+            3,
+            RestartEventKind::Replay
+        ));
+    }
     #[test]
     fn recovery_evidence_requires_counts_cleanup_and_consumption() {
         let value = RecoverySummary {

@@ -7,6 +7,17 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 15. November 2026
 
+Neuester Stand 16. November: Assistive Wiederanlaufprüfung mit Windows-Sprachausgabe für
+Unterbrechung/Abschluss/Replay bestanden; zusätzliche Tastaturnutzung menschlich bestätigt, mit
+begrenzter technischer Eingabequellen-Zuordnung.
+[Startticket v2](data-format/native-ui-restart-v2.md) mit `automatic: false` lässt nur
+Wiederherstellung manuell offen, ohne neue Rechte/Importquelle.
+[Nachweis, Wiederholung und Hashes](testing/native-assistive-restart.md). 28 automatische v2-Starts
+und lokale Qualitätsprüfungen bestanden. Neues Paar unter
+`%TEMP%\kraqel-kq069-assistive-restart-build-20261116-01` gesichert; Hashes vor Verwendung prüfen.
+Nächster Scope: frisches ETW genau dieses Paars. Der alte v1-Netzbeleg gilt separat; Controller-
+Crash, dauerhafter Broker, externe Grenzen und Produktabnahme bleiben offen. Striktes Ziel gilt.
+
 Neuester Nachweis 16. November: Frischer gültiger ETW-Netzvergleich exakt des gesicherten
 Neustart-Paars bestanden. Ein Controllerbaum mit 28 Apps, 144 WebViews und insgesamt 202 explizit
 beendeten Lebenszeiten; vier Kontrollen, Nullverluste, 0 Ereignisse außerhalb Loopback und 144

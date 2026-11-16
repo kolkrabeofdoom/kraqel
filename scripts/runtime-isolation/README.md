@@ -1,5 +1,12 @@
 # AppContainer-Forschungshelfer für KQ-069
 
+Aktueller Startticketvertrag: [v2](../../docs/data-format/native-ui-restart-v2.md), ohne Downgrade.
+`ui-assistive-interrupted` beziehungsweise `ui-assistive-completed` mit frischer gebundener
+Neustartwurzel und passender Forschungs-EXE bereiten einen synthetischen Crash vor und lassen den
+Wiederanlauf offen. Tatsächliches Replay und reguläres Schließen erforderlich, höchstens 600
+Sekunden. [Assistiver Nachweis](../../docs/testing/native-assistive-restart.md). Kein eigener
+ETW-Beleg der neuen v2-Hashes; folgende v1-Belege bleiben separat gültig.
+
 `ui-crash-series <frische kraqel-isolation-ui-restart-UUID-Wurzel> <Forschungs-EXE>` führt autonom
 28 Generationen derselben isolierten GUI mit stabiler Identität/Ablage aus. Frische gebundene
 Starttickets, sechs harte Crashpunkte, je zwei Reconciliations, Altimportabwehr und vier negative

@@ -50,16 +50,19 @@ pub struct RestartTicket {
     pub task_id: Uuid,
     pub launch_id: Uuid,
     pub recovery: bool,
+    pub automatic: bool,
     pub point: CrashPoint,
     pub app_sha256: [u8; 32],
 }
 impl RestartTicket {
+    pub const VERSION: u16 = 2;
     pub fn valid_for(&self, launch: Uuid) -> bool {
-        self.version == 1
+        self.version == Self::VERSION
             && !self.session_id.is_nil()
             && !self.task_id.is_nil()
             && !launch.is_nil()
             && self.launch_id == launch
+            && (self.automatic || self.recovery)
     }
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -239,11 +242,12 @@ mod tests {
     #[test]
     fn tickets_reject_unknown_authority_and_wrong_launch_binding() {
         let ticket = RestartTicket {
-            version: 1,
+            version: RestartTicket::VERSION,
             session_id: Uuid::new_v4(),
             task_id: Uuid::new_v4(),
             launch_id: Uuid::new_v4(),
             recovery: true,
+            automatic: true,
             point: CrashPoint::Prepared,
             app_sha256: [7; 32],
         };
@@ -252,7 +256,7 @@ mod tests {
         let mut value = serde_json::to_value(&ticket).unwrap();
         value["path"] = serde_json::json!("C:\\private");
         assert!(serde_json::from_value::<RestartTicket>(value).is_err());
-        for version in [0, 2] {
+        for version in [0, 1, 3] {
             let mut t = ticket.clone();
             t.version = version;
             assert!(!t.valid_for(t.launch_id));
@@ -260,6 +264,11 @@ mod tests {
         let mut t = ticket.clone();
         t.session_id = Uuid::nil();
         assert!(!t.valid_for(t.launch_id));
+        let mut manual = ticket.clone();
+        manual.automatic = false;
+        assert!(manual.valid_for(manual.launch_id));
+        manual.recovery = false;
+        assert!(!manual.valid_for(manual.launch_id));
         let mut t = ticket.clone();
         t.task_id = Uuid::nil();
         assert!(!t.valid_for(t.launch_id));

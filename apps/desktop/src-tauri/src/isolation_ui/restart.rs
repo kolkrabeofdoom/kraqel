@@ -13,6 +13,11 @@ pub(super) struct RestartControl {
     grant: Mutex<RestartGrant>,
 }
 impl RestartControl {
+    pub fn start_automation(&self, window: &tauri::WebviewWindow) {
+        if self.ticket.automatic {
+            let _ = window.eval(automation(self.ticket.recovery));
+        }
+    }
     pub fn milestone(&self, point: kraqel_isolation_test_adapter::TaskMilestone) {
         use kraqel_isolation_test_adapter::TaskMilestone;
         self.checkpoint(match point {

@@ -749,6 +749,15 @@ pub fn main() {
         if args.len() == 3 && args[0] == "ui-crash-series" {
             return exchange::launch_restart_series(Path::new(&args[1]), Path::new(&args[2]));
         }
+        if args.len() == 3
+            && (args[0] == "ui-assistive-interrupted" || args[0] == "ui-assistive-completed")
+        {
+            return exchange::launch_assistive(
+                Path::new(&args[1]),
+                Path::new(&args[2]),
+                args[0] == "ui-assistive-completed",
+            );
+        }
         if args.len() == 3 && (args[0] == "ui-live" || args[0] == "ui-live-transfer-hold") {
             return exchange::launch_live_ui(
                 Path::new(&args[1]),

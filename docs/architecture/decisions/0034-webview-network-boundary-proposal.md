@@ -1,5 +1,12 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+Assistive Fortschreibung 16. November: Startticket v2 ergänzt das verpflichtende native Flag
+`automatic`. Nur für Wiederherstellung darf es false sein; dann keine Skriptbedienung und höchstens
+600 Sekunden manuelle Betrachtung ohne Importgrant. Gleiche SID-/Hash-/Launch-/Pipe- Bindungen, null
+Capabilities. [Vertrag](../../data-format/native-ui-restart-v2.md),
+[Hörprüfung und Grenzen](../../testing/native-assistive-restart.md). v1-Tickets werden abgewiesen;
+der alte ETW-Beleg wird nicht auf neue Binaries übertragen. Striktes Ziel bleibt unverändert.
+
 ETW-Fortschreibung 16. November: Frischer gültiger Nachweis exakt des unveränderten gesicherten
 Neustart-Paars. 28 App-Generationen mit vollständiger Endezuordnung, 144 WebViews, vier Kontrollen,
 Nullverluste und 0 Ereignisse außerhalb Loopback; 144 Loopback-Ereignisse separat. Native Serie und

@@ -1,5 +1,10 @@
 # KQ-069: Integrierter isolierter GUI-Neustart
 
+Historischer v1-Funktionsnachweis. Die spätere
+[assistive Wiederanlaufprüfung](native-assistive-restart.md) nutzt ein anderes Hashpaar und
+Startticket v2. Ein Neubuild aktuellen Quellcodes erhält die hier dokumentierten v1-Nachweise nicht
+automatisch.
+
 Finale Serie bestanden, Exitcode des Controllers 0. [Bereinigte Aggregate](native-ui-restart.json).
 App-SHA-256: `ca4e70a39a96ec6c642863494be616c47a7e9243afc4ba20726606ddf7c54324`. Controller-SHA-256:
 `12cee20170c7672f959703d592d370f57b7cb90311fed524330f2dd05208508f`. Nach dieser Serie keine weiteren

@@ -1,5 +1,9 @@
 # KQ-069: ETW-Netzvergleich des gesicherten Neustart-Builds
 
+Dieser Nachweis bleibt an das unveränderte gesicherte v1-Paar gebunden. Die spätere
+[assistive v2-Weiterentwicklung](native-assistive-restart.md) hat andere Hashes und benötigt eigenes
+frisches ETW. Keine Übertragung auf neue Binaries.
+
 Stand: 16. November 2026. Neuer gültiger ETW-Nachweis exakt des in der
 [GUI-Neustartserie](native-ui-restart.md) geprüften und getrennt gesicherten App-/Controllerpaars.
 [Bereinigte Aggregate](native-ui-restart-etw.json). Kein Runtimeumbau oder neuer Build für die
