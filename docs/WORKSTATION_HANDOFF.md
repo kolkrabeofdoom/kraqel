@@ -27,9 +27,14 @@ Q-01/Q-02 für das Produkt sind nicht bestanden. Nur feste synthetische Vorabfre
 Forschungsfeature geprüft. Keine allgemeine Freigabe realer Manuskripte, externer Broker oder
 kompromittierter Runtime-Prozesse; #134 bleibt offen.
 
-Als Nächstes: native Vorab-Dateiauswahl (`ui-select`) und deren Abbruch prüfen. Die erfolgreiche
-finale UI-Serie verwendete `ui-fixture`; der vorherige unvollständige Auswahldialoglauf ist kein
-Abnahmenachweis. Danach Auswahl aus einer laufenden App, assistive Abnahme und dauerhafte
+Nachtrag 16. November: Native Vorab-Dateiauswahl (`ui-select`) und Dialogabbruch sind auf dem
+zurückgewechselten Rechner funktional geprüft; der neue Build, Controllerausgabe und unabhängige
+SQLite-/Cleanup-Prüfung sind im [Nachweis](testing/native-ui-select-acceptance.md) dokumentiert.
+Kein neuer ETW-Nachweis und keine Produktfreigabe. Nächster Scope: Auswahl aus einer laufenden App.
+
+Historischer Ausgangspunkt der Übergabe: native Vorab-Dateiauswahl und deren Abbruch prüfen. Die
+erfolgreiche finale UI-Serie verwendete `ui-fixture`; der vorherige unvollständige Auswahldialoglauf
+ist kein Abnahmenachweis. Danach Auswahl aus einer laufenden App, assistive Abnahme und dauerhafte
 Auftrags-/Replay-/Crash-Reconciliation. Weitere Formate, Git-/Credential-/Providergrenzen,
 öffentliche UDP-/IPv6-/DNS-/Broker-Gegenproben und Produkt-/Installerintegration folgen separat.
 
