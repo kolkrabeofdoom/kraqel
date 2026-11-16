@@ -1,5 +1,12 @@
 # Entwicklungsstatus
 
+Nachtrag KQ-069 Live-Auswahl, 16. November 2026: Forschungsmodus `ui-live` implementiert. Native
+Auswahl aus laufender isolierter App und Dialogabbruch funktional bestätigt; Unicode/SQLite und
+Cleanup unabhängig geprüft. [Nachweis](testing/native-live-file-selection.md) und
+[Kanal v2](data-format/native-live-file-channel-v2.md). Kein neuer ETW-Lauf, keine Produktfreigabe.
+Nächster Scope: Replay, Fehler-/Fokus-/Fensterendeprüfung und Netzabnahme. Striktes Datenschutzziel
+unverändert; #134 bleibt offen.
+
 Nachtrag 16. November 2026: KQ-069 / #134, native Vorabauswahl und Dialogabbruch auf dem
 zurückgewechselten Windows-Rechner funktional bestanden. Unabhängig bestätigt: neue Projektkopie,
 zwei Dokumente, Unicode/SQLite-Integrität/Fremdschlüssel, keine Stagingreste, null Jobprozesse und

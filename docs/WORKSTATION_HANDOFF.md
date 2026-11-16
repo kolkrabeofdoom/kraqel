@@ -7,6 +7,12 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 15. November 2026
 
+Fortschreibung 16. November: `ui-live` ergänzt die Auswahl aus dem laufenden isolierten
+Forschungsfenster. Native Erfolg-/Dialogabbruchserie und unabhängige SQLite-/Cleanup-Prüfung
+bestanden. [Nachweis und verbleibende Schritte](testing/native-live-file-selection.md). Replay,
+assistive Fokus-/Fehlerprüfung, Appende bei Auswahl/Transfer und neuer ETW-Lauf bleiben offen. Keine
+Produktfreigabe; striktes Datenschutzziel unverändert.
+
 Entwicklungsstand: [PR #140](https://github.com/kolkrabeofdoom/kraqel/pull/140), KQ-069 A /
 [Issue #134](https://github.com/kolkrabeofdoom/kraqel/issues/134). PR #139 ist nach grüner CI
 zusammengeführt (`fadf0a6`). PR #140 enthält die UI-/Tauri- Testanbindung und den einmaligen

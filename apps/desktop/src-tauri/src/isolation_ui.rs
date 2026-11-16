@@ -1,6 +1,8 @@
 //! Explicit, Windows-only research feature. Normal application startup never calls this module.
 use kraqel_isolation_test_adapter::{ImportReceipt, OneShotAdapter, TaskControl, TaskError};
-use kraqel_isolation_transport::{ReceivedGrant, receive_from_launcher};
+use kraqel_isolation_transport::{
+    LiveSession, ReceivedGrant, receive_from_launcher, receive_live_session,
+};
 use kraqel_storage::project_manager::ProjectManager;
 use serde::Serialize;
 use std::{
@@ -29,7 +31,7 @@ struct View {
     receipt: Option<Receipt>,
 }
 struct Inner {
-    grant: Mutex<Option<ReceivedGrant>>,
+    grant: Mutex<Option<Source>>,
     cancel: AtomicBool,
     release: AtomicBool,
     phase: AtomicU8,
@@ -37,6 +39,10 @@ struct Inner {
     data: PathBuf,
     exit_requested: AtomicBool,
     renderer_seen: AtomicBool,
+}
+enum Source {
+    Prepared(ReceivedGrant),
+    Live(LiveSession),
 }
 #[derive(Clone)]
 struct UiState(Arc<Inner>);
@@ -163,7 +169,7 @@ async fn isolation_test_import(
 ) -> Result<View, TaskError> {
     guard(&window)?;
     let inner = Arc::clone(&state.0);
-    let mut grant = {
+    let source = {
         let mut slot = inner.grant.lock().map_err(|_| TaskError::ImportFailed)?;
         let grant = slot.take().ok_or(TaskError::AlreadyConsumed)?;
         inner.phase.store(1, Ordering::SeqCst);
@@ -171,38 +177,51 @@ async fn isolation_test_import(
     };
     let worker = Arc::clone(&inner);
     let result = tauri::async_runtime::spawn_blocking(move || {
+        let (task, mut input): (_, Box<dyn std::io::Read + Send>) = match source {
+            Source::Prepared(grant) => (grant.task, Box::new(grant.input)),
+            Source::Live(session) => {
+                let Some((task, input)) = session
+                    .select(|| worker.cancel.load(Ordering::SeqCst))
+                    .map_err(|_| {
+                    if worker.cancel.load(Ordering::SeqCst) {
+                        TaskError::Cancelled
+                    } else {
+                        TaskError::ReadFailed
+                    }
+                })?
+                else {
+                    return Err(TaskError::Cancelled);
+                };
+                (task, Box::new(input))
+            }
+        };
         let manager = ProjectManager::new(worker.data.join("app/projects"))
             .map_err(|_| TaskError::ImportFailed)?;
-        OneShotAdapter::new(grant.task.task_id).execute(
-            &grant.task,
-            &mut grant.input,
-            &manager,
-            || {
-                let staged = fs::read_dir(manager.root()).is_ok_and(|mut entries| {
-                    entries.any(|e| {
-                        e.is_ok_and(|e| {
-                            e.file_name()
-                                .to_string_lossy()
-                                .starts_with(".kraqel-stage-")
-                        })
+        OneShotAdapter::new(task.task_id).execute(&task, &mut input, &manager, || {
+            let staged = fs::read_dir(manager.root()).is_ok_and(|mut entries| {
+                entries.any(|e| {
+                    e.is_ok_and(|e| {
+                        e.file_name()
+                            .to_string_lossy()
+                            .starts_with(".kraqel-stage-")
                     })
-                });
-                if staged {
-                    worker.phase.store(2, Ordering::SeqCst);
-                    while !worker.release.load(Ordering::SeqCst)
-                        && !worker.cancel.load(Ordering::SeqCst)
-                        && now() < grant.task.expires_unix_ms
-                    {
-                        std::thread::sleep(Duration::from_millis(50));
-                    }
-                    worker.phase.store(1, Ordering::SeqCst);
+                })
+            });
+            if staged {
+                worker.phase.store(2, Ordering::SeqCst);
+                while !worker.release.load(Ordering::SeqCst)
+                    && !worker.cancel.load(Ordering::SeqCst)
+                    && now() < task.expires_unix_ms
+                {
+                    std::thread::sleep(Duration::from_millis(50));
                 }
-                TaskControl {
-                    now_unix_ms: now(),
-                    cancelled: worker.cancel.load(Ordering::SeqCst),
-                }
-            },
-        )
+                worker.phase.store(1, Ordering::SeqCst);
+            }
+            TaskControl {
+                now_unix_ms: now(),
+                cancelled: worker.cancel.load(Ordering::SeqCst),
+            }
+        })
     })
     .await
     .map_err(|_| TaskError::ImportFailed)
@@ -216,16 +235,21 @@ async fn isolation_test_import(
 
 /// Runs only with a validated native grant inside the research container.
 pub fn run() {
-    let Ok(grant) = receive_from_launcher() else {
+    let received = if std::env::args().nth(1).as_deref() == Some("ui-live") {
+        receive_live_session().map(|session| (session.data_root.clone(), Source::Live(session)))
+    } else {
+        receive_from_launcher().map(|grant| (grant.data_root.clone(), Source::Prepared(grant)))
+    };
+    let Ok((data, grant)) = received else {
         eprintln!("Isolationstest: kein gültiger nativer Auftrag.");
         std::process::exit(2)
     };
-    let data = grant.data_root.clone();
     if fs::create_dir_all(data.join("app/projects")).is_err()
         || fs::create_dir_all(data.join("webview")).is_err()
     {
         std::process::exit(2);
     }
+    let live = matches!(&grant, Source::Live(_));
     let inner = Arc::new(Inner {
         grant: Mutex::new(Some(grant)),
         cancel: AtomicBool::new(false),
@@ -236,10 +260,12 @@ pub fn run() {
         exit_requested: AtomicBool::new(false),
         renderer_seen: AtomicBool::new(false),
     });
-    let _ = fs::write(
-        data.join("ui-ready.json"),
-        b"{\"channelVersion\":1,\"taskBound\":true,\"handleInheritanceCleared\":true}",
-    );
+    let ready = if live {
+        b"{\"channelVersion\":2,\"sessionBound\":true,\"selectionPending\":true,\"handleInheritanceCleared\":true}".as_slice()
+    } else {
+        b"{\"channelVersion\":1,\"taskBound\":true,\"handleInheritanceCleared\":true}".as_slice()
+    };
+    let _ = fs::write(data.join("ui-ready.json"), ready);
     let mut context = tauri::generate_context!();
     context.config_mut().identifier = "org.kraqel.desktop.isolation-ui-test".into();
     context.config_mut().app.windows.clear();

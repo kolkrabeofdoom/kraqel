@@ -1,5 +1,14 @@
 # Bedrohungsmodell (Entwurf)
 
+KQ-069-Fortschreibung: `ui-live` erlaubt aus der laufenden isolierten Forschungs-App genau ein
+festes Auswahlsignal über ein gezielt vererbtes Pipe-Handle. Hostauswahl ausschließlich einer
+synthetischen Datei; zweite Pipe liefert begrenzten Auftrag und Archivbytes zurück. Renderer
+erhalten keine Handles/Pfade. Host enthält keine Formatparser; atomarer Import bleibt im Container.
+[Vertrag](../data-format/native-live-file-channel-v2.md),
+[Nachweise/Grenzen](../testing/native-live-file-selection.md). Neue Vertrauensgrenze: Replay,
+Appende während Dialog/Transfer, assistive Fokusführung, externe Shell-/Brokerpfade und Netzbilanz
+benötigen weitere Abnahme. Keine neue WebView-Netzfähigkeit oder Produktfreigabe.
+
 ## KQ-069 A: Tauri-Forschungsfeature mit Einweg-Grant
 
 Der [neue Kanal](../data-format/native-file-channel-v1.md) akzeptiert einen begrenzten typisierten

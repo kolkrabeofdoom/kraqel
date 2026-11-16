@@ -17,7 +17,9 @@ use windows_sys::Win32::Storage::FileSystem::*;
 mod app_import;
 pub(super) use app_import::{child as import_child, launch as launch_import};
 mod ui_grant;
+mod ui_live;
 pub(super) use ui_grant::launch as launch_ui;
+pub(super) use ui_live::launch as launch_live_ui;
 
 fn invalid(stage: &'static str) -> Failure {
     Failure { stage, code: -1 }
@@ -123,16 +125,26 @@ fn choose_named(
         )?);
         let path = PathBuf::from(text.0.to_string().map_err(|_| invalid("shell-path-text"))?);
         // Shell navigation is guidance; this independent allowlist is the security check.
-        if path.parent() != Some(host)
-            || !path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .is_some_and(|n| transfer::flat_name(n) || (snapshot && n == "input.kraqel"))
-        {
-            return Err(invalid("selection-outside-synthetic-root"));
-        }
-        Ok(Some(path))
+        scoped_selection(&path, host, snapshot).map(Some)
     }
+}
+
+fn scoped_selection(path: &Path, host: &Path, snapshot: bool) -> Result<PathBuf> {
+    let parent = path
+        .parent()
+        .ok_or(invalid("selection-outside-synthetic-root"))?;
+    let name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .filter(|n| transfer::flat_name(n) || (snapshot && *n == "input.kraqel"))
+        .ok_or(invalid("selection-outside-synthetic-root"))?;
+    // Shell returns long paths even when TEMP used an 8.3 alias. Reconstruct the result
+    // from the controller-owned root; file handle metadata checks remain mandatory.
+    let expected = io("selection-host-directory", host.canonicalize())?;
+    if io("selection-parent-directory", parent.canonicalize())? != expected {
+        return Err(invalid("selection-outside-synthetic-root"));
+    }
+    Ok(host.join(name))
 }
 
 fn host_for(root: &Path) -> Result<PathBuf> {
@@ -396,6 +408,10 @@ enum Program<'a> {
         executable: &'a Path,
         id: uuid::Uuid,
     },
+    UiLive {
+        executable: &'a Path,
+        id: uuid::Uuid,
+    },
 }
 fn run_program(
     root: &Path,
@@ -403,6 +419,16 @@ fn run_program(
     output: &fs::File,
     program: Program<'_>,
     prepare: impl FnOnce(&Path) -> Result<()>,
+) -> Result<Value> {
+    run_program_serviced(root, input, output, program, prepare, || Ok(()))
+}
+fn run_program_serviced(
+    root: &Path,
+    input: &fs::File,
+    output: &fs::File,
+    program: Program<'_>,
+    prepare: impl FnOnce(&Path) -> Result<()>,
+    mut service: impl FnMut() -> Result<()>,
 ) -> Result<Value> {
     io("create-exchange-root", fs::create_dir(root))?;
     let suffix = root
@@ -425,13 +451,17 @@ fn run_program(
     )?;
     low_label(&data)?;
     prepare(&data)?;
-    let executable = bin.join(if matches!(program, Program::Ui { .. }) {
-        "kraqel-desktop.exe"
-    } else {
-        "kraqel-isolation-probe.exe"
-    });
+    let executable = bin.join(
+        if matches!(program, Program::Ui { .. } | Program::UiLive { .. }) {
+            "kraqel-desktop.exe"
+        } else {
+            "kraqel-isolation-probe.exe"
+        },
+    );
     let source = match &program {
-        Program::Ui { executable, .. } => executable.to_path_buf(),
+        Program::Ui { executable, .. } | Program::UiLive { executable, .. } => {
+            executable.to_path_buf()
+        }
         _ => io("current-exe", std::env::current_exe())?,
     };
     io("stage-exchange-worker", fs::copy(source, &executable))?;
@@ -465,6 +495,12 @@ fn run_program(
         ),
         Program::Ui { id, .. } => format!(
             "\"{}\" ui-grant {} {} {id}",
+            executable.display(),
+            handles[0] as usize,
+            handles[1] as usize
+        ),
+        Program::UiLive { id, .. } => format!(
+            "\"{}\" ui-live {} {} {id}",
             executable.display(),
             handles[0] as usize,
             handles[1] as usize
@@ -558,12 +594,13 @@ fn run_program(
     if unsafe { ResumeThread(thread_handle.0) } == u32::MAX {
         return Err(fail("exchange-resume"));
     }
-    let finished = if matches!(program, Program::Ui { .. }) {
+    let finished = if matches!(program, Program::Ui { .. } | Program::UiLive { .. }) {
         let start = Instant::now();
         loop {
             if unsafe { WaitForSingleObject(process.0, 100) } == WAIT_OBJECT_0 {
                 break true;
             }
+            service()?;
             if root.join("STOP").exists()
                 || start.elapsed() > Duration::from_secs(600)
                 || (start.elapsed() > Duration::from_secs(20)
@@ -650,6 +687,18 @@ mod tests {
             }
             fs::remove_dir(&self.0).unwrap();
         }
+    }
+    #[test]
+    fn selection_accepts_resolved_temp_alias_but_rejects_a_sibling() {
+        let root = Fixture::new();
+        let sibling = Fixture::new();
+        let canonical = root.0.canonicalize().unwrap();
+        assert_eq!(
+            scoped_selection(&canonical.join("input.kraqel"), &root.0, true).unwrap(),
+            root.0.join("input.kraqel")
+        );
+        assert!(scoped_selection(&sibling.0.join("input.kraqel"), &root.0, true).is_err());
+        assert!(scoped_selection(&canonical.join("input.kraqel:stream"), &root.0, true).is_err());
     }
     #[test]
     fn pending_creation_never_owns_an_existing_file() {

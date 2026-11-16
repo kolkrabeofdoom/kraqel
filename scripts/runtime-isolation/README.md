@@ -1,5 +1,12 @@
 # AppContainer-Forschungshelfer für KQ-069
 
+`ui-live <neue kraqel-isolation-ui-Wurzel> <Forschungs-EXE>` startet zuerst das Forschungsfenster.
+Erst der Importknopf fordert die native Auswahl der synthetischen `input.kraqel` an. Zwei anonyme
+Pipes, ein festes Auswahlsignal und ein Versuch pro Sitzung.
+[Vertrag](../../docs/data-format/native-live-file-channel-v2.md) und
+[Nachweise/offene Abnahme](../../docs/testing/native-live-file-selection.md). Kein neuer
+Netzwerkbeleg oder produktiver Broker.
+
 **Nur synthetische Daten. Kein produktiver Launcher und keine Sicherheitsfreigabe.** Der normale
 KRAQEL-Start wird nicht verändert. Ergebnis und Grenzen stehen im
 [Versuchsprotokoll](../../docs/testing/native-runtime-isolation.md).
