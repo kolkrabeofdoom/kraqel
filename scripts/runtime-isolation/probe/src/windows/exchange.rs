@@ -23,6 +23,7 @@ pub(super) use ui_grant::launch as launch_ui;
 pub(super) use ui_live::launch as launch_live_ui;
 pub(super) use ui_restart::launch as launch_restart_series;
 pub(super) use ui_restart::launch_assistive;
+pub(super) use ui_restart::{controller_crash_series, recover_broker, seed_broker};
 
 fn invalid(stage: &'static str) -> Failure {
     Failure { stage, code: -1 }

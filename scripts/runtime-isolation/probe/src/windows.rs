@@ -279,7 +279,14 @@ impl Attributes {
         Self::with_handles(caps, &[])
     }
     fn with_handles(caps: &SECURITY_CAPABILITIES, handles: &[HANDLE]) -> Result<Self> {
-        let count = if handles.is_empty() { 1 } else { 2 };
+        Self::with_handles_and_jobs(caps, handles, &[])
+    }
+    fn with_handles_and_jobs(
+        caps: &SECURITY_CAPABILITIES,
+        handles: &[HANDLE],
+        jobs: &[HANDLE],
+    ) -> Result<Self> {
+        let count = 1 + u32::from(!handles.is_empty()) + u32::from(!jobs.is_empty());
         let mut bytes = 0;
         unsafe {
             InitializeProcThreadAttributeList(null_mut(), count, 0, &mut bytes);
@@ -325,6 +332,22 @@ impl Attributes {
                     )
                 },
                 "set-handle-list",
+            )?;
+        }
+        if !jobs.is_empty() {
+            check(
+                unsafe {
+                    UpdateProcThreadAttribute(
+                        ptr,
+                        0,
+                        PROC_THREAD_ATTRIBUTE_JOB_LIST as usize,
+                        jobs.as_ptr().cast(),
+                        std::mem::size_of_val(jobs),
+                        null_mut(),
+                        null(),
+                    )
+                },
+                "set-creation-job-list",
             )?;
         }
         Ok(value)
@@ -748,6 +771,19 @@ pub fn main() {
         }
         if args.len() == 3 && args[0] == "ui-crash-series" {
             return exchange::launch_restart_series(Path::new(&args[1]), Path::new(&args[2]));
+        }
+        if args.len() == 3 && args[0] == "ui-controller-crash-series" {
+            return exchange::controller_crash_series(Path::new(&args[1]), Path::new(&args[2]));
+        }
+        if args.len() == 4 && args[0] == "ui-broker-seed" {
+            return exchange::seed_broker(
+                Path::new(&args[1]),
+                Path::new(&args[2]),
+                &args[3].to_string_lossy(),
+            );
+        }
+        if args.len() == 3 && args[0] == "ui-broker-recover" {
+            return exchange::recover_broker(Path::new(&args[1]), &args[2].to_string_lossy());
         }
         if args.len() == 3
             && (args[0] == "ui-assistive-interrupted" || args[0] == "ui-assistive-completed")

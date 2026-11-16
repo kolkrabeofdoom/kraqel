@@ -6,6 +6,10 @@ use kraqel_isolation_transport::{
 use sha2::{Digest as _, Sha256};
 use uuid::Uuid;
 use windows_sys::Win32::System::Pipes::{CreatePipe, PeekNamedPipe};
+mod durable;
+pub(in super::super) use durable::{
+    recover as recover_broker, seed as seed_broker, series as controller_crash_series,
+};
 
 fn pipe() -> Result<(fs::File, fs::File)> {
     let mut read = null_mut();
@@ -76,6 +80,40 @@ fn generation(
     expect: Expect,
     index: usize,
 ) -> Result<Option<RecoverySummary>> {
+    generation_with_options(
+        root,
+        profile,
+        ticket,
+        argument,
+        GenerationOptions {
+            expect,
+            index,
+            durable_job: None,
+            crash_controller: false,
+        },
+    )
+}
+
+struct GenerationOptions<'a> {
+    expect: Expect,
+    index: usize,
+    durable_job: Option<&'a [u16]>,
+    crash_controller: bool,
+}
+
+fn generation_with_options(
+    root: &Path,
+    profile: &Profile,
+    ticket: &RestartTicket,
+    argument: Uuid,
+    options: GenerationOptions<'_>,
+) -> Result<Option<RecoverySummary>> {
+    let GenerationOptions {
+        expect,
+        index,
+        durable_job,
+        crash_controller,
+    } = options;
     let executable = root.join("bin/kraqel-desktop.exe");
     // Negative hash tickets still start only the original pinned executable.
     let (startup, mut send) = pipe()?;
@@ -95,10 +133,6 @@ fn generation(
         CapabilityCount: 0,
         Reserved: 0,
     };
-    let attrs = Attributes::with_handles(&caps, &handles)?;
-    let mut startup_info: STARTUPINFOEXW = unsafe { zeroed() };
-    startup_info.StartupInfo.cb = size_of::<STARTUPINFOEXW>() as u32;
-    startup_info.lpAttributeList = attrs.ptr;
     let mut command = wide(format!(
         "\"{}\" ui-restart {} {} {argument}",
         executable.display(),
@@ -107,9 +141,15 @@ fn generation(
     ));
     let data = root.join("data");
     let env = environment(&data);
-    let job = Handle(unsafe { CreateJobObjectW(null(), null()) });
+    // A durable job name is native authenticated state, never renderer input. Reusing a live
+    // object would silently adopt an older process tree, so even an empty collision fails closed.
+    let job =
+        Handle(unsafe { CreateJobObjectW(null(), durable_job.map_or(null(), |n| n.as_ptr())) });
     if job.0.is_null() {
         return Err(fail("restart-create-job"));
+    }
+    if durable_job.is_some() && unsafe { GetLastError() } == ERROR_ALREADY_EXISTS {
+        return Err(invalid("broker-job-already-exists"));
     }
     let mut limits: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = unsafe { zeroed() };
     limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
@@ -124,6 +164,16 @@ fn generation(
         },
         "restart-job-limits",
     )?;
+    let job_handles = [job.0];
+    let jobs = if durable_job.is_some() {
+        &job_handles[..]
+    } else {
+        &[]
+    };
+    let attrs = Attributes::with_handles_and_jobs(&caps, &handles, jobs)?;
+    let mut startup_info: STARTUPINFOEXW = unsafe { zeroed() };
+    startup_info.StartupInfo.cb = size_of::<STARTUPINFOEXW>() as u32;
+    startup_info.lpAttributeList = attrs.ptr;
     let mut info: PROCESS_INFORMATION = unsafe { zeroed() };
     let created = unsafe {
         CreateProcessW(
@@ -143,6 +193,7 @@ fn generation(
         )
     };
     let error = (created == 0).then(|| fail("restart-create-process"));
+    drop(attrs);
     let worker = (created != 0).then(|| Worker(Handle(info.hProcess), Handle(info.hThread)));
     for h in handles {
         check(
@@ -156,10 +207,20 @@ fn generation(
         return Err(error);
     }
     let worker = worker.ok_or(invalid("restart-worker"))?;
+    if durable_job.is_none() {
+        check(
+            unsafe { AssignProcessToJobObject(job.0, worker.0.0) },
+            "restart-assign-job",
+        )?;
+    }
+    let mut in_job = 0;
     check(
-        unsafe { AssignProcessToJobObject(job.0, worker.0.0) },
-        "restart-assign-job",
+        unsafe { IsProcessInJob(worker.0.0, job.0, &mut in_job) },
+        "restart-check-job",
     )?;
+    if in_job == 0 {
+        return Err(invalid("restart-not-in-job"));
+    }
     let token = token_facts(worker.0.0, Some(profile.sid))?;
     if token["isAppContainer"] != true
         || token["capabilityCount"] != 0
@@ -167,9 +228,12 @@ fn generation(
     {
         return Err(invalid("restart-token"));
     }
+    if durable_job.is_some() {
+        durable::verify_container_denials(worker.0.0, root)?;
+    }
     write_json(
         &root.join(format!("launch-{index:02}.json")),
-        &json!({"pid":info.dwProcessId,"token":token,"recovery":ticket.recovery,"point":ticket.point}),
+        &json!({"pid":info.dwProcessId,"token":token,"recovery":ticket.recovery,"point":ticket.point,"privateBrokerFilesDenied":durable_job.is_some()}),
     )?;
     if unsafe { ResumeThread(worker.1.0) } == u32::MAX {
         return Err(fail("restart-resume"));
@@ -273,6 +337,15 @@ fn generation(
         if exited || root.join("STOP").exists() || start.elapsed() > Duration::from_secs(limit) {
             return Err(invalid("restart-checkpoint-or-recovery-missing"));
         }
+    }
+    if crash_controller {
+        // Actual controller death: no destructors, no explicit worker/job termination first.
+        // The only job handle is non-inheritable; Windows must kill the entire contained tree.
+        check(
+            unsafe { TerminateProcess(GetCurrentProcess(), 86) },
+            "broker-crash-self",
+        )?;
+        return Err(invalid("broker-crash-returned"));
     }
     // Includes WebView descendants; wait for zero before reusing the same identity/data root.
     check(
