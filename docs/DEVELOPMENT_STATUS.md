@@ -1,5 +1,11 @@
 # Entwicklungsstatus
 
+Nachtrag 16. November 2026: KQ-069 / #134, native Vorabauswahl und Dialogabbruch auf dem
+zurückgewechselten Windows-Rechner funktional bestanden. Unabhängig bestätigt: neue Projektkopie,
+zwei Dokumente, Unicode/SQLite-Integrität/Fremdschlüssel, keine Stagingreste, null Jobprozesse und
+entferntes Profil. [Nachweis und Grenzen](testing/native-ui-select-acceptance.md). Kein neuer
+ETW-Lauf; Q-01/Q-02 für das Produkt bleiben offen. Nächster Scope: Auswahl aus einer laufenden App.
+
 Stand: 15. November 2026
 
 **Rechnerwechsel:** Die vollständige [Entwicklungsübergabe](WORKSTATION_HANDOFF.md) enthält den

@@ -101,9 +101,10 @@
              Origin-/Fensterprüfung und einmaligem Rust-Grant implementieren
        - [x] KQ-069 A: Finalen UI-Build mit Import/Wiederholung, Abbruch und Fensterende am
              Haltepunkt nativ/ETW prüfen; drei vollständige Bäume ohne Ereignisse außerhalb Loopback
-       - [ ] KQ-069 A: Native Vorab-Dateiauswahl und deren Abbruch prüfen; danach Auswahl aus
-             laufender App, Assistenz und dauerhafte Crash-Reconciliation; weitere
-             Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren; Packaging und
+       - [x] KQ-069 A: Native Vorab-Dateiauswahl und Dialogabbruch funktional prüfen; neuer
+             Windows-Build, Unicode/SQLite und Cleanup unabhängig bestätigt, kein neuer ETW-Lauf
+       - [ ] KQ-069 A: Auswahl aus laufender App, Assistenz und dauerhafte Crash-Reconciliation;
+             weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren; Packaging und
              F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)
