@@ -7,8 +7,25 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 15. November 2026
 
-Zusätzlicher Produktblocker: DPAPI-Domänencontroller-/RPC-Grenze gesondert prüfen oder Primitive
-ersetzen. Keine Produktintegration allein aufgrund eines unauffälligen ETW-Appbaums;
+Neuester Nachweis 16. November: Frisches ETW des gesicherten HMAC-Paars bestanden, einschließlich
+aller negativen Brokerstarts. 103 Broker/30 Apps/180 WebViews/133 Console-Hosts, 446 explizite
+Enden, vier Kontrollen, Nullverluste, 0 Nicht-Loopback- und 180 getrennte Loopback-Ereignisse.
+Native Serie, unabhängige MACs/Daten und PID-Wiederverwendung geprüft.
+[Nachweis/Buildgrenzen](testing/native-hmac-broker-etw.md). Erfassung/Prozesse beendet. Nächster
+Scope: kombinierter Live-/Neustartpfad, geschützte Produktablage und authentisierter Update-/
+Migrationspfad; externe Dienste/Produktintegration weiter offen. Striktes Ziel unverändert.
+
+Aktuell 16. November: Broker-Vertrag [v2](data-format/native-broker-recovery-v2.md) entfernt DPAPI
+und authentisiert den dauerhaften Beleg lokal mit HMAC-SHA-256. Schlüssel nur unter privater DACL,
+keine Verschlüsselung/Hardwarebindung behaupten; keine automatische Schlüsselneuanlage oder
+Altdatenmigration. [Funktionsnachweis](testing/native-hmac-broker.md): sechs harte Controllerenden,
+zwölf Wiederanlaufprozesse, 30 App-Generationen, 78 Ablehnungen und unabhängige Daten-/MAC-Prüfung
+bestanden. Neues Paar separat unter `%TEMP%\kraqel-kq069-hmac-broker-build-20261116-01` gesichert;
+eigener ETW-Beleg ist oben verlinkt. Alte Paare und Belege nicht übertragen. Produktintegration und
+externe Grenzen bleiben offen, striktes Ziel unverändert. Historische Übergaben folgen.
+
+Historischer DPAPI-Produktblocker: DPAPI-Domänencontroller-/RPC-Grenze gesondert prüfen oder
+Primitive ersetzen. Keine Produktintegration allein aufgrund eines unauffälligen ETW-Appbaums;
 [Vertrag](data-format/native-broker-recovery-v1.md). Striktes Ziel unverändert.
 
 Neuester Stand 16. November: Controller-Crash-Serie und dauerhafte native Wiederanlaufautorität im

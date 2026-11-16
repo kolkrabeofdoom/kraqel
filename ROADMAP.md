@@ -126,10 +126,13 @@
              App-Generationen, vier Kontrollen, Nullverluste, 0 Nicht-Loopback-Ereignisse
        - [x] KQ-069 A: Dauerhafte native Wiederanlaufautorität im Forschungsbroker und echte
              Controller-Crash-Serie prüfen; sechs Kills, zwölf Wiederanläufe, 60 Ablehnungen
-       - [ ] KQ-069 A: Neues Brokerpaar frisch per ETW messen; kombinierten Live-/Neustartpfad und
-             dauerhaften authentisierten Produktbroker integrieren/abnehmen; weitere
-             Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren; Packaging und
-             F08-/M3-Vollprüfung
+       - [x] KQ-069 A: DPAPI-Domänengrenze durch lokalen HMAC-Beleg ersetzen; neue Serie mit 78
+             Ablehnungen, privater Schlüsselverwahrung und unabhängiger MAC-/Datenprüfung
+       - [x] KQ-069 A: Neues HMAC-Brokerpaar frisch per ETW messen; 446 explizite Enden, vier
+             Kontrollen, Nullverluste, 0 Nicht-Loopback-Ereignisse, native Daten/MACs bestätigt
+       - [ ] KQ-069 A: Kombinierten Live-/Neustartpfad und dauerhaften authentisierten Produktbroker
+             integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker
+             kalibrieren; Packaging und F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene

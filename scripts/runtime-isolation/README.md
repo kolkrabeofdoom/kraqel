@@ -1,15 +1,24 @@
 # AppContainer-Forschungshelfer für KQ-069
 
+Aktuell [Broker-Vertrag v2](../../docs/data-format/native-broker-recovery-v2.md): lokaler
+HMAC-Beleg/privater Schlüssel ersetzen DPAPI. Neuer Seed in frischer Wurzel erforderlich; keine
+Altdatenmigration oder Schlüssel-/Journalneuanlage beim Wiederanlauf. Native Serie jetzt mit 78
+Ablehnungen und sechs tatsächlichen Dateiöffnungsverweigerungen pro Appstart.
+[Nachweis und gesicherte Hashes](../../docs/testing/native-hmac-broker.md).
+[Eigener gültiger ETW-Beleg](../../docs/testing/native-hmac-broker-etw.md) des gesamten Serienbaums
+einschließlich negativer Brokerstarts; keine Übertragung früherer Paarabnahmen oder auf
+Folgeänderungen.
+
 Neu: `ui-controller-crash-series <frische kraqel-isolation-controller-UUID-Wurzel> <Forschungs-EXE>`
-prüft sechs harte Controller-Kills, zwölf Wiederanläufe in neuen Brokerprozessen und 60
+prüft sechs harte Controller-Kills, zwölf Wiederanläufe in neuen Brokerprozessen und 78
 Ablehnungsfälle. Nur dieser explizite Brokerpfad erlaubt dauerhafte Übernahme einer bestehenden
-synthetischen Ablage nach DPAPI-/Hash-/Wurzelbindung, exklusiver Sperre und Jobleerstand.
-[Vertrag](../../docs/data-format/native-broker-recovery-v1.md),
-[Nachweis und exakte Buildgrenzen](../../docs/testing/native-controller-crash.md).
+synthetischen Ablage nach HMAC-/Hash-/Wurzelbindung, exklusiver Sperre und Jobleerstand.
+[Vertrag](../../docs/data-format/native-broker-recovery-v2.md),
+[Nachweis und exakte Buildgrenzen](../../docs/testing/native-hmac-broker.md).
 `ui-broker-seed <frische Neustartwurzel> <Forschungs-EXE> <Crashpunkt>` beendet sich absichtlich mit
 Code 86. `ui-broker-recover <bestehende Neustartwurzel> first|second|retire` verlangt den passenden
-gesicherten Broker und gibt niemals eine neue Importkennung frei. Separates neues Paar ohne
-ETW-Freigabe, kein fertiger Produktbroker; normale Starts bleiben unisoliert.
+gesicherten Broker und gibt niemals eine neue Importkennung frei. Separat gesichertes Paar mit
+eigenem begrenztem ETW-Beleg, kein fertiger Produktbroker; normale Starts bleiben unisoliert.
 
 Aktueller Startticketvertrag: [v2](../../docs/data-format/native-ui-restart-v2.md), ohne Downgrade.
 `ui-assistive-interrupted` beziehungsweise `ui-assistive-completed` mit frischer gebundener

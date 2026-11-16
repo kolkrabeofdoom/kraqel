@@ -1,5 +1,12 @@
 # F08-/M3-Abnahmematrix
 
+HMAC 16. November: DPAPI im Forschungsbroker durch lokale HMAC-Authority ersetzt. Neue native Serie
+mit sechs Controllerenden, zwölf Wiederanlaufprozessen, 30 App-Generationen und 78 Ablehnungen
+bestanden; Daten/MACs unabhängig geprüft. [Nachweis](native-hmac-broker.md). Eigener gültiger
+[ETW-Beleg](native-hmac-broker-etw.md): 103 Broker/30 Apps/180 WebViews, 446 explizite Enden, vier
+Kontrollen, Nullverluste, 0 Nicht-Loopback- und 180 getrennte Loopback-Ereignisse. Keine
+Produkt-/Hörabnahme, Q-01/Q-02 bleiben nicht bestanden.
+
 Controller-Crash 16. November: Getrennter Forschungsbroker mit dauerhafter nativer Autorität,
 exklusiver Sperre und Jobzuweisung bei Prozesserzeugung geprüft. Sechs harte Controllerenden, zwölf
 neue Wiederanlaufprozesse, 30 App-Generationen, 60 Ablehnungen; Journal/Kopien/SQLite/Unicode

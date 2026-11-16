@@ -1,5 +1,11 @@
 # Lokale Windows-Netzprüfung für M3
 
+`analyze.py --mode broker-ui` ist für die gesamte Controller-Crash-Serie vorgesehen: Root ist der
+beim Start festgehaltene Serienprozess. Alle nachgeordneten Broker einschließlich negativer Starts
+zählen zum Baum; pro Root muss ein lebenszeitgebundener Broker→App→WebView-Pfad existieren.
+Kontrollen, Verlustzähler, vollständige Prozessenden und getrennte Loopback-Zählung bleiben
+verpflichtend. Konkrete Generationen/Exitcodes zusätzlich mit den lokalen Startbelegen abgleichen.
+
 `capture.ps1` benötigt eine ausdrücklich freigegebene, erhöhte **PowerShell 7** und Windows-
 `logman`/`tracerpt`. Keine Installation, Änderung von ExecutionPolicy, Firewall oder
 Datenschutzeinstellungen. Vor Ausführung den Helfer lesen. Er erzeugt eine eigene Sitzung mit

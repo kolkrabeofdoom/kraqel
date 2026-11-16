@@ -1,5 +1,17 @@
 # Bedrohungsmodell (Entwurf)
 
+Aktuelle Broker-Authority [v2](../data-format/native-broker-recovery-v2.md) entfernt den
+DPAPI-Domänenpfad und nutzt lokale HMAC-Authentisierung. Schutz des Klartextschlüssels hängt an
+privater Windows-DACL und unverknüpften Dateien; sechs tatsächliche Dateiöffnungen je Appstart unter
+dem eingeschränkten Token müssen verweigert sein. Kein Schutz vor demselben kompromittierten Konto,
+Administrationsrechten, Schlüsselkopien oder Prozessspeicherauslese. Keine zusätzliche
+Verschlüsselung/Hardware-/Kontogeheimnisbindung. Fehlende/beschädigte Schlüssel/Altdaten sperren
+statt neue Autorität zu erzeugen. [Native Prüfung](../testing/native-hmac-broker.md) und
+[eigener gültiger ETW-Beleg](../testing/native-hmac-broker-etw.md) des exakt gesicherten Paars: 446
+vollständig beendete Lebenszeiten, vier Kontrollen, Nullverluste, keine beobachteten Ereignisse
+außerhalb Loopback im Baum. Keine kausale externe Dienst-/Inhaltsattestierung; Produktintegration
+weiter offen. Folgende DPAPI-Grenze betrifft den alten Zwischenstand.
+
 Offene externe Primitive: Kontogeschützte DPAPI kann laut
 [Microsoft](https://learn.microsoft.com/en-us/troubleshoot/windows-server/identity/dpapi-masterkey-backup-failures)
 Domänencontroller-/RPC-Pfade für Masterkey-Backup/-Wiederherstellung nutzen. Ein ETW-Appbaum allein

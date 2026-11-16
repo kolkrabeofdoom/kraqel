@@ -1,5 +1,8 @@
 # Dauerhafte native Broker-Wiederherstellung · Forschungsvertrag v1
 
+Historischer verworfener DPAPI-Zwischenstand. Der aktuelle Broker implementiert
+[HMAC-Vertrag v2](native-broker-recovery-v2.md); kein automatischer Übertrag/Migrationspfad.
+
 KQ-069 / #134, 16. November 2026. Grundlage für einen künftigen Produktbroker, ausschließlich im
 getrennten Windows-Forschungslauncher und mit synthetischen Daten implementiert. Kein installierter
 Dienst, kein öffentlicher RPC-Endpunkt und keine Umstellung des normalen Produktstarts.

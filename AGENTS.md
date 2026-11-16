@@ -287,18 +287,21 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
-Datenschutzblocker des neuen Brokerkandidaten: DPAPI-Domänencontroller-/RPC-Grenze vor
-Produktintegration belegen oder Primitive ersetzen. Keine Freigabe allein aus einem ETW-Appbaum;
-keine OS-/Domänenausnahme. Details im Broker-Wiederanlaufvertrag.
+Aktuell gilt [Broker-Wiederherstellung v2](docs/data-format/native-broker-recovery-v2.md): lokaler
+HMAC-Beleg statt DPAPI. Schlüssel nur in der geschützten nativen Kontrollablage; niemals in
+Logs/Git/Archive/Renderer geben. Fehlende oder falsche Schlüssel niemals automatisch ersetzen,
+v1-DPAPI-Daten nicht migrieren. [Eigener HMAC-Netzbeleg](docs/testing/native-hmac-broker-etw.md)
+gilt nur für sein gesichertes Paar und seine Lebenszeiten, nie automatisch für Folgeänderungen.
+Striktes Ziel ohne OS-/Domänenausnahme unverändert.
 
 Aktuelle Broker-Grundlage:
-[dauerhafte native Wiederherstellung](docs/data-format/native-broker-recovery-v1.md) und
-[Controller-Crash-Nachweis](docs/testing/native-controller-crash.md). Nur der neue explizite
-Brokerpfad darf eine bestehende synthetische Wurzel übernehmen: DPAPI-Beleg, exklusive Sperre,
+[dauerhafte native Wiederherstellung](docs/data-format/native-broker-recovery-v2.md) und
+[Controller-Crash-Nachweis](docs/testing/native-hmac-broker.md). Nur der neue explizite Brokerpfad
+darf eine bestehende synthetische Wurzel übernehmen: HMAC-Beleg, exklusive Sperre,
 Wurzel-/Programmhashbindung, Jobleerstand und frische Pipes sind verpflichtend. Niemals aus
-Diagnose-JSON/PIDs neue Autorität ableiten oder fehlende Journale ersetzen. Neuer Brokerhash hat
-noch keinen eigenen ETW-Beleg; Produktintegration und Produktabnahme bleiben offen. Das strikte
-Datenschutzziel bleibt unverändert.
+Diagnose-JSON/PIDs neue Autorität ableiten oder fehlende Journale ersetzen. HMAC-Paar besitzt einen
+eigenen ETW-Beleg; Produktintegration und Produktabnahme bleiben offen. Das strikte Datenschutzziel
+bleibt unverändert.
 
 Der [v2-Netznachweis](docs/testing/native-assistive-restart-etw.md) umfasst das exakt gesicherte
 v2-Paar mit automatischer Serie und beiden manuellen Wiederanlaufpfaden. Nur seine Hashes und

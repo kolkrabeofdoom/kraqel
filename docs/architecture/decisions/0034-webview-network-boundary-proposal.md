@@ -1,5 +1,23 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+HMAC-ETW 16. November: Neues gesichertes Paar mit eigenem gültigem Netzbeleg des gesamten
+Serienbaums, einschließlich 78 negativer Brokerstarts. 103 Broker/30 Apps/180 WebViews, alle 446
+Prozessenden explizit, vier Kontrollen, Nullverluste, 0 Nicht-Loopback- und 180 getrennte
+Loopback-Ereignisse. Native Abläufe und Daten/MACs unabhängig geprüft.
+[Nachweis](../../testing/native-hmac-broker-etw.md). Keine Übertragung auf externe Dienste oder
+geänderte Programme, keine Produktfreigabe. DPAPI-Primitive entfernt statt Domänenausnahme; striktes
+Ziel unverändert.
+
+Fortschreibung HMAC, 16. November: Die DPAPI-Primitive ist im aktuellen Forschungsbroker entfernt.
+Lokaler Schlüssel aus dem fest betrachteten `ProcessPrng`-Backend und RustCrypto-HMAC-SHA-256
+ersetzen die kontogeschützte Authority;
+[Vertrag v2](../../data-format/native-broker-recovery-v2.md). Die private DACL übernimmt die
+Schlüsselverwahrung; keine Verschlüsselung bei ruhendem Datenträger oder zusätzliche
+Kontogeheimnis-/Hardwarebindung behaupten. Fehlende/falsche Schlüssel sperren; keine Migration,
+Domänen-/OS-Ausnahme oder Produktfreigabe. Neue native Serie mit 78 Ablehnungen bestanden;
+[Nachweis](../../testing/native-hmac-broker.md). Eigener ETW-Beleg oben separat dokumentiert. Die
+folgenden DPAPI-Absätze bezeichnen den historischen verworfenen Zwischenstand.
+
 Produktintegration des DPAPI-basierten Forschungsbrokers bleibt zusätzlich gesperrt, solange
 mögliche Domänencontroller-/RPC-Pfade nicht unter dem strikten Ziel belegt oder die Primitive
 ersetzt sind. Keine OS-/Domänenrichtlinienänderung und keine stillschweigende Metadatenausnahme;

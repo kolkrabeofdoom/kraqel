@@ -1,8 +1,32 @@
 # Entwicklungsstatus
 
-Produktblocker der neuen Broker-Grundlage: Kontogeschützte DPAPI besitzt mögliche externe
-Domänencontroller-/RPC-Pfade. Vor Produktintegration unter dem strikten Ziel belegen oder ersetzen;
-ein unauffälliger Appbaum allein genügt nicht.
+HMAC-ETW 16. November: Eigener frischer gültiger Netzbeleg des gesicherten neuen Paars bestanden.
+Gesamter Serienbaum mit 103 Broker-, 30 App-, 180 WebView- und 133 Console-Host-Lebenszeiten; alle
+446 Enden explizit, vier Kontrollen, Nullverluste, 0 Nicht-Loopback- und 180 getrennte
+Loopback-Ereignisse. PID-Wiederverwendung lebenszeitgebunden mit allen 30 Startbelegen geprüft.
+Native Serie mit 78 Ablehnungen und unabhängige MAC-/Datenprüfung im Messlauf erneut bestanden.
+[Nachweis](testing/native-hmac-broker-etw.md),
+[Aggregate/Hashes](testing/native-hmac-broker-etw.json). Erfassung/Prozesse beendet, Paar
+unverändert. Nächster Scope: kombinierter Live-/Neustartpfad, geschützte Produktablage und
+authentisierter Update-/Migrationspfad. Externe Dienstgrenzen und Produktintegration weiter offen;
+striktes Ziel und nicht bestandene Produkt-Q-01/Q-02 unverändert.
+
+HMAC-Fortschreibung 16. November: DPAPI aus der Broker-Wiederanlaufautorität entfernt; neuer
+[Vertrag v2](data-format/native-broker-recovery-v2.md) verwendet lokalen HMAC-SHA-256-Beleg und
+privat verwahrten 256-Bit-Schlüssel. Keine Kontowiederherstellung oder Domänenbackup in diesem Pfad,
+keine Richtlinienausnahme. Finale Funktionsserie des neuen gesicherten Paars: sechs
+Controller-Kills, zwölf Wiederanlaufprozesse, 30 App-Generationen und 78 Ablehnungen bestanden. 180
+tatsächliche Container-Dateiverweigerungen, MACs mit unabhängiger Implementierung und
+Journal/SQLite/Unicode/Kopienzahlen geprüft. [Nachweis](testing/native-hmac-broker.md),
+[Aggregate/Hashes](testing/native-hmac-broker.json). Gesamtprüfung, 26 aktive Helfertests und 36
+Python-Diagnosetests bestanden. Anschließender eigener ETW-Lauf ist oben separat belegt. Schlüssel
+unverschlüsselt unter privater DACL; keine zusätzliche Hardware-/Kontogeheimnisbindung behaupten.
+Produktintegration, externe Dienstgrenzen und Q-01/Q-02 bleiben offen. Frühere Absätze beziehen sich
+auf frühere Hashpaare, insbesondere die abgelöste DPAPI-Stufe.
+
+Historischer Produktblocker der DPAPI-Broker-Grundlage: Kontogeschützte DPAPI besitzt mögliche
+externe Domänencontroller-/RPC-Pfade. Vor Produktintegration unter dem strikten Ziel belegen oder
+ersetzen; ein unauffälliger Appbaum allein genügt nicht.
 [Vertrauensgrenze](data-format/native-broker-recovery-v1.md).
 
 Controller-Crash, 16. November 2026: Dauerhafte authentisierte Wiederanlaufgrundlage im getrennten

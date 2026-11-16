@@ -1,5 +1,8 @@
 # KQ-069: Controller-Crash und dauerhafte authentisierte Wiederherstellung
 
+Historischer DPAPI-Beleg. Aktueller [HMAC-Nachweis](native-hmac-broker.md) und
+[Brokervertrag v2](../data-format/native-broker-recovery-v2.md) besitzen andere Hashgrenzen.
+
 Stand: 16. November 2026. Die Broker-Grundlage ist im getrennten Forschungslauncher implementiert
 und nativ mit synthetischen Daten geprüft. **Kein fertig integrierter Produktbroker und keine
 Netzabnahme des neuen Paars.** [Vertrag](../data-format/native-broker-recovery-v1.md),
