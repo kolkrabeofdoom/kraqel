@@ -5,17 +5,23 @@ use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
 use std::os::windows::fs::{MetadataExt, OpenOptionsExt};
 use windows_sys::Win32::System::SystemServices::JOB_OBJECT_QUERY;
+mod combined;
+pub(in super::super::super) use combined::{next_live, seed_live, series as combined_series};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct Authority {
     version: u16,
     root_sha256: [u8; 32],
     controller_sha256: [u8; 32],
     ticket: RestartTicket,
+    sequence: u32,
+    previous_sha256: [u8; 32],
+    previous_projects: u32,
+    live_mode: Option<super::live::LiveMode>,
 }
 
-const MAGIC: &[u8] = b"KRAQEL-BROKER-AUTHORITY\0\x02";
+const MAGIC: &[u8] = b"KRAQEL-BROKER-AUTHORITY\0\x03";
 const MAX_SEAL: usize = 32768;
 const TAG_LEN: usize = 32;
 type HmacSha256 = Hmac<Sha256>;
@@ -246,52 +252,100 @@ fn root_hash(root: &Path) -> [u8; 32] {
 }
 fn seal(root: &Path, authority: &Authority) -> Result<()> {
     let bytes = serde_json::to_vec(authority).map_err(|_| invalid("broker-authority-encode"))?;
-    let mut key = [0u8; 32];
-    getrandom::fill(&mut key).map_err(|_| invalid("broker-key-random"))?;
-    let mut key_file = io(
-        "broker-key-create",
-        OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(root.join("control/authority.key")),
-    )?;
-    io("broker-key-write", key_file.write_all(&key))?;
-    io("broker-key-sync", key_file.sync_all())?;
+    let key = if authority.sequence == 0 {
+        let mut key = [0u8; 32];
+        getrandom::fill(&mut key).map_err(|_| invalid("broker-key-random"))?;
+        let mut key_file = io(
+            "broker-key-create",
+            OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(root.join("control/authority.key")),
+        )?;
+        io("broker-key-write", key_file.write_all(&key))?;
+        io("broker-key-sync", key_file.sync_all())?;
+        key
+    } else {
+        read_key(root)?
+    };
     let protected = sign(&bytes, &key)?;
     let mut file = io(
         "broker-seal-create",
         OpenOptions::new()
             .write(true)
             .create_new(true)
-            .open(root.join("control/authority.mac")),
+            .open(authority_path(root, authority.sequence)),
     )?;
     io("broker-seal-write", file.write_all(&protected))?;
     io("broker-seal-sync", file.sync_all())
+}
+fn authority_path(root: &Path, sequence: u32) -> PathBuf {
+    if sequence == 0 {
+        root.join("control/authority.mac")
+    } else {
+        root.join(format!("control/authority-{sequence:04}.mac"))
+    }
+}
+fn read_authenticated(path: &Path, key: &[u8; 32]) -> Result<Vec<u8>> {
+    let file = open_file(path, false, false)?;
+    let mut bytes = Vec::new();
+    io("broker-seal-read", file.take(32769).read_to_end(&mut bytes))?;
+    Ok(verify(&bytes, key)?.to_vec())
 }
 fn authenticate(root: &Path) -> Result<Authority> {
     if root.join("control/retired").exists() {
         return Err(invalid("broker-retired"));
     }
-    let file = open_file(&root.join("control/authority.mac"), false, false)?;
-    let mut bytes = Vec::new();
-    io("broker-seal-read", file.take(32769).read_to_end(&mut bytes))?;
     let key = read_key(root)?;
-    let decoded = verify(&bytes, &key)?;
-    let authority: Authority =
-        serde_json::from_slice(decoded).map_err(|_| invalid("broker-seal-shape"))?;
-    let ticket = &authority.ticket;
-    if authority.version != 2
-        || authority.root_sha256 != root_hash(root)
-        || authority.controller_sha256 != hash(&io("broker-current-exe", std::env::current_exe())?)?
-        || ticket.session_id != session(root)?
-        || !ticket.valid_for(ticket.launch_id)
-        || ticket.recovery
-        || !ticket.automatic
-        || ticket.app_sha256 != hash(&root.join("bin/kraqel-desktop.exe"))?
-    {
-        return Err(invalid("broker-authority-binding"));
+    let files = io("broker-chain-directory", fs::read_dir(root.join("control")))?;
+    let mut count = 0;
+    for entry in files {
+        let name = io("broker-chain-entry", entry)?.file_name();
+        let name = name.to_str().ok_or(invalid("broker-chain-name"))?;
+        if name.starts_with("authority") && name.ends_with(".mac") {
+            count += 1;
+        }
     }
-    Ok(authority)
+    if !(1..=64).contains(&count) {
+        return Err(invalid("broker-chain-budget"));
+    }
+    let controller_pin = hash(&io("broker-current-exe", std::env::current_exe())?)?;
+    let app_pin = hash(&root.join("bin/kraqel-desktop.exe"))?;
+    let mut previous_sha256 = [0; 32];
+    let mut ids = std::collections::HashSet::new();
+    let mut latest: Option<Authority> = None;
+    for sequence in 0..count {
+        let path = authority_path(root, sequence);
+        let decoded = read_authenticated(&path, &key)?;
+        let authority: Authority =
+            serde_json::from_slice(&decoded).map_err(|_| invalid("broker-seal-shape"))?;
+        let ticket = &authority.ticket;
+        if authority.version != 3
+            || authority.sequence != sequence
+            || authority.previous_sha256 != previous_sha256
+            || !ids.insert(ticket.task_id)
+            || (sequence == 0 && authority.previous_projects != 0)
+            || (ticket.source == kraqel_isolation_transport::RestartSource::Live)
+                != authority.live_mode.is_some()
+            || authority.root_sha256 != root_hash(root)
+            || authority.controller_sha256 != controller_pin
+            || ticket.session_id != session(root)?
+            || !ticket.valid_for(ticket.launch_id)
+            || ticket.recovery
+            || (!ticket.automatic && authority.live_mode != Some(super::live::LiveMode::Native))
+            || ticket.app_sha256 != app_pin
+        {
+            return Err(invalid("broker-authority-binding"));
+        }
+        if let Some(previous) = &latest
+            && authority.previous_projects != combined::previous_projects(root, previous)?
+        {
+            return Err(invalid("broker-chain-project-count"));
+        }
+        previous_sha256 = hash(&path)?;
+        latest = Some(authority);
+    }
+    latest.ok_or(invalid("broker-empty-chain"))
 }
 fn job_name(session: Uuid) -> Vec<u16> {
     wide(format!(
@@ -402,6 +456,14 @@ fn reopen_profile(session: Uuid) -> Result<Profile> {
 pub(in super::super::super) fn seed(root: &Path, app: &Path, point: &str) -> Result<Value> {
     let point: CrashPoint =
         serde_json::from_value(json!(point)).map_err(|_| invalid("broker-crash-point"))?;
+    seed_with(root, app, point, None)
+}
+fn seed_with(
+    root: &Path,
+    app: &Path,
+    point: CrashPoint,
+    mode: Option<super::live::LiveMode>,
+) -> Result<Value> {
     let (session, mut profile, pin) = initialize(root, app)?;
     let root = bound_root(root)?;
     io(
@@ -416,17 +478,26 @@ pub(in super::super::super) fn seed(root: &Path, app: &Path, point: &str) -> Res
         task_id: Uuid::new_v4(),
         launch_id: Uuid::new_v4(),
         recovery: false,
-        automatic: true,
+        automatic: mode != Some(super::live::LiveMode::Native),
+        source: if mode.is_some() {
+            kraqel_isolation_transport::RestartSource::Live
+        } else {
+            kraqel_isolation_transport::RestartSource::Synthetic
+        },
         point,
         app_sha256: pin,
     };
     seal(
         &root,
         &Authority {
-            version: 2,
+            version: 3,
             root_sha256: root_hash(&root),
             controller_sha256: hash(&io("broker-current-exe", std::env::current_exe())?)?,
             ticket: ticket.clone(),
+            sequence: 0,
+            previous_sha256: [0; 32],
+            previous_projects: 0,
+            live_mode: mode,
         },
     )?;
     profile.active = false;
@@ -437,10 +508,18 @@ pub(in super::super::super) fn seed(root: &Path, app: &Path, point: &str) -> Res
         &ticket,
         ticket.launch_id,
         GenerationOptions {
-            expect: Expect::Crash,
+            expect: if matches!(
+                mode,
+                Some(super::live::LiveMode::Cancel | super::live::LiveMode::Invalid)
+            ) {
+                Expect::Failed
+            } else {
+                Expect::Crash
+            },
             index: 0,
             durable_job: Some(&name),
             crash_controller: true,
+            live_mode: mode,
         },
     )?;
     Err(invalid("broker-seed-did-not-crash"))
@@ -453,14 +532,7 @@ pub(in super::super::super) fn recover(root: &Path, action: &str) -> Result<Valu
     let root = bound_root(root)?;
     let _ownership = own(&root)?;
     let authority = authenticate(&root)?;
-    let mut ticket = authority.ticket;
-    // No journal creation is permitted during takeover, even when the sealed seed exists.
-    for path in [
-        "data/app/tasks/tasks.sqlite3",
-        "data/app/tasks/owner.sqlite3",
-    ] {
-        plain(&root.join(path), false)?;
-    }
+    let mut ticket = authority.ticket.clone();
     drain(ticket.session_id)?;
     let mut profile = reopen_profile(ticket.session_id)?;
     if action == "retire" {
@@ -477,10 +549,18 @@ pub(in super::super::super) fn recover(root: &Path, action: &str) -> Result<Valu
         }
         return Ok(json!({"retired":true,"profileRemoved":true,"productionAcceptance":false}));
     }
+    // No journal creation is permitted during takeover, even when the sealed seed exists.
+    for path in [
+        "data/app/tasks/tasks.sqlite3",
+        "data/app/tasks/owner.sqlite3",
+    ] {
+        plain(&root.join(path), false)?;
+    }
     let name = job_name(ticket.session_id);
     ticket.recovery = true;
     ticket.launch_id = Uuid::new_v4();
-    let index = if action == "first" { 1 } else { 3 };
+    let index = authority.sequence as usize * 8 + if action == "first" { 1 } else { 3 };
+    ticket.automatic = true;
     let summary = generation_with_options(
         &root,
         &profile,
@@ -491,10 +571,21 @@ pub(in super::super::super) fn recover(root: &Path, action: &str) -> Result<Valu
             index,
             durable_job: Some(&name),
             crash_controller: false,
+            live_mode: authority.live_mode,
         },
     )?
     .ok_or(invalid("broker-recovery-summary"))?;
-    if !valid_summary(&summary, ticket.point, u32::from(ticket.point.publishes())) {
+    let expected_published = ticket.point.publishes()
+        && !matches!(
+            authority.live_mode,
+            Some(super::live::LiveMode::Cancel | super::live::LiveMode::Invalid)
+        );
+    if summary.published != expected_published
+        || summary.project_count != authority.previous_projects + u32::from(expected_published)
+        || summary.document_count != if expected_published { 2 } else { 0 }
+        || !summary.staging_empty
+        || !summary.replay_blocked
+    {
         return Err(invalid("broker-recovery-mismatch"));
     }
     // A stale original import request must fail before reading or journal mutation.
@@ -511,11 +602,13 @@ pub(in super::super::super) fn recover(root: &Path, action: &str) -> Result<Valu
             index: index + 1,
             durable_job: Some(&name),
             crash_controller: false,
+            live_mode: authority.live_mode,
         },
     )?;
     if hash(&root.join("data/app/tasks/tasks.sqlite3"))? != before {
         return Err(invalid("broker-replay-mutated-journal"));
     }
+    combined::settle(root.as_path(), &authority, summary.project_count)?;
     let report = json!({"researchOnly":true,"productionAcceptance":false,"passed":true,"authorityAuthenticated":true,"controllerRestarted":true,"activeJobProcessesAtEnd":0,"summary":summary,"staleImportBlocked":true,"networkMeasurement":false});
     write_json(&root.join(format!("broker-{action}.json")), &report)?;
     Ok(report)

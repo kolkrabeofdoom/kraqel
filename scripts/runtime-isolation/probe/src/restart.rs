@@ -51,18 +51,28 @@ pub struct RestartTicket {
     pub launch_id: Uuid,
     pub recovery: bool,
     pub automatic: bool,
+    pub source: RestartSource,
     pub point: CrashPoint,
     pub app_sha256: [u8; 32],
 }
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum RestartSource {
+    Synthetic,
+    Live,
+}
 impl RestartTicket {
-    pub const VERSION: u16 = 2;
+    pub fn live_channel(&self) -> bool {
+        self.source == RestartSource::Live && !self.recovery
+    }
+    pub const VERSION: u16 = 3;
     pub fn valid_for(&self, launch: Uuid) -> bool {
         self.version == Self::VERSION
             && !self.session_id.is_nil()
             && !self.task_id.is_nil()
             && !launch.is_nil()
             && self.launch_id == launch
-            && (self.automatic || self.recovery)
+            && (self.automatic || self.recovery || self.source == RestartSource::Live)
     }
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -82,6 +92,7 @@ pub enum RestartEventKind {
     Recovered,
     Replay,
     ReuseRejected,
+    Finished,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -93,6 +104,7 @@ pub struct RestartEvent {
 pub struct RestartGrant {
     pub ticket: RestartTicket,
     pub data_root: PathBuf,
+    pub live: Option<super::native::LiveSession>,
     events: File,
 }
 impl RestartGrant {
@@ -164,7 +176,7 @@ pub fn receive_restart() -> Result<RestartGrant, ChannelError> {
         return Err(ChannelError::InvalidIdentity);
     }
     let args = std::env::args().skip(1).collect::<Vec<_>>();
-    if args.len() != 4 || args[0] != "ui-restart" {
+    if !matches!(args.len(), 4 | 6) || args[0] != "ui-restart" {
         return Err(ChannelError::InvalidFrame);
     }
     let parse = |n: usize| {
@@ -229,9 +241,29 @@ pub fn receive_restart() -> Result<RestartGrant, ChannelError> {
     if actual != ticket.app_sha256 {
         return Err(ChannelError::InvalidIdentity);
     }
+    let needs_live = ticket.live_channel();
+    if needs_live != (args.len() == 6) {
+        return Err(ChannelError::InvalidFrame);
+    }
+    let live = if needs_live {
+        let c = parse(4)? as HANDLE;
+        let d = parse(5)? as HANDLE;
+        if [a, b].contains(&c) || [a, b, c].contains(&d) {
+            return Err(ChannelError::InvalidHandle);
+        }
+        Some(super::native::live_from_restart(
+            c,
+            d,
+            ticket.task_id,
+            root.join("data"),
+        )?)
+    } else {
+        None
+    };
     Ok(RestartGrant {
         ticket,
         data_root: root.join("data"),
+        live,
         events,
     })
 }
@@ -239,6 +271,31 @@ pub fn receive_restart() -> Result<RestartGrant, ChannelError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn source_is_mandatory_and_only_initial_live_tasks_get_selection_handles() {
+        let mut ticket = RestartTicket {
+            version: RestartTicket::VERSION,
+            session_id: Uuid::new_v4(),
+            task_id: Uuid::new_v4(),
+            launch_id: Uuid::new_v4(),
+            recovery: false,
+            automatic: false,
+            source: RestartSource::Live,
+            point: CrashPoint::Prepared,
+            app_sha256: [7; 32],
+        };
+        assert!(ticket.valid_for(ticket.launch_id) && ticket.live_channel());
+        ticket.recovery = true;
+        assert!(ticket.valid_for(ticket.launch_id) && !ticket.live_channel());
+        ticket.recovery = false;
+        ticket.source = RestartSource::Synthetic;
+        assert!(!ticket.valid_for(ticket.launch_id) && !ticket.live_channel());
+        let mut value = serde_json::to_value(&ticket).unwrap();
+        value.as_object_mut().unwrap().remove("source");
+        assert!(serde_json::from_value::<RestartTicket>(value.clone()).is_err());
+        value["source"] = serde_json::json!("arbitraryPath");
+        assert!(serde_json::from_value::<RestartTicket>(value).is_err());
+    }
     #[test]
     fn tickets_reject_unknown_authority_and_wrong_launch_binding() {
         let ticket = RestartTicket {
@@ -248,6 +305,7 @@ mod tests {
             launch_id: Uuid::new_v4(),
             recovery: true,
             automatic: true,
+            source: RestartSource::Synthetic,
             point: CrashPoint::Prepared,
             app_sha256: [7; 32],
         };
@@ -256,7 +314,7 @@ mod tests {
         let mut value = serde_json::to_value(&ticket).unwrap();
         value["path"] = serde_json::json!("C:\\private");
         assert!(serde_json::from_value::<RestartTicket>(value).is_err());
-        for version in [0, 1, 3] {
+        for version in [0, 1, 2, 4] {
             let mut t = ticket.clone();
             t.version = version;
             assert!(!t.valid_for(t.launch_id));

@@ -7,6 +7,8 @@ use sha2::{Digest as _, Sha256};
 use uuid::Uuid;
 use windows_sys::Win32::System::Pipes::{CreatePipe, PeekNamedPipe};
 mod durable;
+mod live;
+pub(in super::super) use durable::{combined_series, next_live, seed_live};
 pub(in super::super) use durable::{
     recover as recover_broker, seed as seed_broker, series as controller_crash_series,
 };
@@ -63,6 +65,7 @@ enum Expect {
     Reject,
     ReuseDenied,
     ManualRecovery,
+    Failed,
 }
 fn valid_summary(value: &RecoverySummary, point: CrashPoint, projects: u32) -> bool {
     value.published == point.publishes()
@@ -90,6 +93,7 @@ fn generation(
             index,
             durable_job: None,
             crash_controller: false,
+            live_mode: None,
         },
     )
 }
@@ -99,6 +103,7 @@ struct GenerationOptions<'a> {
     index: usize,
     durable_job: Option<&'a [u16]>,
     crash_controller: bool,
+    live_mode: Option<live::LiveMode>,
 }
 
 fn generation_with_options(
@@ -113,6 +118,7 @@ fn generation_with_options(
         index,
         durable_job,
         crash_controller,
+        live_mode,
     } = options;
     let executable = root.join("bin/kraqel-desktop.exe");
     // Negative hash tickets still start only the original pinned executable.
@@ -120,8 +126,17 @@ fn generation_with_options(
     write_frame(&mut send, ticket).map_err(|_| invalid("restart-ticket-frame"))?;
     drop(send);
     let (mut events, event_writer) = pipe()?;
-    let handles = [startup.as_raw_handle(), event_writer.as_raw_handle()];
-    for h in handles {
+    let mut bridge = if ticket.live_channel() {
+        Some(live::Bridge::new()?)
+    } else {
+        None
+    };
+    let mut handles = vec![startup.as_raw_handle(), event_writer.as_raw_handle()];
+    if let Some(live) = &bridge {
+        handles.push(live.request_child.as_ref().unwrap().as_raw_handle());
+        handles.push(live.response_child.as_ref().unwrap().as_raw_handle());
+    }
+    for &h in &handles {
         check(
             unsafe { SetHandleInformation(h, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT) },
             "restart-inherit",
@@ -139,6 +154,13 @@ fn generation_with_options(
         handles[0] as usize,
         handles[1] as usize
     ));
+    if handles.len() == 4 {
+        command.pop();
+        command.extend(wide(format!(
+            " {} {}",
+            handles[2] as usize, handles[3] as usize
+        )));
+    }
     let data = root.join("data");
     let env = environment(&data);
     // A durable job name is native authenticated state, never renderer input. Reusing a live
@@ -195,7 +217,7 @@ fn generation_with_options(
     let error = (created == 0).then(|| fail("restart-create-process"));
     drop(attrs);
     let worker = (created != 0).then(|| Worker(Handle(info.hProcess), Handle(info.hThread)));
-    for h in handles {
+    for &h in &handles {
         check(
             unsafe { SetHandleInformation(h, HANDLE_FLAG_INHERIT, 0) },
             "restart-reset-inheritance",
@@ -203,6 +225,10 @@ fn generation_with_options(
     }
     drop(startup);
     drop(event_writer);
+    if let Some(live) = &mut bridge {
+        drop(live.request_child.take());
+        drop(live.response_child.take());
+    }
     if let Some(error) = error {
         return Err(error);
     }
@@ -253,12 +279,21 @@ fn generation_with_options(
             RestartEventKind::Renderer,
             RestartEventKind::Replay,
         ],
+        Expect::Failed => &[RestartEventKind::Renderer, RestartEventKind::Finished],
     };
     let start = Instant::now();
     let mut received = 0;
     let mut buffer = Vec::new();
     let mut summary = None;
     loop {
+        if let Some(live) = &mut bridge {
+            live.service(
+                root,
+                ticket,
+                live_mode.ok_or(invalid("combined-missing-live-policy"))?,
+                index,
+            )?;
+        }
         let mut available = 0;
         let peek = unsafe {
             PeekNamedPipe(
@@ -329,7 +364,7 @@ fn generation_with_options(
         {
             break;
         }
-        let limit = if matches!(expect, Expect::ManualRecovery) {
+        let limit = if matches!(expect, Expect::ManualRecovery) || !ticket.automatic {
             600
         } else {
             45
@@ -338,7 +373,32 @@ fn generation_with_options(
             return Err(invalid("restart-checkpoint-or-recovery-missing"));
         }
     }
+    if matches!(expect, Expect::ReuseDenied) && bridge.as_ref().is_some_and(live::Bridge::selected)
+    {
+        return Err(invalid("combined-stale-request-selected"));
+    }
     if crash_controller {
+        if live_mode == Some(live::LiveMode::Partial) {
+            let deadline = Instant::now() + Duration::from_secs(5);
+            let sender = root.join(format!("control/live-{index:02}.json"));
+            while !sender.exists() && Instant::now() < deadline {
+                thread::sleep(Duration::from_millis(10));
+            }
+            let sent: Value =
+                serde_json::from_slice(&io("combined-partial-sent", fs::read(sender))?)
+                    .map_err(|_| invalid("combined-partial-sent-shape"))?;
+            let received: Value = serde_json::from_slice(&io(
+                "combined-partial-received",
+                fs::read(root.join("data/transfer-received.json")),
+            )?)
+            .map_err(|_| invalid("combined-partial-received-shape"))?;
+            if sent["bytesSent"] != 1024
+                || received["payloadBytesReceived"] != 1024
+                || sent["partial"] != true
+            {
+                return Err(invalid("combined-partial-not-proved"));
+            }
+        }
         // Actual controller death: no destructors, no explicit worker/job termination first.
         // The only job handle is non-inheritable; Windows must kill the entire contained tree.
         check(
@@ -460,6 +520,7 @@ pub(in super::super) fn launch(root: &Path, app: &Path) -> Result<Value> {
             launch_id: Uuid::new_v4(),
             recovery: false,
             automatic: true,
+            source: kraqel_isolation_transport::RestartSource::Synthetic,
             point,
             app_sha256: pin,
         };
@@ -516,6 +577,7 @@ pub(in super::super) fn launch(root: &Path, app: &Path) -> Result<Value> {
             launch_id: Uuid::new_v4(),
             recovery: true,
             automatic: true,
+            source: kraqel_isolation_transport::RestartSource::Synthetic,
             point: CrashPoint::Prepared,
             app_sha256: pin,
         };
@@ -563,6 +625,7 @@ pub(in super::super) fn launch_assistive(
         launch_id: Uuid::new_v4(),
         recovery: false,
         automatic: true,
+        source: kraqel_isolation_transport::RestartSource::Synthetic,
         point,
         app_sha256: pin,
     };

@@ -117,7 +117,19 @@ pub(super) fn recover(
         staging_empty,
         replay_blocked: blocked,
     };
-    if !blocked || !staging_empty || result.as_ref().is_err_and(|e| *e != TaskError::Interrupted) {
+    if !blocked
+        || !staging_empty
+        || result.as_ref().is_err_and(|e| {
+            !matches!(
+                e,
+                TaskError::Interrupted
+                    | TaskError::Cancelled
+                    | TaskError::ReadFailed
+                    | TaskError::ImportFailed
+                    | TaskError::Expired
+            )
+        })
+    {
         return Err(TaskError::StateUnavailable);
     }
     restart.event(RestartEventKind::Recovered, Some(summary));

@@ -23,6 +23,7 @@ pub(super) use ui_grant::launch as launch_ui;
 pub(super) use ui_live::launch as launch_live_ui;
 pub(super) use ui_restart::launch as launch_restart_series;
 pub(super) use ui_restart::launch_assistive;
+pub(super) use ui_restart::{combined_series, next_live, seed_live};
 pub(super) use ui_restart::{controller_crash_series, recover_broker, seed_broker};
 
 fn invalid(stage: &'static str) -> Failure {
@@ -75,8 +76,9 @@ fn choose_named(
             CoCreateInstance(&FileOpenDialog, None, CLSCTX_INPROC_SERVER)
         })?
     };
+    let shell_host = shell_folder_path(host)?;
     let folder: IShellItem = com("shell-folder", unsafe {
-        SHCreateItemFromParsingName(PCWSTR(wide(host).as_ptr()), None)
+        SHCreateItemFromParsingName(PCWSTR(wide(&shell_host).as_ptr()), None)
     })?;
     let second: IFileDialog2 = com("shell-navigation-interface", dialog.cast())?;
     unsafe {
@@ -132,6 +134,34 @@ fn choose_named(
         // Shell navigation is guidance; this independent allowlist is the security check.
         scoped_selection(&path, host, snapshot).map(Some)
     }
+}
+
+// Shell parsing does not accept every canonical Win32 file namespace. Re-express only a local
+// disk path and prove the same directory before using it; selection validation stays canonical.
+fn shell_folder_path(host: &Path) -> Result<PathBuf> {
+    use std::path::{Component, Prefix};
+    let canonical = io("shell-host-canonical", host.canonicalize())?;
+    let mut components = canonical.components();
+    let Some(Component::Prefix(prefix)) = components.next() else {
+        return Err(invalid("shell-host-namespace"));
+    };
+    let Prefix::VerbatimDisk(drive) = prefix.kind() else {
+        return Err(invalid("shell-host-local-disk-only"));
+    };
+    if components.next() != Some(Component::RootDir) {
+        return Err(invalid("shell-host-root"));
+    }
+    let mut plain = PathBuf::from(format!("{}:\\", char::from(drive)));
+    for component in components {
+        let Component::Normal(name) = component else {
+            return Err(invalid("shell-host-component"));
+        };
+        plain.push(name);
+    }
+    if wide(&plain).len() > 260 || io("shell-host-identity", plain.canonicalize())? != canonical {
+        return Err(invalid("shell-host-identity-or-length"));
+    }
+    Ok(plain)
 }
 
 fn scoped_selection(path: &Path, host: &Path, snapshot: bool) -> Result<PathBuf> {
@@ -729,6 +759,36 @@ mod tests {
                 .is_none()
         );
         assert!(closer.join().unwrap() > 0);
+    }
+    #[test]
+    #[ignore = "opens and automatically cancels native Shell dialogs; explicit local namespace comparison only"]
+    fn native_dialog_canonical_namespace_comparison() {
+        let root = Fixture::new();
+        let canonical = root.0.canonicalize().unwrap();
+        let owner = unsafe { GetCurrentThreadId() };
+        let closer = std::thread::spawn(move || {
+            let deadline = Instant::now() + Duration::from_secs(3);
+            while Instant::now() < deadline {
+                let posted = super::ui_live::close_owned_dialog(owner);
+                if posted > 0 {
+                    return posted;
+                }
+                std::thread::sleep(Duration::from_millis(20));
+            }
+            0
+        });
+        let result = choose_named(&canonical, false, "input.kraqel", true);
+        let posted = closer.join().unwrap();
+        assert!(result.unwrap().is_none());
+        assert!(posted > 0);
+    }
+    #[test]
+    fn shell_folder_representation_preserves_canonical_identity_without_verbatim_prefix() {
+        let root = Fixture::new();
+        let canonical = root.0.canonicalize().unwrap();
+        let plain = shell_folder_path(&canonical).unwrap();
+        assert_eq!(plain.canonicalize().unwrap(), canonical);
+        assert!(!plain.as_os_str().to_string_lossy().starts_with("\\\\?\\"));
     }
     #[test]
     fn pending_creation_never_owns_an_existing_file() {

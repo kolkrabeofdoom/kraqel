@@ -50,6 +50,11 @@ struct Inner {
 }
 
 impl Inner {
+    fn observe_read(&self) {
+        if let Some(control) = &self.restart {
+            control.checkpoint(CrashPoint::Reading);
+        }
+    }
     fn claim(&self, store: &mut DurableStore, id: uuid::Uuid) -> Result<(), TaskError> {
         store.claim(id).inspect_err(|error| {
             if let Some(restart) = &self.restart
@@ -322,14 +327,17 @@ async fn isolation_test_import(
             }
             Source::Live(session) => {
                 let Some((task, input)) = session
-                    .select(|| worker.cancel.load(Ordering::SeqCst))
+                    .select_observed(
+                        || worker.cancel.load(Ordering::SeqCst),
+                        |_| worker.observe_read(),
+                    )
                     .map_err(|_| {
-                    if worker.cancel.load(Ordering::SeqCst) {
-                        TaskError::Cancelled
-                    } else {
-                        TaskError::ReadFailed
-                    }
-                })?
+                        if worker.cancel.load(Ordering::SeqCst) {
+                            TaskError::Cancelled
+                        } else {
+                            TaskError::ReadFailed
+                        }
+                    })?
                 else {
                     return Err(TaskError::Cancelled);
                 };
@@ -372,7 +380,7 @@ async fn isolation_test_import(
     .await
     .map_err(|_| TaskError::ImportFailed)
     .and_then(|result| result);
-    finish(&inner, result);
+    finish_observed(&inner, result);
     if inner.exit_requested.load(Ordering::SeqCst) {
         app.exit(0);
     }
@@ -380,11 +388,25 @@ async fn isolation_test_import(
 }
 
 type Startup = (PathBuf, Option<Source>, Option<Arc<RestartControl>>);
+fn finish_observed(inner: &Inner, result: Result<ImportReceipt, TaskError>) {
+    let report_failure = result
+        .as_ref()
+        .is_err_and(|error| *error != TaskError::AlreadyConsumed);
+    finish(inner, result);
+    if report_failure && let Some(restart) = &inner.restart {
+        restart.event(RestartEventKind::Finished, None);
+    }
+}
 fn receive_source() -> Result<Startup, kraqel_isolation_transport::ChannelError> {
     if std::env::args().nth(1).as_deref() == Some("ui-restart") {
-        receive_restart().map(|grant| {
-            let source =
-                (!grant.ticket.recovery).then_some(Source::Synthetic(grant.ticket.task_id));
+        receive_restart().map(|mut grant| {
+            let source = if grant.ticket.recovery {
+                None
+            } else if let Some(live) = grant.live.take() {
+                Some(Source::Live(live))
+            } else {
+                Some(Source::Synthetic(grant.ticket.task_id))
+            };
             (
                 grant.data_root.clone(),
                 source,

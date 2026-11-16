@@ -99,7 +99,14 @@ mod native {
             self.expected
         }
 
-        pub fn select(mut self, cancelled: impl Fn() -> bool) -> Result<LiveReply, ChannelError> {
+        pub fn select(self, cancelled: impl Fn() -> bool) -> Result<LiveReply, ChannelError> {
+            self.select_observed(cancelled, |_| {})
+        }
+        pub fn select_observed(
+            mut self,
+            cancelled: impl Fn() -> bool,
+            observe: impl Fn(usize),
+        ) -> Result<LiveReply, ChannelError> {
             self.request.write_all(&[1]).map_err(|_| ChannelError::Io)?;
             drop(self.request);
             let mut bytes = Vec::new();
@@ -157,6 +164,7 @@ mod native {
                         .map_err(|_| ChannelError::Io)?;
                         std::fs::write(self.data_root.join("transfer-received.json"), progress)
                             .map_err(|_| ChannelError::Io)?;
+                        observe(payload);
                     }
                 }
             }
@@ -166,6 +174,38 @@ mod native {
                 .as_millis() as u64;
             decode_live_reply(bytes, self.expected, now)
         }
+    }
+
+    pub(super) fn live_from_restart(
+        a: HANDLE,
+        b: HANDLE,
+        expected: Uuid,
+        data_root: PathBuf,
+    ) -> Result<LiveSession, ChannelError> {
+        if a == b
+            || expected.is_nil()
+            || unsafe { GetFileType(a) } != FILE_TYPE_PIPE
+            || unsafe { GetFileType(b) } != FILE_TYPE_PIPE
+        {
+            return Err(ChannelError::InvalidHandle);
+        }
+        let request = unsafe { File::from_raw_handle(a) };
+        let response = unsafe { File::from_raw_handle(b) };
+        for handle in [a, b] {
+            let mut flags = 0;
+            if unsafe { SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0) } == 0
+                || unsafe { GetHandleInformation(handle, &mut flags) } == 0
+                || flags & HANDLE_FLAG_INHERIT != 0
+            {
+                return Err(ChannelError::InvalidHandle);
+            }
+        }
+        Ok(LiveSession {
+            request,
+            response,
+            expected,
+            data_root,
+        })
     }
     fn decode_live_reply(
         mut bytes: Vec<u8>,
@@ -472,8 +512,8 @@ pub use native::{LiveSession, ReceivedGrant, receive_from_launcher, receive_live
 mod restart;
 #[cfg(windows)]
 pub use restart::{
-    CrashPoint, RecoverySummary, RestartEvent, RestartEventKind, RestartGrant, RestartTicket,
-    receive_restart,
+    CrashPoint, RecoverySummary, RestartEvent, RestartEventKind, RestartGrant, RestartSource,
+    RestartTicket, receive_restart,
 };
 
 #[cfg(test)]

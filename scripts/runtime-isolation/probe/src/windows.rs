@@ -760,6 +760,20 @@ fn launch(root: &Path, app: Option<&Path>, resume: bool) -> Result<Value> {
 pub fn main() {
     let args = std::env::args_os().skip(1).collect::<Vec<_>>();
     let result = (|| {
+        if args.len() == 5 && args[0] == "ui-broker-live-seed" {
+            return exchange::seed_live(
+                Path::new(&args[1]),
+                Path::new(&args[2]),
+                &args[3].to_string_lossy(),
+                &args[4].to_string_lossy(),
+            );
+        }
+        if args.len() == 2 && args[0] == "ui-broker-live-next" {
+            return exchange::next_live(Path::new(&args[1]));
+        }
+        if args.len() == 3 && args[0] == "ui-combined-series" {
+            return exchange::combined_series(Path::new(&args[1]), Path::new(&args[2]));
+        }
         if args.len() == 5 && args[0] == "exchange-child" {
             return exchange::child(&args[1..]);
         }
