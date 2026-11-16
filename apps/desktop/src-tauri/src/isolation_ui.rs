@@ -4,7 +4,7 @@ use kraqel_isolation_transport::{
     LiveSession, ReceivedGrant, receive_from_launcher, receive_live_session,
 };
 use kraqel_storage::project_manager::ProjectManager;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::{
     fs,
     path::PathBuf,
@@ -39,6 +39,74 @@ struct Inner {
     data: PathBuf,
     exit_requested: AtomicBool,
     renderer_seen: AtomicBool,
+    focus_probe: Mutex<Vec<FocusSample>>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+enum FocusEvent {
+    Action,
+    Phase,
+    Focus,
+    Blur,
+    Navigation,
+    Pointer,
+    Handoff,
+    AfterHandoff,
+}
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+enum FocusPhase {
+    Unknown,
+    Ready,
+    Running,
+    Awaiting,
+    Done,
+    Cancelled,
+    Failed,
+}
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+enum FocusTarget {
+    Body,
+    Import,
+    Continue,
+    Cancel,
+    Replay,
+    Other,
+}
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct FocusSample {
+    event: FocusEvent,
+    phase: FocusPhase,
+    focused: FocusTarget,
+    has_focus: bool,
+    preserve_user_focus: bool,
+    trusted_input: bool,
+}
+#[tauri::command]
+#[allow(clippy::needless_pass_by_value)]
+fn isolation_test_focus_probe(
+    window: WebviewWindow,
+    state: State<'_, UiState>,
+    sample: FocusSample,
+) -> Result<(), TaskError> {
+    guard(&window)?;
+    let mut records = state
+        .0
+        .focus_probe
+        .lock()
+        .map_err(|_| TaskError::ImportFailed)?;
+    if records.len() >= 64 {
+        return Err(TaskError::InvalidTask);
+    }
+    records.push(sample);
+    let bytes = serde_json::to_vec(&*records).map_err(|_| TaskError::ImportFailed)?;
+    if bytes.len() > 16384 {
+        return Err(TaskError::InvalidTask);
+    }
+    fs::write(state.0.data.join("ui-focus.json"), bytes).map_err(|_| TaskError::ImportFailed)
 }
 enum Source {
     Prepared(ReceivedGrant),
@@ -265,6 +333,7 @@ pub fn run() {
         data: data.clone(),
         exit_requested: AtomicBool::new(false),
         renderer_seen: AtomicBool::new(false),
+        focus_probe: Mutex::new(Vec::new()),
     });
     let ready = if live {
         b"{\"channelVersion\":2,\"sessionBound\":true,\"selectionPending\":true,\"handleInheritanceCleared\":true}".as_slice()
@@ -280,6 +349,7 @@ pub fn run() {
         .manage(state)
         .invoke_handler(tauri::generate_handler![
             isolation_test_status,
+            isolation_test_focus_probe,
             isolation_test_import,
             isolation_test_continue,
             isolation_test_cancel
@@ -317,6 +387,17 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn focus_probe_rejects_paths_free_text_and_unknown_fields() {
+        let sample = serde_json::json!({"event":"phase","phase":"awaiting","focused":"cancel","hasFocus":true,"preserveUserFocus":false,"trustedInput":false});
+        assert!(serde_json::from_value::<FocusSample>(sample.clone()).is_ok());
+        let mut unknown = sample.clone();
+        unknown["path"] = serde_json::json!("C:\\private");
+        assert!(serde_json::from_value::<FocusSample>(unknown).is_err());
+        let mut free_text = sample;
+        free_text["focused"] = serde_json::json!("private manuscript text");
+        assert!(serde_json::from_value::<FocusSample>(free_text).is_err());
+    }
     #[test]
     fn only_the_bundled_research_window_can_invoke_commands() {
         assert!(allowed_origin(

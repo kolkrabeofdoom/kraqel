@@ -44,5 +44,8 @@ Nicht-Loopback-Ereignisse. [Buildgrenzen und Aggregate](../testing/native-live-f
 Appende bei offenem Dialog/Teiltransfer funktional bestätigt und am identischen finalen
 App-/Controllerpaar erneut mit ETW gemessen: drei vollständige Bäume, vier Kontrollen, Nullverluste,
 0 Nicht-Loopback-Ereignisse. [Aktuelle Buildbindung](../testing/native-live-window-close-etw.json).
-Assistive Abnahme und externe Brokergrenzen bleiben offen. Striktes Ziel unverändert; Q-01/Q-02 für
-das Produkt bleiben nicht bestanden.
+Assistive Erfolg-/Fehlerpfade mit Replay und Fokus inzwischen nativ bestätigt; Vollabnahme und
+externe Brokergrenzen bleiben offen. Die Forschungsseite ergänzt ausschließlich eine begrenzte
+lokale Enum-/Bool-Fokusdiagnose neben den vier parameterlosen Aktions-/Statusbefehlen.
+[Vertrag, Nachweise und fehlender neuer ETW-Beleg](../testing/native-live-assistive-focus.md).
+Striktes Ziel unverändert; Q-01/Q-02 für das Produkt bleiben nicht bestanden.

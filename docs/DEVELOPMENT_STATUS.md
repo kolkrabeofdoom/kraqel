@@ -1,5 +1,14 @@
 # Entwicklungsstatus
 
+Assistive Fortschreibung, 16. November 2026: Forschungsseite führt den Fokus zu verfügbaren
+Folgeaktionen und erhält bewusste Navigation. Native Erfolg-/Fehlerpfade einschließlich Replay mit
+Sprachausgabe und Fokus bestätigt; DOM-Diagnose, SQLite/Kopienzahl und Cleanup unabhängig geprüft.
+34 Browser-E2E bestanden. Frühere native Fokusabweichungen und die begrenzte lokale Diagnose sind
+[gesondert dokumentiert](testing/native-live-assistive-focus.md). Keine assistive Vollabnahme und
+kein neuer ETW-Beleg für diesen geänderten App-Build. Nächster Scope: dauerhafter
+Auftragslebenszyklus/Crash-Reconciliation und externe Brokergrenzen. Striktes Ziel unverändert, #134
+und Produkt-Q-01/Q-02 bleiben offen. Die folgenden Absätze bezeichnen frühere Buildstände.
+
 Fensterende-Fortschreibung, 16. November 2026: Offenen nativen Dateidialog bei Appende gezielt
 schließen und Auswahlthread begrenzt abwarten; final nativ mit Exitcodes 0, `CANCELLED`, beendetem
 Thread und leerer Projektwurzel bestätigt. Teiltransfer nach 1.024 von 11.915 Bytes

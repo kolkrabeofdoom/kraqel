@@ -111,7 +111,9 @@
              Auswahlthread und Cleanup bestätigt, Controller-Buildgrenzen dokumentiert
        - [x] KQ-069 A: Frischen ETW-Vergleich des finalen Fensterende-Builds durchführen; drei
              vollständige Bäume, vier Kontrollen, Nullverluste, 0 Nicht-Loopback-Ereignisse
-       - [ ] KQ-069 A: Assistive Fokus-/Fehlerprüfung und dauerhafte Crash-Reconciliation; weitere
+       - [x] KQ-069 A: Assistive Erfolg-/Fehlerpfade mit Replay und Fokus nativ prüfen; begrenzte
+             lokale Diagnose und 34 Browser-E2E, keine Vollabnahme oder neuer ETW-Beleg
+       - [ ] KQ-069 A: Assistive Restfälle und dauerhafte Crash-Reconciliation; weitere
              Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren; Packaging und
              F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit

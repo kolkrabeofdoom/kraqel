@@ -13,6 +13,71 @@ const proceed = document.querySelector<HTMLButtonElement>("#continue")!;
 const cancel = document.querySelector<HTMLButtonElement>("#cancel")!;
 const replay = document.querySelector<HTMLButtonElement>("#replay")!;
 let actionError: string | null = null;
+let lastPhase: View["phase"] | null = null;
+let flowStarted = false;
+let preserveUserFocus = false;
+let probePhase: View["phase"] | "unknown" = "unknown";
+let probeQueue = Promise.resolve();
+let probeCount = 0;
+function probe(
+  event:
+    "action" | "phase" | "focus" | "blur" | "navigation" | "pointer" | "handoff" | "afterHandoff",
+  trustedInput = false,
+) {
+  if (!flowStarted || probeCount >= 64) return;
+  probeCount += 1;
+  const active = document.activeElement;
+  const focused =
+    active === start
+      ? "import"
+      : active === proceed
+        ? "continue"
+        : active === cancel
+          ? "cancel"
+          : active === replay
+            ? "replay"
+            : active === document.body
+              ? "body"
+              : "other";
+  const sample = {
+    event,
+    phase: probePhase,
+    focused,
+    hasFocus: document.hasFocus(),
+    preserveUserFocus,
+    trustedInput,
+  };
+  probeQueue = probeQueue
+    .then(() => invoke<void>("isolation_test_focus_probe", { sample }))
+    .catch(() => undefined);
+}
+document.addEventListener("focusin", (event) => probe("focus", event.isTrusted));
+window.addEventListener("focus", () => probe("focus"));
+window.addEventListener("blur", () => probe("blur"));
+document.addEventListener("keydown", (event) => {
+  if (
+    [
+      "Tab",
+      "ArrowUp",
+      "ArrowDown",
+      "ArrowLeft",
+      "ArrowRight",
+      "Home",
+      "End",
+      "PageUp",
+      "PageDown",
+    ].includes(event.key)
+  ) {
+    preserveUserFocus = true;
+    probe("navigation", event.isTrusted);
+  }
+});
+document.addEventListener("pointerdown", (event) => {
+  if (event.target instanceof Element && event.target.closest("button")) {
+    preserveUserFocus = true;
+    probe("pointer", event.isTrusted);
+  }
+});
 const errors: Record<string, string> = {
   ALREADY_CONSUMED:
     "Dieser Auftrag ist bereits verbraucht. Es wurde kein zweites Projekt angelegt.",
@@ -24,6 +89,7 @@ const errors: Record<string, string> = {
   READ_FAILED: "Die freigegebene Datei konnte nicht gelesen werden.",
 };
 function render(view: View) {
+  probePhase = view.phase;
   const messages = {
     ready: "Ein einmaliger nativer Dateiauftrag ist bereit.",
     running: "Testarchiv wird geprüft …",
@@ -40,6 +106,21 @@ function render(view: View) {
   proceed.disabled = view.phase !== "awaiting";
   cancel.disabled = !["ready", "running", "awaiting"].includes(view.phase);
   replay.disabled = !["done", "cancelled", "failed"].includes(view.phase);
+  if (flowStarted && lastPhase !== view.phase) {
+    const active = document.activeElement;
+    const needsFocus =
+      active === document.body ||
+      !preserveUserFocus ||
+      (active instanceof HTMLButtonElement && active.disabled);
+    const target = view.phase === "running" ? cancel : view.phase === "awaiting" ? proceed : replay;
+    if (needsFocus && !target.disabled) {
+      probe("handoff");
+      target.focus({ preventScroll: true });
+      probe("afterHandoff");
+    }
+  }
+  if (lastPhase !== view.phase) probe("phase");
+  lastPhase = view.phase;
 }
 async function refresh() {
   try {
@@ -49,6 +130,9 @@ async function refresh() {
   }
 }
 async function action(command: string) {
+  flowStarted = true;
+  preserveUserFocus = false;
+  probe("action");
   actionError = null;
   error.textContent = "";
   try {

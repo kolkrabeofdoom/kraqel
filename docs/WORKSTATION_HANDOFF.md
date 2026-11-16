@@ -7,6 +7,14 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 15. November 2026
 
+Neueste Fortschreibung 16. November: Assistive Erfolg-/Fehlerpfade mit Replay, passenden Ansagen und
+Fokus nativ bestätigt. 34 Browser-E2E bestanden; zusätzliche begrenzte Forschungsdiagnose enthält
+ausschließlich feste Zustandswerte.
+[Nachweis und Buildhash](testing/native-live-assistive-focus.md). Frühere Fokusabweichungen bleiben
+dokumentiert; keine assistive Vollabnahme. Der geänderte App-Build hat keinen neuen ETW-Nachweis.
+Nächster Scope: dauerhafter Auftragslebenszyklus und Crash-Reconciliation, anschließend weitere
+Broker-/Netzabnahme. Striktes Ziel unverändert.
+
 Neuester funktionaler Nachweis 16. November: Fensterende bei offenem Dateidialog und nach echtem
 Teiltransfer bestanden. Eigener Prozess/Thread/Dialogklasse vor Schließnachricht geprüft,
 Auswahlthread begrenzt beendet; keine Projektkopien oder Stagingreste. Bytezähler belegen 1.024

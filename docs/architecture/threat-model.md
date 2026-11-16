@@ -1,5 +1,12 @@
 # Bedrohungsmodell (Entwurf)
 
+Assistive Fortschreibung: Die Forschungsseite ergänzt eine lokale Fokusdiagnose mit strengem
+Enum-/Bool-DTO, Ablehnung unbekannter Felder, gleicher Origin-/Fensterprüfung und festem Ziel
+`ui-focus.json` in der bestehenden Forschungsdatenfreigabe. Höchstens 64 Einträge/16 KiB; keine
+Texte, Pfade, Tastencodes oder zusätzlichen Rechte. Angaben des Renderers sind keine Autorisierung.
+[Native Fokus-/Hörnachweise und Grenzen](../testing/native-live-assistive-focus.md). Kein neuer
+ETW-Nachweis des geänderten App-Builds, keine Produktfreigabe, striktes Ziel unverändert.
+
 Fensterende-Fortschreibung: Der Forschungscontroller schließt bei Appende seine Pipe-Duplikate,
 begrenzt den Auswahlthread-Abschluss auf fünf Sekunden und sendet Schließnachrichten ausschließlich
 an Dialogfenster seines eigenen Prozesses und ermittelten Auswahlthreads mit Klasse `#32770`. Keine

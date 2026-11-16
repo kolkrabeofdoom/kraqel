@@ -1,5 +1,12 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+Assistive Fortschreibung 16. November: Erfolg-/Fehlerpfade der Forschungsseite mit Replay und Fokus
+nativ bestätigt. Eine auf feste Enum-/Bool-Werte begrenzte lokale Diagnose ergänzt die
+Forschungsbefehle ohne neue Dateifreigaben, Netzwerkrechte oder Produktintegration.
+[Nachweis, Grenzen und Buildbindung](../../testing/native-live-assistive-focus.md). Frühere
+Fokusabweichungen gelten nicht als bestanden. Kein neuer ETW-Beleg dieses geänderten App-Builds;
+striktes Datenschutzziel, offene Brokergrenzen und fehlende Produktabnahme bleiben unverändert.
+
 Fortschreibung 16. November: Der getrennte Live-Auswahlprototyp beendet bei Fensterende auch offenen
 Dateidialog und nachgewiesenen Teiltransfer. Schließnachrichten sind auf eigenen Prozess, eigenen
 Auswahlthread und Dialogklasse beschränkt; Pipe-Duplikate werden geschlossen und der Threadabschluss

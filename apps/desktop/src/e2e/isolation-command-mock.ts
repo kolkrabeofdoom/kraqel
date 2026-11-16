@@ -4,6 +4,7 @@ let current: View = { phase: "ready", error: null, receipt: null };
 let consumed = false;
 let pending: ((value: View) => void) | null = null;
 export async function isolationCommand(command: string): Promise<unknown> {
+  if (command === "isolation_test_focus_probe") return null;
   if (command === "isolation_test_status") return current;
   if (command === "isolation_test_import") {
     if (consumed) throw "ALREADY_CONSUMED";
@@ -11,6 +12,12 @@ export async function isolationCommand(command: string): Promise<unknown> {
     if (new URLSearchParams(location.search).get("isolationFailImport") === "1") {
       current = { phase: "failed", error: "IMPORT_FAILED", receipt: null };
       return current;
+    }
+    if (new URLSearchParams(location.search).get("isolationDelayImport") === "1") {
+      current = { phase: "running", error: null, receipt: null };
+      await new Promise<void>((resolve) => {
+        window.addEventListener("kraqel-e2e-selection-complete", () => resolve(), { once: true });
+      });
     }
     current = { phase: "awaiting", error: null, receipt: null };
     return new Promise<View>((resolve) => {
