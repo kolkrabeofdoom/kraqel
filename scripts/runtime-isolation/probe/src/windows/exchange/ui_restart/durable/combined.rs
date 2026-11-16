@@ -131,6 +131,7 @@ pub(in super::super::super::super) fn next_live(root: &Path) -> Result<Value> {
             durable_job: Some(&name),
             crash_controller: true,
             live_mode: authority.live_mode,
+            product_root: None,
         },
     )?;
     Err(invalid("combined-next-did-not-crash"))

@@ -142,7 +142,10 @@
              reguläre Enden, Recovery/Replay und neue Aufträge geprüft, 16 Apps/zwei legitime Kopien
        - [x] KQ-069 A: Eigener frischer ETW-Netzvergleich des Fensterende-Paars einschließlich
              beider Pfade; acht Kontrollen, Nullverluste, alle 942 Enden, 0 Nicht-Loopback
-       - [ ] KQ-069 A: Geschützte Produktablage/Updates/Migration und weitere allgemeine
+       - [x] KQ-069 A: Native private Kontrollablage-Vorschau mit lokalen autorisierten EXE-Wechseln
+             und Kontrollschema 1 → 2; 30 native Aufrufe/18 Container-Dateiverweigerungen
+       - [ ] KQ-069 A: Kontroll-Crash-Reconciliation und eigener frischer ETW-Lauf; isolierten
+             Produktstarter/echte Projektmigration integrieren sowie weitere allgemeine
              Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
              integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker
              kalibrieren; Packaging und F08-/M3-Vollprüfung

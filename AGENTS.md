@@ -287,6 +287,24 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
+Codezuständigkeiten: `durable/product.rs` enthält Zustandsfolge, MAC/Kopf und native Commands;
+`durable/product/secure_fs.rs` die lokale Windows-Pfad-/ACL-/Dateigrenze; `durable/product/tests.rs`
+die isolierten Negativ-, Update- und Jobtests. Native Vorschau-Commands sind keine Renderer-API und
+dürfen nicht ungeprüft in den normalen Produktstart verdrahtet werden.
+
+Aktuell:
+[Native dauerhafte Kontrollablage/Updates/Kontrollmigration](docs/testing/native-product-control.md)
+als Windows-Vorschau implementiert; [Vertrag v1](docs/data-format/native-product-control-v1.md).
+Standard `%USERPROFILE%/.kraqel-broker-preview`, echte Vorschauablage bleibt erhalten, `data/` leer.
+Aktivierte verwaltete EXE und Hash stehen im Beleg. Nach Programmwechsel nur die autorisierte
+verwaltete EXE für weitere Übergänge verwenden; niemals Schlüssel/Records/Kopf reparieren,
+neuanlegen, aus Forschungswurzeln übernehmen oder alte Programmhashes wieder freigeben. Lokale
+Hashfreigabe ist keine Herausgeberauthentisierung. Schema 1 ist Bootstrap, erst explizite Migration
+1 → 2 erlaubt Updates. Keine vorhandene Projekt-/Auftragsdatenbank migriert, normaler Produktstarter
+weiter unisoliert. 39 Helfertests, native Programmwechsel und 18 echte
+AppContainer-Dateiverweigerungen bestanden. Nächster Scope: native Kontroll-Crash-Reconciliation und
+eigener frischer ETW-Beleg; danach isolierter Produktstarter und echte autorisierte Datenmigration.
+
 Aktuell:
 [Eigener frischer ETW-Netzbeleg des Fensterende-Paars](docs/testing/native-combined-window-close-etw.md)
 mit unveränderten gesicherten Binaries bestanden: automatische Serie plus beide nativen

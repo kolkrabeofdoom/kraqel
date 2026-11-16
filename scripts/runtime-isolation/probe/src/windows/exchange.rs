@@ -23,6 +23,7 @@ pub(super) use ui_grant::launch as launch_ui;
 pub(super) use ui_live::launch as launch_live_ui;
 pub(super) use ui_restart::launch as launch_restart_series;
 pub(super) use ui_restart::launch_assistive;
+pub(super) use ui_restart::product_storage;
 pub(super) use ui_restart::{combined_series, next_live, seed_live};
 pub(super) use ui_restart::{controller_crash_series, recover_broker, seed_broker};
 
@@ -703,12 +704,8 @@ mod tests {
     impl Fixture {
         fn new() -> Self {
             let path = std::env::temp_dir().join(format!(
-                "kraqel-isolation-files-{}-{}",
-                std::process::id(),
-                std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_nanos()
+                "kraqel-isolation-files-{}",
+                uuid::Uuid::new_v4().simple()
             ));
             fs::create_dir(&path).unwrap();
             Self(path)

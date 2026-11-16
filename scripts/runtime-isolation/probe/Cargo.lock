@@ -356,6 +356,7 @@ dependencies = [
  "uuid",
  "windows",
  "windows-sys",
+ "zeroize",
 ]
 
 [[package]]

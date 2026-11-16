@@ -8,6 +8,7 @@ use uuid::Uuid;
 use windows_sys::Win32::System::Pipes::{CreatePipe, PeekNamedPipe};
 mod durable;
 mod live;
+pub(in super::super) use durable::product_storage;
 pub(in super::super) use durable::{combined_series, next_live, seed_live};
 pub(in super::super) use durable::{
     recover as recover_broker, seed as seed_broker, series as controller_crash_series,
@@ -95,6 +96,7 @@ fn generation(
             durable_job: None,
             crash_controller: false,
             live_mode: None,
+            product_root: None,
         },
     )
 }
@@ -105,6 +107,7 @@ struct GenerationOptions<'a> {
     durable_job: Option<&'a [u16]>,
     crash_controller: bool,
     live_mode: Option<live::LiveMode>,
+    product_root: Option<&'a Path>,
 }
 
 fn generation_with_options(
@@ -120,6 +123,7 @@ fn generation_with_options(
         durable_job,
         crash_controller,
         live_mode,
+        product_root,
     } = options;
     let executable = root.join("bin/kraqel-desktop.exe");
     // Negative hash tickets still start only the original pinned executable.
@@ -258,9 +262,12 @@ fn generation_with_options(
     if durable_job.is_some() {
         durable::verify_container_denials(worker.0.0, root)?;
     }
+    if let Some(product_root) = product_root {
+        durable::verify_product_denials(worker.0.0, product_root)?;
+    }
     write_json(
         &root.join(format!("launch-{index:02}.json")),
-        &json!({"pid":info.dwProcessId,"token":token,"recovery":ticket.recovery,"point":ticket.point,"privateBrokerFilesDenied":durable_job.is_some()}),
+        &json!({"pid":info.dwProcessId,"token":token,"recovery":ticket.recovery,"point":ticket.point,"privateBrokerFilesDenied":durable_job.is_some(),"privateProductFilesDenied":product_root.is_some()}),
     )?;
     if unsafe { ResumeThread(worker.1.0) } == u32::MAX {
         return Err(fail("restart-resume"));

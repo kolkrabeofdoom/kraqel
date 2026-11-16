@@ -1,5 +1,16 @@
 # Bedrohungsmodell (Entwurf)
 
+[Native Kontrollablage-Vorschau](../testing/native-product-control.md): Geschützte lokale Wurzel,
+private zufällige MAC-Schlüssel, exklusive Sperre, unveränderliche Recordkette und eigener Kopf.
+Lokaler Programmwechsel benötigt erwartete SHA/aktuellen Kopf und explizite Aktivierung; aktive Jobs
+blockieren Änderungen. Kontrollschema 1 → 2 ist explizit; keine Projekt-/Journalmigration. Alte
+Programme/Hashwiederverwendung und unvollständige Abschlüsse werden abgewiesen, keine automatische
+Reparatur. 18 tatsächliche Container-Dateiverweigerungen und native Neustarts bestätigt. Kein Schutz
+gegen Kontokompromittierung/komplettes Checkpoint-Rollback behauptet. Normale App weiter unisoliert,
+lokale Kandidatenfreigabe kein Herausgebervertrauen; neuer ETW- und integrierter Crash-Nachweis
+offen. Produktstarter muss dieselbe Sperre vor Joberzeugung halten. Striktes Datenschutzziel
+unverändert.
+
 [Eigener frischer ETW-Netzbeleg des Fensterende-Paars](../testing/native-combined-window-close-etw.md):
 Automatik und beide echten Hauptfensterschlüsse samt Wiederherstellung in getrennten gültigen
 Phasen. Acht Kontrollen, Nullverluste, 942 explizite Enden, 0 beobachtete Nicht-Loopback-/536

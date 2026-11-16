@@ -7,6 +7,19 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 16. November 2026
 
+Neuester Stand: [Native Kontrollablage/Updates/Kontrollmigration](testing/native-product-control.md)
+als Vorschau implementiert und nativ geprüft. Lokale dauerhafte `.kraqel-broker-preview` im
+Benutzerprofil bleibt erhalten; keine privaten Schreibprojekte übernommen. Kontrollschema 2, drei
+explizite Programmwechsel mit durchgehender MAC-Kette; finale verwaltete EXE unter
+`%USERPROFILE%/.kraqel-broker-preview/bin/cfe51760acc79112a5bff612326fa5cf1f6ef94d97cd897f7b09cc14850ae51c.exe`.
+Weitere Änderungen nur über aktuell autorisierte EXE und aktuellen nativen Kopfhash, keine
+Schlüssel-/Kopf-/Journal-Reparatur. Auf anderem Rechner neue Vorschauablage anlegen; niemals diese
+Schlüssel oder Forschungswurzeln kopieren. 39 Helfertests, Clippy/`pnpm check`, 30 native Kontroll-
+aufrufe, zehn erwartete Abweisungen, 18 echte Container-Dateiverweigerungen und GUI-Regression
+bestanden. Alle Testprofile entfernt/Prozesse beendet. Nächster Scope: Kontroll-Crash-Serie und
+eigener frischer ETW-Lauf. Normale Produktintegration, echte Datenmigration, Herausgebervertrauen
+und neue Netzabnahme offen; striktes Ziel unverändert.
+
 Neuester Netzbeleg:
 [Frisches ETW des Fensterende-Paars](testing/native-combined-window-close-etw.md) einschließlich
 beider manuell bedienten Hauptfensterschlüsse und automatischer Wiederherstellung bestanden. Paar

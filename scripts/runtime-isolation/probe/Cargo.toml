@@ -20,6 +20,7 @@ serde = { version = "1", features = ["derive"] }
 
 [target.'cfg(windows)'.dependencies]
 hmac = "=0.12.1"
+zeroize = "=1.9.1"
 getrandom = "=0.4.3"
 kraqel-isolation-test-adapter = { path = "../../../apps/desktop/isolation-test-adapter" }
 kraqel-storage = { path = "../../../crates/storage" }

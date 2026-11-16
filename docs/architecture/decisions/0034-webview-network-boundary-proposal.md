@@ -1,5 +1,15 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+Kontrollablage-Vorschau, 16. November:
+[Implementierung/Beleg](../../testing/native-product-control.md) und
+[Vertrag](../../data-format/native-product-control-v1.md) ergänzen dauerhafte private Ablage, lokal
+authentisierte Programmwechsel und explizite Kontrollschema-Migration. Root außerhalb des
+Coding-Werkzeug-Paketcache, ACL-Prüfung vor Schlüsselerzeugung, MAC-Kette/Kopf, exklusive Sperre und
+Jobleerstand. Drei native Programmwechsel und 18 echte AppContainer-Dateiverweigerungen bestanden.
+Keine automatische Übernahme alter Wurzeln/Journale, keine normale Produktintegration oder
+Herausgeber-/Netzabnahme; striktes Ziel unverändert. Nächster Scope: Kontroll-Crash-Serie und
+eigenes frisches ETW, danach isolierter Produktstarter/echte Datenmigration.
+
 Fensterende-ETW, 16. November:
 [Eigener frischer Beleg](../../testing/native-combined-window-close-etw.md) des unveränderten
 gesicherten Paars mit Automatik und beiden nativen Fensterendepfaden inklusive Recovery. Acht

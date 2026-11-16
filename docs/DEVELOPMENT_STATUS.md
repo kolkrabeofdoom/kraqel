@@ -1,5 +1,23 @@
 # Entwicklungsstatus
 
+Dauerhafte native Kontrollablage, 16. November: Windows-Vorschau unter lokalem Benutzerprofil
+implementiert, unabhängig von TEMP/Paketcache. Private ACLs vor Schlüsselerzeugung geprüft,
+exklusive Sperre, HMAC-Übergangskette und Abschlusskopf, explizite Vorbereitung/Aktivierung/Abbruch
+lokaler SHA-freigegebener EXEs. Authentisierte Kontrollschema-Migration 1 → 2 schaltet Updatepolitik
+frei. Drei native Programmwechsel, Vorgänger-/Rollback-/Stale-Aufrufe abgewiesen. 30 Kontroll-
+Prozessaufrufe, zehn erwartete Abweisungen, 18 tatsächliche Dateiverweigerungen unter drei echten
+AppContainer-Tokens; fünf zusätzliche GUI-Regressionsstarts bestanden. Unabhängiger MAC-/
+Kopf-/Wurzel-/Paket-/SQLite-/Unicode-Audit bestanden, Genesis über Wechsel unverändert. 39 aktive
+Helfertests, Clippy und `pnpm check` grün; keine normale Appcodeänderung/vollständigen Appbuilds.
+Alle Testprofile entfernt/Prozesse beendet; dauerhafte Vorschauablage bleibt erhalten, deren
+Datenordner leer. [Nachweis](testing/native-product-control.md),
+[Aggregate](testing/native-product-control.json),
+[Vertrag](data-format/native-product-control-v1.md). Keine vorhandenen Projekte oder
+Forschungsjournale migriert, keine normale Produktintegration oder Herausgeber-/Netzabnahme.
+Nächster Scope: Kontroll-Crash-Reconciliation und eigener frischer ETW-Lauf der
+Initialisierungs-/Update-/Migrationsfolge; danach Produktstarter und echte Datenmigration. Striktes
+Datenschutzziel unverändert, Produkt-Q-01/Q-02 nicht bestanden.
+
 Frischer ETW-Netzvergleich des Fensterende-Paars, 16. November: Unverändertes gesichertes Paar in
 zwei getrennten gültigen Phasen geprüft. Automatik: neun Fälle/72 Apps/54 abgewiesene Folgeaktionen;
 manuell: beide Hauptfensterschlüsse einschließlich nativer Auswahl, Teiltransfer und Recovery/

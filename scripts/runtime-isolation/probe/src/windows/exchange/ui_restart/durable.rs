@@ -6,7 +6,10 @@ use serde::{Deserialize, Serialize};
 use std::os::windows::fs::{MetadataExt, OpenOptionsExt};
 use windows_sys::Win32::System::SystemServices::JOB_OBJECT_QUERY;
 mod combined;
+mod product;
 pub(in super::super::super) use combined::{next_live, seed_live, series as combined_series};
+pub(in super::super::super) use product::command as product_storage;
+pub(super) use product::verify_denials as verify_product_denials;
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -58,7 +61,7 @@ fn read_key(root: &Path) -> Result<[u8; 32]> {
     bytes.try_into().map_err(|_| invalid("broker-key-size"))
 }
 
-fn private_directory(path: &Path) -> Result<()> {
+fn private_descriptor() -> Result<Local> {
     let mut raw = null_mut();
     check(
         unsafe { OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut raw) },
@@ -113,7 +116,11 @@ fn private_directory(path: &Path) -> Result<()> {
         },
         "broker-private-descriptor",
     )?;
-    let _sd = Local(sd);
+    Ok(Local(sd))
+}
+fn private_directory(path: &Path) -> Result<()> {
+    let _sd = private_descriptor()?;
+    let sd = _sd.0;
     let mut acl = null_mut();
     let mut present = 0;
     let mut defaulted = 0;
@@ -525,6 +532,7 @@ fn seed_with(
             durable_job: Some(&name),
             crash_controller: !mode.is_some_and(super::live::LiveMode::window_close),
             live_mode: mode,
+            product_root: None,
         },
     )?;
     if mode.is_some_and(super::live::LiveMode::window_close) {
@@ -621,6 +629,7 @@ pub(in super::super::super) fn recover(root: &Path, action: &str) -> Result<Valu
             durable_job: Some(&name),
             crash_controller: false,
             live_mode: authority.live_mode,
+            product_root: None,
         },
     )?
     .ok_or(invalid("broker-recovery-summary"))?;
@@ -659,6 +668,7 @@ pub(in super::super::super) fn recover(root: &Path, action: &str) -> Result<Valu
             durable_job: Some(&name),
             crash_controller: false,
             live_mode: authority.live_mode,
+            product_root: None,
         },
     )?;
     if hash(&root.join("data/app/tasks/tasks.sqlite3"))? != before {

@@ -760,6 +760,9 @@ fn launch(root: &Path, app: Option<&Path>, resume: bool) -> Result<Value> {
 pub fn main() {
     let args = std::env::args_os().skip(1).collect::<Vec<_>>();
     let result = (|| {
+        if args.first().is_some_and(|arg| arg == "broker-store") {
+            return exchange::product_storage(&args[1..]);
+        }
         if args.len() == 5 && args[0] == "ui-broker-live-seed" {
             return exchange::seed_live(
                 Path::new(&args[1]),
