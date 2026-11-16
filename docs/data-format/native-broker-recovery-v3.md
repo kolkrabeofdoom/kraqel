@@ -81,6 +81,7 @@ keinen erteilten Dateiauftrag. Stromausfälle, Datenträgerfehler und jeder mög
 sind nicht abgenommen. Insbesondere ein Crash nach Grant-Synchronisierung, aber vor dem ersten
 Journal-Claim kann die Sitzung konservativ blockieren; keine automatische Wiederaufnahme oder
 Kennungsneuvergabe daraus ableiten. Produktablage, Update-/Migrationspfad, weitere Fensterende-/
-assistive Prüfungen, eigener ETW-Nachweis des neuen Paars und externe Dienstgrenzen bleiben offen.
-Keine neue Netzwerkfähigkeit oder DPAPI-/Domänendienstausnahme; striktes Datenschutzziel
-unverändert.
+assistive Prüfungen und externe Dienstgrenzen bleiben offen. Das unveränderte gesicherte v3-Paar hat
+inzwischen einen [eigenen ETW-Nachweis](../testing/native-combined-live-restart-etw.md); keine
+automatische Übertragung auf Änderungen oder das Produkt. Keine neue Netzwerkfähigkeit oder
+DPAPI-/Domänendienstausnahme; striktes Datenschutzziel unverändert.

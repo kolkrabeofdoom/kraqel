@@ -1,0 +1,237 @@
+{
+  "formatVersion": 1,
+  "researchOnly": true,
+  "productionAcceptance": false,
+  "runtimeSourceCommit": "9f5a7ee8c56220bb90f10c4f304c9b0f01cd43ee",
+  "analysisRepositoryCommit": "1c7425750e1424824345c93789d62603711e0bb1",
+  "analyzerSha256": "387d4f37634261e7149b80e54353ea8104977190483c80c290b09b64eb58f9ff",
+  "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+  "controllerSha256": "49a2a0c0f0a8428c9419f8a70ce809e89a9f66171053e0a00032fcb3f6a48852",
+  "restartTicketVersion": 3,
+  "durableAuthorityVersion": 3,
+  "measurementValid": true,
+  "measurementProblems": [],
+  "result": "no-non-loopback-traffic-observed",
+  "phases": [
+    {
+      "measurementMode": "broker-ui",
+      "measurementValid": true,
+      "measurementProblems": [],
+      "result": "no-non-loopback-traffic-observed",
+      "rootStarts": 1,
+      "processLifetimes": {
+        "kraqel-isolation-probe.exe": 109,
+        "conhost.exe": 181,
+        "kraqel-desktop.exe": 72,
+        "msedgewebview2.exe": 432
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "unattributableNetworkEvents": 0,
+      "unknownDestinationEvents": 0,
+      "nonLoopbackEvents": 0,
+      "phase": "auto",
+      "captureReadyUtc": "2026-11-16T10:42:08.8437604Z",
+      "stoppedUtc": "2026-11-16T10:45:09.6370753Z",
+      "convertedUtc": "2026-11-16T10:45:10.5784740Z",
+      "etlBytes": 6684672,
+      "loopbackEvents": [
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 13,
+          "count": 216
+        },
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 29,
+          "count": 216
+        }
+      ],
+      "generationCoverage": {
+        "independentLifecycleAuditPassed": true,
+        "rootStarts": 1,
+        "orderedAppGenerationsMatched": 72,
+        "explicitProcessStops": 794,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 109,
+          "conhost.exe": 181,
+          "kraqel-desktop.exe": 72,
+          "msedgewebview2.exe": 432
+        },
+        "brokerExitCodes": {
+          "0": 37,
+          "86": 18,
+          "1": 54
+        },
+        "appExitCodes": {
+          "0": 18,
+          "77": 54
+        },
+        "seedAppExitCodes": {
+          "0": 18
+        },
+        "webViewsPerAppDistribution": {
+          "6": 72
+        }
+      },
+      "independentAuthoritySettlementMacRootAndProgramBindingsValid": true,
+      "independentSqliteUnicodeReceiptArchiveHashForeignKeysValid": true,
+      "taskStates": {
+        "interrupted": 5,
+        "succeeded": 11,
+        "failed": 2
+      },
+      "projectCopies": 11
+    },
+    {
+      "measurementMode": "isolation-ui",
+      "measurementValid": true,
+      "measurementProblems": [],
+      "result": "no-non-loopback-traffic-observed",
+      "rootStarts": 5,
+      "processLifetimes": {
+        "kraqel-isolation-probe.exe": 5,
+        "conhost.exe": 13,
+        "kraqel-desktop.exe": 8,
+        "msedgewebview2.exe": 48
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "unattributableNetworkEvents": 0,
+      "unknownDestinationEvents": 0,
+      "nonLoopbackEvents": 0,
+      "phase": "native",
+      "captureReadyUtc": "2026-11-16T10:45:10.6175529Z",
+      "stoppedUtc": "2026-11-16T10:47:27.9879713Z",
+      "convertedUtc": "2026-11-16T10:47:28.7889085Z",
+      "etlBytes": 5701632,
+      "loopbackEvents": [
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 13,
+          "count": 24
+        },
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 29,
+          "count": 24
+        }
+      ],
+      "generationCoverage": {
+        "independentLifecycleAuditPassed": true,
+        "rootStarts": 5,
+        "orderedAppGenerationsMatched": 8,
+        "explicitProcessStops": 74,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 5,
+          "conhost.exe": 13,
+          "kraqel-desktop.exe": 8,
+          "msedgewebview2.exe": 48
+        },
+        "brokerExitCodes": {
+          "86": 2,
+          "0": 3
+        },
+        "appExitCodes": {
+          "0": 2,
+          "77": 6
+        },
+        "seedAppExitCodes": {
+          "0": 2
+        },
+        "webViewsPerAppDistribution": {
+          "6": 8
+        }
+      },
+      "independentAuthoritySettlementMacRootAndProgramBindingsValid": true,
+      "independentSqliteUnicodeReceiptArchiveHashForeignKeysValid": true,
+      "taskStates": {
+        "interrupted": 1,
+        "succeeded": 1
+      },
+      "projectCopies": 1
+    }
+  ],
+  "totals": {
+    "rootStarts": 6,
+    "processLifetimes": {
+      "kraqel-isolation-probe.exe": 114,
+      "conhost.exe": 194,
+      "kraqel-desktop.exe": 80,
+      "msedgewebview2.exe": 480
+    },
+    "explicitProcessStops": 868,
+    "orderedAppGenerationsMatched": 80,
+    "brokerExitCodes": {
+      "0": 40,
+      "86": 20,
+      "1": 54
+    },
+    "appExitCodes": {
+      "0": 20,
+      "77": 60
+    },
+    "positiveControls": {
+      "expected": 8,
+      "observed": 8
+    },
+    "EventsLost": 0,
+    "BuffersLost": 0,
+    "nonLoopbackEvents": 0,
+    "loopbackEvents": 480,
+    "distinctTaskIds": 20,
+    "projectCopies": 12,
+    "rootTokenChecks": 80,
+    "privateBrokerFileAccessChecks": 480
+  },
+  "automaticSeries": {
+    "controllerCrashes": 18,
+    "recoveries": 27,
+    "appGenerations": 72,
+    "newLiveTasks": 18,
+    "rejectedNextGrants": 54,
+    "inTraceRetirements": 9
+  },
+  "nativeDialogWorkflow": {
+    "selectionUserConfirmed": true,
+    "appGenerations": 8,
+    "controllerCrashes": 2,
+    "recoveries": 3,
+    "allFiveControllerExitCodesCaptured": true,
+    "initialExitCode": 86,
+    "newTaskExitCode": 86,
+    "retirementAfterCapturePassed": true,
+    "retirementIncludedInNativeTrace": false,
+    "projectCopies": 1
+  },
+  "stagingEntries": 0,
+  "allProfilesRemoved": true,
+  "captureStoppedAndConverted": true,
+  "activeResearchProcessesAtEnd": 0,
+  "rawDiagnosticsAndKeysRemainLocal": true,
+  "runtimeChangedForMeasurement": false,
+  "analyzerChangedForMeasurement": false,
+  "newHearingAcceptance": false,
+  "pythonDiagnosticTestsPassed": 36,
+  "limits": [
+    "Exact saved v3 pair, exercised synthetic paths and captured lifetimes only.",
+    "Manual retirement is outside its trace; nine automatic retirements are inside the automatic tree.",
+    "External COM/Shell/DNS/broker services are not fully causally attributed by process-tree metadata.",
+    "No HTTP/upload/payload or compromised-process attestation; no physical network disconnection.",
+    "Local TCP/UDP IPv4/IPv6 controls do not calibrate every public or external route.",
+    "Private unencrypted key relies on Windows DACL; compromised account/admin/secret copies remain outside protection.",
+    "Ordinary product startup remains unisolated; product Q-01/Q-02 not passed."
+  ]
+}

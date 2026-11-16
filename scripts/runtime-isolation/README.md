@@ -9,7 +9,9 @@ Abschlussbelege sind Voraussetzung für eine ausdrücklich neue native Beauftrag
 `input.kraqel`; `ui-broker-live-next <Wurzel>` erteilt ausdrücklich einen neuen Fixture-Auftrag.
 Kein automatischer Retry, keine Altdatenmigration oder neue Rendererbefehle.
 [Finaler Nachweis, Buildschalter und Hashgrenzen](../../docs/testing/native-combined-live-restart.md).
-Neuer ETW-Beleg steht aus; normale Starts bleiben unisoliert. Historische Stufen folgen.
+[Eigener frischer ETW-Beleg](../../docs/testing/native-combined-live-restart-etw.md) für genau das
+gesicherte Paar mit Automatik und tatsächlicher nativer Auswahl bestanden. Keine Übertragung auf
+Folgeänderungen; normale Starts bleiben unisoliert. Historische Stufen folgen.
 
 Historischer [Broker-Vertrag v2](../../docs/data-format/native-broker-recovery-v2.md): lokaler
 HMAC-Beleg/privater Schlüssel ersetzen DPAPI. Neuer Seed in frischer Wurzel erforderlich; keine

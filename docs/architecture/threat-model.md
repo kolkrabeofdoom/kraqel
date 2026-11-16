@@ -1,5 +1,14 @@
 # Bedrohungsmodell (Entwurf)
 
+Kombiniertes v3-Paar:
+[Eigener frischer ETW-Nachweis](../testing/native-combined-live-restart-etw.md) mit realer manueller
+Dateiauswahl und automatischer Crash-/Negativserie bestanden. 868 vollständig beendete Lebenszeiten,
+acht Messkontrollen, Nullverluste, keine beobachteten Nicht-Loopback- Ereignisse im zugeordneten
+Baum. Separate native Stilllegung nach ihrer Aufzeichnung offen benannt; neun automatische
+Stilllegungen sind im automatischen Baum enthalten. Externe COM-/Shell-/DNS-/ Broker und Inhalte
+werden dadurch nicht vollständig kausal attestiert. Gilt nur für das dokumentierte Hashpaar, keine
+Produktfreigabe oder Abschwächung des strikten Ziels.
+
 Aktueller Forschungsbroker [v3](../data-format/native-broker-recovery-v3.md): Initiale Live-Handles
 nur für den gebundenen neuen Auftrag, keine bei Recovery. Unveränderliche signierte Grantfolge,
 verschiedene IDs, Vorgängerhash und private Abschlussbelege verhindern neue Autorität allein aus
@@ -8,10 +17,10 @@ Containerfreigabe; manipulierte/lückenhafte Folge oder unbestätigter Abschluss
 [Negativserie und manuelle Auswahl](../testing/native-combined-live-restart.md) geprüft. Shell-
 Pfaddarstellung ändert keine kanonische Identität oder Auswahlgrenze. Kein Schutz gegen
 kompromittiertes Konto/Administrationsrechte; Crash vor Journal-Claim kann konservativ blockieren.
-Neue ETW-/assistive/ weitere Fensterendeprüfung und Produktintegration offen; keine Übertragung
-alter Hashbelege.
+Der eigene ETW-Beleg steht oben; assistive/weitere Fensterendeprüfung und Produktintegration bleiben
+offen, keine Übertragung auf andere Hashpaare.
 
-Aktuelle Broker-Authority [v2](../data-format/native-broker-recovery-v2.md) entfernt den
+Historische Broker-Authority [v2](../data-format/native-broker-recovery-v2.md) entfernt den
 DPAPI-Domänenpfad und nutzt lokale HMAC-Authentisierung. Schutz des Klartextschlüssels hängt an
 privater Windows-DACL und unverknüpften Dateien; sechs tatsächliche Dateiöffnungen je Appstart unter
 dem eingeschränkten Token müssen verweigert sein. Kein Schutz vor demselben kompromittierten Konto,

@@ -1,5 +1,13 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+Kombiniertes ETW, 16. November: Eigener gültiger Nachweis des gesicherten v3-Paars mit automatischer
+Serie und echtem nativem Dateidialog in getrennten kalibrierten Phasen. 80 Apps, 480 WebViews und
+alle 868 Prozessenden explizit; acht Kontrollen, Nullverluste, 0 Nicht-Loopback- und 480 getrennte
+Loopback-Ereignisse. Native Abläufe/Daten/MACs unabhängig geprüft.
+[Nachweis](../../testing/native-combined-live-restart-etw.md). Kein Runtimeumbau, keine Übertragung
+auf geänderte Binaries, externe Dienste oder das Produkt. Striktes Ziel ohne
+Runtime-/Domänenausnahme unverändert; assistive und weitere Fensterendeprüfung offen.
+
 Fortschreibung kombiniert, 16. November: Startticket/Brokervertrag v3 binden Live-Pipes an den
 initialen verbrauchten Auftrag. Recovery hat keine Auswahlhandles. Erst privater signierter
 Abschluss nach Reconciliation/Replay und ausdrückliche neue native Aktion erlauben den nächsten
@@ -8,8 +16,8 @@ Richtlinien-/DPAPI-Ausnahme oder Produktintegration.
 [Vertrag](../../data-format/native-broker-recovery-v3.md),
 [native Serie und manuelle Auswahl](../../testing/native-combined-live-restart.md) bestanden.
 Shell-Aufruf nutzt nach nativ reproduziertem Fehler eine gleichwertige lokale Pfaddarstellung mit
-identischem kanonischem Ziel; Scopeprüfung bleibt. Neuer eigener ETW-/Hörnachweis noch offen;
-striktes Ziel unverändert.
+identischem kanonischem Ziel; Scopeprüfung bleibt. Eigener ETW-Beleg inzwischen oben vorhanden,
+neuer Hörnachweis noch offen; striktes Ziel unverändert.
 
 HMAC-ETW 16. November: Neues gesichertes Paar mit eigenem gültigem Netzbeleg des gesamten
 Serienbaums, einschließlich 78 negativer Brokerstarts. 103 Broker/30 Apps/180 WebViews, alle 446

@@ -1,5 +1,17 @@
 # Entwicklungsstatus
 
+Kombinierter ETW-Nachweis, 16. November: Das unveränderte gesicherte v3-Paar ist frisch in zwei
+getrennten Phasen gemessen, einschließlich echter manueller Dateiauswahl und neuer Folgeaufträge.
+Beide gültig: acht Kontrollen, Nullverluste, keine Zuordnungslücken/unklaren Ziele; 114 Broker, 80
+Apps, 480 WebViews, 194 Console-Hosts und alle 868 Enden explizit. 0 Nicht-Loopback- und 480
+getrennte Loopback-Ereignisse. Native Abläufe, MAC-/Root-/Programmhashbindung und
+Journal/SQLite/Unicode/Kopien unabhängig im Messlauf bestätigt.
+[Nachweis](testing/native-combined-live-restart-etw.md),
+[Aggregate/Hashes](testing/native-combined-live-restart-etw.json). Erfassungen/Prozesse beendet,
+Runtime und normale Debug-App unverändert. Nächster Scope: kombinierte assistive Wiederanlauf-/
+Fehlerprüfung und weitere Fensterendeprüfung. Produktablage/Updates/Migration und externe
+Dienstgrenzen bleiben offen; striktes Ziel unverändert, Produkt-Q-01/Q-02 nicht bestanden.
+
 Kombinierter Live-/Neustartpfad, 16. November: Startticket und Brokerkette v3 implementiert.
 Initiale Live-Auswahl, verbrauchte IDs, authentisierter Wiederanlauf ohne Auswahlhandles und
 expliziter neuer Folgeauftrag mit signierter Vorgängerkette/Abschlussbeleg. Finale native Serie:
@@ -10,11 +22,11 @@ Wiederanlauf/neuer Auftrag/Replay/Stilllegung nativ und unabhängig geprüft.
 [Aggregate/Hashes](testing/native-combined-live-restart.json). Zusätzlich 28-Start-Regression,
 Gesamtprüfung, 28 aktive Helfertests, zwei lokal ausgeführte Dialogtests, zwei Feature-Origin-/DTO-
 und acht Browser-Forschungstests bestanden. Normale Debug-App ohne Forschungsseite
-wiederhergestellt. Neues Paar separat gesichert, **ohne eigenen ETW- oder Hörnachweis**. Nächster
-Scope: frisches ETW genau dieses Paars, kombinierte assistive und weitere Fensterendeprüfung;
-Produktablage/Update-/Migrationspfad und externe Grenzen bleiben offen. Striktes Ziel unverändert;
-normale Produktstarts unisoliert, Q-01/Q-02 nicht bestanden. Frühere Absätze bezeichnen frühere
-Stufen/Hashpaare.
+wiederhergestellt. Paar separat gesichert; dieser ursprüngliche Funktionslauf enthält keinen
+ETW-/Hörnachweis. Der spätere eigene ETW-Beleg steht oben. Nächster Scope: kombinierte assistive und
+weitere Fensterendeprüfung; Produktablage/Update-/Migrationspfad und externe Grenzen bleiben offen.
+Striktes Ziel unverändert; normale Produktstarts unisoliert, Q-01/Q-02 nicht bestanden. Frühere
+Absätze bezeichnen frühere Stufen/Hashpaare.
 
 HMAC-ETW 16. November: Eigener frischer gültiger Netzbeleg des gesicherten neuen Paars bestanden.
 Gesamter Serienbaum mit 103 Broker-, 30 App-, 180 WebView- und 133 Console-Host-Lebenszeiten; alle

@@ -130,6 +130,7 @@
   "stagingEntries": 0,
   "allProfilesRemoved": true,
   "newEtwMeasurement": false,
+  "subsequentEtwEvidence": "native-combined-live-restart-etw.json",
   "newHearingAcceptance": false,
   "checks": {
     "pnpmCheck": "passed",

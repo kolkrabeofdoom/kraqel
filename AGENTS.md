@@ -294,13 +294,15 @@ Debug-App ohne Forschungsfrontend wiederherstellen. Reproduktion im kombinierten
 Aktuell gelten [Startticket v3](docs/data-format/native-ui-restart-v3.md) und
 [Brokerkette v3](docs/data-format/native-broker-recovery-v3.md): Live-Auswahl nur beim neuen
 gebundenen Auftrag, keine Auswahlhandles bei Recovery. Neue native Aktion erst nach signiertem
-Abschlussbeleg; verschiedene IDs und vollständige unveränderliche Vorgängerkette prüfen. Neuer
-kombinierter Build besitzt noch keinen eigenen ETW-/Hörnachweis;
-[Nachweis und gesichertes Paar](docs/testing/native-combined-live-restart.md). Schlüssel niemals in
-Logs/Git/Archive/Renderer geben. Fehlende oder falsche Schlüssel niemals automatisch ersetzen,
-v1-DPAPI-Daten nicht migrieren. [Eigener HMAC-Netzbeleg](docs/testing/native-hmac-broker-etw.md)
-gilt nur für sein gesichertes Paar und seine Lebenszeiten, nie automatisch für Folgeänderungen.
-Striktes Ziel ohne OS-/Domänenausnahme unverändert.
+Abschlussbeleg; verschiedene IDs und vollständige unveränderliche Vorgängerkette prüfen. Das
+gesicherte kombinierte Paar besitzt einen
+[eigenen ETW-Beleg](docs/testing/native-combined-live-restart-etw.md), noch keinen neuen
+Hörnachweis; [Nachweis und gesichertes Paar](docs/testing/native-combined-live-restart.md).
+Schlüssel niemals in Logs/Git/Archive/Renderer geben. Fehlende oder falsche Schlüssel niemals
+automatisch ersetzen, v1-DPAPI-Daten nicht migrieren.
+[Eigener HMAC-Netzbeleg](docs/testing/native-hmac-broker-etw.md) gilt nur für sein gesichertes Paar
+und seine Lebenszeiten, nie automatisch für Folgeänderungen. Striktes Ziel ohne OS-/Domänenausnahme
+unverändert.
 
 Aktuelle Broker-Grundlage:
 [dauerhafte native Wiederherstellung](docs/data-format/native-broker-recovery-v3.md) und

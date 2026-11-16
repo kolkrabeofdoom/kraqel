@@ -1,10 +1,12 @@
 # KQ-069: Kombinierte Live-Auswahl, Wiederanlauf und neuer Dateiauftrag
 
-16. November 2026. Im getrennten Windows-Forschungsmodus implementiert und nativ geprüft.
-    [Startticket v3](../data-format/native-ui-restart-v3.md),
-    [Brokerkette v3](../data-format/native-broker-recovery-v3.md),
-    [bereinigte Aggregate](native-combined-live-restart.json). Kein produktiver Launcher oder neuer
-    ETW-/Hörnachweis. Frühere Paarabnahmen werden nicht übertragen.
+Stand: 16. November 2026. Im getrennten Windows-Forschungsmodus implementiert und nativ geprüft.
+[Startticket v3](../data-format/native-ui-restart-v3.md),
+[Brokerkette v3](../data-format/native-broker-recovery-v3.md),
+[bereinigte Aggregate](native-combined-live-restart.json). Kein produktiver Launcher oder neuer
+Hörnachweis. Ein späterer [eigener frischer ETW-Nachweis](native-combined-live-restart-etw.md)
+dieses unveränderten Paars ist inzwischen gültig bestanden; der ursprüngliche Funktionslauf bleibt
+separat. Frühere Paarabnahmen werden nicht übertragen.
 
 ## Implementiert
 
@@ -121,8 +123,8 @@ Paar und Startticket v3, einschließlich vier abgewiesener Fehlstarts. Journalin
 unterbrochene/zwei erfolgreiche Aufträge, zwei Kopien, leeres Staging und Cleanup unabhängig
 geprüft. Diese Regression ist getrennt von den 80 kombinierten App-Startbelegen gezählt.
 
-Nächster Scope: eigener frischer ETW-Nachweis dieses neuen Paars, kombinierte assistive und weitere
-Fensterendeprüfung. Geschützte Produktablage, authentisierter Update-/Migrationspfad, externe
+Nächster Scope nach dem eigenen ETW-Beleg: kombinierte assistive und weitere Fensterendeprüfung.
+Geschützte Produktablage, authentisierter Update-/Migrationspfad, externe
 COM-/Shell-/DNS-/Brokergrenzen und Produkt-/Packaging-Integration bleiben offen. Ein Crash nach
 Grant-Synchronisierung, aber vor Journal-Claim kann konservativ blockieren; keine automatische
 Neuvergabe. Schlüssel bleibt unter privater DACL unverschlüsselt; kein Schutz gegen kompromittiertes

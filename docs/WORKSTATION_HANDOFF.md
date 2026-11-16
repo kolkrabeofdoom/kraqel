@@ -5,19 +5,30 @@ Code und Projektdokumentation; ein `.kraqel`-Archiv transportiert Manuskript, St
 Medien. Wer beides verwechselt, erhält entweder fehlende Kapitel oder einen sehr literarischen
 Commitverlauf.
 
-## Aktuelle Entwicklungsübergabe · 15. November 2026
+## Aktuelle Entwicklungsübergabe · 16. November 2026
 
-Neuester Stand 16. November: Kombinierter Forschungsablauf v3 mit echter Live-Auswahl, Wiederanlauf
-und ausdrücklich neuem Folgeauftrag bestanden. Signierte Grantkette und private Abschlussbelege
-ersetzen keine neue menschliche/native Beauftragung.
+Neuester Nachweis 16. November: Frisches ETW exakt des gesicherten kombinierten v3-Paars bestanden.
+Zwei getrennt kalibrierte Phasen: Automatik einschließlich 54 abgewiesener Folgeaktionen, danach
+tatsächliche manuelle Dateiauswahl mit Wiederanlauf/neuem Auftrag/Replay. 114 Broker/80 Apps/480
+WebViews/194 Console-Hosts, 868 explizite Enden, acht Kontrollen, Nullverluste, 0 Nicht-Loopback-
+und 480 getrennte Loopback-Ereignisse. Daten/MACs und Generationszuordnung unabhängig geprüft.
+[Nachweis und Grenzen](testing/native-combined-live-restart-etw.md). Alle Profile entfernt,
+Erfassungen/Prozesse beendet, Paar unverändert. Nächster Scope: kombinierte assistive
+Wiederanlauf-/Fehlerprüfung und weitere Fensterendeprüfung mit genau diesem Paar. Produktintegration
+und externe Dienste weiter offen; keine Übertragung auf Folgeänderungen, striktes Datenschutzziel
+unverändert.
+
+Vorheriger Funktionsstand 16. November: Kombinierter Forschungsablauf v3 mit echter Live-Auswahl,
+Wiederanlauf und ausdrücklich neuem Folgeauftrag bestanden. Signierte Grantkette und private
+Abschlussbelege ersetzen keine neue menschliche/native Beauftragung.
 [Verträge und finale Belege](testing/native-combined-live-restart.md). Neun automatische Fälle, 72
 App-Starts, 54 verweigerte Folgeaktionen; manueller Dialoglauf bestätigt und vollständig
 weitergeprüft. Beide Vorläufersitzungen und fehlgeschlagener Dialoglauf stillgelegt; finale Profile
 entfernt, Prozesse beendet. Normale Debug-App ohne Forschungsseite wiederhergestellt. Gesichertes
 neues Paar: `%TEMP%\\kraqel-kq069-combined-build-20261116-04`, vollständige Hashes im Aggregat. Alte
-Binaries/Nachweise nicht übertragen. Nächster Scope: frisches ETW genau dieses v3-Paars, assistive
-und weitere Fensterendeprüfung des kombinierten Ablaufs. Produktablage, authentisierte
-Updates/Migration und externe Dienste bleiben offen; striktes Ziel unverändert.
+Binaries/Nachweise nicht übertragen. Nach dem oben ergänzten ETW-Beleg folgen assistive und weitere
+Fensterendeprüfung des kombinierten Ablaufs. Produktablage, authentisierte Updates/Migration und
+externe Dienste bleiben offen; striktes Ziel unverändert.
 
 Neuester Nachweis 16. November: Frisches ETW des gesicherten HMAC-Paars bestanden, einschließlich
 aller negativen Brokerstarts. 103 Broker/30 Apps/180 WebViews/133 Console-Hosts, 446 explizite
