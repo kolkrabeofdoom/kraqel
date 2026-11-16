@@ -1,12 +1,21 @@
 # Bedrohungsmodell (Entwurf)
 
+Eigener
+[frischer ETW-Beleg des manuellen Brokerpaars](../testing/native-combined-assistive-restart-etw.md):
+Automatik und vier manuelle Tastatur-Wiederanläufe in getrennten gültigen Phasen; acht Kontrollen,
+Nullverluste, 906 explizite Enden, 0 beobachtete Nicht-Loopback-/514 getrennte Loopback-Ereignisse.
+Tastaturbedienung menschlich bestätigt; zusätzliche DOM-Pointer-Ereignisse erlauben keine
+unabhängige Bestimmung der physischen Eingabe. Kein neuer Runtimecode; Bindung an das exakte
+Hashpaar und die erfassten Lebenszeiten. Externe Dienste und Produkt nicht attestiert, striktes Ziel
+unverändert.
+
 Manuelle kombinierte Recovery:
 [Assistiver Nachweis](../testing/native-combined-assistive-restart.md) für vier Zustände mit realem
 Replay und regulärem Ende; ohne Auswahlhandles und ohne neuen Grant. Zwei Erstversuche ohne nativen
 Replay-Gegenbeleg wurden trotz menschlicher Bestätigung abgelehnt; kein Abschlussbeleg und keine
-neue Autorität daraus. Hörbestätigung allein ist keine technische Abnahme. Neuer Helferhash besitzt
-noch keinen frischen ETW-Beleg; reine Tastaturprüfung offen. Der folgende ältere Netznachweis bleibt
-auf sein ursprüngliches Paar begrenzt.
+neue Autorität daraus. Hörbestätigung allein ist keine technische Abnahme. Eigener neuer
+ETW-/Tastaturbeleg inzwischen oben verlinkt. Der folgende ältere Netznachweis bleibt auf sein
+ursprüngliches Paar begrenzt.
 
 Kombiniertes v3-Paar:
 [Eigener frischer ETW-Nachweis](../testing/native-combined-live-restart-etw.md) mit realer manueller

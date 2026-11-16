@@ -135,11 +135,12 @@
        - [x] KQ-069 A: Gesichertes kombiniertes v3-Paar einschließlich nativer Dateiauswahl frisch
              per ETW messen; 868 explizite Enden, acht Kontrollen, Nullverluste, 0 Nicht-Loopback
        - [x] KQ-069 A: Kombinierte assistive Wiederanlauf-/Fehlerzustände mit Hörbestätigung und
-             nativem Replay-Gegenbeleg prüfen; zwei Erstversuche abgelehnt, Tastaturabnahme offen
-       - [ ] KQ-069 A: Frisches ETW des manuellen Helferpaars, reine Tastatur- und weitere
-             Fensterendeprüfung; dauerhaften authentisierten Produktbroker integrieren/abnehmen;
-             weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren; Packaging und
-             F08-/M3-Vollprüfung
+             nativem Replay-Gegenbeleg prüfen; zwei Erstversuche abgelehnt, Tastaturabnahme separat
+       - [x] KQ-069 A: Tastaturprüfung und eigenes frisches ETW des manuellen Brokerpaars; vier
+             Zustände, acht Kontrollen, Nullverluste, alle 906 Enden, 0 Nicht-Loopback
+       - [ ] KQ-069 A: Weitere kombinierte Fensterendeprüfung; dauerhaften authentisierten
+             Produktbroker integrieren/abnehmen; weitere Formate/Git-/Providergrenzen;
+             UDP/IPv6/DNS/Broker kalibrieren; Packaging und F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene

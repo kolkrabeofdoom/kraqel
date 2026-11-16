@@ -79,7 +79,9 @@ als Fehler. Anschließend läuft die gesperrte ursprüngliche Importanfrage auto
 Journaländerung. Erst danach darf der signierte Abschlussbeleg entstehen. Diagnoseindizes 5/6 je
 Achterblock trennen diesen Ablauf von `first` und `second`. Es entstehen keine Auswahlhandles und
 keine neue Importautorität. Hörbestätigung bleibt eine separate menschliche Prüfung. Der geänderte
-Helfer übernimmt den früheren ETW-Beleg nicht.
+Helfer übernimmt den früheren ETW-Beleg nicht; er besitzt inzwischen einen
+[eigenen frischen Nachweis](../testing/native-combined-assistive-restart-etw.md) mit
+Tastaturprüfung.
 
 `ui-broker-live-next <Wurzel>` erzeugt ausdrücklich einen neuen synthetischen Fixture-Auftrag; keine
 allgemeine Produkt-Import-API. `retire` bleibt die Stilllegungsaktion. Native Journale speichern

@@ -1,11 +1,19 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+Tastatur und ETW des manuellen Brokerpaars, 16. November: Eigener frischer
+[Nachweis](../../testing/native-combined-assistive-restart-etw.md) mit automatischer Serie und vier
+manuellen Wiederanläufen. Acht Kontrollen, Nullverluste, 906 explizite Enden, 0 Nicht-Loopback-/514
+getrennte Loopback-Ereignisse. Menschliche Tastatur-/Hörbestätigung und native Replay-/Fokusbelege
+getrennt von physischer Eingabezuordnung behandeln. Kein Runtimeumbau, keine neue Produktautorität
+oder externe Dienstabnahme. Weitere Fensterendeprüfung/Produktablage/Updates/Migration offen;
+striktes Ziel unverändert.
+
 Assistiver kombinierter Wiederanlauf, 16. November: Vier Zustände mit Windows-Sprachausgabe, Fokus
 und nativem Replay-Gegenbeleg bestätigt. Zwei Erstversuche ohne nativen Aufruf wurden korrekt
-abgelehnt; reine Tastaturprüfung bleibt offen. Neue manuelle Helferaktion, App unverändert;
+abgelehnt; reine Tastaturprüfung war damals noch offen. Neue manuelle Helferaktion, App unverändert;
 [Nachweis](../../testing/native-combined-assistive-restart.md). Neuer Helferhash benötigt einen
-eigenen frischen ETW-Beleg; keine Übertragung des folgenden älteren Nachweises. Striktes Ziel
-unverändert, Produktintegration und weitere Fensterendeprüfung offen.
+eigenen frischen ETW-Beleg (inzwischen oben verlinkt); keine Übertragung des folgenden älteren
+Nachweises. Striktes Ziel unverändert, Produktintegration und weitere Fensterendeprüfung offen.
 
 Kombiniertes ETW, 16. November: Eigener gültiger Nachweis des gesicherten v3-Paars mit automatischer
 Serie und echtem nativem Dateidialog in getrennten kalibrierten Phasen. 80 Apps, 480 WebViews und
@@ -13,7 +21,8 @@ alle 868 Prozessenden explizit; acht Kontrollen, Nullverluste, 0 Nicht-Loopback-
 Loopback-Ereignisse. Native Abläufe/Daten/MACs unabhängig geprüft.
 [Nachweis](../../testing/native-combined-live-restart-etw.md). Kein Runtimeumbau, keine Übertragung
 auf geänderte Binaries, externe Dienste oder das Produkt. Striktes Ziel ohne
-Runtime-/Domänenausnahme unverändert; assistive und weitere Fensterendeprüfung offen.
+Runtime-/Domänenausnahme unverändert; assistive Prüfung damals offen, weitere Fensterendeprüfung
+weiterhin offen.
 
 Fortschreibung kombiniert, 16. November: Startticket/Brokervertrag v3 binden Live-Pipes an den
 initialen verbrauchten Auftrag. Recovery hat keine Auswahlhandles. Erst privater signierter

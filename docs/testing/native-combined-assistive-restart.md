@@ -1,5 +1,10 @@
 # KQ-069: Assistiver kombinierter Wiederanlauf
 
+Fortschreibung:
+[Reine Tastaturprüfung und eigener frischer ETW-Beleg](native-combined-assistive-restart-etw.md) für
+dasselbe gesicherte Paar inzwischen abgeschlossen. Die folgenden Ergebnisse und JSON-Aggregate
+beschreiben die erste Stufe einschließlich ihrer damals offenen Tastatur-/Netzprüfung.
+
 Stand: 16. November 2026. Ausschließlich Windows-Forschung und synthetische Testarchive; keine
 Produktfreigabe. [Aggregate und Hashes](native-combined-assistive-restart.json),
 [Brokervertrag v3](../data-format/native-broker-recovery-v3.md).

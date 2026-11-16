@@ -288,13 +288,21 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 ## Übergabe zwischen Codex-Sessions
 
 Aktuell:
+[Tastaturprüfung und eigener frischer ETW-Beleg des manuellen Brokerpaars](docs/testing/native-combined-assistive-restart-etw.md).
+Tastaturbedienung menschlich bestätigt, native Replay-/Fokus-/Endebelege vorhanden; zusätzliche
+Pointer-Ereignisse erlauben keine unabhängige Eingabemethodenbestimmung. Zwei gültige Phasen, acht
+Kontrollen, Nullverluste, alle 906 Enden explizit, 0 Nicht-Loopback-/514 getrennte Loopback-
+Ereignisse. Gilt nur für die dokumentierten Hashes/Lebenszeiten; externe Dienste und Produkt offen.
+Nächster Scope: weitere kombinierte Fensterendeprüfung, danach Produktablage/Updates/Migration.
+
+Aktuell:
 [Kombinierte assistive Wiederanlauf-/Fehlerprüfung](docs/testing/native-combined-assistive-restart.md)
 mit unveränderter App und neuem Helfer für vier Zustände mit ausdrücklichem Klick und nativem
-Gegenbeleg bestätigt. Zwei abgelehnte Erstversuche bleiben dokumentiert; reine Tastatur-Replay-
-Abnahme offen. `ui-broker-recover <Wurzel> manual` darf nur Bedienungsautomatik deaktivieren, keine
-neue Importautorität geben. Erst realer Replay, reguläres Ende und gesperrte Altanfrage erlauben den
-Abschlussbeleg. Neuer Helferhash benötigt einen frischen ETW-Beleg, ältere Nachweise nicht
-übertragen.
+Gegenbeleg bestätigt. Zwei abgelehnte Erstversuche bleiben dokumentiert; die anschließende
+Tastaturprüfung steht im neueren Beleg oben. `ui-broker-recover <Wurzel> manual` darf nur
+Bedienungsautomatik deaktivieren, keine neue Importautorität geben. Erst realer Replay, reguläres
+Ende und gesperrte Altanfrage erlauben den Abschlussbeleg. Neuer Helferhash besitzt den oben
+verlinkten eigenen frischen ETW-Beleg; ältere Nachweise nicht übertragen.
 
 Forschungsbuild: `KRAQEL_ISOLATION_UI_TEST=1` und `--features isolation-ui-test` gemeinsam setzen;
 vor nativem Start die gebaute `apps/desktop/dist/isolation-test.html` prüfen. Danach normale
@@ -304,11 +312,12 @@ Aktuell gelten [Startticket v3](docs/data-format/native-ui-restart-v3.md) und
 [Brokerkette v3](docs/data-format/native-broker-recovery-v3.md): Live-Auswahl nur beim neuen
 gebundenen Auftrag, keine Auswahlhandles bei Recovery. Neue native Aktion erst nach signiertem
 Abschlussbeleg; verschiedene IDs und vollständige unveränderliche Vorgängerkette prüfen. Das
-gesicherte kombinierte Paar besitzt einen
-[eigenen ETW-Beleg](docs/testing/native-combined-live-restart-etw.md), noch keinen neuen
-Hörnachweis; [Nachweis und gesichertes Paar](docs/testing/native-combined-live-restart.md).
-Schlüssel niemals in Logs/Git/Archive/Renderer geben. Fehlende oder falsche Schlüssel niemals
-automatisch ersetzen, v1-DPAPI-Daten nicht migrieren.
+ursprüngliche kombinierte Paar besitzt einen
+[eigenen ETW-Beleg](docs/testing/native-combined-live-restart-etw.md);
+[Nachweis und damaliges Paar](docs/testing/native-combined-live-restart.md). Das neuere manuelle
+Paar mit Tastatur-/Hörprüfung und eigenem ETW steht oben; die Hashpaare getrennt halten. Schlüssel
+niemals in Logs/Git/Archive/Renderer geben. Fehlende oder falsche Schlüssel niemals automatisch
+ersetzen, v1-DPAPI-Daten nicht migrieren.
 [Eigener HMAC-Netzbeleg](docs/testing/native-hmac-broker-etw.md) gilt nur für sein gesichertes Paar
 und seine Lebenszeiten, nie automatisch für Folgeänderungen. Striktes Ziel ohne OS-/Domänenausnahme
 unverändert.

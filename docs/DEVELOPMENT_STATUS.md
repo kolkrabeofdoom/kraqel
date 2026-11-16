@@ -1,18 +1,36 @@
 # Entwicklungsstatus
 
-Assistive kombinierte Prüfung, 16. November: Neuer manueller Broker-Wiederanlauf mit unveränderter
-App. Unterbrechung nach echter Dateiauswahl, Abschluss, synthetischer Abbruch und ungültiges Archiv
-mit Windows-Sprachausgabe/Fokus und nativem Replay-Gegenbeleg bestätigt. Vier reguläre manuelle
-Enden, vier gesperrte Altanfragen, vier MAC-Abschlussbelege; unabhängige Ketten-/SQLite-/Unicode-
-Prüfung bestanden. Fünf Aufträge, genau zwei legitime Kopien; Profile entfernt, Prozesse beendet.
-Zwei erste Wiederanläufe ohne nativen Replay-Gegenbeleg trotz menschlicher Bestätigung wurden
-korrekt abgelehnt und sind nicht als bestanden gezählt. Reine Tastatur-Replay-Abnahme bleibt offen;
-keine Ursache behauptet. 28 aktive Helfertests, Helfer-Clippy und `pnpm check` bestanden.
-[Nachweis](testing/native-combined-assistive-restart.md),
-[Aggregate/Hashes](testing/native-combined-assistive-restart.json). Nächster Schritt: frischer ETW-
-Netzvergleich des geänderten Helferpaars samt automatischer Regression. Der folgende ältere
-Netznachweis gilt nur für sein damaliges Hashpaar. Weitere Fensterendeprüfung und Produktintegration
-bleiben offen; striktes Datenschutzziel unverändert, Produkt-Q-01/Q-02 nicht bestanden.
+Tastatur und frisches ETW des manuellen Brokerpaars, 16. November: Eigener Tastaturvorlauf sowie
+alle vier gemessenen Wiederanlaufzustände ausschließlich per Tastatur laut menschlicher Bestätigung
+erfolgreich; Ansagen/Fokus und native Replay-Aufrufe vor Fensterende gegengeprüft.
+DOM-Pointer-Ereignisse bleiben dokumentiert, physische Eingabemethode nicht unabhängig bewiesen.
+Zwei gültige kalibrierte Erfassungen desselben gesicherten Paars, acht Kontrollen, Nullverluste,
+alle 906 Prozessenden explizit: 117 Broker, 84 Apps, 504 WebViews, 201 Console-Hosts. 0 beobachtete
+Nicht-Loopback- und 514 getrennte Loopback-Ereignisse. Automatik: neun Fälle/72 Apps/54 abgewiesene
+Folgeaktionen; manuell: vier reguläre Enden/zwölf Apps, echte initiale Dateiauswahl. MAC-/Ketten-/
+Hash-/SQLite-/Unicode- und chronologische Lebenszeitaudits bestanden: 22 verschiedene verbrauchte
+Aufträge, genau zwölf legitime Kopien, kein Replay-Duplikat. Alle Profile entfernt, Erfassungen/
+Prozesse beendet. 36 Diagnose-Tests bestanden, keine Runtime-/Auswerteränderung oder neuen Builds.
+[Nachweis](testing/native-combined-assistive-restart-etw.md),
+[Aggregate/Hashes](testing/native-combined-assistive-restart-etw.json). Nächster Scope: weitere
+kombinierte Fensterendeprüfung, danach geschützte Produktablage und Updates/Migration. Externe
+Dienste und Produktintegration bleiben offen; striktes Ziel unverändert, Produkt-Q-01/Q-02 nicht
+bestanden. Frühere zwei abgelehnte Erstversuche bleiben ausdrücklich unbestanden.
+
+Vorherige assistive kombinierte Prüfung, 16. November: Neuer manueller Broker-Wiederanlauf mit
+unveränderter App. Unterbrechung nach echter Dateiauswahl, Abschluss, synthetischer Abbruch und
+ungültiges Archiv mit Windows-Sprachausgabe/Fokus und nativem Replay-Gegenbeleg bestätigt. Vier
+reguläre manuelle Enden, vier gesperrte Altanfragen, vier MAC-Abschlussbelege; unabhängige
+Ketten-/SQLite-/Unicode- Prüfung bestanden. Fünf Aufträge, genau zwei legitime Kopien; Profile
+entfernt, Prozesse beendet. Zwei erste Wiederanläufe ohne nativen Replay-Gegenbeleg trotz
+menschlicher Bestätigung wurden korrekt abgelehnt und sind nicht als bestanden gezählt. Reine
+Tastatur-Replay-Abnahme war damals noch offen; keine Ursache behauptet. 28 aktive Helfertests,
+Helfer-Clippy und `pnpm check` bestanden. [Nachweis](testing/native-combined-assistive-restart.md),
+[Aggregate/Hashes](testing/native-combined-assistive-restart.json). Damals nächster Schritt:
+frischer ETW- Netzvergleich des geänderten Helferpaars samt automatischer Regression, inzwischen
+oben belegt. Der folgende ältere Netznachweis gilt nur für sein damaliges Hashpaar. Weitere
+Fensterendeprüfung und Produktintegration bleiben offen; striktes Datenschutzziel unverändert,
+Produkt-Q-01/Q-02 nicht bestanden.
 
 Kombinierter ETW-Nachweis, 16. November: Das unveränderte gesicherte v3-Paar ist frisch in zwei
 getrennten Phasen gemessen, einschließlich echter manueller Dateiauswahl und neuer Folgeaufträge.
@@ -22,9 +40,9 @@ getrennte Loopback-Ereignisse. Native Abläufe, MAC-/Root-/Programmhashbindung u
 Journal/SQLite/Unicode/Kopien unabhängig im Messlauf bestätigt.
 [Nachweis](testing/native-combined-live-restart-etw.md),
 [Aggregate/Hashes](testing/native-combined-live-restart-etw.json). Erfassungen/Prozesse beendet,
-Runtime und normale Debug-App unverändert. Nächster Scope: kombinierte assistive Wiederanlauf-/
-Fehlerprüfung und weitere Fensterendeprüfung. Produktablage/Updates/Migration und externe
-Dienstgrenzen bleiben offen; striktes Ziel unverändert, Produkt-Q-01/Q-02 nicht bestanden.
+Runtime und normale Debug-App unverändert. Damals nächster Scope: kombinierte assistive
+Wiederanlauf-/ Fehlerprüfung und weitere Fensterendeprüfung. Produktablage/Updates/Migration und
+externe Dienstgrenzen bleiben offen; striktes Ziel unverändert, Produkt-Q-01/Q-02 nicht bestanden.
 
 Kombinierter Live-/Neustartpfad, 16. November: Startticket und Brokerkette v3 implementiert.
 Initiale Live-Auswahl, verbrauchte IDs, authentisierter Wiederanlauf ohne Auswahlhandles und

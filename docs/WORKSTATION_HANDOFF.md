@@ -7,23 +7,34 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 16. November 2026
 
-Neuester Stand: [Kombinierter assistiver Nachweis](testing/native-combined-assistive-restart.md) für
-Unterbrechung, Abschluss, synthetischen Abbruch und ungültiges Archiv mit Hör-/Fokusbestätigung und
-nativem Replay-Gegenbeleg. Zwei Erstversuche korrekt abgelehnt, reine Tastaturabnahme offen. Neue
-Helferaktion `ui-broker-recover <Wurzel> manual`, App unverändert; neue Hashes im Nachweis. 28
-aktive Helfertests, Clippy und `pnpm check` bestanden. Alle vier Profile entfernt, keine
-Forschungsprozesse mehr. Nächster Scope: frischer ETW-Netzvergleich des neuen Paars mit
+Neuester Nachweis:
+[Tastatur und frisches ETW des manuellen Brokerpaars](testing/native-combined-assistive-restart-etw.md).
+Eigener Tastaturvorlauf plus vier gemessene Wiederanlaufzustände menschlich bestätigt und nativ
+gegengeprüft; Pointer-Ereignisse nicht als physischer Eingabenachweis auslegen. Zwei gültige Phasen,
+acht Kontrollen, Nullverluste, alle 906 Enden explizit; 0 Nicht-Loopback-/514 getrennte Loopback-
+Ereignisse. Unabhängige MAC-/Daten-/Lebenszeitaudits bestanden. Gesichertes App-/Helferpaar
+unverändert, Hashes im Nachweis; kein Runtimeumbau. Alle Profile entfernt, Messungen/Prozesse
+beendet. Nächster Scope: weitere kombinierte Fensterendeprüfung, danach
+Produktablage/Updates/Migration. Rohdaten/Schlüssel bleiben lokal; auf anderem Rechner neue
+Testwurzeln und eigener Nachweis. Keine Produktfreigabe oder Datenschutzausnahme.
+
+Vorheriger Stand: [Kombinierter assistiver Nachweis](testing/native-combined-assistive-restart.md)
+für Unterbrechung, Abschluss, synthetischen Abbruch und ungültiges Archiv mit Hör-/Fokusbestätigung
+und nativem Replay-Gegenbeleg. Zwei Erstversuche korrekt abgelehnt, reine Tastaturabnahme damals
+offen. Neue Helferaktion `ui-broker-recover <Wurzel> manual`, App unverändert; neue Hashes im
+Nachweis. 28 aktive Helfertests, Clippy und `pnpm check` bestanden. Alle vier Profile entfernt,
+keine Forschungsprozesse mehr. Damals nächster Scope: frischer ETW-Netzvergleich des neuen Paars mit
 automatischer Regression und manuellen Wiederanläufen. Alte ETW-Belege nicht übertragen.
 Rohdaten/Schlüssel nur lokal, niemals über Git transportieren; auf anderem Rechner frisch bauen und
 neue Testwurzeln verwenden. Striktes Datenschutzziel unverändert, keine Produktfreigabe.
 
-Neuester Nachweis 16. November: Frisches ETW exakt des gesicherten kombinierten v3-Paars bestanden.
+Älterer Nachweis 16. November: Frisches ETW exakt des gesicherten kombinierten v3-Paars bestanden.
 Zwei getrennt kalibrierte Phasen: Automatik einschließlich 54 abgewiesener Folgeaktionen, danach
 tatsächliche manuelle Dateiauswahl mit Wiederanlauf/neuem Auftrag/Replay. 114 Broker/80 Apps/480
 WebViews/194 Console-Hosts, 868 explizite Enden, acht Kontrollen, Nullverluste, 0 Nicht-Loopback-
 und 480 getrennte Loopback-Ereignisse. Daten/MACs und Generationszuordnung unabhängig geprüft.
 [Nachweis und Grenzen](testing/native-combined-live-restart-etw.md). Alle Profile entfernt,
-Erfassungen/Prozesse beendet, Paar unverändert. Nächster Scope: kombinierte assistive
+Erfassungen/Prozesse beendet, Paar unverändert. Damals nächster Scope: kombinierte assistive
 Wiederanlauf-/Fehlerprüfung und weitere Fensterendeprüfung mit genau diesem Paar. Produktintegration
 und externe Dienste weiter offen; keine Übertragung auf Folgeänderungen, striktes Datenschutzziel
 unverändert.
