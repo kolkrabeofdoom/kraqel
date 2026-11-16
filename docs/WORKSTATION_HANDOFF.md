@@ -7,6 +7,14 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 15. November 2026
 
+Aktualisierung 16. November: Replay-/Fehlerprüfung und Fensterende am Publish-Haltepunkt bestanden.
+Neuer gültiger ETW-Nachweis für drei vollständige Forschungs-App-Bäume: 0 Ereignisse außerhalb
+Loopback, vier Kontrollen, Nullverluste. Replay-Anzeigefehler korrigiert.
+[Exakter Buildbezug und offene Aufgaben](testing/native-live-file-selection.md). Rohdiagnosen
+bleiben lokal, ETW-Sitzung beendet. Nach Messung Typalias zur Clippy-Korrektur ohne neuen
+Binärnachweis. Striktes Ziel unverändert; nächste Prüfung: Appende bei offenem Dialog/Transfer,
+Screenreader/Fokus und externe Brokergrenzen. Keine Produktfreigabe, #134 bleibt offen.
+
 Fortschreibung 16. November: `ui-live` ergänzt die Auswahl aus dem laufenden isolierten
 Forschungsfenster. Native Erfolg-/Dialogabbruchserie und unabhängige SQLite-/Cleanup-Prüfung
 bestanden. [Nachweis und verbleibende Schritte](testing/native-live-file-selection.md). Replay,

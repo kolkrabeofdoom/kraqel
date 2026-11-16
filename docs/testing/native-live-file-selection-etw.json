@@ -1,0 +1,67 @@
+{
+  "formatVersion": 1,
+  "diagnosticOnly": true,
+  "productionAcceptance": false,
+  "appSha256": "51d4e39f0ac0d2d33129c2b191d70a8ff7aae7c4322c21e03b42d0b6c66ce10e",
+  "controllerSha256": "c866bae71a69b23361d5c29c1855c2938c9630513bce3a51cbb35a8cee24cbb8",
+  "startedUtc": "2026-11-16T06:27:23.8665633Z",
+  "stoppedUtc": "2026-11-16T06:30:15.7033651Z",
+  "etlBytes": 3080192,
+  "measurementValid": true,
+  "measurementProblems": [],
+  "rootStarts": 3,
+  "processLifetimes": {
+    "kraqel-isolation-probe.exe": 3,
+    "kraqel-desktop.exe": 3,
+    "conhost.exe": 3,
+    "msedgewebview2.exe": 18
+  },
+  "loss": { "EventsLost": 0, "BuffersLost": 0 },
+  "positiveControls": { "expected": 4, "observed": 4 },
+  "unattributableNetworkEvents": 0,
+  "unknownDestinationEvents": 0,
+  "nonLoopbackEvents": 0,
+  "loopbackEvents": [
+    { "eventId": 13, "count": 11 },
+    { "eventId": 29, "count": 11 }
+  ],
+  "nativeRuns": [
+    {
+      "scenario": "import-replay",
+      "verificationPassed": true,
+      "projectCopies": 1,
+      "replayRejected": true,
+      "noStagingResidue": true,
+      "profileRemoved": true,
+      "activeJobProcessesAtEnd": 0
+    },
+    {
+      "scenario": "invalid-replay",
+      "verificationPassed": true,
+      "expectedError": "IMPORT_FAILED",
+      "controllerPassed": false,
+      "controllerExitCode": 1,
+      "appExitCode": 0,
+      "projectCopies": 0,
+      "replayRejected": true,
+      "noStagingResidue": true,
+      "profileRemoved": true,
+      "activeJobProcessesAtEnd": 0
+    },
+    {
+      "scenario": "close-at-publish",
+      "verificationPassed": true,
+      "expectedError": "CANCELLED",
+      "projectCopies": 0,
+      "noStagingResidue": true,
+      "profileRemoved": true,
+      "activeJobProcessesAtEnd": 0
+    }
+  ],
+  "limits": [
+    "Synthetic research build and captured process lifetimes only; no product privacy acceptance.",
+    "No causal attribution of out-of-tree COM/Shell services, DNS/broker paths or compromised runtime processes.",
+    "Transport metadata, not an HTTP, upload or payload audit.",
+    "A subsequent type-alias-only Clippy correction in transport.rs is not a newly measured binary build."
+  ]
+}

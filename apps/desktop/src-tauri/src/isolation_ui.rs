@@ -171,7 +171,13 @@ async fn isolation_test_import(
     let inner = Arc::clone(&state.0);
     let source = {
         let mut slot = inner.grant.lock().map_err(|_| TaskError::ImportFailed)?;
-        let grant = slot.take().ok_or(TaskError::AlreadyConsumed)?;
+        let Some(grant) = slot.take() else {
+            let _ = fs::write(
+                inner.data.join("ui-replay.json"),
+                b"{\"replayRejected\":true}",
+            );
+            return Err(TaskError::AlreadyConsumed);
+        };
         inner.phase.store(1, Ordering::SeqCst);
         grant
     };

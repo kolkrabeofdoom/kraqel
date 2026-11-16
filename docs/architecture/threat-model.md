@@ -1,5 +1,13 @@
 # Bedrohungsmodell (Entwurf)
 
+Fortschreibung Live-Kanal: Der Replay-Anzeigefehler nach Importfehler ist korrigiert und als
+Browserregression geprüft; Rust protokolliert Ablehnung datenarm. Neue native Erfolg-/Fehler-/
+Fensterendeserie und ETW des korrigierten Forschungsbuilds: drei vollständige Bäume, vier positive
+Kontrollen, Nullverluste, keine Ereignisse außerhalb Loopback; SQLite und Cleanup unabhängig
+bestätigt. [Exakte Build-/Messgrenzen](../testing/native-live-file-selection.md). Appende bei
+offenem Dialog/Transfer, assistive Prüfung und externe COM-/Shell-/DNS-/Brokerpfade bleiben offen.
+Kein Produkt-Q-01/Q-02-Pass und keine Lockerung des strikten Datenschutzziels.
+
 KQ-069-Fortschreibung: `ui-live` erlaubt aus der laufenden isolierten Forschungs-App genau ein
 festes Auswahlsignal über ein gezielt vererbtes Pipe-Handle. Hostauswahl ausschließlich einer
 synthetischen Datei; zweite Pipe liefert begrenzten Auftrag und Archivbytes zurück. Renderer

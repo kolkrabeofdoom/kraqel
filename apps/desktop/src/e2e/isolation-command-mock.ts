@@ -8,6 +8,10 @@ export async function isolationCommand(command: string): Promise<unknown> {
   if (command === "isolation_test_import") {
     if (consumed) throw "ALREADY_CONSUMED";
     consumed = true;
+    if (new URLSearchParams(location.search).get("isolationFailImport") === "1") {
+      current = { phase: "failed", error: "IMPORT_FAILED", receipt: null };
+      return current;
+    }
     current = { phase: "awaiting", error: null, receipt: null };
     return new Promise<View>((resolve) => {
       pending = resolve;

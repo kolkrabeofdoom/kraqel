@@ -12,6 +12,7 @@ const start = document.querySelector<HTMLButtonElement>("#import")!;
 const proceed = document.querySelector<HTMLButtonElement>("#continue")!;
 const cancel = document.querySelector<HTMLButtonElement>("#cancel")!;
 const replay = document.querySelector<HTMLButtonElement>("#replay")!;
+let actionError: string | null = null;
 const errors: Record<string, string> = {
   ALREADY_CONSUMED:
     "Dieser Auftrag ist bereits verbraucht. Es wurde kein zweites Projekt angelegt.",
@@ -32,8 +33,9 @@ function render(view: View) {
     failed: "Der Import wurde nicht abgeschlossen.",
   };
   if (status.textContent !== messages[view.phase]) status.textContent = messages[view.phase];
-  if (view.error && error.textContent !== errors[view.error])
-    error.textContent = errors[view.error] ?? "Der Auftrag wurde abgelehnt.";
+  const message =
+    actionError ?? (view.error ? (errors[view.error] ?? "Der Auftrag wurde abgelehnt.") : "");
+  if (error.textContent !== message) error.textContent = message;
   start.disabled = view.phase !== "ready";
   proceed.disabled = view.phase !== "awaiting";
   cancel.disabled = !["ready", "running", "awaiting"].includes(view.phase);
@@ -47,11 +49,12 @@ async function refresh() {
   }
 }
 async function action(command: string) {
+  actionError = null;
   error.textContent = "";
   try {
     await invoke(command);
   } catch (reason) {
-    error.textContent = errors[String(reason)] ?? "Der Auftrag wurde abgelehnt.";
+    actionError = errors[String(reason)] ?? "Der Auftrag wurde abgelehnt.";
   }
   await refresh();
 }

@@ -32,6 +32,9 @@ beenden. Automatisches Schließen des Shell-Dialogs und assistive Fokusführung 
 Tests: neuer Decoderfall prüft jede Verkürzung einer gültigen Nachricht, falsche Bindung, Ablauf,
 zusätzliche Bytes, neutrale Abbruchantwort und übergroßen Frame. Bestehende 18
 Helfer-/Transporttests und zwei neue Tests bestehen; Feature-Clippy ist grün. Native Auswahl/Abbruch
-und unabhängige SQLite-/Cleanup-Prüfung bestehen. Fehleransagen, Appende während Auswahl/Transfer
-sowie ETW dieses Builds stehen aus. Striktes Datenschutzziel unverändert; Q-01/Q-02 für das Produkt
-bleiben nicht bestanden.
+und unabhängige SQLite-/Cleanup-Prüfung bestehen. Replay nach Erfolg/Fehler sowie Fensterende am
+Publish-Haltepunkt nativ geprüft; Replay-Ansage bleibt nun über Statusaktualisierungen erhalten. ETW
+des korrigierten Forschungsbuilds: drei vollständige Bäume, vier Kontrollen, Nullverluste, 0
+Nicht-Loopback-Ereignisse. [Buildgrenzen und Aggregate](../testing/native-live-file-selection.md).
+Appende während Auswahl/Transfer und assistive Abnahme bleiben offen. Striktes Datenschutzziel
+unverändert; Q-01/Q-02 für das Produkt bleiben nicht bestanden.

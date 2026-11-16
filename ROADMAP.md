@@ -105,8 +105,10 @@
              Windows-Build, Unicode/SQLite und Cleanup unabhängig bestätigt, kein neuer ETW-Lauf
        - [x] KQ-069 A: Synthetische Auswahl aus laufender Forschungs-App und Dialogabbruch
              implementieren und funktional nativ prüfen; SQLite/Unicode und Cleanup bestätigt
-       - [ ] KQ-069 A: Replay, Fehler-/Fokus-/Fensterendeprüfung und ETW des Live-Kanals; Assistenz
-             und dauerhafte Crash-Reconciliation; weitere Formate/Git-/Providergrenzen;
+       - [x] KQ-069 A: Replay nach Erfolg/Fehler, Fensterende am Publish-Haltepunkt und ETW des
+             korrigierten Forschungsbuilds prüfen; drei vollständige Bäume ohne Nicht-Loopback
+       - [ ] KQ-069 A: Appende bei offenem Dialog/Transfer, assistive Fokus-/Fehlerprüfung und
+             dauerhafte Crash-Reconciliation; weitere Formate/Git-/Providergrenzen;
              UDP/IPv6/DNS/Broker kalibrieren; Packaging und F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)

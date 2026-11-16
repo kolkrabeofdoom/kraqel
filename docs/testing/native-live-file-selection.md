@@ -1,5 +1,49 @@
 # Dateiauswahl aus laufender isolierter App · KQ-069 / #134
 
+## Fortschreibung: Replay, Fehler, Fensterende und ETW
+
+16. November 2026: Replay nach Erfolg und nach beschädigtem Archiv nativ geprüft. Dabei gefunden:
+    Die regelmäßige Statusaktualisierung überschrieb die Replay-Ansage mit dem alten Importfehler.
+    Die Oberfläche hält nun den Fehler der letzten Aktion stabil. Ein neuer Browsertest prüft das
+    über zwei Aktualisierungsintervalle hinweg. Rust schreibt einen datenarmen
+    Replay-Ablehnungsmarker.
+
+Am korrigierten App-Build `51d4e39f0ac0d2d33129c2b191d70a8ff7aae7c4322c21e03b42d0b6c66ce10e` mit
+Controller `c866bae71a69b23361d5c29c1855c2938c9630513bce3a51cbb35a8cee24cbb8` sind anschließend drei
+vollständige Sitzungen innerhalb einer ETW-Aufzeichnung geprüft:
+
+- Import und Replay: genau eine neue Projektkopie, zwei Dokumente, exakter Unicode-Text,
+  SQLite-Integrität und Fremdschlüssel nach Prozessende unabhängig bestätigt. Replaymarker
+  vorhanden.
+- Beschädigtes Archiv und Replay: `IMPORT_FAILED`, keine Receipt, Projektwurzel einschließlich
+  Staging leer, Replaymarker vorhanden. Controller `passed: false` und Exitcode 1 sind hier das
+  erwartete Importfehlerergebnis; die App endet mit 0. Die unabhängige Fehlerprüfung besteht.
+- Fenster am Publish-Haltepunkt über X schließen: `CANCELLED`, keine Kopie oder Stagingreste.
+
+Alle drei: Root-Token vor Fortsetzung geprüft, erwartete AppContainer-Identität, null Capabilities,
+beide Handle-Vererbungsflags vor WebView-Start entfernt/geprüft; null Jobprozesse, Profile entfernt.
+Die testende Person bedient die nativen Fenster; die Auswertung erfolgt unabhängig nach Prozessende.
+
+Gültiges ETW vom **16. November 2026, 06:27:23.8665633–06:30:15.7033651 UTC**: drei Controller-,
+drei App-, drei Console-Host- und 18 WebView2-Prozesslebenszeiten vollständig zugeordnet. Vier/vier
+positive TCP-/UDP-Kontrollen über IPv4/IPv6, null Ereignis-/Pufferverluste, keine Zuordnungslücken
+oder unbekannten Ziele. **0 Ereignisse außerhalb Loopback**; 22 Loopback-Disconnects (Event 13/29
+jeweils elf) getrennt ausgewiesen. [Bereinigte Messdaten](native-live-file-selection-etw.json).
+ETL/XML, lokale Pfade/PIDs und fremde Prozessdaten bleiben lokal. Die eigene ETW-Sitzung ist
+beendet.
+
+Danach wurde ausschließlich der komplexe Rückgabetyp in `transport.rs` durch einen Typalias benannt,
+um die Windows-Clippy-CI zu korrigieren. Das verändert keinen Laufzeitpfad, ist aber kein neuer
+gemessener Binärstand. Die gemessenen EXEs sind separat gesichert; die obigen Hashes gelten für die
+Messung. Keine ETW-Abnahme eines danach neu gebauten Executables behauptet.
+
+Weiter offen: Appende bei offenem nativem Dialog oder während Transfer, echte Screenreader-/Fokus-
+und Zeitgrenzenabnahme, externe COM-/Shell-/DNS-/Brokergegenproben und dauerhafter Auftrags-/Crash-
+Lebenszyklus. Normale Produktstarts bleiben unisoliert. Q-01/Q-02 für das Produkt bleiben nicht
+bestanden; #134 bleibt offen. Das strikte Datenschutzziel bleibt bestehen.
+
+Die folgende Serie dokumentiert den früheren Build und wird durch diese Fortschreibung ergänzt.
+
 16. November 2026, Windows, synthetische Fixture, native Bedienung durch die testende Person.
     Forschungsmodus `ui-live`, kein produktiver Launcher.
     [Kanalvertrag und Grenzen](../data-format/native-live-file-channel-v2.md).

@@ -85,6 +85,8 @@ mod native {
         pub data_root: PathBuf,
     }
 
+    type LiveReply = Option<(FileTask, std::io::Cursor<Vec<u8>>)>;
+
     pub struct LiveSession {
         request: File,
         response: File,
@@ -92,10 +94,7 @@ mod native {
         pub data_root: PathBuf,
     }
     impl LiveSession {
-        pub fn select(
-            mut self,
-            cancelled: impl Fn() -> bool,
-        ) -> Result<Option<(FileTask, std::io::Cursor<Vec<u8>>)>, ChannelError> {
+        pub fn select(mut self, cancelled: impl Fn() -> bool) -> Result<LiveReply, ChannelError> {
             self.request.write_all(&[1]).map_err(|_| ChannelError::Io)?;
             drop(self.request);
             let mut bytes = Vec::new();
@@ -148,7 +147,7 @@ mod native {
         mut bytes: Vec<u8>,
         expected: Uuid,
         now: u64,
-    ) -> Result<Option<(FileTask, std::io::Cursor<Vec<u8>>)>, ChannelError> {
+    ) -> Result<LiveReply, ChannelError> {
         if bytes == [0] {
             return Ok(None);
         }

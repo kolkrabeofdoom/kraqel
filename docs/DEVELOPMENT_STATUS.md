@@ -1,5 +1,15 @@
 # Entwicklungsstatus
 
+KQ-069-Fortschreibung 16. November: Replay nach Erfolg/Importfehler und Fensterende am
+Publish-Haltepunkt nativ bestanden; überschriebenen Replay-Hinweis korrigiert und browserseitig
+regressionsgeprüft. Drei vollständige Läufe desselben korrigierten Forschungsbuilds mit gültigem
+ETW: vier Messkontrollen, Nullverluste, 0 Ereignisse außerhalb Loopback, 22 Loopback-Disconnects.
+SQLite/Unicode, Kopienzahl, Replay und Cleanup unabhängig geprüft.
+[Nachweis und exakte Binärgrenzen](testing/native-live-file-selection.md),
+[Aggregate](testing/native-live-file-selection-etw.json). Nachträglicher Typalias für Clippy
+gesondert ausgewiesen. Produkt-Q-01/Q-02 weiter nicht bestanden; #134 offen. Nächster Scope: Appende
+bei offenem Dialog/Transfer, assistive Fokus-/Fehlerprüfung und externe Brokergrenzen.
+
 Nachtrag KQ-069 Live-Auswahl, 16. November 2026: Forschungsmodus `ui-live` implementiert. Native
 Auswahl aus laufender isolierter App und Dialogabbruch funktional bestätigt; Unicode/SQLite und
 Cleanup unabhängig geprüft. [Nachweis](testing/native-live-file-selection.md) und
