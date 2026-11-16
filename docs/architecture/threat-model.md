@@ -1,5 +1,14 @@
 # Bedrohungsmodell (Entwurf)
 
+[Kontroll-Crash-Serie und eigener ETW-Beleg](../testing/native-product-control-crash-etw.md): 28
+harte Prozessabbrüche mit frischen synthetischen Wurzeln; 17 unvollständige Zustände bleiben
+gesperrt, elf nutzbar, acht ausdrücklich weitergeführt. Kein Reset/automatisches Reparieren. Faults
+ausschließlich im begrenzten TEMP-Testpfad, standardmäßig aus; bestehende Vorschauablage unbenutzt.
+Zwei getrennt kalibrierte gültige Messphasen, acht Kontrollen, Nullverluste, 1.136 explizite Enden
+und 0 beobachtete Nicht-Loopback-/444 getrennte Loopback-Ereignisse. Keine
+Produkt-/Herausgeberabnahme, Stromausfall-/Checkpoint-Rollbackgarantie oder vollständige externe
+Dienstkausalität. Striktes Ziel unverändert; Produktstarter und echte Datenmigration offen.
+
 [Native Kontrollablage-Vorschau](../testing/native-product-control.md): Geschützte lokale Wurzel,
 private zufällige MAC-Schlüssel, exklusive Sperre, unveränderliche Recordkette und eigener Kopf.
 Lokaler Programmwechsel benötigt erwartete SHA/aktuellen Kopf und explizite Aktivierung; aktive Jobs

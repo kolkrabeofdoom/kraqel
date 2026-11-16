@@ -5,7 +5,9 @@ use windows_sys::Win32::Security::{
     ACCESS_ALLOWED_ACE, ACL, ACL_SIZE_INFORMATION, AclSizeInformation,
 };
 use zeroize::Zeroizing;
+mod crash;
 mod secure_fs;
+pub(in super::super::super::super) use crash::{child as crash_child, series as crash_series};
 use secure_fs::{
     binary_pin, local_path, path_wide, pin_directories, private_acl, protected_file,
     secure_directory,
@@ -150,6 +152,7 @@ impl Store {
         ] {
             secure_directory(&path)?;
         }
+        crash::hit(crash::Point::BeforeKey);
         let lock = io(
             "product-create-lock",
             OpenOptions::new()
@@ -170,6 +173,7 @@ impl Store {
         )?;
         io("product-key-write", file.write_all(key.as_ref()))?;
         io("product-key-sync", file.sync_all())?;
+        crash::hit(crash::Point::KeySynced);
         drop(file);
         drop(lock);
         let installation = Uuid::new_v4();
@@ -387,6 +391,7 @@ impl Store {
         };
         let bytes = serde_json::to_vec(&record).map_err(|_| invalid("product-record-encode"))?;
         let wire = sealed(&bytes, &self.key)?;
+        crash::hit(crash::Point::BeforeRecord);
         write_record(&self.root, record.sequence, &wire)?;
         write_head(
             &self.root,
@@ -427,8 +432,14 @@ impl Store {
             "product-copy-create",
             OpenOptions::new().write(true).create_new(true).open(&path),
         )?;
+        io(
+            "product-copy-prefix",
+            std::io::copy(&mut (&mut source).take(1024), &mut dest),
+        )?;
+        crash::hit(crash::Point::PackagePartial);
         io("product-copy", std::io::copy(&mut source, &mut dest))?;
         io("product-copy-sync", dest.sync_all())?;
+        crash::hit(crash::Point::PackageSynced);
         drop(dest);
         if hash(&path)? != actual {
             return Err(invalid("product-copy-hash"));
@@ -547,8 +558,11 @@ fn write_record(root: &Path, sequence: usize, bytes: &[u8]) -> Result<()> {
                 .join(format!("{sequence:04}.mac")),
         ),
     )?;
+    crash::hit(crash::Point::RecordCreated);
     io("product-record-write", file.write_all(bytes))?;
-    io("product-record-sync", file.sync_all())
+    io("product-record-sync", file.sync_all())?;
+    crash::hit(crash::Point::RecordSynced);
+    Ok(())
 }
 fn write_head(
     root: &Path,
@@ -581,6 +595,7 @@ fn write_head(
     )?;
     io("product-head-write", file.write_all(&wire))?;
     io("product-head-sync", file.sync_all())?;
+    crash::hit(crash::Point::HeadStaged);
     drop(file);
     check(
         unsafe {
@@ -591,7 +606,9 @@ fn write_head(
             )
         },
         "product-head-commit",
-    )
+    )?;
+    crash::hit(crash::Point::HeadPublished);
+    Ok(())
 }
 fn default_root() -> Result<PathBuf> {
     let local = std::env::var_os("USERPROFILE").ok_or(invalid("product-local-data-missing"))?;

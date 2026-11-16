@@ -1,0 +1,818 @@
+{
+  "formatVersion": 1,
+  "nativePreviewOnly": true,
+  "productionAcceptance": false,
+  "sourceBaseCommit": "43e7392e1fa9835329aa82688c47aef4ac7150a3",
+  "baseBinarySha256": "ce94779f7b156adb739a1b48321344e49ffdf0148ec4b879529b3a509f89859f",
+  "candidateBinarySha256": "cdf352f4afcc0d9aab921be0a14dbcdd71c69af2322c4f63da609027e8d30442",
+  "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+  "analyzerSha256": "387d4f37634261e7149b80e54353ea8104977190483c80c290b09b64eb58f9ff",
+  "functionalSeries": {
+    "formatVersion": 1,
+    "nativePreviewOnly": true,
+    "productionAcceptance": false,
+    "independentAuditPassed": true,
+    "baseBinarySha256": "ce94779f7b156adb739a1b48321344e49ffdf0148ec4b879529b3a509f89859f",
+    "candidateBinarySha256": "cdf352f4afcc0d9aab921be0a14dbcdd71c69af2322c4f63da609027e8d30442",
+    "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+    "crashCases": 28,
+    "controllerCrashes": 28,
+    "blockedCases": 17,
+    "readyCases": 11,
+    "explicitlyReconciledCases": 8,
+    "childProcesses": 162,
+    "childExitCodes": {
+      "0": 76,
+      "1": 58,
+      "86": 28
+    },
+    "macChainsAndHeadStatesVerified": true,
+    "canonicalRootBindingsVerified": true,
+    "keyResets": 0,
+    "actualContainerDenials": 12,
+    "allGuiTestProfilesRemoved": true,
+    "normalPreviewStoreUsed": false,
+    "cases": [
+      {
+        "action": "init",
+        "point": "before-key",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "init",
+        "point": "key-synced",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "init",
+        "point": "record-created",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "init",
+        "point": "record-synced",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "init",
+        "point": "head-staged",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "init",
+        "point": "head-published",
+        "readyAfterCrash": true,
+        "explicitlyReconciled": true,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "migrate",
+        "point": "before-record",
+        "readyAfterCrash": true,
+        "explicitlyReconciled": true,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "migrate",
+        "point": "record-created",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "migrate",
+        "point": "record-synced",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "migrate",
+        "point": "head-staged",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "migrate",
+        "point": "head-published",
+        "readyAfterCrash": true,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "prepare",
+        "point": "before-record",
+        "readyAfterCrash": true,
+        "explicitlyReconciled": true,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "prepare",
+        "point": "record-created",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "prepare",
+        "point": "record-synced",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "prepare",
+        "point": "head-staged",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "prepare",
+        "point": "head-published",
+        "readyAfterCrash": true,
+        "explicitlyReconciled": true,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "prepare",
+        "point": "package-partial",
+        "readyAfterCrash": true,
+        "explicitlyReconciled": true,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "prepare",
+        "point": "package-synced",
+        "readyAfterCrash": true,
+        "explicitlyReconciled": true,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "activate",
+        "point": "before-record",
+        "readyAfterCrash": true,
+        "explicitlyReconciled": true,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "activate",
+        "point": "record-created",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "activate",
+        "point": "record-synced",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "activate",
+        "point": "head-staged",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "activate",
+        "point": "head-published",
+        "readyAfterCrash": true,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "abort",
+        "point": "before-record",
+        "readyAfterCrash": true,
+        "explicitlyReconciled": true,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "abort",
+        "point": "record-created",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "abort",
+        "point": "record-synced",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "abort",
+        "point": "head-staged",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "abort",
+        "point": "head-published",
+        "readyAfterCrash": true,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      }
+    ],
+    "networkMeasurement": false
+  },
+  "measurementValid": true,
+  "nonLoopbackEvents": 0,
+  "separateLoopbackEvents": 444,
+  "positiveControls": {
+    "expected": 8,
+    "observed": 8
+  },
+  "explicitProcessStops": 1136,
+  "processLifetimes": {
+    "kraqel-isolation-probe.exe": 242,
+    "conhost.exe": 346,
+    "kraqel-desktop.exe": 74,
+    "msedgewebview2.exe": 444,
+    "candidate.exe": 30
+  },
+  "measuredSyntheticImportTasks": 20,
+  "measuredLegitimateProjectCopies": 13,
+  "normalPreviewStoreUsed": false,
+  "phases": [
+    {
+      "formatVersion": 1,
+      "measurementMode": "broker-ui",
+      "measurementValid": true,
+      "measurementProblems": [],
+      "result": "no-non-loopback-traffic-observed",
+      "rootStarts": 1,
+      "processLifetimes": {
+        "kraqel-isolation-probe.exe": 109,
+        "conhost.exe": 181,
+        "kraqel-desktop.exe": 72,
+        "msedgewebview2.exe": 432
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "unattributableNetworkEvents": 0,
+      "unknownDestinationEvents": 0,
+      "networkEvents": [
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 13,
+          "destinationScope": "loopback",
+          "count": 216
+        },
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 29,
+          "destinationScope": "loopback",
+          "count": 216
+        }
+      ],
+      "nonLoopbackEvents": 0,
+      "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths. Out-of-tree COM/Shell services are not attributed by this process-tree measurement.",
+      "captureReadyUtc": "2026-11-16T13:13:09.1652762Z",
+      "traceStoppedUtc": "2026-11-16T13:16:19.3561958Z",
+      "convertedUtc": "2026-11-16T13:16:20.1797827Z",
+      "etlBytes": 5570560,
+      "lifecycleAudit": {
+        "independentLifecycleAuditPassed": true,
+        "rootStarts": 1,
+        "orderedAppGenerationsMatched": 72,
+        "explicitProcessStops": 794,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 109,
+          "conhost.exe": 181,
+          "kraqel-desktop.exe": 72,
+          "msedgewebview2.exe": 432
+        },
+        "brokerExitCodes": {
+          "0": 37,
+          "86": 18,
+          "1": 54
+        },
+        "appExitCodes": {
+          "0": 18,
+          "77": 54
+        },
+        "seedAppExitCodes": {
+          "0": 18
+        },
+        "webViewsPerAppDistribution": {
+          "6": 72
+        }
+      },
+      "dataAudit": {
+        "independentAuditPassed": true,
+        "authorityAndSettlementMacsVerified": true,
+        "rootAndProgramBindingsVerified": true,
+        "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+        "controllerSha256": "ce94779f7b156adb739a1b48321344e49ffdf0148ec4b879529b3a509f89859f",
+        "taskStates": {
+          "interrupted": 5,
+          "succeeded": 11,
+          "failed": 2
+        },
+        "cases": [
+          {
+            "point": "claimed",
+            "mode": "fixture",
+            "states": ["interrupted", "succeeded"],
+            "projectCopies": 1,
+            "distinctTasks": 2,
+            "appGenerations": 8
+          },
+          {
+            "point": "reading",
+            "mode": "fixture",
+            "states": ["interrupted", "succeeded"],
+            "projectCopies": 1,
+            "distinctTasks": 2,
+            "appGenerations": 8
+          },
+          {
+            "point": "prepared",
+            "mode": "fixture",
+            "states": ["interrupted", "succeeded"],
+            "projectCopies": 1,
+            "distinctTasks": 2,
+            "appGenerations": 8
+          },
+          {
+            "point": "commitIntent",
+            "mode": "fixture",
+            "states": ["interrupted", "succeeded"],
+            "projectCopies": 1,
+            "distinctTasks": 2,
+            "appGenerations": 8
+          },
+          {
+            "point": "published",
+            "mode": "fixture",
+            "states": ["succeeded", "succeeded"],
+            "projectCopies": 2,
+            "distinctTasks": 2,
+            "appGenerations": 8
+          },
+          {
+            "point": "completed",
+            "mode": "fixture",
+            "states": ["succeeded", "succeeded"],
+            "projectCopies": 2,
+            "distinctTasks": 2,
+            "appGenerations": 8
+          },
+          {
+            "point": "completed",
+            "mode": "cancel",
+            "states": ["failed", "succeeded"],
+            "projectCopies": 1,
+            "distinctTasks": 2,
+            "appGenerations": 8
+          },
+          {
+            "point": "completed",
+            "mode": "invalid",
+            "states": ["failed", "succeeded"],
+            "projectCopies": 1,
+            "distinctTasks": 2,
+            "appGenerations": 8
+          },
+          {
+            "point": "reading",
+            "mode": "partial",
+            "states": ["interrupted", "succeeded"],
+            "projectCopies": 1,
+            "distinctTasks": 2,
+            "appGenerations": 8
+          }
+        ]
+      }
+    },
+    {
+      "formatVersion": 1,
+      "measurementMode": "broker-ui",
+      "measurementValid": true,
+      "measurementProblems": [],
+      "result": "no-non-loopback-traffic-observed",
+      "rootStarts": 1,
+      "processLifetimes": {
+        "kraqel-isolation-probe.exe": 133,
+        "conhost.exe": 165,
+        "candidate.exe": 30,
+        "kraqel-desktop.exe": 2,
+        "msedgewebview2.exe": 12
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "unattributableNetworkEvents": 0,
+      "unknownDestinationEvents": 0,
+      "networkEvents": [
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 13,
+          "destinationScope": "loopback",
+          "count": 6
+        },
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 29,
+          "destinationScope": "loopback",
+          "count": 6
+        }
+      ],
+      "nonLoopbackEvents": 0,
+      "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths. Out-of-tree COM/Shell services are not attributed by this process-tree measurement.",
+      "captureReadyUtc": "2026-11-16T13:16:20.2200728Z",
+      "traceStoppedUtc": "2026-11-16T13:17:17.9081041Z",
+      "convertedUtc": "2026-11-16T13:17:18.0761632Z",
+      "etlBytes": 1245184,
+      "lifecycleAudit": {
+        "independentLifecycleAuditPassed": true,
+        "rootStarts": 1,
+        "orderedControllerChildrenMatched": 162,
+        "orderedAppGenerationsMatched": 2,
+        "explicitProcessStops": 342,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 133,
+          "conhost.exe": 165,
+          "candidate.exe": 30,
+          "kraqel-desktop.exe": 2,
+          "msedgewebview2.exe": 12
+        },
+        "controllerExitCodes": {
+          "0": 77,
+          "86": 28,
+          "1": 58
+        },
+        "appExitCodes": {
+          "77": 2
+        },
+        "webViewsPerApp": 6
+      },
+      "dataAudit": {
+        "formatVersion": 1,
+        "nativePreviewOnly": true,
+        "productionAcceptance": false,
+        "independentAuditPassed": true,
+        "baseBinarySha256": "ce94779f7b156adb739a1b48321344e49ffdf0148ec4b879529b3a509f89859f",
+        "candidateBinarySha256": "cdf352f4afcc0d9aab921be0a14dbcdd71c69af2322c4f63da609027e8d30442",
+        "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+        "crashCases": 28,
+        "controllerCrashes": 28,
+        "blockedCases": 17,
+        "readyCases": 11,
+        "explicitlyReconciledCases": 8,
+        "childProcesses": 162,
+        "childExitCodes": {
+          "0": 76,
+          "1": 58,
+          "86": 28
+        },
+        "macChainsAndHeadStatesVerified": true,
+        "canonicalRootBindingsVerified": true,
+        "keyResets": 0,
+        "actualContainerDenials": 12,
+        "allGuiTestProfilesRemoved": true,
+        "normalPreviewStoreUsed": false,
+        "cases": [
+          {
+            "action": "init",
+            "point": "before-key",
+            "readyAfterCrash": false,
+            "explicitlyReconciled": false,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "init",
+            "point": "key-synced",
+            "readyAfterCrash": false,
+            "explicitlyReconciled": false,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "init",
+            "point": "record-created",
+            "readyAfterCrash": false,
+            "explicitlyReconciled": false,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "init",
+            "point": "record-synced",
+            "readyAfterCrash": false,
+            "explicitlyReconciled": false,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "init",
+            "point": "head-staged",
+            "readyAfterCrash": false,
+            "explicitlyReconciled": false,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "init",
+            "point": "head-published",
+            "readyAfterCrash": true,
+            "explicitlyReconciled": true,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "migrate",
+            "point": "before-record",
+            "readyAfterCrash": true,
+            "explicitlyReconciled": true,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "migrate",
+            "point": "record-created",
+            "readyAfterCrash": false,
+            "explicitlyReconciled": false,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "migrate",
+            "point": "record-synced",
+            "readyAfterCrash": false,
+            "explicitlyReconciled": false,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "migrate",
+            "point": "head-staged",
+            "readyAfterCrash": false,
+            "explicitlyReconciled": false,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "migrate",
+            "point": "head-published",
+            "readyAfterCrash": true,
+            "explicitlyReconciled": false,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "prepare",
+            "point": "before-record",
+            "readyAfterCrash": true,
+            "explicitlyReconciled": true,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "prepare",
+            "point": "record-created",
+            "readyAfterCrash": false,
+            "explicitlyReconciled": false,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "prepare",
+            "point": "record-synced",
+            "readyAfterCrash": false,
+            "explicitlyReconciled": false,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "prepare",
+            "point": "head-staged",
+            "readyAfterCrash": false,
+            "explicitlyReconciled": false,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "prepare",
+            "point": "head-published",
+            "readyAfterCrash": true,
+            "explicitlyReconciled": true,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "prepare",
+            "point": "package-partial",
+            "readyAfterCrash": true,
+            "explicitlyReconciled": true,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "prepare",
+            "point": "package-synced",
+            "readyAfterCrash": true,
+            "explicitlyReconciled": true,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "activate",
+            "point": "before-record",
+            "readyAfterCrash": true,
+            "explicitlyReconciled": true,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "activate",
+            "point": "record-created",
+            "readyAfterCrash": false,
+            "explicitlyReconciled": false,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "activate",
+            "point": "record-synced",
+            "readyAfterCrash": false,
+            "explicitlyReconciled": false,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "activate",
+            "point": "head-staged",
+            "readyAfterCrash": false,
+            "explicitlyReconciled": false,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "activate",
+            "point": "head-published",
+            "readyAfterCrash": true,
+            "explicitlyReconciled": false,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "abort",
+            "point": "before-record",
+            "readyAfterCrash": true,
+            "explicitlyReconciled": true,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "abort",
+            "point": "record-created",
+            "readyAfterCrash": false,
+            "explicitlyReconciled": false,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "abort",
+            "point": "record-synced",
+            "readyAfterCrash": false,
+            "explicitlyReconciled": false,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "abort",
+            "point": "head-staged",
+            "readyAfterCrash": false,
+            "explicitlyReconciled": false,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          },
+          {
+            "action": "abort",
+            "point": "head-published",
+            "readyAfterCrash": true,
+            "explicitlyReconciled": false,
+            "restartReadOnly": true,
+            "noKeyReset": true,
+            "dataSentinelPreserved": true
+          }
+        ],
+        "networkMeasurement": false
+      }
+    }
+  ],
+  "limits": "No automatic repair/reset of blocked stores. Test fixtures only; persistent preview store not used. Process-tree transport metadata only, no HTTP/content/upload or complete out-of-tree COM/Shell/DNS/broker attestation. No product acceptance."
+}

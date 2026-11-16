@@ -1,5 +1,11 @@
 # KQ-069: Dauerhafte Kontrollablage, autorisierte Updates und Kontrollmigration
 
+Fortschreibung:
+[28 Kontroll-Crashfälle und eigener frischer ETW-Beleg](native-product-control-crash-etw.md) eines
+neuen separat gesicherten Prüfbuilds inzwischen bestanden. Die folgende ursprüngliche dauerhafte
+Vorschauablage und ihre autorisierte EXE blieben dabei unverändert. Keine automatische Übertragung
+von Programmfreigaben oder Aufweichung gesperrter Kopfzustände.
+
 Stand: 16. November 2026. Erste native Windows-Vorschau, keine normale Produktintegration.
 [Vertrag](../data-format/native-product-control-v1.md),
 [bereinigte Aggregate](native-product-control.json). Striktes Datenschutzziel unverändert;

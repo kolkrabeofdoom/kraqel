@@ -1,5 +1,14 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+Kontroll-Crash-/Netzbeleg, 16. November:
+[Eigener frischer Nachweis](../../testing/native-product-control-crash-etw.md) für denselben neuen
+gesicherten Prüfstand. 28 Prozessabbrüche, 17 gesperrte/elf nutzbare Zustände, acht explizite
+Weiterführungen; keine automatische Reparatur oder Schlüsselneuanlage. Die echte Vorschauablage
+wurde nicht verwendet. Zwei gültige ETW-Phasen, acht Kontrollen, Nullverluste, 1.136 explizite
+Enden, 0 Nicht-Loopback-/444 getrennte Loopback-Ereignisse. Normale Produktintegration, echte
+Datenmigration, externe Dienstgrenzen und vollständiges Checkpoint-/Stromausfallverhalten bleiben
+offen; striktes Datenschutzziel unverändert.
+
 Kontrollablage-Vorschau, 16. November:
 [Implementierung/Beleg](../../testing/native-product-control.md) und
 [Vertrag](../../data-format/native-product-control-v1.md) ergänzen dauerhafte private Ablage, lokal

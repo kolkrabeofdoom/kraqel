@@ -94,6 +94,23 @@ irrtümlich freigegebenes inkompatibles Programm kann die Ablage sperren; keine 
 auf eine alte Programmversion. Herausgebervertrauen, Paketkompatibilität und echte Projektmigration
 bleiben Teil der weiteren Produktintegration.
 
+## Synthetische Crashprüfung
+
+`product-control-series <frische TEMP-Controllerwurzel> <Forschungs-App>` und der interne
+`product-control-child` prüfen dieselben nativen Schreib-/Update-/Migrationsfunktionen mit harten
+Prozessabbrüchen. Der Child akzeptiert ausschließlich das begrenzte Controller-/Case-/Store-Layout
+unter TEMP; die Fault-Auswahl ist pro Prozess standardmäßig aus. Keine Umgebungsvariable oder
+Rendererfunktion aktiviert Faults in normalen `broker-store`-Commands. Bestehende Vorschauablage und
+Schlüssel werden weder kopiert noch zur Crash-Injektion übernommen.
+
+[28 native Crashfälle und eigener frischer ETW-Vergleich](../testing/native-product-control-crash-etw.md)
+bestätigen elf nutzbare und 17 konservativ gesperrte Zustände. Vor Recordschreiben bleibt der alte
+Kopf gültig für eine ausdrücklich neu angestoßene Operation. Festgeschriebene Records verbrauchen
+diesen Kopf. Vollständiges Pending kann explizit aktiviert, unvollständiges Paket nicht aktiviert,
+aber bei gültigem Kopf explizit abgebrochen werden. Unvollständige Record-/Kopfabschlüsse bleiben
+gesperrt; kein automatisches Kopfreparieren, Recordlöschen oder Schlüsselreset. Der Netzbeleg gilt
+ausschließlich für seinen gesicherten Prüfbuild, nicht für automatisch aktualisierte Produkte.
+
 ## Native Vorschau-Commands
 
 ```text

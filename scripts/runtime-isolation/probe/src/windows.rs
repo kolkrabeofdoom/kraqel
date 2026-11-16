@@ -760,6 +760,12 @@ fn launch(root: &Path, app: Option<&Path>, resume: bool) -> Result<Value> {
 pub fn main() {
     let args = std::env::args_os().skip(1).collect::<Vec<_>>();
     let result = (|| {
+        if args.len() == 3 && args[0] == "product-control-series" {
+            return exchange::product_crash_series(Path::new(&args[1]), Path::new(&args[2]));
+        }
+        if args.len() == 6 && args[0] == "product-control-child" {
+            return exchange::product_crash_child(&args[1..]);
+        }
         if args.first().is_some_and(|arg| arg == "broker-store") {
             return exchange::product_storage(&args[1..]);
         }

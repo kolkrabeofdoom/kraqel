@@ -1,5 +1,27 @@
 # Entwicklungsstatus
 
+Kontroll-Crash-Serie und eigener frischer ETW-Vergleich, 16. November: 28 echte Prozessabbrüche an
+Initialisierung, Kontrollmigration, Updatevorbereitung/Paketkopie, Aktivierung und Abbruch. 17
+Zustände bleiben korrekt gesperrt, elf nutzbar; acht ausdrücklich weitergeführt, kein automatisches
+Reparieren oder Schlüsselreset. Je erfolgreicher Serie 162 Child-Controller, 28 Enden 86/58
+erwartete Abweisungen/76 erfolgreiche Enden. Funktionaler und neuer gemessener Lauf unabhängig
+MAC-/Kopf-/Wurzel-/Paket-/Daten-geprüft. Beide ETW-Phasen gültig: bisherige GUI-/Broker-Serie mit 72
+Apps plus neue Kontrollserie mit zwei Container-GUIs, acht Kontrollen, Nullverluste, keine
+Zuordnungslücken, alle 1.136 Enden explizit. 0 beobachtete Nicht-Loopback-/444 getrennte
+Loopback-Ereignisse. 40 aktive Helfertests, Clippy/`pnpm check`, 36 Diagnose-Tests grün.
+[Nachweis](testing/native-product-control-crash-etw.md),
+[Aggregate/Hashes](testing/native-product-control-crash-etw.json). Testprofile und Prozesse/
+Erfassungen beendet; synthetische Kontroll-Fixtures absichtlich erhalten. Dauerhafte echte
+Vorschauablage und ihr autorisierter Broker unverändert, keine automatische Aktivierung des
+Prüfbuilds. Nächster Scope: isolierter Produktstarter mit derselben Sperre und getrennten
+Datenrollen. Gesperrte Abschlüsse, echte Datenmigration, Herausgebervertrauen und allgemeine
+F08-/Dienstgrenzen weiter offen; striktes Ziel unverändert, Produkt-Q-01/Q-02 nicht bestanden.
+
+## Frühere Prüfstände und damalige nächste Schritte
+
+Der aktuelle nächste Schritt steht oben. Frühere Netzbelege gelten ausschließlich für ihre jeweils
+dokumentierten Programme und Lebenszeiten.
+
 Dauerhafte native Kontrollablage, 16. November: Windows-Vorschau unter lokalem Benutzerprofil
 implementiert, unabhängig von TEMP/Paketcache. Private ACLs vor Schlüsselerzeugung geprüft,
 exklusive Sperre, HMAC-Übergangskette und Abschlusskopf, explizite Vorbereitung/Aktivierung/Abbruch
@@ -13,10 +35,10 @@ Alle Testprofile entfernt/Prozesse beendet; dauerhafte Vorschauablage bleibt erh
 Datenordner leer. [Nachweis](testing/native-product-control.md),
 [Aggregate](testing/native-product-control.json),
 [Vertrag](data-format/native-product-control-v1.md). Keine vorhandenen Projekte oder
-Forschungsjournale migriert, keine normale Produktintegration oder Herausgeber-/Netzabnahme.
-Nächster Scope: Kontroll-Crash-Reconciliation und eigener frischer ETW-Lauf der
-Initialisierungs-/Update-/Migrationsfolge; danach Produktstarter und echte Datenmigration. Striktes
-Datenschutzziel unverändert, Produkt-Q-01/Q-02 nicht bestanden.
+Forschungsjournale migriert, keine normale Produktintegration oder Herausgeber-/Netzabnahme. Die
+damals folgende Kontroll-Crash-Serie und deren eigener frischer ETW-Lauf sind inzwischen oben
+belegt; Produktstarter und echte Datenmigration bleiben offen. Striktes Datenschutzziel unverändert,
+Produkt-Q-01/Q-02 nicht bestanden.
 
 Frischer ETW-Netzvergleich des Fensterende-Paars, 16. November: Unverändertes gesichertes Paar in
 zwei getrennten gültigen Phasen geprüft. Automatik: neun Fälle/72 Apps/54 abgewiesene Folgeaktionen;

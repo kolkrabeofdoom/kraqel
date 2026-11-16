@@ -287,12 +287,28 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
+Aktuell:
+[Kontroll-Crash-Serie und frischer ETW-Beleg](docs/testing/native-product-control-crash-etw.md)
+bestanden: 28 harte Abbrüche, 17 gesperrte/elf nutzbare Zustände, acht explizite Weiterführungen,
+kein Schlüsselreset. Normale Produkt-/Vorschauablage blieb unbenutzt; ihr bisher autorisierter
+verwalteter Broker bleibt aktiv. Neuer Prüfbuild und Updatekandidat sind separat im Beleg gebunden.
+`durable/product/crash.rs` enthält ausschließlich den begrenzten synthetischen Serien-/Childpfad;
+niemals Faults für die echte Vorschauablage freischalten oder gesperrte Köpfe/Records reparieren.
+Zwei gültige ETW-Phasen, acht Kontrollen, Nullverluste, 1.136 explizite Enden, 0 beobachtete Nicht-
+Loopback-/444 getrennte Loopback-Ereignisse. Nächster Scope: isolierter Produktstarter mit derselben
+Kontrollsperre und getrennten Datenrollen; echte Datenmigration/gesperrte Abschlüsse separat
+behandeln.
+
 Codezuständigkeiten: `durable/product.rs` enthält Zustandsfolge, MAC/Kopf und native Commands;
 `durable/product/secure_fs.rs` die lokale Windows-Pfad-/ACL-/Dateigrenze; `durable/product/tests.rs`
 die isolierten Negativ-, Update- und Jobtests. Native Vorschau-Commands sind keine Renderer-API und
 dürfen nicht ungeprüft in den normalen Produktstart verdrahtet werden.
 
-Aktuell:
+### Frühere Prüfstände und damalige nächste Schritte
+
+Maßgeblich für den nächsten Schritt ist der aktuelle Stand oben. Die folgenden Belege bleiben an
+ihre jeweils dokumentierten Programmhashes und Lebenszeiten gebunden.
+
 [Native dauerhafte Kontrollablage/Updates/Kontrollmigration](docs/testing/native-product-control.md)
 als Windows-Vorschau implementiert; [Vertrag v1](docs/data-format/native-product-control-v1.md).
 Standard `%USERPROFILE%/.kraqel-broker-preview`, echte Vorschauablage bleibt erhalten, `data/` leer.
@@ -302,8 +318,8 @@ neuanlegen, aus Forschungswurzeln übernehmen oder alte Programmhashes wieder fr
 Hashfreigabe ist keine Herausgeberauthentisierung. Schema 1 ist Bootstrap, erst explizite Migration
 1 → 2 erlaubt Updates. Keine vorhandene Projekt-/Auftragsdatenbank migriert, normaler Produktstarter
 weiter unisoliert. 39 Helfertests, native Programmwechsel und 18 echte
-AppContainer-Dateiverweigerungen bestanden. Nächster Scope: native Kontroll-Crash-Reconciliation und
-eigener frischer ETW-Beleg; danach isolierter Produktstarter und echte autorisierte Datenmigration.
+AppContainer-Dateiverweigerungen bestanden. Die damals folgende Kontroll-Crash-Serie und deren
+frischer ETW-Beleg stehen inzwischen oben; Produktstarter und echte Datenmigration bleiben offen.
 
 Aktuell:
 [Eigener frischer ETW-Netzbeleg des Fensterende-Paars](docs/testing/native-combined-window-close-etw.md)
