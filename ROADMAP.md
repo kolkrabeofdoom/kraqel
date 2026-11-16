@@ -130,9 +130,12 @@
              Ablehnungen, privater Schlüsselverwahrung und unabhängiger MAC-/Datenprüfung
        - [x] KQ-069 A: Neues HMAC-Brokerpaar frisch per ETW messen; 446 explizite Enden, vier
              Kontrollen, Nullverluste, 0 Nicht-Loopback-Ereignisse, native Daten/MACs bestätigt
-       - [ ] KQ-069 A: Kombinierten Live-/Neustartpfad und dauerhaften authentisierten Produktbroker
-             integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker
-             kalibrieren; Packaging und F08-/M3-Vollprüfung
+       - [x] KQ-069 A: Kombinierten Forschungs-Live-/Neustartpfad mit signierter Grantfolge prüfen;
+             neun Fälle/72 App-Starts, 54 abgewiesene Folgeaktionen, manuelle Dateiauswahl bestätigt
+       - [ ] KQ-069 A: Neues kombiniertes Paar frisch per ETW messen; assistive und weitere
+             Fensterendeprüfung; dauerhaften authentisierten Produktbroker integrieren/abnehmen;
+             weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren; Packaging und
+             F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene

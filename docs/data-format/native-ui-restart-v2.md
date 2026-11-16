@@ -1,5 +1,8 @@
 # Forschungs-Neustartticket · v2 mit manueller Wiederanlaufprüfung
 
+Historischer Vertrag. Aktueller Quellcode implementiert [Startticket v3](native-ui-restart-v3.md);
+alte Hashpaare behalten ihre eigenen Nachweise, kein Downgrade oder automatische Migration.
+
 KQ-069 / #134, 16. November 2026. Nur Windows-Forschungsfeature `isolation-ui-test` und synthetische
 Fixtures. Ersetzt im aktuellen Quellcode das [Startticket v1](native-ui-restart-v1.md).
 Dateiauftrag, Auftragsjournal und Live-Dateikanal behalten ihre bisherigen Versionen.

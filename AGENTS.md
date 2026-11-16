@@ -287,32 +287,40 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
-Aktuell gilt [Broker-Wiederherstellung v2](docs/data-format/native-broker-recovery-v2.md): lokaler
-HMAC-Beleg statt DPAPI. Schlüssel nur in der geschützten nativen Kontrollablage; niemals in
+Forschungsbuild: `KRAQEL_ISOLATION_UI_TEST=1` und `--features isolation-ui-test` gemeinsam setzen;
+vor nativem Start die gebaute `apps/desktop/dist/isolation-test.html` prüfen. Danach normale
+Debug-App ohne Forschungsfrontend wiederherstellen. Reproduktion im kombinierten Nachweis.
+
+Aktuell gelten [Startticket v3](docs/data-format/native-ui-restart-v3.md) und
+[Brokerkette v3](docs/data-format/native-broker-recovery-v3.md): Live-Auswahl nur beim neuen
+gebundenen Auftrag, keine Auswahlhandles bei Recovery. Neue native Aktion erst nach signiertem
+Abschlussbeleg; verschiedene IDs und vollständige unveränderliche Vorgängerkette prüfen. Neuer
+kombinierter Build besitzt noch keinen eigenen ETW-/Hörnachweis;
+[Nachweis und gesichertes Paar](docs/testing/native-combined-live-restart.md). Schlüssel niemals in
 Logs/Git/Archive/Renderer geben. Fehlende oder falsche Schlüssel niemals automatisch ersetzen,
 v1-DPAPI-Daten nicht migrieren. [Eigener HMAC-Netzbeleg](docs/testing/native-hmac-broker-etw.md)
 gilt nur für sein gesichertes Paar und seine Lebenszeiten, nie automatisch für Folgeänderungen.
 Striktes Ziel ohne OS-/Domänenausnahme unverändert.
 
 Aktuelle Broker-Grundlage:
-[dauerhafte native Wiederherstellung](docs/data-format/native-broker-recovery-v2.md) und
-[Controller-Crash-Nachweis](docs/testing/native-hmac-broker.md). Nur der neue explizite Brokerpfad
-darf eine bestehende synthetische Wurzel übernehmen: HMAC-Beleg, exklusive Sperre,
+[dauerhafte native Wiederherstellung](docs/data-format/native-broker-recovery-v3.md) und
+[kombinierter Nachweis](docs/testing/native-combined-live-restart.md). Nur der neue explizite
+Brokerpfad darf eine bestehende synthetische Wurzel übernehmen: HMAC-Beleg, exklusive Sperre,
 Wurzel-/Programmhashbindung, Jobleerstand und frische Pipes sind verpflichtend. Niemals aus
-Diagnose-JSON/PIDs neue Autorität ableiten oder fehlende Journale ersetzen. HMAC-Paar besitzt einen
-eigenen ETW-Beleg; Produktintegration und Produktabnahme bleiben offen. Das strikte Datenschutzziel
-bleibt unverändert.
+Diagnose-JSON/PIDs neue Autorität ableiten oder fehlende Journale ersetzen. Der ältere
+HMAC-v2-Netzbeleg gilt ausschließlich für sein archiviertes Paar; Produktintegration und
+Produktabnahme bleiben offen. Das strikte Datenschutzziel bleibt unverändert.
 
 Der [v2-Netznachweis](docs/testing/native-assistive-restart-etw.md) umfasst das exakt gesicherte
 v2-Paar mit automatischer Serie und beiden manuellen Wiederanlaufpfaden. Nur seine Hashes und
 vollständig erfassten Lebenszeiten sind belegt; kein automatischer Übertrag auf Folgeänderungen,
 externe Broker oder das Produkt.
 
-Aktueller Forschungs-Startticketvertrag: [v2](docs/data-format/native-ui-restart-v2.md). Manuelle
+Aktueller Forschungs-Startticketvertrag: [v3](docs/data-format/native-ui-restart-v3.md). Manuelle
 Wiederherstellung darf die Bedienungsautomatik deaktivieren, erteilt aber keinen Importgrant.
 Hörbestätigung und technische Diagnose sind getrennte Nachweise;
 [Assistenzprotokoll](docs/testing/native-assistive-restart.md). Der v1-ETW-Beleg bleibt separat und
-wird nicht auf v2 übertragen.
+wird nicht auf neuere Ticket-/Programmpaare übertragen.
 
 Der [ETW-Neustartnachweis](docs/testing/native-ui-restart-etw.md) gilt ausschließlich für sein
 gesichertes App-/Controllerhashpaar und die vollständig zugeordneten Prozesslebenszeiten. Eine

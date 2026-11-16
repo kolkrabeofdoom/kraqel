@@ -1,5 +1,16 @@
 # Bedrohungsmodell (Entwurf)
 
+Aktueller Forschungsbroker [v3](../data-format/native-broker-recovery-v3.md): Initiale Live-Handles
+nur für den gebundenen neuen Auftrag, keine bei Recovery. Unveränderliche signierte Grantfolge,
+verschiedene IDs, Vorgängerhash und private Abschlussbelege verhindern neue Autorität allein aus
+Neustart, Diagnose/PID oder unvollständigem Journal. Kette/Schlüssel bleiben außerhalb der
+Containerfreigabe; manipulierte/lückenhafte Folge oder unbestätigter Abschluss sperren. Native
+[Negativserie und manuelle Auswahl](../testing/native-combined-live-restart.md) geprüft. Shell-
+Pfaddarstellung ändert keine kanonische Identität oder Auswahlgrenze. Kein Schutz gegen
+kompromittiertes Konto/Administrationsrechte; Crash vor Journal-Claim kann konservativ blockieren.
+Neue ETW-/assistive/ weitere Fensterendeprüfung und Produktintegration offen; keine Übertragung
+alter Hashbelege.
+
 Aktuelle Broker-Authority [v2](../data-format/native-broker-recovery-v2.md) entfernt den
 DPAPI-Domänenpfad und nutzt lokale HMAC-Authentisierung. Schutz des Klartextschlüssels hängt an
 privater Windows-DACL und unverknüpften Dateien; sechs tatsächliche Dateiöffnungen je Appstart unter

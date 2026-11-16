@@ -73,7 +73,7 @@ Fehler bereits bei der Start-Reconciliation beendet den Forschungsstart vor WebV
 ## Grenzen
 
 Fortschreibung 16. November: Der neue explizite
-[Broker-Wiederanlaufvertrag](native-broker-recovery-v2.md) ergänzt authentisierte Übernahme nach
+[Broker-Wiederanlaufvertrag](native-broker-recovery-v3.md) ergänzt authentisierte Übernahme nach
 Controllerverlust für synthetische Forschungsablagen. Der Journalvertrag selbst wird dadurch nicht
 zu einer Autorität; alte Launcherpfade behalten ihre bisherigen Grenzen. Produktintegration und
 neuer ETW-Nachweis des Brokers bleiben offen.

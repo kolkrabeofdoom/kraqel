@@ -1,5 +1,12 @@
 # F08-/M3-Abnahmematrix
 
+Kombiniert v3, 16. November: Neun native Forschungsfälle mit Live-Kanal, Wiederanlauf und neuem
+signiertem Folgeauftrag bestanden: 72 App-Starts, 18 Controllerenden, 54 abgewiesene Folgeaktionen.
+Zusätzlicher tatsächlicher manueller Dateidialog nach Shell-Pfadkorrektur bestätigt; MACs,
+Root-/Programmhashbindung, Journal/SQLite/Unicode/Kopien unabhängig geprüft.
+[Nachweis](native-combined-live-restart.md). Neuer eigener ETW-/Hör-/vollständiger Fensterendebeleg
+fehlt; Q-01/Q-02 für das Produkt weiterhin nicht bestanden.
+
 HMAC 16. November: DPAPI im Forschungsbroker durch lokale HMAC-Authority ersetzt. Neue native Serie
 mit sechs Controllerenden, zwölf Wiederanlaufprozessen, 30 App-Generationen und 78 Ablehnungen
 bestanden; Daten/MACs unabhängig geprüft. [Nachweis](native-hmac-broker.md). Eigener gültiger

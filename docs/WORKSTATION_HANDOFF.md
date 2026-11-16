@@ -7,6 +7,18 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 15. November 2026
 
+Neuester Stand 16. November: Kombinierter Forschungsablauf v3 mit echter Live-Auswahl, Wiederanlauf
+und ausdrücklich neuem Folgeauftrag bestanden. Signierte Grantkette und private Abschlussbelege
+ersetzen keine neue menschliche/native Beauftragung.
+[Verträge und finale Belege](testing/native-combined-live-restart.md). Neun automatische Fälle, 72
+App-Starts, 54 verweigerte Folgeaktionen; manueller Dialoglauf bestätigt und vollständig
+weitergeprüft. Beide Vorläufersitzungen und fehlgeschlagener Dialoglauf stillgelegt; finale Profile
+entfernt, Prozesse beendet. Normale Debug-App ohne Forschungsseite wiederhergestellt. Gesichertes
+neues Paar: `%TEMP%\\kraqel-kq069-combined-build-20261116-04`, vollständige Hashes im Aggregat. Alte
+Binaries/Nachweise nicht übertragen. Nächster Scope: frisches ETW genau dieses v3-Paars, assistive
+und weitere Fensterendeprüfung des kombinierten Ablaufs. Produktablage, authentisierte
+Updates/Migration und externe Dienste bleiben offen; striktes Ziel unverändert.
+
 Neuester Nachweis 16. November: Frisches ETW des gesicherten HMAC-Paars bestanden, einschließlich
 aller negativen Brokerstarts. 103 Broker/30 Apps/180 WebViews/133 Console-Hosts, 446 explizite
 Enden, vier Kontrollen, Nullverluste, 0 Nicht-Loopback- und 180 getrennte Loopback-Ereignisse.

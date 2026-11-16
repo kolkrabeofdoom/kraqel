@@ -1,5 +1,9 @@
 # Dauerhafte native Broker-Wiederherstellung · lokaler HMAC-Vertrag v2
 
+Historische Stufe. Aktueller [Brokervertrag v3](native-broker-recovery-v3.md) ergänzt Live-Aufträge
+und eine unveränderliche signierte Grantfolge. Keine automatische Übernahme von v2-Sitzungen oder
+Übertragung ihrer Netzbelege.
+
 KQ-069 / #134, 16. November 2026. Ersetzt im aktuellen Forschungsbroker die
 [DPAPI-Primitive aus v1](native-broker-recovery-v1.md). Kein Produktlauncher, kein neuer
 Rendererbefehl, keine Änderung an Startticket v2 oder Auftragsjournal v1.

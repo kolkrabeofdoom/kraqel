@@ -1,5 +1,16 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+Fortschreibung kombiniert, 16. November: Startticket/Brokervertrag v3 binden Live-Pipes an den
+initialen verbrauchten Auftrag. Recovery hat keine Auswahlhandles. Erst privater signierter
+Abschluss nach Reconciliation/Replay und ausdrückliche neue native Aktion erlauben den nächsten
+unveränderlichen Grant mit neuer ID/Vorgängerhash. Keine Rendererparameter, Netzfähigkeit,
+Richtlinien-/DPAPI-Ausnahme oder Produktintegration.
+[Vertrag](../../data-format/native-broker-recovery-v3.md),
+[native Serie und manuelle Auswahl](../../testing/native-combined-live-restart.md) bestanden.
+Shell-Aufruf nutzt nach nativ reproduziertem Fehler eine gleichwertige lokale Pfaddarstellung mit
+identischem kanonischem Ziel; Scopeprüfung bleibt. Neuer eigener ETW-/Hörnachweis noch offen;
+striktes Ziel unverändert.
+
 HMAC-ETW 16. November: Neues gesichertes Paar mit eigenem gültigem Netzbeleg des gesamten
 Serienbaums, einschließlich 78 negativer Brokerstarts. 103 Broker/30 Apps/180 WebViews, alle 446
 Prozessenden explizit, vier Kontrollen, Nullverluste, 0 Nicht-Loopback- und 180 getrennte

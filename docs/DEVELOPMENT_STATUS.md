@@ -1,5 +1,21 @@
 # Entwicklungsstatus
 
+Kombinierter Live-/Neustartpfad, 16. November: Startticket und Brokerkette v3 implementiert.
+Initiale Live-Auswahl, verbrauchte IDs, authentisierter Wiederanlauf ohne Auswahlhandles und
+expliziter neuer Folgeauftrag mit signierter Vorgängerkette/Abschlussbeleg. Finale native Serie:
+neun Fälle, 72 App-Starts, 18 Controller-Kills, 27 Wiederanläufe und 54 abgewiesene Folgeaktionen;
+keine doppelte Ausführung. Manuelle native Auswahl nach behobenem Shell-Pfadfehler bestätigt, danach
+Wiederanlauf/neuer Auftrag/Replay/Stilllegung nativ und unabhängig geprüft.
+[Nachweis](testing/native-combined-live-restart.md),
+[Aggregate/Hashes](testing/native-combined-live-restart.json). Zusätzlich 28-Start-Regression,
+Gesamtprüfung, 28 aktive Helfertests, zwei lokal ausgeführte Dialogtests, zwei Feature-Origin-/DTO-
+und acht Browser-Forschungstests bestanden. Normale Debug-App ohne Forschungsseite
+wiederhergestellt. Neues Paar separat gesichert, **ohne eigenen ETW- oder Hörnachweis**. Nächster
+Scope: frisches ETW genau dieses Paars, kombinierte assistive und weitere Fensterendeprüfung;
+Produktablage/Update-/Migrationspfad und externe Grenzen bleiben offen. Striktes Ziel unverändert;
+normale Produktstarts unisoliert, Q-01/Q-02 nicht bestanden. Frühere Absätze bezeichnen frühere
+Stufen/Hashpaare.
+
 HMAC-ETW 16. November: Eigener frischer gültiger Netzbeleg des gesicherten neuen Paars bestanden.
 Gesamter Serienbaum mit 103 Broker-, 30 App-, 180 WebView- und 133 Console-Host-Lebenszeiten; alle
 446 Enden explizit, vier Kontrollen, Nullverluste, 0 Nicht-Loopback- und 180 getrennte

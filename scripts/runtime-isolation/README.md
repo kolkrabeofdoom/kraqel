@@ -1,6 +1,17 @@
 # AppContainer-Forschungshelfer für KQ-069
 
-Aktuell [Broker-Vertrag v2](../../docs/data-format/native-broker-recovery-v2.md): lokaler
+Aktuell: [Startticket v3](../../docs/data-format/native-ui-restart-v3.md) und
+[Brokerkette v3](../../docs/data-format/native-broker-recovery-v3.md).
+`ui-combined-series <frische Controllerwurzel> <Forschungs-App>` prüft neun Live-/Wiederanlauf-/
+Folgeauftragsfälle, einschließlich Abbruch, ungültigem Archiv und Teiltransfer. Signierte private
+Abschlussbelege sind Voraussetzung für eine ausdrücklich neue native Beauftragung.
+`ui-broker-live-seed <frische Neustartwurzel> <App> prepared native` benötigt manuelle Auswahl von
+`input.kraqel`; `ui-broker-live-next <Wurzel>` erteilt ausdrücklich einen neuen Fixture-Auftrag.
+Kein automatischer Retry, keine Altdatenmigration oder neue Rendererbefehle.
+[Finaler Nachweis, Buildschalter und Hashgrenzen](../../docs/testing/native-combined-live-restart.md).
+Neuer ETW-Beleg steht aus; normale Starts bleiben unisoliert. Historische Stufen folgen.
+
+Historischer [Broker-Vertrag v2](../../docs/data-format/native-broker-recovery-v2.md): lokaler
 HMAC-Beleg/privater Schlüssel ersetzen DPAPI. Neuer Seed in frischer Wurzel erforderlich; keine
 Altdatenmigration oder Schlüssel-/Journalneuanlage beim Wiederanlauf. Native Serie jetzt mit 78
 Ablehnungen und sechs tatsächlichen Dateiöffnungsverweigerungen pro Appstart.
@@ -20,7 +31,7 @@ Code 86. `ui-broker-recover <bestehende Neustartwurzel> first|second|retire` ver
 gesicherten Broker und gibt niemals eine neue Importkennung frei. Separat gesichertes Paar mit
 eigenem begrenztem ETW-Beleg, kein fertiger Produktbroker; normale Starts bleiben unisoliert.
 
-Aktueller Startticketvertrag: [v2](../../docs/data-format/native-ui-restart-v2.md), ohne Downgrade.
+Aktueller Startticketvertrag: [v3](../../docs/data-format/native-ui-restart-v3.md), ohne Downgrade.
 `ui-assistive-interrupted` beziehungsweise `ui-assistive-completed` mit frischer gebundener
 Neustartwurzel und passender Forschungs-EXE bereiten einen synthetischen Crash vor und lassen den
 Wiederanlauf offen. Tatsächliches Replay und reguläres Schließen erforderlich, höchstens 600

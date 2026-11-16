@@ -1,0 +1,157 @@
+{
+  "formatVersion": 1,
+  "researchOnly": true,
+  "productionAcceptance": false,
+  "runtimeSourceCommit": "9f5a7ee8c56220bb90f10c4f304c9b0f01cd43ee",
+  "restartTicketVersion": 3,
+  "durableAuthorityVersion": 3,
+  "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+  "controllerSha256": "49a2a0c0f0a8428c9419f8a70ce809e89a9f66171053e0a00032fcb3f6a48852",
+  "savedPairSuffix": "kraqel-kq069-combined-build-20261116-04",
+  "automaticSeries": {
+    "passed": true,
+    "controllerCrashes": 18,
+    "recoveries": 27,
+    "appGenerations": 72,
+    "newLiveTasks": 18,
+    "rejectedNextGrants": 54
+  },
+  "automaticTaskStates": {
+    "interrupted": 5,
+    "succeeded": 11,
+    "failed": 2
+  },
+  "automaticCases": [
+    {
+      "point": "claimed",
+      "mode": "fixture",
+      "states": ["interrupted", "succeeded"],
+      "projectCopies": 1,
+      "distinctTasks": 2,
+      "appGenerations": 8
+    },
+    {
+      "point": "reading",
+      "mode": "fixture",
+      "states": ["interrupted", "succeeded"],
+      "projectCopies": 1,
+      "distinctTasks": 2,
+      "appGenerations": 8
+    },
+    {
+      "point": "prepared",
+      "mode": "fixture",
+      "states": ["interrupted", "succeeded"],
+      "projectCopies": 1,
+      "distinctTasks": 2,
+      "appGenerations": 8
+    },
+    {
+      "point": "commitIntent",
+      "mode": "fixture",
+      "states": ["interrupted", "succeeded"],
+      "projectCopies": 1,
+      "distinctTasks": 2,
+      "appGenerations": 8
+    },
+    {
+      "point": "published",
+      "mode": "fixture",
+      "states": ["succeeded", "succeeded"],
+      "projectCopies": 2,
+      "distinctTasks": 2,
+      "appGenerations": 8
+    },
+    {
+      "point": "completed",
+      "mode": "fixture",
+      "states": ["succeeded", "succeeded"],
+      "projectCopies": 2,
+      "distinctTasks": 2,
+      "appGenerations": 8
+    },
+    {
+      "point": "completed",
+      "mode": "cancel",
+      "states": ["failed", "succeeded"],
+      "projectCopies": 1,
+      "distinctTasks": 2,
+      "appGenerations": 8
+    },
+    {
+      "point": "completed",
+      "mode": "invalid",
+      "states": ["failed", "succeeded"],
+      "projectCopies": 1,
+      "distinctTasks": 2,
+      "appGenerations": 8
+    },
+    {
+      "point": "reading",
+      "mode": "partial",
+      "states": ["interrupted", "succeeded"],
+      "projectCopies": 1,
+      "distinctTasks": 2,
+      "appGenerations": 8
+    }
+  ],
+  "rejectedNextReasons": [
+    "missing-initial-settlement",
+    "corrupt-settlement-mac",
+    "authority-sequence-gap",
+    "incorrect-predecessor-hash",
+    "latest-grant-not-settled",
+    "retired-session"
+  ],
+  "manualNativeSelection": {
+    "userConfirmed": true,
+    "initialControllerExitCodeCaptured": false,
+    "subsequentRecoveryNewGrantReplayAndRetirementPassed": true,
+    "appGenerations": 8,
+    "taskStates": {
+      "interrupted": 1,
+      "succeeded": 1
+    },
+    "projectCopies": 1,
+    "initialSelection": {
+      "nativeDialog": true,
+      "bytesSent": 11915
+    },
+    "newGrantMode": "fixture"
+  },
+  "independentAuthoritySettlementMacRootAndProgramBindingsValid": true,
+  "independentSqliteUnicodeReceiptArchiveHashForeignKeysValid": true,
+  "distinctTaskIds": 20,
+  "totalAppGenerations": 80,
+  "suspendedRootTokenChecks": 80,
+  "privateBrokerFileAccessChecks": 480,
+  "regularGenerationReports": 60,
+  "regularGenerationExitCode": 77,
+  "stagingEntries": 0,
+  "allProfilesRemoved": true,
+  "newEtwMeasurement": false,
+  "newHearingAcceptance": false,
+  "checks": {
+    "pnpmCheck": "passed",
+    "probeActiveTests": 28,
+    "probeInteractiveTestsIgnoredByDefault": 2,
+    "bothInteractiveDialogTestsExplicitlyPassed": true,
+    "featureOriginDtoTests": 2,
+    "researchBrowserTests": 8,
+    "featureAndProbeClippyWarningsAsErrors": "passed",
+    "researchAndProbeBuilds": "passed",
+    "legacyGuiRestartGenerationsPassed": 28,
+    "normalDebugBuildRestored": true
+  },
+  "limits": [
+    "Exact saved research binary pair and synthetic fixtures; no product integration.",
+    "No fresh ETW for changed binaries; earlier HMAC v2 proof remains historical.",
+    "No new hearing or full native keyboard/window-end acceptance.",
+    "Fixture suite does not stand in for native dialog selection; manual selection is separately confirmed.",
+    "Initial manual controller exit code was not retained; do not claim independently captured code 86 for it.",
+    "Crash after append but before journal claim can conservatively block session; no automatic retry.",
+    "Private key is unencrypted under Windows DACL; compromised account/admin/secret copies remain outside protection.",
+    "Product storage, authenticated update/migration and external COM/Shell/DNS/broker boundaries remain open.",
+    "Ordinary product startup is unisolated; Q-01/Q-02 not passed."
+  ]
+}
