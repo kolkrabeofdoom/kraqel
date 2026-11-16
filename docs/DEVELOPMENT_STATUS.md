@@ -1,5 +1,15 @@
 # Entwicklungsstatus
 
+ETW v2, 16. November 2026: Das gesicherte unveränderte v2-Paar ist frisch mit automatischer Serie
+und beiden manuellen Wiederanlaufpfaden gemessen. Gültige Erfassung: drei Controllerbäume, 32
+App-Generationen, 168 WebViews, alle 238 Lebenszeiten explizit beendet; vier Kontrollen,
+Nullverluste, 0 Nicht-Loopback- und 176 getrennte Loopback-Ereignisse. Native Abläufe, Daten und
+Cleanup im Messlauf unabhängig bestätigt. [Nachweis](testing/native-assistive-restart-etw.md),
+[Aggregate/Hashes](testing/native-assistive-restart-etw.json). Erfassung beendet, Rohdaten lokal,
+keine Runtimeänderung. Nächster Scope: Controller-Crash/dauerhafter authentisierter Broker und
+kombinierter Live-/Neustartpfad; externe Grenzen und Produktintegration weiter offen. Striktes Ziel
+unverändert, #134 und Produkt-Q-01/Q-02 nicht bestanden. Frühere Stufen folgen.
+
 Assistiver Wiederanlauf, 16. November 2026: Startticket v2 ermöglicht manuelle Prüfung ohne
 Bedienungsautomatik oder neuen Importgrant. Konkrete Unterbrechungs-/Abschluss-/Replay-Ansagen und
 Fokus mit Windows-Sprachausgabe bestätigt; native Aufrufe, Journal/Kopienzahl und Cleanup belegt.

@@ -52,6 +52,8 @@ werden etwaige Job-Nachfahren beendet, Job-Leerstand und Profilentfernung geprü
 erst durch die prüfende Person bestätigt werden kann. Die bestehende lokale Fokusdiagnose zeichnet
 weder Audio noch Tastencodes auf und beweist keine konkrete Eingabemethode.
 
-Die automatische 28-Generationen-Serie bleibt verfügbar und wird mit v2 separat rückgeprüft.
+Die automatische 28-Generationen-Serie bleibt verfügbar und wird mit v2 separat rückgeprüft. Das
+unveränderte gesicherte v2-Paar besitzt inzwischen einen
+[eigenen ETW-Nachweis einschließlich manueller Pfade](../testing/native-assistive-restart-etw.md).
 Produktstart, Controller-Crash, dauerhafter Broker und externe Dienste bleiben außerhalb dieser
 Freigabe. [Assistiver Nachweis und Buildgrenzen](../testing/native-assistive-restart.md).

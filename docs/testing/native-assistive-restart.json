@@ -48,6 +48,7 @@
   "browserTestsPassed": 35,
   "helperAndTransportTestsPassed": 24,
   "newEtwMeasurement": false,
+  "subsequentEtwEvidence": "native-assistive-restart-etw.json",
   "previousEtwEvidenceOtherHashPair": "native-ui-restart-etw.json",
   "audioOrKeycodesRecorded": false,
   "fullAssistiveProductAcceptance": false

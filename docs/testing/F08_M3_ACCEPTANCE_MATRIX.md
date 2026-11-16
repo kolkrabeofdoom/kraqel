@@ -1,5 +1,11 @@
 # F08-/M3-Abnahmematrix
 
+ETW v2 am 16. November: Eigener gültiger Netzbeleg des gesicherten v2-Paars mit automatischer Serie
+und beiden manuellen Pfaden. 32 Apps/168 WebViews vollständig erfasst, vier Kontrollen,
+Nullverluste, 0 Nicht-Loopback- und 176 getrennte Loopback-Ereignisse; native Daten/Cleanup geprüft.
+[Nachweis](native-assistive-restart-etw.md), [Aggregate](native-assistive-restart-etw.json). Keine
+externe Broker-, Inhalts- oder Produktabnahme; Q-01/Q-02 unverändert nicht bestanden.
+
 Assistiver Wiederanlauf 16. November: Unterbrechungs-/Abschluss-/Replay-Ansagen mit
 Windows-Sprachausgabe bestätigt; native Aufrufe, Daten und Cleanup gegengeprüft. Tastaturnutzung
 menschlich bestätigt, aus dem Log allein nicht beweisbar. Erster Versuch ohne Replay nicht als

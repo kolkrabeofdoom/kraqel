@@ -50,8 +50,10 @@ oder Hostordnerfreigaben. Rohdaten, UUIDs, Pfade und Programme bleiben lokal.
 
 Das neue Paar ist gesichert unter `%TEMP%\kraqel-kq069-assistive-restart-build-20261116-01`. Der
 [gültige ETW-Nachweis des früheren v1-Paars](native-ui-restart-etw.md) wird ausdrücklich nicht auf
-diese geänderten v2-Binaries übertragen. Ein frischer ETW-Vergleich dieses Paars bleibt offen.
-Normale Produktstarts bleiben unisoliert; #134 und Produkt-Q-01/Q-02 bleiben nicht bestanden.
+diese geänderten v2-Binaries übertragen. Ein späterer
+[eigener frischer v2-ETW-Nachweis](native-assistive-restart-etw.md) ist inzwischen gültig bestanden,
+einschließlich beider manueller Pfade. Dieser ursprüngliche Hörnachweis bleibt separat. Normale
+Produktstarts bleiben unisoliert; #134 und Produkt-Q-01/Q-02 bleiben nicht bestanden.
 
 ## Verbleibende Abnahme
 

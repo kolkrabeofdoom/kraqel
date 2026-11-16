@@ -122,9 +122,11 @@
              WebViews, vier Kontrollen, Nullverluste und 0 Nicht-Loopback-Ereignisse
        - [x] KQ-069 A: Startticket v2 und manuelle Wiederanlaufprüfung mit Windows-Sprachausgabe
              ergänzen; Ansagen/Fokus/Replay und zusätzliche Tastaturnutzung bestätigen
-       - [ ] KQ-069 A: Neues v2-Prüfpaar frisch per ETW messen; Controller-Crash/dauerhaften Broker
-             abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren;
-             Packaging und F08-/M3-Vollprüfung
+       - [x] KQ-069 A: Gesichertes v2-Paar mit Automatik und manuellen Pfaden per ETW messen; 32
+             App-Generationen, vier Kontrollen, Nullverluste, 0 Nicht-Loopback-Ereignisse
+       - [ ] KQ-069 A: Controller-Crash/dauerhaften authentisierten Broker abnehmen; weitere
+             Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren; Packaging und
+             F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene

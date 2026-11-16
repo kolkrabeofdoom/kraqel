@@ -1,5 +1,12 @@
 # Bedrohungsmodell (Entwurf)
 
+ETW v2: Das neue gesicherte Paar besitzt nun einen eigenen gültigen Netzbeleg mit Automatik und
+beiden manuellen Wiederanlaufpfaden: drei vollständige Bäume, 32 App-Generationen, 238 explizite
+Prozessenden, vier Kontrollen, Nullverluste, 0 Nicht-Loopback-Ereignisse. 176 Loopback-Ereignisse
+getrennt. [Nachweis und Vertrauensgrenzen](../testing/native-assistive-restart-etw.md). Keine
+Inhalts-/HTTP-Attestierung oder kausale Abnahme externer COM-/Shell-/DNS-/Broker; keine neue
+Runtimefähigkeit oder Produktfreigabe. Striktes Ziel unverändert.
+
 Assistive Fortschreibung: Startticket v2 erlaubt deaktivierte Bedienungsautomatik nur für
 Wiederherstellung. Alte Versionen/fehlendes Pflichtflag werden nicht durch Defaults akzeptiert.
 Keine neuen Grants, Rendererparameter, Hostzugriffe oder Netzrechte; die manuelle Betrachtungsfrist

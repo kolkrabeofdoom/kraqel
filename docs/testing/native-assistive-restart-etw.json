@@ -1,0 +1,100 @@
+{
+  "formatVersion": 1,
+  "diagnosticOnly": true,
+  "productionAcceptance": false,
+  "runtimeSourceCommit": "9d87e20d4a2526885c213bd186e4c22573d80744",
+  "restartTicketVersion": 2,
+  "appSha256": "4db1e731e6aee50fe01e9e368d1ded61ac61f3f9dc3e2238d509cee600098e1b",
+  "controllerSha256": "64ddbcb277c38db75b6e324687d0122a62dcc4b4690e0fefe9249a027436007e",
+  "captureReadyUtc": "2026-11-16T09:18:20.2857357Z",
+  "stoppedUtc": "2026-11-16T09:19:55.0114103Z",
+  "etlBytes": 4128768,
+  "measurementMode": "isolation-ui",
+  "measurementValid": true,
+  "measurementProblems": [],
+  "result": "no-non-loopback-traffic-observed",
+  "rootStarts": 3,
+  "processLifetimes": {
+    "kraqel-isolation-probe.exe": 3,
+    "conhost.exe": 35,
+    "kraqel-desktop.exe": 32,
+    "msedgewebview2.exe": 168
+  },
+  "generationCoverage": {
+    "orderedAppGenerationsMatched": 32,
+    "explicitProcessStops": 238,
+    "guiGenerationsWithWebView": 28,
+    "negativeStartsWithoutWebView": 4,
+    "webViewPerGui": 6,
+    "verifiedSuspendedRootTokens": 32,
+    "controllerExitCodes": { "0": 3 },
+    "appExitCodes": { "77": 26, "2": 4, "0": 2 }
+  },
+  "loss": { "EventsLost": 0, "BuffersLost": 0 },
+  "positiveControls": { "expected": 4, "observed": 4 },
+  "unattributableNetworkEvents": 0,
+  "unknownDestinationEvents": 0,
+  "nonLoopbackEvents": 0,
+  "loopbackEvents": [
+    { "image": "msedgewebview2.exe", "eventId": 13, "count": 88 },
+    { "image": "msedgewebview2.exe", "eventId": 29, "count": 88 }
+  ],
+  "nativeRuns": [
+    {
+      "scenario": "automatic-v2-crash-series",
+      "generations": 28,
+      "verificationPassed": true,
+      "projectCopies": 2,
+      "interruptedTasks": 4,
+      "succeededTasks": 2,
+      "activeJobProcessesAtEnd": 0,
+      "profileRemoved": true
+    },
+    {
+      "scenario": "manual-interrupted-recovery",
+      "generations": 2,
+      "verificationPassed": true,
+      "replayUserConfirmed": true,
+      "projectCopies": 0,
+      "interruptedTasks": 1,
+      "succeededTasks": 0,
+      "activeJobProcessesAtEnd": 0,
+      "profileRemoved": true
+    },
+    {
+      "scenario": "manual-completed-recovery",
+      "generations": 2,
+      "verificationPassed": true,
+      "replayUserConfirmed": true,
+      "projectCopies": 1,
+      "interruptedTasks": 0,
+      "succeededTasks": 1,
+      "activeJobProcessesAtEnd": 0,
+      "profileRemoved": true
+    }
+  ],
+  "allRunsJournalIntegrityValid": true,
+  "allPublishedCopiesSqliteUnicodeReceiptHashesForeignKeysValid": true,
+  "stagingEntries": 0,
+  "captureStoppedAndConverted": true,
+  "rawDiagnosticsRemainLocal": true,
+  "runtimeChangedAfterMeasurement": false,
+  "comparison": {
+    "previousEvidence": "native-ui-restart-etw.json",
+    "previousTicketVersion": 1,
+    "previousMeasurementValid": true,
+    "previousNonLoopbackEvents": 0,
+    "currentNonLoopbackEvents": 0,
+    "manualPathsAdded": true,
+    "measurementPopulationsDiffer": true,
+    "causalOrRateComparison": false
+  },
+  "limits": [
+    "Only this exact saved v2 binary pair, synthetic paths and captured lifetimes.",
+    "Local TCP/UDP IPv4/IPv6 controls do not calibrate every public, DNS or out-of-tree broker route.",
+    "No causal attribution of out-of-tree COM/Shell services or compromised runtime processes.",
+    "Transport metadata, not an HTTP, upload or payload audit; no physical network disconnection.",
+    "No new hearing acceptance in this measurement; separate prior assistive evidence remains separate.",
+    "No product Q-01/Q-02 acceptance; ordinary product startup remains unisolated."
+  ]
+}

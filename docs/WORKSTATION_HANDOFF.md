@@ -7,6 +7,16 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 15. November 2026
 
+Neuester Nachweis 16. November: Frisches ETW exakt des gesicherten v2-Paars bestanden,
+einschließlich automatischer 28-Start-Serie und beider manueller Wiederanlaufpfade. Drei
+Controllerbäume mit 32 Apps/168 WebViews, alle 238 Lebenszeiten explizit beendet; vier Kontrollen,
+Nullverluste, 0 Nicht-Loopback- und 176 getrennte Loopback-Ereignisse. Daten/Cleanup unabhängig
+geprüft. [Nachweis](testing/native-assistive-restart-etw.md),
+[Aggregate/Hashes](testing/native-assistive-restart-etw.json). Programme unverändert,
+Erfassung/Prozesse beendet, Rohdaten lokal. Nächster Scope: Controller-Crash und dauerhafter
+authentisierter Broker, danach kombinierter Live-/Neustartpfad und externe Grenzen. Keine
+Produktfreigabe; striktes Ziel unverändert.
+
 Neuester Stand 16. November: Assistive Wiederanlaufprüfung mit Windows-Sprachausgabe für
 Unterbrechung/Abschluss/Replay bestanden; zusätzliche Tastaturnutzung menschlich bestätigt, mit
 begrenzter technischer Eingabequellen-Zuordnung.

@@ -287,6 +287,11 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
+Der [v2-Netznachweis](docs/testing/native-assistive-restart-etw.md) umfasst das exakt gesicherte
+v2-Paar mit automatischer Serie und beiden manuellen Wiederanlaufpfaden. Nur seine Hashes und
+vollständig erfassten Lebenszeiten sind belegt; kein automatischer Übertrag auf Folgeänderungen,
+externe Broker oder das Produkt.
+
 Aktueller Forschungs-Startticketvertrag: [v2](docs/data-format/native-ui-restart-v2.md). Manuelle
 Wiederherstellung darf die Bedienungsautomatik deaktivieren, erteilt aber keinen Importgrant.
 Hörbestätigung und technische Diagnose sind getrennte Nachweise;
