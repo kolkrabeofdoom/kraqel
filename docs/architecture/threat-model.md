@@ -6,9 +6,11 @@ an Dialogfenster seines eigenen Prozesses und ermittelten Auswahlthreads mit Kla
 rendererbestimmten Fensterhandles, Prozess-IDs oder Shell-Verben. Nativ bestätigte
 Dialog-/Teiltransferabbrüche samt Cleanup sind
 [gesondert belegt](../testing/native-live-window-close.md). Die neue OS-API-Featureauswahl erweitert
-nur den getrennten Forschungshelfer, keine Produkt- Capabilities oder Netzrechte. Kein neuer
-ETW-Nachweis dieses Codes, keine Abwehr kompromittierter Runtime-/OS-Prozesse und keine
-Produktfreigabe.
+nur den getrennten Forschungshelfer, keine Produkt-Capabilities oder Netzrechte. Ein neuer
+[ETW-Nachweis dieses unveränderten finalen Builds](../testing/native-live-window-close-etw.json)
+bestätigt drei vollständige Bäume, vier Kontrollen, Nullverluste und keine Ereignisse außerhalb
+Loopback. Keine Abwehr kompromittierter Runtime-/OS-Prozesse, keine kausale Zuordnung externer
+COM-/Shell-/DNS-/Brokerpfade und keine Produktfreigabe.
 
 Fortschreibung Live-Kanal: Der Replay-Anzeigefehler nach Importfehler ist korrigiert und als
 Browserregression geprüft; Rust protokolliert Ablehnung datenarm. Neue native Erfolg-/Fehler-/

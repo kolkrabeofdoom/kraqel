@@ -1,5 +1,14 @@
 # F08-/M3-Abnahmematrix
 
+Neueste Fortschreibung 16. November: Live-Auswahl mit Replay sowie Fensterende bei offenem Dialog
+und nach echtem Teiltransfer funktional belegt. Frischer ETW-Vergleich am unveränderten finalen
+App-/Controllerpaar: drei vollständige Bäume, 19 WebView2-Lebenszeiten, vier Kontrollen,
+Nullverluste, 0 Ereignisse außerhalb Loopback. SQLite/Unicode, Kopienzahl, Teil-Empfang und Cleanup
+unabhängig bestätigt. [Nachweis](native-live-window-close.md),
+[Aggregate](native-live-window-close-etw.json). Keine externe Brokerattestierung, assistive
+Vollabnahme oder Produktintegration. Q-01/Q-02 für das Produkt weiter **nicht bestanden**, #134
+offen.
+
 Fortschreibung [UI-/Tauri-Testanbindung](native-tauri-file-channel.md): separates echtes
 Forschungsfenster, einmaliger vorab delegierter Einweg-Dateikanal, keine Rendererpfade/Handles,
 Origin-/Fensterprüfung. Finaler Build nativ dreimal mit Import/Wiederholung, Abbruch und Fensterende

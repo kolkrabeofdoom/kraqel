@@ -4,10 +4,13 @@ Fensterende-Fortschreibung, 16. November 2026: Offenen nativen Dateidialog bei A
 schließen und Auswahlthread begrenzt abwarten; final nativ mit Exitcodes 0, `CANCELLED`, beendetem
 Thread und leerer Projektwurzel bestätigt. Teiltransfer nach 1.024 von 11.915 Bytes
 sender-/empfängerseitig nachgewiesen und durch Fensterende verworfen. Cleanup in beiden Fällen
-bestätigt. [Nachweise, Zwischenfehler und Buildgrenzen](testing/native-live-window-close.md). Kein
-neuer ETW-Lauf für diese geänderten Binaries; nächste Abnahme: Netzvergleich dieses Stands,
-assistive Fokus-/Fehlerprüfung und dauerhafter Auftrags-/Crash-Lebenszyklus. Striktes Ziel
-unverändert, #134 und Produkt-Q-01/Q-02 bleiben offen.
+bestätigt. [Nachweise, Zwischenfehler und Buildgrenzen](testing/native-live-window-close.md).
+Frischer ETW-Vergleich am unveränderten finalen App-/Controllerpaar: drei vollständige Bäume, 19
+WebView2-Lebenszeiten, vier Messkontrollen, Nullverluste, 0 Ereignisse außerhalb Loopback und 22
+getrennte Loopback-Disconnects. Referenzimport/Replay und beide Abbruchfälle unabhängig geprüft.
+[Aggregate](testing/native-live-window-close-etw.json). Erfassung beendet, keine Binäränderung nach
+Messung. Nächste Abnahme: assistive Fokus-/Fehlerprüfung, externe Brokergrenzen und dauerhafter
+Auftrags-/Crash-Lebenszyklus. Striktes Ziel unverändert, #134 und Produkt-Q-01/Q-02 bleiben offen.
 
 KQ-069-Fortschreibung 16. November: Replay nach Erfolg/Importfehler und Fensterende am
 Publish-Haltepunkt nativ bestanden; überschriebenen Replay-Hinweis korrigiert und browserseitig

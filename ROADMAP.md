@@ -109,9 +109,11 @@
              korrigierten Forschungsbuilds prüfen; drei vollständige Bäume ohne Nicht-Loopback
        - [x] KQ-069 A: Appende bei offenem Dateidialog und nach nachgewiesenem Teiltransfer prüfen;
              Auswahlthread und Cleanup bestätigt, Controller-Buildgrenzen dokumentiert
-       - [ ] KQ-069 A: Netzvergleich des neuen Fensterende-Stands, assistive Fokus-/Fehlerprüfung
-             und dauerhafte Crash-Reconciliation; weitere Formate/Git-/Providergrenzen;
-             UDP/IPv6/DNS/Broker kalibrieren; Packaging und F08-/M3-Vollprüfung
+       - [x] KQ-069 A: Frischen ETW-Vergleich des finalen Fensterende-Builds durchführen; drei
+             vollständige Bäume, vier Kontrollen, Nullverluste, 0 Nicht-Loopback-Ereignisse
+       - [ ] KQ-069 A: Assistive Fokus-/Fehlerprüfung und dauerhafte Crash-Reconciliation; weitere
+             Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren; Packaging und
+             F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene

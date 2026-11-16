@@ -11,9 +11,13 @@ Neuester funktionaler Nachweis 16. November: Fensterende bei offenem Dateidialog
 Teiltransfer bestanden. Eigener Prozess/Thread/Dialogklasse vor Schließnachricht geprüft,
 Auswahlthread begrenzt beendet; keine Projektkopien oder Stagingreste. Bytezähler belegen 1.024
 empfangene von 11.915 erwarteten Bytes.
-[Buildgrenzen und Reproduktion](testing/native-live-window-close.md). Kein neuer ETW-Nachweis dieses
-geänderten Stands. Nächste Abnahme: neuer Netzvergleich, Screenreader/Fokus und dauerhafter
-Auftragslebenszyklus. Striktes Datenschutzziel unverändert.
+[Buildgrenzen und Reproduktion](testing/native-live-window-close.md). Frischer ETW-Vergleich am
+unveränderten finalen Build bestanden: Referenzimport/Replay, Dialogende und Teiltransfer in drei
+vollständigen Bäumen mit 19 WebView2-Lebenszeiten; vier Kontrollen, Nullverluste, 0 Ereignisse
+außerhalb Loopback. [Aggregate](testing/native-live-window-close-etw.json). Forschungsprozesse und
+Erfassung beendet; Rohdiagnosen bleiben lokal. Nächste Abnahme: Screenreader/Fokus, externe
+Brokergrenzen und dauerhafter Auftragslebenszyklus. Striktes Ziel unverändert, keine
+Produktfreigabe. Die folgenden Notizen beschreiben frühere Stufen.
 
 Aktualisierung 16. November: Replay-/Fehlerprüfung und Fensterende am Publish-Haltepunkt bestanden.
 Neuer gültiger ETW-Nachweis für drei vollständige Forschungs-App-Bäume: 0 Ereignisse außerhalb

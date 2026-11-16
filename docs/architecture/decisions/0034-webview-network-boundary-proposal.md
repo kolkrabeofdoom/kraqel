@@ -4,8 +4,11 @@ Fortschreibung 16. November: Der getrennte Live-Auswahlprototyp beendet bei Fens
 Dateidialog und nachgewiesenen Teiltransfer. Schließnachrichten sind auf eigenen Prozess, eigenen
 Auswahlthread und Dialogklasse beschränkt; Pipe-Duplikate werden geschlossen und der Threadabschluss
 wird begrenzt abgewartet. [Nachweise und Buildgrenzen](../../testing/native-live-window-close.md).
-Keine Produktintegration oder neue Netzwerkfähigkeit. Der vorherige ETW-Nachweis wird nicht auf
-diesen geänderten Binärstand übertragen. Striktes Ziel unverändert; Produkt-Q-01/Q-02 bleiben offen.
+Keine Produktintegration oder neue Netzwerkfähigkeit. Statt Übertragung des vorherigen Netzbelegs
+besteht nun ein
+[frischer ETW-Vergleich dieses unveränderten Builds](../../testing/native-live-window-close-etw.json):
+drei vollständige Bäume, vier Kontrollen, Nullverluste, 0 Ereignisse außerhalb Loopback. Striktes
+Ziel unverändert; Produkt-Q-01/Q-02 und externe Brokergrenzen bleiben offen.
 
 Status: **Untersuchungsrichtung A ausdrücklich beauftragt am 15. November 2026.** Nutzerauftrag:
 technische Laufzeitisolation, „Das strikte Datenschutzziel bleibt bestehen.“ KQ-069 / Issue #134.

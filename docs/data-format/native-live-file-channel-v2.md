@@ -41,6 +41,8 @@ und unabhängige SQLite-/Cleanup-Prüfung bestehen. Replay nach Erfolg/Fehler so
 Publish-Haltepunkt nativ geprüft; Replay-Ansage bleibt nun über Statusaktualisierungen erhalten. ETW
 des korrigierten Forschungsbuilds: drei vollständige Bäume, vier Kontrollen, Nullverluste, 0
 Nicht-Loopback-Ereignisse. [Buildgrenzen und Aggregate](../testing/native-live-file-selection.md).
-Appende bei offenem Dialog/Teiltransfer funktional bestätigt. Neuer ETW-Lauf dieses geänderten
-Stands und assistive Abnahme bleiben offen. Striktes Datenschutzziel unverändert; Q-01/Q-02 für das
-Produkt bleiben nicht bestanden.
+Appende bei offenem Dialog/Teiltransfer funktional bestätigt und am identischen finalen
+App-/Controllerpaar erneut mit ETW gemessen: drei vollständige Bäume, vier Kontrollen, Nullverluste,
+0 Nicht-Loopback-Ereignisse. [Aktuelle Buildbindung](../testing/native-live-window-close-etw.json).
+Assistive Abnahme und externe Brokergrenzen bleiben offen. Striktes Ziel unverändert; Q-01/Q-02 für
+das Produkt bleiben nicht bestanden.
