@@ -287,6 +287,15 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
+Aktuell:
+[Kombinierte assistive Wiederanlauf-/Fehlerprüfung](docs/testing/native-combined-assistive-restart.md)
+mit unveränderter App und neuem Helfer für vier Zustände mit ausdrücklichem Klick und nativem
+Gegenbeleg bestätigt. Zwei abgelehnte Erstversuche bleiben dokumentiert; reine Tastatur-Replay-
+Abnahme offen. `ui-broker-recover <Wurzel> manual` darf nur Bedienungsautomatik deaktivieren, keine
+neue Importautorität geben. Erst realer Replay, reguläres Ende und gesperrte Altanfrage erlauben den
+Abschlussbeleg. Neuer Helferhash benötigt einen frischen ETW-Beleg, ältere Nachweise nicht
+übertragen.
+
 Forschungsbuild: `KRAQEL_ISOLATION_UI_TEST=1` und `--features isolation-ui-test` gemeinsam setzen;
 vor nativem Start die gebaute `apps/desktop/dist/isolation-test.html` prüfen. Danach normale
 Debug-App ohne Forschungsfrontend wiederherstellen. Reproduktion im kombinierten Nachweis.

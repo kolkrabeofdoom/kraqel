@@ -7,6 +7,16 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 16. November 2026
 
+Neuester Stand: [Kombinierter assistiver Nachweis](testing/native-combined-assistive-restart.md) für
+Unterbrechung, Abschluss, synthetischen Abbruch und ungültiges Archiv mit Hör-/Fokusbestätigung und
+nativem Replay-Gegenbeleg. Zwei Erstversuche korrekt abgelehnt, reine Tastaturabnahme offen. Neue
+Helferaktion `ui-broker-recover <Wurzel> manual`, App unverändert; neue Hashes im Nachweis. 28
+aktive Helfertests, Clippy und `pnpm check` bestanden. Alle vier Profile entfernt, keine
+Forschungsprozesse mehr. Nächster Scope: frischer ETW-Netzvergleich des neuen Paars mit
+automatischer Regression und manuellen Wiederanläufen. Alte ETW-Belege nicht übertragen.
+Rohdaten/Schlüssel nur lokal, niemals über Git transportieren; auf anderem Rechner frisch bauen und
+neue Testwurzeln verwenden. Striktes Datenschutzziel unverändert, keine Produktfreigabe.
+
 Neuester Nachweis 16. November: Frisches ETW exakt des gesicherten kombinierten v3-Paars bestanden.
 Zwei getrennt kalibrierte Phasen: Automatik einschließlich 54 abgewiesener Folgeaktionen, danach
 tatsächliche manuelle Dateiauswahl mit Wiederanlauf/neuem Auftrag/Replay. 114 Broker/80 Apps/480

@@ -1,0 +1,44 @@
+{
+  "researchOnly": true,
+  "productionAcceptance": false,
+  "independentAuditPassed": true,
+  "authorityAndSettlementMacsVerified": true,
+  "rootAndProgramBindingsVerified": true,
+  "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+  "controllerSha256": "1be2097ca854417157f802bbb4227d3c5fbb84995af1f14a7982aab63c115b52",
+  "taskStates": {
+    "interrupted": 1,
+    "succeeded": 2,
+    "failed": 2
+  },
+  "cases": [
+    {
+      "case": "live",
+      "taskStates": ["interrupted", "succeeded"],
+      "projectCopies": 1,
+      "verifiedSettlements": 1
+    },
+    {
+      "case": "cancel",
+      "taskStates": ["failed"],
+      "projectCopies": 0,
+      "verifiedSettlements": 1
+    },
+    {
+      "case": "invalid",
+      "taskStates": ["failed"],
+      "projectCopies": 0,
+      "verifiedSettlements": 1
+    },
+    {
+      "case": "completed",
+      "taskStates": ["succeeded"],
+      "projectCopies": 1,
+      "verifiedSettlements": 1
+    }
+  ],
+  "acceptedManualRecoveries": 4,
+  "failedInitialManualRecoveries": 2,
+  "networkMeasurement": false,
+  "keyboardOnlyReplayAcceptance": false
+}

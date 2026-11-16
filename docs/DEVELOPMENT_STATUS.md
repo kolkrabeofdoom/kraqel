@@ -1,5 +1,19 @@
 # Entwicklungsstatus
 
+Assistive kombinierte Prüfung, 16. November: Neuer manueller Broker-Wiederanlauf mit unveränderter
+App. Unterbrechung nach echter Dateiauswahl, Abschluss, synthetischer Abbruch und ungültiges Archiv
+mit Windows-Sprachausgabe/Fokus und nativem Replay-Gegenbeleg bestätigt. Vier reguläre manuelle
+Enden, vier gesperrte Altanfragen, vier MAC-Abschlussbelege; unabhängige Ketten-/SQLite-/Unicode-
+Prüfung bestanden. Fünf Aufträge, genau zwei legitime Kopien; Profile entfernt, Prozesse beendet.
+Zwei erste Wiederanläufe ohne nativen Replay-Gegenbeleg trotz menschlicher Bestätigung wurden
+korrekt abgelehnt und sind nicht als bestanden gezählt. Reine Tastatur-Replay-Abnahme bleibt offen;
+keine Ursache behauptet. 28 aktive Helfertests, Helfer-Clippy und `pnpm check` bestanden.
+[Nachweis](testing/native-combined-assistive-restart.md),
+[Aggregate/Hashes](testing/native-combined-assistive-restart.json). Nächster Schritt: frischer ETW-
+Netzvergleich des geänderten Helferpaars samt automatischer Regression. Der folgende ältere
+Netznachweis gilt nur für sein damaliges Hashpaar. Weitere Fensterendeprüfung und Produktintegration
+bleiben offen; striktes Datenschutzziel unverändert, Produkt-Q-01/Q-02 nicht bestanden.
+
 Kombinierter ETW-Nachweis, 16. November: Das unveränderte gesicherte v3-Paar ist frisch in zwei
 getrennten Phasen gemessen, einschließlich echter manueller Dateiauswahl und neuer Folgeaufträge.
 Beide gültig: acht Kontrollen, Nullverluste, keine Zuordnungslücken/unklaren Ziele; 114 Broker, 80

@@ -72,6 +72,15 @@ geschlossen/abgewartet; bei hartem Brokerende beendet Windows dessen Threads/Fen
 erfolgreiche Bereinigung mit einem losgelösten Auswahlthread gemeldet.
 
 `ui-broker-recover <Wurzel> first|second` stellt nur den aktuellen verbrauchten Auftrag wieder her.
+Die Aktion `manual` verwendet dieselbe Authentisierung und denselben verbrauchten Auftrag,
+deaktiviert aber die Bedienungsautomatik ausschließlich für das Wiederanlauffenster. Ein echter
+Replay-Aufruf und reguläres Fensterende mit Exitcode 0 sind erforderlich; vorzeitiges Schließen gilt
+als Fehler. Anschließend läuft die gesperrte ursprüngliche Importanfrage automatisch und ohne
+Journaländerung. Erst danach darf der signierte Abschlussbeleg entstehen. Diagnoseindizes 5/6 je
+Achterblock trennen diesen Ablauf von `first` und `second`. Es entstehen keine Auswahlhandles und
+keine neue Importautorität. Hörbestätigung bleibt eine separate menschliche Prüfung. Der geänderte
+Helfer übernimmt den früheren ETW-Beleg nicht.
+
 `ui-broker-live-next <Wurzel>` erzeugt ausdrücklich einen neuen synthetischen Fixture-Auftrag; keine
 allgemeine Produkt-Import-API. `retire` bleibt die Stilllegungsaktion. Native Journale speichern
 Fehlversuche dauerhaft; auch nach Cancel/ungültiger Datei entsteht keine Wiederholungsfreigabe.

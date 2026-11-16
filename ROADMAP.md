@@ -134,9 +134,11 @@
              neun Fälle/72 App-Starts, 54 abgewiesene Folgeaktionen, manuelle Dateiauswahl bestätigt
        - [x] KQ-069 A: Gesichertes kombiniertes v3-Paar einschließlich nativer Dateiauswahl frisch
              per ETW messen; 868 explizite Enden, acht Kontrollen, Nullverluste, 0 Nicht-Loopback
-       - [ ] KQ-069 A: Kombinierte assistive und weitere Fensterendeprüfung; dauerhaften
-             authentisierten Produktbroker integrieren/abnehmen; weitere
-             Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren; Packaging und
+       - [x] KQ-069 A: Kombinierte assistive Wiederanlauf-/Fehlerzustände mit Hörbestätigung und
+             nativem Replay-Gegenbeleg prüfen; zwei Erstversuche abgelehnt, Tastaturabnahme offen
+       - [ ] KQ-069 A: Frisches ETW des manuellen Helferpaars, reine Tastatur- und weitere
+             Fensterendeprüfung; dauerhaften authentisierten Produktbroker integrieren/abnehmen;
+             weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren; Packaging und
              F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)

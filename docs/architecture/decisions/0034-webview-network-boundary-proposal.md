@@ -1,5 +1,12 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+Assistiver kombinierter Wiederanlauf, 16. November: Vier Zustände mit Windows-Sprachausgabe, Fokus
+und nativem Replay-Gegenbeleg bestätigt. Zwei Erstversuche ohne nativen Aufruf wurden korrekt
+abgelehnt; reine Tastaturprüfung bleibt offen. Neue manuelle Helferaktion, App unverändert;
+[Nachweis](../../testing/native-combined-assistive-restart.md). Neuer Helferhash benötigt einen
+eigenen frischen ETW-Beleg; keine Übertragung des folgenden älteren Nachweises. Striktes Ziel
+unverändert, Produktintegration und weitere Fensterendeprüfung offen.
+
 Kombiniertes ETW, 16. November: Eigener gültiger Nachweis des gesicherten v3-Paars mit automatischer
 Serie und echtem nativem Dateidialog in getrennten kalibrierten Phasen. 80 Apps, 480 WebViews und
 alle 868 Prozessenden explizit; acht Kontrollen, Nullverluste, 0 Nicht-Loopback- und 480 getrennte

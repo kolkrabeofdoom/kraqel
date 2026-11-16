@@ -1,5 +1,13 @@
 # Bedrohungsmodell (Entwurf)
 
+Manuelle kombinierte Recovery:
+[Assistiver Nachweis](../testing/native-combined-assistive-restart.md) für vier Zustände mit realem
+Replay und regulärem Ende; ohne Auswahlhandles und ohne neuen Grant. Zwei Erstversuche ohne nativen
+Replay-Gegenbeleg wurden trotz menschlicher Bestätigung abgelehnt; kein Abschlussbeleg und keine
+neue Autorität daraus. Hörbestätigung allein ist keine technische Abnahme. Neuer Helferhash besitzt
+noch keinen frischen ETW-Beleg; reine Tastaturprüfung offen. Der folgende ältere Netznachweis bleibt
+auf sein ursprüngliches Paar begrenzt.
+
 Kombiniertes v3-Paar:
 [Eigener frischer ETW-Nachweis](../testing/native-combined-live-restart-etw.md) mit realer manueller
 Dateiauswahl und automatischer Crash-/Negativserie bestanden. 868 vollständig beendete Lebenszeiten,

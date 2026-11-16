@@ -526,7 +526,7 @@ fn seed_with(
 }
 
 pub(in super::super::super) fn recover(root: &Path, action: &str) -> Result<Value> {
-    if !matches!(action, "first" | "second" | "retire") {
+    if !matches!(action, "first" | "second" | "manual" | "retire") {
         return Err(invalid("broker-recovery-action"));
     }
     let root = bound_root(root)?;
@@ -559,15 +559,25 @@ pub(in super::super::super) fn recover(root: &Path, action: &str) -> Result<Valu
     let name = job_name(ticket.session_id);
     ticket.recovery = true;
     ticket.launch_id = Uuid::new_v4();
-    let index = authority.sequence as usize * 8 + if action == "first" { 1 } else { 3 };
-    ticket.automatic = true;
+    let manual = action == "manual";
+    let index = authority.sequence as usize * 8
+        + match action {
+            "first" => 1,
+            "manual" => 5,
+            _ => 3,
+        };
+    ticket.automatic = !manual;
     let summary = generation_with_options(
         &root,
         &profile,
         &ticket,
         ticket.launch_id,
         GenerationOptions {
-            expect: Expect::Recovery,
+            expect: if manual {
+                Expect::ManualRecovery
+            } else {
+                Expect::Recovery
+            },
             index,
             durable_job: Some(&name),
             crash_controller: false,
@@ -590,6 +600,8 @@ pub(in super::super::super) fn recover(root: &Path, action: &str) -> Result<Valu
     }
     // A stale original import request must fail before reading or journal mutation.
     ticket.recovery = false;
+    // Human interaction applies only to recovery, never to the stale import probe.
+    ticket.automatic = true;
     ticket.launch_id = Uuid::new_v4();
     let before = hash(&root.join("data/app/tasks/tasks.sqlite3"))?;
     generation_with_options(
@@ -609,7 +621,7 @@ pub(in super::super::super) fn recover(root: &Path, action: &str) -> Result<Valu
         return Err(invalid("broker-replay-mutated-journal"));
     }
     combined::settle(root.as_path(), &authority, summary.project_count)?;
-    let report = json!({"researchOnly":true,"productionAcceptance":false,"passed":true,"authorityAuthenticated":true,"controllerRestarted":true,"activeJobProcessesAtEnd":0,"summary":summary,"staleImportBlocked":true,"networkMeasurement":false});
+    let report = json!({"researchOnly":true,"productionAcceptance":false,"passed":true,"authorityAuthenticated":true,"controllerRestarted":true,"activeJobProcessesAtEnd":0,"summary":summary,"staleImportBlocked":true,"manualRecovery":manual,"screenreaderAcceptanceRequiresUserReport":manual,"networkMeasurement":false});
     write_json(&root.join(format!("broker-{action}.json")), &report)?;
     Ok(report)
 }
