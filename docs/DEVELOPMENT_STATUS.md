@@ -1,5 +1,23 @@
 # Entwicklungsstatus
 
+Sitzungsübergangs-Crashpunkte und eigener frischer ETW-Vergleich, 17. November: 20 neue
+Übergangsabbrüche an Bindung, Recovery-Startrecord und Stilllegung samt 13 vorbereitenden
+Controllerabbrüchen. Neun unvollständige Abschlüsse bleiben gesperrt, elf Zustände authentisierbar;
+nur vier davon ausdrücklich wiederanlaufbar. Kein automatischer Schlüsselreset oder Reparieren.
+Unabhängige MAC-/Wurzel-/SQLite-/Unicode-Audits bestanden. Frischer ETW-Vergleich desselben
+gesicherten Builds mit bisheriger Recoveryserie und neuer Crash-Serie: acht Kontrollen,
+Nullverluste/Zuordnungslücken, alle 458 Prozessenden explizit. 0 beobachtete Nicht-Loopback-/138
+getrennte Loopback-Ereignisse. 15 globale persistierte Aufgaben/14 legitime Kopien, keine
+Replaykopie. 46 aktive Helfertests, Clippy/`pnpm check`, 36 Diagnose-Tests grün.
+[Nachweis](testing/native-session-transition-crash-etw.md),
+[Aggregate/Hashes](testing/native-session-transition-crash-etw.json). Testprofile entfernt,
+Erfassungen/Prozesse beendet, private synthetische Fixtures bewusst erhalten. Echte Vorschauablage
+unverändert. Nächster Scope: authentisierte Profil-Cleanup-Reconciliation unter derselben
+Kontrollsperre; echte Datenmigration/Schema-3-Updates/Produktintegration weiter offen. Striktes Ziel
+unverändert, Produkt-Q-01/Q-02 nicht bestanden.
+
+## Vorheriger funktionaler Prüfstand
+
 Dauerhafte Apppaket-/Sitzungsbindung und authentisierter Wiederanlauf, 17. November: Kontrollschema
 2 → 3 explizit implementiert. Dieselbe private Kontrollkette bindet App-SHA, kanonische
 Sitzungswurzel, Task und Startkennungen; Recovery nutzt dieselbe Kontrollsperre und denselben

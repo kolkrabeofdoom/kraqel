@@ -763,6 +763,16 @@ pub fn main() {
         if args.len() == 3 && args[0] == "product-control-series" {
             return exchange::product_crash_series(Path::new(&args[1]), Path::new(&args[2]));
         }
+        if args.len() == 4 && args[0] == "product-transition-series" {
+            return exchange::product_transition_series(
+                Path::new(&args[1]),
+                Path::new(&args[2]),
+                &args[3],
+            );
+        }
+        if args.len() == 7 && args[0] == "product-transition-child" {
+            return exchange::product_transition_child(&args[1..]);
+        }
         if args.len() == 4 && args[0] == "product-session-series" {
             return exchange::product_session_series(
                 Path::new(&args[1]),

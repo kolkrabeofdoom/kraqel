@@ -1,5 +1,7 @@
 //! Native control-record authority for one persistent synthetic session per installation.
 use super::*;
+mod transitions;
+pub(in crate::windows) use transitions::{child as transition_child, series as transition_series};
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -158,6 +160,7 @@ impl Store {
         }
         let _pins = pin_directories(&root)?;
         binding.root = root_hash(&io("product-session-canonical", root.canonicalize())?);
+        crash::hit(crash::Point::SessionStaged);
         // Once committing authority starts, failures must retain the profile, never reset it.
         profile.active = false;
         self.append(actor, head, Action::BindSession { binding })?;
@@ -259,6 +262,7 @@ impl Store {
         };
         let name = self.job_name();
         let index = s.launches.len() - 1;
+        crash::hit(crash::Point::BeforeSessionRun);
         let summary = generation_with_options(
             &root,
             &profile,
@@ -301,10 +305,12 @@ impl Store {
             .ok_or(invalid("product-session-unbound"))?;
         let id = s.binding.session;
         self.append(actor, head, Action::RetireSession)?;
+        crash::hit(crash::Point::RetireCommitted);
         let mut profile = super::super::reopen_profile(id)?;
         if !profile.remove() {
             return Err(invalid("product-session-retire-profile"));
         }
+        crash::hit(crash::Point::ProfileRemoved);
         Ok(
             json!({"nativePreviewOnly":true,"productionAcceptance":false,"retired":true,
             "profileRemoved":true,"activeJobProcessesAtEnd":0,"networkMeasurement":false}),
@@ -332,6 +338,7 @@ pub(in crate::windows) fn child(args: &[OsString]) -> Result<Value> {
     let mut store = Store::open(root)?;
     store.actor(actor)?;
     let outcome = match action {
+        "status" => json!(null),
         "migrate" => {
             store.append(actor, head, Action::Migrate { from: 1, to: 2 })?;
             store.append(actor, store.state.head, Action::Migrate { from: 2, to: 3 })?;

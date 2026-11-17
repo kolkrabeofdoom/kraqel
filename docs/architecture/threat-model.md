@@ -1,5 +1,14 @@
 # Bedrohungsmodell (Entwurf)
 
+[Übergangs-Crashpunkte und eigener frischer ETW-Beleg](../testing/native-session-transition-crash-etw.md), 17.
+November: 20 zusätzliche Übergangsabbrüche. Neun unvollständige Abschlüsse bleiben gesperrt; elf
+Zustände authentisierbar, davon vier explizit wiederanlaufbar. Eigener Testprofil-Cleanup gibt keine
+Importautorität und repariert keine Kontrollablage. Zwei gültige ETW-Phasen desselben gesicherten
+Builds: acht Kontrollen, keine Verluste, 458 explizite Enden, 0 Nicht-Loopback-/138 getrennte
+Loopback-Ereignisse. Kein Inhalts-/Upload- oder vollständiger externer Dienstnachweis. Echte
+Vorschauablage unbenutzt, Produktintegration weiter offen. Nächster Scope: authentisierte
+Produktprofil-Bereinigung; striktes Datenschutzziel unverändert.
+
 [Dauerhafte Sitzungsbindung/Recovery](../testing/native-product-session-recovery.md), 17. November:
 explizites Kontrollschema 3 bindet Apphash, Sitzungswurzel, Task und Startkennungen an die private
 Kontrollkette. Neue Controller verwenden dieselbe Sperre und denselben Produktjob; vorhandene

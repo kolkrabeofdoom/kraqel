@@ -156,6 +156,16 @@ ausschließlich für seinen gesicherten Prüfbuild, nicht für automatisch aktua
 
 ## Native Vorschau-Commands
 
+Zusätzliche synthetische Prüfung:
+[20 Sitzungsübergangs-Crashfälle und frisches ETW](../testing/native-session-transition-crash-etw.md).
+Bindung, Recovery-Startrecord und Stilllegung werden an Record-/Kopfpunkten sowie vor GUI und nach
+Profilentfernung hart abgebrochen. Neun unvollständige Abschlüsse bleiben gesperrt; elf
+authentisierbare Zustände sind kein allgemeiner Startgrant. Vier explizite Recoveries bestehen;
+ungebundene, journalfreie und stillgelegte Zustände bleiben ohne Importautorität. Testprofil-Cleanup
+gilt ausschließlich für frische eigene Fixtures und repariert keine Kontrollkette. Authentisierte
+Produkt-Cleanup-Reconciliation bleibt offen. Der eigene ETW-Beleg gilt nur für seinen gesicherten
+Brokerhash, nicht automatisch für Folgeänderungen.
+
 ```text
 kraqel-isolation-probe.exe broker-store init
 … broker-store status
@@ -176,4 +186,5 @@ Prüfung `check-container` erzeugt ausschließlich eine frische synthetische TEM
 tatsächliche Dateiverweigerungen unter deren suspendiertem eingeschränktem Token, führt den
 bestehenden synthetischen Import aus und entfernt das Testprofil. Ihr lokaler Diagnosepfad ist nur
 native Testausgabe und keine veröffentlichte Projektdokumentation. Keine Commands sind mit dem
-normalen Produkt-Renderer verdrahtet. Der neue Programmstand benötigt einen eigenen ETW-Nachweis.
+normalen Produkt-Renderer verdrahtet. Jeder geänderte Programmstand benötigt einen eigenen
+ETW-Nachweis.

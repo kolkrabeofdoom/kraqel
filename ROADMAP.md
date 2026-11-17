@@ -151,8 +151,11 @@
        - [x] KQ-069 A: Dauerhafte synthetische Apppaket-/Sitzungsbindung und authentisierter
              Wiederanlauf unter Kontrollsperre; zwei Controllerabbrüche/vier Recoveries, kein
              Duplikat
-       - [ ] KQ-069 A: Weitere Sitzungs-/Startrecord-/Stilllegungs-Crashpunkte und frischer ETW;
-             isolierten Produktstarter/echte Projektmigration integrieren sowie weitere allgemeine
+       - [x] KQ-069 A: 20 zusätzliche Sitzungsübergangs-Crashpunkte und frisches ETW; neun
+             gesperrte/ elf authentisierbare Zustände, acht Kontrollen, 458 explizite Enden, 0
+             Nicht-Loopback
+       - [ ] KQ-069 A: Authentisierte Profil-Cleanup-Reconciliation; Schema-3-Updates, isolierten
+             Produktstarter/echte Projektmigration integrieren sowie weitere allgemeine
              Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
              integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker
              kalibrieren; Packaging und F08-/M3-Vollprüfung

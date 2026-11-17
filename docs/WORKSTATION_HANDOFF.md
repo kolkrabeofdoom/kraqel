@@ -7,7 +7,20 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 17. November 2026
 
-Neuester funktionaler Prüfstand:
+Neuester Prüfstand:
+[Übergangs-Crashpunkte und frisches ETW](testing/native-session-transition-crash-etw.md). 20 neue
+Übergangsabbrüche, neun gesperrte/elf authentisierbare Kontrollzustände, vier explizite Recoveries;
+Status ist kein Ausführungsgrant. Testprofil-Cleanup repariert keinen Kontrollzustand. Beide
+frischen ETW-Phasen gültig: acht Kontrollen, Nullverluste, 458 explizite Enden, 0
+Nicht-Loopback-/138 getrennte Loopback-Ereignisse. 46 aktive Helfertests, `pnpm check` und 36
+Diagnose-Tests grün; unabhängige Daten-/MAC-/Kernel-Lebenszeitaudits bestanden. Profile/Prozesse/
+Erfassungen beendet; gesperrte synthetische Fixtures privat erhalten. Echte Vorschauablage und
+nachfolgend genannte autorisierte EXE unverändert, neuer Prüfbroker nicht automatisch aktiviert.
+Nächster Scope: authentisierte Bereinigung verwaister/stillgelegter Profile unter derselben
+Kontrollsperre, keine neue Importautorität oder Schlüssel-/Kopfreparatur. Striktes Ziel unverändert;
+Schema-3-Updates/echte Datenmigration/Produktintegration bleiben offen.
+
+Vorheriger Prüfstand: Neuester funktionaler Prüfstand:
 [Dauerhafte Sitzungsbindung/Recovery](testing/native-product-session-recovery.md). Neue native
 Vorschau mit explizitem Kontrollschema 3, persistiertem Apphash/Sitzungswurzel/Task und verbrauchten
 Startkennungen. Zwei echte Controllerabbrüche, vier Recoveries/acht Replay-Ereignisse, 36

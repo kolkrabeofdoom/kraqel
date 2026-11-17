@@ -14,8 +14,17 @@ pub(super) enum Point {
     HeadPublished,
     PackagePartial,
     PackageSynced,
+    SessionStaged,
+    BeforeSessionRun,
+    RetireCommitted,
+    ProfileRemoved,
 }
 thread_local! {static ARMED:Cell<Option<Point>>=const {Cell::new(None)};}
+pub(super) fn arm(root: &Path, point: Point) -> Result<()> {
+    scoped(root)?;
+    ARMED.with(|s| s.set(Some(point)));
+    Ok(())
+}
 pub(super) fn hit(point: Point) {
     if ARMED.with(|state| state.get() == Some(point)) {
         // Abrupt process death: no Rust destructors and no deliberate file/job cleanup first.
@@ -199,7 +208,7 @@ impl Run {
         self.invoke(root, action, None, new_actor, head, expected)
     }
 }
-fn snapshot(root: &Path) -> Result<[u8; 32]> {
+pub(super) fn snapshot(root: &Path) -> Result<[u8; 32]> {
     fn walk(path: &Path, hashing: &mut Sha256) -> Result<()> {
         let mut names = io("product-series-snapshot-list", fs::read_dir(path))?
             .map(|e| e.map(|x| x.path()))

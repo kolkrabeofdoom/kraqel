@@ -325,6 +325,21 @@ keine Brokerupdates und genau eine gebundene Sitzung je Installation.
 Programmbytes an der echten Vorschauablage durch Kopieren/Reset autorisieren. Der neue Broker
 benötigt frisches ETW; ältere Messungen werden nicht übertragen.
 
+## Zusätzliche Sitzungsübergangs-Crashpunkte
+
+```powershell
+$transitionRoot = Join-Path $env:TEMP ('kraqel-isolation-controller-' + [guid]::NewGuid().ToString('N'))
+cargo run --locked --manifest-path scripts/runtime-isolation/probe/Cargo.toml -- product-transition-series $transitionRoot <Forschungs-App> <erwartete-App-SHA>
+```
+
+20 zusätzliche Fault-Punkte für Bindung, Recovery-Startrecord und Stilllegung, ausschließlich in
+neuen privaten synthetischen Installationen. Der interne `product-transition-child` akzeptiert nur
+passende typisierte Aktions-/Punktpaare im begrenzten TEMP-Controller-/Case-/Store-Layout. Normale
+Vorschau-Commands aktivieren keine Faults. Testprofil-Cleanup repariert keine gesperrte Ablage und
+verleiht keine Importautorität.
+[Matrix, gesicherte Hashes und eigener frischer ETW-Beleg](../../docs/testing/native-session-transition-crash-etw.md).
+Produktprofil-Cleanup-Reconciliation/Schema-3-Updates und normale Produktintegration bleiben offen.
+
 Primärquellen:
 [AppContainer für klassische Apps](https://learn.microsoft.com/en-us/windows/win32/secauthz/appcontainer-for-legacy-applications-),
 [Start mit Security Capabilities](https://learn.microsoft.com/en-us/windows/win32/secauthz/implementing-an-appcontainer),

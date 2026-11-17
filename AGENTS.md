@@ -288,6 +288,18 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 ## Übergabe zwischen Codex-Sessions
 
 Aktuell:
+[Sitzungsübergangs-Crashpunkte und frisches ETW](docs/testing/native-session-transition-crash-etw.md), 17.
+November. 20 Übergangsabbrüche plus 13 vorbereitende Controllerabbrüche: neun Abschlüsse bleiben
+gesperrt, elf Kontrollzustände sind authentisierbar, davon vier explizit wiederanlaufbar. Status ist
+kein Ausführungsgrant. Nur eigene frische Testprofile werden bereinigt, keine Kontrollreparatur.
+`durable/product/session/transitions.rs` enthält die begrenzte native Serie. 46 aktive Helfertests,
+36 Diagnose-Tests und `pnpm check` bestanden. Zwei gültige frische ETW-Phasen: acht Kontrollen,
+Nullverluste, 458 explizite Prozessenden, 0 beobachtete Nicht-Loopback-/138 getrennte
+Loopback-Ereignisse. Echte Vorschauablage/verwaltete EXE unverändert. Nächster Scope: authentisierte
+Bereinigung verwaister/stillgelegter Profile unter derselben Kontrollsperre, ohne neue
+Importautorität oder Schlüssel-/Kopfreparatur. Striktes Ziel unverändert.
+
+Vorheriger Prüfstand:
 [Dauerhafte Apppaket-/Sitzungsbindung und Recovery](docs/testing/native-product-session-recovery.md), 17.
 November. Explizites Kontrollschema 3 bindet eine synthetische Sitzung samt Apphash, Wurzel, Auftrag
 und Startkennungen in derselben Kontrollkette. Neue Prozesse übernehmen nur diese Bindung unter
@@ -299,7 +311,7 @@ Echte Vorschauablage/verwaltete EXE unverändert. Schema-3-Updates und normale P
 offen; kein frischer ETW-Beleg dieses neuen Brokerhashs. Nächster Scope: zusätzliche Bindungs-/
 Startrecord-/Stilllegungs-Crashpunkte, dann frischer ETW-Vergleich. Striktes Ziel unverändert.
 
-Vorheriger Prüfstand: Aktuell:
+Vorheriger Prüfstand:
 [Kontrollgebundener isolierter Startpfad](docs/testing/native-product-starter.md), 17. November:
 synthetische Vorschau verwendet die Kontrollsperre über die ganze GUI-Laufzeit und denselben
 benannten Job wie Updates. Nur getrennte frische TEMP-Appdaten erhalten Containerrechte; echte

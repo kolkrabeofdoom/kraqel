@@ -16,6 +16,7 @@ use secure_fs::{
 };
 use session::{Binding, BoundSession};
 pub(in crate::windows) use session::{child as session_child, series as session_series};
+pub(in crate::windows) use session::{transition_child, transition_series};
 pub(in super::super::super::super) use starter::series as start_series;
 pub(in super::super) use starter::verify_start_lease;
 

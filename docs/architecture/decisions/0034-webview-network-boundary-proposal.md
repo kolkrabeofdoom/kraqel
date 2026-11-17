@@ -1,5 +1,13 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+Übergangs-Crashpunkte und frisches ETW, 17. November:
+[Eigener Beleg](../../testing/native-session-transition-crash-etw.md) für 20 zusätzliche
+Sitzungsübergänge: neun gesperrte/elf authentisierbare Zustände, vier explizite Recoveries. Keine
+Kontrollreparatur oder neue Importautorität. Zwei gültige frische ETW-Phasen mit acht Kontrollen,
+Nullverlusten, 458 expliziten Enden, 0 Nicht-Loopback-/138 getrennten Loopback-Ereignissen. Nur
+dokumentierter Build/Lebenszeiten, keine Produkt- oder vollständige externe Dienstfreigabe.
+Profil-Cleanup-Reconciliation/Schema-3-Updates/Produktintegration offen, striktes Ziel unverändert.
+
 Dauerhafte Sitzungsbindung/Recovery, 17. November:
 [Nachweis](../../testing/native-product-session-recovery.md) bindet Apppaket und persistierte
 synthetische Sitzung in Kontrollschema 3. Authentisierte neue Startrecords vor Recovery unter

@@ -12,7 +12,7 @@ pub(in super::super) use durable::product_storage;
 pub(in super::super) use durable::{combined_series, next_live, seed_live};
 pub(in super::super) use durable::{
     product_crash_child, product_crash_series, product_session_child, product_session_series,
-    product_start_series,
+    product_start_series, product_transition_child, product_transition_series,
 };
 pub(in super::super) use durable::{
     recover as recover_broker, seed as seed_broker, series as controller_crash_series,
