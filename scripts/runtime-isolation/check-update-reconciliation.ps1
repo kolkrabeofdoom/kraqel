@@ -3,10 +3,12 @@ param(
     [Parameter(Mandatory=$true)][string]$ProbeSha256,
     [Parameter(Mandatory=$true)][string]$App,
     [Parameter(Mandatory=$true)][string]$AppSha256,
-    [switch]$RetryAborted
+    [switch]$RetryAborted,
+    [switch]$PrepareTransitions
 )
 # Local synthetic research only. Keeps private evidence outside Git; never opens the real store.
 $ErrorActionPreference='Stop'
+if($RetryAborted -and $PrepareTransitions){throw 'Select one bounded research series'}
 foreach($pair in @(@($Probe,$ProbeSha256),@($App,$AppSha256))) {
     if($pair[1] -cnotmatch '^[0-9a-f]{64}$' -or (Get-FileHash -LiteralPath $pair[0]).Hash.ToLowerInvariant() -ne $pair[1]) {
         throw 'Expected an explicitly approved complete executable hash'
@@ -54,7 +56,8 @@ function Control-Fingerprint {
     return $entries -join '|'
 }
 try {
-    foreach($fault in @('partial-copy','tampered-package','abort-published')) {
+    $faults=if($PrepareTransitions){@('artifact-removed','package-created','prepare-recorded')}else{@('partial-copy','tampered-package','abort-published')}
+    foreach($fault in $faults) {
         $caseName='case-'+$cases.Count.ToString('D2')
         $caseRoot=Join-Path $fixtureRoot $caseName;New-Item -ItemType Directory -Path $caseRoot | Out-Null
         $store=Join-Path $caseRoot 'store'
@@ -63,6 +66,40 @@ try {
         $state=Invoke-Control bind $state.control.headSha256
         $before=$state.control.headSha256
         $key=(Get-FileHash -LiteralPath "$store/control/authority.key").Hash
+        if($PrepareTransitions) {
+            $state=Invoke-Control prepare-update $before
+            $state=Invoke-Control abort-update $state.control.headSha256
+            $abortedHead=$state.control.headSha256
+            $package=Join-Path $store "bin/$candidateSha.exe"
+            Invoke-Control prepare $abortedHead 86 $fault
+            $state=Invoke-Control status $zero
+            $crashHead=$state.control.headSha256
+            $hasPending=($fault -eq 'prepare-recorded')
+            $packagePresent=Test-Path -LiteralPath $package
+            $packageBytes=if($packagePresent){(Get-Item -LiteralPath $package).Length}else{$null}
+            if($state.control.pendingUpdate -ne $hasPending -or $packagePresent -ne ($fault -ne 'artifact-removed') -or ($packagePresent -and $packageBytes -ne 0)){throw 'Unexpected crash boundary state'}
+            if(-not $hasPending -and $crashHead -ne $abortedHead){throw 'Early crash changed control head'}
+            $fingerprint=Control-Fingerprint
+            Invoke-Control activate-update $crashHead 1
+            if($hasPending){Invoke-Control recover $crashHead 1}
+            if((Control-Fingerprint) -ne $fingerprint){throw 'Rejected post-crash operation mutated control'}
+            if($hasPending){$state=Invoke-Control abort-update $crashHead}
+            $retryHead=$state.control.headSha256
+            $fingerprint=Control-Fingerprint
+            Invoke-Control prepare-update $before 1
+            if((Control-Fingerprint) -ne $fingerprint -or (Test-Path -LiteralPath $package) -ne $packagePresent -or ($packagePresent -and (Get-Item -LiteralPath $package).Length -ne 0)){throw 'Stale retry mutated artifact/control'}
+            $state=Invoke-Control prepare-update $retryHead
+            if(-not $state.control.pendingUpdate -or (Get-FileHash -LiteralPath $package).Hash.ToLowerInvariant() -ne $candidateSha){throw 'Boundary retry did not prepare exact package'}
+            $state=Invoke-Control abort-update $state.control.headSha256
+            $state=Invoke-Control recover $state.control.headSha256
+            if($state.outcome.summary.projectCount -ne 1 -or $state.outcome.summary.documentCount -ne 2 -or -not $state.outcome.summary.replayBlocked){throw 'Boundary recovery changed import authority'}
+            $state=Invoke-Control retire $state.control.headSha256
+            $cleanup=Invoke-Control cleanup $state.control.headSha256
+            if(-not $cleanup.outcome.profileAbsent -or -not $cleanup.outcome.alreadyRecorded -or $cleanup.control.headSha256 -ne $state.control.headSha256){throw 'Boundary cleanup did not settle'}
+            if((Get-FileHash -LiteralPath "$store/control/authority.key").Hash -ne $key){throw 'Boundary crash changed key'}
+            $cases.Add(@{fault=$fault;localStoreRoot=$store;beforeHead=$before;abortedHead=$abortedHead;crashHead=$crashHead;pendingAtCrash=$hasPending;packagePresentAtCrash=$packagePresent;packageBytesAtCrash=$packageBytes;final=$cleanup;rejectedControlUnchanged=$true;keyUnchanged=$true})
+            continue
+        }
         if($fault -eq 'partial-copy') {
             Invoke-Control prepare $before 86 'package-partial'
             $state=Invoke-Control status $zero
@@ -119,7 +156,7 @@ try {
         if((Get-FileHash -LiteralPath "$store/control/authority.key").Hash -ne $key){throw 'Key changed'}
         $cases.Add(@{fault=$fault;localStoreRoot=$store;beforeHead=$before;pendingHead=$pending;abortedHead=$after;retry=$retryEvidence;final=$cleanup;rejectedControlUnchanged=$true;keyUnchanged=$true})
     }
-    @{passed=$true;nativePreviewOnly=$true;productionAcceptance=$false;controllerSha256=$ProbeSha256;candidateSha256=$candidateSha;appSha256=$AppSha256;childProcesses=$steps.Count;retryAborted=[bool]$RetryAborted;cases=$cases;networkMeasurement=$false} | ConvertTo-Json -Depth 14 | Set-Content -LiteralPath (Join-Path $fixtureRoot 'result.json')
+    @{passed=$true;nativePreviewOnly=$true;productionAcceptance=$false;controllerSha256=$ProbeSha256;candidateSha256=$candidateSha;appSha256=$AppSha256;childProcesses=$steps.Count;retryAborted=[bool]$RetryAborted;prepareTransitions=[bool]$PrepareTransitions;cases=$cases;networkMeasurement=$false} | ConvertTo-Json -Depth 14 | Set-Content -LiteralPath (Join-Path $fixtureRoot 'result.json')
     Write-Output $fixtureRoot
 } finally {
     foreach($process in $held){$process.Dispose()}

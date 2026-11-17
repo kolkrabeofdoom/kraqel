@@ -7,6 +7,25 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 17. November 2026
 
+Neuester funktionaler Stand:
+[Prepare-Übergangsabbrüche](testing/native-prepare-transition-crashes.md). Gezielte
+Prepare-Übergangsabbrüche, 17. November: drei standardmäßig inaktive Punkte im pfadbegrenzten
+Forschungschild: `artifact-removed`, `package-created`, `prepare-recorded`. Nach den ersten beiden
+bleibt der Kopf unverändert/kein Pending; danach gültiges Pending mit leerer Kopie, vor Retry
+ausdrücklich abzubrechen. Drei native Fälle mit 44 Kontrollprozessen/sechs GUIs bestanden; 56 aktive
+Helfertests/Clippy grün, zwei vorhandene Tests um leere Kopien erweitert. Unabhängiger
+MAC-/Root-/Actor-/SQLite-Audit bestätigt 13/13/15 Records, erhaltene Schlüssel und
+App-/Sitzungsbindung sowie drei Aufgaben/Kopien ohne Replayduplikat. Derselbe Storelease bis
+Prozessende, keine neue Autorität oder Reparatur. Echte Vorschauablage unverändert, Testprozesse
+beendet. Mittleres Prüfniveau, kein Appbuild/Workspace-Gesamtlauf. Neue Brokerbytes ohne eigenen
+frischen ETW-Beleg; nächster begrenzter Scope: gezieltes ETW der neuen Programme einschließlich
+dieser drei Übergänge und verwaltetem Kandidaten. Unbekannte Artefakte/defekte Ketten bleiben
+gesperrt; striktes Datenschutzziel und offene Produktabnahme unverändert.
+
+Reproduktion: `scripts/runtime-isolation/check-update-reconciliation.ps1 -PrepareTransitions` mit
+den neuen gesicherten Hashes aus dem Nachweis; alternativ zur bisherigen `-RetryAborted`-Serie.
+Keine Prüfprogramme an vorhandener Vorschauablage autorisieren oder deren Autorität kopieren.
+
 Neuester Netzbeleg: [Retry und verwalteter Kandidat](testing/native-package-artifact-retry-etw.md).
 Frisches ETW des gesicherten Retry-Brokers, 17. November: unveränderte Programme, zwei kurze gültige
 Phasen. Referenz und kombinierter Teilkopie-/Abort-/Retry-/Aktivierungs-/Recoverypfad bestanden.

@@ -1,5 +1,12 @@
 # Bedrohungsmodell (Entwurf)
 
+[Gezielte Prepare-Übergangsabbrüche](../testing/native-prepare-transition-crashes.md), 17. November:
+nach Artefaktentfernung/Zielanlage Kopf unverändert, kein Pending; nach Prepare-Abschluss Pending
+mit leerer Kopie und explizitem Abbruch vor Retry. Drei native harte Prozessabbrüche bestätigen
+Wiederanlauf unter derselben Sperre ohne neue Importautorität. 56 Helfertests/Clippy und Daten-/
+MAC-Audit grün. Authentisierter Retry mit vorherigem Abort, kein allgemeines Erst-Prepare-Orphan-
+Cleanup oder Stromausfallnachweis. Neue Brokerbytes ohne frisches ETW; striktes Ziel unverändert.
+
 [Sichere Paketartefakte/Retry](../testing/native-package-artifact-retry.md), 17. November: Ersetzung
 nur authentisiert abgebrochener Schema-4-Hashes, niemals aktivierter Pakete. Aktueller Actor/Kopf,
 Jobleerstand und erlaubter Übergang vor Dateimutation unter derselben Sperre. Exklusiver Handle,

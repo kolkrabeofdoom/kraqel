@@ -294,10 +294,26 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
-Aktuell: [Eigener Retry-ETW-Beleg](docs/testing/native-package-artifact-retry-etw.md). Frisches ETW
-des gesicherten Retry-Brokers, 17. November: unveränderte Programme, zwei kurze gültige Phasen.
-Referenz und kombinierter Teilkopie-/Abort-/Retry-/Aktivierungs-/Recoverypfad bestanden. Alle 21
-direkten Aufrufe einschließlich fünf hashbenannter verwalteter EXEs erfasst, unveränderte
+Aktuell: [Prepare-Übergangsabbrüche](docs/testing/native-prepare-transition-crashes.md). Gezielte
+Prepare-Übergangsabbrüche, 17. November: drei standardmäßig inaktive Punkte im pfadbegrenzten
+Forschungschild: `artifact-removed`, `package-created`, `prepare-recorded`. Nach den ersten beiden
+bleibt der Kopf unverändert/kein Pending; danach gültiges Pending mit leerer Kopie, vor Retry
+ausdrücklich abzubrechen. Drei native Fälle mit 44 Kontrollprozessen/sechs GUIs bestanden; 56 aktive
+Helfertests/Clippy grün, zwei vorhandene Tests um leere Kopien erweitert. Unabhängiger
+MAC-/Root-/Actor-/SQLite-Audit bestätigt 13/13/15 Records, erhaltene Schlüssel und
+App-/Sitzungsbindung sowie drei Aufgaben/Kopien ohne Replayduplikat. Derselbe Storelease bis
+Prozessende, keine neue Autorität oder Reparatur. Echte Vorschauablage unverändert, Testprozesse
+beendet. Mittleres Prüfniveau, kein Appbuild/Workspace-Gesamtlauf. Neue Brokerbytes ohne eigenen
+frischen ETW-Beleg; nächster begrenzter Scope: gezieltes ETW der neuen Programme einschließlich
+dieser drei Übergänge und verwaltetem Kandidaten. Unbekannte Artefakte/defekte Ketten bleiben
+gesperrt; striktes Datenschutzziel und offene Produktabnahme unverändert.
+
+Vorheriger Netzprüfstand:
+
+[Eigener Retry-ETW-Beleg](docs/testing/native-package-artifact-retry-etw.md). Frisches ETW des
+gesicherten Retry-Brokers, 17. November: unveränderte Programme, zwei kurze gültige Phasen. Referenz
+und kombinierter Teilkopie-/Abort-/Retry-/Aktivierungs-/Recoverypfad bestanden. Alle 21 direkten
+Aufrufe einschließlich fünf hashbenannter verwalteter EXEs erfasst, unveränderte
 Root-/Kalibrierungs-/Verlust-/Lebenszeitguards. Acht Kontrollen, Nullverluste/Zuordnungslücken, 144
 explizite Enden, 0 beobachtete Nicht-Loopback-/48 getrennte Loopback-Ereignisse. Unabhängige
 MAC-/Paket-/SQLite-/Kernel-Audits grün: drei Aufgaben/zwei legitime Kopien, keine Replaykopie,

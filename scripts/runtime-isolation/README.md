@@ -1,5 +1,13 @@
 # AppContainer-Forschungshelfer für KQ-069
 
+Neuester funktionaler Prüfstand:
+[Prepare-Übergangsabbrüche](../../docs/testing/native-prepare-transition-crashes.md).
+`check-update-reconciliation.ps1 -PrepareTransitions` prüft drei frische synthetische Fälle an
+`artifact-removed`, `package-created`, `prepare-recorded`; alternativ zu `-RetryAborted`. Frühe
+Abbrüche erzeugen kein Pending; gespeichertes leeres Pending ist vor Retry ausdrücklich abzubrechen.
+56 aktive Helfertests/Clippy, drei native Fälle und Daten-/MAC-Audit grün, keine Replaykopie. Neue
+Brokerbytes ohne eigenen frischen ETW-Beleg, echte Vorschauablage unverändert.
+
 [Eigener frischer ETW-Beleg des Retry-Brokers](../../docs/testing/native-package-artifact-retry-etw.md):
 gesicherte Programme unverändert, Referenz und Teilkopie/Abort/Retry/Aktivierung/verwalteter
 Wiederanlauf bestanden. 21 direkte Aufrufe samt fünf hashbenannten EXEs, acht Kontrollen, 144

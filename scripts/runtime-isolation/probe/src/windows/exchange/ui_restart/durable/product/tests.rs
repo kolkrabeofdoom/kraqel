@@ -916,7 +916,7 @@ fn schema4_pending(f: &Fixture) -> Store {
 
 #[test]
 fn schema4_bad_pending_package_requires_authenticated_abort_and_keeps_the_lease() {
-    for fault in ["missing", "partial", "tampered"] {
+    for fault in ["missing", "empty", "partial", "tampered"] {
         let f = Fixture::new();
         let store = schema4_pending(&f);
         let package = store.package(store.state.pending.unwrap());
@@ -925,6 +925,12 @@ fn schema4_bad_pending_package_requires_authenticated_abort_and_keeps_the_lease(
         drop(store);
         match fault {
             "missing" => fs::remove_file(&package).unwrap(),
+            "empty" => OpenOptions::new()
+                .write(true)
+                .open(&package)
+                .unwrap()
+                .set_len(0)
+                .unwrap(),
             "partial" => OpenOptions::new()
                 .write(true)
                 .open(&package)
@@ -1004,7 +1010,7 @@ fn schema4_uncommitted_abort_stays_blocked_without_head_or_key_repair() {
 
 #[test]
 fn schema4_retry_replaces_only_aborted_packages_before_new_pending() {
-    for fault in ["complete", "missing", "partial", "tampered"] {
+    for fault in ["complete", "missing", "empty", "partial", "tampered"] {
         let f = Fixture::new();
         let mut store = schema4_pending(&f);
         let sha = store.state.pending.unwrap();
@@ -1015,6 +1021,12 @@ fn schema4_retry_replaces_only_aborted_packages_before_new_pending() {
         let key = hash(&f.root().join("control/authority.key")).unwrap();
         match fault {
             "missing" => fs::remove_file(&path).unwrap(),
+            "empty" => OpenOptions::new()
+                .write(true)
+                .open(&path)
+                .unwrap()
+                .set_len(0)
+                .unwrap(),
             "partial" => OpenOptions::new()
                 .write(true)
                 .open(&path)

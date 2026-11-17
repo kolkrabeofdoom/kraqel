@@ -477,6 +477,7 @@ impl Store {
         let path = self.package(actual);
         if self.state.schema == 4 && self.state.aborted_packages.contains(&actual) {
             secure_fs::remove_aborted_package(&path)?;
+            crash::hit(crash::Point::ArtifactRemoved);
         }
         // A collision/locked/unsafe leftover must fail before signing a new pending intent.
         let mut dest = io(
@@ -488,9 +489,11 @@ impl Store {
                 .open(&path),
         )?;
         private_acl(&path, false)?;
+        crash::hit(crash::Point::PackageCreated);
         use std::io::{Seek, SeekFrom};
         io("product-source-rewind", source.seek(SeekFrom::Start(0)))?;
         self.append(actor, head, action)?;
+        crash::hit(crash::Point::PrepareRecorded);
         io(
             "product-copy-prefix",
             std::io::copy(&mut (&mut source).take(1024), &mut dest),

@@ -213,6 +213,14 @@ Artefakte vor erstem signierten Prepare und defekte Ketten bleiben gesperrt. Kei
 
 ## Synthetische Crashprüfung
 
+[Drei gezielte Prepare-Übergänge](../testing/native-prepare-transition-crashes.md):
+`artifact-removed` nach abgeschlossenem handlegebundenem Entfernen, `package-created` nach
+exklusiver Zielanlage/ACL-Prüfung, `prepare-recorded` nach vollständigem Record-/Kopfabschluss vor
+erstem Kopierbyte. Standardmäßig inaktiv, nur expliziter synthetischer Child. Beim authentisierten
+Retry erlauben die ersten beiden Zustände erneute Vorbereitung unter unverändertem Kopf ohne
+Pending; der dritte verlangt zunächst ausdrücklichen Abort. Keine allgemeine Orphan-Autorität, keine
+Kettenreparatur oder neue Importberechtigung.
+
 `product-control-series <frische TEMP-Controllerwurzel> <Forschungs-App>` und der interne
 `product-control-child` prüfen dieselben nativen Schreib-/Update-/Migrationsfunktionen mit harten
 Prozessabbrüchen. Der Child akzeptiert ausschließlich das begrenzte Controller-/Case-/Store-Layout
