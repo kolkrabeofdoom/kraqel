@@ -1,5 +1,15 @@
 # Bedrohungsmodell (Entwurf)
 
+[Produktstart-/Bestandsdatenvertrag v1 · Entwurf](../data-format/product-start-integration-v1-draft.md), 17.
+November: neuer Planungsstand, keine implementierte Autorität. Normaler Start ist unisoliert;
+Import-Recovery berechtigt nicht zum allgemeinen Workspace-Start. Eigene versionierte Bindung,
+Verbrauch vor Kindstart, kein unisolierter Fallback und keine Kontrollschlüssel im Container
+geplant. Bestandskopie explizit/zerstörungsfrei; migrationsfähiges Datenbanköffnen ist keine
+nebenwirkungsfreie Inventarisierung. Keine ACL-Freigabe alter Daten oder Übernahme der
+Vorschauautorität. Geplantes Schema 5/Produktbootstrap und externe Dienstgrenzen noch offen. P1
+beginnt mit reinen Typen/ Zustandsregeln, keine Daten-/Startfreigabe. Striktes Ziel und offene
+Produkt-Q-01/Q-02 unverändert.
+
 [Gezielte Prepare-Übergangsabbrüche](../testing/native-prepare-transition-crashes.md), 17. November:
 nach Artefaktentfernung/Zielanlage Kopf unverändert, kein Pending; nach Prepare-Abschluss Pending
 mit leerer Kopie und explizitem Abbruch vor Retry. Drei native harte Prozessabbrüche bestätigen

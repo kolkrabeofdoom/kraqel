@@ -1,5 +1,14 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+17. November:
+    [Produktstart-/Bestandsdatenvertrag v1 als Entwurf](../../data-format/product-start-integration-v1-draft.md)
+    konkretisiert die nächste Integration, ohne sie als umgesetzt zu führen. Eigene Workspace-
+    Startautorität statt Importtask, getrennte Hostkontrolle/Arbeitsablage, kein unisolierter
+    Ersatzstart, explizite zerstörungsfreie Bestandskopie. Geplantes Kontrollschema
+    5/Produktpaketdeklaration noch nicht unterstützt; Stufen P1–P5 und Abnahmegrenzen benannt. Keine
+    Runtime-/Daten-/Policyänderung, keine fachliche Ausnahme oder Produktfreigabe; striktes
+    Datenschutzziel unverändert.
+
 [Prepare-Übergangsabbrüche](../../testing/native-prepare-transition-crashes.md), 17. November: drei
 explizite, standardmäßig inaktive Punkte im begrenzten Forschungschild. Artefaktentfernung und
 Zielanlage erzeugen noch keine Autorität; nach signiertem Prepare muss leeres Pending vor Retry

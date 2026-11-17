@@ -7,6 +7,26 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 17. November 2026
 
+Neuester Planungsstand:
+[Produktstartvertrag v1 · Entwurf](data-format/product-start-integration-v1-draft.md).
+Produktstart-/Bestandsdatenvertrag v1, 17. November: neuer ausdrücklicher Entwurf, keine
+Implementierung/Produktfreigabe. Statisch bestätigt: normaler Tauri-Start ohne vorgeschalteten
+Produktguard, getrennte Forschungs-UI, taskgebundenes RestartTicket v3 und migrationsfähige
+SQLite-Öffnung. Vorgesehen: eigene Workspace-Startautorität ohne Importtask, kein unisolierter
+Fallback, getrennte Hostkontrolle/Arbeitsablage, zerstörungsfreie explizite Bestandskopie mit
+erhaltenen IDs. Kontrollschema 5/Paketdeklaration geplant, nicht aktuell unterstützt; Forschung mit
+einer Sitzung/256 Records ist keine Produkt-Langzeitlösung. Stufen P1–P5 mit Prüfgates festgelegt.
+Nächster begrenzter Scope P1: reine versionierte Start-/Bindungstypen samt Zustandsregeln und
+gezielten Negativfällen, ohne UI-/Datei-/Produktfreigabe. Nur Dokumentation geändert, Quellen-/
+Verweis-/Format-/Diffprüfung; kein Build/neue Testmatrix. Keine echten Daten geöffnet/übernommen
+oder ACLs/Schlüssel geändert. Normaler Start weiter unisoliert, Produkt-Q-01/Q-02 offen; striktes
+Datenschutzziel unverändert. Letzter eigener Forschungs-Netzbeleg bleibt am unveränderten Build.
+
+Nicht das normale `run()` mit dem Forschungs-RestartTicket verdrahten. P1 erzeugt zunächst nur einen
+getrennten Typ-/Zustandsvertrag; keine neue Startautorität allein durch gültiges JSON.
+Kontroll-MAC-Schlüssel bleiben im Broker. Bestandsinventarisierung nicht über den migrationsfähigen
+`Database::open`-Weg; Snapshotimport erzeugt neue IDs und ist keine identitätserhaltende Übernahme.
+
 Neuester Netzbeleg:
 [Prepare-Übergänge/verwalteter Kandidat](testing/native-prepare-transition-etw.md). Frisches ETW der
 Prepare-Übergänge und des verwalteten Kandidaten, 17. November: unveränderte gesicherte Programme,

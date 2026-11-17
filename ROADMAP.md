@@ -172,8 +172,10 @@
              Prepare; authentisierter Retry/Recovery ohne zusätzliche Projektkopie
        - [x] KQ-069 A: Frisches ETW der Prepare-Übergänge und des verwalteten Kandidaten; 59 direkte
              Aufrufe, acht Kontrollen, 182 explizite Enden, 0 Nicht-Loopback
-       - [ ] KQ-069 A: Start-/Integrationsvertrag für normalen Produktstart mit bestehenden
-             Projekten; isolierten Produktstarter/echte Projektmigration integrieren sowie weitere
+       - [x] KQ-069 A: Start-/Integrationsvertrag v1 als Entwurf mit belegten Lücken und Stufen
+             P1–P5; keine Runtime-/Migrationsfreigabe
+       - [ ] KQ-069 A: P1 reine versionierte Produktstart-/Bindungstypen und Zustandsregeln prüfen;
+             danach P2–P5 isolierten Produktstarter/echte Projektmigration integrieren sowie weitere
              allgemeine Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
              integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker
              kalibrieren; Packaging und F08-/M3-Vollprüfung

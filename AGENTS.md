@@ -294,7 +294,23 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
-Aktuell: [Prepare-Übergangs-ETW](docs/testing/native-prepare-transition-etw.md). Frisches ETW der
+Aktuell: [Produktstartvertrag v1 · Entwurf](docs/data-format/product-start-integration-v1-draft.md).
+Produktstart-/Bestandsdatenvertrag v1, 17. November: neuer ausdrücklicher Entwurf, keine
+Implementierung/Produktfreigabe. Statisch bestätigt: normaler Tauri-Start ohne vorgeschalteten
+Produktguard, getrennte Forschungs-UI, taskgebundenes RestartTicket v3 und migrationsfähige
+SQLite-Öffnung. Vorgesehen: eigene Workspace-Startautorität ohne Importtask, kein unisolierter
+Fallback, getrennte Hostkontrolle/Arbeitsablage, zerstörungsfreie explizite Bestandskopie mit
+erhaltenen IDs. Kontrollschema 5/Paketdeklaration geplant, nicht aktuell unterstützt; Forschung mit
+einer Sitzung/256 Records ist keine Produkt-Langzeitlösung. Stufen P1–P5 mit Prüfgates festgelegt.
+Nächster begrenzter Scope P1: reine versionierte Start-/Bindungstypen samt Zustandsregeln und
+gezielten Negativfällen, ohne UI-/Datei-/Produktfreigabe. Nur Dokumentation geändert, Quellen-/
+Verweis-/Format-/Diffprüfung; kein Build/neue Testmatrix. Keine echten Daten geöffnet/übernommen
+oder ACLs/Schlüssel geändert. Normaler Start weiter unisoliert, Produkt-Q-01/Q-02 offen; striktes
+Datenschutzziel unverändert. Letzter eigener Forschungs-Netzbeleg bleibt am unveränderten Build.
+
+Vorheriger Netzprüfstand:
+
+[Prepare-Übergangs-ETW](docs/testing/native-prepare-transition-etw.md). Frisches ETW der
 Prepare-Übergänge und des verwalteten Kandidaten, 17. November: unveränderte gesicherte Programme,
 zwei kurze gültige Phasen. Regulärer Schema-4-Update-/Recoverypfad als Referenz gegenüber den drei
 gezielten Übergangsabbrüchen; keine zusätzliche allgemeine Matrix. Alle 59 direkten Aufrufe

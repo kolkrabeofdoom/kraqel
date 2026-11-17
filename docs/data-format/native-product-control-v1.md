@@ -236,6 +236,14 @@ aber bei gültigem Kopf explizit abgebrochen werden. Unvollständige Record-/Kop
 gesperrt; kein automatisches Kopfreparieren, Recordlöschen oder Schlüsselreset. Der Netzbeleg gilt
 ausschließlich für seinen gesicherten Prüfbuild, nicht für automatisch aktualisierte Produkte.
 
+## Abgrenzung zum geplanten Produktstart
+
+[Produktstart-/Bestandsdatenvertrag v1 · Entwurf](product-start-integration-v1-draft.md) trennt
+allgemeine Arbeitsablagenstarts von den hier implementierten Testsitzungen/Importaufgaben. Schema 5
+und eine dafür geeignete Paketdeklaration sind geplant, nicht in diesen Commands unterstützt. Kein
+Wiederverwenden von Importticket v3 als Produktstart, keine automatische Übernahme der
+Vorschauablage und keine Bestandsmigration durch `bind-session`/`recover-session`.
+
 ## Native Vorschau-Commands
 
 Zusätzliche synthetische Prüfung:

@@ -1,5 +1,12 @@
 # Offenes KRAQEL-Datenformat
 
+[Produktstart und bestehende Projekte · Vertragsentwurf v1](product-start-integration-v1-draft.md)
+beschreibt die geplante Integration der isolierten Oberfläche: getrennte Start-/Importautorität,
+Arbeitsablagenbindung und zerstörungsfreie Bestandskopie. Noch kein implementiertes Protokoll,
+Kontrollschema 5 oder Produkt-Migrationsweg; kein portables Snapshotformat. Reine
+Typ-/Zustandsprüfung P1 ist der nächste begrenzte Schritt. Der vorhandene Snapshot-v3-Import erzeugt
+weiterhin neue IDs.
+
 Der Exportstandard ist noch in Arbeit. Fest stehen folgende Invarianten:
 
 - UTF-8 und LF-Zeilenenden

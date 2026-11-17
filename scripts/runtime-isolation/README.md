@@ -1,5 +1,13 @@
 # AppContainer-Forschungshelfer für KQ-069
 
+Nächste Integrationsstufe:
+[Produktstart-/Bestandsdatenvertrag v1 · Entwurf](../../docs/data-format/product-start-integration-v1-draft.md).
+Statisch belegte Trennung zwischen normalem Tauri-Start und Forschungsoberfläche. P1 beginnt mit
+reinen versionierten Start-/Bindungstypen und Zustandsregeln ohne UI-/Datenfreigabe. Produktstart
+benötigt eigene Autorität, keine umgedeutete Importtask. Schema 5/Paketdeklaration/Bestandskopie
+noch nicht implementiert. Echte Vorschauablage nicht übernehmen/zurücksetzen, striktes Ziel
+unverändert.
+
 Neuester funktionaler Prüfstand:
 [Prepare-Übergangsabbrüche](../../docs/testing/native-prepare-transition-crashes.md).
 `check-update-reconciliation.ps1 -PrepareTransitions` prüft drei frische synthetische Fälle an
