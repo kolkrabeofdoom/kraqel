@@ -1,11 +1,20 @@
 # AppContainer-Forschungshelfer für KQ-069
 
+[Eigener frischer ETW-Beleg des Retry-Brokers](../../docs/testing/native-package-artifact-retry-etw.md):
+gesicherte Programme unverändert, Referenz und Teilkopie/Abort/Retry/Aktivierung/verwalteter
+Wiederanlauf bestanden. 21 direkte Aufrufe samt fünf hashbenannten EXEs, acht Kontrollen, 144
+explizite Enden, 0 Nicht-Loopback-/48 getrennte Loopback-Ereignisse. Unabhängiger Daten-/MAC-/
+Kernel-Abgleich und 42 Diagnose-Tests grün. Kein neuer Build, keine Runtime-/Auswerteränderung.
+Erfassungen/Prozesse beendet, echte Vorschauablage unverändert. Nächster begrenzter Scope:
+Prozessabbrüche zwischen Artefaktentfernung, Zielanlage und Prepare. Striktes Ziel unverändert.
+
 Neuester Stand: [Sichere Paketartefakte/Retry](../../docs/testing/native-package-artifact-retry.md).
 `check-update-reconciliation.ps1 -RetryAborted` mit explizit gesicherten neuen Programmhashes prüft
 drei frische synthetische Fälle: Teilkopie, Manipulation, vollständiger Abort. Gleiches Pending nach
 Abbruch sicher erneut vorbereiten; alte Köpfe/gesperrte Dateien verändern nichts. 56 aktive
-Helfertests/Clippy und unabhängiger Daten-/MAC-Audit grün. Neue Brokerbytes ohne eigenen frischen
-ETW-Beleg; vorherige Netzbelege nicht übertragen. Unbekannte/aktivierte Pakete bleiben geschützt.
+Helfertests/Clippy und unabhängiger Daten-/MAC-Audit grün. Eigener frischer ETW-Beleg inzwischen
+oben verlinkt; vorherige Netzbelege nicht übertragen. Unbekannte/aktivierte Pakete bleiben
+geschützt.
 
 Neuester gezielter Prüfstand:
 [Update-Abbruch-/Fehlerreconciliation](../../docs/testing/native-update-abort-reconciliation.md).

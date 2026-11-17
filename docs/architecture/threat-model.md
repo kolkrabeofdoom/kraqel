@@ -6,7 +6,12 @@ Jobleerstand und erlaubter Übergang vor Dateimutation unter derselben Sperre. E
 kein Reparse-Follow, private ACL, genau ein Hardlink; handlegebundene Löschung, kein Sweep.
 Zielerzeugung vor neuem Pending verhindert unbeabsichtigte Pending-Kollisionen. Unbekannte
 Artefakte/unvollständige Ketten bleiben gesperrt. 56 Helfertests/Clippy, drei native Fälle und
-Daten-/MAC-Audit grün. Neuer Broker ohne frisches ETW; striktes Ziel und Produktgrenzen unverändert.
+Daten-/MAC-Audit grün.
+[Eigener frischer Retry-ETW-Beleg](../testing/native-package-artifact-retry-etw.md) inzwischen
+vorhanden: 21 direkte Aufrufe samt fünf hashbenannten verwalteten EXEs, acht Kontrollen, 144
+explizite Enden, 0 Nicht-Loopback-/48 getrennte Loopback-Ereignisse. Daten-/MAC-/Kernel-Abgleich
+grün; unveränderte Messguards, keine Inhalts-/externe Dienst-/Produktattestierung. Striktes Ziel und
+Produktgrenzen unverändert.
 
 [Gezielte Update-Abbruch-/Fehlerreconciliation](../testing/native-update-abort-reconciliation.md), 17.
 November: vorhandener Runtimepfad unter derselben Sperre geprüft; aktueller Actor/Kopf und

@@ -294,7 +294,22 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
-Aktuell: [Paketartefakte/Retry](docs/testing/native-package-artifact-retry.md). Sichere
+Aktuell: [Eigener Retry-ETW-Beleg](docs/testing/native-package-artifact-retry-etw.md). Frisches ETW
+des gesicherten Retry-Brokers, 17. November: unveränderte Programme, zwei kurze gültige Phasen.
+Referenz und kombinierter Teilkopie-/Abort-/Retry-/Aktivierungs-/Recoverypfad bestanden. Alle 21
+direkten Aufrufe einschließlich fünf hashbenannter verwalteter EXEs erfasst, unveränderte
+Root-/Kalibrierungs-/Verlust-/Lebenszeitguards. Acht Kontrollen, Nullverluste/Zuordnungslücken, 144
+explizite Enden, 0 beobachtete Nicht-Loopback-/48 getrennte Loopback-Ereignisse. Unabhängige
+MAC-/Paket-/SQLite-/Kernel-Audits grün: drei Aufgaben/zwei legitime Kopien, keine Replaykopie,
+Schlüssel/App-/Sitzungsbindung erhalten. 42 Diagnose-Tests, mittleres Prüfniveau ohne neuen Build
+oder Workspace-Gesamtlauf. Echte Vorschauablage unverändert; Prozesse/Erfassungen beendet, Rohbelege
+lokal. Nächster begrenzter Scope: Prozessabbrüche zwischen Artefaktentfernung, Zielanlage und
+Prepare-Record gezielt prüfen. Unbekannte Artefakte/defekte Ketten bleiben gesperrt; striktes
+Datenschutzziel, normale Produktintegration und offene Produkt-Q-01/Q-02 unverändert.
+
+Vorheriger funktionaler Stand:
+
+[Paketartefakte/Retry](docs/testing/native-package-artifact-retry.md). Sichere
 Paketartefakte/erneute Vorbereitung, 17. November: Schema 4 leitet ersetzbare Hashs nur aus
 authentisierten Abort-Records ab. Aktueller Actor/Kopf, Jobleerstand und erlaubter Übergang vor
 jeder Dateimutation; dieselbe Kontrollsperre durchgehend gehalten. Geprüfte Einlink-Datei über

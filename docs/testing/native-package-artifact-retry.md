@@ -98,8 +98,9 @@ Rohbelege/Schlüssel/PIDs/Pfade/Journale lokal erhalten; nur bereinigte Aggregat
 Format-/Diff-/ Hash-/Faktenprüfung grün. Kein vollständiger Appbuild, Workspace-Gesamtlauf oder neue
 große Matrix.
 
-Der neue Broker hat **noch keinen eigenen frischen ETW-Beleg**. Alte Netzbelege gelten
-ausschließlich für ihre damaligen Programme/Pfade/Lebenszeiten. Nächster begrenzter Scope: gezielter
-frischer ETW-Vergleich des neuen Brokers einschließlich erneuter Vorbereitung und verwaltetem
-Kandidaten. Keine HTTP-/Inhalts-/Upload- oder vollständige externe Dienstattestierung, keine
-Produktfreigabe.
+Inzwischen liegt der [eigene frische ETW-Beleg](native-package-artifact-retry-etw.md) der oben
+genannten unveränderten Programme vor, einschließlich Teilkopie/Abbruch/Retry, Aktivierung und
+Wiederanlauf des verwalteten Kandidaten. Alte Belege bleiben an ihre Programme/Pfade/Lebenszeiten
+gebunden; dieser funktionale JSON-Beleg bleibt getrennt ohne Netzmessung. Nächster begrenzter Scope:
+Prozessabbrüche zwischen Artefaktentfernung, Zielanlage und Prepare-Record. Keine HTTP-/Inhalts-/
+Upload- oder vollständige externe Dienstattestierung, keine Produktfreigabe.

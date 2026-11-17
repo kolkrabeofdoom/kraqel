@@ -1,5 +1,11 @@
 # Lokale Windows-Netzprüfung für M3
 
+[Frischer Retry-/Kandidatenbeleg](../../docs/testing/native-package-artifact-retry-etw.md):
+unveränderte Auswertung/Capture, zwei kurze Phasen, 21 explizite native Roots einschließlich fünf
+hashbenannter verwalteter EXEs. Acht Kontrollen, Nullverluste, 144 explizite Enden, 0
+Nicht-Loopback; unabhängiger Aufruf-/GUI-/Daten-/MAC-Abgleich. 42 Diagnose-Tests grün, keine
+Übertragung auf andere Programme oder ungemessene Pfade.
+
 `analyze.py --mode native-control` erfasst ausdrücklich ausgewählte kurze native Kontrollaufrufe des
 festen Root-Images `kraqel-isolation-probe.exe`, auch ohne Kindprozess/GUI. Jede tatsächlich
 gestartete Root-PID angeben und Handles bis Messende halten; alle erwarteten Aufrufe und etwaige

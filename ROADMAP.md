@@ -166,8 +166,10 @@
              Teilkopie/Manipulation/dauerhafter Abort, drei native Fälle, keine Replaykopie
        - [x] KQ-069 A: Authentisiert abgebrochene Paketartefakte unter derselben Sperre sicher
              ersetzen/erneut vorbereiten; Kollisionen ohne neues Pending, drei native Retryfälle
-       - [ ] KQ-069 A: Frisches ETW des neuen Brokers samt Retry/verwaltetem Kandidaten; isolierten
-             Produktstarter/echte Projektmigration integrieren sowie weitere allgemeine
+       - [x] KQ-069 A: Frisches ETW des Retry-Brokers samt verwaltetem Kandidaten; 21 direkte
+             Aufrufe, acht Kontrollen, 144 explizite Enden, 0 Nicht-Loopback
+       - [ ] KQ-069 A: Gezielte Prozessabbrüche zwischen Artefaktentfernung, Zielanlage und Prepare;
+             isolierten Produktstarter/echte Projektmigration integrieren sowie weitere allgemeine
              Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
              integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker
              kalibrieren; Packaging und F08-/M3-Vollprüfung

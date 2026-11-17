@@ -4,8 +4,11 @@
 authentisierter Abort autorisiert eng begrenzte Ersetzung vor erneuter Vorbereitung unter derselben
 Sperre. Keine Löschung aktivierter/unbekannter Pakete, kein Link-Follow oder Sweep. Exklusive
 Zielanlage vor Pending; laufende Kopierabsicht bleibt bei Fehlern ausdrücklich abzubrechen. Drei
-native Fälle, 56 aktive Helfertests/Clippy und Daten-/MAC-Audit grün. Neuer Broker benötigt eigenes
-frisches ETW; keine fachliche Runtime-Ausnahme oder Produktfreigabe, striktes Ziel unverändert.
+native Fälle, 56 aktive Helfertests/Clippy und Daten-/MAC-Audit grün. Inzwischen
+[eigener frischer ETW-Beleg](../../testing/native-package-artifact-retry-etw.md) mit Retry und
+verwaltetem Kandidaten: acht Kontrollen, 144 explizite Enden, 0 Nicht-Loopback-/48 getrennte
+Loopback-Ereignisse; 21 direkte Aufrufe unabhängig abgeglichen. Keine Runtime-/Messguardänderung,
+fachliche Ausnahme oder Produktfreigabe; striktes Ziel unverändert.
 
 Gezielte
 [Update-Abbruch-/Fehlerreconciliation](../../testing/native-update-abort-reconciliation.md), 17.
