@@ -1,17 +1,19 @@
 # Entwicklungsstatus
 
-Aktuell · P2c-Vertrag, 17. November 2026:
+Aktuell · P2c C1, 17. November 2026:
 
-[P2c-Vertragsentwurf v1](data-format/product-start-p2c-v1-draft.md) ist ausgearbeitet, **noch nicht
-implementiert**: persistente synthetische Arbeitsdaten mit eigenem Profil, getrennte unveränderliche
-Host-/UI-Pakete, gepinnte Runtime und eigener authentisierter Startbootstrap. Ein langlebiger
-nativer Wächter soll Kontrollsperre und Job über die gesamte UI-Prozessgruppe halten. Root-Ende ist
-kein Gruppenende; nach Wächterverlust bleibt unbekannter Drain gesperrt. Neue Schema-/ABI-Werte sind
-nur vorgeschlagen, keine vorhandene Migrations- oder Produktfreigabe. Nächster begrenzter Schritt
-**C1: reine Typen, Inventarcodierung und Lebenszyklusmodell**, ohne native Start-/Dateiautorität.
-Nur Dokumentation, Quellen-/Verweis-/Format-/Diffprüfung; kein neuer Build oder ETW, echte
-Daten/Schlüssel unverändert. P2 insgesamt, P3–P5 und Produkt-Q-01/Q-02 bleiben offen; striktes
-Datenschutzziel unverändert.
+[C1-Vertrags-/Lebenszykluskern](testing/product-start-p2c-model.md) implementiert: strikte
+P2c-Typen, deterministische Inventarcodierung mit kanonischem Decoder/SHA-256 und reines
+Zustandsmodell. Bootstrap prüft Bindung, Job-/Wächterepoche, Nonce, Reihenfolge und Frist. Root-Ende
+mit lebenden Kindern sowie Wächterverlust geben keinen Neustart frei; fehlgeschlagene Übergänge
+mutieren den Zustand nicht. 13 neue Tests, gesamter Helferlauf 88 bestanden/vier bewusst ignoriert;
+Clippy und Formatprüfung grün. Modellbeobachtungen sind keine nativen Nachweise;
+Unicode-Kollisionsprüfung ersetzt keinen Windows-Ordinalvergleich. Kein neuer nativer
+Storeleser/Command, kein UI-Start oder ETW und keine Freigabe an echten Daten. Kontrollschema
+6/UI-ABI 1 bleiben Modellvorschläge; native Pfade unverändert. **Nächster Schritt C2:** neue
+synthetische persistente Ablage/Profil, nativer Inventarabgleich und authentisierte Bindungsrecords
+unter derselben Kontrollsperre. P2 insgesamt/C3/C4/P3–P5 und Produkt-Q-01/Q-02 bleiben offen;
+striktes Datenschutzziel unverändert.
 
 Vorheriger Implementierungs-/Netznachweis:
 

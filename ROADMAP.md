@@ -28,7 +28,9 @@ ergänzt.
 ist für den synthetischen Ein-Prozess-Worker umgesetzt. Der
 [eigene frische Netzbeleg](docs/testing/product-start-worker-lifetime-etw.md) ist ergänzt. Der
 [P2c-Vertrag](docs/data-format/product-start-p2c-v1-draft.md) ist als Entwurf ausgearbeitet, nicht
-implementiert. Nächster Schritt C1: reine Typen/Inventarcodierung/Lebenszyklusmodell; ungebundene
+nativ implementiert. [C1-Modell](docs/testing/product-start-p2c-model.md) mit Typen,
+Inventarcodierung und Lebenszyklus ist geprüft; 13 neue Tests, insgesamt 88 aktive Helfertests.
+Nächster Schritt C2: synthetische persistente Ablage/Profil und nativer Paketabgleich; ungebundene
 Starts, mehrprozessige GUI-Lebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung bleiben
 offen. P3 Bestandskopie sowie P4/P5 normale App-/Launcher-/Installerintegration und Produktabnahme
 folgen. Die normalen Produkt-Q-01/Q-02 bleiben offen; der neue Forschungsnetzbeleg ersetzt dieses
@@ -228,14 +230,17 @@ Gate nicht. Das strikte Datenschutzziel bleibt unverändert.
              Kontrollen, null beobachtete Netzereignisse
        - [x] KQ-069 A: [P2c-Vertragsentwurf](docs/data-format/product-start-p2c-v1-draft.md) für
              persistente Arbeitsdaten/Pakete/Mehrprozessstart ausgearbeitet; keine Implementierung
-       - [ ] KQ-069 A: C1 reine P2c-Typen/Inventarcodierung/Lebenszyklusmodell; danach native
-             Arbeitsablage/Paketprüfung/Wächter/Mehrprozess-UI getrennt umsetzen; ungebundene Starts
-             und vollständige Live-Worker-Crashbereinigung und persistente echte
-             Arbeitsablagen-/UI-Bindung; danach P3–P5 isolierten Produktstarter/echte
-             Projektmigration integrieren sowie weitere allgemeine Fensterende-/F08-Prüfung;
-             dauerhaften authentisierten Produktbroker integrieren/abnehmen; weitere
-             Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren; Packaging und
-             F08-/M3-Vollprüfung
+       - [x] KQ-069 A:
+             [C1 reine P2c-Typen/Inventarcodierung/Lebenszyklusmodell](docs/testing/product-start-p2c-model.md)
+             implementiert; 13 neue Tests, 88 aktive Helfertests/Clippy grün; keine native Autorität
+       - [ ] KQ-069 A: C2 synthetische persistente Arbeitsablage/Profil, native Paketprüfung und
+             authentisierte Bindungsrecords; C3 Wächter/Mehrprozessstart und C4 WebView getrennt
+             umsetzen; ungebundene Starts und vollständige Live-Worker-Crashbereinigung und
+             persistente echte Arbeitsablagen-/UI-Bindung; danach P3–P5 isolierten
+             Produktstarter/echte Projektmigration integrieren sowie weitere allgemeine
+             Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
+             integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker
+             kalibrieren; Packaging und F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene

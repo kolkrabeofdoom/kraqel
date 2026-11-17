@@ -7,7 +7,9 @@ normaler Produktstarter. [Funktionsnachweis](../testing/native-product-control.m
 Der [P2c-Vertragsentwurf](product-start-p2c-v1-draft.md) beschreibt den geplanten
 Arbeitsablagen-/Paket-/Mehrprozessstart. Vorgeschlagenes Kontrollschema 6 und UI-ABI 1 sind **nicht
 implementiert** und erweitern keine hier beschriebenen Leserechte oder Migrationen. Nächster Schritt
-ist C1, zunächst ohne native Autorität.
+ist C2: synthetische persistente Ablage und nativer Inventarabgleich.
+[C1-Typen/Codierung/Modell](../testing/product-start-p2c-model.md) sind rein geprüft und ändern
+weder diesen Storeleser noch dessen Schema-/ABI-Unterstützung.
 
 ## Ablage und Vertrauensgrenze
 

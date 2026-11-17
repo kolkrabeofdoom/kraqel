@@ -1,11 +1,11 @@
 # Bedrohungsmodell (Entwurf)
 
-[P2c-Vertragsentwurf](../data-format/product-start-p2c-v1-draft.md), 17. November 2026: Geplante
-Trennung von privater Kontrollautorität, unveränderlichen Paketen und persistenten Arbeitsdaten;
-eigener Startgrant und Lebenszeitwächter für die gesamte UI-Prozessgruppe. Noch keine
-Implementierung. Root-PID-Ende ist kein Mehrprozess-Endbeleg; verlorener Wächterbesitz bleibt
-gesperrt. Keine Übernahme echter Daten, ABI-Freigabe oder Lockerung von Produkt-Q-01/Q-02. Als
-Nächstes C1: reines Typen-/Inventar-/Lebenszyklusmodell ohne native Autorität.
+[P2c C1-Modell](../testing/product-start-p2c-model.md), 17. November 2026: strikte Typen,
+Inventarcodierung und Lebenszyklusübergänge sind rein geprüft. Geparste Grants und
+Modellbeobachtungen sind keine authentisierte/native Autorität. Root-Ende mit lebenden Kindern und
+Wächterverlust bleiben gesperrt. Keine neue Store-/ABI-Freigabe oder Datenmigration; C2 native
+Arbeitsablage und Inventarprüfung folgen. Produkt-Q-01/Q-02 und striktes Datenschutzziel
+unverändert.
 
 Vorheriger Implementierungs-/Netznachweis:
 

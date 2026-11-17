@@ -184,10 +184,11 @@ geänderten Runtimebuilds ist ergänzt.
 ist inzwischen für den synthetischen Ein-Prozess-Worker umgesetzt. Der
 [frische ETW-Beleg](../testing/product-start-worker-lifetime-etw.md) des Builds ist ergänzt. Der
 getrennte [P2c-Vertrag](product-start-p2c-v1-draft.md) für persistente synthetische Arbeitsdaten,
-Paketbindung und Mehrprozess-UI-Start ist als Entwurf ausgearbeitet, nicht umgesetzt. Nächster
-begrenzter Schritt C1: reine Typen/Inventarcodierung/Lebenszyklusmodell. Ungebundene Starts und
-mehrprozessige GUI-Lebenszeiten sowie persistente echte Arbeitsablagen-/UI-Bindung fehlen; P2
-insgesamt bleibt offen.
+Paketbindung und Mehrprozess-UI-Start ist als Entwurf ausgearbeitet, nicht nativ umgesetzt.
+[C1](../testing/product-start-p2c-model.md) ergänzt geprüfte reine Typen, Inventarcodierung und
+Lebenszyklusmodell; nächster Schritt C2 ist die synthetische persistente Ablage und native Prüfung.
+Ungebundene Starts und mehrprozessige GUI-Lebenszeiten sowie persistente echte
+Arbeitsablagen-/UI-Bindung fehlen; P2 insgesamt bleibt offen.
 
 Reihenfolge P1–P5 verhindert, dass der erfolgreiche Forschungsimport als Freigabe der gesamten
 Schreiboberfläche gilt. Mittleres Prüfniveau bedeutet pro Implementierungsschritt gezielte relevante

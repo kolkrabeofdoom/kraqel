@@ -16,6 +16,7 @@ path = "src/transport.rs"
 [dependencies]
 serde_json = "=1.0.154"
 sha2 = "=0.10.9"
+unicode-normalization = "=0.1.25"
 serde = { version = "1", features = ["derive"] }
 
 [target.'cfg(windows)'.dependencies]

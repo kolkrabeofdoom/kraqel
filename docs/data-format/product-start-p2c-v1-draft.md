@@ -1,6 +1,7 @@
 # P2c: persistente Arbeitsdaten, Paketbindung und Mehrprozess-UI
 
-Status: **Vertragsentwurf v1, 17. November 2026; nicht implementiert oder abgenommen.** Ergänzt den
+Status: **Vertragsentwurf v1, 17. November 2026; C1-Modell implementiert, native Umsetzung und
+Abnahme offen.** [C1-Nachweis](../testing/product-start-p2c-model.md). Ergänzt den
 [Produktstartvertrag](product-start-integration-v1-draft.md). Alle mit MUSS bezeichneten Regeln sind
 Anforderungen an den nächsten Prototyp, keine Aussage über vorhandene Produktfähigkeiten. Das
 strikte Datenschutzziel bleibt unverändert; Produkt-Q-01/Q-02 bleiben offen.
@@ -100,6 +101,10 @@ Vorgeschlagener deterministischer Inventarvertrag v1:
 - SHA-256 über diese Codierung ergibt die Paketidentität; ein Selbstdigest ist kein Eintrag. Pfade
   sind NFC mit `/`; keine absoluten Pfade, `.`/`..`, ADS, reservierten Windows-Namen, abschließenden
   Punkten/Leerzeichen, Hardlinks, Reparsepunkte oder Windows-Fallalias-Dubletten.
+- C1 prüft NFC ohne stilles Normalisieren und verwendet Unicode-Großschreibung als konservativen
+  portablen Kollisionsschlüssel. Dies ist keine vollständige Windows-Namens-/Dateiidentitätsprüfung;
+  sie bleibt zusätzlich unter nativen Handles für C2 erforderlich. C1 liest keine Dateien und kann
+  weder Hardlinks noch tatsächliche Inventarvollständigkeit belegen.
 - Grenzen des Entwurfs: 32.768 Dateien, 1.024 UTF-8-Bytes/Pfad, Tiefe 32, 512 MiB/Datei, 2 GiB
   Gesamtinhalt, 4 MiB Inventarcodierung; arithmetische Überläufe ablehnen. Exaktes Inventar, keine
   zusätzlichen ladbaren Dateien. Inventar liegt außerhalb des inventarisierten Paketbaums im
@@ -117,10 +122,11 @@ Downgrade oder automatisches Löschen des Profils bei Inkompatibilität.
 
 ## 4. Geplante Typen, Versionen und Bootstrap
 
-**Noch keine unterstützten neuen Versionen:** Kontrollschema 6 sowie P2c-UI-/Bootstrap-ABI 1 sind
-hier Vorschläge. Aktuell bleibt das Forschungsschema maximal 5 mit UI-ABI 0. Kein vorhandener Marker
-wird umetikettiert; bestehende Stores werden nicht automatisch migriert. Vor Umsetzung sind exakte
-Recordcodierung und Kompatibilitätsprüfung getrennt festzulegen.
+**Noch keine nativ unterstützten neuen Versionen:** Kontrollschema 6 sowie P2c-UI-/Bootstrap-ABI 1
+sind im C1-Typenmodell vorhanden, aber nicht im nativen Store-/Startpfad unterstützt. Aktuell bleibt
+das native Forschungsschema maximal 5 mit UI-ABI 0. Kein vorhandener Marker wird umetikettiert;
+bestehende Stores werden nicht automatisch migriert. Vor Umsetzung sind exakte Recordcodierung und
+Kompatibilitätsprüfung getrennt festzulegen.
 
 | Geplanter Typ        | Verbindlich gebundene Inhalte                                                                                                                                                                       |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -133,7 +139,11 @@ Recordcodierung und Kompatibilitätsprüfung getrennt festzulegen.
 Bootstrapdomain `KRAQEL-P2C-UI-START\0\x01`; eigene kurzlebige 32-Byte-Schlüssel, niemals der
 dauerhafte MAC-Schlüssel. Frames maximal 8.192 Bytes, feste Rollen/Sequenzen und höchstens 30
 Sekunden monotone Gesamtdauer. Unbekannte Felder, falscher Zweck, EOF, Replay und Zeitablauf führen
-zum gesperrten Abschluss. Konkrete Wirecodierung folgt mit dem reinen Typenmodell.
+zum gesperrten Abschluss. Das C1-Modell verwendet begrenztes UTF-8-JSON mit Domain/Version, Rollen
+Grant/Accepted/Continue und Sequenz 0/1/2. Alle Frames wiederholen dasselbe vollständige Granttupel;
+dieses wird vor RootBound modelliert. Konkrete MAC-/Pipeintegration ist nicht umgesetzt. Details und
+Feldtypen stehen im [C1-Nachweis](../testing/product-start-p2c-model.md) und dessen Quellverweisen.
+Die Typen bilden keine neuen nativen Records oder Startberechtigungen.
 
 Reihenfolge unter der Kontrollsperre:
 
@@ -210,12 +220,12 @@ Die native Vorbereitung bleibt vor der GUI; spätere Fehler/Fokus/Ansagen benöt
 
 ## 7. Kleine Umsetzungsschritte und gezielte Abnahme
 
-| Schritt           | Nächster begrenzter Lieferumfang                                                                | Angemessene Prüfung                                                                                                           |
-| ----------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| C1 — als Nächstes | Reine Typen/Codierung für Bindung, Inventar und Lebenszyklusmodell; keine neue native Autorität | Gezielte Modelltests für stabile Codierung, Versions-/Zweck-/Generationsfehler, root-ended ≠ drained und unbekanntes Recovery |
-| C2                | Neue synthetische persistente Ablage/Profil, Inventarprüfung und Bindungsrecords                | Helfertests/Clippy und wenige native Positiv-/Negativfälle; keine echten Daten                                                |
-| C3                | Wächter/Bootstrap mit synthetischer Mehrprozessgruppe vor WebView                               | Root endet vor Kind; zweiter Start gesperrt; kompletter Drain; Wächtercrash bleibt gesperrt; falscher Grant abgewiesen        |
-| C4                | Gepinnte WebView-Minimaloberfläche und synthetische SQLite-Persistenz                           | Passende App-/Transportprüfungen, gezielte assistive Prüfung und frisches ETW der exakten Binaries/Kindrollen                 |
+| Schritt             | Nächster begrenzter Lieferumfang                                                                | Angemessene Prüfung                                                                                                    |
+| ------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| C1 — Modell geprüft | Reine Typen/Codierung für Bindung, Inventar und Lebenszyklusmodell; keine neue native Autorität | 13 neue Modelltests; gesamter Helferlauf 88 aktiv bestanden, Clippy grün                                               |
+| C2                  | Neue synthetische persistente Ablage/Profil, Inventarprüfung und Bindungsrecords                | Helfertests/Clippy und wenige native Positiv-/Negativfälle; keine echten Daten                                         |
+| C3                  | Wächter/Bootstrap mit synthetischer Mehrprozessgruppe vor WebView                               | Root endet vor Kind; zweiter Start gesperrt; kompletter Drain; Wächtercrash bleibt gesperrt; falscher Grant abgewiesen |
+| C4                  | Gepinnte WebView-Minimaloberfläche und synthetische SQLite-Persistenz                           | Passende App-/Transportprüfungen, gezielte assistive Prüfung und frisches ETW der exakten Binaries/Kindrollen          |
 
 Erforderliche Nachweise vor einer P2c-Freigabe: Daten/IDs/Profil bleiben über normalen Neustart
 erhalten; private Kontrollfiles bleiben unlesbar; manipuliertes Paket/Runtime/Root wird vor
@@ -231,8 +241,10 @@ diesen Build und diese Abläufe, keine pauschale Betriebssystem- oder Produktfre
 echte Projekte, langfristiger Kontrollstorebetrieb, P3-Bestandskopie und normale
 P4/P5-Produktintegration bleiben separate offene Gates.
 
-## 8. Prüfung dieses Dokuments
+## 8. Prüfung und verbleibende Grenze
 
-Nur Quellen-/Link-/Format-/Diffprüfung; kein Laufzeitcode geändert, kein neuer Build und keine
-ETW-Aufzeichnung. Die bisherigen Buildhashes und Nachweisgrenzen bleiben unverändert. Dieser Entwurf
-schließt die Vertragsausarbeitung ab, nicht die P2c-Implementierung oder Produktabnahme.
+Der ursprüngliche Vertragsentwurf wurde ausschließlich durch Quellen-/Link-/Format-/Diffprüfung
+geprüft. Inzwischen ist C1 im getrennten Modellmodul implementiert und gezielt getestet; der native
+Broker/Store, die App und ihre Befehle sind damit nicht integriert. Keine neue ETW-Aufzeichnung;
+bisherige Netzbelege behalten ihre exakten Buildgrenzen. Nächster Schritt ist C2. Die gesamte
+P2c-Implementierung und Produktabnahme sind weiterhin offen.

@@ -5,6 +5,8 @@ mod policy;
 #[cfg(any(windows, test))]
 mod product_start;
 #[cfg(any(windows, test))]
+mod product_start_p2c;
+#[cfg(any(windows, test))]
 mod transfer;
 #[cfg(windows)]
 mod windows;
