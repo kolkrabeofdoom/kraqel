@@ -1,6 +1,15 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
-17. November:
+17. November: [P2a Record-only](../../testing/product-start-p2a-records.md) persistiert Workspace-
+    und Launch-Records mit Schema 5, nur frische synthetische private Wurzeln. Eigene
+    `.kqprod`-Deklaration Record-ABI 1/UI-ABI 0, keine Startcapability oder Erweiterung des normalen
+    Produkts. MAC-/Kopf- gebundene Rekonstruktion, dieselbe Storelease, Replay gesperrt,
+    unvollständiger Tail ohne Reparatur. Vier neue Tests/67 aktive Helfertests/Clippy und drei
+    native Fälle/Audit grün. App-/Paket-/Daten- Integration für P2b getrennt festlegen; kein
+    ACL-Promovieren privater Fixtures. Neuer Broker ohne eigenen Netznachweis, keine fachliche
+    Ausnahme/Produktfreigabe; striktes Ziel unverändert.
+
+18. November:
     [P1 als reines testexklusives Produktstartmodell](../../testing/product-start-p1-model.md)
     umgesetzt. Neue versionierte Typen/Zustandsregeln, Parserfolg ist keine Autorität; keine
     Importtask, I/O-/MAC-/OS-/Transport-/UI-Integration. Sieben neue Tests, 63 aktive
@@ -9,7 +18,7 @@
     frischen synthetischen Wurzeln, ohne GUI-Start. Keine fachliche Ausnahme/Produktfreigabe;
     striktes Datenschutzziel unverändert.
 
-18. November:
+19. November:
     [Produktstart-/Bestandsdatenvertrag v1 als Entwurf](../../data-format/product-start-integration-v1-draft.md)
     konkretisiert die nächste Integration, ohne sie als umgesetzt zu führen. Eigene Workspace-
     Startautorität statt Importtask, getrennte Hostkontrolle/Arbeitsablage, kein unisolierter

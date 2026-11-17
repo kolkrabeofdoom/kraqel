@@ -2,10 +2,11 @@
 
 Stand: 17. November 2026. **Implementierungsentwurf, keine Produktfreigabe und kein bereits
 ausführbares Protokoll.** Die Anforderungen unten sind für die nächste Integrationsstufe vorgesehen.
-P1 ist inzwischen als
-[reines testexklusives Typ-/Zustandsmodell](../testing/product-start-p1-model.md) umgesetzt. Nativer
-Startvertrag, Authentisierung, Kontrollschema 5 und Bestandsdatenübernahme sind weiter nicht
-implementiert. Striktes Datenschutzziel und offene Produkt-Q-01/Q-02 bleiben unverändert.
+P1 ist als [reiner Typ-/Zustandskern](../testing/product-start-p1-model.md) umgesetzt;
+[P2a](../testing/product-start-p2a-records.md) ergänzt authentisierte Schema-5-Records
+ausschließlich in synthetischen privaten Forschungsablagen ohne UI-Start. Produktbootstrap,
+ausführbare Startautorität, Bestandsdatenübernahme und normale Integration fehlen weiterhin.
+Striktes Datenschutzziel und offene Produkt-Q-01/Q-02 bleiben unverändert.
 
 ## 1. Verifizierter Ausgangspunkt
 
@@ -79,12 +80,15 @@ neuer Startframe benötigt eigene Zweck-/Versionsdomäne, keine Wiederverwendung
 Startfreigabe. Der konkrete Bootstrap-Transport und seine Peer-Prüfung sind vor Integration nativ
 nachzuweisen; dieser Entwurf behauptet noch keine implementierte Authentisierung.
 
-Produktbindungen benötigen neue explizite Kontrollaktionen, vorgesehen als **Kontrollschema 5**:
-Arbeitsablage binden, Startgeneration festschreiben und Startende/Unterbrechung abgleichen. Schema 4
-bleibt in seiner bisherigen Bedeutung unverändert. Aktuelle `.kqmeta`-Metadaten deklarieren nur
-Kontrollhistorie bis 4 und Startticket 3; sie autorisieren diesen Vertrag nicht. Unterstützung von
-Schema 5 und Produktstart muss in einer neuen kompatibel geprüften Paketdeklaration explizit
-ausgewiesen werden. Keine automatische Migration durch bloßes Starten einer neueren EXE.
+P2a implementiert Kontrollschema 5 mit `bindWorkspace`, `commitWorkspaceLaunch` und
+`reconcileWorkspaceLaunch` ausschließlich im scoped Forschungschild. Dies ist kein normaler
+Produktstart: UI-Start, Profil-/Containerfreigabe und nativer Bootstrap fehlen. Die `.kqprod`-
+Deklaration Record-ABI 1/UI-ABI 0 grenzt das ausdrücklich ab; Legacy-`.kqmeta` bleibt für 1–4 und
+Importstartticket 3 unverändert. Details/Byteformat im
+[P2a-Nachweis](../testing/product-start-p2a-records.md). Vollständiges Produktpaket, effektive
+Konfiguration und getrennte containerzugängliche Datenbereiche müssen vor P2b explizit gebunden
+werden. Keine automatische Migration neuer EXEs oder Übernahme privater P2a-Fixtures. Die folgende
+Zustandstabelle beschreibt weiterhin das Produktziel.
 
 | Zustand / Ereignis                                 | Erlaubtes Verhalten                                                                                                                            |
 | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -165,7 +169,8 @@ offenzulegen.
 | P5                            | Normaler Launcher/Installer ohne unisolierten Bypass, deklarierte kompatible Pakete, tragfähige Kontrollhistorie     | Direkter EXE-Start, Erststart/Bestandsstart, Neustart, Installation/Update/Deinstallation ohne Datenverlust; Produkt-Q-01/Q-02/F08/M3 und externe Dienstgrenzen ausdrücklich abnehmen |
 
 P2 wird in P2a (persistente authentisierte Bindung/Launch-Records ohne GUI) und P2b (synthetischer
-Bootstrap/Token/Job ohne Importtask) aufgeteilt. P2a ist der nächste begrenzte Scope.
+Bootstrap/Token/Job ohne Importtask) aufgeteilt. P2a ist als Record-only-Forschung umgesetzt; P2b
+ist der nächste begrenzte Scope.
 
 Reihenfolge P1–P5 verhindert, dass der erfolgreiche Forschungsimport als Freigabe der gesamten
 Schreiboberfläche gilt. Mittleres Prüfniveau bedeutet pro Implementierungsschritt gezielte relevante

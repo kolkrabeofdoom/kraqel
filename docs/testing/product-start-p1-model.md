@@ -5,6 +5,11 @@ Stand: 17. November 2026. P1 des
 testexklusives Forschungsmodell** umgesetzt. Kein Produktbootstrap, nativer Start, MAC-Nachweis oder
 Datenzugriff. Striktes Datenschutzziel und offene Produkt-Q-01/Q-02 unverändert.
 
+Dieser Abschnitt beschreibt den P1-Prüfstand `36bfbd6`. Inzwischen verwendet
+[P2a](product-start-p2a-records.md) den reinen Kern unter Windows nach nativen Kontrollprüfungen.
+Die Aussagen zur ausschließlichen Testeinbindung gelten für P1; der Kern selbst bleibt ohne I/O/
+Authentisierung, P2a persistiert ausschließlich authentisierte Kontrollaktionen.
+
 ## Umsetzung und Autoritätsgrenze
 
 [`product_start.rs`](../../scripts/runtime-isolation/probe/src/product_start.rs) ist ausschließlich

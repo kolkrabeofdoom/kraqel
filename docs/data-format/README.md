@@ -2,12 +2,11 @@
 
 [Produktstart und bestehende Projekte · Vertragsentwurf v1](product-start-integration-v1-draft.md)
 beschreibt die geplante Integration der isolierten Oberfläche: getrennte Start-/Importautorität,
-Arbeitsablagenbindung und zerstörungsfreie Bestandskopie. Noch kein implementiertes Protokoll,
-Kontrollschema 5 oder Produkt-Migrationsweg; kein portables Snapshotformat. Reine
-Typ-/Zustandsprüfung P1 ist inzwischen
-[als reines testexklusives Modell geprüft](../testing/product-start-p1-model.md); P2a persistente
-authentisierte Bindung ohne GUI ist der nächste begrenzte Schritt. Der vorhandene Snapshot-v3-Import
-erzeugt weiterhin neue IDs.
+Arbeitsablagenbindung und zerstörungsfreie Bestandskopie. P1 ist als reiner Kern geprüft;
+[P2a](../testing/product-start-p2a-records.md) ergänzt authentisierte Schema-5-Records nur in
+privaten synthetischen Forschungsablagen ohne UI-Start. Kein portables Snapshotformat oder
+Produkt-Migrationsweg. P2b Bootstrap/Token/Job ohne Importtask bleibt offen. Vorhandener
+Snapshot-v3-Import erzeugt neue IDs.
 
 Der Exportstandard ist noch in Arbeit. Fest stehen folgende Invarianten:
 

@@ -1,5 +1,14 @@
 # Bedrohungsmodell (Entwurf)
 
+[P2a authentisierte Workspace-/Launch-Records](../testing/product-start-p2a-records.md), 17.
+November: Schema 5 nur im pfadbegrenzten Forschungschild, keine Importtestsitzung übernehmen.
+Vollständige MAC-/Root-/Actor-/Kopfprüfung vor Storefreigabe, Job-/Leaseguard vor Mutationen.
+P1-Kern erhält Recorddigests statt fiktiver Kopfwerte; Parseerfolg bleibt keine Autorität.
+Record-only-Paketmarker mit UI-ABI 0, keine Profile/GUI/Importtasks. Brokerprivate Fixture nicht
+durch ACL-Grant zum Produktvault machen. Drei native Abbruchfälle/67 Helfertests/Clippy und
+unabhängiger Audit grün; Tail/fehlender Schlüssel bleiben gesperrt. Neuer Broker ohne frisches ETW,
+P2b-/Produktgrenzen und striktes Datenschutzziel unverändert.
+
 [Produktstart P1 · reines Testmodell](../testing/product-start-p1-model.md), 17. November:
 versionierte Bindung/Startvorschlag strikt getrennt von Importautorität. Parser liefert unvertrautes
 Objekt; keine MACs/OS-Prüfung/Schlüssel/I/O oder Startcapability. Modell prüft Kontext/Kopf/Replay/

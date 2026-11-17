@@ -7,6 +7,28 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 17. November 2026
 
+Neuester Stand: [Produktstart P2a · Record-only](testing/product-start-p2a-records.md). Produktstart
+P2a, 17. November: authentisierte persistente Schema-5-Bindungs-/Launch-Records im pfadbegrenzten
+Forschungschild implementiert, nur synthetische private Ablagen ohne GUI. P1-Kern wird nach nativen
+Actor-/Kopf-/Job-/MAC-Prüfungen genutzt, Zustand aus Recorddigests rekonstruiert; erst passender
+Abschlusskopf gibt Store frei. `.kqprod` deklariert Record-ABI 1 und UI-Bootstrap-ABI 0;
+Legacy-`.kqmeta` 1–4 unverändert. Keine Startcapability, kein Profil-/Importtask-/UI-Start. Drei
+native Abbruchfälle mit 31 Prozessen: vor Record, nach Kopf, unveröffentlichter Tail. Replay bleibt
+gesperrt, Tail wird nicht repariert; Schlüssel/Policy/Unicode-Daten erhalten. Vier neue Tests, 67
+aktive Helfer-/Transporttests/Clippy und unabhängiger MAC-/PE-/Root-/Inventaraudit grün. Ein
+Helferbuild, kein App-/Transport-/Installerumbau oder Workspace-Gesamtlauf. Echte
+Vorschau-/Projektdaten unverändert, Prozesse beendet. Brokerprivate Fixture ist kein
+Container-Produktvault; nicht per ACL promovieren. Neuer Broker ohne eigenen frischen ETW-Beleg.
+Nächster Scope P2b: authentisierter synthetischer Bootstrap mit Token/Job vor Ausführung, ohne
+Importtask; vor weiterer Freigabe eigener Netznachweis. Produktintegration/Bestandsübernahme offen,
+striktes Datenschutzziel unverändert.
+
+Reproduktion `scripts/runtime-isolation/check-workspace-records.ps1` mit gesicherten Hashes aus dem
+Nachweis; aktuelle Prüfung verwendet Build `kraqel-product-start-p2a-build-20261117-02`. UI-Fixture
+nur als Datei kopiert, noch nicht startfähig für den Produktvertrag. P2b benötigt explizit getrennte
+Appdaten/Paket-/Konfigurationsbindung, passenden Bootstrap und native Vor-Ausführungschecks. Keine
+Autorisierung des neuen Brokers an der echten Vorschauablage und keine alten Records löschen.
+
 Neuester funktionaler Prüfstand: [Produktstart P1 · Testmodell](testing/product-start-p1-model.md).
 Produktstart P1, 17. November: reine versionierte Bindungs-/Startvorschlagstypen und Zustandsregeln
 implementiert, ausschließlich `#[cfg(test)]` in `probe/src/main.rs`; keine produktive Autorität.

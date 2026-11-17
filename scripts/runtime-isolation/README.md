@@ -1,5 +1,13 @@
 # AppContainer-Forschungshelfer für KQ-069
 
+Aktuell:
+[Produktstart P2a · authentisierte Record-only-Forschung](../../docs/testing/product-start-p2a-records.md).
+`check-workspace-records.ps1` prüft drei frische synthetische Wurzeln ohne UI/Profile/Importtask;
+P1-Kern nach nativen Kontrollprüfungen, Schema 5/MAC-Records und `.kqprod`-Record-ABI 1/UI-ABI 0.
+Vier neue Tests, 67 aktive Helfer-/Transporttests/Clippy und unabhängiger MAC-/PE-/Datenaudit grün.
+Keine App-/Transport-/Installeränderung, keine Vorschau-/Bestandsübernahme. Private Fixtures nicht
+per Container-ACL promovieren. Neuer Broker ohne frisches ETW; P2b Bootstrap/Token/Job bleibt offen.
+
 Neuester begrenzter Schritt:
 [Produktstart P1 · reines Testmodell](../../docs/testing/product-start-p1-model.md).
 `probe/src/product_start.rs` ist nur per `#[cfg(test)]` im Helfer-Testziel eingebunden. Keine neue

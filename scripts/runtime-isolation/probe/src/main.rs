@@ -1,8 +1,8 @@
 //! Bounded, synthetic AppContainer experiments, not a production launcher.
-// P1 is a pure, test-only contract model. No CLI, transport or launcher integration.
+// Pure rules; scoped Windows P2a records use them after native control checks.
 #[cfg(any(windows, test))]
 mod policy;
-#[cfg(test)]
+#[cfg(any(windows, test))]
 mod product_start;
 #[cfg(any(windows, test))]
 mod transfer;

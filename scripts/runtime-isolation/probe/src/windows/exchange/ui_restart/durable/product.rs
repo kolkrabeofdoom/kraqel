@@ -10,6 +10,7 @@ mod package;
 mod secure_fs;
 mod session;
 mod starter;
+mod workspace;
 pub(in super::super::super::super) use crash::{child as crash_child, series as crash_series};
 use secure_fs::{
     binary_pin, local_path, path_wide, pin_directories, private_acl, protected_file,
@@ -20,6 +21,7 @@ pub(in crate::windows) use session::{child as session_child, series as session_s
 pub(in crate::windows) use session::{transition_child, transition_series};
 pub(in super::super::super::super) use starter::series as start_series;
 pub(in super::super) use starter::verify_start_lease;
+pub(in crate::windows) use workspace::child as workspace_child;
 
 const DOMAIN: &[u8] = b"KRAQEL-PRODUCT-CONTROL\0\x01";
 const MAX_RECORDS: usize = 256;
@@ -32,16 +34,38 @@ const BAD_ATTRIBUTES: u32 = FILE_ATTRIBUTE_REPARSE_POINT
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(tag = "kind", rename_all = "camelCase", deny_unknown_fields)]
 enum Action {
-    Initialize { binary: [u8; 32] },
-    Prepare { binary: [u8; 32] },
+    Initialize {
+        binary: [u8; 32],
+    },
+    Prepare {
+        binary: [u8; 32],
+    },
     Activate,
     Abort,
-    Migrate { from: u16, to: u16 },
-    BindSession { binding: Binding },
-    RecoverSession { launch: Uuid },
+    Migrate {
+        from: u16,
+        to: u16,
+    },
+    BindSession {
+        binding: Binding,
+    },
+    RecoverSession {
+        launch: Uuid,
+    },
     RetireSession,
-    PrepareSession { binding: Binding },
+    PrepareSession {
+        binding: Binding,
+    },
     ProfileCleaned,
+    BindWorkspace {
+        binding: crate::product_start::WorkspaceBindingV1,
+    },
+    CommitWorkspaceLaunch {
+        proposal: crate::product_start::StartProposalV1,
+    },
+    ReconcileWorkspaceLaunch {
+        launch: crate::product_start::LaunchIdentity,
+    },
 }
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -64,6 +88,7 @@ struct Head {
     record_sha256: [u8; 32],
     root_sha256: [u8; 32],
 }
+#[derive(Clone)]
 struct State {
     installation: Uuid,
     sequence: usize,
@@ -74,6 +99,7 @@ struct State {
     activated: std::collections::HashSet<[u8; 32]>,
     aborted_packages: std::collections::HashSet<[u8; 32]>,
     session: Option<BoundSession>,
+    workspace: Option<crate::product_start::StartModel>,
 }
 impl State {
     fn apply(&mut self, actor: [u8; 32], action: &Action) -> Result<()> {
@@ -115,9 +141,29 @@ impl State {
             Action::Migrate { from: 3, to: 4 } if self.pending.is_none() && self.schema == 3 => {
                 self.schema = 4
             }
+            Action::Migrate { from: 4, to: 5 }
+                if self.pending.is_none()
+                    && self.schema == 4
+                    && self.session.is_none()
+                    && self.workspace.is_none() =>
+            {
+                self.schema = 5
+            }
             _ => return Err(invalid("product-invalid-transition")),
         }
         Ok(())
+    }
+    fn apply_record(&mut self, actor: [u8; 32], action: &Action, digest: [u8; 32]) -> Result<()> {
+        if matches!(
+            action,
+            Action::BindWorkspace { .. }
+                | Action::CommitWorkspaceLaunch { .. }
+                | Action::ReconcileWorkspaceLaunch { .. }
+        ) {
+            workspace::apply(self, actor, action, digest)
+        } else {
+            self.apply(actor, action)
+        }
     }
 }
 
@@ -318,13 +364,14 @@ impl Store {
                     activated: std::collections::HashSet::from([record.actor]),
                     aborted_packages: std::collections::HashSet::new(),
                     session: None,
+                    workspace: None,
                 });
             } else {
                 let s = state.as_mut().ok_or(invalid("product-genesis-missing"))?;
                 if s.installation != record.installation {
                     return Err(invalid("product-installation-binding"));
                 }
-                s.apply(record.actor, &record.action)?;
+                s.apply_record(record.actor, &record.action, Sha256::digest(&wire).into())?;
             }
             previous = Sha256::digest(&wire).into();
             let s = state.as_mut().unwrap();
@@ -400,29 +447,22 @@ impl Store {
             self.state.installation.simple()
         ))
     }
-    fn next_state(&self, actor: [u8; 32], head: [u8; 32], action: &Action) -> Result<State> {
+    fn append_guard(&self, actor: [u8; 32], head: [u8; 32]) -> Result<()> {
         self.actor(actor)?;
         self.idle()?;
         if self.state.head != head || self.state.sequence + 1 >= MAX_RECORDS {
             return Err(invalid("product-stale-head-or-budget"));
         }
-        // Validate before any write. Persist first; any incomplete record blocks later opens.
-        let mut next = State {
-            installation: self.state.installation,
-            sequence: self.state.sequence,
-            head: self.state.head,
-            actor: self.state.actor,
-            schema: self.state.schema,
-            pending: self.state.pending,
-            activated: self.state.activated.clone(),
-            aborted_packages: self.state.aborted_packages.clone(),
-            session: self.state.session.clone(),
-        };
+        Ok(())
+    }
+    fn next_state(&self, actor: [u8; 32], head: [u8; 32], action: &Action) -> Result<State> {
+        self.append_guard(actor, head)?;
+        let mut next = self.state.clone();
         next.apply(actor, action)?;
         Ok(next)
     }
     fn append(&mut self, actor: [u8; 32], head: [u8; 32], action: Action) -> Result<()> {
-        let mut next = self.next_state(actor, head, &action)?;
+        self.append_guard(actor, head)?;
         let record = Record {
             version: 1,
             sequence: self.state.sequence + 1,
@@ -435,6 +475,8 @@ impl Store {
         };
         let bytes = serde_json::to_vec(&record).map_err(|_| invalid("product-record-encode"))?;
         let wire = sealed(&bytes, &self.key)?;
+        let mut next = self.state.clone();
+        next.apply_record(actor, &record.action, Sha256::digest(&wire).into())?;
         crash::hit(crash::Point::BeforeRecord);
         write_record(&self.root, record.sequence, &wire)?;
         write_head(

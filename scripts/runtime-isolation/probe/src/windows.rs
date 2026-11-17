@@ -783,6 +783,9 @@ pub fn main() {
         if args.len() == 6 && args[0] == "product-session-child" {
             return exchange::product_session_child(&args[1..]);
         }
+        if args.len() == 6 && args[0] == "product-workspace-child" {
+            return exchange::product_workspace_child(&args[1..]);
+        }
         if args.len() == 4 && args[0] == "product-start-series" {
             return exchange::product_start_series(
                 Path::new(&args[1]),

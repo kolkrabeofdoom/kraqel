@@ -236,18 +236,26 @@ aber bei gültigem Kopf explizit abgebrochen werden. Unvollständige Record-/Kop
 gesperrt; kein automatisches Kopfreparieren, Recordlöschen oder Schlüsselreset. Der Netzbeleg gilt
 ausschließlich für seinen gesicherten Prüfbuild, nicht für automatisch aktualisierte Produkte.
 
+## P2a: Schema-5-Records ohne UI-Start
+
+[P2a-Vertrag/Metadaten und Nachweis](../testing/product-start-p2a-records.md) ergänzt ausdrücklich
+nur den pfadbegrenzten `product-workspace-child` in synthetischen TEMP-Controllerwurzeln. Private
+MAC-/Root-/Actor-/Kopfbindung bleibt unverändert, neue Actions binden Workspace bzw. verbrauchen/
+reconcilieren Launch-Generationen. Keine Importtask, Profile oder Prozesse daraus starten. Schema 5
+unterstützt hier keine Brokerupdates/Importtestsitzungen; `.kqprod` deklariert Record-ABI 1,
+UI-ABI 0. Neues Bindestaging wird nicht adoptiert; unbekannte Reste/defekte Abschlüsse bleiben
+gesperrt. Der normale `broker-store` erhält keinen Migrate-v5- oder Produktstartcommand.
+
 ## Abgrenzung zum geplanten Produktstart
 
-P1 ist [als reines Typ-/Zustandsmodell im Testziel](../testing/product-start-p1-model.md)
-implementiert. Dies ändert weder das native Kontrollschema noch MAC-Records, Commands, RestartTicket
-oder Paketdeklaration. Gültiges JSON und Modellbedingungen erzeugen keine Autorität; die native
-Schema-5-/Persistenz-/Bootstrapintegration bleibt ein separater Schritt.
-
-[Produktstart-/Bestandsdatenvertrag v1 · Entwurf](product-start-integration-v1-draft.md) trennt
-allgemeine Arbeitsablagenstarts von den hier implementierten Testsitzungen/Importaufgaben. Schema 5
-und eine dafür geeignete Paketdeklaration sind geplant, nicht in diesen Commands unterstützt. Kein
-Wiederverwenden von Importticket v3 als Produktstart, keine automatische Übernahme der
-Vorschauablage und keine Bestandsmigration durch `bind-session`/`recover-session`.
+P1 war zunächst ein reines Testmodell; P2a nutzt denselben Kern jetzt nach nativen Kontrollprüfungen
+im record-only Forschungschild. Gültiges JSON bleibt unvertrauenswürdig. UI-Start/Bootstrap,
+vollständige Produktpaket-/Datenfreigabe und Bestandsübernahme sind weiterhin nicht implementiert.
+[Produktstart-/Bestandsdatenvertrag v1](product-start-integration-v1-draft.md) trennt diese geplante
+Integration von Importaufgaben. Kein Wiederverwenden von Importticket v3 als Produktstart, keine
+automatische Übernahme der Vorschauablage und keine Migration durch
+`bind-session`/`recover-session`. Die folgenden normalen Vorschau-Commands unterstützen keinen
+Schema-5-/Produktstart.
 
 ## Native Vorschau-Commands
 

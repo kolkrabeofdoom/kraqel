@@ -1,0 +1,61 @@
+{
+  "formatVersion": 1,
+  "nativePreviewOnly": true,
+  "productionAcceptance": false,
+  "sourceBaseCommit": "36bfbd6680a42c8a77a9ed5252520a5d6515a0cd",
+  "controllerSha256": "b56fc9acb484baedf1bbe68b77af1196a3d7a3f95a66a499a3fa07dc60d47ae7",
+  "uiFixtureSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+  "controlSchema": 5,
+  "workspaceRecordAbi": 1,
+  "uiBootstrapAbi": 0,
+  "independentAuditPassed": true,
+  "nativeCases": 3,
+  "childProcesses": 31,
+  "childExitCodes": {
+    "0": 20,
+    "1": 8,
+    "86": 3
+  },
+  "helperActiveTestsPassed": 67,
+  "helperClippyPassed": true,
+  "uiStarts": 0,
+  "profilesCreated": 0,
+  "importTasksCreated": 0,
+  "boundWorkspaces": 3,
+  "fullWorkspaceCheck": false,
+  "networkMeasurement": false,
+  "normalPreviewStoreUsed": false,
+  "cases": [
+    {
+      "point": "before",
+      "controlRecords": 10,
+      "publishedHeadSequence": 9,
+      "blockedUnpublishedTail": false,
+      "recordedLaunches": 2,
+      "workspaceAndKeyPreserved": true,
+      "importTasks": 0,
+      "uiStarts": 0
+    },
+    {
+      "point": "after",
+      "controlRecords": 10,
+      "publishedHeadSequence": 9,
+      "blockedUnpublishedTail": false,
+      "recordedLaunches": 2,
+      "workspaceAndKeyPreserved": true,
+      "importTasks": 0,
+      "uiStarts": 0
+    },
+    {
+      "point": "tail",
+      "controlRecords": 7,
+      "publishedHeadSequence": 5,
+      "blockedUnpublishedTail": true,
+      "recordedLaunches": 1,
+      "workspaceAndKeyPreserved": true,
+      "importTasks": 0,
+      "uiStarts": 0
+    }
+  ],
+  "limits": "Record-only P2a; no native UI/bootstrap/token/profile or product authorization, no legacy data adoption, no checkpointing/power-loss guarantee or fresh ETW. Unpublished tail remains blocked, no repair."
+}

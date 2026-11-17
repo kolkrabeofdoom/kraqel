@@ -294,9 +294,27 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
-Aktuell: [Produktstart P1 · Testmodell](docs/testing/product-start-p1-model.md). Produktstart
-P1, 17. November: reine versionierte Bindungs-/Startvorschlagstypen und Zustandsregeln
-implementiert, ausschließlich `#[cfg(test)]` in `probe/src/main.rs`; keine produktive Autorität.
+Aktuell: [Produktstart P2a · Record-only](docs/testing/product-start-p2a-records.md). Produktstart
+P2a, 17. November: authentisierte persistente Schema-5-Bindungs-/Launch-Records im pfadbegrenzten
+Forschungschild implementiert, nur synthetische private Ablagen ohne GUI. P1-Kern wird nach nativen
+Actor-/Kopf-/Job-/MAC-Prüfungen genutzt, Zustand aus Recorddigests rekonstruiert; erst passender
+Abschlusskopf gibt Store frei. `.kqprod` deklariert Record-ABI 1 und UI-Bootstrap-ABI 0;
+Legacy-`.kqmeta` 1–4 unverändert. Keine Startcapability, kein Profil-/Importtask-/UI-Start. Drei
+native Abbruchfälle mit 31 Prozessen: vor Record, nach Kopf, unveröffentlichter Tail. Replay bleibt
+gesperrt, Tail wird nicht repariert; Schlüssel/Policy/Unicode-Daten erhalten. Vier neue Tests, 67
+aktive Helfer-/Transporttests/Clippy und unabhängiger MAC-/PE-/Root-/Inventaraudit grün. Ein
+Helferbuild, kein App-/Transport-/Installerumbau oder Workspace-Gesamtlauf. Echte
+Vorschau-/Projektdaten unverändert, Prozesse beendet. Brokerprivate Fixture ist kein
+Container-Produktvault; nicht per ACL promovieren. Neuer Broker ohne eigenen frischen ETW-Beleg.
+Nächster Scope P2b: authentisierter synthetischer Bootstrap mit Token/Job vor Ausführung, ohne
+Importtask; vor weiterer Freigabe eigener Netznachweis. Produktintegration/Bestandsübernahme offen,
+striktes Datenschutzziel unverändert.
+
+Vorheriger funktionaler Stand:
+
+[Produktstart P1 · Testmodell](docs/testing/product-start-p1-model.md). Produktstart P1, 17.
+November: reine versionierte Bindungs-/Startvorschlagstypen und Zustandsregeln implementiert,
+ausschließlich `#[cfg(test)]` in `probe/src/main.rs`; keine produktive Autorität.
 `product_start.rs`/`product_start/tests.rs` ohne I/O/unsafe/Schlüssel/Transport/UI. Parser liefert
 `UntrustedStartProposal`, lehnt Import-/Fremdfelder und ungültige Versionen/Bindungen ab. Modell
 verbraucht Launch vor Running, erhält Binding/Replayhistorie bei Ende/Unterbrechung, reserviert

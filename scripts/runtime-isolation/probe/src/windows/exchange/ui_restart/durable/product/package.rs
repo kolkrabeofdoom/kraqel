@@ -11,6 +11,20 @@ const EXPECTED: [u8; 32] = [
 #[used]
 #[unsafe(link_section = ".kqmeta")]
 static EMBEDDED: [u8; 32] = EXPECTED;
+// Separate declaration: schema-5 record ABI 1, UI bootstrap ABI 0 (not supported).
+const P2A: [u8; 32] = *b"KRAQEL-P2A-META\0\x01\0\0\0\x05\0\x01\0\0\0\0\0\0\0\0\0";
+#[used]
+#[unsafe(link_section = ".kqprod")]
+static P2A_EMBEDDED: [u8; 32] = P2A;
+pub(super) fn verify_workspace_records(file: &mut fs::File) -> Result<()> {
+    let size = io("package-size", file.metadata())?.len();
+    verify_named(
+        file,
+        size,
+        b".kqprod\0",
+        std::hint::black_box(&P2A_EMBEDDED),
+    )
+}
 
 pub(super) fn verify(file: &mut fs::File) -> Result<()> {
     let size = io("package-size", file.metadata())?.len();
@@ -32,6 +46,14 @@ fn u32_at(b: &[u8], offset: usize) -> u32 {
     u32::from_le_bytes(b[offset..offset + 4].try_into().unwrap())
 }
 fn verify_image<R: Read + Seek>(r: &mut R, size: u64) -> Result<()> {
+    verify_named(r, size, b".kqmeta\0", std::hint::black_box(&EMBEDDED))
+}
+fn verify_named<R: Read + Seek>(
+    r: &mut R,
+    size: u64,
+    name: &[u8; 8],
+    expected: &[u8; 32],
+) -> Result<()> {
     if !(64..=128 * 1024 * 1024).contains(&size) {
         return Err(invalid("package-size-budget"));
     }
@@ -62,7 +84,7 @@ fn verify_image<R: Read + Seek>(r: &mut R, size: u64) -> Result<()> {
     let mut found = false;
     for i in 0..sections {
         let s = read_at::<_, 40>(r, size, table + u64::from(i) * 40)?;
-        if &s[..8] != b".kqmeta\0" {
+        if &s[..8] != name {
             continue;
         }
         let raw = u64::from(u32_at(&s, 20));
@@ -82,7 +104,7 @@ fn verify_image<R: Read + Seek>(r: &mut R, size: u64) -> Result<()> {
         }
         let metadata = read_at::<_, 32>(r, size, raw)?;
         // The address reference also keeps the exact read-only section in the linked executable.
-        if metadata != *std::hint::black_box(&EMBEDDED) {
+        if metadata != *expected {
             return Err(invalid("package-incompatible-contract"));
         }
         found = true;
@@ -140,5 +162,16 @@ mod tests {
     fn linked_test_executable_contains_the_declared_package_contract() {
         let (_dirs, mut file, _sha) = binary_pin(&std::env::current_exe().unwrap()).unwrap();
         verify(&mut file).unwrap();
+        verify_workspace_records(&mut file).unwrap();
+    }
+    #[test]
+    fn record_only_declaration_rejects_legacy_or_claimed_ui_bootstrap() {
+        let mut b = image();
+        assert!(verify_named(&mut Cursor::new(&b), b.len() as u64, b".kqprod\0", &P2A).is_err());
+        b[328..336].copy_from_slice(b".kqprod\0");
+        b[512..544].copy_from_slice(&P2A);
+        assert!(verify_named(&mut Cursor::new(&b), b.len() as u64, b".kqprod\0", &P2A).is_ok());
+        b[536] = 1; // bootstrap ABI must remain zero: records alone do not authorize UI start.
+        assert!(verify_named(&mut Cursor::new(&b), b.len() as u64, b".kqprod\0", &P2A).is_err());
     }
 }

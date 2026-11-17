@@ -24,6 +24,7 @@ pub(super) use ui_live::launch as launch_live_ui;
 pub(super) use ui_restart::launch as launch_restart_series;
 pub(super) use ui_restart::launch_assistive;
 pub(super) use ui_restart::product_storage;
+pub(super) use ui_restart::product_workspace_child;
 pub(super) use ui_restart::{combined_series, next_live, seed_live};
 pub(super) use ui_restart::{controller_crash_series, recover_broker, seed_broker};
 pub(super) use ui_restart::{

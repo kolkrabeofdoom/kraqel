@@ -7,6 +7,7 @@ use sha2::{Digest as _, Sha256};
 use uuid::Uuid;
 use windows_sys::Win32::System::Pipes::{CreatePipe, PeekNamedPipe};
 mod durable;
+pub(in super::super) use durable::product_workspace_child;
 mod live;
 pub(in super::super) use durable::product_storage;
 pub(in super::super) use durable::{combined_series, next_live, seed_live};
