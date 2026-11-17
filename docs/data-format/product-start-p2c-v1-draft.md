@@ -1,5 +1,10 @@
 # P2c: persistente Arbeitsdaten, Paketbindung und Mehrprozess-UI
 
+[C4-Runtime-/Minimaloberflächenvertrag](product-start-p2c-c4-v1-draft.md) ergänzt den nächsten
+UI-Scope als Entwurf. Keine native UI-Implementierung oder neue Autorität; nächster
+Umsetzungsschritt ist C4a mit reinen Paket-/Policytypen und versionierter Codierung. C3-Bytes und
+deren ETW-Beleg bleiben unverändert.
+
 Status: **Vertragsentwurf v1, 17. November 2026; C1-Modell, native C2-Datenvorbereitung und
 synthetischer C3-Mehrprozess-Kern implementiert, UI-Umsetzung und Abnahme offen.**
 [C1-Nachweis](../testing/product-start-p2c-model.md),
@@ -264,5 +269,5 @@ getestet. Der normale Appstart und seine Befehle sind nicht integriert. Für den
 [frisches ETW](../testing/product-start-p2c-native-data-etw.md) ergänzt; alle Netzbelege behalten
 ihre exakten Buildgrenzen. C3 ist inzwischen im synthetischen Umfang implementiert;
 [dessen eigener frischer Netzbeleg](../testing/product-start-p2c-group-bootstrap-etw.md) ist
-ergänzt. Als Nächstes folgt der C4-Vertrag für Runtime-Paket und minimale isolierte Oberfläche. Die
+ergänzt. Der C4-Vertrag ist oben ergänzt; als Nächstes folgt dessen reiner C4a-Modellkern. Die
 gesamte P2c-Implementierung und Produktabnahme sind weiterhin offen.

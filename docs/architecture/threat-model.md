@@ -1,5 +1,18 @@
 # Bedrohungsmodell (Entwurf)
 
+[C4-Vertrag für Runtime-Paketbindung und minimale isolierte Oberfläche](../data-format/product-start-p2c-c4-v1-draft.md)
+ist als Entwurf ausgearbeitet, **nicht implementiert oder nativ abgenommen**. Explizites
+vollständiges Fixed-Version-Paket, eigene UI-/Bootstrap-/Commandversion, kontrollierte
+Root-/Runtime-Rollen, getrennte synthetische SQLite-/WebView-Daten und drei begrenzte Commands sind
+Zielanforderungen. C3-Gruppenschlüssel/Joblimit und C2-`no-execution` werden nicht zur UI-Autorität
+umgedeutet; native UI-ABI bleibt 0. Unterstützter WebView-Kindstart einschließlich wirksamer
+Beschränkung von Token, Job und Handlevererbung ist ein offenes Stopgate, keine nachträgliche
+ETW-Ersatzprüfung. Nächster begrenzter Schritt **C4a: reine Paket-/Policytypen, deterministische
+Codierung und getrennte UI-Version/Lebenszyklusmodell**, ohne native Startautorität. C4b–d, P2
+insgesamt/P3–P5 und Produkt-Q-01/Q-02 bleiben offen. Nur
+Dokumentations-/Quellen-/Verweis-/Formatprüfung, keine neuen Builds oder Test-/ETW-Läufe. Gesamt
+etwa 65 % und nutzbarer 0.1-Umfang etwa 80 % unverändert; striktes Datenschutzziel unverändert.
+
 [Frischer C3-Netzbeleg](../testing/product-start-p2c-group-bootstrap-etw.md), 17. November 2026:
 unveränderter Build `b24b3aa…`, Referenz und Gruppen-/gesperrter Wiederanlaufpfad. 28 Controller,
 zwölf Workerrollen, 68 explizite Enden, acht Kontrollen; Nullverluste/Zuordnungslücken und null

@@ -1,5 +1,10 @@
 # Native Broker-Kontrollablage und lokale Updates · v1
 
+[C4-Runtime-/Minimaloberflächenvertrag](product-start-p2c-c4-v1-draft.md) ergänzt den nächsten
+UI-Scope als Entwurf. Keine native UI-Implementierung oder neue Autorität; nächster
+Umsetzungsschritt ist C4a mit reinen Paket-/Policytypen und versionierter Codierung. C3-Bytes und
+deren ETW-Beleg bleiben unverändert.
+
 Stand: 17. November 2026. Implementierte Windows-Vorschau im nativen Forschungsbroker, noch kein
 normaler Produktstarter. [Funktionsnachweis](../testing/native-product-control.md),
 [Bedrohungsmodell](../architecture/threat-model.md). Striktes Datenschutzziel unverändert.

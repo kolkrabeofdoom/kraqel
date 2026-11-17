@@ -43,12 +43,13 @@ Konsolenhosts, 30 Enden, acht Kontrollen und null beobachtete Netzereignisse.
 Helfertests, 22 Controlleraufrufe und ein gesperrter Wächterabbruch.
 [Frisches C3-ETW](docs/testing/product-start-p2c-group-bootstrap-etw.md) bestätigt 28 Controller,
 zwölf Root-/Kindrollen, 68 explizite Enden und acht Kontrollen ohne beobachtetes Netz oder
-Erfassungsverluste. Nächster Schritt ist der C4-Vertrag für Runtime-Paket und minimale isolierte
-Oberfläche; ungebundene Starts, mehrprozessige GUI-Lebenszeiten und persistente echte
-Arbeitsablagen-/UI-Bindung bleiben offen. P3 Bestandskopie sowie P4/P5 normale
-App-/Launcher-/Installerintegration und Produktabnahme folgen. Die normalen Produkt-Q-01/Q-02
-bleiben offen; der neue Forschungsnetzbeleg ersetzt dieses Gate nicht. Das strikte Datenschutzziel
-bleibt unverändert.
+Erfassungsverluste. Der [C4-Vertrag](docs/data-format/product-start-p2c-c4-v1-draft.md) für
+Runtime-Paket und minimale isolierte Oberfläche ist als Entwurf ergänzt. Nächster Schritt ist C4a
+mit reinen Paket-/Policytypen, deterministischer Codierung und getrennter UI-Version; ungebundene
+Starts, mehrprozessige GUI-Lebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung bleiben
+offen. P3 Bestandskopie sowie P4/P5 normale App-/Launcher-/Installerintegration und Produktabnahme
+folgen. Die normalen Produkt-Q-01/Q-02 bleiben offen; der neue Forschungsnetzbeleg ersetzt dieses
+Gate nicht. Das strikte Datenschutzziel bleibt unverändert.
 
 ## M0 - Fundament (abgeschlossen)
 
@@ -260,13 +261,16 @@ bleibt unverändert.
        - [x] KQ-069 A: [frisches C3-ETW](docs/testing/product-start-p2c-group-bootstrap-etw.md) des
              unveränderten Builds `b24b3aa…`, einschließlich Root-/Kindrollen und gesperrtem
              Wiederanlauf: 68 Enden, acht Kontrollen, null beobachtete Netzereignisse
-       - [ ] KQ-069 A: C4-Vertrag für explizites Runtime-Paket und minimale isolierte Oberfläche,
-             danach WebView getrennt integrieren; ungebundene Starts und vollständige
-             Live-Worker-Crashbereinigung und persistente echte Arbeitsablagen-/UI-Bindung; danach
-             P3–P5 isolierten Produktstarter/echte Projektmigration integrieren sowie weitere
-             allgemeine Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
-             integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker
-             kalibrieren; Packaging und F08-/M3-Vollprüfung
+       - [x] KQ-069 A: [C4-Vertragsentwurf](docs/data-format/product-start-p2c-c4-v1-draft.md) für
+             explizites Runtime-Paket und minimale isolierte Oberfläche; keine native Umsetzung
+       - [ ] KQ-069 A: C4a Paket-/Policytypen, deterministische Codierung und getrennte UI-Version;
+             danach C4b–d WebView unter belegtem Rollen-/Token-/Jobvertrag getrennt integrieren;
+             ungebundene Starts und vollständige Live-Worker-Crashbereinigung und persistente echte
+             Arbeitsablagen-/UI-Bindung; danach P3–P5 isolierten Produktstarter/echte
+             Projektmigration integrieren sowie weitere allgemeine Fensterende-/F08-Prüfung;
+             dauerhaften authentisierten Produktbroker integrieren/abnehmen; weitere
+             Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren; Packaging und
+             F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene

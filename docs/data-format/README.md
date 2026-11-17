@@ -1,5 +1,10 @@
 # Offenes KRAQEL-Datenformat
 
+[C4-Runtime-/Minimaloberflächenvertrag](product-start-p2c-c4-v1-draft.md) ergänzt den nächsten
+UI-Scope als Entwurf. Keine native UI-Implementierung oder neue Autorität; nächster
+Umsetzungsschritt ist C4a mit reinen Paket-/Policytypen und versionierter Codierung. C3-Bytes und
+deren ETW-Beleg bleiben unverändert.
+
 [Produktstart und bestehende Projekte · Vertragsentwurf v1](product-start-integration-v1-draft.md)
 beschreibt die geplante Integration der isolierten Oberfläche: getrennte Start-/Importautorität,
 Arbeitsablagenbindung und zerstörungsfreie Bestandskopie. P1 ist als reiner Kern geprüft;
@@ -22,8 +27,8 @@ oder Migration bestehender Stores. Der
 [eigene frische C2-Netzbeleg](../testing/product-start-p2c-native-data-etw.md) ist ergänzt.
 [C3](../testing/product-start-p2c-group-bootstrap.md) ergänzt einen begrenzten synthetischen
 Mehrprozess-Bootstrap mit gehaltenem Job; native UI-ABI bleibt 0.
-[Frisches C3-ETW](../testing/product-start-p2c-group-bootstrap-etw.md) ist ergänzt. Als Nächstes
-folgt der C4-Vertrag für Runtime-Paket und minimale isolierte Oberfläche. Mehrprozessige
+[Frisches C3-ETW](../testing/product-start-p2c-group-bootstrap-etw.md) ist ergänzt. Der C4-Vertrag
+ist oben verlinkt; als Nächstes folgt C4a mit reinen Paket-/Policytypen. Mehrprozessige
 Produktlebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung bleiben offen. Vorhandener
 Snapshot-v3-Import erzeugt neue IDs.
 

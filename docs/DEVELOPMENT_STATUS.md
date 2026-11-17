@@ -1,6 +1,21 @@
 # Entwicklungsstatus
 
-Aktuell · frischer C3-Netzbeleg, 17. November 2026:
+Aktuell · C4-Vertragsentwurf, 17. November 2026:
+
+[C4-Vertrag für Runtime-Paketbindung und minimale isolierte Oberfläche](data-format/product-start-p2c-c4-v1-draft.md)
+ist als Entwurf ausgearbeitet, **nicht implementiert oder nativ abgenommen**. Explizites
+vollständiges Fixed-Version-Paket, eigene UI-/Bootstrap-/Commandversion, kontrollierte
+Root-/Runtime-Rollen, getrennte synthetische SQLite-/WebView-Daten und drei begrenzte Commands sind
+Zielanforderungen. C3-Gruppenschlüssel/Joblimit und C2-`no-execution` werden nicht zur UI-Autorität
+umgedeutet; native UI-ABI bleibt 0. Unterstützter WebView-Kindstart einschließlich wirksamer
+Beschränkung von Token, Job und Handlevererbung ist ein offenes Stopgate, keine nachträgliche
+ETW-Ersatzprüfung. Nächster begrenzter Schritt **C4a: reine Paket-/Policytypen, deterministische
+Codierung und getrennte UI-Version/Lebenszyklusmodell**, ohne native Startautorität. C4b–d, P2
+insgesamt/P3–P5 und Produkt-Q-01/Q-02 bleiben offen. Nur
+Dokumentations-/Quellen-/Verweis-/Formatprüfung, keine neuen Builds oder Test-/ETW-Läufe. Gesamt
+etwa 65 % und nutzbarer 0.1-Umfang etwa 80 % unverändert; striktes Datenschutzziel unverändert.
+
+Letzter nativer Netzbeleg · C3, 17. November 2026:
 
 [Gezieltes C3-ETW](testing/product-start-p2c-group-bootstrap-etw.md) des unveränderten Builds
 `b24b3aa…` ist ergänzt: normaler Abschluss und Gruppenfehler/gesperrter Wiederanlauf. 28 Controller,
@@ -11,11 +26,10 @@ Kernel abgeglichen; Root-Ende vor Kindende in allen fünf gebundenen Fällen. 66
 verbrauchte Launches/sechs Inventare unabhängig geprüft; drei Profile entfernt (zwei Broker-/ein
 eigener Fixturecleanup), negativer Store weiter pending, echte Kontrollhashes unverändert. 42
 Diagnose-Tests grün, kein neuer Build/Runtimeumbau oder Produktfreigabe. Native UI-ABI bleibt 0;
-Gruppen-MAC ist keine unabhängige Renderer-/Schreiber-PID-Autorität. Als Nächstes **C4-Vertrag für
-Runtimepaketbindung und minimale isolierte Oberfläche** konkretisieren; keine automatische
-Übertragung auf WebView. P2 insgesamt/P3–P5 und Produkt-Q-01/Q-02 bleiben offen. Gesamt grob 65 %
-(60–70 %), nutzbarer 0.1-Funktionsumfang grob 80 %; keine Zeit-/Produktionsreifequote. Striktes
-Datenschutzziel unverändert.
+Gruppen-MAC ist keine unabhängige Renderer-/Schreiber-PID-Autorität. Der inzwischen ergänzte
+C4-Vertrag steht oben; keine automatische Übertragung auf WebView. P2 insgesamt/P3–P5 und
+Produkt-Q-01/Q-02 bleiben offen. Gesamt grob 65 % (60–70 %), nutzbarer 0.1-Funktionsumfang grob 80
+%; keine Zeit-/Produktionsreifequote. Striktes Datenschutzziel unverändert.
 
 Vorheriger Implementierungs-/Netznachweis:
 

@@ -1,5 +1,10 @@
 # Produktstart und bestehende Projekte · Vertragsentwurf v1
 
+[C4-Runtime-/Minimaloberflächenvertrag](product-start-p2c-c4-v1-draft.md) ergänzt den nächsten
+UI-Scope als Entwurf. Keine native UI-Implementierung oder neue Autorität; nächster
+Umsetzungsschritt ist C4a mit reinen Paket-/Policytypen und versionierter Codierung. C3-Bytes und
+deren ETW-Beleg bleiben unverändert.
+
 Stand: 17. November 2026. **Implementierungsentwurf, keine Produktfreigabe und kein bereits
 ausführbares Protokoll.** Die Anforderungen unten sind für die nächste Integrationsstufe vorgesehen.
 P1 ist als [reiner Typ-/Zustandskern](../testing/product-start-p1-model.md) umgesetzt;
@@ -192,7 +197,7 @@ Migration oder UI-Startautorität.
 [Frisches ETW dieses Builds](../testing/product-start-p2c-native-data-etw.md) ist ergänzt.
 [C3](../testing/product-start-p2c-group-bootstrap.md) ist als begrenzter synthetischer Mehrprozess-
 Kern implementiert; [frisches C3-ETW](../testing/product-start-p2c-group-bootstrap-etw.md) ist
-ergänzt. Als Nächstes folgt der C4-Vertrag für Runtime-Paket und minimale isolierte Oberfläche.
+ergänzt. Der C4-Vertrag ist oben ergänzt; als Nächstes folgt dessen reiner C4a-Modellkern.
 Ungebundene Starts und mehrprozessige GUI-Lebenszeiten sowie persistente echte
 Arbeitsablagen-/UI-Bindung fehlen; P2 insgesamt bleibt offen.
 
