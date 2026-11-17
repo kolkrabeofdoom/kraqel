@@ -275,7 +275,26 @@ pub(super) fn verify_package(
     expected: &[InventoryEntry],
     profile: Option<PSID>,
 ) -> Result<Vec<fs::File>> {
-    if expected.is_empty() || expected.len() > 64 {
+    verify_package_bounded(root, expected, profile, false)
+}
+
+// Separate C4 preflight budget. C2 retains its original smaller limits.
+pub(super) fn verify_c4_package(root: &Path, expected: &[InventoryEntry]) -> Result<Vec<fs::File>> {
+    verify_package_bounded(root, expected, None, true)
+}
+
+fn verify_package_bounded(
+    root: &Path,
+    expected: &[InventoryEntry],
+    profile: Option<PSID>,
+    c4: bool,
+) -> Result<Vec<fs::File>> {
+    let (files, tree, depth_limit, file_limit, total_limit) = if c4 {
+        (1024, 2048, 32, 512 * 1024 * 1024, 2 * 1024 * 1024 * 1024u64)
+    } else {
+        (64, 128, 8, 128 * 1024 * 1024, 256 * 1024 * 1024u64)
+    };
+    if expected.is_empty() || expected.len() > files {
         return Err(invalid("c2-native-inventory-count"));
     }
     let mut pins = pin_directories(root)?;
@@ -293,7 +312,7 @@ pub(super) fn verify_package(
         streams(&directory, true)?;
         let children = io("c2-list-package", fs::read_dir(&directory))?;
         for entry in children {
-            if names.len() >= 128 {
+            if names.len() >= tree {
                 return Err(invalid("c2-native-tree-count"));
             }
             let entry = io("c2-package-entry", entry)?;
@@ -327,7 +346,7 @@ pub(super) fn verify_package(
                 return Err(invalid("c2-unsafe-package-entry"));
             }
             if info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY != 0 {
-                if depth >= 8
+                if depth >= depth_limit
                     || !expected
                         .iter()
                         .any(|e| e.path.starts_with(&format!("{relative}/")))
@@ -343,7 +362,7 @@ pub(super) fn verify_package(
             }
             let size = (u64::from(info.nFileSizeHigh) << 32) | u64::from(info.nFileSizeLow);
             total = total.checked_add(size).ok_or(invalid("c2-package-total"))?;
-            if size > 128 * 1024 * 1024 || total > 256 * 1024 * 1024 {
+            if size > file_limit || total > total_limit {
                 return Err(invalid("c2-native-package-budget"));
             }
             if let Some(sid) = profile {

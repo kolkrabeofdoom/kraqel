@@ -1,21 +1,22 @@
 # Entwicklungsstatus
 
-Aktuell · C4a-Modellkern, 17. November 2026:
+Aktuell · C4b-Vorprüfung, 17. November 2026:
 
-[C4a-Modellkern](testing/product-start-p2c-c4a-model.md) implementiert reine
-Runtimepaket-/Policytypen, deterministische Codierung/Decoder und ein getrennt versioniertes
-Lebenszyklusmodell. Zwölf neue Tests, insgesamt 108 aktive Helfer-/Transporttests bestanden (vier
-bewusst ignoriert); Clippy/rustfmt und unabhängiger Goldenhash geprüft. Paket-, vollständige
-Workspacebindung, Root-/Jobkontext, Frist, Ready, Replay und gesperrter Wächterverlust sind im
-Modell gebunden. Alle Beobachtungen sind untrusted Simulationsdaten: keine native
-Start-/Paket-/Rendererautorität, keine neuen Storeleser, UI-/PE-Deklarationen oder
-App-/Transport-/Packagingänderungen. Native UI-ABI bleibt 0; gespeicherte C3-Bytes und deren ETW
-bleiben getrennt unverändert. Nächster begrenzter Schritt **C4b: native Paket-/Overrideprüfung und
-belegbarer eingeschränkter Mehrprozess-Erzeugungsweg**, nur neue synthetische Ablagen.
-WebView-Kindstart einschließlich wirksamer Token-/Job-/Handlebeschränkung bleibt offenes Stopgate.
-C4c/d, P2 insgesamt/P3–P5 und Produkt-Q-01/Q-02 bleiben offen; striktes Datenschutzziel unverändert.
-Gesamtschätzung weiterhin etwa 65 %, nutzbarer 0.1-Funktionsumfang etwa 80 %; keine
-Produktionsreife-/Zeitquote.
+[C4b-Vorprüfung und suspendierter Erzeugungsversuch](testing/product-start-p2c-c4b-preflight.md)
+sind als begrenzter nativer Teilstand implementiert/geprüft; **C4b insgesamt bleibt offen**. Native
+Paketpins, exakte begrenzte Inventur und Environment-/Registry-Overrideabwehr laufen unter derselben
+Kontrollsperre, ausschließlich in neuen synthetischen Kandidatenfixtures. Vier neue aktive Tests;
+Standardhelferlauf 112 aktiv bestanden/fünf ignoriert, zusätzlich ein expliziter lokaler
+Runtimeinventurtest bestanden; Clippy/rustfmt geprüft. Zwei Controller-Geschwister entstehen atomar
+im Job/AppContainer ohne Capabilities, bleiben suspendiert und werden ohne Resume beendet. Das
+belegt weder WebViews eigenen Kindpfad noch dessen Token-/Handle-/Modulbindung. Offizieller
+x64-Fixed-Version-Kandidat 157.0.4341.60 lokal geladen/entpackt und nativ inventarisiert; keine
+Installation oder Runtimeausführung. Keine neuen nativen UI-/Record-/Startberechtigungen, native
+UI-ABI bleibt 0. C4a-Modell und gespeicherte C3-Bytes/ETW behalten ihre eigenen Grenzen. Nächster
+Schritt **innerhalb C4b: authentisierter Rootbootstrap und belegbarer nativer
+WebView-Erzeugungsversuch ohne Projektinhalte** mit diesem Paket. Bis zur wirksamen Rollen-/Token-/
+Jobbindung keine Command-/Textfreigabe. C4c/d, P2 insgesamt/P3–P5 und Produkt-Q-01/Q-02 offen;
+striktes Datenschutzziel und Gesamtschätzung etwa 65 %/nutzbarer 0.1-Umfang etwa 80 % unverändert.
 
 Letzter nativer Netzbeleg · C3, 17. November 2026:
 

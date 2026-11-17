@@ -1,5 +1,11 @@
 # P2c: persistente Arbeitsdaten, Paketbindung und Mehrprozess-UI
 
+[C4b-Teilstand](../testing/product-start-p2c-c4b-preflight.md): native Kandidaten-/Overrideprüfung
+und zwei nie fortgesetzte Controller-Geschwister geprüft. Offizieller Runtimekandidat lokal
+vorbereitet/inventarisiert; kein tatsächlicher WebView-Kindpfad, Bootstrap oder UI-Start belegt. C4b
+bleibt offen, als Nächstes folgen eigener authentisierter Rootbootstrap und belegbarer nativer
+Runtime-Erzeugungsversuch.
+
 Der C4-Vertrag ist durch den [reinen C4a-Modellkern](../testing/product-start-p2c-c4a-model.md)
 ergänzt: Paket-/Policytypen, deterministische Codierung und versionierter Lebenszyklus, zwölf neue
 Tests. Keine native UI-/Startautorität; native UI-ABI bleibt 0. Nächster Schritt ist C4b mit nativer

@@ -4,6 +4,7 @@ use crate::product_start_p2c::{
     self as contract, FileRole, InventoryEntry, PackageRole, RootIdentityV1, WorkspaceBindingV2,
 };
 use std::io::{Seek, SeekFrom};
+mod c4_preflight;
 mod filesystem;
 mod group;
 use filesystem::*;

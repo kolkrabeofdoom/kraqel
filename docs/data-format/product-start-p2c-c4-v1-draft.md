@@ -1,5 +1,11 @@
 # P2c C4: Runtime-Paketbindung und minimale isolierte Oberfläche
 
+[C4b-Teilstand](../testing/product-start-p2c-c4b-preflight.md): native Kandidaten-/Overrideprüfung
+und zwei nie fortgesetzte Controller-Geschwister geprüft. Offizieller Runtimekandidat lokal
+vorbereitet/inventarisiert; kein tatsächlicher WebView-Kindpfad, Bootstrap oder UI-Start belegt. C4b
+bleibt offen, als Nächstes folgen eigener authentisierter Rootbootstrap und belegbarer nativer
+Runtime-Erzeugungsversuch.
+
 Status: **Vertragsentwurf v1, 17. November 2026; C4a-Modellkern implementiert/geprüft, native
 UI-Integration und Abnahme offen.**
 [C4a-Nachweis und genaue Codierung](../testing/product-start-p2c-c4a-model.md). Ergänzt den

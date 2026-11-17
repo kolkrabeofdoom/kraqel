@@ -47,12 +47,16 @@ Erfassungsverluste. Der [C4-Vertrag](docs/data-format/product-start-p2c-c4-v1-dr
 Runtime-Paket und minimale isolierte Oberfläche ist als Entwurf ergänzt.
 [C4a-Modellkern](docs/testing/product-start-p2c-c4a-model.md) implementiert reine
 Paket-/Policytypen, deterministische Codierung und getrennten versionierten Lebenszyklus; zwölf neue
-Tests, 108 aktive Helfertests/Clippy bestanden. Nächster Schritt ist C4b mit nativer
-Paket-/Overrideprüfung und belegbarem eingeschränktem Mehrprozess-Erzeugungsweg; ungebundene Starts,
-mehrprozessige GUI-Lebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung bleiben offen. P3
-Bestandskopie sowie P4/P5 normale App-/Launcher-/Installerintegration und Produktabnahme folgen. Die
-normalen Produkt-Q-01/Q-02 bleiben offen; der neue Forschungsnetzbeleg ersetzt dieses Gate nicht.
-Das strikte Datenschutzziel bleibt unverändert.
+Tests, 108 aktive Helfertests/Clippy bestanden.
+[C4b-Vorprüfung](docs/testing/product-start-p2c-c4b-preflight.md) ergänzt native Paketpins und
+Overrideabwehr sowie zwei nie fortgesetzte Controller-Geschwister; 112 aktive Helfertests und ein
+expliziter lokaler Runtimeinventurtest bestanden. Offizieller Fixed-Version-Kandidat vorbereitet,
+keine Runtime ausgeführt. C4b insgesamt bleibt offen: Als Nächstes folgen authentisierter
+Rootbootstrap und tatsächlicher eingeschränkter WebView-Erzeugungsversuch ohne Projektinhalte;
+ungebundene Starts, mehrprozessige GUI-Lebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung
+bleiben offen. P3 Bestandskopie sowie P4/P5 normale App-/Launcher-/Installerintegration und
+Produktabnahme folgen. Die normalen Produkt-Q-01/Q-02 bleiben offen; der neue Forschungsnetzbeleg
+ersetzt dieses Gate nicht. Das strikte Datenschutzziel bleibt unverändert.
 
 ## M0 - Fundament (abgeschlossen)
 
@@ -269,7 +273,10 @@ Das strikte Datenschutzziel bleibt unverändert.
        - [x] KQ-069 A: [C4a-Modellkern](docs/testing/product-start-p2c-c4a-model.md): reine
              Paket-/Policytypen, deterministische Codierung und versionierter Lebenszyklus; zwölf
              neue Tests, 108 aktiv bestanden, keine native UI-/Startautorität
-       - [ ] KQ-069 A: C4b native Paket-/Overrideprüfung und belegbarer eingeschränkter
+       - [x] KQ-069 A: [C4b-Teilstand](docs/testing/product-start-p2c-c4b-preflight.md), native
+             Vorprüfung und nie fortgesetzte Controller-Geschwister; Runtimekandidat vorbereitet,
+             kein WebView-Start-/Kindnachweis
+       - [ ] KQ-069 A: C4b authentisierten Rootbootstrap und tatsächlichen eingeschränkten
              Mehrprozess-Erzeugungsweg; danach C4c/d WebView/SQLite unter belegtem
              Rollen-/Token-/Jobvertrag getrennt integrieren; ungebundene Starts und vollständige
              Live-Worker-Crashbereinigung und persistente echte Arbeitsablagen-/UI-Bindung; danach
