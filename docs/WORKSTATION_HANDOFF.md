@@ -7,31 +7,28 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 17. November 2026
 
-Aktuell · P2c C2, 17. November 2026:
+Aktuell · frischer P2c-C2-Netzbeleg, 17. November 2026:
 
-[C2 persistente synthetische Ablage/Paketbindung](testing/product-start-p2c-native-data.md)
-implementiert und gezielt nativ geprüft: frischer Schema-6-DATA-Store mit eigener
-`.kqc2`-Deklaration, native UI-ABI weiterhin 0. Keine Migration bestehender Stores. Vorbereitung,
-Profilbestätigung und Root-/Paketbindung sind unter derselben Kontrollsperre authentisiert;
-unbekannte Vorbereitung bleibt gesperrt. Eigenes persistentes Profil, getrennte Datenroots, exakte
-Profil-ACLs, native Rootidentitäten und vollständige synthetische Paketinventare mit
-Ordinal-/Stream-/Hardlinkprüfung. Keine UI-EXE/SQLite/WebView oder Startautorität; C1-UI-ABI 1
-bleibt Zielmetadatum. Vier neue Tests, insgesamt 92 aktive Helfer-/ Transporttests/vier bewusst
-ignorierte Tests, Clippy grün. Zehn gesicherte Controlleraufrufe, drei erwartete Abweisungen, sechs
-MAC-Records/zwei Inventare unabhängig abgeglichen; ein Profil explizit entfernt, geänderte
-synthetische Daten/Schlüssel erhalten. Echte Vorschau-Kontrollhashes unverändert. Build `73a7aad…`
-lokal gesichert; **noch kein frischer Netzbeleg** für diese Bytes. Nächster Scope: gezieltes
-frisches ETW des C2-Datenpfads mit Wiederöffnen/Stilllegung; danach
-C3-Wächter/Mehrprozess-Bootstrap. P2 insgesamt/C3/C4/P3–P5 und Produkt-Q-01/Q-02 bleiben offen;
-striktes Datenschutzziel unverändert.
+[Gezieltes C2-ETW](testing/product-start-p2c-native-data-etw.md) des unveränderten Builds `73a7aad…`
+ist ergänzt: Referenz und Bearbeiten/Wiederöffnen/explizite Stilllegung, 15 Controller/15
+Konsolenhosts, alle 30 Enden explizit und mit Kernel-Erzeugungszeiten abgeglichen. Acht lokale
+Kontrollen, Nullverluste/Zuordnungslücken und null beobachtete Netzereignisse in den ausgewählten
+Bäumen, auch kein Loopback. Zwölf Erfolge/drei erwartete Abweisungen, zwölf MAC-Records/vier
+Inventare mit tatsächlichem Inhalt unabhängig geprüft; beide Profile stillgelegt, synthetische Daten
+und Schlüssel erhalten, echte Vorschau-Kontrollhashes unverändert. 42 Diagnose-Tests grün; kein
+neuer Build oder Runtime-/App-/Transport-/Installerumbau. Rohdaten nur lokal. Native UI-ABI bleibt
+0, keine Lowbox-/Mehrprozess-/WebView-/Produktfreigabe aus dem Datenbeleg. **Nächster Schritt C3:**
+Wächter und authentisierter Mehrprozess-Bootstrap mit synthetischen Kindern. P2 insgesamt/C3/C4/
+P3–P5 und Produkt-Q-01/Q-02 bleiben offen; striktes Datenschutzziel unverändert.
 
 Gesicherter C2-Controller: `%TEMP%/kraqel-product-p2c-data-build-20261117-01/controller.exe`,
-SHA-256 `73a7aad5e61a0ef7ebbc8cf8ccc75611c50ebd6bad3c52ad5f9fcc21ddc957b6`. Private
-Prozess-/MAC-/Inventarbelege liegen im eigenen frischen TEMP-Forschungsordner; Prozesse beendet,
-Profil stillgelegt, synthetische Daten und Kontrollkette bleiben als Nachweis bestehen. Nicht auf
-echte Vorschauablage anwenden. Für den nächsten ETW-Lauf dasselbe gesicherte Programm, frische
-synthetische Roots und den neuen `check-workspace-persistent.ps1`-Datenpfad verwenden; keine UI
-starten oder alte Worker-v3-Netzbelege übertragen.
+SHA-256 `73a7aad5e61a0ef7ebbc8cf8ccc75611c50ebd6bad3c52ad5f9fcc21ddc957b6`. Private C2-Captures
+`%TEMP%/kraqel-c2-etw-20261117-01-reference` und `…-data` sind konvertiert, eigener Supervisor und
+Testprozesse beendet. Beide Profile sind stillgelegt; synthetische Daten/Kontrollketten bleiben als
+Nachweis erhalten. Audit und Manifest beim gesicherten Build ergänzt. Rohdaten/Schlüssel nicht nach
+GitHub und neue EXE nicht an echter Vorschauablage autorisieren. Für C3 den Vertrag und
+C2-Datennachweis lesen; Ziel-UI-ABI 1 und alter Ein-Prozess- Endbeleg sind keine native
+Mehrprozess-Start-/Bereinigungsautorität.
 
 Vorheriger Implementierungs-/Netznachweis:
 

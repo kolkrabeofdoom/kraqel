@@ -96,6 +96,7 @@ Keine neue Freigabe an echten Vorschau-/Projektablagen, keine Schlüssel-/ACLän
 ## Damals nächster Schritt und heutige Fortsetzung
 
 **C2** ist inzwischen im begrenzten [nativen Datenumfang](product-start-p2c-native-data.md)
-umgesetzt. Nächster Schritt ist dessen frisches ETW, danach C3. Reale Datenmigration, automatische
-Wächtercrash-Recovery, C3-Mehrprozessstart, C4-WebView und Produkt-Q-01/Q-02 bleiben offen. Das
-strikte Datenschutzziel bleibt unverändert.
+umgesetzt. Dessen [frisches ETW](product-start-p2c-native-data-etw.md) ist inzwischen ergänzt;
+nächster Schritt ist C3. Reale Datenmigration, automatische Wächtercrash-Recovery,
+C3-Mehrprozessstart, C4-WebView und Produkt-Q-01/Q-02 bleiben offen. Das strikte Datenschutzziel
+bleibt unverändert.

@@ -32,8 +32,10 @@ nativ implementiert. [C1-Modell](docs/testing/product-start-p2c-model.md) mit Ty
 Inventarcodierung und Lebenszyklus ist geprüft; 13 neue Tests, insgesamt 88 aktive Helfertests.
 [C2-Datenpfad](docs/testing/product-start-p2c-native-data.md) ist in frischen Schema-6-Stores
 umgesetzt: persistentes Profil, native Root-/Paketbindung und eigene explizite Stilllegung ohne UI.
-92 aktive Helfertests, zehn Controlleraufrufe bestanden. Nächster Schritt frisches C2-ETW, danach
-C3; ungebundene Starts, mehrprozessige GUI-Lebenszeiten und persistente echte
+92 aktive Helfertests, zehn Controlleraufrufe bestanden.
+[Frisches C2-ETW](docs/testing/product-start-p2c-native-data-etw.md) ist ergänzt: 15 Controller/15
+Konsolenhosts, 30 Enden, acht Kontrollen und null beobachtete Netzereignisse. Nächster Schritt C3
+mit synthetischen Kindern; ungebundene Starts, mehrprozessige GUI-Lebenszeiten und persistente echte
 Arbeitsablagen-/UI-Bindung bleiben offen. P3 Bestandskopie sowie P4/P5 normale
 App-/Launcher-/Installerintegration und Produktabnahme folgen. Die normalen Produkt-Q-01/Q-02
 bleiben offen; der neue Forschungsnetzbeleg ersetzt dieses Gate nicht. Das strikte Datenschutzziel
@@ -239,14 +241,16 @@ bleibt unverändert.
        - [x] KQ-069 A:
              [C2 persistente synthetische Ablage/Profil/Paketbindung](docs/testing/product-start-p2c-native-data.md)
              mit frischen Schema-6-DATA-Records; 92 aktive Helfertests und zehn Controlleraufrufe
-       - [ ] KQ-069 A: gezieltes frisches C2-ETW des Builds `73a7aad…`; danach C3
-             Wächter/Mehrprozessstart und C4 WebView getrennt umsetzen; ungebundene Starts und
-             vollständige Live-Worker-Crashbereinigung und persistente echte
-             Arbeitsablagen-/UI-Bindung; danach P3–P5 isolierten Produktstarter/echte
-             Projektmigration integrieren sowie weitere allgemeine Fensterende-/F08-Prüfung;
-             dauerhaften authentisierten Produktbroker integrieren/abnehmen; weitere
-             Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren; Packaging und
-             F08-/M3-Vollprüfung
+       - [x] KQ-069 A: [frisches C2-ETW](docs/testing/product-start-p2c-native-data-etw.md) des
+             Builds `73a7aad…`; 15 Controller/15 Konsolenhosts, 30 Enden/acht Kontrollen, null
+             beobachtetes Netz
+       - [ ] KQ-069 A: C3 Wächter/Mehrprozess-Bootstrap mit synthetischen Kindern; danach C4 WebView
+             getrennt umsetzen; ungebundene Starts und vollständige Live-Worker-Crashbereinigung und
+             persistente echte Arbeitsablagen-/UI-Bindung; danach P3–P5 isolierten
+             Produktstarter/echte Projektmigration integrieren sowie weitere allgemeine
+             Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
+             integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker
+             kalibrieren; Packaging und F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene

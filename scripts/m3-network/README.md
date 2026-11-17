@@ -1,5 +1,12 @@
 # Lokale Windows-Netzprüfung für M3
 
+[Frisches C2-Datenpfad-ETW](../../docs/testing/product-start-p2c-native-data-etw.md): unveränderte
+Capture-/Auswertehelfer, Referenz und Bearbeiten/Wiederöffnen/explizite Stilllegung. 15 Controller/
+15 Konsolenhosts, 30 explizite Enden, acht Kontrollen, Nullverluste/Zuordnungslücken und null
+beobachtete Netzereignisse in diesen Bäumen. Zwölf MAC-Records/vier Inventare und zwei
+Profilstilllegungen unabhängig bestätigt, 42 Diagnose-Tests grün. Kein neuer Build oder UI-Start;
+C3/Produkt-/Dienstgrenzen bleiben offen.
+
 [Frisches Worker-v3-ETW](../../docs/testing/product-start-worker-lifetime-etw.md): unveränderte
 Capture-/Auswertehelfer, Referenz/vier Wiederanlaufpfade, 52 explizite Controllerroots/acht Worker,
 112 explizite Enden, acht Kontrollen, Nullverluste/Zuordnungslücken, null beobachtete

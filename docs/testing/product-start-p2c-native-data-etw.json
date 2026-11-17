@@ -1,0 +1,139 @@
+{
+  "version": 1,
+  "date": "2026-11-17",
+  "stage": "P2c-C2-data-only-fresh-ETW",
+  "nativePreviewOnly": true,
+  "productionAcceptance": false,
+  "controllerSha256": "73a7aad5e61a0ef7ebbc8cf8ccc75611c50ebd6bad3c52ad5f9fcc21ddc957b6",
+  "verifiedRuntimeSource": "e10429a59034bb16b1b0a26f1ecc8c5d625c0ca9",
+  "runtimeChanged": false,
+  "newBuild": false,
+  "nativeControlSchema": 6,
+  "nativeUiAbi": 0,
+  "measurementValid": true,
+  "controllerProcesses": 15,
+  "controllerConsoleHosts": 15,
+  "explicitProcessStops": 30,
+  "kernelCreationTimesPaired": 30,
+  "positiveControlsExpected": 8,
+  "positiveControlsObserved": 8,
+  "lostEvents": 0,
+  "lostBuffers": 0,
+  "unattributableNetworkEvents": 0,
+  "unknownDestinationEvents": 0,
+  "nonLoopbackEvents": 0,
+  "loopbackEvents": 0,
+  "controllerSuccesses": 12,
+  "expectedRejections": 3,
+  "authenticatedRecords": 12,
+  "inventoriesAndContentsMatched": 4,
+  "profilesCreated": 2,
+  "profilesRemoved": 2,
+  "syntheticDataAndKeysPreserved": true,
+  "realPreviewControlHashesUnchanged": true,
+  "diagnosticTestsPassed": 42,
+  "uiStarts": 0,
+  "workerStarts": 0,
+  "importTasksCreated": 0,
+  "phases": [
+    {
+      "phase": "reference",
+      "captureSecondsAfterReady": 6.116,
+      "analysis": {
+        "formatVersion": 1,
+        "measurementMode": "native-control",
+        "measurementValid": true,
+        "measurementProblems": [],
+        "result": "no-non-loopback-traffic-observed",
+        "rootStarts": 5,
+        "explicitRootImageBindings": 5,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 5,
+          "conhost.exe": 5
+        },
+        "loss": {
+          "EventsLost": 0,
+          "BuffersLost": 0
+        },
+        "positiveControls": {
+          "expected": 4,
+          "observed": 4
+        },
+        "unattributableNetworkEvents": 0,
+        "unknownDestinationEvents": 0,
+        "networkEvents": [],
+        "nonLoopbackEvents": 0,
+        "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths. Out-of-tree COM/Shell services are not attributed by this process-tree measurement."
+      },
+      "lifecycle": {
+        "independentLifecycleAuditPassed": true,
+        "rootStarts": 5,
+        "nativeCallsMatched": 5,
+        "explicitProcessStops": 10,
+        "kernelCreationTimesPaired": 10,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 5,
+          "conhost.exe": 5
+        },
+        "controllerExitCodes": {
+          "0": 5
+        },
+        "nativeDataAuditPassed": true,
+        "profilesAbsentAtEnd": true,
+        "controlRecords": 6,
+        "inventoriesAndContentsMatched": 2
+      }
+    },
+    {
+      "phase": "data",
+      "captureSecondsAfterReady": 4.615,
+      "analysis": {
+        "formatVersion": 1,
+        "measurementMode": "native-control",
+        "measurementValid": true,
+        "measurementProblems": [],
+        "result": "no-non-loopback-traffic-observed",
+        "rootStarts": 10,
+        "explicitRootImageBindings": 10,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 10,
+          "conhost.exe": 10
+        },
+        "loss": {
+          "EventsLost": 0,
+          "BuffersLost": 0
+        },
+        "positiveControls": {
+          "expected": 4,
+          "observed": 4
+        },
+        "unattributableNetworkEvents": 0,
+        "unknownDestinationEvents": 0,
+        "networkEvents": [],
+        "nonLoopbackEvents": 0,
+        "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths. Out-of-tree COM/Shell services are not attributed by this process-tree measurement."
+      },
+      "lifecycle": {
+        "independentLifecycleAuditPassed": true,
+        "rootStarts": 10,
+        "nativeCallsMatched": 10,
+        "explicitProcessStops": 20,
+        "kernelCreationTimesPaired": 20,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 10,
+          "conhost.exe": 10
+        },
+        "controllerExitCodes": {
+          "0": 7,
+          "1": 3
+        },
+        "nativeDataAuditPassed": true,
+        "profilesAbsentAtEnd": true,
+        "controlRecords": 6,
+        "inventoriesAndContentsMatched": 2
+      }
+    }
+  ],
+  "nextScope": "C3-guardian-and-synthetic-multiprocess-bootstrap",
+  "limits": "Exact C2 bytes and exercised data paths only. No UI/Lowbox/WebView/product acceptance or universal network/content/service attestation."
+}

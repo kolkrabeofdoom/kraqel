@@ -120,10 +120,10 @@ Controllerergebnisse und unveränderte Hashes der echten Vorschau-Kontrollfiles.
 Prozesse beendet; Profile der gezielten Tests und des gesicherten Prozesslaufs entfernt. Rohpfade,
 PIDs, IDs, Schlüssel und Records bleiben lokal; nur bereinigte Zusammenfassung in Git. Kein
 gemeinsamer Transport-/App-/Installerumbau, daher kein vollständiger Tauri-Build oder `pnpm check`.
-Für den neuen Controller wurde **noch kein ETW-Netzvergleich** durchgeführt. Der ältere
-`37d7bec…`-Beleg wird nicht auf diese Bytes übertragen.
+Der eigene [frische ETW-Netzvergleich](product-start-p2c-native-data-etw.md) des unveränderten
+Controllers ist inzwischen ergänzt. Die obige Funktionsprüfung und ihr JSON bleiben als eigener
+Stand ohne Netzwerkmessung erhalten; der ältere `37d7bec…`-Beleg wird nicht übertragen.
 
-Nächster begrenzter Schritt: gezieltes frisches ETW dieses C2-Datenpfads samt normalem Wiederöffnen
-und expliziter Stilllegung; danach C3-Wächter/Mehrprozess-Bootstrap mit synthetischen Kindern. P2
+Nächster begrenzter Schritt: C3-Wächter/Mehrprozess-Bootstrap mit synthetischen Kindern. P2
 insgesamt, C3/C4, P3–P5 und Produkt-Q-01/Q-02 bleiben offen. Das strikte Datenschutzziel bleibt
 unverändert.

@@ -231,7 +231,7 @@ Die native Vorbereitung bleibt vor der GUI; spätere Fehler/Fokus/Ansagen benöt
 | Schritt                | Nächster begrenzter Lieferumfang                                                                | Angemessene Prüfung                                                                                                    |
 | ---------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | C1 — Modell geprüft    | Reine Typen/Codierung für Bindung, Inventar und Lebenszyklusmodell; keine neue native Autorität | 13 neue Modelltests; gesamter Helferlauf 88 aktiv bestanden, Clippy grün                                               |
-| C2 — Datenpfad geprüft | Neue synthetische persistente Ablage/Profil, Inventarprüfung und Bindungsrecords                | Vier neue native Tests, 92 aktive Helfertests/Clippy, zehn gesicherte Controlleraufrufe; frisches ETW offen            |
+| C2 — Datenpfad geprüft | Neue synthetische persistente Ablage/Profil, Inventarprüfung und Bindungsrecords                | Vier neue native Tests, 92 aktive Helfertests/Clippy, zehn gesicherte Controlleraufrufe; eigenes frisches ETW ergänzt  |
 | C3                     | Wächter/Bootstrap mit synthetischer Mehrprozessgruppe vor WebView                               | Root endet vor Kind; zweiter Start gesperrt; kompletter Drain; Wächtercrash bleibt gesperrt; falscher Grant abgewiesen |
 | C4                     | Gepinnte WebView-Minimaloberfläche und synthetische SQLite-Persistenz                           | Passende App-/Transportprüfungen, gezielte assistive Prüfung und frisches ETW der exakten Binaries/Kindrollen          |
 
@@ -253,6 +253,7 @@ P4/P5-Produktintegration bleiben separate offene Gates.
 
 Der ursprüngliche Vertragsentwurf wurde ausschließlich durch Quellen-/Link-/Format-/Diffprüfung
 geprüft. Inzwischen sind C1 im getrennten Modellmodul und C2 als eigener nativer DATA-Pfad gezielt
-getestet. Der normale Appstart und seine Befehle sind nicht integriert. Für den neuen C2-Build steht
-frisches ETW aus; bisherige Netzbelege behalten ihre exakten Buildgrenzen. Danach folgen C3/C4. Die
-gesamte P2c-Implementierung und Produktabnahme sind weiterhin offen.
+getestet. Der normale Appstart und seine Befehle sind nicht integriert. Für den C2-Build ist
+[frisches ETW](../testing/product-start-p2c-native-data-etw.md) ergänzt; alle Netzbelege behalten
+ihre exakten Buildgrenzen. Als Nächstes folgen C3/C4. Die gesamte P2c-Implementierung und
+Produktabnahme sind weiterhin offen.

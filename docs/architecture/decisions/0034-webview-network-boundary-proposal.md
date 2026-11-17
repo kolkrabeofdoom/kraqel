@@ -1,22 +1,18 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
-Aktuell · P2c C2, 17. November 2026:
+Aktuell · frischer P2c-C2-Netzbeleg, 17. November 2026:
 
-[C2 persistente synthetische Ablage/Paketbindung](../../testing/product-start-p2c-native-data.md)
-implementiert und gezielt nativ geprüft: frischer Schema-6-DATA-Store mit eigener
-`.kqc2`-Deklaration, native UI-ABI weiterhin 0. Keine Migration bestehender Stores. Vorbereitung,
-Profilbestätigung und Root-/Paketbindung sind unter derselben Kontrollsperre authentisiert;
-unbekannte Vorbereitung bleibt gesperrt. Eigenes persistentes Profil, getrennte Datenroots, exakte
-Profil-ACLs, native Rootidentitäten und vollständige synthetische Paketinventare mit
-Ordinal-/Stream-/Hardlinkprüfung. Keine UI-EXE/SQLite/WebView oder Startautorität; C1-UI-ABI 1
-bleibt Zielmetadatum. Vier neue Tests, insgesamt 92 aktive Helfer-/ Transporttests/vier bewusst
-ignorierte Tests, Clippy grün. Zehn gesicherte Controlleraufrufe, drei erwartete Abweisungen, sechs
-MAC-Records/zwei Inventare unabhängig abgeglichen; ein Profil explizit entfernt, geänderte
-synthetische Daten/Schlüssel erhalten. Echte Vorschau-Kontrollhashes unverändert. Build `73a7aad…`
-lokal gesichert; **noch kein frischer Netzbeleg** für diese Bytes. Nächster Scope: gezieltes
-frisches ETW des C2-Datenpfads mit Wiederöffnen/Stilllegung; danach
-C3-Wächter/Mehrprozess-Bootstrap. P2 insgesamt/C3/C4/P3–P5 und Produkt-Q-01/Q-02 bleiben offen;
-striktes Datenschutzziel unverändert.
+[Gezieltes C2-ETW](../../testing/product-start-p2c-native-data-etw.md) des unveränderten Builds
+`73a7aad…` ist ergänzt: Referenz und Bearbeiten/Wiederöffnen/explizite Stilllegung, 15 Controller/15
+Konsolenhosts, alle 30 Enden explizit und mit Kernel-Erzeugungszeiten abgeglichen. Acht lokale
+Kontrollen, Nullverluste/Zuordnungslücken und null beobachtete Netzereignisse in den ausgewählten
+Bäumen, auch kein Loopback. Zwölf Erfolge/drei erwartete Abweisungen, zwölf MAC-Records/vier
+Inventare mit tatsächlichem Inhalt unabhängig geprüft; beide Profile stillgelegt, synthetische Daten
+und Schlüssel erhalten, echte Vorschau-Kontrollhashes unverändert. 42 Diagnose-Tests grün; kein
+neuer Build oder Runtime-/App-/Transport-/Installerumbau. Rohdaten nur lokal. Native UI-ABI bleibt
+0, keine Lowbox-/Mehrprozess-/WebView-/Produktfreigabe aus dem Datenbeleg. **Nächster Schritt C3:**
+Wächter und authentisierter Mehrprozess-Bootstrap mit synthetischen Kindern. P2 insgesamt/C3/C4/
+P3–P5 und Produkt-Q-01/Q-02 bleiben offen; striktes Datenschutzziel unverändert.
 
 Vorheriger Implementierungs-/Netznachweis:
 

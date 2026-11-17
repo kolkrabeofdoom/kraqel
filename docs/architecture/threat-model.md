@@ -1,13 +1,13 @@
 # Bedrohungsmodell (Entwurf)
 
-[P2c C2-Datenpfad](../testing/product-start-p2c-native-data.md), 17. November 2026: frischer
-authentisierter Schema-6-DATA-Store unter derselben Kontrollsperre, bestätigtes persistentes Profil,
-getrennte Daten-/Paketrechte und nativer Inventar-/Rootidentitätsabgleich implementiert. Keine
-Bestandsmigration oder UI-Startautorität; native UI-ABI 0, Ziel-ABI 1 nur im Bindungstyp.
-Unbestätigte Vorbereitung bleibt gesperrt. Explizite Stilllegung nur des authentisiert bestätigten
-Profils, keine Datenlöschung. 92 aktive Helfertests und zehn gesicherte Controlleraufrufe geprüft;
-Build `73a7aad…` benötigt eigenen frischen Netzbeleg. C3-Token-/Kindrollen-/Lebenszeitbeleg und
-Produkt-Q-01/Q-02 bleiben offen; striktes Datenschutzziel unverändert.
+[Frischer C2-Datenpfad-Netzbeleg](../testing/product-start-p2c-native-data-etw.md), 17. November
+2026: unveränderter Build `73a7aad…`, Referenz und Wiederöffnen/explizite Stilllegung. 15
+Controller/15 Konsolenhosts, 30 explizite Enden, acht Kontrollen, Nullverluste/Zuordnungslücken;
+null beobachtete Netzereignisse einschließlich Loopback in diesen Bäumen. Zwölf authentisierte
+Records/vier Inventare und zwei Profilstilllegungen unabhängig geprüft, echte Kontrollhashes
+unverändert. Kein neuer Build oder UI-Start. C3-Token-/Kindrollen-/Lebenszeitbeleg und normale
+Produkt-Q-01/Q-02 bleiben offen; keine universelle Dienst-/Netzattestierung, striktes Ziel
+unverändert.
 
 Vorheriger Implementierungs-/Netznachweis:
 
