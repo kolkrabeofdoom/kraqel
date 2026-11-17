@@ -111,6 +111,32 @@ Apppaket-/Sitzungslayout und keine normale Produktintegration.
 [Startnachweis und Grenzen](../testing/native-product-starter.md). Der neue Broker benötigt einen
 eigenen frischen ETW-Nachweis; vorhandene Messungen werden nicht übertragen.
 
+## Dauerhafte Sitzungsbindung und Wiederanlauf · Kontrollschema 3
+
+Explizites `migrate {from:2,to:3}` erlaubt eine neue synthetische Sitzung je Installation. Es
+migriert keine App-/Projektdaten. Envelope-/Recordformat bleibt Version 1; die neuen typisierten
+Aktionen werden von älteren Programmen konservativ abgewiesen. Schema 3 erlaubt derzeit keine
+Brokerupdates, keine Rückmigration und keinen `start-check`-Aufruf des früheren Schema-2-Pfads.
+
+- `bindSession {binding}` bindet nichtleere Sitzung/Task/erste Startkennung, App-SHA, kanonischen
+  UTF-16LE-Sitzungswurzelhash und typisierten synthetischen Haltepunkt.
+- `recoverSession {launch}` bindet vor jedem Wiederanlauf eine neue, noch nicht verwendete
+  Startkennung. Insgesamt höchstens 16 Starts, keine neue Importautorität.
+- `retireSession` sperrt dauerhaft vor Profilentfernung. Keine Neubindung derselben Installation.
+
+Die deterministisch abgeleitete Geschwisterablage `.kraqel-app-preview/<Installation>/` bleibt
+privat; nur die konkrete Sitzung/Appkopie und deren Appdaten erhalten Containerrechte. Beim
+Wiederanlauf sind signierte Wurzel/Appbytes und vorhandene Journale zwingend; nichts wird aus
+Diagnose-JSON übernommen oder neu initialisiert. Die gleiche Kontrollsperre bleibt bis Jobleerstand
+gehalten. Nach Controllerabbruch höchstens zehn Sekunden auf natürliches Verschwinden des alten
+kill-on-close-Jobs warten; keine Jobübernahme oder fremde Prozesse beenden. Das bestehende Profil
+bleibt über Generationen erhalten und wird nur ausdrücklich stillgelegt.
+
+[Native Prüfung mit zwei echten Controllerabbrüchen](../testing/native-product-session-recovery.md).
+Unvollständige Records/Köpfe blockieren unverändert. Mehrsitzungsverwaltung, Schema-3-Updates,
+allgemeine Bindungs-/Startrecord-Crashpunkte und echte Datenmigration bleiben offen. Echte
+Vorschauablage und ihre autorisierte EXE wurden für die Prüfung nicht verändert.
+
 ## Synthetische Crashprüfung
 
 `product-control-series <frische TEMP-Controllerwurzel> <Forschungs-App>` und der interne
@@ -139,6 +165,10 @@ kraqel-isolation-probe.exe broker-store init
 … broker-store abort <erwarteter Kopfhash>
 … broker-store check-container <gesicherte Forschungs-App>
 … broker-store start-check <gesicherte Forschungs-App> <erwartete App-SHA> <erwarteter Kopfhash>
+… broker-store migrate-v3 <erwarteter Kopfhash>
+… broker-store bind-session <Forschungs-App> <erwartete App-SHA> <Haltepunkt> <erwarteter Kopfhash>
+… broker-store recover-session <erwarteter Kopfhash>
+… broker-store retire-session <erwarteter Kopfhash>
 ```
 
 Nach Aktivierung weitere Commands über die verwaltete neue EXE unter `bin/<SHA>.exe` ausführen. Die

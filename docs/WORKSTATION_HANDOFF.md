@@ -8,6 +8,18 @@ Commitverlauf.
 ## Aktuelle Entwicklungsübergabe · 17. November 2026
 
 Neuester funktionaler Prüfstand:
+[Dauerhafte Sitzungsbindung/Recovery](testing/native-product-session-recovery.md). Neue native
+Vorschau mit explizitem Kontrollschema 3, persistiertem Apphash/Sitzungswurzel/Task und verbrauchten
+Startkennungen. Zwei echte Controllerabbrüche, vier Recoveries/acht Replay-Ereignisse, 36
+Dateiverweigerungen, genau eine legitime Projektkopie; unabhängiger MAC-/Datenaudit, 45 aktive
+Helfertests und `pnpm check` grün. Profile entfernt/Prozesse beendet; synthetische negative Fixtures
+privat erhalten. Echte Vorschauablage und nachfolgend genannte autorisierte EXE unverändert. Kein
+automatisches Aktivieren dieses neuen Prüfbrokers oder Migrieren echter Daten. Schema 3 erlaubt
+derzeit keine Brokerupdates, eine Sitzung je Installation. Kein frischer ETW-Beleg dieses
+Brokerhashs. Nächster Scope: zusätzliche Bindungs-/Startrecord-/Stilllegungs-Crashpunkte, danach
+frischer ETW-Vergleich. Striktes Datenschutzziel unverändert; keine Produktfreigabe.
+
+Vorheriger funktionaler Prüfstand: Neuester funktionaler Prüfstand:
 [Kontrollgebundener isolierter Startpfad](testing/native-product-starter.md) mit neuer gesicherter
 Broker-EXE. Zwei neue synthetische Sitzungen verwenden dieselbe private Kontrollsperre und denselben
 Produktjob; Quelle/Kopie gepinnt, zwölf private Dateiverweigerungen und unabhängiger MAC-/Datenaudit

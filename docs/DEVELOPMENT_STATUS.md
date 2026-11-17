@@ -1,5 +1,21 @@
 # Entwicklungsstatus
 
+Dauerhafte Apppaket-/Sitzungsbindung und authentisierter Wiederanlauf, 17. November: Kontrollschema
+2 → 3 explizit implementiert. Dieselbe private Kontrollkette bindet App-SHA, kanonische
+Sitzungswurzel, Task und Startkennungen; Recovery nutzt dieselbe Kontrollsperre und denselben
+Produktjob, niemals einen neuen Importgrant. Fehlendes Journal, manipuliertes Paket, alte Köpfe und
+Stilllegung werden abgewiesen. Zwei native Controllerabbrüche, sechs GUI-Starts, vier
+Recoveries/acht Replay-Ereignisse, 36 echte Dateiverweigerungen; genau eine legitime Kopie über zwei
+synthetische Aufgaben. Unabhängiger MAC-/Wurzel-/SQLite-/Unicode-Audit grün. 45 aktive Helfertests,
+Clippy/`pnpm check` bestanden. Echte Vorschauablage/verwaltete EXE unverändert.
+[Nachweis](testing/native-product-session-recovery.md),
+[Aggregate](testing/native-product-session-recovery.json). Eine Bindung je Installation, maximal 16
+Starts, Schema-3-Updates/echte Datenmigration/normaler Produktstart offen. Kein frischer ETW-Beleg
+des neuen Brokerhashs. Nächster Scope: zusätzliche Bindungs-/Startrecord-/ Stilllegungs-Crashpunkte,
+dann frischer ETW-Vergleich; striktes Ziel unverändert, Q-01/Q-02 offen.
+
+## Vorheriger funktionaler Prüfstand
+
 Kontrollgebundener isolierter Startpfad, 17. November: native synthetische Vorschau hält die private
 Kontrollsperre über die gesamte GUI-/Joblaufzeit und verwendet denselben benannten Produktjob wie
 Updates. Schema/Pending/Kopf/Actor/Apphash und auch leere Jobkollisionen geprüft. Quelle und Kopie

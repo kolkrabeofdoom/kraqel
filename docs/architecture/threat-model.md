@@ -1,5 +1,14 @@
 # Bedrohungsmodell (Entwurf)
 
+[Dauerhafte Sitzungsbindung/Recovery](../testing/native-product-session-recovery.md), 17. November:
+explizites Kontrollschema 3 bindet Apphash, Sitzungswurzel, Task und Startkennungen an die private
+Kontrollkette. Neue Controller verwenden dieselbe Sperre und denselben Produktjob; vorhandene
+Journale/Appbytes zwingend, keine Neuinitialisierung oder initialen Importgrants beim Recovery. Zwei
+echte Controllerabbrüche, vier Wiederanläufe/acht Replay-Ereignisse und 36 Dateiverweigerungen
+bestanden; genau eine legitime Projektkopie. Schema-3-Updates, normale Produktintegration und
+allgemeine Crashpunkte weiter offen. Neuer Broker ohne eigenen frischen ETW-Beleg; striktes Ziel
+unverändert. Echte Vorschauablage nicht verwendet.
+
 [Kontrollgebundener Startpfad](../testing/native-product-starter.md), 17. November: synthetische
 Vorschau hält die private Kontrollsperre über die ganze GUI-Laufzeit und verwendet den gleichen
 Produktjob wie Updates. Vor Resume tatsächliche Sperre/Rootzuweisung und zwölf private

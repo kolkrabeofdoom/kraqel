@@ -13,6 +13,7 @@ pub(super) use product::verify_denials as verify_product_denials;
 pub(super) use product::verify_start_lease;
 pub(in super::super::super) use product::{
     crash_child as product_crash_child, crash_series as product_crash_series,
+    session_child as product_session_child, session_series as product_session_series,
     start_series as product_start_series,
 };
 

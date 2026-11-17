@@ -148,7 +148,10 @@
              gesperrte/elf nutzbare Zustände, acht Kontrollen, 1.136 Enden, 0 Nicht-Loopback
        - [x] KQ-069 A: Synthetischen isolierten Startpfad an Kontrollsperre/Produktjob binden; zwei
              native Starts/zwölf private Dateiverweigerungen, Daten-/MAC-Audit
-       - [ ] KQ-069 A: Dauerhafte Apppaket-/Sitzungsbindung und Wiederanlauf, eigener frischer ETW;
+       - [x] KQ-069 A: Dauerhafte synthetische Apppaket-/Sitzungsbindung und authentisierter
+             Wiederanlauf unter Kontrollsperre; zwei Controllerabbrüche/vier Recoveries, kein
+             Duplikat
+       - [ ] KQ-069 A: Weitere Sitzungs-/Startrecord-/Stilllegungs-Crashpunkte und frischer ETW;
              isolierten Produktstarter/echte Projektmigration integrieren sowie weitere allgemeine
              Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
              integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker

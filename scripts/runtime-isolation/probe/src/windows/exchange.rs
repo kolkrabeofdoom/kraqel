@@ -26,7 +26,10 @@ pub(super) use ui_restart::launch_assistive;
 pub(super) use ui_restart::product_storage;
 pub(super) use ui_restart::{combined_series, next_live, seed_live};
 pub(super) use ui_restart::{controller_crash_series, recover_broker, seed_broker};
-pub(super) use ui_restart::{product_crash_child, product_crash_series, product_start_series};
+pub(super) use ui_restart::{
+    product_crash_child, product_crash_series, product_session_child, product_session_series,
+    product_start_series,
+};
 
 fn invalid(stage: &'static str) -> Failure {
     Failure { stage, code: -1 }

@@ -287,14 +287,27 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
-Aktuell: [Kontrollgebundener isolierter Startpfad](docs/testing/native-product-starter.md), 17.
-November: synthetische Vorschau verwendet die Kontrollsperre über die ganze GUI-Laufzeit und
-denselben benannten Job wie Updates. Nur getrennte frische TEMP-Appdaten erhalten Containerrechte;
-echte Vorschauablage unverändert. Zwei native Starts/zwölf Dateiverweigerungen, unabhängiger
-Daten-/MAC- Audit, 43 aktive Helfertests bestanden. `durable/product/starter.rs` enthält diesen
-begrenzten Startpfad. Kein dauerhafter Produktdaten-Wiederanlauf und noch kein frischer ETW-Beleg
-des neuen Brokerhashs. Nächster Scope: authentisierte dauerhafte Apppaket-/Sitzungsbindung und
-Wiederanlauf mit derselben Kontrollsperre; danach frischer ETW-Vergleich. Striktes Ziel unverändert.
+Aktuell:
+[Dauerhafte Apppaket-/Sitzungsbindung und Recovery](docs/testing/native-product-session-recovery.md), 17.
+November. Explizites Kontrollschema 3 bindet eine synthetische Sitzung samt Apphash, Wurzel, Auftrag
+und Startkennungen in derselben Kontrollkette. Neue Prozesse übernehmen nur diese Bindung unter
+derselben Kontrollsperre/demselben Produktjob. Fehlendes Journal, manipulierte App, alte Köpfe und
+Stilllegung sperren. Zwei echte Controllerabbrüche, vier Recoveries/acht Replay-Ereignisse, 36
+Dateiverweigerungen, genau eine legitime Kopie; unabhängiger MAC-/Datenaudit bestanden. 45 aktive
+Helfertests. `durable/product/session.rs` ist zuständig; keine eigene Autorität aus Diagnose-JSON.
+Echte Vorschauablage/verwaltete EXE unverändert. Schema-3-Updates und normale Produktintegration
+offen; kein frischer ETW-Beleg dieses neuen Brokerhashs. Nächster Scope: zusätzliche Bindungs-/
+Startrecord-/Stilllegungs-Crashpunkte, dann frischer ETW-Vergleich. Striktes Ziel unverändert.
+
+Vorheriger Prüfstand: Aktuell:
+[Kontrollgebundener isolierter Startpfad](docs/testing/native-product-starter.md), 17. November:
+synthetische Vorschau verwendet die Kontrollsperre über die ganze GUI-Laufzeit und denselben
+benannten Job wie Updates. Nur getrennte frische TEMP-Appdaten erhalten Containerrechte; echte
+Vorschauablage unverändert. Zwei native Starts/zwölf Dateiverweigerungen, unabhängiger Daten-/MAC-
+Audit, 43 aktive Helfertests bestanden. `durable/product/starter.rs` enthält diesen begrenzten
+Startpfad. Kein dauerhafter Produktdaten-Wiederanlauf und noch kein frischer ETW-Beleg des neuen
+Brokerhashs. Nächster Scope: authentisierte dauerhafte Apppaket-/Sitzungsbindung und Wiederanlauf
+mit derselben Kontrollsperre; danach frischer ETW-Vergleich. Striktes Ziel unverändert.
 
 Vorheriger Prüfstand:
 [Kontroll-Crash-Serie und frischer ETW-Beleg](docs/testing/native-product-control-crash-etw.md)

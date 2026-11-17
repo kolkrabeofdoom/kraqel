@@ -37,7 +37,7 @@ fn point_name(point: Option<Point>) -> String {
         },
     )
 }
-fn scoped(root: &Path) -> Result<PathBuf> {
+pub(super) fn scoped(root: &Path) -> Result<PathBuf> {
     if root.file_name() != Some(std::ffi::OsStr::new("store")) {
         return Err(invalid("product-crash-store-name"));
     }

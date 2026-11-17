@@ -1,5 +1,13 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+Dauerhafte Sitzungsbindung/Recovery, 17. November:
+[Nachweis](../../testing/native-product-session-recovery.md) bindet Apppaket und persistierte
+synthetische Sitzung in Kontrollschema 3. Authentisierte neue Startrecords vor Recovery unter
+derselben Kontrollsperre und demselben Produktjob; vorhandenes Journal und signierte Appbytes
+zwingend. Zwei echte Controllerabbrüche, vier Wiederanläufe, keine Replay-Kopie. Keine echte
+Datenmigration, Schema-3-Updatepolitik oder normale Produktintegration. Neuer Broker benötigt
+frisches ETW; keine Änderung am strikten Datenschutzziel.
+
 Kontrollgebundener synthetischer Start, 17. November:
 [Implementierung und Beleg](../../testing/native-product-starter.md) verbinden erstmals
 Startlebenszeit, private Kontrollsperre und den von Updates geprüften Produktjob. Zwei isolierte

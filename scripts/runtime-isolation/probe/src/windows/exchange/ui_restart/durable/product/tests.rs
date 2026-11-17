@@ -106,7 +106,7 @@ fn prepared_update_survives_reopen_and_only_explicit_activation_changes_actor() 
     );
     assert!(
         store
-            .append(sha, store.state.head, Action::Migrate { from: 2, to: 3 })
+            .append(sha, store.state.head, Action::Migrate { from: 2, to: 4 })
             .is_err()
     );
     assert!(
@@ -477,4 +477,199 @@ fn starter_control_lease_excludes_an_independent_controller_process() {
         .output()
         .unwrap();
     assert!(result.status.success(), "independent lease check failed");
+}
+
+fn session_binding() -> Binding {
+    serde_json::from_value(json!({"session":Uuid::new_v4(),"task":Uuid::new_v4(),
+        "launch":Uuid::new_v4(),"app":vec![9u8;32],"root":vec![8u8;32],"point":"completed"}))
+    .unwrap()
+}
+
+#[test]
+fn session_schema_binding_and_recovery_survive_authenticated_reopen() {
+    let f = Fixture::new();
+    let mut store = f.store();
+    let b = session_binding();
+    assert!(
+        store
+            .append(
+                [1; 32],
+                store.state.head,
+                Action::BindSession { binding: b.clone() }
+            )
+            .is_err()
+    );
+    store
+        .append(
+            [1; 32],
+            store.state.head,
+            Action::Migrate { from: 1, to: 2 },
+        )
+        .unwrap();
+    assert!(
+        store
+            .append(
+                [1; 32],
+                store.state.head,
+                Action::BindSession { binding: b.clone() }
+            )
+            .is_err()
+    );
+    store
+        .append(
+            [1; 32],
+            store.state.head,
+            Action::Migrate { from: 2, to: 3 },
+        )
+        .unwrap();
+    assert!(
+        store
+            .append(
+                [1; 32],
+                store.state.head,
+                Action::Migrate { from: 3, to: 2 }
+            )
+            .is_err()
+    );
+    store
+        .append(
+            [1; 32],
+            store.state.head,
+            Action::BindSession { binding: b.clone() },
+        )
+        .unwrap();
+    assert!(
+        store
+            .append(
+                [1; 32],
+                store.state.head,
+                Action::BindSession {
+                    binding: session_binding()
+                }
+            )
+            .is_err()
+    );
+    let launch = Uuid::new_v4();
+    store
+        .append([1; 32], store.state.head, Action::RecoverSession { launch })
+        .unwrap();
+    let head = store.state.head;
+    drop(store);
+    let mut store = Store::open(&f.root()).unwrap();
+    assert_eq!(store.state.schema, 3);
+    assert_eq!(store.state.head, head);
+    assert!(
+        store
+            .append([1; 32], head, Action::RecoverSession { launch })
+            .is_err()
+    );
+    assert!(
+        store
+            .append(
+                [1; 32],
+                head,
+                Action::RecoverSession {
+                    launch: Uuid::nil()
+                }
+            )
+            .is_err()
+    );
+    assert_eq!(store.state.head, head);
+    // A root/package unavailable under the authenticated binding cannot become a fresh import.
+    assert!(store.recover_session([1; 32], head).is_err());
+    assert_eq!(store.state.head, head);
+}
+
+#[test]
+fn session_retirement_replay_budget_and_stale_heads_never_reset_control() {
+    let f = Fixture::new();
+    let mut store = f.store();
+    store
+        .append(
+            [1; 32],
+            store.state.head,
+            Action::Migrate { from: 1, to: 2 },
+        )
+        .unwrap();
+    store
+        .append(
+            [1; 32],
+            store.state.head,
+            Action::Migrate { from: 2, to: 3 },
+        )
+        .unwrap();
+    let stale = store.state.head;
+    store
+        .append(
+            [1; 32],
+            stale,
+            Action::BindSession {
+                binding: session_binding(),
+            },
+        )
+        .unwrap();
+    assert!(
+        store
+            .append(
+                [1; 32],
+                stale,
+                Action::RecoverSession {
+                    launch: Uuid::new_v4()
+                }
+            )
+            .is_err()
+    );
+    let key = hash(&f.root().join("control/authority.key")).unwrap();
+    for _ in 1..16 {
+        store
+            .append(
+                [1; 32],
+                store.state.head,
+                Action::RecoverSession {
+                    launch: Uuid::new_v4(),
+                },
+            )
+            .unwrap();
+    }
+    assert!(
+        store
+            .append(
+                [1; 32],
+                store.state.head,
+                Action::RecoverSession {
+                    launch: Uuid::new_v4()
+                }
+            )
+            .is_err()
+    );
+    store
+        .append([1; 32], store.state.head, Action::RetireSession)
+        .unwrap();
+    let head = store.state.head;
+    drop(store);
+    let mut store = Store::open(&f.root()).unwrap();
+    assert!(
+        store
+            .append(
+                [1; 32],
+                head,
+                Action::RecoverSession {
+                    launch: Uuid::new_v4()
+                }
+            )
+            .is_err()
+    );
+    assert!(
+        store
+            .append(
+                [1; 32],
+                head,
+                Action::BindSession {
+                    binding: session_binding()
+                }
+            )
+            .is_err()
+    );
+    assert_eq!(store.state.head, head);
+    assert_eq!(hash(&f.root().join("control/authority.key")).unwrap(), key);
 }

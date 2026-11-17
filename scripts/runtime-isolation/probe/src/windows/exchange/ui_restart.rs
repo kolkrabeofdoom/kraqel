@@ -11,7 +11,8 @@ mod live;
 pub(in super::super) use durable::product_storage;
 pub(in super::super) use durable::{combined_series, next_live, seed_live};
 pub(in super::super) use durable::{
-    product_crash_child, product_crash_series, product_start_series,
+    product_crash_child, product_crash_series, product_session_child, product_session_series,
+    product_start_series,
 };
 pub(in super::super) use durable::{
     recover as recover_broker, seed as seed_broker, series as controller_crash_series,
@@ -508,6 +509,10 @@ fn initialize(root: &Path, app: &Path) -> Result<(Uuid, Profile, [u8; 32])> {
     {
         return Err(invalid("restart-root-canonical-name"));
     }
+    initialize_bound(root, app, session)
+}
+// Caller must authenticate/pin a separately derived private product session parent first.
+fn initialize_bound(root: &Path, app: &Path, session: Uuid) -> Result<(Uuid, Profile, [u8; 32])> {
     io("restart-create-root", fs::create_dir(root))?;
     let profile = Profile::create(&format!("ui-restart-{}", session.simple()))?;
     grant(root, profile.sid, FILE_GENERIC_READ | FILE_GENERIC_EXECUTE)?;

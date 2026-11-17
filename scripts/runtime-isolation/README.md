@@ -304,6 +304,27 @@ cargo run --locked --manifest-path scripts/runtime-isolation/probe/Cargo.toml --
 [Kontrollvertrag](../../docs/data-format/native-product-control-v1.md). Der geänderte Broker
 benötigt einen eigenen frischen ETW-Nachweis; ältere Messungen werden nicht übertragen.
 
+## Dauerhafte synthetische Sitzungsbindung
+
+Kontrollschema 3 erlaubt explizite Apppaket-/Sitzungsbindung und authentisierten Wiederanlauf unter
+derselben Kontrollsperre/demselben Produktjob. Es erzeugt ausschließlich neue synthetische Daten,
+keine Migration bestehender Projekte/Journale. Ein fehlendes Journal, geänderte Appbytes oder
+Stilllegung sperren den Wiederanlauf; kein neuer Importgrant und keine automatische Reparatur.
+
+```powershell
+$sessionRoot = Join-Path $env:TEMP ('kraqel-isolation-controller-' + [guid]::NewGuid().ToString('N'))
+cargo run --locked --manifest-path scripts/runtime-isolation/probe/Cargo.toml -- product-session-series $sessionRoot <Forschungs-App> <erwartete-App-SHA>
+```
+
+Die native Serie beendet zwei Controller am echten GUI-Haltepunkt hart und prüft je zwei
+authentisierte Wiederanläufe sowie alte Köpfe, fehlendes Journal/geänderte App und Stilllegung.
+Interner `product-session-child` nur im begrenzten synthetischen Controller-/Case-/Store-Layout;
+normale Vorschau-Commands aktivieren keinen Controllerabbruch. Kontrollschema 3 erlaubt vorerst
+keine Brokerupdates und genau eine gebundene Sitzung je Installation.
+[Nachweis und gesicherte Hashes](../../docs/testing/native-product-session-recovery.md). Keine neuen
+Programmbytes an der echten Vorschauablage durch Kopieren/Reset autorisieren. Der neue Broker
+benötigt frisches ETW; ältere Messungen werden nicht übertragen.
+
 Primärquellen:
 [AppContainer für klassische Apps](https://learn.microsoft.com/en-us/windows/win32/secauthz/appcontainer-for-legacy-applications-),
 [Start mit Security Capabilities](https://learn.microsoft.com/en-us/windows/win32/secauthz/implementing-an-appcontainer),

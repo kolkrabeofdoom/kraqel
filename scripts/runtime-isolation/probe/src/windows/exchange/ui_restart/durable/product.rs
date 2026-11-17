@@ -7,12 +7,15 @@ use windows_sys::Win32::Security::{
 use zeroize::Zeroizing;
 mod crash;
 mod secure_fs;
+mod session;
 mod starter;
 pub(in super::super::super::super) use crash::{child as crash_child, series as crash_series};
 use secure_fs::{
     binary_pin, local_path, path_wide, pin_directories, private_acl, protected_file,
     secure_directory,
 };
+use session::{Binding, BoundSession};
+pub(in crate::windows) use session::{child as session_child, series as session_series};
 pub(in super::super::super::super) use starter::series as start_series;
 pub(in super::super) use starter::verify_start_lease;
 
@@ -32,6 +35,9 @@ enum Action {
     Activate,
     Abort,
     Migrate { from: u16, to: u16 },
+    BindSession { binding: Binding },
+    RecoverSession { launch: Uuid },
+    RetireSession,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -62,11 +68,18 @@ struct State {
     schema: u16,
     pending: Option<[u8; 32]>,
     activated: std::collections::HashSet<[u8; 32]>,
+    session: Option<BoundSession>,
 }
 impl State {
     fn apply(&mut self, actor: [u8; 32], action: &Action) -> Result<()> {
         if actor != self.actor {
             return Err(invalid("product-wrong-executable"));
+        }
+        if matches!(
+            action,
+            Action::BindSession { .. } | Action::RecoverSession { .. } | Action::RetireSession
+        ) {
+            return session::apply(self, action);
         }
         match action {
             Action::Prepare { binary }
@@ -84,6 +97,9 @@ impl State {
             Action::Abort if self.schema == 2 && self.pending.is_some() => self.pending = None,
             Action::Migrate { from: 1, to: 2 } if self.pending.is_none() && self.schema == 1 => {
                 self.schema = 2
+            }
+            Action::Migrate { from: 2, to: 3 } if self.pending.is_none() && self.schema == 2 => {
+                self.schema = 3
             }
             _ => return Err(invalid("product-invalid-transition")),
         }
@@ -286,6 +302,7 @@ impl Store {
                     schema: 1,
                     pending: None,
                     activated: std::collections::HashSet::from([record.actor]),
+                    session: None,
                 });
             } else {
                 let s = state.as_mut().ok_or(invalid("product-genesis-missing"))?;
@@ -383,6 +400,7 @@ impl Store {
             schema: self.state.schema,
             pending: self.state.pending,
             activated: self.state.activated.clone(),
+            session: self.state.session.clone(),
         };
         next.apply(actor, &action)?;
         let record = Record {
@@ -648,6 +666,23 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
             parse_hash(&args[2])?,
         );
     }
+    if args.len() == 5 && args[0] == "bind-session" {
+        let point: CrashPoint = serde_json::from_value(json!(args[3].to_string_lossy()))
+            .map_err(|_| invalid("product-session-point"))?;
+        return store.bind_session(
+            actor,
+            parse_hash(&args[4])?,
+            Path::new(&args[1]),
+            parse_hash(&args[2])?,
+            point,
+        );
+    }
+    if args.len() == 2 && args[0] == "recover-session" {
+        return store.recover_session(actor, parse_hash(&args[1])?);
+    }
+    if args.len() == 2 && args[0] == "retire-session" {
+        return store.retire_session(actor, parse_hash(&args[1])?);
+    }
     if args.len() == 4 && args[0] == "prepare" {
         store.prepare(
             actor,
@@ -659,6 +694,12 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
         store.activate(actor, parse_hash(&args[1])?)?;
     } else if args.len() == 2 && args[0] == "abort" {
         store.append(actor, parse_hash(&args[1])?, Action::Abort)?;
+    } else if args.len() == 2 && args[0] == "migrate-v3" {
+        store.append(
+            actor,
+            parse_hash(&args[1])?,
+            Action::Migrate { from: 2, to: 3 },
+        )?;
     } else if args.len() == 2 && args[0] == "migrate-v2" {
         store.append(
             actor,
