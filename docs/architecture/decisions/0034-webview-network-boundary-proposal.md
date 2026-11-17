@@ -4,8 +4,12 @@ Schema-4-Brokerpaket-Update, 17. November:
 [Implementierung/Beleg](../../testing/native-schema4-package-update.md) erlaubt lokale Updates unter
 derselben Kontrollsperre mit statischem begrenztem Paketvertrag und vollständiger Hashbindung. Kein
 Kandidatencode vor Aktivierung; keine Apppaket-/Datenmigration. Ein synthetischer nativer
-Actorwechsel/Recovery/Cleanup erhält Bindung und Daten. Mittleres Prüfniveau; eigener frischer
-ETW-Beleg der neuen Programme offen. Keine fachliche Ausnahme, striktes Datenschutzziel unverändert.
+Actorwechsel/Recovery/Cleanup erhält Bindung und Daten. Mittleres Prüfniveau;
+[eigener frischer ETW-Beleg](../../testing/native-schema4-package-update-etw.md) beider Programme
+einschließlich fünf hashbenannter verwalteter Starts: acht Kontrollen, Nullverluste, 132 explizite
+Enden, 0 Nicht-Loopback-/48 getrennte Loopback-Ereignisse. Exakte PID-/Image-Zuordnung nur für
+native Kontrollaufrufe, Daten-/MAC-/Kernel-Gegencheck; keine Änderung der Runtime-/GUI-Guards. Keine
+fachliche Ausnahme, striktes Datenschutzziel unverändert.
 
 Gezieltes Cleanup-ETW, 17. November:
 [Eigener frischer Beleg](../../testing/native-profile-cleanup-etw.md) des unveränderten Paares. Acht

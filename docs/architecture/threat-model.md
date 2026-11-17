@@ -6,7 +6,11 @@ erwarteten SHA und einen begrenzten read-only PE-Vertrag erfüllen; Prüfung vor
 vor Aktivierung, keine Ausführung des Kandidaten vorher. Vertrag deklariert Kompatibilität, keine
 Herkunfts-/Verhaltensattestierung. Pending blockiert Sitzung, alter Actor/Rollback bleiben gesperrt.
 Ein nativer synthetischer Wechsel erhält Schlüssel/Bindung/Daten, Apppaket unverändert. Neuer
-Broker/Kandidat ohne eigenen frischen ETW-Beleg; striktes Ziel und Produktgrenzen unverändert.
+Broker/Kandidat mit [eigenem frischem ETW](../testing/native-schema4-package-update-etw.md): alle 15
+Updateaufrufe samt fünf hashbenannten verwalteten EXEs, acht Kontrollen, 132 explizite Enden, 0
+Nicht-Loopback-/48 getrennte Loopback-Ereignisse. Exakte PID-/Image-Zuordnung nur im Kontrollmodus;
+keine Rootentdeckung oder Lockerung der Messguards. Daten-/MAC-/Lebenszeitaudits grün; keine
+Inhalts-/externe Dienst-/Produktattestierung. Striktes Ziel und Produktgrenzen unverändert.
 
 [Gezieltes Cleanup-ETW](../testing/native-profile-cleanup-etw.md), 17. November: unverändertes
 gesichertes Paar, zwei gültige kurze Phasen mit acht Kontrollen/Nullverlusten/140 expliziten Enden.

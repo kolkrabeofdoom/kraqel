@@ -1,5 +1,20 @@
 # Entwicklungsstatus
 
+Gezieltes frisches ETW beider Schema-4-Updateprogramme, 17. November: gesicherte Programme
+unverändert, zwei kurze gültige Phasen. Alle 15 Updateaufrufe erfasst, davon fünf unter dem
+hashbenannten verwalteten EXE-Namen; exakte PID-/Image-Zuordnung nur für `native-control`. Acht
+Kontrollen, Nullverluste/Zuordnungslücken, 132 explizite Enden, 0 beobachtete Nicht-Loopback-/48
+getrennte Loopback-Ereignisse. Unabhängige Daten-/MAC-/Lebenszeitaudits grün: drei verschiedene
+Aufgaben/zwei legitime Kopien, kein Replayduplikat, erhaltener Schlüssel-/App-/Sitzungsbezug. 42
+Diagnose-Tests bestanden, mittleres Prüfniveau; kein neuer Build/Workspace-Gesamtlauf.
+[Nachweis](testing/native-schema4-package-update-etw.md),
+[Aggregate](testing/native-schema4-package-update-etw.json). Echte Vorschauablage unverändert;
+Erfassungen und Prozesse beendet. Nächster begrenzter Scope: Update-Abbruch-/Fehlerreconciliation
+unter derselben Sperre. Normale Produktintegration, echte Paket-/Datenmigration und
+Produkt-Q-01/Q-02 weiter offen; striktes Datenschutzziel unverändert.
+
+## Vorheriger funktionaler Prüfstand
+
 Lokale Update-/Paketkompatibilität für Kontrollschema 4, 17. November: Vorbereitung/Aktivierung/
 Abbruch unter bestehender Kontrollsperre implementiert. Bounded read-only `.kqmeta`-PE-Vertrag vor
 Pending und Aktivierung, keine Kandidatenausführung vorher. Vollständiger erwarteter SHA, aktueller
@@ -10,9 +25,9 @@ Metadaten-/MAC-/SQLite-/Unicode-Audit bestätigt unveränderte Installation/Schl
 genau eine erhaltene Projektkopie. [Nachweis](testing/native-schema4-package-update.md),
 [Aggregate](testing/native-schema4-package-update.json). Synthetischer Kandidat gleicher Code mit
 anderem Hash, keine beliebige Release-/Appdatenmigration. Echte Vorschauablage unverändert.
-Mittleres Prüfniveau, kein Workspace-Gesamtlauf/neue große Matrix. Kein frisches ETW der neuen
-Programme; nächster Scope: gezielter Vergleich inklusive verwalteter Kandidaten-EXE. Normale
-Produktintegration/Apppaketmigration und Produkt-Q-01/Q-02 weiter offen; striktes Ziel unverändert.
+Mittleres Prüfniveau, kein Workspace-Gesamtlauf/neue große Matrix. Der eigene frische ETW-Beleg der
+neuen Programme ist inzwischen oben verlinkt. Normale Produktintegration/Apppaketmigration und
+Produkt-Q-01/Q-02 weiter offen; striktes Ziel unverändert.
 
 ## Vorheriger Prüfstand mit eigenem Netznachweis
 

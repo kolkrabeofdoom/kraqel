@@ -7,6 +7,17 @@ GUIs unabhängig gegen Kernel-Lebenszeiten abgleichen. Leere/fehlende Roots, Ver
 Kalibrierung oder Prozessenden bleiben ungültig. Die Strukturprüfungen der bisherigen Modi werden
 nicht verändert. [Gezielter Cleanup-Nachweis](../../docs/testing/native-profile-cleanup-etw.md).
 
+Für verwaltete, hashbenannte Broker erlaubt ausschließlich `native-control` zusätzlich
+`--root-map <private JSON-Datei>`: eine nichtleere Liste von `{"pid": 1234, "image": "…"}` mit exakt
+diesen Feldern. Positive eindeutige Integer-PIDs müssen genau den `--root-pid`-Angaben entsprechen.
+Als erwarteter Basisname ist nur `kraqel-isolation-probe.exe` oder ein vollständiger
+kleingeschriebener SHA-256 plus `.exe` zulässig, kein Pfad. Die Auswertung verlangt sowohl PID als
+auch erwarteten Namen; sie entdeckt keine Roots automatisch. Paketbytes/Hashfreigabe und die
+Vollständigkeit erwarteter Aufrufe unabhängig prüfen. Andere Modi weisen diese Zuordnung ab.
+[Frischer Nachweis beider Updateprogramme](../../docs/testing/native-schema4-package-update-etw.md),
+42 Diagnose-Tests einschließlich falscher Namen, unvollständiger Zuordnung und öffentlicher
+Netzereignisse im hashbenannten Baum. Root-Zuordnungen enthalten private PIDs und bleiben lokal.
+
 `analyze.py --mode broker-ui` ist für die gesamte Controller-Crash-Serie vorgesehen: Root ist der
 beim Start festgehaltene Serienprozess. Alle nachgeordneten Broker einschließlich negativer Starts
 zählen zum Baum; pro Root muss ein lebenszeitgebundener Broker→App→WebView-Pfad existieren.

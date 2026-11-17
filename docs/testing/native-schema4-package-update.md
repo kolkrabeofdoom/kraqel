@@ -56,8 +56,10 @@ zusätzliche native GUI-Matrix.
 
 Keine Workspace-Gesamtprüfung, kein vollständiger Appbuild oder neue große Crash-/ETW-Matrix. Keine
 neuen Abhängigkeiten. Echte Vorschauablage/verwaltete EXE unverändert; synthetische Daten und
-private Belege lokal erhalten, keine Schlüssel/rohen Kennungen veröffentlicht. **Kein frischer
-ETW-Beleg dieser neuen Brokerhashes**; der vorherige Cleanup-Beleg gilt nur für sein anderes Paar.
-Nächster Scope: gezielter frischer ETW-Vergleich des Update-Stands einschließlich beider Actor-
-Programme und der hashbenannten verwalteten EXE. Normale Produktintegration, Apppaketmigration,
-weitere Crashpunkte und echte Datenmigration bleiben offen; striktes Ziel unverändert.
+private Belege lokal erhalten, keine Schlüssel/rohen Kennungen veröffentlicht. Inzwischen liegt der
+[eigene frische ETW-Beleg beider Brokerhashes](native-schema4-package-update-etw.md) einschließlich
+hashbenannter verwalteter EXE vor; der vorherige Cleanup-Beleg bleibt an sein anderes Paar gebunden.
+Der ursprüngliche funktionale JSON-Beleg bleibt getrennt ohne Netzmessung. Nächster begrenzter
+Scope: Update-Abbruch-/Fehlerreconciliation unter derselben Kontrollsperre. Normale
+Produktintegration, Apppaketmigration, weitere Crashpunkte und echte Datenmigration bleiben offen;
+striktes Ziel unverändert.

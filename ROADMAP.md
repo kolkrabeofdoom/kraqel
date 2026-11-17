@@ -160,8 +160,10 @@
              Enden, 0 Nicht-Loopback, alle 19 direkten Kontrollaufrufe erfasst
        - [x] KQ-069 A: Lokale Schema-4-Brokerupdates mit read-only Paketvertrag; gezielter nativer
              Actorwechsel/Recovery/Cleanup ohne Schlüssel-/Bindungs-/Datenreset
-       - [ ] KQ-069 A: Gezieltes frisches ETW beider Updateprogramme; isolierten
-             Produktstarter/echte Projektmigration integrieren sowie weitere allgemeine
+       - [x] KQ-069 A: Frisches ETW beider Updateprogramme einschließlich fünf hashbenannter
+             verwalteter Starts; acht Kontrollen, 132 explizite Enden, 0 Nicht-Loopback
+       - [ ] KQ-069 A: Gezielte Update-Abbruch-/Fehlerreconciliation unter derselben Sperre;
+             isolierten Produktstarter/echte Projektmigration integrieren sowie weitere allgemeine
              Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
              integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker
              kalibrieren; Packaging und F08-/M3-Vollprüfung

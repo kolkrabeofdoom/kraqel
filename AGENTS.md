@@ -294,16 +294,29 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
-Aktuell: [Lokale Schema-4-Brokerpaket-Updates](docs/testing/native-schema4-package-update.md), 17.
-November. Schema 4 erlaubt lokale Vorbereitung/Aktivierung/Abbruch unter derselben Sperre; genau ein
+Aktuell:
+[Frisches ETW beider Schema-4-Brokerprogramme](docs/testing/native-schema4-package-update-etw.md), 17.
+November. Gesicherte Programme unverändert; Referenzserie und gezielter Updateablauf gültig. Alle 15
+nativen Updateaufrufe einschließlich fünf hashbenannter verwalteter EXEs erfasst; exakte
+PID-/Image-Zuordnung nur in `native-control`, keine Lockerung allgemeiner Messguards. Acht
+Kontrollen, Nullverluste/Zuordnungslücken, 132 explizite Enden, 0 beobachtete Nicht-Loopback-/48
+getrennte Loopback-Ereignisse. Daten-/MAC-/Lebenszeitaudits und 42 Diagnose-Tests grün. Drei
+Aufgaben, zwei legitime Kopien, keine Replaykopie; echte Vorschauablage unverändert. Mittleres
+Prüfniveau, keine Runtimeänderung/neuer Build/Workspace-Gesamtprüfung. Prozesse/Erfassungen beendet.
+Nächster begrenzter Scope: Update-Abbruch-/Fehlerreconciliation unter derselben Sperre vor normaler
+Produktintegration. Striktes Ziel unverändert; Produkt-Q-01/Q-02 weiter offen.
+
+Vorheriger funktionaler Prüfstand:
+[Lokale Schema-4-Brokerpaket-Updates](docs/testing/native-schema4-package-update.md), 17. November.
+Schema 4 erlaubt lokale Vorbereitung/Aktivierung/Abbruch unter derselben Sperre; genau ein
 begrenzter `.kqmeta`-Vertrag wird vor Pending und Aktivierung aus der gepinnten Datei gelesen.
 Kandidat vorher nicht ausführen. Hash/Kopf/Jobleerstand und Rollbackabwehr unverändert.
 `durable/product/package.rs` ist zuständig. Drei neue Tests, 51 aktive Helfertests/Clippy und ein
 gezielter nativer Actorwechsel samt Recovery/Cleanup bestanden. Sitzung/App/Schlüssel bleiben
 erhalten; Apppaket selbst wird nicht ausgetauscht. Kandidat synthetisch gleicher Code/anderer Hash,
 kein beliebiger Release-/Herkunftsnachweis. Echte Vorschauablage unverändert. Neuer Broker/Kandidat
-noch ohne frisches ETW; nächster Scope: gezielter Vergleich einschließlich hashbenannter verwalteter
-EXE. Weiterhin mittleres Prüfniveau und striktes Datenschutzziel, keine Produktfreigabe.
+nun mit eigenem oben verlinktem frischen ETW einschließlich hashbenannter verwalteter EXE. Weiterhin
+mittleres Prüfniveau und striktes Datenschutzziel, keine Produktfreigabe.
 
 Vorheriger Prüfstand:
 [Gezieltes frisches ETW des Cleanup-Stands](docs/testing/native-profile-cleanup-etw.md), 17.

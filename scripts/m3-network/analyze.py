@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import ipaddress
 import json
 from pathlib import Path
+import re
 import xml.etree.ElementTree as ET
 
 
@@ -62,10 +63,33 @@ def scope(value):
     return "global" if address.is_global else "private-or-link-local"
 
 
-def analyze(path, root_pids, ready, mode="desktop"):
+def root_image_bindings(records):
+    """Accept only explicit native broker basenames; never infer roots from a hash."""
+    if not isinstance(records, list) or not records:
+        raise ValueError("Root map must be a nonempty list")
+    bindings = {}
+    for record in records:
+        if not isinstance(record, dict) or set(record) != {"pid", "image"}:
+            raise ValueError("Each root binding requires exactly pid and image")
+        pid, image = record["pid"], record["image"]
+        if type(pid) is not int or pid <= 0 or pid in bindings:
+            raise ValueError("Root PIDs must be positive, unique integers")
+        if not isinstance(image, str) or not re.fullmatch(r"(?:kraqel-isolation-probe|[0-9a-f]{64})\.exe", image):
+            raise ValueError("Expected a native broker basename or lowercase SHA-256 basename")
+        bindings[pid] = image
+    return bindings
+
+
+def analyze(path, root_pids, ready, mode="desktop", root_images=None):
     if mode not in ("desktop", "exchange", "isolation-ui", "broker-ui", "native-control"):
         raise ValueError("Unknown bounded measurement mode")
     root_image = "kraqel-desktop.exe" if mode == "desktop" else "kraqel-isolation-probe.exe"
+    if root_images is not None:
+        if mode != "native-control":
+            raise ValueError("Explicit image bindings require native-control mode")
+        root_images = root_image_bindings(root_images)
+        if set(root_images) != set(root_pids):
+            raise ValueError("Image bindings must match every explicit root PID exactly")
     process_events = []
     loss = None
     for time, provider, event_id, _, data in events(path):
@@ -87,7 +111,7 @@ def analyze(path, root_pids, ready, mode="desktop"):
         if pid in current:
             current[pid].end = time
         image = data["ImageName"].replace("/", "\\").rsplit("\\", 1)[-1].lower()
-        root = pid in root_pids and image == root_image
+        root = pid in root_pids and image == (root_images[pid] if root_images is not None else root_image)
         if root:
             seen_roots.add(pid)
             root_starts[pid] += 1
@@ -171,6 +195,7 @@ def analyze(path, root_pids, ready, mode="desktop"):
         "measurementProblems": problems,
         "result": "observed-non-loopback-traffic" if outside_loopback else "inconclusive" if problems else "no-non-loopback-traffic-observed",
         "rootStarts": len(seen_roots),
+        "explicitRootImageBindings": len(root_images) if root_images is not None else 0,
         "processLifetimes": dict(Counter(process.image for process in own_processes)),
         "loss": loss,
         "positiveControls": {"expected": 4, "observed": len(calibration)},
@@ -190,10 +215,14 @@ def main():
     parser.add_argument("trace_xml", type=Path)
     parser.add_argument("ready_json", type=Path)
     parser.add_argument("--root-pid", type=int, action="append", required=True)
+    parser.add_argument("--root-map", type=Path, help="Private JSON list of exact pid/image bindings; native-control only")
     parser.add_argument("--mode", choices=("desktop", "exchange", "isolation-ui", "broker-ui", "native-control"), default="desktop")
     args = parser.parse_args()
     ready = json.loads(args.ready_json.read_text(encoding="utf-8-sig"))
-    result = analyze(args.trace_xml, args.root_pid, ready, args.mode)
+    bindings = json.loads(args.root_map.read_text(encoding="utf-8-sig")) if args.root_map else None
+    if args.root_map:
+        root_image_bindings(bindings)
+    result = analyze(args.trace_xml, args.root_pid, ready, args.mode, bindings)
     print(json.dumps(result, indent=2))
     return 0 if result["measurementValid"] and not result["nonLoopbackEvents"] else 1
 

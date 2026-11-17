@@ -7,15 +7,26 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 17. November 2026
 
-Neuester funktionaler Stand:
+Neuester Netzbeleg:
+[Frisches ETW beider Updateprogramme](testing/native-schema4-package-update-etw.md). Unveränderte
+gesicherte Programme, zwei gültige kurze Phasen, acht Kontrollen, Nullverluste/Zuordnungslücken, 132
+explizite Enden, 0 Nicht-Loopback-/48 getrennte Loopback-Ereignisse. Alle 15 nativen Updateaufrufe
+samt fünf hashbenannten verwalteten EXEs abgeglichen; private exakte PID-/Image-Map nur in
+`native-control`. Daten-/MAC-/Lebenszeitaudits und 42 Diagnose-Tests grün. Drei Aufgaben/zwei
+legitime Kopien, keine Replaykopie. Echte Vorschauablage/verwaltete EXE unverändert; Erfassungen und
+Prozesse beendet, Rohbelege lokal. Mittleres Prüfniveau ohne neuen Build/Workspace-Gesamtprüfung.
+Nächster begrenzter Scope: Update-Abbruch-/Fehlerreconciliation unter derselben Sperre vor normaler
+Produktintegration. Striktes Datenschutzziel und offene Produkt-Q-01/Q-02 unverändert.
+
+Vorheriger funktionaler Stand:
 [Lokale Schema-4-Brokerpaket-Updates](testing/native-schema4-package-update.md). Read-only
 Paketvertrag vor Pending/Aktivierung, kein Ausführen des Kandidaten vor Freigabe. Dieselbe
 Kontrollsperre/Jobprüfung. 51 aktive Helfertests/Clippy und ein kurzer nativer Wechsel auf
 verwalteten Kandidaten samt Recovery/Cleanup/Daten-MAC-Audit grün. Ein synthetischer Kandidat,
 gleicher Code/anderer Hash; genau eine Projektkopie erhalten, Apphash unverändert. Echte
 Vorschauablage/verwaltete EXE unverändert, neue Prüfprogramme dort nicht autorisieren oder alte
-Kontrollablagen übernehmen. Neuer eigener ETW-Beleg offen; nächster Scope: gezielter Vergleich
-beider Actorprogramme einschließlich hashbenannter verwalteter EXE. Mittleres Prüfniveau, striktes
+Kontrollablagen übernehmen. Eigener frischer ETW-Beleg beider Actorprogramme einschließlich
+hashbenannter verwalteter EXE inzwischen oben verlinkt. Mittleres Prüfniveau, striktes
 Datenschutzziel und offene Produktabnahme unverändert. Testprofil/Prozesse beendet, private
 synthetische Belege erhalten.
 
