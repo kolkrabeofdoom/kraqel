@@ -186,6 +186,47 @@ pub(super) fn protected_file(path: &Path) -> Result<fs::File> {
     private_acl(path, false)?;
     Ok(file)
 }
+// Caller has authenticated an Abort for this exact hash, excluded all activated hashes,
+// checked head/job/transition, and holds the store/ancestor leases. Never follow or sweep paths.
+pub(super) fn remove_aborted_package(path: &Path) -> Result<()> {
+    let file = match OpenOptions::new()
+        .access_mode(FILE_READ_ATTRIBUTES | DELETE)
+        .share_mode(0)
+        .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT)
+        .open(path)
+    {
+        Ok(file) => file,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => {
+            return Err(Failure {
+                stage: "product-aborted-package-open",
+                code: error.raw_os_error().unwrap_or(0).into(),
+            });
+        }
+    };
+    let info = file_info(&file)?;
+    if info.dwFileAttributes & (BAD_ATTRIBUTES | FILE_ATTRIBUTE_DIRECTORY) != 0
+        || info.nNumberOfLinks != 1
+    {
+        return Err(invalid("product-unsafe-aborted-package"));
+    }
+    private_acl(path, false)?;
+    let disposition = FILE_DISPOSITION_INFO { DeleteFile: true };
+    check(
+        unsafe {
+            SetFileInformationByHandle(
+                file.as_raw_handle(),
+                FileDispositionInfo,
+                (&raw const disposition).cast(),
+                size_of::<FILE_DISPOSITION_INFO>() as u32,
+            )
+        },
+        "product-aborted-package-delete",
+    )?;
+    // Delete disposition addresses the verified handle, not a newly resolved path.
+    drop(file);
+    Ok(())
+}
 pub(super) fn binary_pin(path: &Path) -> Result<(Vec<fs::File>, fs::File, [u8; 32])> {
     let normalized = local_path(path)?;
     let path = normalized.as_path();

@@ -7,6 +7,23 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 17. November 2026
 
+Neuester funktionaler Stand: [Paketartefakte/Retry](testing/native-package-artifact-retry.md).
+Sichere Paketartefakte/erneute Vorbereitung, 17. November: Schema 4 leitet ersetzbare Hashs nur aus
+authentisierten Abort-Records ab. Aktueller Actor/Kopf, Jobleerstand und erlaubter Übergang vor
+jeder Dateimutation; dieselbe Kontrollsperre durchgehend gehalten. Geprüfte Einlink-Datei über
+exklusiven Handle entfernen; aktive/früher aktivierte oder unbekannte Pakete, unsichere Links/ACLs
+und gesperrte Dateien nicht bereinigen. Zieldatei vor neuem Pending exklusiv erzeugen. Drei neue
+Tests, 56 aktive Helfertests/Clippy und drei native Retryfälle/Daten-MAC-Audit grün. Schlüssel,
+App-/Sitzungsbindung und drei legitime Projektkopien erhalten, kein Replayduplikat. Echte
+Vorschauablage unverändert, Testprozesse beendet. Neuer Broker ohne eigenen frischen ETW-Beleg;
+mittleres Prüfniveau, kein App-/Workspace-Gesamtlauf. Nächster begrenzter Scope: gezieltes frisches
+ETW des neuen Brokers samt Retry und verwaltetem Kandidaten. Unbekannte Artefakte ohne Abort und
+unvollständige Kontrollketten bleiben gesperrt; striktes Ziel und offene Produktabnahme unverändert.
+
+Reproduktion: `scripts/runtime-isolation/check-update-reconciliation.ps1 -RetryAborted` mit
+expliziten neuen Hashes aus dem Nachweis, ausschließlich frische TEMP-Cases. Keine neue Prüf-EXE an
+vorhandener Vorschauablage autorisieren oder diese kopieren/zurücksetzen.
+
 Neuester funktionaler Prüfstand:
 [Update-Abbruch-/Fehlerreconciliation](testing/native-update-abort-reconciliation.md). Drei native
 Fälle bestanden, vorhandener Laufzeitcode unverändert: Teilkopie, Manipulation und Crash nach

@@ -90,7 +90,11 @@ Keine neue ETW-Erfassung: Der frühere Beleg bleibt an seine Programme, ausgeüb
 Lebenszeiten gebunden. Diese zusätzlichen Fehlerläufe erhalten keinen übertragenen Netzstatus.
 Normale Produktintegration, externe Dienstkausalität und Produkt-Q-01/Q-02 bleiben offen.
 
-## Verbleibende Paketartefakte
+## Verbleibende Paketartefakte beim damaligen Programmstand
+
+Die folgende Einschränkung gilt für den oben gebundenen alten Broker. Inzwischen ist
+[sichere erneute Vorbereitung authentisiert abgebrochener Kopien](native-package-artifact-retry.md)
+mit neuen Brokerbytes separat implementiert und geprüft; kein Übertrag alter Netzbelege.
 
 `Abort` löscht keine Paketdateien. Teilkopien/manipulierte oder abgebrochene vollständige Kopien
 bleiben ohne Ausführungsautorität als private Diagnoseartefakte liegen. Allgemeines Paket-Cleanup

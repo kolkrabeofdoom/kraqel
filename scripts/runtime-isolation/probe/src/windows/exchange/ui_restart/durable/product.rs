@@ -72,6 +72,7 @@ struct State {
     schema: u16,
     pending: Option<[u8; 32]>,
     activated: std::collections::HashSet<[u8; 32]>,
+    aborted_packages: std::collections::HashSet<[u8; 32]>,
     session: Option<BoundSession>,
 }
 impl State {
@@ -103,7 +104,7 @@ impl State {
                 self.activated.insert(self.actor);
             }
             Action::Abort if matches!(self.schema, 2 | 4) && self.pending.is_some() => {
-                self.pending = None
+                self.aborted_packages.insert(self.pending.take().unwrap());
             }
             Action::Migrate { from: 1, to: 2 } if self.pending.is_none() && self.schema == 1 => {
                 self.schema = 2
@@ -315,6 +316,7 @@ impl Store {
                     schema: 1,
                     pending: None,
                     activated: std::collections::HashSet::from([record.actor]),
+                    aborted_packages: std::collections::HashSet::new(),
                     session: None,
                 });
             } else {
@@ -398,7 +400,7 @@ impl Store {
             self.state.installation.simple()
         ))
     }
-    fn append(&mut self, actor: [u8; 32], head: [u8; 32], action: Action) -> Result<()> {
+    fn next_state(&self, actor: [u8; 32], head: [u8; 32], action: &Action) -> Result<State> {
         self.actor(actor)?;
         self.idle()?;
         if self.state.head != head || self.state.sequence + 1 >= MAX_RECORDS {
@@ -413,9 +415,14 @@ impl Store {
             schema: self.state.schema,
             pending: self.state.pending,
             activated: self.state.activated.clone(),
+            aborted_packages: self.state.aborted_packages.clone(),
             session: self.state.session.clone(),
         };
-        next.apply(actor, &action)?;
+        next.apply(actor, action)?;
+        Ok(next)
+    }
+    fn append(&mut self, actor: [u8; 32], head: [u8; 32], action: Action) -> Result<()> {
+        let mut next = self.next_state(actor, head, &action)?;
         let record = Record {
             version: 1,
             sequence: self.state.sequence + 1,
@@ -464,14 +471,26 @@ impl Store {
         if self.state.schema == 4 {
             package::verify(&mut source)?;
         }
-        self.append(actor, head, Action::Prepare { binary: actual })?;
-        use std::io::{Seek, SeekFrom};
-        io("product-source-rewind", source.seek(SeekFrom::Start(0)))?;
+        let action = Action::Prepare { binary: actual };
+        // Authorize before touching leftovers. The same owner lease is held throughout.
+        self.next_state(actor, head, &action)?;
         let path = self.package(actual);
+        if self.state.schema == 4 && self.state.aborted_packages.contains(&actual) {
+            secure_fs::remove_aborted_package(&path)?;
+        }
+        // A collision/locked/unsafe leftover must fail before signing a new pending intent.
         let mut dest = io(
             "product-copy-create",
-            OpenOptions::new().write(true).create_new(true).open(&path),
+            OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .share_mode(0)
+                .open(&path),
         )?;
+        private_acl(&path, false)?;
+        use std::io::{Seek, SeekFrom};
+        io("product-source-rewind", source.seek(SeekFrom::Start(0)))?;
+        self.append(actor, head, action)?;
         io(
             "product-copy-prefix",
             std::io::copy(&mut (&mut source).take(1024), &mut dest),

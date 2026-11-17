@@ -1001,3 +1001,101 @@ fn schema4_uncommitted_abort_stays_blocked_without_head_or_key_repair() {
         );
     }
 }
+
+#[test]
+fn schema4_retry_replaces_only_aborted_packages_before_new_pending() {
+    for fault in ["complete", "missing", "partial", "tampered"] {
+        let f = Fixture::new();
+        let mut store = schema4_pending(&f);
+        let sha = store.state.pending.unwrap();
+        let path = store.package(sha);
+        let stale = store.state.head;
+        store.append([1; 32], stale, Action::Abort).unwrap();
+        let head = store.state.head;
+        let key = hash(&f.root().join("control/authority.key")).unwrap();
+        match fault {
+            "missing" => fs::remove_file(&path).unwrap(),
+            "partial" => OpenOptions::new()
+                .write(true)
+                .open(&path)
+                .unwrap()
+                .set_len(1024)
+                .unwrap(),
+            "tampered" => fs::write(&path, b"synthetic corruption").unwrap(),
+            _ => {}
+        }
+        drop(store);
+        let mut store = Store::open(&f.root()).unwrap();
+        let candidate = f.0.join("candidate.exe");
+        assert!(store.prepare([1; 32], stale, &candidate, sha).is_err());
+        assert!(store.prepare([2; 32], head, &candidate, sha).is_err());
+        if fault != "missing" {
+            let locked = protected_file(&path).unwrap();
+            let before = hash(&path).unwrap();
+            assert!(store.prepare([1; 32], head, &candidate, sha).is_err());
+            assert_eq!(hash(&path).unwrap(), before);
+            drop(locked);
+        }
+        assert_eq!(store.state.head, head);
+        assert!(store.state.pending.is_none());
+        store.prepare([1; 32], head, &candidate, sha).unwrap();
+        assert_eq!(hash(&path).unwrap(), sha);
+        assert_eq!(store.state.pending, Some(sha));
+        assert_eq!(hash(&f.root().join("control/authority.key")).unwrap(), key);
+        store.activate([1; 32], store.state.head).unwrap();
+        let activated_head = store.state.head;
+        assert!(store.prepare(sha, activated_head, &candidate, sha).is_err());
+        assert_eq!(store.state.head, activated_head);
+        assert_eq!(hash(&path).unwrap(), sha);
+    }
+}
+
+#[test]
+fn unrecorded_package_collision_never_signs_pending_or_deletes_bytes() {
+    let f = Fixture::new();
+    let mut store = f.store();
+    for from in 1..4 {
+        store
+            .append(
+                [1; 32],
+                store.state.head,
+                Action::Migrate { from, to: from + 1 },
+            )
+            .unwrap();
+    }
+    let candidate = f.candidate();
+    let sha = hash(&candidate).unwrap();
+    fs::copy(&candidate, store.package(sha)).unwrap();
+    let head = store.state.head;
+    assert!(store.prepare([1; 32], head, &candidate, sha).is_err());
+    assert_eq!(store.state.head, head);
+    assert!(store.state.pending.is_none());
+    assert_eq!(hash(&store.package(sha)).unwrap(), sha);
+    drop(store);
+    let store = Store::open(&f.root()).unwrap();
+    assert_eq!(store.state.head, head);
+    assert!(store.state.pending.is_none());
+}
+
+#[test]
+fn aborted_package_hardlink_is_not_deleted_or_reauthorized() {
+    let f = Fixture::new();
+    let mut store = schema4_pending(&f);
+    let sha = store.state.pending.unwrap();
+    store
+        .append([1; 32], store.state.head, Action::Abort)
+        .unwrap();
+    let path = store.package(sha);
+    let other = f.0.join("must-survive.exe");
+    fs::hard_link(&path, &other).unwrap();
+    let head = store.state.head;
+    assert!(
+        store
+            .prepare([1; 32], head, &f.0.join("candidate.exe"), sha)
+            .is_err()
+    );
+    assert_eq!(store.state.head, head);
+    assert!(store.state.pending.is_none());
+    assert_eq!(hash(&path).unwrap(), sha);
+    assert_eq!(hash(&other).unwrap(), sha);
+}

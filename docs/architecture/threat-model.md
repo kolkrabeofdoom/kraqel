@@ -1,5 +1,13 @@
 # Bedrohungsmodell (Entwurf)
 
+[Sichere Paketartefakte/Retry](../testing/native-package-artifact-retry.md), 17. November: Ersetzung
+nur authentisiert abgebrochener Schema-4-Hashes, niemals aktivierter Pakete. Aktueller Actor/Kopf,
+Jobleerstand und erlaubter Übergang vor Dateimutation unter derselben Sperre. Exklusiver Handle,
+kein Reparse-Follow, private ACL, genau ein Hardlink; handlegebundene Löschung, kein Sweep.
+Zielerzeugung vor neuem Pending verhindert unbeabsichtigte Pending-Kollisionen. Unbekannte
+Artefakte/unvollständige Ketten bleiben gesperrt. 56 Helfertests/Clippy, drei native Fälle und
+Daten-/MAC-Audit grün. Neuer Broker ohne frisches ETW; striktes Ziel und Produktgrenzen unverändert.
+
 [Gezielte Update-Abbruch-/Fehlerreconciliation](../testing/native-update-abort-reconciliation.md), 17.
 November: vorhandener Runtimepfad unter derselben Sperre geprüft; aktueller Actor/Kopf und
 Jobleerstand erforderlich. Teilkopie/Manipulation aktivieren nicht; authentisierter Abort erhält

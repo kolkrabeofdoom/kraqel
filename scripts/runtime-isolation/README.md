@@ -1,5 +1,12 @@
 # AppContainer-Forschungshelfer für KQ-069
 
+Neuester Stand: [Sichere Paketartefakte/Retry](../../docs/testing/native-package-artifact-retry.md).
+`check-update-reconciliation.ps1 -RetryAborted` mit explizit gesicherten neuen Programmhashes prüft
+drei frische synthetische Fälle: Teilkopie, Manipulation, vollständiger Abort. Gleiches Pending nach
+Abbruch sicher erneut vorbereiten; alte Köpfe/gesperrte Dateien verändern nichts. 56 aktive
+Helfertests/Clippy und unabhängiger Daten-/MAC-Audit grün. Neue Brokerbytes ohne eigenen frischen
+ETW-Beleg; vorherige Netzbelege nicht übertragen. Unbekannte/aktivierte Pakete bleiben geschützt.
+
 Neuester gezielter Prüfstand:
 [Update-Abbruch-/Fehlerreconciliation](../../docs/testing/native-update-abort-reconciliation.md).
 `check-update-reconciliation.ps1` verwendet explizit hashgeprüfte gesicherte Programme und erzeugt

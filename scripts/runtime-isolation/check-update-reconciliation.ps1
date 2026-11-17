@@ -2,7 +2,8 @@ param(
     [Parameter(Mandatory=$true)][string]$Probe,
     [Parameter(Mandatory=$true)][string]$ProbeSha256,
     [Parameter(Mandatory=$true)][string]$App,
-    [Parameter(Mandatory=$true)][string]$AppSha256
+    [Parameter(Mandatory=$true)][string]$AppSha256,
+    [switch]$RetryAborted
 )
 # Local synthetic research only. Keeps private evidence outside Git; never opens the real store.
 $ErrorActionPreference='Stop'
@@ -96,15 +97,29 @@ try {
         Invoke-Control abort-update $after 1
         Invoke-Control activate-update $after 1
         if((Control-Fingerprint) -ne $terminal){throw 'Terminal retry mutated control'}
+        $retryEvidence=$null
+        if($RetryAborted) {
+            $beforeBytes=(Get-Item -LiteralPath $package).Length
+            $beforeSha=(Get-FileHash -LiteralPath $package).Hash.ToLowerInvariant()
+            Invoke-Control prepare-update $pending 1
+            $packageLock=[IO.File]::Open($package,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)
+            try {Invoke-Control prepare-update $after 1} finally {$packageLock.Dispose()}
+            if((Control-Fingerprint) -ne $terminal -or (Get-FileHash -LiteralPath $package).Hash.ToLowerInvariant() -ne $beforeSha){throw 'Rejected retry mutated control or package'}
+            $state=Invoke-Control prepare-update $after
+            if(-not $state.control.pendingUpdate -or (Get-FileHash -LiteralPath $package).Hash.ToLowerInvariant() -ne $candidateSha){throw 'Retry did not prepare exact candidate'}
+            $retryEvidence=@{beforeBytes=$beforeBytes;beforeSha256=$beforeSha;preparedHead=$state.control.headSha256;rejectedControlAndPackageUnchanged=$true}
+            $state=Invoke-Control abort-update $state.control.headSha256
+            $after=$state.control.headSha256
+        }
         $state=Invoke-Control recover $after
         if($state.outcome.summary.projectCount -ne 1 -or $state.outcome.summary.documentCount -ne 2 -or -not $state.outcome.summary.replayBlocked){throw 'Recovery or replay invariant failed'}
         $state=Invoke-Control retire $state.control.headSha256
         $cleanup=Invoke-Control cleanup $state.control.headSha256
         if(-not $cleanup.outcome.profileAbsent -or -not $cleanup.outcome.alreadyRecorded -or $cleanup.control.headSha256 -ne $state.control.headSha256){throw 'Cleanup did not settle idempotently'}
         if((Get-FileHash -LiteralPath "$store/control/authority.key").Hash -ne $key){throw 'Key changed'}
-        $cases.Add(@{fault=$fault;localStoreRoot=$store;beforeHead=$before;pendingHead=$pending;abortedHead=$after;final=$cleanup;rejectedControlUnchanged=$true;keyUnchanged=$true})
+        $cases.Add(@{fault=$fault;localStoreRoot=$store;beforeHead=$before;pendingHead=$pending;abortedHead=$after;retry=$retryEvidence;final=$cleanup;rejectedControlUnchanged=$true;keyUnchanged=$true})
     }
-    @{passed=$true;nativePreviewOnly=$true;productionAcceptance=$false;controllerSha256=$ProbeSha256;candidateSha256=$candidateSha;appSha256=$AppSha256;childProcesses=$steps.Count;cases=$cases;networkMeasurement=$false} | ConvertTo-Json -Depth 14 | Set-Content -LiteralPath (Join-Path $fixtureRoot 'result.json')
+    @{passed=$true;nativePreviewOnly=$true;productionAcceptance=$false;controllerSha256=$ProbeSha256;candidateSha256=$candidateSha;appSha256=$AppSha256;childProcesses=$steps.Count;retryAborted=[bool]$RetryAborted;cases=$cases;networkMeasurement=$false} | ConvertTo-Json -Depth 14 | Set-Content -LiteralPath (Join-Path $fixtureRoot 'result.json')
     Write-Output $fixtureRoot
 } finally {
     foreach($process in $held){$process.Dispose()}

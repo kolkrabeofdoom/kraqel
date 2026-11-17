@@ -1,5 +1,12 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+[Sichere Paketartefakte/Retry](../../testing/native-package-artifact-retry.md), 17. November:
+authentisierter Abort autorisiert eng begrenzte Ersetzung vor erneuter Vorbereitung unter derselben
+Sperre. Keine Löschung aktivierter/unbekannter Pakete, kein Link-Follow oder Sweep. Exklusive
+Zielanlage vor Pending; laufende Kopierabsicht bleibt bei Fehlern ausdrücklich abzubrechen. Drei
+native Fälle, 56 aktive Helfertests/Clippy und Daten-/MAC-Audit grün. Neuer Broker benötigt eigenes
+frisches ETW; keine fachliche Runtime-Ausnahme oder Produktfreigabe, striktes Ziel unverändert.
+
 Gezielte
 [Update-Abbruch-/Fehlerreconciliation](../../testing/native-update-abort-reconciliation.md), 17.
 November: drei native Fälle sowie zwei zusätzliche Helfertests sichern den vorhandenen Pfad unter

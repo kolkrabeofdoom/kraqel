@@ -1,5 +1,22 @@
 # Entwicklungsstatus
 
+Sichere Paketartefakte/erneute Vorbereitung, 17. November: Schema 4 leitet ersetzbare Hashs nur aus
+authentisierten Abort-Records ab. Aktueller Actor/Kopf, Jobleerstand und erlaubter Übergang vor
+jeder Dateimutation; dieselbe Kontrollsperre durchgehend gehalten. Geprüfte Einlink-Datei über
+exklusiven Handle entfernen; aktive/früher aktivierte oder unbekannte Pakete, unsichere Links/ACLs
+und gesperrte Dateien nicht bereinigen. Zieldatei vor neuem Pending exklusiv erzeugen. Drei neue
+Tests, 56 aktive Helfertests/Clippy und drei native Retryfälle/Daten-MAC-Audit grün. Schlüssel,
+App-/Sitzungsbindung und drei legitime Projektkopien erhalten, kein Replayduplikat. Echte
+Vorschauablage unverändert, Testprozesse beendet. Neuer Broker ohne eigenen frischen ETW-Beleg;
+mittleres Prüfniveau, kein App-/Workspace-Gesamtlauf. Nächster begrenzter Scope: gezieltes frisches
+ETW des neuen Brokers samt Retry und verwaltetem Kandidaten. Unbekannte Artefakte ohne Abort und
+unvollständige Kontrollketten bleiben gesperrt; striktes Ziel und offene Produktabnahme unverändert.
+
+[Nachweis](testing/native-package-artifact-retry.md),
+[Aggregate](testing/native-package-artifact-retry.json).
+
+## Vorheriger funktionaler Prüfstand
+
 Gezielte Update-Abbruch-/Fehlerreconciliation, 17. November: vorhandener sicherer Laufzeitpfad mit
 zwei zusätzlichen Helfertests und neuem reproduzierbarem nativen PS-Helfer abgesichert. Drei Fälle
 bestanden: Teilkopie, Paketmanipulation, Prozessende nach veröffentlichtem Abort. Aktueller

@@ -164,9 +164,11 @@
              verwalteter Starts; acht Kontrollen, 132 explizite Enden, 0 Nicht-Loopback
        - [x] KQ-069 A: Gezielte Update-Abbruch-/Fehlerreconciliation unter derselben Sperre;
              Teilkopie/Manipulation/dauerhafter Abort, drei native Fälle, keine Replaykopie
-       - [ ] KQ-069 A: Abgebrochene Paketartefakte sicher behandeln/erneut vorbereiten unter
-             derselben Sperre; isolierten Produktstarter/echte Projektmigration integrieren sowie
-             weitere allgemeine Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
+       - [x] KQ-069 A: Authentisiert abgebrochene Paketartefakte unter derselben Sperre sicher
+             ersetzen/erneut vorbereiten; Kollisionen ohne neues Pending, drei native Retryfälle
+       - [ ] KQ-069 A: Frisches ETW des neuen Brokers samt Retry/verwaltetem Kandidaten; isolierten
+             Produktstarter/echte Projektmigration integrieren sowie weitere allgemeine
+             Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
              integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker
              kalibrieren; Packaging und F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit

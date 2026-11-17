@@ -199,9 +199,16 @@ Sitzungs-/App-/Aufgabenbindung bleiben erhalten, Pending wird entfernt. Nach ver
 Abort-Kopf ist authentisierter Wiederanlauf möglich; erneuter Abort ohne Pending wird ohne weitere
 Mutation abgewiesen. Unvollständige Kontrollketten werden weiterhin nicht repariert.
 
-Abort entfernt keine Paketbytes. Vorhandene abgebrochene Kopien können erneute `create_new`-
-Vorbereitung desselben Hashs verhindern und erneut Pending hinterlassen; sicheres Artefakt-Cleanup
-und transparente Wiederholung sind offen.
+Abort entfernt selbst keine Paketbytes. Schema 4 rekonstruiert zusätzlich die abgebrochenen Hashs
+aus der authentisierten Historie. Erneute explizite Vorbereitung darf genau deren nie aktivierte
+Kopie unter derselben Sperre ersetzen: Übergang/Actor/Kopf/Job vor Mutation prüfen, exklusive
+reguläre private Einlink-Datei ohne Reparse-/Offline-/Recall-Attribute über geprüften Handle
+löschen. Kein Sweep und keine Löschung unbekannter/aktiver/früher aktivierter Pakete. Neue Zieldatei
+exklusiv vor Prepare-Record anlegen/ACL prüfen. Kollisions-/Lösch-/Anlagefehler erzeugen kein neues
+Pending; I/O-Fehler während der danach signierten Kopierabsicht bleiben ausdrücklich abzubrechen.
+Schema 2 erhält nur die frühere Zielanlage, keine automatische Artefaktentfernung. Unbekannte
+Artefakte vor erstem signierten Prepare und defekte Ketten bleiben gesperrt. Kein neues Wireformat.
+[Implementierung und gezielte Retrynachweise](../testing/native-package-artifact-retry.md).
 [Drei gezielte native Fälle und Grenzen](../testing/native-update-abort-reconciliation.md).
 
 ## Synthetische Crashprüfung
