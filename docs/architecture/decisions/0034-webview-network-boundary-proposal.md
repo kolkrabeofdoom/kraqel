@@ -1,5 +1,13 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+Kontrollgebundener synthetischer Start, 17. November:
+[Implementierung und Beleg](../../testing/native-product-starter.md) verbinden erstmals
+Startlebenszeit, private Kontrollsperre und den von Updates geprüften Produktjob. Zwei isolierte
+Starts mit zwölf tatsächlichen Dateiverweigerungen und unabhängigem MAC-/Datenaudit bestanden.
+Appdaten bleiben frische getrennte TEMP-Sitzungen; keine normale Produktintegration, dauerhafte
+Apppaket-/Sitzungsbindung oder echte Migration. Kein frischer ETW-Beleg des neuen Brokerhashs;
+striktes Datenschutzziel unverändert.
+
 Kontroll-Crash-/Netzbeleg, 16. November:
 [Eigener frischer Nachweis](../../testing/native-product-control-crash-etw.md) für denselben neuen
 gesicherten Prüfstand. 28 Prozessabbrüche, 17 gesperrte/elf nutzbare Zustände, acht explizite

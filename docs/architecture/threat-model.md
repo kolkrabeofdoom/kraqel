@@ -1,5 +1,13 @@
 # Bedrohungsmodell (Entwurf)
 
+[Kontrollgebundener Startpfad](../testing/native-product-starter.md), 17. November: synthetische
+Vorschau hält die private Kontrollsperre über die ganze GUI-Laufzeit und verwendet den gleichen
+Produktjob wie Updates. Vor Resume tatsächliche Sperre/Rootzuweisung und zwölf private
+Dateiverweigerungen in zwei Starts geprüft; Quelle/Kopie an erwartete SHA gebunden und gepinnt.
+Containerrechte nur für neue getrennte TEMP-Appdaten, keine Übernahme vorhandener Projekte oder
+Auftragsjournale. Noch keine dauerhafte Apppaket-/Sitzungsbindung, kein Produkt-Recoverypfad und
+kein frischer ETW-Beleg dieses Brokerhashs. Striktes Ziel und offene Produkt-Q-01/Q-02 unverändert.
+
 [Kontroll-Crash-Serie und eigener ETW-Beleg](../testing/native-product-control-crash-etw.md): 28
 harte Prozessabbrüche mit frischen synthetischen Wurzeln; 17 unvollständige Zustände bleiben
 gesperrt, elf nutzbar, acht ausdrücklich weitergeführt. Kein Reset/automatisches Reparieren. Faults

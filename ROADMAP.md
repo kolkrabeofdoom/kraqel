@@ -146,8 +146,11 @@
              und Kontrollschema 1 → 2; 30 native Aufrufe/18 Container-Dateiverweigerungen
        - [x] KQ-069 A: Kontroll-Crash-Serie und eigener frischer ETW-Vergleich; 28 Abbrüche, 17
              gesperrte/elf nutzbare Zustände, acht Kontrollen, 1.136 Enden, 0 Nicht-Loopback
-       - [ ] KQ-069 A: Isolierten Produktstarter/echte Projektmigration integrieren sowie weitere
-             allgemeine Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
+       - [x] KQ-069 A: Synthetischen isolierten Startpfad an Kontrollsperre/Produktjob binden; zwei
+             native Starts/zwölf private Dateiverweigerungen, Daten-/MAC-Audit
+       - [ ] KQ-069 A: Dauerhafte Apppaket-/Sitzungsbindung und Wiederanlauf, eigener frischer ETW;
+             isolierten Produktstarter/echte Projektmigration integrieren sowie weitere allgemeine
+             Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
              integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker
              kalibrieren; Packaging und F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit

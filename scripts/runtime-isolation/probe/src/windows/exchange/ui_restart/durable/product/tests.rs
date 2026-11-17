@@ -377,3 +377,104 @@ fn active_native_job_blocks_updates_and_migration_without_terminating_the_job() 
         )
         .unwrap();
 }
+
+#[test]
+fn starter_rejects_bootstrap_wrong_actor_stale_head_pending_and_wrong_app_without_mutation() {
+    let f = Fixture::new();
+    let mut store = f.store();
+    assert!(store.start_guard([1; 32], store.state.head).is_err());
+    store
+        .append(
+            [1; 32],
+            store.state.head,
+            Action::Migrate { from: 1, to: 2 },
+        )
+        .unwrap();
+    let head = store.state.head;
+    let key = hash(&f.root().join("control/authority.key")).unwrap();
+    assert!(store.start_guard([2; 32], head).is_err());
+    assert!(store.start_guard([1; 32], [0; 32]).is_err());
+    assert!(
+        store
+            .start_check([1; 32], head, &std::env::current_exe().unwrap(), [0; 32])
+            .is_err()
+    );
+    assert_eq!(store.state.head, head);
+    store
+        .append([1; 32], head, Action::Prepare { binary: [8; 32] })
+        .unwrap();
+    assert!(store.start_guard([1; 32], store.state.head).is_err());
+    store
+        .append([1; 32], store.state.head, Action::Abort)
+        .unwrap();
+    assert!(store.start_guard([1; 32], store.state.head).is_ok());
+    assert_eq!(hash(&f.root().join("control/authority.key")).unwrap(), key);
+    assert!(
+        fs::read_dir(f.root().join("data"))
+            .unwrap()
+            .next()
+            .is_none()
+    );
+}
+
+#[test]
+fn starter_rejects_even_empty_named_job_and_requires_a_held_lease_and_assigned_root() {
+    let f = Fixture::new();
+    let mut store = f.store();
+    store
+        .append(
+            [1; 32],
+            store.state.head,
+            Action::Migrate { from: 1, to: 2 },
+        )
+        .unwrap();
+    let name = store.job_name();
+    let job = Handle(unsafe { CreateJobObjectW(null(), name.as_ptr()) });
+    assert!(!job.0.is_null());
+    assert!(store.idle().is_ok());
+    assert_eq!(
+        store
+            .start_guard([1; 32], store.state.head)
+            .unwrap_err()
+            .stage,
+        "product-start-job-collision"
+    );
+    assert_eq!(
+        verify_start_lease(&f.root(), &name).unwrap_err().stage,
+        "product-start-assigned-job-count"
+    );
+    drop(job);
+    assert!(store.start_guard([1; 32], store.state.head).is_ok());
+    drop(store);
+    assert_eq!(
+        verify_start_lease(&f.root(), &name).unwrap_err().stage,
+        "product-start-lease-not-held"
+    );
+}
+
+#[test]
+#[ignore = "bounded subprocess helper, invoked only by the starter lease test"]
+fn starter_lock_child() {
+    let root = PathBuf::from(std::env::var_os("KRAQEL_SYNTHETIC_STARTER_LOCK_ROOT").unwrap());
+    match Store::open(&root) {
+        Err(error) => assert_eq!(error.code, i64::from(ERROR_SHARING_VIOLATION)),
+        Ok(_) => panic!("competing process acquired the starter control lease"),
+    }
+}
+
+#[test]
+fn starter_control_lease_excludes_an_independent_controller_process() {
+    let f = Fixture::new();
+    let _store = f.store();
+    let result = Command::new(std::env::current_exe().unwrap())
+        .args([
+            "--exact",
+            "windows::exchange::ui_restart::durable::product::tests::starter_lock_child",
+            "--ignored",
+        ])
+        .env("KRAQEL_SYNTHETIC_STARTER_LOCK_ROOT", f.root())
+        .creation_flags(CREATE_NO_WINDOW)
+        .output()
+        .unwrap();
+    assert!(result.status.success(), "independent lease check failed");
+}

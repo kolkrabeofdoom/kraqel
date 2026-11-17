@@ -1,5 +1,21 @@
 # Entwicklungsstatus
 
+Kontrollgebundener isolierter Startpfad, 17. November: native synthetische Vorschau hält die private
+Kontrollsperre über die gesamte GUI-/Joblaufzeit und verwendet denselben benannten Produktjob wie
+Updates. Schema/Pending/Kopf/Actor/Apphash und auch leere Jobkollisionen geprüft. Quelle und Kopie
+gepinnt, tatsächliche Sperre/Rootzuweisung vor Resume geprüft. Zwei native Starts mit Neueröffnung
+derselben Kontrollablage, aber ausdrücklich getrennten neuen TEMP-Appdaten; zwölf tatsächliche
+Dateiverweigerungen, zwei synthetische Aufträge/zwei legitime Kopien mit je zwei Dokumenten.
+Unabhängiger MAC-/Wurzel-/SQLite-/Unicode-Audit bestanden, private Datenrolle bleibt leer. 43 aktive
+Helfertests, Clippy/`pnpm check` grün. Echte Vorschauablage/verwaltete EXE unverändert.
+[Nachweis](testing/native-product-starter.md), [Aggregate](testing/native-product-starter.json).
+Noch keine dauerhafte Produktdaten-/Sitzungsbindung, keine echte Datenmigration, kein frischer
+ETW-Beleg des neuen Brokerhashs und keine normale Produktintegration. Nächster Scope: authentisierte
+dauerhafte Apppaket-/Sitzungsbindung und Wiederanlauf unter derselben Sperre, danach frischer
+ETW-Vergleich. Striktes Ziel unverändert, Produkt-Q-01/Q-02 nicht bestanden; #134 offen.
+
+## Vorheriger Prüfstand mit eigenem Netznachweis
+
 Kontroll-Crash-Serie und eigener frischer ETW-Vergleich, 16. November: 28 echte Prozessabbrüche an
 Initialisierung, Kontrollmigration, Updatevorbereitung/Paketkopie, Aktivierung und Abbruch. 17
 Zustände bleiben korrekt gesperrt, elf nutzbar; acht ausdrücklich weitergeführt, kein automatisches

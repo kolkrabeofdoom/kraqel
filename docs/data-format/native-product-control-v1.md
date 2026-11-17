@@ -1,6 +1,6 @@
 # Native Broker-Kontrollablage und lokale Updates · v1
 
-Stand: 16. November 2026. Implementierte Windows-Vorschau im nativen Forschungsbroker, noch kein
+Stand: 17. November 2026. Implementierte Windows-Vorschau im nativen Forschungsbroker, noch kein
 normaler Produktstarter. [Funktionsnachweis](../testing/native-product-control.md),
 [Bedrohungsmodell](../architecture/threat-model.md). Striktes Datenschutzziel unverändert.
 
@@ -83,8 +83,9 @@ Auftragsdatenbank. Forschungs-v1/v2/v3-Daten werden nicht automatisch migriert.
 
 Jede Änderung benötigt die exklusive Sperre und einen leeren nativen Job
 `Local\KRAQEL.Product.Broker.<Installationskennung>`. Der künftige Produktstarter muss dieselbe
-Sperre vor Joberzeugung halten; diese Integration ist noch offen. Aktive Jobs werden bei einer
-abgewiesenen Änderung nicht beendet. Status ist kein Startgrant; Pending ist keine Importfreigabe.
+Sperre vor Joberzeugung halten. Der synthetische Startpfad unten verwendet sie bereits; die normale
+Produktintegration bleibt offen. Aktive Jobs werden bei einer abgewiesenen Änderung nicht beendet.
+Status ist kein Startgrant; Pending ist keine Importfreigabe.
 
 Updates werden lokal ausdrücklich anhand einer erwarteten SHA-256 freigegeben, als reguläre
 begrenzte Datei gepinnt, als x64-EXE geprüft und in die private Ablage kopiert. Das authentisiert
@@ -93,6 +94,22 @@ Downloads, Netzendpunkte, Codesignierungszertifikate oder automatische Updateins
 irrtümlich freigegebenes inkompatibles Programm kann die Ablage sperren; keine heimliche Rückkehr
 auf eine alte Programmversion. Herausgebervertrauen, Paketkompatibilität und echte Projektmigration
 bleiben Teil der weiteren Produktintegration.
+
+## Kontrollgebundener synthetischer Start
+
+`broker-store start-check <Forschungs-App> <erwartete App-SHA> <aktueller Kopfhash>` verlangt den
+aktuell autorisierten Broker, Kontrollschema 2, keinen Pending-Zustand und den aktuellen Kopf. Die
+Kontrollsperre bleibt bis Jobleerstand gehalten. Der suspendierte Root wird bei Erzeugung dem
+gleichen benannten Produktjob zugewiesen, den Updates prüfen. Selbst eine leere Jobkollision wird
+abgewiesen. Appquelle und gestagte Kopie werden anhand der erwarteten SHA geprüft und gepinnt.
+
+Nur eine neue getrennte synthetische TEMP-Sitzung bekommt Containerrechte; die Kontrollablage samt
+reserviertem `data/` bleibt privat. Jeder Aufruf erteilt einen neuen synthetischen Auftrag, keine
+Wiederaufnahme vorhandener Produktdaten. Es gibt dort keinen Forschungs-Brokerkontrollordner, der
+eine Wiederaufnahme ohne Produktkontrollsperre erlauben würde. Noch kein dauerhaft authentisiertes
+Apppaket-/Sitzungslayout und keine normale Produktintegration.
+[Startnachweis und Grenzen](../testing/native-product-starter.md). Der neue Broker benötigt einen
+eigenen frischen ETW-Nachweis; vorhandene Messungen werden nicht übertragen.
 
 ## Synthetische Crashprüfung
 
@@ -121,6 +138,7 @@ kraqel-isolation-probe.exe broker-store init
 … broker-store activate <erwarteter Kopfhash>
 … broker-store abort <erwarteter Kopfhash>
 … broker-store check-container <gesicherte Forschungs-App>
+… broker-store start-check <gesicherte Forschungs-App> <erwartete App-SHA> <erwarteter Kopfhash>
 ```
 
 Nach Aktivierung weitere Commands über die verwaltete neue EXE unter `bin/<SHA>.exe` ausführen. Die

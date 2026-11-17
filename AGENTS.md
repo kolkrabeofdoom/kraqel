@@ -287,7 +287,16 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
-Aktuell:
+Aktuell: [Kontrollgebundener isolierter Startpfad](docs/testing/native-product-starter.md), 17.
+November: synthetische Vorschau verwendet die Kontrollsperre über die ganze GUI-Laufzeit und
+denselben benannten Job wie Updates. Nur getrennte frische TEMP-Appdaten erhalten Containerrechte;
+echte Vorschauablage unverändert. Zwei native Starts/zwölf Dateiverweigerungen, unabhängiger
+Daten-/MAC- Audit, 43 aktive Helfertests bestanden. `durable/product/starter.rs` enthält diesen
+begrenzten Startpfad. Kein dauerhafter Produktdaten-Wiederanlauf und noch kein frischer ETW-Beleg
+des neuen Brokerhashs. Nächster Scope: authentisierte dauerhafte Apppaket-/Sitzungsbindung und
+Wiederanlauf mit derselben Kontrollsperre; danach frischer ETW-Vergleich. Striktes Ziel unverändert.
+
+Vorheriger Prüfstand:
 [Kontroll-Crash-Serie und frischer ETW-Beleg](docs/testing/native-product-control-crash-etw.md)
 bestanden: 28 harte Abbrüche, 17 gesperrte/elf nutzbare Zustände, acht explizite Weiterführungen,
 kein Schlüsselreset. Normale Produkt-/Vorschauablage blieb unbenutzt; ihr bisher autorisierter

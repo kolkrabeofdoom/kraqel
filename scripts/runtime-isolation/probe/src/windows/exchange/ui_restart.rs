@@ -10,7 +10,9 @@ mod durable;
 mod live;
 pub(in super::super) use durable::product_storage;
 pub(in super::super) use durable::{combined_series, next_live, seed_live};
-pub(in super::super) use durable::{product_crash_child, product_crash_series};
+pub(in super::super) use durable::{
+    product_crash_child, product_crash_series, product_start_series,
+};
 pub(in super::super) use durable::{
     recover as recover_broker, seed as seed_broker, series as controller_crash_series,
 };
@@ -260,15 +262,19 @@ fn generation_with_options(
     {
         return Err(invalid("restart-token"));
     }
-    if durable_job.is_some() {
+    let product_start = durable_job.is_some() && product_root.is_some();
+    if durable_job.is_some() && !product_start {
         durable::verify_container_denials(worker.0.0, root)?;
     }
     if let Some(product_root) = product_root {
         durable::verify_product_denials(worker.0.0, product_root)?;
+        if let Some(name) = durable_job {
+            durable::verify_start_lease(product_root, name)?;
+        }
     }
     write_json(
         &root.join(format!("launch-{index:02}.json")),
-        &json!({"pid":info.dwProcessId,"token":token,"recovery":ticket.recovery,"point":ticket.point,"privateBrokerFilesDenied":durable_job.is_some(),"privateProductFilesDenied":product_root.is_some()}),
+        &json!({"pid":info.dwProcessId,"token":token,"recovery":ticket.recovery,"point":ticket.point,"privateBrokerFilesDenied":durable_job.is_some() && !product_start,"privateProductFilesDenied":product_root.is_some(),"productControlLeaseVerified":product_start}),
     )?;
     if unsafe { ResumeThread(worker.1.0) } == u32::MAX {
         return Err(fail("restart-resume"));

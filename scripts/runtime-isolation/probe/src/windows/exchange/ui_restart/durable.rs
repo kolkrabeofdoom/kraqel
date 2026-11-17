@@ -10,8 +10,10 @@ mod product;
 pub(in super::super::super) use combined::{next_live, seed_live, series as combined_series};
 pub(in super::super::super) use product::command as product_storage;
 pub(super) use product::verify_denials as verify_product_denials;
+pub(super) use product::verify_start_lease;
 pub(in super::super::super) use product::{
     crash_child as product_crash_child, crash_series as product_crash_series,
+    start_series as product_start_series,
 };
 
 #[derive(Clone, Serialize, Deserialize)]

@@ -5,9 +5,20 @@ Code und Projektdokumentation; ein `.kraqel`-Archiv transportiert Manuskript, St
 Medien. Wer beides verwechselt, erhält entweder fehlende Kapitel oder einen sehr literarischen
 Commitverlauf.
 
-## Aktuelle Entwicklungsübergabe · 16. November 2026
+## Aktuelle Entwicklungsübergabe · 17. November 2026
 
-Neuester Prüfstand:
+Neuester funktionaler Prüfstand:
+[Kontrollgebundener isolierter Startpfad](testing/native-product-starter.md) mit neuer gesicherter
+Broker-EXE. Zwei neue synthetische Sitzungen verwenden dieselbe private Kontrollsperre und denselben
+Produktjob; Quelle/Kopie gepinnt, zwölf private Dateiverweigerungen und unabhängiger MAC-/Datenaudit
+bestanden. 43 aktive Helfertests, Clippy/`pnpm check` grün. Echte Vorschauablage und nachfolgend
+genannte autorisierte EXE unverändert, kein automatisches Aktivieren des neuen Prüfbuilds. Neue
+Appdaten bleiben getrennte TEMP-Fixtures, keine vorhandenen Projekte/Journale übernommen. Kein
+frischer ETW-Beleg dieses Brokerhashs. Nächster Scope: authentisierte dauerhafte
+Apppaket-/Sitzungsbindung und Wiederanlauf unter derselben Sperre, danach eigener ETW-Vergleich.
+Striktes Ziel unverändert, keine Produktfreigabe.
+
+Vorheriger Prüfstand mit eigenem Netzbeleg:
 [Kontroll-Crash-Serie und frisches ETW](testing/native-product-control-crash-etw.md) mit separat
 gesichertem Prüfbroker/Updatekandidat bestanden. 28 Abbrüche, 17 gesperrte/elf nutzbare Zustände,
 acht explizite Weiterführungen ohne Schlüsselreset; zwei gültige ETW-Phasen mit acht Kontrollen,

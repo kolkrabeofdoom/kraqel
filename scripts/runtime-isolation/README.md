@@ -282,6 +282,28 @@ Trace-Ende schließen. Roh-ETL/XML bleiben außerhalb Git. Ein expliziter unisol
 ein eigener Diagnosefall, niemals ein Fallback. Unterschiedliche Umgebungen, Profilzustände und
 Laufzeiten im Protokoll benennen; keine automatische kausale Gleichsetzung von Zählwerten.
 
+## Kontrollgebundener synthetischer Startpfad
+
+Der begrenzte native Vorschaupfad
+`broker-store start-check <Forschungs-App> <erwartete App-SHA> <aktueller Kopfhash>` hält die
+authentisierte private Kontrollsperre über die gesamte GUI-Laufzeit und verwendet denselben
+benannten Produktjob wie Updates. Containerrechte erhalten ausschließlich neue getrennte
+synthetische TEMP-Appdaten; keine vorhandenen Projekte/Journale werden übernommen. Keine normale
+Produktintegration oder Wiederaufnahme bestehender Sitzungen. Die echte Vorschauablage niemals
+zurücksetzen oder kopieren, um einen neuen Prüfbuild dort zu autorisieren.
+
+Reproduktion ohne Zugriff auf diese echte Vorschauablage:
+
+```powershell
+$starterRoot = Join-Path $env:TEMP ('kraqel-isolation-controller-' + [guid]::NewGuid().ToString('N'))
+# Gesicherte Forschungs-App und erwartete SHA explizit angeben; kein normaler Appbuild.
+cargo run --locked --manifest-path scripts/runtime-isolation/probe/Cargo.toml -- product-start-series $starterRoot <Forschungs-App> <erwartete-App-SHA>
+```
+
+[Nachweis, Hashes und Grenzen](../../docs/testing/native-product-starter.md),
+[Kontrollvertrag](../../docs/data-format/native-product-control-v1.md). Der geänderte Broker
+benötigt einen eigenen frischen ETW-Nachweis; ältere Messungen werden nicht übertragen.
+
 Primärquellen:
 [AppContainer für klassische Apps](https://learn.microsoft.com/en-us/windows/win32/secauthz/appcontainer-for-legacy-applications-),
 [Start mit Security Capabilities](https://learn.microsoft.com/en-us/windows/win32/secauthz/implementing-an-appcontainer),

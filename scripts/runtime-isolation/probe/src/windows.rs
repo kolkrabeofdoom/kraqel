@@ -763,6 +763,13 @@ pub fn main() {
         if args.len() == 3 && args[0] == "product-control-series" {
             return exchange::product_crash_series(Path::new(&args[1]), Path::new(&args[2]));
         }
+        if args.len() == 4 && args[0] == "product-start-series" {
+            return exchange::product_start_series(
+                Path::new(&args[1]),
+                Path::new(&args[2]),
+                &args[3],
+            );
+        }
         if args.len() == 6 && args[0] == "product-control-child" {
             return exchange::product_crash_child(&args[1..]);
         }

@@ -7,11 +7,14 @@ use windows_sys::Win32::Security::{
 use zeroize::Zeroizing;
 mod crash;
 mod secure_fs;
+mod starter;
 pub(in super::super::super::super) use crash::{child as crash_child, series as crash_series};
 use secure_fs::{
     binary_pin, local_path, path_wide, pin_directories, private_acl, protected_file,
     secure_directory,
 };
+pub(in super::super::super::super) use starter::series as start_series;
+pub(in super::super) use starter::verify_start_lease;
 
 const DOMAIN: &[u8] = b"KRAQEL-PRODUCT-CONTROL\0\x01";
 const MAX_RECORDS: usize = 256;
@@ -332,10 +335,7 @@ impl Store {
         Ok(())
     }
     fn idle(&self) -> Result<()> {
-        let name = wide(format!(
-            "Local\\KRAQEL.Product.Broker.{}",
-            self.state.installation.simple()
-        ));
+        let name = self.job_name();
         let raw = unsafe { OpenJobObjectW(JOB_OBJECT_QUERY, 0, name.as_ptr()) };
         if raw.is_null() {
             if unsafe { GetLastError() } == ERROR_FILE_NOT_FOUND {
@@ -361,6 +361,12 @@ impl Store {
             return Err(invalid("product-job-active"));
         }
         Ok(())
+    }
+    fn job_name(&self) -> Vec<u16> {
+        wide(format!(
+            "Local\\KRAQEL.Product.Broker.{}",
+            self.state.installation.simple()
+        ))
     }
     fn append(&mut self, actor: [u8; 32], head: [u8; 32], action: Action) -> Result<()> {
         self.actor(actor)?;
@@ -633,6 +639,14 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
     }
     if args.len() == 2 && args[0] == "check-container" {
         return store.check_container(Path::new(&args[1]));
+    }
+    if args.len() == 4 && args[0] == "start-check" {
+        return store.start_check(
+            actor,
+            parse_hash(&args[3])?,
+            Path::new(&args[1]),
+            parse_hash(&args[2])?,
+        );
     }
     if args.len() == 4 && args[0] == "prepare" {
         store.prepare(
