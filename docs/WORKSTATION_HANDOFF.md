@@ -7,6 +7,20 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 17. November 2026
 
+Neuester funktionaler Prüfstand:
+[Update-Abbruch-/Fehlerreconciliation](testing/native-update-abort-reconciliation.md). Drei native
+Fälle bestanden, vorhandener Laufzeitcode unverändert: Teilkopie, Manipulation und Crash nach
+veröffentlichtem Abort. Dieselbe Kontrollsperre, alter Actor und bestehende Aufgabe bleiben
+erhalten; keine defekte Kette reparieren. Zwei neue Tests, insgesamt 53 aktive Helfertests/Clippy
+sowie Daten-/MAC-/SQLite-Audit grün. Neuer
+`scripts/runtime-isolation/check-update-reconciliation.ps1` erzeugt nur drei frische TEMP-Cases mit
+explizit gesicherten Hashes; Reproduktion im Nachweis. Drei legitime Projektkopien, keine
+Replaykopie; Profile/Prozesse beendet, Rohbelege lokal. Echte Vorschauablage/verwaltete EXE
+unverändert, dort keine Prüfprogramme neu autorisieren. Keine neue ETW-Erfassung dieser Fehlerpfade.
+Nächster begrenzter Scope: verbleibende abgebrochene Paketdateien unter derselben Sperre sicher
+behandeln und erneute Vorbereitung ohne unbeabsichtigtes Pending ermöglichen. Striktes
+Datenschutzziel und offene Produktabnahme unverändert.
+
 Neuester Netzbeleg:
 [Frisches ETW beider Updateprogramme](testing/native-schema4-package-update-etw.md). Unveränderte
 gesicherte Programme, zwei gültige kurze Phasen, acht Kontrollen, Nullverluste/Zuordnungslücken, 132

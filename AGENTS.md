@@ -295,6 +295,19 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 ## Übergabe zwischen Codex-Sessions
 
 Aktuell:
+[Gezielte Update-Abbruch-/Fehlerreconciliation](docs/testing/native-update-abort-reconciliation.md), 17.
+November. Keine Runtimeänderung: zwei neue Tests und reproduzierbarer nativer PS-Helfer. Teilkopie,
+Manipulation und Prozessende nach veröffentlichtem Abort geprüft. Dieselbe Kontrollsperre, aktueller
+Actor/Kopf und leeres Jobobjekt bleiben verbindlich. 53 aktive Helfertests/Clippy grün; drei native
+Fälle, sechs GUIs, drei Aufgaben/Kopien ohne Replayduplikat, unabhängiger Daten-/MAC-Audit. Echte
+Vorschauablage unverändert, Testprozesse beendet. Keine neue ETW-Erfassung oder Übertragung früherer
+Netzbelege auf diese Fehlerläufe; mittleres Prüfniveau. Abort lässt Paketbytes liegen: gleicher Hash
+kann bei erneuter `create_new`-Vorbereitung wieder Pending hinterlassen. Nächster begrenzter Scope:
+sichere Behandlung abgebrochener Paketartefakte/erneute Vorbereitung unter derselben Sperre. Keine
+Reparatur defekter Kontrollketten. Striktes Ziel und offene Produktabnahme unverändert.
+
+Vorheriger Netzprüfstand:
+
 [Frisches ETW beider Schema-4-Brokerprogramme](docs/testing/native-schema4-package-update-etw.md), 17.
 November. Gesicherte Programme unverändert; Referenzserie und gezielter Updateablauf gültig. Alle 15
 nativen Updateaufrufe einschließlich fünf hashbenannter verwalteter EXEs erfasst; exakte

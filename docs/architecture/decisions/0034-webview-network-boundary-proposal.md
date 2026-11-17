@@ -1,5 +1,12 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+Gezielte
+[Update-Abbruch-/Fehlerreconciliation](../../testing/native-update-abort-reconciliation.md), 17.
+November: drei native Fälle sowie zwei zusätzliche Helfertests sichern den vorhandenen Pfad unter
+derselben Kontrollsperre ab. Abbruch erhält Actor und Aufgabenbindung; keine Kettenreparatur,
+Paketartefaktlöschung oder automatische neue Importautorität. Keine Runtimeänderung/neuer
+Netznachweis dieser zusätzlichen Fehlerpfade; striktes Ziel und offene Produktabnahme unverändert.
+
 Schema-4-Brokerpaket-Update, 17. November:
 [Implementierung/Beleg](../../testing/native-schema4-package-update.md) erlaubt lokale Updates unter
 derselben Kontrollsperre mit statischem begrenztem Paketvertrag und vollständiger Hashbindung. Kein

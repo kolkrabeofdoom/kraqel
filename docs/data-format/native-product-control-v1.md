@@ -190,6 +190,20 @@ Kandidaten müssen die unterstützte Deklaration selbst mitbringen; alte Schema-
 werden konservativ abgewiesen.
 [Gezielter nativer Nachweis und Grenzen](../testing/native-schema4-package-update.md).
 
+### Abbruch und Fehlerreconciliation
+
+Ein vollständig authentisiertes Pending bleibt auch ohne vollständige Paketkopie gültig; Aktivierung
+benötigt weiterhin die passende geschützte Datei. Der aktuelle Actor kann mit aktuellem Kopf und
+leerem Produktjob unter derselben exklusiven Storelease `Abort` anhängen. Actor und
+Sitzungs-/App-/Aufgabenbindung bleiben erhalten, Pending wird entfernt. Nach veröffentlichtem
+Abort-Kopf ist authentisierter Wiederanlauf möglich; erneuter Abort ohne Pending wird ohne weitere
+Mutation abgewiesen. Unvollständige Kontrollketten werden weiterhin nicht repariert.
+
+Abort entfernt keine Paketbytes. Vorhandene abgebrochene Kopien können erneute `create_new`-
+Vorbereitung desselben Hashs verhindern und erneut Pending hinterlassen; sicheres Artefakt-Cleanup
+und transparente Wiederholung sind offen.
+[Drei gezielte native Fälle und Grenzen](../testing/native-update-abort-reconciliation.md).
+
 ## Synthetische Crashprüfung
 
 `product-control-series <frische TEMP-Controllerwurzel> <Forschungs-App>` und der interne

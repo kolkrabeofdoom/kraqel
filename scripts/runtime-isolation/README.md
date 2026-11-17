@@ -1,5 +1,14 @@
 # AppContainer-Forschungshelfer für KQ-069
 
+Neuester gezielter Prüfstand:
+[Update-Abbruch-/Fehlerreconciliation](../../docs/testing/native-update-abort-reconciliation.md).
+`check-update-reconciliation.ps1` verwendet explizit hashgeprüfte gesicherte Programme und erzeugt
+drei frische synthetische TEMP-Cases: Teilkopie, manipuliertes Paket und Prozessende nach
+veröffentlichtem Abort. Gleiche Kontrollsperre, alter Actor und bestehende Importaufgabe bleiben
+gebunden; keine Kettenreparatur. 53 aktive Helfertests/Clippy und Daten-/MAC-Audit grün. Keine
+Runtimeänderung oder neuer Netzbeleg dieser zusätzlichen Fehlerläufe. Paketartefakt-Cleanup und
+transparenter Retry bleiben offen. Reproduktion/Hashes stehen im verlinkten Nachweis.
+
 Aktuell: [Startticket v3](../../docs/data-format/native-ui-restart-v3.md) und
 [Brokerkette v3](../../docs/data-format/native-broker-recovery-v3.md).
 `ui-combined-series <frische Controllerwurzel> <Forschungs-App>` prüft neun Live-/Wiederanlauf-/

@@ -877,3 +877,127 @@ fn schema4_updates_preserve_bound_state_key_data_and_allow_abort_without_new_aut
         );
     }
 }
+
+fn schema4_pending(f: &Fixture) -> Store {
+    let mut store = f.store();
+    for from in 1..4 {
+        store
+            .append(
+                [1; 32],
+                store.state.head,
+                Action::Migrate { from, to: from + 1 },
+            )
+            .unwrap();
+    }
+    let binding = session_binding();
+    store
+        .append(
+            [1; 32],
+            store.state.head,
+            Action::PrepareSession {
+                binding: binding.clone(),
+            },
+        )
+        .unwrap();
+    store
+        .append([1; 32], store.state.head, Action::BindSession { binding })
+        .unwrap();
+    let candidate = f.candidate();
+    store
+        .prepare(
+            [1; 32],
+            store.state.head,
+            &candidate,
+            hash(&candidate).unwrap(),
+        )
+        .unwrap();
+    store
+}
+
+#[test]
+fn schema4_bad_pending_package_requires_authenticated_abort_and_keeps_the_lease() {
+    for fault in ["missing", "partial", "tampered"] {
+        let f = Fixture::new();
+        let store = schema4_pending(&f);
+        let package = store.package(store.state.pending.unwrap());
+        let key = hash(&f.root().join("control/authority.key")).unwrap();
+        fs::write(f.root().join("data/consumed"), b"one consumed task").unwrap();
+        drop(store);
+        match fault {
+            "missing" => fs::remove_file(&package).unwrap(),
+            "partial" => OpenOptions::new()
+                .write(true)
+                .open(&package)
+                .unwrap()
+                .set_len(1024)
+                .unwrap(),
+            _ => fs::write(&package, b"tampered").unwrap(),
+        }
+        let mut store = Store::open(&f.root()).unwrap();
+        let pending_head = store.state.head;
+        let records = fs::read_dir(f.root().join("control/records"))
+            .unwrap()
+            .count();
+        assert!(Store::open(&f.root()).is_err());
+        assert!(store.activate([1; 32], pending_head).is_err());
+        assert!(store.append([2; 32], pending_head, Action::Abort).is_err());
+        assert!(store.append([1; 32], [0; 32], Action::Abort).is_err());
+        assert_eq!(store.state.head, pending_head);
+        assert_eq!(
+            fs::read_dir(f.root().join("control/records"))
+                .unwrap()
+                .count(),
+            records
+        );
+        store.append([1; 32], pending_head, Action::Abort).unwrap();
+        let terminal_head = store.state.head;
+        assert!(Store::open(&f.root()).is_err());
+        assert!(store.append([1; 32], terminal_head, Action::Abort).is_err());
+        assert!(store.activate([1; 32], terminal_head).is_err());
+        assert_eq!(store.state.head, terminal_head);
+        drop(store);
+        let store = Store::open(&f.root()).unwrap();
+        assert!(store.state.pending.is_none());
+        assert_eq!(store.state.actor, [1; 32]);
+        assert!(store.state.session.is_some());
+        assert_eq!(hash(&f.root().join("control/authority.key")).unwrap(), key);
+        assert_eq!(
+            fs::read(f.root().join("data/consumed")).unwrap(),
+            b"one consumed task"
+        );
+    }
+}
+
+#[test]
+fn schema4_uncommitted_abort_stays_blocked_without_head_or_key_repair() {
+    let f = Fixture::new();
+    let store = schema4_pending(&f);
+    let key = hash(&f.root().join("control/authority.key")).unwrap();
+    let head = hash(&f.root().join("control/head.mac")).unwrap();
+    let record = Record {
+        version: 1,
+        sequence: store.state.sequence + 1,
+        installation: store.state.installation,
+        root_sha256: root_hash(&store.root),
+        previous_sha256: store.state.head,
+        operation: Uuid::new_v4(),
+        actor: store.state.actor,
+        action: Action::Abort,
+    };
+    let wire = sealed(&serde_json::to_vec(&record).unwrap(), &store.key).unwrap();
+    write_record(&store.root, record.sequence, &wire).unwrap();
+    drop(store);
+    for _ in 0..2 {
+        assert!(Store::open(&f.root()).is_err());
+        assert_eq!(hash(&f.root().join("control/head.mac")).unwrap(), head);
+        assert_eq!(hash(&f.root().join("control/authority.key")).unwrap(), key);
+        assert_eq!(
+            fs::read(
+                f.root()
+                    .join(format!("control/records/{:04}.mac", record.sequence))
+            )
+            .unwrap(),
+            wire
+        );
+    }
+}

@@ -1,5 +1,14 @@
 # Bedrohungsmodell (Entwurf)
 
+[Gezielte Update-Abbruch-/Fehlerreconciliation](../testing/native-update-abort-reconciliation.md), 17.
+November: vorhandener Runtimepfad unter derselben Sperre geprüft; aktueller Actor/Kopf und
+Jobleerstand erforderlich. Teilkopie/Manipulation aktivieren nicht; authentisierter Abort erhält
+Aufgaben-/Sitzungsbindung. Nach veröffentlichtem Abort authentisierter Wiederanlauf ohne Duplikat;
+unvollständiger Abort-Tail bleibt gesperrt. Kein Schlüssel-/Kopfreset oder neue Importautorität. 53
+aktive Helfertests/Clippy, drei native Fälle/Daten-/MAC-Audit grün. Keine Runtimeänderung/neuer
+Netzbeleg dieser Fehlerpfade. Abgebrochene Paketartefakte und transparente Wiederholung bleiben
+offen; striktes Ziel und Produktgrenzen unverändert.
+
 [Lokale Schema-4-Paketkompatibilität](../testing/native-schema4-package-update.md), 17. November:
 Vorbereitung/Aktivierung/Abbruch unter bestehender Sperre. Gepinnte Kandidatenbytes müssen den
 erwarteten SHA und einen begrenzten read-only PE-Vertrag erfüllen; Prüfung vor Pending und erneut

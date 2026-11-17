@@ -1,5 +1,21 @@
 # Entwicklungsstatus
 
+Gezielte Update-Abbruch-/Fehlerreconciliation, 17. November: vorhandener sicherer Laufzeitpfad mit
+zwei zusätzlichen Helfertests und neuem reproduzierbarem nativen PS-Helfer abgesichert. Drei Fälle
+bestanden: Teilkopie, Paketmanipulation, Prozessende nach veröffentlichtem Abort. Aktueller
+Actor/Kopf, leeres Jobobjekt und dieselbe Kontrollsperre bleiben erforderlich; keine Reparatur
+unvollständiger Ketten. 53 aktive Helfertests/Clippy grün. 45 Kontrollprozesse/sechs GUIs, drei
+Aufgaben und drei legitime Kopien, keine Replaykopie; unabhängiger Daten-/MAC-/SQLite-Audit grün.
+[Nachweis](testing/native-update-abort-reconciliation.md),
+[Aggregate](testing/native-update-abort-reconciliation.json). Echte Vorschauablage unverändert,
+Testprozesse beendet. Mittleres Prüfniveau, kein neuer Broker-/Appbuild oder Workspace-Gesamtlauf.
+Kein neuer ETW-Beleg dieser zusätzlichen Fehlerläufe. Offene Einschränkung: Abort lässt Paketbytes
+liegen, erneute Vorbereitung desselben Hashs kann wieder Pending erzeugen. Nächster begrenzter
+Scope: abgebrochene Paketartefakte sicher behandeln/erneut vorbereiten unter derselben Sperre.
+Striktes Datenschutzziel, normale Produktintegration und offene Produkt-Q-01/Q-02 unverändert.
+
+## Vorheriger Netzprüfstand
+
 Gezieltes frisches ETW beider Schema-4-Updateprogramme, 17. November: gesicherte Programme
 unverändert, zwei kurze gültige Phasen. Alle 15 Updateaufrufe erfasst, davon fünf unter dem
 hashbenannten verwalteten EXE-Namen; exakte PID-/Image-Zuordnung nur für `native-control`. Acht
