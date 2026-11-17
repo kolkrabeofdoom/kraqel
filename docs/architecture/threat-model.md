@@ -1,12 +1,13 @@
 # Bedrohungsmodell (Entwurf)
 
-[Frischer C2-Datenpfad-Netzbeleg](../testing/product-start-p2c-native-data-etw.md), 17. November
-2026: unveränderter Build `73a7aad…`, Referenz und Wiederöffnen/explizite Stilllegung. 15
-Controller/15 Konsolenhosts, 30 explizite Enden, acht Kontrollen, Nullverluste/Zuordnungslücken;
-null beobachtete Netzereignisse einschließlich Loopback in diesen Bäumen. Zwölf authentisierte
-Records/vier Inventare und zwei Profilstilllegungen unabhängig geprüft, echte Kontrollhashes
-unverändert. Kein neuer Build oder UI-Start. C3-Token-/Kindrollen-/Lebenszeitbeleg und normale
-Produkt-Q-01/Q-02 bleiben offen; keine universelle Dienst-/Netzattestierung, striktes Ziel
+[C3-Synthesekern](../testing/product-start-p2c-group-bootstrap.md), 17. November 2026: residenter
+Wächter mit exklusiver Lease und kontinuierlich gehaltenem Zweiprozess-Job implementiert.
+Root/echtes Kind nativ vor Resume geprüft, private Daten gesperrt; Datenzugriff erst nach Continue.
+Root-Ende bei lebendem Kind gibt keine Freigabe. Ein harter Wächterabbruch bleibt auch nach
+separater eigener Fixturebereinigung pending/gesperrt; kein PID-/Jobnamenersatz für Gruppenende.
+Gruppen-MAC bindet den Kontext, beweist keine unabhängige Schreiber-PID: kein Renderer-/WebView-
+Vertrag daraus ableiten. 96 aktive Helfertests und 22 Controlleraufrufe geprüft; neuer Build
+`b24b3aa…` benötigt eigenen Netzbeleg. Native UI-ABI 0, Produkt-Q-01/Q-02 und striktes Ziel
 unverändert.
 
 Vorheriger Implementierungs-/Netznachweis:

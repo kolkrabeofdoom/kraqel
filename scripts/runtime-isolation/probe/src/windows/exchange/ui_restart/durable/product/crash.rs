@@ -5,6 +5,7 @@ use std::cell::Cell;
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub(super) enum Point {
+    C3RootEnded,
     BeforeKey,
     KeySynced,
     BeforeRecord,

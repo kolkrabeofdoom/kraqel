@@ -1,9 +1,10 @@
 # P2c: persistente Arbeitsdaten, Paketbindung und Mehrprozess-UI
 
-Status: **Vertragsentwurf v1, 17. November 2026; C1-Modell und begrenzte native C2-Datenvorbereitung
-implementiert, UI-Umsetzung und Abnahme offen.**
+Status: **Vertragsentwurf v1, 17. November 2026; C1-Modell, native C2-Datenvorbereitung und
+synthetischer C3-Mehrprozess-Kern implementiert, UI-Umsetzung und Abnahme offen.**
 [C1-Nachweis](../testing/product-start-p2c-model.md),
-[C2-Nachweis](../testing/product-start-p2c-native-data.md). Ergänzt den
+[C2-Nachweis](../testing/product-start-p2c-native-data.md),
+[C3-Nachweis](../testing/product-start-p2c-group-bootstrap.md). Ergänzt den
 [Produktstartvertrag](product-start-integration-v1-draft.md). Alle mit MUSS bezeichneten Regeln sind
 Anforderungen an den nächsten Prototyp, keine Aussage über vorhandene Produktfähigkeiten. Das
 strikte Datenschutzziel bleibt unverändert; Produkt-Q-01/Q-02 bleiben offen.
@@ -34,6 +35,12 @@ C2 bindet inzwischen neue synthetische Text-/Ressourcenfixtures und persistente 
 derselben Kontrollsperre. Es stellt keine UI-EXE, Runtime oder SQLite-Datenbank bereit. Vollständige
 ausführbare Paketclosure, effektive UI-Policies und Mehrprozess-Lebenszeiten bleiben C3/C4-Gates;
 die folgenden Zielanforderungen werden dadurch nicht als insgesamt erfüllt erklärt.
+
+C3 ergänzt inzwischen einen eigenen synthetischen Probevertrag für Root/echtes Kind mit
+kontinuierlich gehaltenem Job und authentisiertem Continue. Eigene `.kqc3`-Probeversion, native
+UI-ABI weiterhin 0: kein implementierter C1-UI-Startgrant. Gruppenschlüssel/MAC ist keine
+unabhängige Schreiber-PID-Autorität; nicht auf untrusted Renderer übertragen. Die Prozess-/Token-/
+Paket-/Jobprüfungen vor Resume und der gesperrte Wächterverlust sind im C3-Nachweis abgegrenzt.
 
 ## 2. Autorität und Ablagen
 
@@ -228,12 +235,12 @@ Die native Vorbereitung bleibt vor der GUI; spätere Fehler/Fokus/Ansagen benöt
 
 ## 7. Kleine Umsetzungsschritte und gezielte Abnahme
 
-| Schritt                | Nächster begrenzter Lieferumfang                                                                | Angemessene Prüfung                                                                                                    |
-| ---------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| C1 — Modell geprüft    | Reine Typen/Codierung für Bindung, Inventar und Lebenszyklusmodell; keine neue native Autorität | 13 neue Modelltests; gesamter Helferlauf 88 aktiv bestanden, Clippy grün                                               |
-| C2 — Datenpfad geprüft | Neue synthetische persistente Ablage/Profil, Inventarprüfung und Bindungsrecords                | Vier neue native Tests, 92 aktive Helfertests/Clippy, zehn gesicherte Controlleraufrufe; eigenes frisches ETW ergänzt  |
-| C3                     | Wächter/Bootstrap mit synthetischer Mehrprozessgruppe vor WebView                               | Root endet vor Kind; zweiter Start gesperrt; kompletter Drain; Wächtercrash bleibt gesperrt; falscher Grant abgewiesen |
-| C4                     | Gepinnte WebView-Minimaloberfläche und synthetische SQLite-Persistenz                           | Passende App-/Transportprüfungen, gezielte assistive Prüfung und frisches ETW der exakten Binaries/Kindrollen          |
+| Schritt                   | Nächster begrenzter Lieferumfang                                                                | Angemessene Prüfung                                                                                                      |
+| ------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| C1 — Modell geprüft       | Reine Typen/Codierung für Bindung, Inventar und Lebenszyklusmodell; keine neue native Autorität | 13 neue Modelltests; gesamter Helferlauf 88 aktiv bestanden, Clippy grün                                                 |
+| C2 — Datenpfad geprüft    | Neue synthetische persistente Ablage/Profil, Inventarprüfung und Bindungsrecords                | Vier neue native Tests, 92 aktive Helfertests/Clippy, zehn gesicherte Controlleraufrufe; eigenes frisches ETW ergänzt    |
+| C3 — Synthesekern geprüft | Wächter/Bootstrap mit Root und echtem Kind; keine UI-ABI-Unterstützung                          | Vier neue Tests, 96 aktive Helfertests/Clippy; 22 Controlleraufrufe und ein gesperrter Wächterabbruch; eigenes ETW offen |
+| C4                        | Gepinnte WebView-Minimaloberfläche und synthetische SQLite-Persistenz                           | Passende App-/Transportprüfungen, gezielte assistive Prüfung und frisches ETW der exakten Binaries/Kindrollen            |
 
 Erforderliche Nachweise vor einer P2c-Freigabe: Daten/IDs/Profil bleiben über normalen Neustart
 erhalten; private Kontrollfiles bleiben unlesbar; manipuliertes Paket/Runtime/Root wird vor
@@ -255,5 +262,6 @@ Der ursprüngliche Vertragsentwurf wurde ausschließlich durch Quellen-/Link-/Fo
 geprüft. Inzwischen sind C1 im getrennten Modellmodul und C2 als eigener nativer DATA-Pfad gezielt
 getestet. Der normale Appstart und seine Befehle sind nicht integriert. Für den C2-Build ist
 [frisches ETW](../testing/product-start-p2c-native-data-etw.md) ergänzt; alle Netzbelege behalten
-ihre exakten Buildgrenzen. Als Nächstes folgen C3/C4. Die gesamte P2c-Implementierung und
-Produktabnahme sind weiterhin offen.
+ihre exakten Buildgrenzen. C3 ist inzwischen im synthetischen Umfang implementiert; dessen eigener
+Netzbeleg und danach C4 stehen aus. Die gesamte P2c-Implementierung und Produktabnahme sind
+weiterhin offen.

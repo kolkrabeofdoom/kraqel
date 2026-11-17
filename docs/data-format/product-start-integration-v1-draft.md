@@ -189,9 +189,11 @@ Paketbindung und Mehrprozess-UI-Start ist als Entwurf ausgearbeitet, nicht nativ
 Lebenszyklusmodell. [C2](../testing/product-start-p2c-native-data.md) ist als begrenzter nativer
 Datenpfad umgesetzt: frische Schema-6-DATA-Stores, persistentes Profil und Paket-/Rootbindung, keine
 Migration oder UI-Startautorität.
-[Frisches ETW dieses Builds](../testing/product-start-p2c-native-data-etw.md) ist ergänzt; C3 steht
-als Nächstes aus. Ungebundene Starts und mehrprozessige GUI-Lebenszeiten sowie persistente echte
-Arbeitsablagen-/UI-Bindung fehlen; P2 insgesamt bleibt offen.
+[Frisches ETW dieses Builds](../testing/product-start-p2c-native-data-etw.md) ist ergänzt.
+[C3](../testing/product-start-p2c-group-bootstrap.md) ist als begrenzter synthetischer Mehrprozess-
+Kern implementiert; eigener frischer C3-Netzbeleg und danach C4 stehen aus. Ungebundene Starts und
+mehrprozessige GUI-Lebenszeiten sowie persistente echte Arbeitsablagen-/UI-Bindung fehlen; P2
+insgesamt bleibt offen.
 
 Reihenfolge P1–P5 verhindert, dass der erfolgreiche Forschungsimport als Freigabe der gesamten
 Schreiboberfläche gilt. Mittleres Prüfniveau bedeutet pro Implementierungsschritt gezielte relevante

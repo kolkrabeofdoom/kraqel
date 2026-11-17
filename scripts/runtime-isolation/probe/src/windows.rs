@@ -759,6 +759,14 @@ fn launch(root: &Path, app: Option<&Path>, resume: bool) -> Result<Value> {
 }
 pub fn main() {
     let args = std::env::args_os().skip(1).collect::<Vec<_>>();
+    if args.first().is_some_and(|a| a == "c3-synthetic-worker") {
+        let code = if exchange::group_worker(&args[1..]).is_ok() {
+            0
+        } else {
+            2
+        };
+        std::process::exit(code);
+    }
     // Never enter generic diagnostics/network-probe dispatch from this worker role.
     if args.first().is_some_and(|a| a == "workspace-probe-worker") {
         let code = if exchange::product_workspace_probe_worker(&args[1..]).is_ok() {
@@ -769,6 +777,9 @@ pub fn main() {
         std::process::exit(code);
     }
     let result = (|| {
+        if args.first().is_some_and(|a| a == "product-c3-group-child") {
+            return exchange::group_child(&args[1..]);
+        }
         if args.first().is_some_and(|a| a == "product-p2c-data-child") {
             return exchange::product_workspace_persistent_child(&args[1..]);
         }

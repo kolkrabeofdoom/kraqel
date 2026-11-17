@@ -26,6 +26,19 @@ const C2: [u8; 32] = *b"KRAQEL-P2C-DATA\0\x01\0\0\0\x06\0\x01\0\0\0\0\0\0\0\0\0"
 #[used]
 #[unsafe(link_section = ".kqc2")]
 static C2_EMBEDDED: [u8; 32] = C2;
+const C3: [u8; 32] = *b"KRAQEL-P2C-GRUP\0\x01\0\0\0\x06\0\x01\0\0\0\0\0\0\0\0\0";
+#[used]
+#[unsafe(link_section = ".kqc3")]
+static C3_EMBEDDED: [u8; 32] = C3;
+pub(super) fn verify_group(file: &mut fs::File) -> Result<()> {
+    let size = io("c3-package-size", file.metadata())?.len();
+    verify_named(
+        file,
+        size,
+        b".kqc3\0\0\0",
+        std::hint::black_box(&C3_EMBEDDED),
+    )
+}
 pub(super) fn verify_persistent_records(file: &mut fs::File) -> Result<()> {
     let size = io("c2-package-size", file.metadata())?.len();
     verify_named(

@@ -19,8 +19,10 @@ ergänzt. Der [P2c-Vertragsentwurf](product-start-p2c-v1-draft.md) ist ausgearbe
 geprüft. [C2](../testing/product-start-p2c-native-data.md) ergänzt ausschließlich neue synthetische
 persistente Ablagen und native Paket-/Profilbindung in eigenen Schema-6-DATA-Stores, ohne UI-Start
 oder Migration bestehender Stores. Der
-[eigene frische C2-Netzbeleg](../testing/product-start-p2c-native-data-etw.md) ist ergänzt; als
-Nächstes C3 mit synthetischen Kindern. Mehrprozessige Lebenszeiten und persistente echte
+[eigene frische C2-Netzbeleg](../testing/product-start-p2c-native-data-etw.md) ist ergänzt.
+[C3](../testing/product-start-p2c-group-bootstrap.md) ergänzt einen begrenzten synthetischen
+Mehrprozess-Bootstrap mit gehaltenem Job; native UI-ABI bleibt 0. Als Nächstes eigener frischer
+C3-Netzbeleg, danach C4. Mehrprozessige Produktlebenszeiten und persistente echte
 Arbeitsablagen-/UI-Bindung bleiben offen. Vorhandener Snapshot-v3-Import erzeugt neue IDs.
 
 Der Exportstandard ist noch in Arbeit. Fest stehen folgende Invarianten:

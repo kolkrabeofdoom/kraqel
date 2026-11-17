@@ -7,28 +7,32 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 17. November 2026
 
-Aktuell · frischer P2c-C2-Netzbeleg, 17. November 2026:
+Aktuell · P2c C3-Synthesekern, 17. November 2026:
 
-[Gezieltes C2-ETW](testing/product-start-p2c-native-data-etw.md) des unveränderten Builds `73a7aad…`
-ist ergänzt: Referenz und Bearbeiten/Wiederöffnen/explizite Stilllegung, 15 Controller/15
-Konsolenhosts, alle 30 Enden explizit und mit Kernel-Erzeugungszeiten abgeglichen. Acht lokale
-Kontrollen, Nullverluste/Zuordnungslücken und null beobachtete Netzereignisse in den ausgewählten
-Bäumen, auch kein Loopback. Zwölf Erfolge/drei erwartete Abweisungen, zwölf MAC-Records/vier
-Inventare mit tatsächlichem Inhalt unabhängig geprüft; beide Profile stillgelegt, synthetische Daten
-und Schlüssel erhalten, echte Vorschau-Kontrollhashes unverändert. 42 Diagnose-Tests grün; kein
-neuer Build oder Runtime-/App-/Transport-/Installerumbau. Rohdaten nur lokal. Native UI-ABI bleibt
-0, keine Lowbox-/Mehrprozess-/WebView-/Produktfreigabe aus dem Datenbeleg. **Nächster Schritt C3:**
-Wächter und authentisierter Mehrprozess-Bootstrap mit synthetischen Kindern. P2 insgesamt/C3/C4/
-P3–P5 und Produkt-Q-01/Q-02 bleiben offen; striktes Datenschutzziel unverändert.
+[C3-Wächter/Mehrprozess-Bootstrap](testing/product-start-p2c-group-bootstrap.md) implementiert und
+gezielt nativ geprüft: eigene `.kqc3`-Probeversion, UI-ABI 0, neues gepinntes Codepaket. Derselbe
+Store/Lease und dieselbe gehaltene Jobinstanz mit Limit 2 über Root und echtes Kind; Profile/null
+Capabilities, Paket, Identität/Thread/Elternbezug und Jobmitglieder vor Resume geprüft.
+Accepted/Running dauerhaft vor Continue und erst danach Datenzugriff. Root endet bei lebendem
+suspendiertem Kind; zweiter Writer und Profilstilllegung bleiben gesperrt. Vier neue Tests, 96
+aktive Helfer-/Transporttests/vier bewusst ignoriert, Clippy grün. 22 Controlleraufrufe: zwei
+erfolgreiche Gruppen, drei abgewickelte Bootstrapfehler, ein gezielter Wächterabbruch. 51
+MAC-Records/sechs verbrauchte Launches unabhängig geprüft; nach Wächterverlust bleibt der negative
+Store auch nach eigenem separatem Fixturecleanup pending. Zwei Profile entfernt (ein Broker-/ein
+eigener Harnesscleanup), echte Kontrollhashes unverändert. Build `b24b3aa…` gesichert, noch kein
+frisches ETW. Gruppenschlüssel ist keine unabhängige Schreiber-PID-Autorität; kein Renderer/WebView
+oder normale UI freigegeben. Nächster Scope: gezieltes frisches C3-ETW samt Root/Kind und gesperrtem
+Wiederanlauf, danach C4. P2 insgesamt, vollständige Produktintegration/P3–P5 und Produkt-Q-01/Q-02
+bleiben offen; striktes Datenschutzziel unverändert.
 
-Gesicherter C2-Controller: `%TEMP%/kraqel-product-p2c-data-build-20261117-01/controller.exe`,
-SHA-256 `73a7aad5e61a0ef7ebbc8cf8ccc75611c50ebd6bad3c52ad5f9fcc21ddc957b6`. Private C2-Captures
-`%TEMP%/kraqel-c2-etw-20261117-01-reference` und `…-data` sind konvertiert, eigener Supervisor und
-Testprozesse beendet. Beide Profile sind stillgelegt; synthetische Daten/Kontrollketten bleiben als
-Nachweis erhalten. Audit und Manifest beim gesicherten Build ergänzt. Rohdaten/Schlüssel nicht nach
-GitHub und neue EXE nicht an echter Vorschauablage autorisieren. Für C3 den Vertrag und
-C2-Datennachweis lesen; Ziel-UI-ABI 1 und alter Ein-Prozess- Endbeleg sind keine native
-Mehrprozess-Start-/Bereinigungsautorität.
+Gesicherter C3-Controller: `%TEMP%/kraqel-product-p2c-group-build-20261117-01/controller.exe`,
+SHA-256 `b24b3aac3d80bc59b63c74e2cbad03bf4980d8496b88434f3afc035fdbbe48af`. Funktionaler
+Forschungsordner/Audit im privaten Buildmanifest, Prozesse beendet, beide eigenen Profile entfernt.
+Ein Kontrollstore bleibt absichtlich pending; nicht reparieren, Schlüssel/Head nicht zurücksetzen
+und fehlendes Profil nicht als Startfreigabe behandeln. Separater Fixturecleanup war keine
+Broker-Reconciliation. Für ETW dasselbe Programm, frische synthetische Fälle und den festen
+C3-Rollenpfad verwenden; keine generischen Netzwerkdiagnosen oder echte Vorschauablage. Voriger
+C2-Netzbeleg gilt ausschließlich Build `73a7aad…`. Keine Rohdaten/Keys/PIDs nach GitHub.
 
 Vorheriger Implementierungs-/Netznachweis:
 

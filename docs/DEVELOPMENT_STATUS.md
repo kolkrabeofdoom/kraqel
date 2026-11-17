@@ -1,18 +1,22 @@
 # Entwicklungsstatus
 
-Aktuell · frischer P2c-C2-Netzbeleg, 17. November 2026:
+Aktuell · P2c C3-Synthesekern, 17. November 2026:
 
-[Gezieltes C2-ETW](testing/product-start-p2c-native-data-etw.md) des unveränderten Builds `73a7aad…`
-ist ergänzt: Referenz und Bearbeiten/Wiederöffnen/explizite Stilllegung, 15 Controller/15
-Konsolenhosts, alle 30 Enden explizit und mit Kernel-Erzeugungszeiten abgeglichen. Acht lokale
-Kontrollen, Nullverluste/Zuordnungslücken und null beobachtete Netzereignisse in den ausgewählten
-Bäumen, auch kein Loopback. Zwölf Erfolge/drei erwartete Abweisungen, zwölf MAC-Records/vier
-Inventare mit tatsächlichem Inhalt unabhängig geprüft; beide Profile stillgelegt, synthetische Daten
-und Schlüssel erhalten, echte Vorschau-Kontrollhashes unverändert. 42 Diagnose-Tests grün; kein
-neuer Build oder Runtime-/App-/Transport-/Installerumbau. Rohdaten nur lokal. Native UI-ABI bleibt
-0, keine Lowbox-/Mehrprozess-/WebView-/Produktfreigabe aus dem Datenbeleg. **Nächster Schritt C3:**
-Wächter und authentisierter Mehrprozess-Bootstrap mit synthetischen Kindern. P2 insgesamt/C3/C4/
-P3–P5 und Produkt-Q-01/Q-02 bleiben offen; striktes Datenschutzziel unverändert.
+[C3-Wächter/Mehrprozess-Bootstrap](testing/product-start-p2c-group-bootstrap.md) implementiert und
+gezielt nativ geprüft: eigene `.kqc3`-Probeversion, UI-ABI 0, neues gepinntes Codepaket. Derselbe
+Store/Lease und dieselbe gehaltene Jobinstanz mit Limit 2 über Root und echtes Kind; Profile/null
+Capabilities, Paket, Identität/Thread/Elternbezug und Jobmitglieder vor Resume geprüft.
+Accepted/Running dauerhaft vor Continue und erst danach Datenzugriff. Root endet bei lebendem
+suspendiertem Kind; zweiter Writer und Profilstilllegung bleiben gesperrt. Vier neue Tests, 96
+aktive Helfer-/Transporttests/vier bewusst ignoriert, Clippy grün. 22 Controlleraufrufe: zwei
+erfolgreiche Gruppen, drei abgewickelte Bootstrapfehler, ein gezielter Wächterabbruch. 51
+MAC-Records/sechs verbrauchte Launches unabhängig geprüft; nach Wächterverlust bleibt der negative
+Store auch nach eigenem separatem Fixturecleanup pending. Zwei Profile entfernt (ein Broker-/ein
+eigener Harnesscleanup), echte Kontrollhashes unverändert. Build `b24b3aa…` gesichert, noch kein
+frisches ETW. Gruppenschlüssel ist keine unabhängige Schreiber-PID-Autorität; kein Renderer/WebView
+oder normale UI freigegeben. Nächster Scope: gezieltes frisches C3-ETW samt Root/Kind und gesperrtem
+Wiederanlauf, danach C4. P2 insgesamt, vollständige Produktintegration/P3–P5 und Produkt-Q-01/Q-02
+bleiben offen; striktes Datenschutzziel unverändert.
 
 Vorheriger Implementierungs-/Netznachweis:
 

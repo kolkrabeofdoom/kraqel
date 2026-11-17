@@ -11,9 +11,12 @@ Der [P2c-Vertragsentwurf](product-start-p2c-v1-draft.md) und das
 UI-ABI 0. Keine 5→6-Migration, Erweiterung der bisherigen `.kqmeta`-/UI-Verträge oder neue
 Berechtigung an echter Vorschauablage. Kontrollsperre/MAC-Kette bleiben dieselben; C2-Records für
 Vorbereitung, Profilbestätigung, Bindung und explizite Stilllegung sind im Nachweis beschrieben.
-[Frisches C2-ETW](../testing/product-start-p2c-native-data-etw.md) dieses Builds ist ergänzt; noch
-kein Mehrprozessstart oder Produktnetzbeleg. Die folgenden bisherigen Standardpfade und
-Updatekonventionen sind kein Einstieg in C2.
+[Frisches C2-ETW](../testing/product-start-p2c-native-data-etw.md) dieses Builds ist ergänzt.
+[C3](../testing/product-start-p2c-group-bootstrap.md) ergänzt eigene Gruppenrecords und `.kqc3` für
+synthetische Root-/Kindrollen in frischen C2-Stores: native UI-ABI bleibt 0. C3-Pending sperrt
+allgemeine Storemutationen auch nach Verlust des Jobobjekts; kein automatischer Wiederanlauf. Der
+neue Build benötigt einen eigenen Netzbeleg. Keine normale Produktfreigabe. Die folgenden bisherigen
+Standardpfade und Updatekonventionen sind kein Einstieg in C2/C3.
 
 ## Ablage und Vertrauensgrenze
 

@@ -124,6 +124,6 @@ Der eigene [frische ETW-Netzvergleich](product-start-p2c-native-data-etw.md) des
 Controllers ist inzwischen ergänzt. Die obige Funktionsprüfung und ihr JSON bleiben als eigener
 Stand ohne Netzwerkmessung erhalten; der ältere `37d7bec…`-Beleg wird nicht übertragen.
 
-Nächster begrenzter Schritt: C3-Wächter/Mehrprozess-Bootstrap mit synthetischen Kindern. P2
-insgesamt, C3/C4, P3–P5 und Produkt-Q-01/Q-02 bleiben offen. Das strikte Datenschutzziel bleibt
-unverändert.
+Der [C3-Synthesekern](product-start-p2c-group-bootstrap.md) ist inzwischen ergänzt. Nächster
+begrenzter Schritt ist dessen eigener frischer Netzbeleg, danach C4. P2 insgesamt, C3/C4, P3–P5 und
+Produkt-Q-01/Q-02 bleiben offen. Das strikte Datenschutzziel bleibt unverändert.

@@ -5,7 +5,10 @@ use crate::product_start_p2c::{
 };
 use std::io::{Seek, SeekFrom};
 mod filesystem;
+mod group;
 use filesystem::*;
+pub(super) use group::{GroupEvent, GroupState, apply as apply_group};
+pub(in crate::windows) use group::{child as group_child, worker as group_worker};
 
 const POLICY: &[u8] =
     b"{\"kind\":\"p2c-resource-fixture\",\"version\":1,\"network\":false,\"uiExecutable\":false}\n";
@@ -48,6 +51,7 @@ pub(super) fn apply(state: &mut State, actor: [u8; 32], action: &Action) -> Resu
         || state.session.is_some()
         || state.workspace.is_some()
         || state.probe.is_some()
+        || state.c3.pending()
     {
         return Err(invalid("c2-control-state"));
     }
@@ -188,7 +192,7 @@ impl Store {
         {
             return Err(invalid("c2-not-data-only-store"));
         }
-        // Schema 6 has no executable/UI start transition. Missing named job is NOT future UI drain proof.
+        // C3 pending launches are blocked by append_guard even after a lost guardian/job handle.
         Ok(())
     }
     fn prepare_c2(&mut self, actor: [u8; 32], head: [u8; 32], source: &mut fs::File) -> Result<()> {
