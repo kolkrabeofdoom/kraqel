@@ -1,5 +1,13 @@
 # Lokale Windows-Netzprüfung für M3
 
+[Frisches Worker-v3-ETW](../../docs/testing/product-start-worker-lifetime-etw.md): unveränderte
+Capture-/Auswertehelfer, Referenz/vier Wiederanlaufpfade, 52 explizite Controllerroots/acht Worker,
+112 explizite Enden, acht Kontrollen, Nullverluste/Zuordnungslücken, null beobachtete
+Netzereignisse. Separater Kernel-/Native-/MAC-Abgleich aller acht PID-/Erzeugungszeitpaare, sieben
+dauerhafter Bindungen und dreier Recovery-Endrecords nach Kernelende. Exit 0 ist keine fachliche
+Erfolgsautorität. 42 Diagnose-Tests grün, kein neuer Build; normale
+Produkt-/Mehrprozess-/Dienstgrenzen offen.
+
 [Frisches Ressourcen-ABI-2-ETW](../../docs/testing/product-start-resource-reconciliation-etw.md):
 unveränderte Capture-/Auswertehelfer, regulärer Workerabschluss und vier gezielte
 Ressourcenabbrüche. 54 explizite Controllerroots/sechs Worker/54 Controller-Konsolenhosts, 114

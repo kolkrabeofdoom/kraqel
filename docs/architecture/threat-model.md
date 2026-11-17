@@ -1,5 +1,21 @@
 # Bedrohungsmodell (Entwurf)
 
+[Frischer Workerbindungs-/Wiederanlauf-Netzbeleg](../testing/product-start-worker-lifetime-etw.md).
+Frisches Workerbindungs-v3-ETW, 17. November: unveränderter Build `37d7bec…`, normale Referenz und
+vier Wiederanlaufpfade. 52 Controller/acht Worker/52 Controller-Konsolenhosts, alle 112 Enden
+explizit; acht Kontrollen, Nullverluste/Zuordnungslücken, null beobachtete Netzereignisse in den
+ausgewählten Bäumen. Alle acht nativen Erzeugungszeiten zum Kernel abgeglichen, sieben dauerhafte
+Bindungen und drei Endrecords nach bestätigtem Kernelende zugeordnet. Exit 0 ersetzt keinen
+fachlichen Abschluss: vier Finish-Records, drei reconciliierte Starts, ein ungebundener Start weiter
+pending/gesperrt. Daten/MAC-/Paket-/Root-/Profilaudit und 42 Diagnose-Tests grün, echte Daten und
+Schlüssel unverändert. Kein neuer Build/App-/Transport-/Installerumbau oder pnpm check; Rohdaten nur
+lokal. Nächster Scope: P2c-Vertrag für persistente synthetische Arbeitsablage, Paketbindung und
+Mehrprozess-UI-Start konkretisieren. Ein-Prozess-Beleg nicht auf WebView2 übertragen, private
+Fixtures nicht promovieren; ungebundene Starts/unbestätigte Profile und P2
+insgesamt/P3–P5/Produkt-Q-01/Q-02 offen, striktes Ziel unverändert.
+
+Vorheriger Stand:
+
 [Dauerhafte Workerbindung und Wiederanlauf](../testing/product-start-worker-lifetime.md). Dauerhafte
 P2b-Workerbindung, 17. November: Execution v3/Bereinigungs-ABI 3, sechs Recordslots reserviert.
 WorkerBound bindet Launch, native PID/Erzeugungszeit und geprüfte Ein-Prozess-Jobpolicy vor Resume;

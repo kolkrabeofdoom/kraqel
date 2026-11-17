@@ -289,8 +289,10 @@ Autorität. Normale Mutationen verlangen weiter Jobleerstand. RecoveredDrain ben
 dauerhafte Identität und nativ belegtes Ende, bevor eigenes Profilcleanup erlaubt wird. PID allein,
 verschwundener Jobname, fehlgeschlagene Zuweisung oder unsignierte Logs genügen nicht. Kein
 Terminierungszugriff auf fremde Prozesse, ungebundener Start bleibt gesperrt. Nur der synthetische
-Ein-Prozess-Worker, kein GUI-/Produktvertrag. Neuer Runtimehash ohne frisches ETW, keine Migration
-alter v1/v2-Probe-Historien oder Bestandsdatenadoption.
+Ein-Prozess-Worker, kein GUI-/Produktvertrag.
+[Frisches ETW dieses Runtimehashs](../testing/product-start-worker-lifetime-etw.md) ist mit exaktem
+Kernel-Erzeugungszeit-/Endabgleich ergänzt. Keine Migration alter v1/v2-Probe-Historien oder
+Bestandsdatenadoption; kein Übertragen des Ein-Prozess-Belegs auf mehrprozessige GUI-Lebenszeiten.
 
 ## Abgrenzung zum geplanten Produktstart
 

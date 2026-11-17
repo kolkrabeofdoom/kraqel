@@ -25,11 +25,13 @@ umgesetzt. Der
 [frische Ressourcen-Netzbeleg](docs/testing/product-start-resource-reconciliation-etw.md) ist
 ergänzt.
 [Dauerhafte Workerbindung/Wiederanlauf vor Drained](docs/testing/product-start-worker-lifetime.md)
-ist für den synthetischen Ein-Prozess-Worker umgesetzt. Als Nächstes frisches ETW des neuen Builds;
-ungebundene Starts, mehrprozessige GUI-Lebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung
-bleiben offen. P3 Bestandskopie sowie P4/P5 normale App-/Launcher-/Installerintegration und
-Produktabnahme folgen. Die normalen Produkt-Q-01/Q-02 bleiben offen; der neue Forschungsnetzbeleg
-ersetzt dieses Gate nicht. Das strikte Datenschutzziel bleibt unverändert.
+ist für den synthetischen Ein-Prozess-Worker umgesetzt. Der
+[eigene frische Netzbeleg](docs/testing/product-start-worker-lifetime-etw.md) ist ergänzt. Als
+Nächstes P2c-Arbeitsablagen-/Paket-/Mehrprozessvertrag konkretisieren; ungebundene Starts,
+mehrprozessige GUI-Lebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung bleiben offen. P3
+Bestandskopie sowie P4/P5 normale App-/Launcher-/Installerintegration und Produktabnahme folgen. Die
+normalen Produkt-Q-01/Q-02 bleiben offen; der neue Forschungsnetzbeleg ersetzt dieses Gate nicht.
+Das strikte Datenschutzziel bleibt unverändert.
 
 ## M0 - Fundament (abgeschlossen)
 
@@ -220,8 +222,11 @@ ersetzt dieses Gate nicht. Das strikte Datenschutzziel bleibt unverändert.
        - [x] KQ-069 A: Dauerhafter Workerstartbeleg/Wiederanlauf vor Drained im
              Ein-Prozess-Prototyp; drei gebundene Starts reconciliert, ungebundener Start
              unverändert gesperrt
-       - [ ] KQ-069 A: Frisches ETW des Workerbindungs-v3-Builds; ungebundene Starts und
-             vollständige Live-Worker-Crashbereinigung und persistente echte
+       - [x] KQ-069 A: Frisches ETW des Workerbindungs-v3-Builds mit
+             Kernel-Erzeugungszeit-/Endabgleich; 52 Controller/acht Worker, 112 Enden/acht
+             Kontrollen, null beobachtete Netzereignisse
+       - [ ] KQ-069 A: P2c-Arbeitsablagen-/Paket-/Mehrprozessvertrag konkretisieren; ungebundene
+             Starts und vollständige Live-Worker-Crashbereinigung und persistente echte
              Arbeitsablagen-/UI-Bindung; danach P3–P5 isolierten Produktstarter/echte
              Projektmigration integrieren sowie weitere allgemeine Fensterende-/F08-Prüfung;
              dauerhaften authentisierten Produktbroker integrieren/abnehmen; weitere

@@ -117,6 +117,11 @@ Transport-/Installerumbau, `pnpm check` oder allgemeine neue Matrix.
 
 ## Reproduktion und nächste Grenze
 
+Der [eigene frische ETW-Vergleich](product-start-worker-lifetime-etw.md) ist inzwischen für exakt
+diesen Runtimehash ergänzt: 52 Controller/acht Worker, 112 explizite Enden, acht Kontrollen, null
+beobachtete Netzereignisse. Folgendes ETW-Gate beschreibt den Implementierungsstand davor. Aktueller
+nächster Scope ist der getrennte P2c-Arbeitsablagen-/Paket-/Mehrprozessvertrag.
+
 `scripts/runtime-isolation/check-workspace-worker-crashes.ps1` verlangt explizite Programmhashes und
 legt selbst frische synthetische Wurzeln an. Keine vorhandenen Store-/Profilwurzeln übergeben. Der
 bisherige Ressourcenprüfhelfer akzeptiert ausdrücklich v2/v3 für hashgebundene historische

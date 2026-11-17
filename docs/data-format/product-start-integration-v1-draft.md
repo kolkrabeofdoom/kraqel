@@ -181,9 +181,12 @@ implementiert; unbestätigte Profile/RunIntent ohne Drained bleiben gesperrt. De
 [eigene frische ETW-Nachweis](../testing/product-start-resource-reconciliation-etw.md) des
 geänderten Runtimebuilds ist ergänzt.
 [Dauerhafte Workerbindung und Wiederanlauf vor Drained](../testing/product-start-worker-lifetime.md)
-ist inzwischen für den synthetischen Ein-Prozess-Worker umgesetzt. Nächster begrenzter Scope ist
-frisches ETW des geänderten Builds. Ungebundene Starts und mehrprozessige GUI-Lebenszeiten sowie
-persistente echte Arbeitsablagen-/UI-Bindung fehlen; P2 insgesamt bleibt offen.
+ist inzwischen für den synthetischen Ein-Prozess-Worker umgesetzt. Der
+[frische ETW-Beleg](../testing/product-start-worker-lifetime-etw.md) des Builds ist ergänzt.
+Nächster begrenzter Scope P2c: persistente synthetische Arbeitsablage, Paketbindung und
+Mehrprozess-UI-Start als getrennten Vertrag konkretisieren. Ungebundene Starts und mehrprozessige
+GUI-Lebenszeiten sowie persistente echte Arbeitsablagen-/UI-Bindung fehlen; P2 insgesamt bleibt
+offen.
 
 Reihenfolge P1–P5 verhindert, dass der erfolgreiche Forschungsimport als Freigabe der gesamten
 Schreiboberfläche gilt. Mittleres Prüfniveau bedeutet pro Implementierungsschritt gezielte relevante

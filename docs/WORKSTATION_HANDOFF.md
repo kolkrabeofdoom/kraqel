@@ -7,11 +7,35 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 17. November 2026
 
-Aktuell: [Dauerhafte Workerbindung und Wiederanlauf](testing/product-start-worker-lifetime.md).
-Dauerhafte P2b-Workerbindung, 17. November: Execution v3/Bereinigungs-ABI 3, sechs Recordslots
-reserviert. WorkerBound bindet Launch, native PID/Erzeugungszeit und geprüfte Ein-Prozess-Jobpolicy
-vor Resume; enger nativer Lease-/Job-/Token-Wächter erlaubt nur diesen Record bei aktivem Worker,
-andere Storemutationen behalten Jobleerstand. Wiederanlauf vor Drained benötigt diesen MAC-Beleg und
+Aktuell:
+[Frischer Workerbindungs-/Wiederanlauf-Netzbeleg](testing/product-start-worker-lifetime-etw.md).
+Frisches Workerbindungs-v3-ETW, 17. November: unveränderter Build `37d7bec…`, normale Referenz und
+vier Wiederanlaufpfade. 52 Controller/acht Worker/52 Controller-Konsolenhosts, alle 112 Enden
+explizit; acht Kontrollen, Nullverluste/Zuordnungslücken, null beobachtete Netzereignisse in den
+ausgewählten Bäumen. Alle acht nativen Erzeugungszeiten zum Kernel abgeglichen, sieben dauerhafte
+Bindungen und drei Endrecords nach bestätigtem Kernelende zugeordnet. Exit 0 ersetzt keinen
+fachlichen Abschluss: vier Finish-Records, drei reconciliierte Starts, ein ungebundener Start weiter
+pending/gesperrt. Daten/MAC-/Paket-/Root-/Profilaudit und 42 Diagnose-Tests grün, echte Daten und
+Schlüssel unverändert. Kein neuer Build/App-/Transport-/Installerumbau oder pnpm check; Rohdaten nur
+lokal. Nächster Scope: P2c-Vertrag für persistente synthetische Arbeitsablage, Paketbindung und
+Mehrprozess-UI-Start konkretisieren. Ein-Prozess-Beleg nicht auf WebView2 übertragen, private
+Fixtures nicht promovieren; ungebundene Starts/unbestätigte Profile und P2
+insgesamt/P3–P5/Produkt-Q-01/Q-02 offen, striktes Ziel unverändert.
+
+Gesicherter Runtimebuild bleibt `%TEMP%/kraqel-product-worker-lifetime-build-20261117-01`,
+Quellstand `03e4ed1`. Lokale Captures `%TEMP%/kraqel-worker-v3-etw-20261117-01-reference` und
+`…-recovery`, zusammengefasster Audit und ergänztes Manifest bei der Buildsicherung. Traces und
+Testprozesse beendet, Profile aufgeräumt; ein negativer Kontrollstore bleibt absichtlich gesperrt.
+Keine Rohdaten nach GitHub oder neue Programme an echter Vorschauablage autorisieren. P2c zunächst
+als klar getrennten Arbeitsablagen-/Paket-/Mehrprozessvertrag entwerfen, keine UI-ABI-0-Kopie oder
+Ein-Prozess-Lebenszeitregel stillschweigend als Produktfreigabe nutzen.
+
+Vorheriger Stand:
+[Dauerhafte Workerbindung und Wiederanlauf](testing/product-start-worker-lifetime.md). Dauerhafte
+P2b-Workerbindung, 17. November: Execution v3/Bereinigungs-ABI 3, sechs Recordslots reserviert.
+WorkerBound bindet Launch, native PID/Erzeugungszeit und geprüfte Ein-Prozess-Jobpolicy vor Resume;
+enger nativer Lease-/Job-/Token-Wächter erlaubt nur diesen Record bei aktivem Worker, andere
+Storemutationen behalten Jobleerstand. Wiederanlauf vor Drained benötigt diesen MAC-Beleg und
 tatsächliches Ende derselben Prozessgeneration: signalisiertes Handle, andere Erzeugungszeit oder
 PID-Abwesenheit mit vollständigem Snapshot; keine fremde Terminierung, Fehler bleiben gesperrt.
 RecoveredDrain wird vor eigenem Profilcleanup gespeichert. Vier native Crashfälle: drei gebundene
