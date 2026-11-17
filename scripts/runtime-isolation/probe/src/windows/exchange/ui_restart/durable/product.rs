@@ -11,6 +11,7 @@ mod secure_fs;
 mod session;
 mod starter;
 mod workspace;
+mod workspace_persistent;
 mod workspace_probe;
 pub(in super::super::super::super) use crash::{child as crash_child, series as crash_series};
 use secure_fs::{
@@ -23,6 +24,7 @@ pub(in crate::windows) use session::{transition_child, transition_series};
 pub(in super::super::super::super) use starter::series as start_series;
 pub(in super::super) use starter::verify_start_lease;
 pub(in crate::windows) use workspace::child as workspace_child;
+pub(in crate::windows) use workspace_persistent::child as workspace_persistent_child;
 pub(in crate::windows) use workspace_probe::{
     child as workspace_probe_child, worker as workspace_probe_worker,
 };
@@ -38,6 +40,19 @@ const BAD_ATTRIBUTES: u32 = FILE_ATTRIBUTE_REPARSE_POINT
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(tag = "kind", rename_all = "camelCase", deny_unknown_fields)]
 enum Action {
+    InitializeC2 {
+        binary: [u8; 32],
+    },
+    PrepareC2Workspace {
+        workspace: Uuid,
+    },
+    C2ProfileReady,
+    BindC2Workspace {
+        binding: crate::product_start_p2c::WorkspaceBindingV2,
+        roots: workspace_persistent::BoundRoots,
+    },
+    RetireC2Workspace,
+    C2ProfileRetired,
     Initialize {
         binary: [u8; 32],
     },
@@ -138,6 +153,7 @@ struct State {
     session: Option<BoundSession>,
     workspace: Option<crate::product_start::StartModel>,
     probe: Option<workspace_probe::Pending>,
+    c2: Option<workspace_persistent::Persistent>,
 }
 impl State {
     fn apply(&mut self, actor: [u8; 32], action: &Action) -> Result<()> {
@@ -192,6 +208,16 @@ impl State {
         Ok(())
     }
     fn apply_record(&mut self, actor: [u8; 32], action: &Action, digest: [u8; 32]) -> Result<()> {
+        if matches!(
+            action,
+            Action::PrepareC2Workspace { .. }
+                | Action::C2ProfileReady
+                | Action::BindC2Workspace { .. }
+                | Action::RetireC2Workspace
+                | Action::C2ProfileRetired
+        ) {
+            return workspace_persistent::apply(self, actor, action);
+        }
         if matches!(
             action,
             Action::CommitWorkspaceProbe { .. }
@@ -273,6 +299,12 @@ struct Store {
 }
 impl Store {
     fn initialize(root: &Path, actor: [u8; 32]) -> Result<Self> {
+        Self::initialize_mode(root, actor, false)
+    }
+    fn initialize_mode(root: &Path, actor: [u8; 32], c2: bool) -> Result<Self> {
+        if c2 {
+            workspace_persistent::scope(root)?;
+        }
         let _parents = pin_directories(root.parent().ok_or(invalid("product-root-parent"))?)?;
         secure_directory(root)?;
         for path in [
@@ -320,7 +352,11 @@ impl Store {
             previous_sha256: [0; 32],
             operation: Uuid::new_v4(),
             actor,
-            action: Action::Initialize { binary: actor },
+            action: if c2 {
+                Action::InitializeC2 { binary: actor }
+            } else {
+                Action::Initialize { binary: actor }
+            },
         };
         let bytes = serde_json::to_vec(&record).map_err(|_| invalid("product-record-encode"))?;
         let wire = sealed(&bytes, &key)?;
@@ -398,10 +434,15 @@ impl Store {
                 return Err(invalid("product-record-binding"));
             }
             if sequence == 0 {
-                if record.action
-                    != (Action::Initialize {
+                let c2 = record.action
+                    == (Action::InitializeC2 {
                         binary: record.actor,
-                    })
+                    });
+                if (!c2
+                    && record.action
+                        != (Action::Initialize {
+                            binary: record.actor,
+                        }))
                     || record.actor == [0; 32]
                 {
                     return Err(invalid("product-invalid-genesis"));
@@ -411,13 +452,19 @@ impl Store {
                     sequence: 0,
                     head: [0; 32],
                     actor: record.actor,
-                    schema: 1,
+                    schema: if c2 {
+                        workspace_persistent::scope(&root)?;
+                        6
+                    } else {
+                        1
+                    },
                     pending: None,
                     activated: std::collections::HashSet::from([record.actor]),
                     aborted_packages: std::collections::HashSet::new(),
                     session: None,
                     workspace: None,
                     probe: None,
+                    c2: None,
                 });
             } else {
                 let s = state.as_mut().ok_or(invalid("product-genesis-missing"))?;

@@ -1,11 +1,13 @@
 # Bedrohungsmodell (Entwurf)
 
-[P2c C1-Modell](../testing/product-start-p2c-model.md), 17. November 2026: strikte Typen,
-Inventarcodierung und Lebenszyklusübergänge sind rein geprüft. Geparste Grants und
-Modellbeobachtungen sind keine authentisierte/native Autorität. Root-Ende mit lebenden Kindern und
-Wächterverlust bleiben gesperrt. Keine neue Store-/ABI-Freigabe oder Datenmigration; C2 native
-Arbeitsablage und Inventarprüfung folgen. Produkt-Q-01/Q-02 und striktes Datenschutzziel
-unverändert.
+[P2c C2-Datenpfad](../testing/product-start-p2c-native-data.md), 17. November 2026: frischer
+authentisierter Schema-6-DATA-Store unter derselben Kontrollsperre, bestätigtes persistentes Profil,
+getrennte Daten-/Paketrechte und nativer Inventar-/Rootidentitätsabgleich implementiert. Keine
+Bestandsmigration oder UI-Startautorität; native UI-ABI 0, Ziel-ABI 1 nur im Bindungstyp.
+Unbestätigte Vorbereitung bleibt gesperrt. Explizite Stilllegung nur des authentisiert bestätigten
+Profils, keine Datenlöschung. 92 aktive Helfertests und zehn gesicherte Controlleraufrufe geprüft;
+Build `73a7aad…` benötigt eigenen frischen Netzbeleg. C3-Token-/Kindrollen-/Lebenszeitbeleg und
+Produkt-Q-01/Q-02 bleiben offen; striktes Datenschutzziel unverändert.
 
 Vorheriger Implementierungs-/Netznachweis:
 

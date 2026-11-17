@@ -4,12 +4,15 @@ Stand: 17. November 2026. Implementierte Windows-Vorschau im nativen Forschungsb
 normaler Produktstarter. [Funktionsnachweis](../testing/native-product-control.md),
 [Bedrohungsmodell](../architecture/threat-model.md). Striktes Datenschutzziel unverändert.
 
-Der [P2c-Vertragsentwurf](product-start-p2c-v1-draft.md) beschreibt den geplanten
-Arbeitsablagen-/Paket-/Mehrprozessstart. Vorgeschlagenes Kontrollschema 6 und UI-ABI 1 sind **nicht
-implementiert** und erweitern keine hier beschriebenen Leserechte oder Migrationen. Nächster Schritt
-ist C2: synthetische persistente Ablage und nativer Inventarabgleich.
-[C1-Typen/Codierung/Modell](../testing/product-start-p2c-model.md) sind rein geprüft und ändern
-weder diesen Storeleser noch dessen Schema-/ABI-Unterstützung.
+Der [P2c-Vertragsentwurf](product-start-p2c-v1-draft.md) und das
+[C1-Modell](../testing/product-start-p2c-model.md) werden durch den begrenzten
+[C2-Datenpfad](../testing/product-start-p2c-native-data.md) ergänzt: Schema 6 ausschließlich über
+`InitializeC2` in frischen synthetischen TEMP-Stores, eigene `.kqc2`-DATA-Record-ABI 1 und native
+UI-ABI 0. Keine 5→6-Migration, Erweiterung der bisherigen `.kqmeta`-/UI-Verträge oder neue
+Berechtigung an echter Vorschauablage. Kontrollsperre/MAC-Kette bleiben dieselben; C2-Records für
+Vorbereitung, Profilbestätigung, Bindung und explizite Stilllegung sind im Nachweis beschrieben.
+Noch kein Mehrprozessstart oder frischer Netzbeleg dieses Builds. Die folgenden bisherigen
+Standardpfade und Updatekonventionen sind kein Einstieg in C2.
 
 ## Ablage und Vertrauensgrenze
 

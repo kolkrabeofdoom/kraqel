@@ -1,7 +1,9 @@
 # P2c: persistente Arbeitsdaten, Paketbindung und Mehrprozess-UI
 
-Status: **Vertragsentwurf v1, 17. November 2026; C1-Modell implementiert, native Umsetzung und
-Abnahme offen.** [C1-Nachweis](../testing/product-start-p2c-model.md). Ergänzt den
+Status: **Vertragsentwurf v1, 17. November 2026; C1-Modell und begrenzte native C2-Datenvorbereitung
+implementiert, UI-Umsetzung und Abnahme offen.**
+[C1-Nachweis](../testing/product-start-p2c-model.md),
+[C2-Nachweis](../testing/product-start-p2c-native-data.md). Ergänzt den
 [Produktstartvertrag](product-start-integration-v1-draft.md). Alle mit MUSS bezeichneten Regeln sind
 Anforderungen an den nächsten Prototyp, keine Aussage über vorhandene Produktfähigkeiten. Das
 strikte Datenschutzziel bleibt unverändert; Produkt-Q-01/Q-02 bleiben offen.
@@ -27,6 +29,11 @@ noch durch Umdeutung ihres Markers zur ausführbaren Produktablage werden.
 Scope: ausschließlich neue synthetische Arbeitsdaten. Echte Projekte/Vorschauablagen, Migration
 bestehender Kontrollstores, normaler Appstart und Installer bleiben unverändert. P3 behandelt später
 die identitätserhaltende Bestandskopie; Snapshotimport erzeugt dagegen neue IDs.
+
+C2 bindet inzwischen neue synthetische Text-/Ressourcenfixtures und persistente Profile unter
+derselben Kontrollsperre. Es stellt keine UI-EXE, Runtime oder SQLite-Datenbank bereit. Vollständige
+ausführbare Paketclosure, effektive UI-Policies und Mehrprozess-Lebenszeiten bleiben C3/C4-Gates;
+die folgenden Zielanforderungen werden dadurch nicht als insgesamt erfüllt erklärt.
 
 ## 2. Autorität und Ablagen
 
@@ -122,11 +129,12 @@ Downgrade oder automatisches Löschen des Profils bei Inkompatibilität.
 
 ## 4. Geplante Typen, Versionen und Bootstrap
 
-**Noch keine nativ unterstützten neuen Versionen:** Kontrollschema 6 sowie P2c-UI-/Bootstrap-ABI 1
-sind im C1-Typenmodell vorhanden, aber nicht im nativen Store-/Startpfad unterstützt. Aktuell bleibt
-das native Forschungsschema maximal 5 mit UI-ABI 0. Kein vorhandener Marker wird umetikettiert;
-bestehende Stores werden nicht automatisch migriert. Vor Umsetzung sind exakte Recordcodierung und
-Kompatibilitätsprüfung getrennt festzulegen.
+**Begrenzte neue native Datenversion:** C2 unterstützt Schema 6 ausschließlich über `InitializeC2`
+für frische synthetische DATA-Stores und eigene `.kqc2`-Record-ABI 1. Keine 5→6-Migration; die
+bisherigen PE-Deklarationen bleiben unverändert. P2c-UI-/Bootstrap-ABI 1 ist weiterhin nur
+Zielvertrag des C1-Typenmodells, native UI-Unterstützung bleibt 0. C2-Bindungen mit Ziel-ABI 1 und
+`no-execution`-Policy sind keine Startgrants. Eigene Vorbereitung-/Profil-/Bindungs-/Stilllegungs-
+Records sind im [C2-Nachweis](../testing/product-start-p2c-native-data.md) abgegrenzt.
 
 | Geplanter Typ        | Verbindlich gebundene Inhalte                                                                                                                                                                       |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -220,12 +228,12 @@ Die native Vorbereitung bleibt vor der GUI; spätere Fehler/Fokus/Ansagen benöt
 
 ## 7. Kleine Umsetzungsschritte und gezielte Abnahme
 
-| Schritt             | Nächster begrenzter Lieferumfang                                                                | Angemessene Prüfung                                                                                                    |
-| ------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| C1 — Modell geprüft | Reine Typen/Codierung für Bindung, Inventar und Lebenszyklusmodell; keine neue native Autorität | 13 neue Modelltests; gesamter Helferlauf 88 aktiv bestanden, Clippy grün                                               |
-| C2                  | Neue synthetische persistente Ablage/Profil, Inventarprüfung und Bindungsrecords                | Helfertests/Clippy und wenige native Positiv-/Negativfälle; keine echten Daten                                         |
-| C3                  | Wächter/Bootstrap mit synthetischer Mehrprozessgruppe vor WebView                               | Root endet vor Kind; zweiter Start gesperrt; kompletter Drain; Wächtercrash bleibt gesperrt; falscher Grant abgewiesen |
-| C4                  | Gepinnte WebView-Minimaloberfläche und synthetische SQLite-Persistenz                           | Passende App-/Transportprüfungen, gezielte assistive Prüfung und frisches ETW der exakten Binaries/Kindrollen          |
+| Schritt                | Nächster begrenzter Lieferumfang                                                                | Angemessene Prüfung                                                                                                    |
+| ---------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| C1 — Modell geprüft    | Reine Typen/Codierung für Bindung, Inventar und Lebenszyklusmodell; keine neue native Autorität | 13 neue Modelltests; gesamter Helferlauf 88 aktiv bestanden, Clippy grün                                               |
+| C2 — Datenpfad geprüft | Neue synthetische persistente Ablage/Profil, Inventarprüfung und Bindungsrecords                | Vier neue native Tests, 92 aktive Helfertests/Clippy, zehn gesicherte Controlleraufrufe; frisches ETW offen            |
+| C3                     | Wächter/Bootstrap mit synthetischer Mehrprozessgruppe vor WebView                               | Root endet vor Kind; zweiter Start gesperrt; kompletter Drain; Wächtercrash bleibt gesperrt; falscher Grant abgewiesen |
+| C4                     | Gepinnte WebView-Minimaloberfläche und synthetische SQLite-Persistenz                           | Passende App-/Transportprüfungen, gezielte assistive Prüfung und frisches ETW der exakten Binaries/Kindrollen          |
 
 Erforderliche Nachweise vor einer P2c-Freigabe: Daten/IDs/Profil bleiben über normalen Neustart
 erhalten; private Kontrollfiles bleiben unlesbar; manipuliertes Paket/Runtime/Root wird vor
@@ -244,7 +252,7 @@ P4/P5-Produktintegration bleiben separate offene Gates.
 ## 8. Prüfung und verbleibende Grenze
 
 Der ursprüngliche Vertragsentwurf wurde ausschließlich durch Quellen-/Link-/Format-/Diffprüfung
-geprüft. Inzwischen ist C1 im getrennten Modellmodul implementiert und gezielt getestet; der native
-Broker/Store, die App und ihre Befehle sind damit nicht integriert. Keine neue ETW-Aufzeichnung;
-bisherige Netzbelege behalten ihre exakten Buildgrenzen. Nächster Schritt ist C2. Die gesamte
-P2c-Implementierung und Produktabnahme sind weiterhin offen.
+geprüft. Inzwischen sind C1 im getrennten Modellmodul und C2 als eigener nativer DATA-Pfad gezielt
+getestet. Der normale Appstart und seine Befehle sind nicht integriert. Für den neuen C2-Build steht
+frisches ETW aus; bisherige Netzbelege behalten ihre exakten Buildgrenzen. Danach folgen C3/C4. Die
+gesamte P2c-Implementierung und Produktabnahme sind weiterhin offen.

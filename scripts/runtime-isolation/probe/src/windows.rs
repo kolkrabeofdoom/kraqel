@@ -769,6 +769,9 @@ pub fn main() {
         std::process::exit(code);
     }
     let result = (|| {
+        if args.first().is_some_and(|a| a == "product-p2c-data-child") {
+            return exchange::product_workspace_persistent_child(&args[1..]);
+        }
         if args.len() == 3 && args[0] == "product-control-series" {
             return exchange::product_crash_series(Path::new(&args[1]), Path::new(&args[2]));
         }

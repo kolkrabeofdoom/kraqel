@@ -13,6 +13,9 @@ impl Drop for Key {
 
 fn present(execution: &Execution) -> Result<bool> {
     let profile = profile(execution)?;
+    profile_present(&profile)
+}
+pub(in super::super) fn profile_present(profile: &Profile) -> Result<bool> {
     let mut text = null_mut();
     check(
         unsafe { ConvertSidToStringSidW(profile.sid, &mut text) },

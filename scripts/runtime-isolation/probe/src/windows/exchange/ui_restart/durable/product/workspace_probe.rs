@@ -3,7 +3,7 @@ use super::*;
 use crate::product_start::{LaunchIdentity, ModelConditions, ModelJob, Settlement};
 mod bootstrap;
 pub(super) mod lifetime;
-mod recovery;
+pub(super) mod recovery;
 pub(in crate::windows) use bootstrap::worker;
 
 const POLICY: &[u8] = b"{\"kind\":\"p2b-worker-probe\",\"version\":1,\"network\":false}\n";

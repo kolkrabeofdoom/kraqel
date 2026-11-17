@@ -4,6 +4,11 @@ Stand: 17. November 2026. **C1 implementiert und als Modell geprüft; keine nati
 Authentisierung, Persistenz oder Produktfreigabe.** Grundlage ist der
 [P2c-Vertragsentwurf](../data-format/product-start-p2c-v1-draft.md).
 
+Dieser Nachweis dokumentiert den C1-Stand. Inzwischen ergänzt der getrennte
+[C2-Datenpfad](product-start-p2c-native-data.md) native Daten-/Profil-/Paketbindung ausschließlich
+in frischen Schema-6-DATA-Stores. Er erteilt keine native UI-Startberechtigung; die folgenden
+Angaben zur reinen Modellgrenze bleiben gültig.
+
 ## Implementierter Umfang
 
 Eigenes [Modul](../../scripts/runtime-isolation/probe/src/product_start_p2c.rs) neben P1/P2a, mit
@@ -88,9 +93,9 @@ der vorhandene [Worker-v3-Beleg](product-start-worker-lifetime-etw.md) bleibt au
 seinen gesicherten Build `37d7bec…` gebunden und gilt nicht automatisch für neu kompilierte Bytes.
 Keine neue Freigabe an echten Vorschau-/Projektablagen, keine Schlüssel-/ACLänderungen dort.
 
-## Nächster Schritt
+## Damals nächster Schritt und heutige Fortsetzung
 
-**C2:** neue synthetische persistente Ablage/Profil, nativer Inventarabgleich und authentisierte
-Bindungsrecords unter derselben Kontrollsperre. Reale Datenmigration, automatische
+**C2** ist inzwischen im begrenzten [nativen Datenumfang](product-start-p2c-native-data.md)
+umgesetzt. Nächster Schritt ist dessen frisches ETW, danach C3. Reale Datenmigration, automatische
 Wächtercrash-Recovery, C3-Mehrprozessstart, C4-WebView und Produkt-Q-01/Q-02 bleiben offen. Das
 strikte Datenschutzziel bleibt unverändert.

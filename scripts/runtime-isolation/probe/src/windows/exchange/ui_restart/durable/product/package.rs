@@ -21,6 +21,20 @@ const P2B: [u8; 32] = *b"KRAQEL-P2B-PROBE\x01\0\0\0\x05\0\x01\0\0\0\x03\0\0\0\0\
 #[used]
 #[unsafe(link_section = ".kqboot")]
 static P2B_EMBEDDED: [u8; 32] = P2B;
+// Separate fresh-store schema-6 DATA record declaration. No UI/bootstrap support.
+const C2: [u8; 32] = *b"KRAQEL-P2C-DATA\0\x01\0\0\0\x06\0\x01\0\0\0\0\0\0\0\0\0";
+#[used]
+#[unsafe(link_section = ".kqc2")]
+static C2_EMBEDDED: [u8; 32] = C2;
+pub(super) fn verify_persistent_records(file: &mut fs::File) -> Result<()> {
+    let size = io("c2-package-size", file.metadata())?.len();
+    verify_named(
+        file,
+        size,
+        b".kqc2\0\0\0",
+        std::hint::black_box(&C2_EMBEDDED),
+    )
+}
 pub(super) fn verify_probe(file: &mut fs::File) -> Result<()> {
     let size = io("probe-package-size", file.metadata())?.len();
     verify_named(

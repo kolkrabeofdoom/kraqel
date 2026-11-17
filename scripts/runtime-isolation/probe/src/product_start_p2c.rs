@@ -1,5 +1,5 @@
 //! P2c C1 simulation only: no I/O, native witnesses, authentication or execution capabilities.
-//! Schema/ABI values below describe proposed types, never the native store's reader range.
+//! These types grant no store reader range or UI ABI support; native C2 DATA records are separate.
 #![forbid(unsafe_code)]
 #![cfg_attr(not(test), allow(dead_code))] // Intentionally not wired to the native broker.
 
@@ -222,7 +222,7 @@ pub(crate) struct RootIdentityV1 {
     pub(crate) file_id: Id,
 }
 impl RootIdentityV1 {
-    fn valid(&self) -> bool {
+    pub(crate) fn valid(&self) -> bool {
         self.canonical_path_sha256 != [0; 32] && self.file_id != [0; 16]
     }
     fn aliases(&self, other: &Self) -> bool {
@@ -258,7 +258,7 @@ pub(crate) struct WorkspaceBindingV2 {
     pub(crate) revision: u64,
 }
 impl WorkspaceBindingV2 {
-    fn valid(&self) -> bool {
+    pub(crate) fn valid(&self) -> bool {
         let sid = self.profile_sid.strip_prefix("S-1-15-2-");
         self.version == 2
             && self.control_schema == 6

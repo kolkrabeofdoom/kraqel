@@ -14,11 +14,13 @@ neuer Execution-/Cleanupversion implementiert. Deren
 [Dauerhafte Workerbindung/Wiederanlauf vor Drained](../testing/product-start-worker-lifetime.md) ist
 nun für den synthetischen Ein-Prozess-Worker implementiert.
 [Eigener frischer Netznachweis](../testing/product-start-worker-lifetime-etw.md) des Builds ist
-ergänzt. Der [P2c-Vertragsentwurf](product-start-p2c-v1-draft.md) ist ausgearbeitet, aber noch nicht
-nativ implementiert. [C1](../testing/product-start-p2c-model.md) mit reinen Typen, Inventarcodierung
-und Lebenszyklus ist geprüft. Nächster Schritt C2: synthetische persistente Ablage, Profil und
-nativer Inventarabgleich; ungebundene Starts/mehrprozessige Lebenszeiten und persistente echte
-Arbeitsablagen-/UI-Bindung bleiben offen. Vorhandener Snapshot-v3-Import erzeugt neue IDs.
+ergänzt. Der [P2c-Vertragsentwurf](product-start-p2c-v1-draft.md) ist ausgearbeitet;
+[C1](../testing/product-start-p2c-model.md) mit reinen Typen, Inventarcodierung und Lebenszyklus ist
+geprüft. [C2](../testing/product-start-p2c-native-data.md) ergänzt ausschließlich neue synthetische
+persistente Ablagen und native Paket-/Profilbindung in eigenen Schema-6-DATA-Stores, ohne UI-Start
+oder Migration bestehender Stores. Nächster Schritt: frisches C2-ETW, danach C3. Mehrprozessige
+Lebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung bleiben offen. Vorhandener
+Snapshot-v3-Import erzeugt neue IDs.
 
 Der Exportstandard ist noch in Arbeit. Fest stehen folgende Invarianten:
 
