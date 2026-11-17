@@ -1,5 +1,20 @@
 # Entwicklungsstatus
 
+Gezielter frischer ETW-Vergleich des Cleanup-Stands, 17. November: gesicherte EXEs unverändert. Zwei
+gültige kurze Phasen: bisherige Recoveryserie und zwei Cleanup-Fälle samt 19 direkten
+Kontrollaufrufen. Acht Kontrollen, Nullverluste/Zuordnungslücken, alle 140 Prozessenden explizit. 0
+beobachtete Nicht-Loopback-/48 getrennte Loopback-Ereignisse. Daten-/MAC-/Kernel-Lebenszeitaudits
+grün; drei persistierte Aufgaben/zwei legitime Kopien, keine Replaykopie. Neuer Auswertungsmodus
+`native-control` für GUI-lose Hostaufrufe erhält alle allgemeinen Messguards; bisherige GUI-Modi
+unverändert. 39 Diagnose-Tests bestanden, bewusst mittleres Prüfniveau ohne neue Builds oder
+Workspace-Gesamtprüfung. [Nachweis](testing/native-profile-cleanup-etw.md),
+[Aggregate](testing/native-profile-cleanup-etw.json). Echte Vorschauablage unverändert,
+Erfassungen/Prozesse beendet; private Rohbelege erhalten. Nächster Scope: lokale Update-/
+Paketkompatibilität für Kontrollschema 4. Striktes Datenschutzziel unverändert; normale
+Produktintegration, weitere Crashpunkte/echte Datenmigration und Produkt-Q-01/Q-02 weiter offen.
+
+## Vorheriger funktionaler Prüfstand
+
 Authentisierte Profilbereinigung, 17. November: explizites Kontrollschema 4 persistiert Vorbereitung
 vor Profilerzeugung und Cleanupabschluss nach authentisierter Stilllegung. Dieselbe Kontrollsperre
 bleibt über Profillöschung und Recordabschluss gehalten. Wiederholung idempotent, Profilidentität

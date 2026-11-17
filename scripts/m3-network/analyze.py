@@ -63,7 +63,7 @@ def scope(value):
 
 
 def analyze(path, root_pids, ready, mode="desktop"):
-    if mode not in ("desktop", "exchange", "isolation-ui", "broker-ui"):
+    if mode not in ("desktop", "exchange", "isolation-ui", "broker-ui", "native-control"):
         raise ValueError("Unknown bounded measurement mode")
     root_image = "kraqel-desktop.exe" if mode == "desktop" else "kraqel-isolation-probe.exe"
     process_events = []
@@ -126,7 +126,7 @@ def analyze(path, root_pids, ready, mode="desktop"):
     outside_loopback = sum(count for (_, _, destination), count in counts.items() if destination not in ("loopback", "unknown"))
     unknown_destination = sum(count for (_, _, destination), count in counts.items() if destination == "unknown")
     problems = []
-    if seen_roots != set(root_pids):
+    if not root_pids or seen_roots != set(root_pids):
         problems.append("missing-or-mismatched-root-start")
     if any(count != 1 for count in root_starts.values()):
         problems.append("ambiguous-root-pid-reuse")
@@ -150,6 +150,9 @@ def analyze(path, root_pids, ready, mode="desktop"):
                 for broker in own_processes)
         if any(not has_broker_gui(root_pid) for root_pid in root_pids):
             problems.append("missing-broker-ui-descendant-tree")
+    # native-control covers explicit short host calls that legitimately have no child/GUI.
+    # It retains every root, calibration, loss, attribution and lifetime guard below/above;
+    # callers must independently match the complete expected native call set and any GUI starts.
     if loss is None or any(loss.values()):
         problems.append("missing-loss-header-or-lost-events")
     expected_controls = {("TCP", "127.0.0.1"), ("UDP", "127.0.0.1"), ("TCP", "::1"), ("UDP", "::1")}
@@ -187,7 +190,7 @@ def main():
     parser.add_argument("trace_xml", type=Path)
     parser.add_argument("ready_json", type=Path)
     parser.add_argument("--root-pid", type=int, action="append", required=True)
-    parser.add_argument("--mode", choices=("desktop", "exchange", "isolation-ui", "broker-ui"), default="desktop")
+    parser.add_argument("--mode", choices=("desktop", "exchange", "isolation-ui", "broker-ui", "native-control"), default="desktop")
     args = parser.parse_args()
     ready = json.loads(args.ready_json.read_text(encoding="utf-8-sig"))
     result = analyze(args.trace_xml, args.root_pid, ready, args.mode)

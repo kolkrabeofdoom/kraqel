@@ -55,6 +55,45 @@ class AnalysisTests(unittest.TestCase):
         self.assertTrue(result["measurementValid"])
         self.assertEqual(result["result"], "no-non-loopback-traffic-observed")
 
+    def test_native_control_requires_every_exact_root_even_without_a_gui(self):
+        self.start(10, 200, 1, "kraqel-isolation-probe.exe")
+        self.stop(11, 200)
+        self.start(12, 300, 1, "kraqel-isolation-probe.exe")
+        self.stop(13, 300)
+        self.result()
+        self.assertTrue(analyze(self.path, (200, 300), self.ready, "native-control")["measurementValid"])
+        for roots in ((), (200, 301), (100,)):
+            self.assertFalse(analyze(self.path, roots, self.ready, "native-control")["measurementValid"])
+        self.assertFalse(analyze(self.path, (200,), self.ready, "isolation-ui")["measurementValid"])
+        self.assertFalse(analyze(self.path, (200,), self.ready, "broker-ui")["measurementValid"])
+
+    def test_native_control_keeps_controls_loss_and_explicit_lifetime_guards(self):
+        self.start(10, 200, 1, "kraqel-isolation-probe.exe")
+        self.result()
+        self.assertIn("process-tree-not-fully-stopped-within-capture", analyze(self.path, (200,), self.ready, "native-control")["measurementProblems"])
+        self.stop(11, 200)
+        self.ready["controls"][3]["port"] = 20000
+        self.result()
+        self.assertFalse(analyze(self.path, (200,), self.ready, "native-control")["measurementValid"])
+        self.ready["controls"][3]["port"] = 10004
+        self.event(12, "", 0, {"EventsLost": 1, "BuffersLost": 0})
+        self.result()
+        self.assertIn("missing-loss-header-or-lost-events", analyze(self.path, (200,), self.ready, "native-control")["measurementProblems"])
+
+    def test_native_control_attributes_gui_descendants_and_public_traffic(self):
+        self.start(10, 200, 1, "kraqel-isolation-probe.exe")
+        self.start(11, 201, 200, "kraqel-desktop.exe")
+        self.start(12, 202, 201, "msedgewebview2.exe")
+        self.event(13, NETWORK, 10, {"PID": 202, "daddr": "1.1.1.1"})
+        self.stop(14, 202)
+        self.stop(15, 201)
+        self.stop(16, 200)
+        self.result()
+        result = analyze(self.path, (200,), self.ready, "native-control")
+        self.assertTrue(result["measurementValid"])
+        self.assertEqual(result["nonLoopbackEvents"], 1)
+        self.assertEqual(result["result"], "observed-non-loopback-traffic")
+
     def test_ui_mode_requires_a_real_app_and_webview_for_each_controller(self):
         self.start(10, 200, 1, "kraqel-isolation-probe.exe")
         self.start(11, 201, 200, "kraqel-desktop.exe")

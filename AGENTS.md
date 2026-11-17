@@ -294,15 +294,27 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
-Aktuell: [Authentisierte Profilbereinigung](docs/testing/native-profile-cleanup.md), 17. November.
-Explizites Kontrollschema 4 signiert Vorbereitung vor Profilerzeugung und Cleanupabschluss nach
-Stilllegung. `cleanup-session` leitet die Identität nur aus der Kontrollkette ab und hält dieselbe
-Sperre; wiederholter Aufruf mit aktuellem Kopf ist idempotent. Keine Importautorität oder Reparatur.
-Zwei neue Tests/zwei native Fälle, 48 aktive Helfertests und Clippy grün; kurzer Schema-4-Start/
-Recovery erhält die Projektkopie. Bewusst mittleres Prüfniveau gemäß obiger Nutzerpräferenz; keine
-neue große Crashmatrix, Workspace-Gesamtprüfung oder ETW-Messung. Neuer Broker ohne eigenen
-ETW-Beleg. Echte Vorschauablage/verwaltete EXE unverändert. Nächster Scope: gezieltes frisches ETW
-des Cleanup-Stands; ungebundene Alt-Orphans und unvollständige Kontrollketten bleiben gesperrt.
+Aktuell:
+[Gezieltes frisches ETW des Cleanup-Stands](docs/testing/native-profile-cleanup-etw.md), 17.
+November. Gesicherter Broker/App unverändert, zwei kurze Messphasen bestanden: acht Kontrollen,
+keine Verluste/Zuordnungslücken, 140 explizite Enden, 0 beobachtete Nicht-Loopback-/48 getrennte
+Loopback-Ereignisse. Drei persistierte Aufgaben/zwei legitime Kopien, keine Replaykopie.
+`native-control` ergänzt die Auswertung aller 19 direkten Kontrollaufrufe ohne GUI-Pflicht; alle
+Aufrufe und zwei tatsächliche GUIs unabhängig chronologisch abgeglichen. Bisherige GUI-Modi bleiben
+streng. 39 Diagnose-Tests grün, keine neue große Matrix oder Builds. Echte Vorschauablage
+unverändert, Prozesse/Erfassungen beendet. Nächster Scope: lokale Update-/Paketkompatibilität für
+Kontrollschema 4 unter derselben Sperre. Striktes Ziel und offene Produktabnahme unverändert.
+
+Vorheriger Prüfstand:
+[Authentisierte Profilbereinigung](docs/testing/native-profile-cleanup.md), 17. November. Explizites
+Kontrollschema 4 signiert Vorbereitung vor Profilerzeugung und Cleanupabschluss nach Stilllegung.
+`cleanup-session` leitet die Identität nur aus der Kontrollkette ab und hält dieselbe Sperre;
+wiederholter Aufruf mit aktuellem Kopf ist idempotent. Keine Importautorität oder Reparatur. Zwei
+neue Tests/zwei native Fälle, 48 aktive Helfertests und Clippy grün; kurzer Schema-4-Start/ Recovery
+erhält die Projektkopie. Bewusst mittleres Prüfniveau gemäß obiger Nutzerpräferenz; keine neue große
+Crashmatrix, Workspace-Gesamtprüfung oder ETW-Messung. Neuer Broker ohne eigenen ETW-Beleg. Echte
+Vorschauablage/verwaltete EXE unverändert. Nächster Scope: gezieltes frisches ETW des
+Cleanup-Stands; ungebundene Alt-Orphans und unvollständige Kontrollketten bleiben gesperrt.
 
 Vorheriger Prüfstand:
 [Sitzungsübergangs-Crashpunkte und frisches ETW](docs/testing/native-session-transition-crash-etw.md), 17.

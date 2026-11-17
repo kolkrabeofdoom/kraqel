@@ -7,16 +7,27 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 17. November 2026
 
-Neuester funktionaler Stand: [Authentisierte Profilbereinigung](testing/native-profile-cleanup.md).
-Kontrollschema 4 signiert Vorbereitung vor Profilerzeugung und Cleanupabschluss; Wiederholung mit
-aktuellem Kopf idempotent, gleiche Kontrollsperre, keine neue Importautorität. Zwei native Fälle
-samt kurzem Start/Recovery und 48 Helfertests/Clippy bestanden; Daten-/MAC-Audit grün. Auf Wunsch
-mittleres Prüfniveau statt großer Matrix/Workspace-Gesamtprüfung. Kein frisches ETW des neuen
-Brokerhashs; nächster Scope: gezielter Netzvergleich des Cleanup-Stands. Echte Vorschauablage und
-unten genannte autorisierte EXE unverändert; neuer Prüfbroker nicht automatisch aktiviert.
-Testprofil/Prozesse beendet, private synthetische Belege erhalten. Ungebundene Alt-Orphans und
-unvollständige Kontrollketten nicht übernehmen oder reparieren. Striktes Ziel unverändert,
-Produktintegration weiter offen.
+Neuester Netzbeleg:
+[Gezieltes ETW des unveränderten Cleanup-Paars](testing/native-profile-cleanup-etw.md). Zwei kurze
+gültige Phasen, acht Kontrollen, Nullverluste, 140 explizite Prozessenden, 0 Nicht-Loopback-/48
+getrennte Loopback-Ereignisse. Alle 19 direkten Kontrollaufrufe einschließlich fensterloser
+Cleanup-/Statusprozesse erfasst (`native-control`), erwartete Aufrufe/GUIs/Daten unabhängig
+gegengeprüft. 39 Diagnose-Tests grün; keine neuen Builds oder große Matrix. Erfassungen/
+Supervisor/Testprozesse beendet; rohe Diagnosen und synthetische Fixtures lokal erhalten. Echte
+Vorschauablage/verwaltete EXE unverändert. Nächster Scope: lokale Update-/Paketkompatibilität für
+Kontrollschema 4 unter derselben Sperre, weiterhin mittleres Prüfniveau. Striktes Datenschutzziel
+unverändert, keine Produktfreigabe.
+
+Vorheriger Prüfstand: Neuester funktionaler Stand:
+[Authentisierte Profilbereinigung](testing/native-profile-cleanup.md). Kontrollschema 4 signiert
+Vorbereitung vor Profilerzeugung und Cleanupabschluss; Wiederholung mit aktuellem Kopf idempotent,
+gleiche Kontrollsperre, keine neue Importautorität. Zwei native Fälle samt kurzem Start/Recovery und
+48 Helfertests/Clippy bestanden; Daten-/MAC-Audit grün. Auf Wunsch mittleres Prüfniveau statt großer
+Matrix/Workspace-Gesamtprüfung. Kein frisches ETW des neuen Brokerhashs; nächster Scope: gezielter
+Netzvergleich des Cleanup-Stands. Echte Vorschauablage und unten genannte autorisierte EXE
+unverändert; neuer Prüfbroker nicht automatisch aktiviert. Testprofil/Prozesse beendet, private
+synthetische Belege erhalten. Ungebundene Alt-Orphans und unvollständige Kontrollketten nicht
+übernehmen oder reparieren. Striktes Ziel unverändert, Produktintegration weiter offen.
 
 Vorheriger Prüfstand: Neuester Prüfstand:
 [Übergangs-Crashpunkte und frisches ETW](testing/native-session-transition-crash-etw.md). 20 neue

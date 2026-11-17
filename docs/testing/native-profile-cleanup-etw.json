@@ -1,0 +1,259 @@
+{
+  "formatVersion": 1,
+  "nativePreviewOnly": true,
+  "productionAcceptance": false,
+  "sourceBaseCommit": "1e1ce619b2b39904cba9d2e7eaebf811fc03f199",
+  "programSourceCommit": "1e1ce619b2b39904cba9d2e7eaebf811fc03f199",
+  "controllerSha256": "b2c4f21f080337c231fcb54a71dae73777b71923f73c7961c37678da13cd7dbd",
+  "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+  "analyzerSha256": "521dc49035977c71188cb44292f24985fae9668ef042e7b7d8bb5feee69c895c",
+  "measurementValid": true,
+  "positiveControls": {
+    "expected": 8,
+    "observed": 8
+  },
+  "explicitProcessStops": 140,
+  "processLifetimes": {
+    "kraqel-isolation-probe.exe": 38,
+    "conhost.exe": 46,
+    "kraqel-desktop.exe": 8,
+    "msedgewebview2.exe": 48
+  },
+  "nonLoopbackEvents": 0,
+  "separateLoopbackEvents": 48,
+  "measuredPersistedImportTasks": 3,
+  "measuredLegitimateProjectCopies": 2,
+  "nativeControlRoots": 19,
+  "normalPreviewStoreUsed": false,
+  "phases": [
+    {
+      "formatVersion": 1,
+      "measurementMode": "broker-ui",
+      "measurementValid": true,
+      "measurementProblems": [],
+      "result": "no-non-loopback-traffic-observed",
+      "rootStarts": 1,
+      "processLifetimes": {
+        "kraqel-isolation-probe.exe": 19,
+        "conhost.exe": 25,
+        "kraqel-desktop.exe": 6,
+        "msedgewebview2.exe": 36
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "unattributableNetworkEvents": 0,
+      "unknownDestinationEvents": 0,
+      "networkEvents": [
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 13,
+          "destinationScope": "loopback",
+          "count": 18
+        },
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 29,
+          "destinationScope": "loopback",
+          "count": 18
+        }
+      ],
+      "nonLoopbackEvents": 0,
+      "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths. Out-of-tree COM/Shell services are not attributed by this process-tree measurement.",
+      "phase": "baseline",
+      "captureReadyUtc": "2026-11-17T07:04:43.1260133Z",
+      "traceStoppedUtc": "2026-11-17T07:05:04.5205935Z",
+      "convertedUtc": "2026-11-17T07:05:04.6921336Z",
+      "etlBytes": 1179648,
+      "lifecycleAudit": {
+        "independentLifecycleAuditPassed": true,
+        "rootStarts": 1,
+        "nativeControllersMatched": 18,
+        "appGenerationsMatched": 6,
+        "explicitProcessStops": 86,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 19,
+          "conhost.exe": 25,
+          "kraqel-desktop.exe": 6,
+          "msedgewebview2.exe": 36
+        },
+        "controllerExitCodes": {
+          "0": 11,
+          "86": 2,
+          "1": 6
+        },
+        "appExitCodes": {
+          "0": 2,
+          "77": 4
+        },
+        "webViewsPerApp": 6
+      },
+      "dataAudit": {
+        "formatVersion": 1,
+        "nativePreviewOnly": true,
+        "productionAcceptance": false,
+        "controllerSha256": "b2c4f21f080337c231fcb54a71dae73777b71923f73c7961c37678da13cd7dbd",
+        "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+        "independentAuditPassed": true,
+        "controlSchema": 3,
+        "controlRecordsPerInstallation": 7,
+        "controllerProcesses": 18,
+        "controllerExitCodes": {
+          "0": 10,
+          "1": 6,
+          "86": 2
+        },
+        "nativeGuiStarts": 6,
+        "controllerCrashes": 2,
+        "authenticatedRecoveries": 4,
+        "explicitReplayEvents": 8,
+        "negativeRecoveries": 6,
+        "actualContainerDenials": 36,
+        "distinctTasks": 2,
+        "distinctLaunches": 6,
+        "legitimateProjectCopies": 1,
+        "profilesRemoved": 2,
+        "normalPreviewStoreUsed": false,
+        "reservedPrivateDataEmpty": true,
+        "networkMeasurement": false,
+        "cases": [
+          {
+            "point": "prepared",
+            "controllerExitCode": 86,
+            "recoveries": 2,
+            "replayEvents": 4,
+            "projectCopies": 0,
+            "profileRemoved": true,
+            "negativeStateUnchanged": true,
+            "keyUnchanged": true
+          },
+          {
+            "point": "completed",
+            "controllerExitCode": 86,
+            "recoveries": 2,
+            "replayEvents": 4,
+            "projectCopies": 1,
+            "profileRemoved": true,
+            "negativeStateUnchanged": true,
+            "keyUnchanged": true
+          }
+        ]
+      }
+    },
+    {
+      "formatVersion": 1,
+      "measurementMode": "native-control",
+      "measurementValid": true,
+      "measurementProblems": [],
+      "result": "no-non-loopback-traffic-observed",
+      "rootStarts": 19,
+      "processLifetimes": {
+        "kraqel-isolation-probe.exe": 19,
+        "conhost.exe": 21,
+        "kraqel-desktop.exe": 2,
+        "msedgewebview2.exe": 12
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "unattributableNetworkEvents": 0,
+      "unknownDestinationEvents": 0,
+      "networkEvents": [
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 13,
+          "destinationScope": "loopback",
+          "count": 6
+        },
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 29,
+          "destinationScope": "loopback",
+          "count": 6
+        }
+      ],
+      "nonLoopbackEvents": 0,
+      "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths. Out-of-tree COM/Shell services are not attributed by this process-tree measurement.",
+      "phase": "cleanup",
+      "captureReadyUtc": "2026-11-17T07:05:04.7370099Z",
+      "traceStoppedUtc": "2026-11-17T07:05:15.8769217Z",
+      "convertedUtc": "2026-11-17T07:05:16.0391806Z",
+      "etlBytes": 1179648,
+      "lifecycleAudit": {
+        "independentLifecycleAuditPassed": true,
+        "rootStarts": 19,
+        "nativeControllersMatched": 19,
+        "appGenerationsMatched": 2,
+        "explicitProcessStops": 54,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 19,
+          "conhost.exe": 21,
+          "kraqel-desktop.exe": 2,
+          "msedgewebview2.exe": 12
+        },
+        "controllerExitCodes": {
+          "0": 13,
+          "86": 2,
+          "1": 4
+        },
+        "appExitCodes": {
+          "77": 2
+        },
+        "webViewsPerApp": 6
+      },
+      "dataAudit": {
+        "formatVersion": 1,
+        "nativePreviewOnly": true,
+        "productionAcceptance": false,
+        "controllerSha256": "b2c4f21f080337c231fcb54a71dae73777b71923f73c7961c37678da13cd7dbd",
+        "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+        "controlSchema": 4,
+        "independentAuditPassed": true,
+        "nativeCases": 2,
+        "childProcesses": 19,
+        "childExitCodes": {
+          "0": 13,
+          "1": 4,
+          "86": 2
+        },
+        "nativeGuiStarts": 2,
+        "cleanupImportGrants": 0,
+        "normalPreviewStoreUsed": false,
+        "networkMeasurement": false,
+        "cases": [
+          {
+            "case": "prepared-without-profile",
+            "records": 7,
+            "cleanupRecorded": true,
+            "repeatedCleanupHeadUnchanged": true,
+            "staleHeadRejected": true,
+            "retiredRecoveryRejected": true,
+            "guiStarts": 0,
+            "projectCopiesPreserved": 0
+          },
+          {
+            "case": "retired-with-existing-profile",
+            "records": 9,
+            "cleanupRecorded": true,
+            "repeatedCleanupHeadUnchanged": true,
+            "staleHeadRejected": true,
+            "retiredRecoveryRejected": true,
+            "guiStarts": 2,
+            "projectCopiesPreserved": 1
+          }
+        ]
+      }
+    }
+  ],
+  "limits": "Saved executables unchanged. native-control measures all explicit native call roots, without requiring GUI for control-only calls; expected calls and actual GUIs independently matched. Transport metadata for captured trees only, no HTTP/content/upload or complete out-of-tree COM/Shell/DNS/broker attestation. Test PowerShell orchestration outside the app/control trees."
+}

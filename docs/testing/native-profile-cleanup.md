@@ -34,7 +34,8 @@ werden; dort bleibt es ohne neuen Schema-4-Abschlussrecord. Alte ungebundene Orp
 authentisierten Beleg werden nicht übernommen. Beschädigte/unvollständige Kontrollketten bleiben
 gesperrt. Eine Sitzung je Installation und die bisherige Updategrenze bleiben bestehen; kein
 Schema-4-Brokerupdate oder echte Datenmigration implementiert. Der Schema-3-Kompatibilitätspfad
-wurde diesmal nicht separat nativ ausgeführt.
+wurde in diesem Funktionslauf nicht separat nativ ausgeführt; der spätere
+[gezielte ETW-Vergleich](native-profile-cleanup-etw.md) prüft ihn mit demselben Brokerhash.
 
 Mittleres Prüfniveau auf ausdrücklichen Wunsch: zwei neue aktive Tests für Vorbereitungsbindung,
 Stilllegung, Cleanupzustand und Abweisungen vor OS-Aufrufen. Insgesamt 48 schnelle aktive
@@ -54,8 +55,7 @@ headless Lauf bestand ebenfalls; maßgeblich ist der gesicherte Lauf mit kurzem 
 
 Die echte Vorschauablage und ihre autorisierte EXE blieben unverändert. Testprofil entfernt,
 Testprozesse beendet; synthetische Daten und private Belege bleiben lokal. Keine Rohpfade,
-Kennungen, Schlüssel oder privaten Datenbanken veröffentlicht. **Kein neuer ETW-Netzbeleg dieses
-Brokerhashs**; der vorherige Nachweis bleibt auf seinen anderen Hash begrenzt. Nächster Schritt:
-gezielter frischer ETW-Vergleich des geänderten Cleanup-Stands. Produkt-Q-01/Q-02, normale
-Produktintegration, weitere Crashpunkte und allgemeine Stromausfall-/Rollbackgarantien bleiben
-offen.
+Kennungen, Schlüssel oder privaten Datenbanken veröffentlicht. Der spätere eigene
+[ETW-Netznachweis dieses unveränderten Brokerhashs](native-profile-cleanup-etw.md) ist getrennt
+dokumentiert. Produkt-Q-01/Q-02, normale Produktintegration, weitere Crashpunkte und allgemeine
+Stromausfall-/Rollbackgarantien bleiben offen.

@@ -1,5 +1,12 @@
 # Lokale Windows-Netzprüfung für M3
 
+`analyze.py --mode native-control` erfasst ausdrücklich ausgewählte kurze native Kontrollaufrufe des
+festen Root-Images `kraqel-isolation-probe.exe`, auch ohne Kindprozess/GUI. Jede tatsächlich
+gestartete Root-PID angeben und Handles bis Messende halten; alle erwarteten Aufrufe und etwaige
+GUIs unabhängig gegen Kernel-Lebenszeiten abgleichen. Leere/fehlende Roots, Verluste, unvollständige
+Kalibrierung oder Prozessenden bleiben ungültig. Die Strukturprüfungen der bisherigen Modi werden
+nicht verändert. [Gezielter Cleanup-Nachweis](../../docs/testing/native-profile-cleanup-etw.md).
+
 `analyze.py --mode broker-ui` ist für die gesamte Controller-Crash-Serie vorgesehen: Root ist der
 beim Start festgehaltene Serienprozess. Alle nachgeordneten Broker einschließlich negativer Starts
 zählen zum Baum; pro Root muss ein lebenszeitgebundener Broker→App→WebView-Pfad existieren.
@@ -39,10 +46,10 @@ python -m unittest discover -s scripts/m3-network -v
 ```
 
 Exitcode 0 verlangt vollständige positive Kontrollen, Verlustfreiheit, Start-/Stop-Belege des
-App-/WebView2-Baums und keine Ereignisse außerhalb Loopback. Fehlende Evidenz wird nicht als
-Netzstille gewertet. Die Zuordnung berücksichtigt Prozessgenerationen und PID-Wiederverwendung;
-mehrdeutige Root-PIDs verhindern eine Freigabe. Die Ausgabe enthält keine IP-Adressen, Commandlines
-oder fremden Prozessnamen.
+gewählten Baums samt modusspezifischen Strukturprüfungen und keine Ereignisse außerhalb Loopback.
+Fehlende Evidenz wird nicht als Netzstille gewertet. Die Zuordnung berücksichtigt
+Prozessgenerationen und PID-Wiederverwendung; mehrdeutige Root-PIDs verhindern eine Freigabe. Die
+Ausgabe enthält keine IP-Adressen, Commandlines oder fremden Prozessnamen.
 
 Ein positiver Verkehrsbefund bleibt ein Befund, auch wenn etwa der Prozess vor Messende noch nicht
 geschlossen wurde; eine grüne Vollabnahme ergibt sich daraus nicht. ETW belegt hier

@@ -1,5 +1,13 @@
 # Bedrohungsmodell (Entwurf)
 
+[Gezieltes Cleanup-ETW](../testing/native-profile-cleanup-etw.md), 17. November: unverändertes
+gesichertes Paar, zwei gültige kurze Phasen mit acht Kontrollen/Nullverlusten/140 expliziten Enden.
+0 beobachtete Nicht-Loopback-/48 getrennte Loopback-Ereignisse. Alle 19 direkten nativen Aufrufe
+erfasst; `native-control` erlaubt GUI-lose Hostaufrufe, ersetzt keine
+Vollständigkeits-/Kalibrierungs- oder Lebenszeitprüfung. Erwartete Aufrufe/GUIs unabhängig
+abgeglichen. Keine externe Dienst-/ Inhalts-/Upload- oder Produktattestierung. Echte Vorschauablage
+unbenutzt; striktes Ziel unverändert.
+
 [Authentisierte Profilbereinigung](../testing/native-profile-cleanup.md), 17. November:
 Kontrollschema 4 signiert Sitzungsvorbereitung vor Profilerzeugung. Cleanup verlangt authentisierte
 Stilllegung, aktuellen Actor/Kopf und Jobleerstand; gleiche Sperre bis Abschlussrecord. Identität

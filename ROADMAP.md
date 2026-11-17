@@ -156,7 +156,9 @@
              Nicht-Loopback
        - [x] KQ-069 A: Authentisierte Profilbereinigung unter Kontrollsperre; Kontrollschema 4, zwei
              gezielte native Fälle, idempotenter Abschluss ohne neue Importautorität
-       - [ ] KQ-069 A: Gezieltes frisches ETW des Cleanup-Stands; Updatepolitik, isolierten
+       - [x] KQ-069 A: Gezieltes Cleanup-ETW des unveränderten Paars; acht Kontrollen, 140 explizite
+             Enden, 0 Nicht-Loopback, alle 19 direkten Kontrollaufrufe erfasst
+       - [ ] KQ-069 A: Lokale Update-/Paketkompatibilität für Kontrollschema 4; isolierten
              Produktstarter/echte Projektmigration integrieren sowie weitere allgemeine
              Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
              integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker

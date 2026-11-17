@@ -1,5 +1,12 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+Gezieltes Cleanup-ETW, 17. November:
+[Eigener frischer Beleg](../../testing/native-profile-cleanup-etw.md) des unveränderten Paares. Acht
+Kontrollen, keine Verluste/Zuordnungslücken, 140 explizite Enden, 0 Nicht-Loopback-/48 getrennte
+Loopback-Ereignisse. Für direkte GUI-lose Kontrollaufrufe benannter Modus `native-control` mit
+unveränderten allgemeinen Guards und unabhängigem Aufruf-/GUI-Abgleich. Keine Runtimeänderung,
+fachliche Ausnahme oder Produktfreigabe; mittleres Prüfniveau und striktes Ziel unverändert.
+
 Profilbereinigung, 17. November: [Native Vorschau](../../testing/native-profile-cleanup.md) ergänzt
 signierte Vorbereitung in Kontrollschema 4 vor Profilerzeugung sowie idempotenten Cleanup nach
 signierter Stilllegung. Identität aus Kontrollkette, dieselbe Sperre, keine neue Importautorität.
