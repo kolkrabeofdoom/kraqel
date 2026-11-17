@@ -4,6 +4,11 @@ Stand: 17. November 2026. Implementierte Windows-Vorschau im nativen Forschungsb
 normaler Produktstarter. [Funktionsnachweis](../testing/native-product-control.md),
 [Bedrohungsmodell](../architecture/threat-model.md). Striktes Datenschutzziel unverändert.
 
+Der [P2c-Vertragsentwurf](product-start-p2c-v1-draft.md) beschreibt den geplanten
+Arbeitsablagen-/Paket-/Mehrprozessstart. Vorgeschlagenes Kontrollschema 6 und UI-ABI 1 sind **nicht
+implementiert** und erweitern keine hier beschriebenen Leserechte oder Migrationen. Nächster Schritt
+ist C1, zunächst ohne native Autorität.
+
 ## Ablage und Vertrauensgrenze
 
 Fester Standardpfad: `%USERPROFILE%\.kraqel-broker-preview`. Ein lokales Profilverzeichnis wird vor

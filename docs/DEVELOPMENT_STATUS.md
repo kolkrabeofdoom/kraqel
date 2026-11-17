@@ -1,6 +1,20 @@
 # Entwicklungsstatus
 
-Aktuell:
+Aktuell · P2c-Vertrag, 17. November 2026:
+
+[P2c-Vertragsentwurf v1](data-format/product-start-p2c-v1-draft.md) ist ausgearbeitet, **noch nicht
+implementiert**: persistente synthetische Arbeitsdaten mit eigenem Profil, getrennte unveränderliche
+Host-/UI-Pakete, gepinnte Runtime und eigener authentisierter Startbootstrap. Ein langlebiger
+nativer Wächter soll Kontrollsperre und Job über die gesamte UI-Prozessgruppe halten. Root-Ende ist
+kein Gruppenende; nach Wächterverlust bleibt unbekannter Drain gesperrt. Neue Schema-/ABI-Werte sind
+nur vorgeschlagen, keine vorhandene Migrations- oder Produktfreigabe. Nächster begrenzter Schritt
+**C1: reine Typen, Inventarcodierung und Lebenszyklusmodell**, ohne native Start-/Dateiautorität.
+Nur Dokumentation, Quellen-/Verweis-/Format-/Diffprüfung; kein neuer Build oder ETW, echte
+Daten/Schlüssel unverändert. P2 insgesamt, P3–P5 und Produkt-Q-01/Q-02 bleiben offen; striktes
+Datenschutzziel unverändert.
+
+Vorheriger Implementierungs-/Netznachweis:
+
 [Frischer Workerbindungs-/Wiederanlauf-Netzbeleg](testing/product-start-worker-lifetime-etw.md).
 Frisches Workerbindungs-v3-ETW, 17. November: unveränderter Build `37d7bec…`, normale Referenz und
 vier Wiederanlaufpfade. 52 Controller/acht Worker/52 Controller-Konsolenhosts, alle 112 Enden
@@ -10,10 +24,10 @@ Bindungen und drei Endrecords nach bestätigtem Kernelende zugeordnet. Exit 0 er
 fachlichen Abschluss: vier Finish-Records, drei reconciliierte Starts, ein ungebundener Start weiter
 pending/gesperrt. Daten/MAC-/Paket-/Root-/Profilaudit und 42 Diagnose-Tests grün, echte Daten und
 Schlüssel unverändert. Kein neuer Build/App-/Transport-/Installerumbau oder pnpm check; Rohdaten nur
-lokal. Nächster Scope: P2c-Vertrag für persistente synthetische Arbeitsablage, Paketbindung und
-Mehrprozess-UI-Start konkretisieren. Ein-Prozess-Beleg nicht auf WebView2 übertragen, private
-Fixtures nicht promovieren; ungebundene Starts/unbestätigte Profile und P2
-insgesamt/P3–P5/Produkt-Q-01/Q-02 offen, striktes Ziel unverändert.
+lokal. Der damals nächste Vertragsumfang ist inzwischen als P2c-Entwurf dokumentiert; die Umsetzung
+bleibt offen. Ein-Prozess-Beleg nicht auf WebView2 übertragen, private Fixtures nicht promovieren;
+ungebundene Starts/unbestätigte Profile und P2 insgesamt/P3–P5/Produkt-Q-01/Q-02 offen, striktes
+Ziel unverändert.
 
 Vorheriger Stand:
 

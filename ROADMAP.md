@@ -26,12 +26,13 @@ umgesetzt. Der
 ergänzt.
 [Dauerhafte Workerbindung/Wiederanlauf vor Drained](docs/testing/product-start-worker-lifetime.md)
 ist für den synthetischen Ein-Prozess-Worker umgesetzt. Der
-[eigene frische Netzbeleg](docs/testing/product-start-worker-lifetime-etw.md) ist ergänzt. Als
-Nächstes P2c-Arbeitsablagen-/Paket-/Mehrprozessvertrag konkretisieren; ungebundene Starts,
-mehrprozessige GUI-Lebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung bleiben offen. P3
-Bestandskopie sowie P4/P5 normale App-/Launcher-/Installerintegration und Produktabnahme folgen. Die
-normalen Produkt-Q-01/Q-02 bleiben offen; der neue Forschungsnetzbeleg ersetzt dieses Gate nicht.
-Das strikte Datenschutzziel bleibt unverändert.
+[eigene frische Netzbeleg](docs/testing/product-start-worker-lifetime-etw.md) ist ergänzt. Der
+[P2c-Vertrag](docs/data-format/product-start-p2c-v1-draft.md) ist als Entwurf ausgearbeitet, nicht
+implementiert. Nächster Schritt C1: reine Typen/Inventarcodierung/Lebenszyklusmodell; ungebundene
+Starts, mehrprozessige GUI-Lebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung bleiben
+offen. P3 Bestandskopie sowie P4/P5 normale App-/Launcher-/Installerintegration und Produktabnahme
+folgen. Die normalen Produkt-Q-01/Q-02 bleiben offen; der neue Forschungsnetzbeleg ersetzt dieses
+Gate nicht. Das strikte Datenschutzziel bleibt unverändert.
 
 ## M0 - Fundament (abgeschlossen)
 
@@ -225,8 +226,11 @@ Das strikte Datenschutzziel bleibt unverändert.
        - [x] KQ-069 A: Frisches ETW des Workerbindungs-v3-Builds mit
              Kernel-Erzeugungszeit-/Endabgleich; 52 Controller/acht Worker, 112 Enden/acht
              Kontrollen, null beobachtete Netzereignisse
-       - [ ] KQ-069 A: P2c-Arbeitsablagen-/Paket-/Mehrprozessvertrag konkretisieren; ungebundene
-             Starts und vollständige Live-Worker-Crashbereinigung und persistente echte
+       - [x] KQ-069 A: [P2c-Vertragsentwurf](docs/data-format/product-start-p2c-v1-draft.md) für
+             persistente Arbeitsdaten/Pakete/Mehrprozessstart ausgearbeitet; keine Implementierung
+       - [ ] KQ-069 A: C1 reine P2c-Typen/Inventarcodierung/Lebenszyklusmodell; danach native
+             Arbeitsablage/Paketprüfung/Wächter/Mehrprozess-UI getrennt umsetzen; ungebundene Starts
+             und vollständige Live-Worker-Crashbereinigung und persistente echte
              Arbeitsablagen-/UI-Bindung; danach P3–P5 isolierten Produktstarter/echte
              Projektmigration integrieren sowie weitere allgemeine Fensterende-/F08-Prüfung;
              dauerhaften authentisierten Produktbroker integrieren/abnehmen; weitere

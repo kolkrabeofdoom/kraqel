@@ -1,5 +1,14 @@
 # Bedrohungsmodell (Entwurf)
 
+[P2c-Vertragsentwurf](../data-format/product-start-p2c-v1-draft.md), 17. November 2026: Geplante
+Trennung von privater Kontrollautorität, unveränderlichen Paketen und persistenten Arbeitsdaten;
+eigener Startgrant und Lebenszeitwächter für die gesamte UI-Prozessgruppe. Noch keine
+Implementierung. Root-PID-Ende ist kein Mehrprozess-Endbeleg; verlorener Wächterbesitz bleibt
+gesperrt. Keine Übernahme echter Daten, ABI-Freigabe oder Lockerung von Produkt-Q-01/Q-02. Als
+Nächstes C1: reines Typen-/Inventar-/Lebenszyklusmodell ohne native Autorität.
+
+Vorheriger Implementierungs-/Netznachweis:
+
 [Frischer Workerbindungs-/Wiederanlauf-Netzbeleg](../testing/product-start-worker-lifetime-etw.md).
 Frisches Workerbindungs-v3-ETW, 17. November: unveränderter Build `37d7bec…`, normale Referenz und
 vier Wiederanlaufpfade. 52 Controller/acht Worker/52 Controller-Konsolenhosts, alle 112 Enden
@@ -9,10 +18,10 @@ Bindungen und drei Endrecords nach bestätigtem Kernelende zugeordnet. Exit 0 er
 fachlichen Abschluss: vier Finish-Records, drei reconciliierte Starts, ein ungebundener Start weiter
 pending/gesperrt. Daten/MAC-/Paket-/Root-/Profilaudit und 42 Diagnose-Tests grün, echte Daten und
 Schlüssel unverändert. Kein neuer Build/App-/Transport-/Installerumbau oder pnpm check; Rohdaten nur
-lokal. Nächster Scope: P2c-Vertrag für persistente synthetische Arbeitsablage, Paketbindung und
-Mehrprozess-UI-Start konkretisieren. Ein-Prozess-Beleg nicht auf WebView2 übertragen, private
-Fixtures nicht promovieren; ungebundene Starts/unbestätigte Profile und P2
-insgesamt/P3–P5/Produkt-Q-01/Q-02 offen, striktes Ziel unverändert.
+lokal. Der P2c-Vertrag ist inzwischen als Entwurf ausgearbeitet; seine Umsetzung bleibt offen.
+Ein-Prozess-Beleg nicht auf WebView2 übertragen, private Fixtures nicht promovieren; ungebundene
+Starts/unbestätigte Profile und P2 insgesamt/P3–P5/Produkt-Q-01/Q-02 offen, striktes Ziel
+unverändert.
 
 Vorheriger Stand:
 
