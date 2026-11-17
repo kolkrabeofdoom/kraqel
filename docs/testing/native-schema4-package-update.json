@@ -1,0 +1,29 @@
+{
+  "formatVersion": 1,
+  "nativePreviewOnly": true,
+  "productionAcceptance": false,
+  "sourceBaseCommit": "3e576a5f7d7e9e0dece31b2bd5da973f22639fca",
+  "controllerSha256": "45542384ce42b73450453dce2f5a40b635b7b8552055de25d60c147fc21dd360",
+  "candidateSha256": "6748900defbbdb8df5e8e5ec0e611091cd1e6656880381a18e43e8755510bf90",
+  "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+  "independentAuditPassed": true,
+  "controlSchema": 4,
+  "packageContractVersion": 1,
+  "childProcesses": 15,
+  "childExitCodes": {
+    "0": 10,
+    "1": 5
+  },
+  "guiStarts": 2,
+  "recoveriesAfterActivation": 1,
+  "actualContainerDenials": 12,
+  "controlRecords": 11,
+  "installationAndKeyPreserved": true,
+  "sessionAndAppBindingPreserved": true,
+  "persistedTasks": 1,
+  "legitimateProjectCopies": 1,
+  "profileRemoved": true,
+  "normalPreviewStoreUsed": false,
+  "networkMeasurement": false,
+  "limits": "Synthetic candidate has identical code plus an overlay, different hash. Metadata compatibility and explicitly approved hash are not publisher authentication or arbitrary release-behavior attestation. Bound App package unchanged."
+}

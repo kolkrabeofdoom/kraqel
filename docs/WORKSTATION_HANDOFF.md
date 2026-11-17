@@ -7,7 +7,19 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 17. November 2026
 
-Neuester Netzbeleg:
+Neuester funktionaler Stand:
+[Lokale Schema-4-Brokerpaket-Updates](testing/native-schema4-package-update.md). Read-only
+Paketvertrag vor Pending/Aktivierung, kein Ausführen des Kandidaten vor Freigabe. Dieselbe
+Kontrollsperre/Jobprüfung. 51 aktive Helfertests/Clippy und ein kurzer nativer Wechsel auf
+verwalteten Kandidaten samt Recovery/Cleanup/Daten-MAC-Audit grün. Ein synthetischer Kandidat,
+gleicher Code/anderer Hash; genau eine Projektkopie erhalten, Apphash unverändert. Echte
+Vorschauablage/verwaltete EXE unverändert, neue Prüfprogramme dort nicht autorisieren oder alte
+Kontrollablagen übernehmen. Neuer eigener ETW-Beleg offen; nächster Scope: gezielter Vergleich
+beider Actorprogramme einschließlich hashbenannter verwalteter EXE. Mittleres Prüfniveau, striktes
+Datenschutzziel und offene Produktabnahme unverändert. Testprofil/Prozesse beendet, private
+synthetische Belege erhalten.
+
+Vorheriger Prüfstand: Neuester Netzbeleg:
 [Gezieltes ETW des unveränderten Cleanup-Paars](testing/native-profile-cleanup-etw.md). Zwei kurze
 gültige Phasen, acht Kontrollen, Nullverluste, 140 explizite Prozessenden, 0 Nicht-Loopback-/48
 getrennte Loopback-Ereignisse. Alle 19 direkten Kontrollaufrufe einschließlich fensterloser

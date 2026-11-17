@@ -797,3 +797,83 @@ fn cleanup_rejects_unbound_active_wrong_actor_and_stale_head_before_os_calls() {
     assert_eq!(store.state.head, active);
     assert_eq!(hash(&f.root().join("control/authority.key")).unwrap(), key);
 }
+
+#[test]
+fn schema4_updates_preserve_bound_state_key_data_and_allow_abort_without_new_authority() {
+    for activate in [true, false] {
+        let f = Fixture::new();
+        let mut store = f.store();
+        for from in 1..4 {
+            store
+                .append(
+                    [1; 32],
+                    store.state.head,
+                    Action::Migrate { from, to: from + 1 },
+                )
+                .unwrap();
+        }
+        let binding = session_binding();
+        store
+            .append(
+                [1; 32],
+                store.state.head,
+                Action::PrepareSession {
+                    binding: binding.clone(),
+                },
+            )
+            .unwrap();
+        store
+            .append([1; 32], store.state.head, Action::BindSession { binding })
+            .unwrap();
+        fs::write(
+            f.root().join("data/consumed-sentinel"),
+            b"consumed; never reset",
+        )
+        .unwrap();
+        let key = hash(&f.root().join("control/authority.key")).unwrap();
+        let candidate = f.candidate();
+        let sha = hash(&candidate).unwrap();
+        let stale = store.state.head;
+        store.prepare([1; 32], stale, &candidate, sha).unwrap();
+        assert!(store.state.session.is_some());
+        assert!(
+            store
+                .append(
+                    [1; 32],
+                    store.state.head,
+                    Action::RecoverSession {
+                        launch: Uuid::new_v4()
+                    }
+                )
+                .is_err()
+        );
+        assert!(store.activate([1; 32], stale).is_err());
+        if activate {
+            store.activate([1; 32], store.state.head).unwrap();
+            assert!(store.actor([1; 32]).is_err());
+            assert!(store.actor(sha).is_ok());
+        } else {
+            OpenOptions::new()
+                .append(true)
+                .open(store.package(sha))
+                .unwrap()
+                .write_all(b"tamper")
+                .unwrap();
+            assert!(store.activate([1; 32], store.state.head).is_err());
+            store
+                .append([1; 32], store.state.head, Action::Abort)
+                .unwrap();
+            assert!(store.actor([1; 32]).is_ok());
+        }
+        drop(store);
+        let store = Store::open(&f.root()).unwrap();
+        assert_eq!(store.state.schema, 4);
+        assert!(store.state.pending.is_none());
+        assert!(store.state.session.is_some());
+        assert_eq!(hash(&f.root().join("control/authority.key")).unwrap(), key);
+        assert_eq!(
+            fs::read(f.root().join("data/consumed-sentinel")).unwrap(),
+            b"consumed; never reset"
+        );
+    }
+}

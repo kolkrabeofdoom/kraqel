@@ -413,6 +413,18 @@ pub(in crate::windows) fn child(args: &[OsString]) -> Result<Value> {
         "recover" => store.recover_session(actor, head)?,
         "retire" => store.retire_session(actor, head)?,
         "cleanup" => store.cleanup_profile(actor, head)?,
+        "prepare-update" => {
+            store.prepare(actor, head, app, expected)?;
+            json!(null)
+        }
+        "activate-update" => {
+            store.activate(actor, head)?;
+            json!(null)
+        }
+        "abort-update" => {
+            store.append(actor, head, Action::Abort)?;
+            json!(null)
+        }
         _ => return Err(invalid("product-session-child-action")),
     };
     Ok(json!({"control":store.summary(),"outcome":outcome}))

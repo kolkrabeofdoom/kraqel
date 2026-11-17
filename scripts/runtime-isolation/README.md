@@ -352,6 +352,17 @@ Schlüssel bleiben erhalten. Ungebundene Alt-Orphans/defekte Kontrollketten blei
 gezielte Helferprüfung auf ausdrücklichen Wunsch statt großer neuer Testmatrix. Neuer Broker noch
 ohne eigenen ETW-Nachweis; keine automatische Autorisierung in der echten Vorschauablage.
 
+## Lokale Brokerpaket-Updates unter Kontrollschema 4
+
+Die vorhandenen nativen `broker-store prepare <EXE> <SHA> <Kopf>`, `activate <Kopf>` und
+`abort <Kopf>` sind für Schema 4 freigegeben. Zusätzlich verlangt Schema 4 einen begrenzten
+read-only `.kqmeta`-Paketvertrag, geprüft vor Pending und erneut vor Aktivierung. Keine Ausführung
+des Kandidaten vor Aktivierung, keine Downloads oder Apppaket-/Datenmigration. Hashfreigabe,
+Actor/Kopf/Jobleerstand, dieselbe Kontrollsperre und Rollbackabwehr bleiben verpflichtend.
+[Vertrag, native Prüfung und Grenzen](../../docs/testing/native-schema4-package-update.md). Der neue
+Broker/Kandidat benötigt eigene frische ETW-Belege; die hashbenannte verwaltete EXE bei einer
+Messung ebenfalls vollständig erfassen. Echte Vorschauablage nicht übernehmen/zurücksetzen.
+
 Primärquellen:
 [AppContainer für klassische Apps](https://learn.microsoft.com/en-us/windows/win32/secauthz/appcontainer-for-legacy-applications-),
 [Start mit Security Capabilities](https://learn.microsoft.com/en-us/windows/win32/secauthz/implementing-an-appcontainer),

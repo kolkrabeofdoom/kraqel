@@ -294,7 +294,18 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
-Aktuell:
+Aktuell: [Lokale Schema-4-Brokerpaket-Updates](docs/testing/native-schema4-package-update.md), 17.
+November. Schema 4 erlaubt lokale Vorbereitung/Aktivierung/Abbruch unter derselben Sperre; genau ein
+begrenzter `.kqmeta`-Vertrag wird vor Pending und Aktivierung aus der gepinnten Datei gelesen.
+Kandidat vorher nicht ausführen. Hash/Kopf/Jobleerstand und Rollbackabwehr unverändert.
+`durable/product/package.rs` ist zuständig. Drei neue Tests, 51 aktive Helfertests/Clippy und ein
+gezielter nativer Actorwechsel samt Recovery/Cleanup bestanden. Sitzung/App/Schlüssel bleiben
+erhalten; Apppaket selbst wird nicht ausgetauscht. Kandidat synthetisch gleicher Code/anderer Hash,
+kein beliebiger Release-/Herkunftsnachweis. Echte Vorschauablage unverändert. Neuer Broker/Kandidat
+noch ohne frisches ETW; nächster Scope: gezielter Vergleich einschließlich hashbenannter verwalteter
+EXE. Weiterhin mittleres Prüfniveau und striktes Datenschutzziel, keine Produktfreigabe.
+
+Vorheriger Prüfstand:
 [Gezieltes frisches ETW des Cleanup-Stands](docs/testing/native-profile-cleanup-etw.md), 17.
 November. Gesicherter Broker/App unverändert, zwei kurze Messphasen bestanden: acht Kontrollen,
 keine Verluste/Zuordnungslücken, 140 explizite Enden, 0 beobachtete Nicht-Loopback-/48 getrennte

@@ -158,7 +158,9 @@
              gezielte native Fälle, idempotenter Abschluss ohne neue Importautorität
        - [x] KQ-069 A: Gezieltes Cleanup-ETW des unveränderten Paars; acht Kontrollen, 140 explizite
              Enden, 0 Nicht-Loopback, alle 19 direkten Kontrollaufrufe erfasst
-       - [ ] KQ-069 A: Lokale Update-/Paketkompatibilität für Kontrollschema 4; isolierten
+       - [x] KQ-069 A: Lokale Schema-4-Brokerupdates mit read-only Paketvertrag; gezielter nativer
+             Actorwechsel/Recovery/Cleanup ohne Schlüssel-/Bindungs-/Datenreset
+       - [ ] KQ-069 A: Gezieltes frisches ETW beider Updateprogramme; isolierten
              Produktstarter/echte Projektmigration integrieren sowie weitere allgemeine
              Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
              integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker

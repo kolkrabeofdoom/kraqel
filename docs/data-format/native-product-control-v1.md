@@ -67,13 +67,13 @@ attestiert; es gibt keinen externen monotonen Zähler.
 
 ## Zustandsübergänge
 
-| Aktion                  | Vorbedingung                                                           | Dauerhafte Wirkung                                                                       |
-| ----------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `initialize`            | neue private Wurzel                                                    | Bindet aktuelle Programmbytes; Kontrollschema 1, keine Updateaktionen                    |
-| `migrate {from:1,to:2}` | richtige EXE, aktueller Kopf, kein aktiver Job/pending Update          | Schaltet die bekannte lokale Updatepolitik des Kontrollschemas 2 frei                    |
-| `prepare {binary}`      | Schema 2, aktueller Kopf, neue noch nie aktivierte SHA                 | Signiert Pending-Zustand, danach geschützte Paketkopie; bisherige EXE bleibt autorisiert |
-| `activate`              | signiertes Pending, unveränderte geschützte Paketkopie, aktueller Kopf | Autorisiert exakt die neue SHA; ältere EXE wird an der nativen Command-Grenze abgewiesen |
-| `abort`                 | signiertes Pending, bisherige EXE und aktueller Kopf                   | Beendet Pending ohne Schlüssel-, Daten- oder Journalreset; Paketdatei bleibt erhalten    |
+| Aktion                  | Vorbedingung                                                                 | Dauerhafte Wirkung                                                                       |
+| ----------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `initialize`            | neue private Wurzel                                                          | Bindet aktuelle Programmbytes; Kontrollschema 1, keine Updateaktionen                    |
+| `migrate {from:1,to:2}` | richtige EXE, aktueller Kopf, kein aktiver Job/pending Update                | Schaltet die bekannte lokale Updatepolitik des Kontrollschemas 2 frei                    |
+| `prepare {binary}`      | Schema 2 oder 4 (Paketvertrag), aktueller Kopf, neue noch nie aktivierte SHA | Signiert Pending-Zustand, danach geschützte Paketkopie; bisherige EXE bleibt autorisiert |
+| `activate`              | signiertes Pending, unveränderte geschützte Paketkopie, aktueller Kopf       | Autorisiert exakt die neue SHA; ältere EXE wird an der nativen Command-Grenze abgewiesen |
+| `abort`                 | signiertes Pending, bisherige EXE und aktueller Kopf                         | Beendet Pending ohne Schlüssel-, Daten- oder Journalreset; Paketdatei bleibt erhalten    |
 
 Unbekannte Schemaübergänge, Schema-Downgrade, erneut aktivierte Programmhashes und alte Köpfe werden
 abgewiesen. Ein Abbruch löscht keine Dateien und überschreibt keine vorhandene Paketkopie; eine
@@ -143,8 +143,9 @@ Explizites `migrate {from:3,to:4}` erlaubt `prepareSession {binding}` vor jeder 
 Profilerzeugung. Die private Sitzungswurzel existiert bereits und ist kanonisch gebunden; das Profil
 wurde noch nicht erzeugt. `bindSession` muss exakt der Vorbereitung entsprechen. Eine Vorbereitung
 allein ist kein Import-/Recoverygrant und kann ausschließlich ausdrücklich stillgelegt werden. Die
-bisherigen Sitzungs-/Startgrenzen bleiben bestehen, Brokerupdates weiter auf Schema 2 begrenzt.
-Keine automatische Übernahme ungebundener Alt-Orphans.
+bisherigen Sitzungs-/Startgrenzen bleiben bestehen. Brokerupdates sind in Schema 2 sowie mit dem
+unten beschriebenen Paketvertrag in Schema 4 erlaubt; Schema 3 bleibt dafür gesperrt. Keine
+automatische Übernahme ungebundener Alt-Orphans.
 
 `cleanup-session <aktueller Kopf>` verlangt authentisierte Stilllegung, aktuellen Actor/Kopf und
 Jobleerstand. Profilidentität nur aus Kontrollkette, keine caller-seitigen Namen oder Verzeichnisse.
@@ -156,6 +157,38 @@ OS-Fehler bleiben Fehler. Schema-3-Bindungen können ohne Schema-4-Abschlussreco
 Kein Löschen von Projekten/Journalen/Kontrollschlüsseln, keine Kopf- oder Recordreparatur.
 [Gezielter nativer Nachweis](../testing/native-profile-cleanup.md). Weitere Crashpunkte und ein
 frischer ETW-Beleg dieses neuen Brokerhashs bleiben offen.
+
+## Lokale Schema-4-Brokerpaketkompatibilität · v1
+
+Schema 4 erlaubt wie Schema 2 explizite lokale Updatevorbereitung, Aktivierung und Abbruch. Schema 3
+bleibt gesperrt. Derselbe private Storelease, aktueller Actor/Kopf und Jobleerstand sind
+verpflichtend; Pending blockiert Sitzung/Recovery/Cleanup. Keine Reaktivierung alter Programmhashes,
+kein Schlüssel-/Journalreset oder Austausch der bestehenden Appbindung.
+
+Zusätzlich zu vollständigem erwarteten SHA-256 und gepinnter regulärer x64-Datei verlangt Schema 4
+genau eine `.kqmeta`-Section in einem AMD64-PE32+-Image. Grundlage für Header/Sectionlayout:
+[Microsoft PE Format](https://learn.microsoft.com/en-us/windows/win32/debug/pe-format).
+App-spezifische Section: VirtualSize 32, RawSize 32–4096, vollständig innerhalb der höchstens
+128-MiB-Datei und hinter der Sectiontabelle. Initialisierte lesbare Daten, weder schreibbar,
+ausführbar noch verwerfbar; höchstens 96 Sections. Felder, alle Integer little-endian:
+
+| Offset | Bytes | Wert                                      |
+| -----: | ----: | ----------------------------------------- |
+|      0 |    16 | ASCII `KRAQEL-PACKAGE` und zwei Nullbytes |
+|     16 |     4 | Paketmetadatenversion 1                   |
+|     20 |     2 | Kleinste lesbare Kontrollschema-Version 1 |
+|     22 |     2 | Größte lesbare Kontrollschema-Version 4   |
+|     24 |     2 | Startticket-Version 3                     |
+|     26 |     2 | Authentisierter Profil-Cleanup-Vertrag 1  |
+|     28 |     4 | Reserviert, null                          |
+
+Andere Werte/fehlende oder doppelte Section blockieren vor Pending. Die geschützte Kopie wird vor
+Aktivierung erneut auf Hash und Vertrag geprüft. Keine Ausführung/Probe des Kandidaten vorher. Die
+Headerprüfung ist begrenzt, keine vollständige PE- oder Programmvalidierung. Das authentisiert die
+lokale Hashfreigabe, nicht die Herkunft oder das tatsächliche Verhalten eines beliebigen Programms.
+Kandidaten müssen die unterstützte Deklaration selbst mitbringen; alte Schema-4-EXEs ohne Metadaten
+werden konservativ abgewiesen.
+[Gezielter nativer Nachweis und Grenzen](../testing/native-schema4-package-update.md).
 
 ## Synthetische Crashprüfung
 

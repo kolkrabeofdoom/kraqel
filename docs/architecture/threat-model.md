@@ -1,5 +1,13 @@
 # Bedrohungsmodell (Entwurf)
 
+[Lokale Schema-4-Paketkompatibilität](../testing/native-schema4-package-update.md), 17. November:
+Vorbereitung/Aktivierung/Abbruch unter bestehender Sperre. Gepinnte Kandidatenbytes müssen den
+erwarteten SHA und einen begrenzten read-only PE-Vertrag erfüllen; Prüfung vor Pending und erneut
+vor Aktivierung, keine Ausführung des Kandidaten vorher. Vertrag deklariert Kompatibilität, keine
+Herkunfts-/Verhaltensattestierung. Pending blockiert Sitzung, alter Actor/Rollback bleiben gesperrt.
+Ein nativer synthetischer Wechsel erhält Schlüssel/Bindung/Daten, Apppaket unverändert. Neuer
+Broker/Kandidat ohne eigenen frischen ETW-Beleg; striktes Ziel und Produktgrenzen unverändert.
+
 [Gezieltes Cleanup-ETW](../testing/native-profile-cleanup-etw.md), 17. November: unverändertes
 gesichertes Paar, zwei gültige kurze Phasen mit acht Kontrollen/Nullverlusten/140 expliziten Enden.
 0 beobachtete Nicht-Loopback-/48 getrennte Loopback-Ereignisse. Alle 19 direkten nativen Aufrufe

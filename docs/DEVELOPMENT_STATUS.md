@@ -1,5 +1,21 @@
 # Entwicklungsstatus
 
+Lokale Update-/Paketkompatibilität für Kontrollschema 4, 17. November: Vorbereitung/Aktivierung/
+Abbruch unter bestehender Kontrollsperre implementiert. Bounded read-only `.kqmeta`-PE-Vertrag vor
+Pending und Aktivierung, keine Kandidatenausführung vorher. Vollständiger erwarteter SHA, aktueller
+Actor/Kopf/Jobleerstand und Rollbackabwehr bleiben verbindlich. Drei neue Tests, 51 aktive
+Helfertests/Clippy grün; ein gezielter nativer Updateablauf mit 15 Kontrollprozessen, zwei GUIs,
+Recovery/Replay/Cleanup und fünf erwarteten Abweisungen bestanden. Unabhängiger
+Metadaten-/MAC-/SQLite-/Unicode-Audit bestätigt unveränderte Installation/Schlüssel/Sitzung/App und
+genau eine erhaltene Projektkopie. [Nachweis](testing/native-schema4-package-update.md),
+[Aggregate](testing/native-schema4-package-update.json). Synthetischer Kandidat gleicher Code mit
+anderem Hash, keine beliebige Release-/Appdatenmigration. Echte Vorschauablage unverändert.
+Mittleres Prüfniveau, kein Workspace-Gesamtlauf/neue große Matrix. Kein frisches ETW der neuen
+Programme; nächster Scope: gezielter Vergleich inklusive verwalteter Kandidaten-EXE. Normale
+Produktintegration/Apppaketmigration und Produkt-Q-01/Q-02 weiter offen; striktes Ziel unverändert.
+
+## Vorheriger Prüfstand mit eigenem Netznachweis
+
 Gezielter frischer ETW-Vergleich des Cleanup-Stands, 17. November: gesicherte EXEs unverändert. Zwei
 gültige kurze Phasen: bisherige Recoveryserie und zwei Cleanup-Fälle samt 19 direkten
 Kontrollaufrufen. Acht Kontrollen, Nullverluste/Zuordnungslücken, alle 140 Prozessenden explizit. 0

@@ -6,6 +6,7 @@ use windows_sys::Win32::Security::{
 };
 use zeroize::Zeroizing;
 mod crash;
+mod package;
 mod secure_fs;
 mod session;
 mod starter;
@@ -90,18 +91,20 @@ impl State {
         }
         match action {
             Action::Prepare { binary }
-                if self.schema == 2
+                if matches!(self.schema, 2 | 4)
                     && self.pending.is_none()
                     && *binary != [0; 32]
                     && !self.activated.contains(binary) =>
             {
                 self.pending = Some(*binary)
             }
-            Action::Activate if self.schema == 2 && self.pending.is_some() => {
+            Action::Activate if matches!(self.schema, 2 | 4) && self.pending.is_some() => {
                 self.actor = self.pending.take().unwrap();
                 self.activated.insert(self.actor);
             }
-            Action::Abort if self.schema == 2 && self.pending.is_some() => self.pending = None,
+            Action::Abort if matches!(self.schema, 2 | 4) && self.pending.is_some() => {
+                self.pending = None
+            }
             Action::Migrate { from: 1, to: 2 } if self.pending.is_none() && self.schema == 1 => {
                 self.schema = 2
             }
@@ -458,6 +461,9 @@ impl Store {
         if kind != 6 {
             return Err(invalid("product-candidate-not-x64"));
         }
+        if self.state.schema == 4 {
+            package::verify(&mut source)?;
+        }
         self.append(actor, head, Action::Prepare { binary: actual })?;
         use std::io::{Seek, SeekFrom};
         io("product-source-rewind", source.seek(SeekFrom::Start(0)))?;
@@ -490,9 +496,12 @@ impl Store {
             .pending
             .ok_or(invalid("product-no-pending-update"))?;
         let path = self.package(binary);
-        let _file = protected_file(&path)?;
+        let mut file = protected_file(&path)?;
         if hash(&path)? != binary {
             return Err(invalid("product-candidate-tampered"));
+        }
+        if self.state.schema == 4 {
+            package::verify(&mut file)?;
         }
         self.append(actor, head, Action::Activate)
     }
