@@ -44,12 +44,15 @@ Helfertests, 22 Controlleraufrufe und ein gesperrter Wächterabbruch.
 [Frisches C3-ETW](docs/testing/product-start-p2c-group-bootstrap-etw.md) bestätigt 28 Controller,
 zwölf Root-/Kindrollen, 68 explizite Enden und acht Kontrollen ohne beobachtetes Netz oder
 Erfassungsverluste. Der [C4-Vertrag](docs/data-format/product-start-p2c-c4-v1-draft.md) für
-Runtime-Paket und minimale isolierte Oberfläche ist als Entwurf ergänzt. Nächster Schritt ist C4a
-mit reinen Paket-/Policytypen, deterministischer Codierung und getrennter UI-Version; ungebundene
-Starts, mehrprozessige GUI-Lebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung bleiben
-offen. P3 Bestandskopie sowie P4/P5 normale App-/Launcher-/Installerintegration und Produktabnahme
-folgen. Die normalen Produkt-Q-01/Q-02 bleiben offen; der neue Forschungsnetzbeleg ersetzt dieses
-Gate nicht. Das strikte Datenschutzziel bleibt unverändert.
+Runtime-Paket und minimale isolierte Oberfläche ist als Entwurf ergänzt.
+[C4a-Modellkern](docs/testing/product-start-p2c-c4a-model.md) implementiert reine
+Paket-/Policytypen, deterministische Codierung und getrennten versionierten Lebenszyklus; zwölf neue
+Tests, 108 aktive Helfertests/Clippy bestanden. Nächster Schritt ist C4b mit nativer
+Paket-/Overrideprüfung und belegbarem eingeschränktem Mehrprozess-Erzeugungsweg; ungebundene Starts,
+mehrprozessige GUI-Lebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung bleiben offen. P3
+Bestandskopie sowie P4/P5 normale App-/Launcher-/Installerintegration und Produktabnahme folgen. Die
+normalen Produkt-Q-01/Q-02 bleiben offen; der neue Forschungsnetzbeleg ersetzt dieses Gate nicht.
+Das strikte Datenschutzziel bleibt unverändert.
 
 ## M0 - Fundament (abgeschlossen)
 
@@ -263,14 +266,17 @@ Gate nicht. Das strikte Datenschutzziel bleibt unverändert.
              Wiederanlauf: 68 Enden, acht Kontrollen, null beobachtete Netzereignisse
        - [x] KQ-069 A: [C4-Vertragsentwurf](docs/data-format/product-start-p2c-c4-v1-draft.md) für
              explizites Runtime-Paket und minimale isolierte Oberfläche; keine native Umsetzung
-       - [ ] KQ-069 A: C4a Paket-/Policytypen, deterministische Codierung und getrennte UI-Version;
-             danach C4b–d WebView unter belegtem Rollen-/Token-/Jobvertrag getrennt integrieren;
-             ungebundene Starts und vollständige Live-Worker-Crashbereinigung und persistente echte
-             Arbeitsablagen-/UI-Bindung; danach P3–P5 isolierten Produktstarter/echte
-             Projektmigration integrieren sowie weitere allgemeine Fensterende-/F08-Prüfung;
-             dauerhaften authentisierten Produktbroker integrieren/abnehmen; weitere
-             Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren; Packaging und
-             F08-/M3-Vollprüfung
+       - [x] KQ-069 A: [C4a-Modellkern](docs/testing/product-start-p2c-c4a-model.md): reine
+             Paket-/Policytypen, deterministische Codierung und versionierter Lebenszyklus; zwölf
+             neue Tests, 108 aktiv bestanden, keine native UI-/Startautorität
+       - [ ] KQ-069 A: C4b native Paket-/Overrideprüfung und belegbarer eingeschränkter
+             Mehrprozess-Erzeugungsweg; danach C4c/d WebView/SQLite unter belegtem
+             Rollen-/Token-/Jobvertrag getrennt integrieren; ungebundene Starts und vollständige
+             Live-Worker-Crashbereinigung und persistente echte Arbeitsablagen-/UI-Bindung; danach
+             P3–P5 isolierten Produktstarter/echte Projektmigration integrieren sowie weitere
+             allgemeine Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
+             integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker
+             kalibrieren; Packaging und F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene

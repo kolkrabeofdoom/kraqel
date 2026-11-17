@@ -1,7 +1,9 @@
 # P2c C4: Runtime-Paketbindung und minimale isolierte Oberfläche
 
-Status: **Vertragsentwurf v1, 17. November 2026; nicht implementiert oder nativ abgenommen.**
-Ergänzt den [P2c-Vertrag](product-start-p2c-v1-draft.md), den
+Status: **Vertragsentwurf v1, 17. November 2026; C4a-Modellkern implementiert/geprüft, native
+UI-Integration und Abnahme offen.**
+[C4a-Nachweis und genaue Codierung](../testing/product-start-p2c-c4a-model.md). Ergänzt den
+[P2c-Vertrag](product-start-p2c-v1-draft.md), den
 [Produktstartvertrag](product-start-integration-v1-draft.md) und
 [ADR 0034](../architecture/decisions/0034-webview-network-boundary-proposal.md). MUSS bezeichnet
 eine Implementierungsanforderung. Dieser Entwurf erteilt keine neue Start-, Datei-, Netzwerk- oder
@@ -41,10 +43,10 @@ Projekte aus `app_local_data_dir()` ab und registriert breite Commands; der Rele
 
 ## 2. Paketbeschreibung und wirksame Runtimebindung
 
-Geplanter Typ `UiRuntimePackageV1`, strikt versioniert und ohne unbekannte Felder. Die Beschreibung
-liegt authentisiert im Hostbereich; ein Pfad oder ein selbst behaupteter Versionsstring ist kein
-Paketnachweis. Sie referenziert das C1-UI-Inventar, statt eine zweite Dateidigestcodierung
-einzuführen.
+Im C4a-Modell implementierter Typ `UiRuntimePackageV1`, strikt versioniert mit begrenztem Decoder.
+Die Beschreibung liegt authentisiert im Hostbereich; ein Pfad oder ein selbst behaupteter
+Versionsstring ist kein Paketnachweis. Sie referenziert das C1-UI-Inventar, statt eine zweite
+Dateidigestcodierung einzuführen.
 
 | Pflichtinhalt                                                          | Bedeutung                                                                                                   |
 | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -55,11 +57,11 @@ einzuführen.
 | DB-Lese-/Schreibschema, WebView-Datenkompatibilität, Bindungsrevision  | Start und Paketwechsel nur bei ausdrücklicher Kompatibilität                                                |
 | Endliche Gesamtprozessgrenze und geschlossene Rollenliste              | Konkrete Werte erst mit dem lokalen Runtimekandidaten und Rollenbeleg festlegen                             |
 
-Paketgesamtidentität: SHA-256 über Domain `KRAQEL-C4-RUNTIME-PACKAGE\0\x01` und eine in C4a
-festzulegende deterministische längenbegrenzte Codierung aller Pflichtinhalte. Keine beiläufige
-`serde_json`-Ausgabe als kanonischer Vertrag. Inventargrenzen des C1-Vertrags bleiben obere Grenzen;
-die engeren C2-Fixturegrenzen werden nicht automatisch erhöht. Überschreitung sperrt; ein echtes
-Runtimepaket benötigt vor Start einen eigenen begründeten nativen Grenzvertrag.
+Paketgesamtidentität: SHA-256 über Domain `KRAQEL-C4-RUNTIME-PACKAGE\0\x01` und die in C4a
+implementierte deterministische längenbegrenzte Codierung aller Pflichtinhalte (siehe Nachweis).
+Keine beiläufige `serde_json`-Ausgabe als kanonischer Vertrag. Inventargrenzen des C1-Vertrags
+bleiben obere Grenzen; die engeren C2-Fixturegrenzen werden nicht automatisch erhöht. Überschreitung
+sperrt; ein echtes Runtimepaket benötigt vor Start einen eigenen begründeten nativen Grenzvertrag.
 
 Der Wächter MUSS unter derselben Kontrollsperre exaktes Inventar, native Rootidentitäten und
 ACL-Policy prüfen und Austausch/Löschen während der Laufzeit verhindern. Keine zusätzlichen ladbaren
@@ -124,8 +126,10 @@ Inhalte werden nicht bei jedem Start als unveränderlicher Paketdigest behandelt
    Kompatibilitätspolicies prüfen. Aktiver/unklarer alter Launch, Update oder Migration sperrt.
 2. Eigene neue UI-Record-/Bootstrapversion und benötigte Recordslots vor Ressourcenanlage
    reservieren. Launch-ID/Generation dauerhaft verbrauchen. Kein Schreiben neuer UI-Records als
-   `.kqc3` und kein stiller Schema-6-Umbau. Vor nativer Implementierung muss C4a die getrennte
-   Versions-/Recordcodierung und Ablehnung durch alte Programme verbindlich festlegen.
+   `.kqc3` und kein stiller Schema-6-Umbau. C4a definiert eigene
+   Policy-/Paket-/Bindungs-/Modellrecorddomains und Version 1, ohne native Storeleser zu erweitern.
+   Diese Simulationsrecords sind keine nativen Lebenszyklusbelege; deren
+   Persistenz-/Peer-/Root-/Rollenintegration und explizite alte Leserabwehr bleiben C4b.
 3. Root suspendiert atomar im eigenen Job erzeugen. Image/Token, native PID/Erzeugungszeit,
    Handleliste, Profil, null Netzwerk-Capabilities und Jobpolicy prüfen; RootBound vor Resume.
 4. Root validiert den vollständigen Startgrant vor Framework-, DB- und WebViewinitialisierung.
@@ -202,12 +206,12 @@ historische Importfensterprüfungen werden nicht als C4-Abnahme übernommen.
 
 ## 6. Umsetzung und mittleres Prüfniveau
 
-| Schritt            | Konkreter Lieferumfang                                                                                                                | Gezielt erforderlicher Nachweis                                                                                                                  |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| C4a — als Nächstes | Reine Runtimepaket-/Policydeskriptoren, deterministische Codierung, getrennte UI-Version und Lebenszyklusmodell; keine Startautorität | Rundlauf und Mutation/Unbekanntversion, Grenzen sowie alte C2/C3-Bindung verweigert; Format-/Faktenprüfung                                       |
-| C4b                | Native Paket-/Overrideprüfung und unterstützter Mehrprozess-Erzeugungsweg mit neuer synthetischer Ablage                              | Ein regulärer Rollenlauf; manipuliertes Paket/Override, falsche Bindung und Kind-/Jobabweichung; keine echte Vorschauablage                      |
-| C4c                | Minimale Oberfläche, drei Commands und synthetische SQLite-Persistenz                                                                 | Speichern/Schließen/Wiederöffnen mit IDs, Revisionskonflikt, fremde Origin/Command und zweiter Start; ein gezielter assistiver Lauf              |
-| C4d                | Abschluss des exakten Kandidaten                                                                                                      | Frisches ETW: Referenz und gezielter Arbeits-/Fensterende-/gesperrter Wiederanlaufpfad; Kontrollen, Verluste und alle Prozessgenerationen prüfen |
+| Schritt              | Konkreter Lieferumfang                                                                                                                | Gezielt erforderlicher Nachweis                                                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| C4a — Modell geprüft | Reine Runtimepaket-/Policydeskriptoren, deterministische Codierung, getrennte UI-Version und Lebenszyklusmodell; keine Startautorität | Rundlauf und Mutation/Unbekanntversion, Grenzen sowie alte C2/C3-Bindung verweigert; Format-/Faktenprüfung                                       |
+| C4b                  | Native Paket-/Overrideprüfung und unterstützter Mehrprozess-Erzeugungsweg mit neuer synthetischer Ablage                              | Ein regulärer Rollenlauf; manipuliertes Paket/Override, falsche Bindung und Kind-/Jobabweichung; keine echte Vorschauablage                      |
+| C4c                  | Minimale Oberfläche, drei Commands und synthetische SQLite-Persistenz                                                                 | Speichern/Schließen/Wiederöffnen mit IDs, Revisionskonflikt, fremde Origin/Command und zweiter Start; ein gezielter assistiver Lauf              |
+| C4d                  | Abschluss des exakten Kandidaten                                                                                                      | Frisches ETW: Referenz und gezielter Arbeits-/Fensterende-/gesperrter Wiederanlaufpfad; Kontrollen, Verluste und alle Prozessgenerationen prüfen |
 
 Keine breite neue Crashmatrix pro Teilstück. Ein gezielter Wächterverlust reicht zunächst für die
 bestehende Sperrregel. Runtime-/Rollen-/Datenfehler dürfen das Datenschutzziel nicht relativieren.
@@ -217,8 +221,10 @@ erforderlich für geänderte tatsächlich gestartete Binaries, nicht für diesen
 bereinigte Aggregate nach Git, Rohdaten/Schlüssel/IDs lokal. Außerhalb des Baums laufende
 COM-/Shell-/Systemdienste bleiben eine eigene Nachweisgrenze.
 
-Dieser Dokumentationsstand wurde nur mit Code-/Quellen-/Verweis-/Format-/Diffprüfung geprüft. Keine
-neue UI, Runtimeversion, Paketautorität, nativer Start, Migration, Test-/ETW-Abnahme oder
-Produktfähigkeit entstanden. Gesamtschätzung unverändert etwa 65 %, nutzbarer 0.1-Umfang etwa 80 %;
-keine Zeit- oder Produktionsreifequote. P2 insgesamt, P3–P5, Langzeit-Kontrollstore und
-Produkt-Q-01/Q-02 bleiben offen.
+Der ursprüngliche Vertragsstand war reine Dokumentation. Inzwischen ist C4a als reiner Modellkern
+mit zwölf neuen Tests (108 aktive Helfer-/Transporttests insgesamt) und Clippy/rustfmt geprüft. Kein
+nativer C4-Start, keine neue UI/Runtimeversion, Paketautorität, Migration oder eigene
+ETW-/Produktabnahme. Als Nächstes folgt C4b mit nativer Paket-/Overrideprüfung und belegbarem
+eingeschränktem Mehrprozess-Erzeugungsweg. Gesamtschätzung unverändert etwa 65 %, nutzbarer
+0.1-Umfang etwa 80 %; keine Zeit- oder Produktionsreifequote. P2 insgesamt, P3–P5,
+Langzeit-Kontrollstore und Produkt-Q-01/Q-02 bleiben offen.

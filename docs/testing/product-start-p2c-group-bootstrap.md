@@ -1,9 +1,10 @@
 # P2c C3: synthetischer Mehrprozess-Bootstrap mit gehaltenem Wächter
 
-[C4-Runtime-/Minimaloberflächenvertrag](../data-format/product-start-p2c-c4-v1-draft.md) ergänzt den
-nächsten UI-Scope als Entwurf. Keine native UI-Implementierung oder neue Autorität; nächster
-Umsetzungsschritt ist C4a mit reinen Paket-/Policytypen und versionierter Codierung. C3-Bytes und
-deren ETW-Beleg bleiben unverändert.
+Der C4-Vertrag ist durch den [reinen C4a-Modellkern](product-start-p2c-c4a-model.md) ergänzt:
+Paket-/Policytypen, deterministische Codierung und versionierter Lebenszyklus, zwölf neue Tests.
+Keine native UI-/Startautorität; native UI-ABI bleibt 0. Nächster Schritt ist C4b mit nativer
+Paket-/Overrideprüfung und belegbarem eingeschränktem Mehrprozess-Erzeugungsweg. C3-Bytes und deren
+eigener ETW-Beleg bleiben separat unverändert.
 
 Stand: 17. November 2026. **Synthetischer C3-Kern implementiert und gezielt nativ geprüft; keine
 Oberfläche oder Produktfreigabe.** [Bereinigte Aggregate](product-start-p2c-group-bootstrap.json),
@@ -143,7 +144,7 @@ Paketclosure, assistive GUI-Abnahme oder automatische Recovery nach Wächterverl
 heute ein residenter Forschungsaufruf, kein normaler Appstarter/Produktdienst. Nicht als neue
 Produktfreigabe oder universelle Netz-/Dienst-/Inhaltsattestierung verwenden.
 
-Der C4-Vertrag ist oben ergänzt. Nächster begrenzter Schritt: reine Paket-/Policytypen,
-deterministische Codierung und getrennte UI-Version im C4a-Modellkern. P2 insgesamt, vollständige
-C3/C4-Produktintegration, P3–P5 und Produkt-Q-01/Q-02 bleiben offen. Das strikte Datenschutzziel
-bleibt unverändert.
+Der C4-Vertrag ist oben ergänzt. Nächster begrenzter Schritt nach dem C4a-Modellkern: native
+Paket-/Overrideprüfung und belegbarer eingeschränkter Mehrprozess-Erzeugungsweg in C4b. P2
+insgesamt, vollständige C3/C4-Produktintegration, P3–P5 und Produkt-Q-01/Q-02 bleiben offen. Das
+strikte Datenschutzziel bleibt unverändert.

@@ -1,9 +1,10 @@
 # P2c: persistente Arbeitsdaten, Paketbindung und Mehrprozess-UI
 
-[C4-Runtime-/Minimaloberflächenvertrag](product-start-p2c-c4-v1-draft.md) ergänzt den nächsten
-UI-Scope als Entwurf. Keine native UI-Implementierung oder neue Autorität; nächster
-Umsetzungsschritt ist C4a mit reinen Paket-/Policytypen und versionierter Codierung. C3-Bytes und
-deren ETW-Beleg bleiben unverändert.
+Der C4-Vertrag ist durch den [reinen C4a-Modellkern](../testing/product-start-p2c-c4a-model.md)
+ergänzt: Paket-/Policytypen, deterministische Codierung und versionierter Lebenszyklus, zwölf neue
+Tests. Keine native UI-/Startautorität; native UI-ABI bleibt 0. Nächster Schritt ist C4b mit nativer
+Paket-/Overrideprüfung und belegbarem eingeschränktem Mehrprozess-Erzeugungsweg. C3-Bytes und deren
+eigener ETW-Beleg bleiben separat unverändert.
 
 Status: **Vertragsentwurf v1, 17. November 2026; C1-Modell, native C2-Datenvorbereitung und
 synthetischer C3-Mehrprozess-Kern implementiert, UI-Umsetzung und Abnahme offen.**
@@ -269,5 +270,5 @@ getestet. Der normale Appstart und seine Befehle sind nicht integriert. Für den
 [frisches ETW](../testing/product-start-p2c-native-data-etw.md) ergänzt; alle Netzbelege behalten
 ihre exakten Buildgrenzen. C3 ist inzwischen im synthetischen Umfang implementiert;
 [dessen eigener frischer Netzbeleg](../testing/product-start-p2c-group-bootstrap-etw.md) ist
-ergänzt. Der C4-Vertrag ist oben ergänzt; als Nächstes folgt dessen reiner C4a-Modellkern. Die
+ergänzt. Der C4-Vertrag ist oben ergänzt; C4a ist oben belegt, C4b folgt als nativer Schritt. Die
 gesamte P2c-Implementierung und Produktabnahme sind weiterhin offen.

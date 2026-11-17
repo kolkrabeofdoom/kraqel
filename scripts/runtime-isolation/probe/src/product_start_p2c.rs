@@ -8,6 +8,8 @@ use sha2::{Digest as _, Sha256};
 use std::collections::BTreeSet;
 use unicode_normalization::UnicodeNormalization;
 
+pub(crate) mod c4;
+
 type Id = [u8; 16];
 type Digest = [u8; 32];
 const INVENTORY_DOMAIN: &[u8] = b"KRAQEL-P2C-PACKAGESET\0\x01";
