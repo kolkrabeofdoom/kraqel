@@ -1,5 +1,10 @@
 # Entwicklungsstatus
 
+Tagesabschluss 17. November 2026: Implementierungsstand `3340841` gesichert; konkrete
+[Startanleitung für morgen und geschützte lokale Sicherung](WORKSTATION_HANDOFF.md#tagesabschluss-und-einstieg-für-morgen).
+Keine eigenen Testprozesse/Erfassungen mehr aktiv. Remote-CI ist beim Abschluss noch nicht
+vollständig beendet; Status beim Wiederbeginn prüfen. Keine neue Entwicklungsstufe abgeschlossen.
+
 Aktuell · C4b-Root-/WebView-Probe, 17. November 2026:
 
 [Authentisierter C4b-Root und tatsächlicher leerer WebView-Prozessbaum](testing/product-start-p2c-c4b-root-bootstrap.md)

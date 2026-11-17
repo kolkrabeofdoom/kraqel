@@ -7,6 +7,38 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 17. November 2026
 
+### Tagesabschluss und Einstieg für morgen
+
+Implementierungsstand **`3340841`**, Arbeitsbranch **`feat/kq-069-live-file-selection`**,
+[Draft-PR #142](https://github.com/kolkrabeofdoom/kraqel/pull/142). Neuere reine Übergabecommits
+ändern die geprüften Programme nicht. Lokale Prüfungen bestanden; Windows-/Linux-CI beim
+Tagesabschluss noch laufend, Dependency Review am Implementierungsstand bestanden. CI beim nächsten
+Start erneut prüfen; keine vollständige grüne CI behaupten oder daraus eine Produktfreigabe
+ableiten.
+
+Keine eigenen Testcontroller, Root-/zugehörigen WebView-Prozesse oder `KRAQEL-M3-*`-Erfassungen mehr
+aktiv. Eigene temporäre Testprofile und Daten-/Kontrollfixtures sind entfernt; bestehende
+Systemerfassungen wurden nicht angefasst. Kein neuer Build oder Prüflauf zum Tagesabschluss.
+
+Zusätzliche lokale Sicherung außerhalb von TEMP unter `artifacts/session-close-20261117-01/`:
+vollständige Root-Buildsicherung einschließlich privater lesender Audits sowie
+Runtime-CAB/Hash-/Signatur-/Herkunftsmanifest. Das Verzeichnis ist von Git ausgeschlossen und
+besitzt geschützte Konto-/SYSTEM-Rechte. Kopien gegen die Quellen und Manifesthashes geprüft. Die
+entpackte Runtime ist dort nicht doppelt abgelegt; bei TEMP-Verlust aus dem gesicherten CAB erneut
+mit Windows `expand` entpacken und Manifesthashes prüfen. `backup-index.json` nennt die
+ursprünglichen lokalen Zielpfade. Keine Auditdaten als aktiven Kontrollstore übernehmen; die
+Sicherung erteilt keine neue Start-/Importautorität. Private Sicherungen werden nicht auf einen
+anderen Rechner oder nach GitHub übertragen.
+
+Zum Wiederbeginn: `git status`, Branch/Head und PR-CI prüfen, bei sauberem Checkout den oben
+genannten Arbeitsbranch mit `git pull --ff-only` aktualisieren; nicht versehentlich auf `main`
+weiterarbeiten. Danach diesen Übergabestand und den unten verlinkten Rootnachweis lesen. Nächster
+begrenzter Scope bleibt **C4b: zwei API-unzugeordnete Runtimegenerationen sowie vollständige
+Runtime-/Nichtsystemmodul-/effektive Rollenbindung klären**, anschließend eigener frischer
+ETW-Nachweis des exakten Paars. Keine neuen Projekte/Commands freigeben, Pending nicht reparieren
+und gespeicherte Programme nicht an der echten Vorschauablage autorisieren. Mittleres Prüfniveau und
+striktes Datenschutzziel bleiben bestehen.
+
 Aktuell · C4b-Root-/WebView-Probe, 17. November 2026:
 
 [Authentisierter C4b-Root und tatsächlicher leerer WebView-Prozessbaum](testing/product-start-p2c-c4b-root-bootstrap.md)
