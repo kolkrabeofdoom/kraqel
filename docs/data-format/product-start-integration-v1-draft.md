@@ -175,7 +175,10 @@ offenzulegen.
 P2 wird in P2a (persistente authentisierte Bindung/Launch-Records ohne GUI) und P2b (synthetischer
 Bootstrap/Token/Job ohne Importtask) aufgeteilt. P2a ist als Record-only-Forschung umgesetzt; P2b
 ist als begrenzter Readonly-Probeworker umgesetzt. Frisches ETW für den finalen Controller/Worker
-ist gezielt belegt. Sichere Ressourcen-Crash-Reconciliation ist der nächste begrenzte Scope.
+ist gezielt belegt.
+[Begrenzte Ressourcen-Reconciliation](../testing/product-start-resource-reconciliation.md) ist
+implementiert; unbestätigte Profile/RunIntent ohne Drained bleiben gesperrt. Nächster begrenzter
+Scope ist eigener frischer ETW-Nachweis des geänderten Runtimebuilds.
 Ressourcen-Crash-Reconciliation und persistente echte Arbeitsablagen-/UI-Bindung fehlen; P2
 insgesamt bleibt offen.
 

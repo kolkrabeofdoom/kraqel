@@ -1,5 +1,24 @@
 # Bedrohungsmodell (Entwurf)
 
+[Begrenzte P2b-Ressourcen-Reconciliation](../testing/product-start-resource-reconciliation.md).
+P2b-Ressourcen-Reconciliation, 17. November: Execution v2/Profilbereinigungs-ABI 2 mit neuen
+RunIntent-/Drained-Records, fünf Slots vor Ressourcenanlage reserviert. Unter derselben Lease werden
+fehlende unbestätigte Profile ohne Löschung abgeschlossen und bestätigte Profile nur ohne RunIntent
+oder nach dauerhaft belegtem Drain bereinigt. Exakte begrenzte HKCU-Mapping-/Moniker- Abfrage, keine
+Registryänderung; Fehler bleiben gesperrt. Bestehendes Profil ohne ProfileReady oder RunIntent ohne
+Drained wird nicht adoptiert/gelöscht. Vier native Abbruchfälle, 49 Controller, fünf erfolgreiche
+Worker, 30 private Dateisperren; sieben Profile erzeugt, sechs Broker-Cleanups, eine nachweislich
+eigene mehrdeutige Fixture ausschließlich durch den Prüfablauf separat entfernt. 73 aktive
+Helfer-/Transporttests/Clippy und unabhängiger MAC-/PE-/Root-/Inventar-/Profilaudit grün; acht
+verbrauchte Launches/56 Records, Daten/Schlüssel/echte Vorschauablage unverändert. Neuer Runtimehash
+`9021872…`, ein Helferbuild, keine App-/Transport-/Installeränderung oder pnpm check. Nächster
+Scope: gezielter frischer ETW-Vergleich dieses Builds mit Worker/Reconciliation. Voriger Netzbeleg
+bleibt ausschließlich an `590c3d4…` gebunden. Vollständige Live-Worker-Crashbereinigung, persistente
+echte Arbeitsablagen-/UI-Bindung, P2 insgesamt/P3–P5 und Produkt-Q-01/Q-02 offen; striktes
+Datenschutzziel unverändert.
+
+Vorheriger Stand:
+
 [Frischer P2b-Netzbeleg](../testing/product-start-p2b-bootstrap-etw.md), 17. November: unveränderter
 Runtimehash, Referenz und gezielte Workerfälle, 31 Controller/sechs Worker/31 Console-Hosts mit 68
 expliziten Enden. Acht Kontrollen, Nullverluste/Zuordnungslücken, null beobachtete Netzereignisse in

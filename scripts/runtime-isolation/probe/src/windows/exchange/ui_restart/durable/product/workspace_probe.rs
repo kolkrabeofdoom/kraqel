@@ -2,6 +2,7 @@
 use super::*;
 use crate::product_start::{LaunchIdentity, ModelConditions, ModelJob, Settlement};
 mod bootstrap;
+mod recovery;
 pub(in crate::windows) use bootstrap::worker;
 
 const POLICY: &[u8] = b"{\"kind\":\"p2b-worker-probe\",\"version\":1,\"network\":false}\n";
@@ -24,6 +25,8 @@ pub(super) struct Pending {
     execution: Execution,
     launch: LaunchIdentity,
     ready: bool,
+    run_intent: bool,
+    drained: bool,
 }
 
 pub(super) fn apply(
@@ -53,8 +56,8 @@ pub(super) fn apply(
             proposal,
             execution,
         } if state.probe.is_none()
-            && MAX_RECORDS.saturating_sub(state.sequence + 1) >= 3
-            && execution.version == 1
+            && MAX_RECORDS.saturating_sub(state.sequence + 1) >= 5
+            && execution.version == 2
             && !execution.probe_id.is_nil()
             && execution.workspace_id == model.binding().workspace_id
             && execution.probe_id.as_bytes() != &model.binding().profile_id
@@ -78,6 +81,8 @@ pub(super) fn apply(
                     generation: proposal.generation,
                 },
                 ready: false,
+                run_intent: false,
+                drained: false,
             });
         }
         Action::WorkspaceProbeProfileReady { launch } => {
@@ -96,7 +101,7 @@ pub(super) fn apply(
             receipt_sha256,
         } => {
             let pending = state.probe.as_ref().ok_or(invalid("probe-no-resource"))?;
-            if !pending.ready || pending.launch != *launch || *receipt_sha256 == [0; 32] {
+            if !pending.drained || pending.launch != *launch || *receipt_sha256 == [0; 32] {
                 return Err(invalid("probe-finish-record"));
             }
             model
@@ -122,7 +127,10 @@ pub(super) fn apply(
         }
         Action::ReconcileWorkspaceProbe { launch } => {
             let pending = state.probe.as_ref().ok_or(invalid("probe-no-resource"))?;
-            if !pending.ready || pending.launch != *launch {
+            if !pending.ready
+                || (pending.run_intent && !pending.drained)
+                || pending.launch != *launch
+            {
                 return Err(invalid("probe-profile-ownership-unconfirmed"));
             }
             model
@@ -134,6 +142,41 @@ pub(super) fn apply(
                     conditions,
                 )
                 .map_err(|_| invalid("probe-reconcile-rejected"))?;
+            state.probe = None;
+        }
+        Action::WorkspaceProbeRunIntent { launch } | Action::WorkspaceProbeDrained { launch } => {
+            let pending = state.probe.as_mut().ok_or(invalid("probe-no-resource"))?;
+            let draining = matches!(action, Action::WorkspaceProbeDrained { .. });
+            if pending.launch != *launch
+                || !pending.ready
+                || pending.drained
+                || pending.run_intent != draining
+            {
+                return Err(invalid("probe-resource-order"));
+            }
+            model
+                .sync_control_head(state.head, digest)
+                .map_err(|_| invalid("probe-resource-head"))?;
+            if draining {
+                pending.drained = true;
+            } else {
+                pending.run_intent = true;
+            }
+        }
+        Action::AbortUncreatedWorkspaceProbe { launch } => {
+            let pending = state.probe.as_ref().ok_or(invalid("probe-no-resource"))?;
+            if pending.ready || pending.run_intent || pending.launch != *launch {
+                return Err(invalid("probe-created-state"));
+            }
+            model
+                .settle(
+                    *launch,
+                    state.head,
+                    digest,
+                    Settlement::Interrupted,
+                    conditions,
+                )
+                .map_err(|_| invalid("probe-uncreated-settlement"))?;
             state.probe = None;
         }
         _ => return Err(invalid("probe-invalid-transition")),
@@ -215,7 +258,7 @@ fn stage(source: &mut fs::File, actor: [u8; 32], workspace_id: [u8; 16]) -> Resu
     let mut nonce = [0; 32];
     getrandom::fill(&mut nonce).map_err(|_| invalid("probe-nonce"))?;
     Ok(Execution {
-        version: 1,
+        version: 2,
         probe_id: id,
         workspace_id,
         nonce,
@@ -271,7 +314,7 @@ impl Store {
             },
         )
         .map_err(|_| invalid("probe-preflight"))?;
-        if MAX_RECORDS.saturating_sub(self.state.sequence + 1) < 3 {
+        if MAX_RECORDS.saturating_sub(self.state.sequence + 1) < 5 {
             return Err(invalid("probe-record-budget"));
         }
         let execution = stage(&mut source, actor, proposal.binding.workspace_id)?;
@@ -286,17 +329,31 @@ impl Store {
         let pending = self.state.probe.as_ref().unwrap();
         let launch = pending.launch;
         let execution = pending.execution.clone();
+        crash::hit(crash::Point::ProbeCommitted);
         let mut profile = Profile::create(&format!("boot-{}", execution.probe_id.simple()))?;
         // From this point an incomplete record must retain the profile for fail-closed diagnosis.
         profile.active = false;
+        crash::hit(crash::Point::ProbeCreated);
         self.append(
             actor,
             self.state.head,
             Action::WorkspaceProbeProfileReady { launch },
         )?;
+        crash::hit(crash::Point::ProbeReady);
+        self.append(
+            actor,
+            self.state.head,
+            Action::WorkspaceProbeRunIntent { launch },
+        )?;
         let result = bootstrap::run(self, &execution, &profile, launch, mode)?;
+        self.append(
+            actor,
+            self.state.head,
+            Action::WorkspaceProbeDrained { launch },
+        )?;
         self.idle()?;
         remove_profile(&execution)?;
+        crash::hit(crash::Point::ProbeRemoved);
         let end = match &result {
             Ok(value) => {
                 json!({"passed":true,"receiptSha256":value.receipt_sha256,"profileRemoved":true,"uiStarted":false,"importTaskCreated":false})
@@ -347,7 +404,15 @@ pub(in crate::windows) fn child(args: &[OsString]) -> Result<Value> {
     let head = parse_hash(&args[2])?;
     if !matches!(
         action,
-        "start" | "start-unassigned" | "start-bad-mac" | "status"
+        "start"
+            | "start-unassigned"
+            | "start-bad-mac"
+            | "status"
+            | "reconcile"
+            | "crash-before-create"
+            | "crash-after-create"
+            | "crash-after-ready"
+            | "crash-after-remove"
     ) {
         return Err(invalid("probe-child-action"));
     }
@@ -357,8 +422,19 @@ pub(in crate::windows) fn child(args: &[OsString]) -> Result<Value> {
     let mut store = Store::open(path)?;
     store.actor(actor)?;
     store.verify_workspace_files()?;
+    let point = match action {
+        "crash-before-create" => Some(crash::Point::ProbeCommitted),
+        "crash-after-create" => Some(crash::Point::ProbeCreated),
+        "crash-after-ready" => Some(crash::Point::ProbeReady),
+        "crash-after-remove" => Some(crash::Point::ProbeRemoved),
+        _ => None,
+    };
+    if let Some(point) = point {
+        crash::arm(path, point)?;
+    }
     let outcome = match action {
         "status" => json!(null),
+        "reconcile" => store.reconcile_probe_resources(actor, head)?,
         _ => store.start_workspace_probe(
             actor,
             head,

@@ -8,7 +8,9 @@ privaten synthetischen Forschungsablagen ohne UI-Start. Kein portables Snapshotf
 Produkt-Migrationsweg. P2b ist als
 [synthetischer Probeworker](../testing/product-start-p2b-bootstrap.md) umgesetzt;
 [frisches ETW](../testing/product-start-p2b-bootstrap-etw.md) ist für den Probeworker belegt.
-Persistente echte Arbeitsablagen-/UI-Bindung und Ressourcen-Crash-Reconciliation bleiben offen.
+[Begrenzte Ressourcen-Reconciliation](../testing/product-start-resource-reconciliation.md) ist mit
+neuer Execution-/Cleanupversion implementiert. Deren frisches ETW, vollständige
+Live-Worker-Crashbereinigung und persistente echte Arbeitsablagen-/UI-Bindung bleiben offen.
 Vorhandener Snapshot-v3-Import erzeugt neue IDs.
 
 Der Exportstandard ist noch in Arbeit. Fest stehen folgende Invarianten:

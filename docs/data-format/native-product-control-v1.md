@@ -263,6 +263,19 @@ kein automatischer Probe-Reconcile-CLI. Der
 synthetischen Worker/Controller. Persistente echte Arbeitsablage/GUI-Bootstrap und sichere
 Ressourcen-Crash-Reconciliation fehlen weiterhin, kein Produktstart daraus ableiten.
 
+## P2b: Ressourcen-Reconciliation mit Execution v2
+
+[Nachweis und Grenzen](../testing/product-start-resource-reconciliation.md): `.kqboot` deklariert
+eigene Profilbereinigungs-ABI 2, Execution-Version 2. Fünf Slots reserviert; RunIntent vor jedem
+möglichen Workerstart, Drained erst nach nachgewiesenem Leerstand am gehaltenen Job. Reconcile unter
+gleicher Lease benötigt fehlenden unbestätigten Profilmapping-Key oder bestätigtes eigenes Profil
+ohne RunIntent bzw. mit Drained. Bestehendes unbestätigtes Profil und RunIntent ohne Drained bleiben
+gesperrt; Registryfehler sind keine Abwesenheit. Transition/Budget vor Löschung vorprüfen, danach
+Abwesenheit erneut bestätigen und terminalen Record schreiben. Keine Migration alter
+Execution-v1-Historien oder echte Produktdatenadoption. Vier native Crashfälle, einschließlich
+ausdrücklich verweigertem Cleanup einer unbestätigten eigenen Testfixture. Neuer Runtimehash ohne
+eigenen frischen ETW-Beleg, normale Produktgrenzen unverändert.
+
 ## Abgrenzung zum geplanten Produktstart
 
 P1 war zunächst ein reines Testmodell; P2a nutzt denselben Kern jetzt nach nativen Kontrollprüfungen

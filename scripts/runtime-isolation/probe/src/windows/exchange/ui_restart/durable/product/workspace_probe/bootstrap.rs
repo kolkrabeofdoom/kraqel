@@ -418,7 +418,7 @@ pub(in crate::windows) fn worker(args: &[OsString]) -> Result<()> {
         || boot.parent_pid == unsafe { GetCurrentProcessId() }
         || boot.launch.id != *expected.as_bytes()
         || boot.launch.generation == 0
-        || boot.execution.version != 1
+        || boot.execution.version != 2
         || boot.execution.probe_id.is_nil()
         || boot.execution.workspace_id == [0; 16]
         || boot.execution.nonce == [0; 32]

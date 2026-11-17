@@ -77,6 +77,15 @@ enum Action {
     WorkspaceProbeProfileReady {
         launch: crate::product_start::LaunchIdentity,
     },
+    WorkspaceProbeRunIntent {
+        launch: crate::product_start::LaunchIdentity,
+    },
+    WorkspaceProbeDrained {
+        launch: crate::product_start::LaunchIdentity,
+    },
+    AbortUncreatedWorkspaceProbe {
+        launch: crate::product_start::LaunchIdentity,
+    },
     FinishWorkspaceProbe {
         launch: crate::product_start::LaunchIdentity,
         receipt_sha256: [u8; 32],
@@ -177,6 +186,9 @@ impl State {
             action,
             Action::CommitWorkspaceProbe { .. }
                 | Action::WorkspaceProbeProfileReady { .. }
+                | Action::WorkspaceProbeRunIntent { .. }
+                | Action::WorkspaceProbeDrained { .. }
+                | Action::AbortUncreatedWorkspaceProbe { .. }
                 | Action::FinishWorkspaceProbe { .. }
                 | Action::ReconcileWorkspaceProbe { .. }
         ) {

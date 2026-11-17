@@ -20,10 +20,12 @@ KQ-069 Teil einer noch offenen Produktintegration.
 
 Aktuell innerhalb KQ-069: P1-Modell und P2a-Records sowie P2b-Probeworker samt eigenem
 [ETW-Beleg](docs/testing/product-start-p2b-bootstrap-etw.md) vorhanden. **P2 insgesamt ist offen**:
-als Nächstes Ressourcen-Crash-Reconciliation, danach persistente echte Arbeitsablagen-/UI-Bindung.
-P3 Bestandskopie sowie P4/P5 normale App-/Launcher-/Installerintegration und Produktabnahme folgen.
-Die normalen Produkt-Q-01/Q-02 bleiben offen; der neue Forschungsnetzbeleg ersetzt dieses Gate
-nicht. Das strikte Datenschutzziel bleibt unverändert.
+Begrenzte [Ressourcen-Reconciliation](docs/testing/product-start-resource-reconciliation.md) ist
+umgesetzt. Als Nächstes frisches ETW des neuen Builds; vollständige Live-Worker-Crashbereinigung und
+persistente echte Arbeitsablagen-/UI-Bindung bleiben offen. P3 Bestandskopie sowie P4/P5 normale
+App-/Launcher-/Installerintegration und Produktabnahme folgen. Die normalen Produkt-Q-01/Q-02
+bleiben offen; der neue Forschungsnetzbeleg ersetzt dieses Gate nicht. Das strikte Datenschutzziel
+bleibt unverändert.
 
 ## M0 - Fundament (abgeschlossen)
 
@@ -206,13 +208,16 @@ nicht. Das strikte Datenschutzziel bleibt unverändert.
        - [x] KQ-069 A: P2b-Probeworker ohne GUI/Importtask, authentisierter Bootstrap, suspendierte
              Token-/Jobprüfung und kontrollierter Abschluss; drei gezielte native Fälle
        - [x] KQ-069 A: P2b gezielter frischer ETW-Beleg für Controller/Worker, 68 explizite
-             Prozessenden und acht Kontrollen, null beobachtete Netzereignisse in den Messbäumen
-       - [ ] KQ-069 A: Ressourcen-Crash-Reconciliation und persistente echte
-             Arbeitsablagen-/UI-Bindung; danach P3–P5 isolierten Produktstarter/echte
-             Projektmigration integrieren sowie weitere allgemeine Fensterende-/F08-Prüfung;
-             dauerhaften authentisierten Produktbroker integrieren/abnehmen; weitere
-             Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren; Packaging und
-             F08-/M3-Vollprüfung
+             Prozessenden und acht Kontrollen, null beobachtete Netzereignisse in den Messbäumen -
+             [x] KQ-069 A: Begrenzte Probeprofil-Reconciliation bei belegter
+             Eigentums-/Lebenszeitlage; vier gezielte Crashfälle, unbekannte Profile und unbewiesene
+             Workerenden gesperrt
+       - [ ] KQ-069 A: Frisches ETW des Ressourcen-ABI-2-Builds; vollständige
+             Live-Worker-Crashbereinigung und persistente echte Arbeitsablagen-/UI-Bindung; danach
+             P3–P5 isolierten Produktstarter/echte Projektmigration integrieren sowie weitere
+             allgemeine Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
+             integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker
+             kalibrieren; Packaging und F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene

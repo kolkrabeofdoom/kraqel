@@ -26,7 +26,7 @@ fn fixture() -> (PathBuf, Store) {
 fn commit(store: &mut Store) -> LaunchIdentity {
     let proposal = store.workspace_proposal(store.state.head, false).unwrap();
     let execution = Execution {
-        version: 1,
+        version: 2,
         probe_id: Uuid::new_v4(),
         workspace_id: proposal.binding.workspace_id,
         nonce: [2; 32],
@@ -111,6 +111,41 @@ fn ready_record_and_receipt_settlement_survive_authenticated_reopen_without_repl
     drop(store);
     let mut store = Store::open(&path).unwrap();
     assert!(store.state.probe.as_ref().unwrap().ready);
+    store
+        .append(
+            [1; 32],
+            store.state.head,
+            Action::WorkspaceProbeRunIntent { launch },
+        )
+        .unwrap();
+    assert!(
+        store
+            .append(
+                [1; 32],
+                store.state.head,
+                Action::ReconcileWorkspaceProbe { launch }
+            )
+            .is_err()
+    );
+    assert!(
+        store
+            .append(
+                [1; 32],
+                store.state.head,
+                Action::FinishWorkspaceProbe {
+                    launch,
+                    receipt_sha256: [4; 32]
+                }
+            )
+            .is_err()
+    );
+    store
+        .append(
+            [1; 32],
+            store.state.head,
+            Action::WorkspaceProbeDrained { launch },
+        )
+        .unwrap();
     assert!(
         store
             .append(
@@ -148,6 +183,54 @@ fn ready_record_and_receipt_settlement_survive_authenticated_reopen_without_repl
             )
             .is_err()
     );
+    clean(root, store);
+}
+#[test]
+fn resource_reconciliation_reopens_uncreated_and_ready_states_but_blocks_unproved_run() {
+    let (root, mut store) = fixture();
+    let path = store.root.clone();
+    let first = commit(&mut store);
+    let stale = store.state.head;
+    store.reconcile_probe_resources([1; 32], stale).unwrap();
+    assert!(store.reconcile_probe_resources([1; 32], stale).is_err());
+    let second = commit(&mut store);
+    assert_ne!(first.id, second.id);
+    store
+        .append(
+            [1; 32],
+            store.state.head,
+            Action::WorkspaceProbeProfileReady { launch: second },
+        )
+        .unwrap();
+    let head = store.state.head;
+    assert!(store.reconcile_probe_resources([9; 32], head).is_err());
+    assert!(store.reconcile_probe_resources([1; 32], stale).is_err());
+    store
+        .append(
+            [1; 32],
+            head,
+            Action::WorkspaceProbeRunIntent { launch: second },
+        )
+        .unwrap();
+    drop(store);
+    let mut store = Store::open(&path).unwrap();
+    let head = store.state.head;
+    assert!(store.reconcile_probe_resources([1; 32], head).is_err());
+    assert_eq!(store.state.head, head);
+    store
+        .append(
+            [1; 32],
+            head,
+            Action::WorkspaceProbeDrained { launch: second },
+        )
+        .unwrap();
+    drop(store);
+    let mut store = Store::open(&path).unwrap();
+    store
+        .reconcile_probe_resources([1; 32], store.state.head)
+        .unwrap();
+    assert_eq!(store.state.workspace.as_ref().unwrap().generation(), 2);
+    assert!(store.state.probe.is_none());
     clean(root, store);
 }
 #[test]

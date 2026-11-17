@@ -89,6 +89,11 @@ dessen unveränderte gesicherte EXE. Kein vollständiger App-/Workspace-Neulauf 
 
 ## Ablage, Aussagegrenzen und nächster Schritt
 
+Inzwischen ergänzt ein
+[neuer Runtimebuild Ressourcen-Reconciliation](product-start-resource-reconciliation.md). Die hier
+dokumentierte Messung bleibt ausschließlich an `590c3d4…` gebunden; neuer Build benötigt seinen
+eigenen frischen ETW-Nachweis. Folgender nächste Schritt beschreibt den damaligen Stand.
+
 Roh-ETL, XML, Root-PIDs/-pfade, Profile/IDs/Nonces, Kontrollrecords/Schlüssel und lokale Audithelfer
 bleiben außerhalb GitHub. Lokale Nachweise unter `%TEMP%/kraqel-p2b-etw-20261117-01-reference` und
 `…-worker`, gesicherte Buildmanifest-Ergänzung und zusammengefasster Audit bei der obigen

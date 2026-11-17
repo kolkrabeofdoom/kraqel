@@ -115,6 +115,12 @@ Forschungsprogramm aufrufen; niemals vorhandene private Storewurzeln einsetzen.
 
 ## Offene Freigabegates
 
+Neuerer Stand:
+[Execution v2 und begrenzte Ressourcen-Reconciliation](product-start-resource-reconciliation.md) mit
+eigenem geändertem Runtimehash. Dieser Abschnitt bleibt der historische Bootstrap-v1-Beleg; sein ETW
+gilt nicht für den neueren Build. Unbestätigte Profile/RunIntent ohne Drained bleiben weiterhin
+gesperrt.
+
 Inzwischen liegt der [eigene frische ETW-Vergleich](product-start-p2b-bootstrap-etw.md) für den
 exakt unten beschriebenen finalen Runtimehash vor. Zwei gültige Phasen, 31 Controller/sechs Worker,
 null beobachtete Netzereignisse. Die folgende Formulierung beschreibt das vorherige Gate nach der
