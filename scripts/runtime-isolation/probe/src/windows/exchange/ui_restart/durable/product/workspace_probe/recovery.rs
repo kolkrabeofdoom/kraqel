@@ -92,13 +92,34 @@ impl Store {
             .probe
             .clone()
             .ok_or(invalid("probe-no-resource"))?;
-        if pending.execution.version != 2 || (pending.run_intent && !pending.drained) {
+        if pending.execution.version != 3 {
             return Err(invalid("probe-resource-lifetime-unproved"));
         }
         let exists = present(&pending.execution)?;
         if !pending.ready && exists {
             return Err(invalid("probe-profile-ownership-unconfirmed"));
         }
+        let head = if pending.run_intent && !pending.drained {
+            let worker = pending
+                .worker
+                .ok_or(invalid("probe-worker-binding-missing"))?;
+            let evidence = lifetime::prove_end(worker)?;
+            if MAX_RECORDS.saturating_sub(self.state.sequence + 1) < 2 {
+                return Err(invalid("probe-worker-end-budget"));
+            }
+            self.append(
+                actor,
+                head,
+                Action::WorkspaceProbeRecoveredDrain {
+                    launch: pending.launch,
+                    worker,
+                    evidence,
+                },
+            )?;
+            self.state.head
+        } else {
+            head
+        };
         let action = if pending.ready {
             Action::ReconcileWorkspaceProbe {
                 launch: pending.launch,
@@ -135,7 +156,7 @@ mod tests {
     #[test]
     fn native_profile_presence_distinguishes_missing_mapping_and_matching_identity() {
         let execution = Execution {
-            version: 2,
+            version: 3,
             probe_id: Uuid::new_v4(),
             workspace_id: [1; 16],
             nonce: [2; 32],
@@ -143,6 +164,7 @@ mod tests {
             root_sha256: [4; 32],
             policy_sha256: [5; 32],
             sentinel_sha256: [6; 32],
+            live_hold_ms: 0,
         };
         assert!(!present(&execution).unwrap());
         let mut owned = Profile::create(&format!("boot-{}", execution.probe_id.simple())).unwrap();

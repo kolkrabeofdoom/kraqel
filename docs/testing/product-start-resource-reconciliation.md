@@ -97,6 +97,10 @@ App-/Transport-/Installerbuild oder `pnpm check`. Mittleres Prüfniveau ohne all
 
 ## Reproduktion, Sicherung und offene Gates
 
+Neuerer Stand: [Execution v3/Workerbindung und Wiederanlauf](product-start-worker-lifetime.md).
+Dieser Abschnitt beschreibt weiterhin den v2-Prüfstand samt dessen eigener Programme/Netzgates. V3
+benötigt eigenen frischen Netznachweis; ein Start ohne WorkerBound bleibt gesperrt.
+
 Inzwischen liegt der [eigene frische ETW-Vergleich](product-start-resource-reconciliation-etw.md)
 für exakt diesen Runtimehash vor: zwei gültige Phasen, 54 Controller/sechs Worker, 114 explizite
 Enden, acht Kontrollen, null beobachtete Netzereignisse. Die folgende nächste Aufgabe beschreibt das

@@ -2,6 +2,7 @@
 use super::*;
 use crate::product_start::{LaunchIdentity, ModelConditions, ModelJob, Settlement};
 mod bootstrap;
+pub(super) mod lifetime;
 mod recovery;
 pub(in crate::windows) use bootstrap::worker;
 
@@ -19,6 +20,7 @@ pub(super) struct Execution {
     root_sha256: [u8; 32],
     policy_sha256: [u8; 32],
     sentinel_sha256: [u8; 32],
+    live_hold_ms: u16,
 }
 #[derive(Clone)]
 pub(super) struct Pending {
@@ -27,6 +29,7 @@ pub(super) struct Pending {
     ready: bool,
     run_intent: bool,
     drained: bool,
+    worker: Option<lifetime::WorkerIdentity>,
 }
 
 pub(super) fn apply(
@@ -56,8 +59,9 @@ pub(super) fn apply(
             proposal,
             execution,
         } if state.probe.is_none()
-            && MAX_RECORDS.saturating_sub(state.sequence + 1) >= 5
-            && execution.version == 2
+            && MAX_RECORDS.saturating_sub(state.sequence + 1) >= 6
+            && execution.version == 3
+            && execution.live_hold_ms <= 2000
             && !execution.probe_id.is_nil()
             && execution.workspace_id == model.binding().workspace_id
             && execution.probe_id.as_bytes() != &model.binding().profile_id
@@ -83,6 +87,7 @@ pub(super) fn apply(
                 ready: false,
                 run_intent: false,
                 drained: false,
+                worker: None,
             });
         }
         Action::WorkspaceProbeProfileReady { launch } => {
@@ -101,7 +106,11 @@ pub(super) fn apply(
             receipt_sha256,
         } => {
             let pending = state.probe.as_ref().ok_or(invalid("probe-no-resource"))?;
-            if !pending.drained || pending.launch != *launch || *receipt_sha256 == [0; 32] {
+            if !pending.drained
+                || pending.worker.is_none()
+                || pending.launch != *launch
+                || *receipt_sha256 == [0; 32]
+            {
                 return Err(invalid("probe-finish-record"));
             }
             model
@@ -179,6 +188,45 @@ pub(super) fn apply(
                 .map_err(|_| invalid("probe-uncreated-settlement"))?;
             state.probe = None;
         }
+        Action::WorkspaceProbeWorkerBound {
+            launch,
+            worker,
+            process_limit,
+        } => {
+            let pending = state.probe.as_mut().ok_or(invalid("probe-no-resource"))?;
+            if pending.launch != *launch
+                || !pending.run_intent
+                || pending.drained
+                || pending.worker.is_some()
+                || !worker.valid()
+                || *process_limit != 1
+            {
+                return Err(invalid("probe-worker-binding-order"));
+            }
+            model
+                .sync_control_head(state.head, digest)
+                .map_err(|_| invalid("probe-worker-binding-head"))?;
+            pending.worker = Some(*worker);
+        }
+        Action::WorkspaceProbeRecoveredDrain {
+            launch,
+            worker,
+            evidence,
+        } => {
+            let pending = state.probe.as_mut().ok_or(invalid("probe-no-resource"))?;
+            if pending.launch != *launch
+                || !pending.run_intent
+                || pending.drained
+                || pending.worker != Some(*worker)
+                || !evidence.valid_for(*worker)
+            {
+                return Err(invalid("probe-worker-end-proof"));
+            }
+            model
+                .sync_control_head(state.head, digest)
+                .map_err(|_| invalid("probe-worker-end-head"))?;
+            pending.drained = true;
+        }
         _ => return Err(invalid("probe-invalid-transition")),
     }
     Ok(())
@@ -220,7 +268,12 @@ fn remove_profile(execution: &Execution) -> Result<()> {
     }
     Ok(())
 }
-fn stage(source: &mut fs::File, actor: [u8; 32], workspace_id: [u8; 16]) -> Result<Execution> {
+fn stage(
+    source: &mut fs::File,
+    actor: [u8; 32],
+    workspace_id: [u8; 16],
+    live_hold_ms: u16,
+) -> Result<Execution> {
     let id = Uuid::new_v4();
     let path = std::env::temp_dir().join(format!("kraqel-isolation-boot-{}", id.simple()));
     if !crate::policy::valid_root(&path, false) {
@@ -258,7 +311,7 @@ fn stage(source: &mut fs::File, actor: [u8; 32], workspace_id: [u8; 16]) -> Resu
     let mut nonce = [0; 32];
     getrandom::fill(&mut nonce).map_err(|_| invalid("probe-nonce"))?;
     Ok(Execution {
-        version: 2,
+        version: 3,
         probe_id: id,
         workspace_id,
         nonce,
@@ -266,6 +319,7 @@ fn stage(source: &mut fs::File, actor: [u8; 32], workspace_id: [u8; 16]) -> Resu
         root_sha256: root_hash(&io("probe-root-canonical", path.canonicalize())?),
         policy_sha256: Sha256::digest(POLICY).into(),
         sentinel_sha256: Sha256::digest(SENTINEL).into(),
+        live_hold_ms,
     })
 }
 
@@ -314,10 +368,19 @@ impl Store {
             },
         )
         .map_err(|_| invalid("probe-preflight"))?;
-        if MAX_RECORDS.saturating_sub(self.state.sequence + 1) < 5 {
+        if MAX_RECORDS.saturating_sub(self.state.sequence + 1) < 6 {
             return Err(invalid("probe-record-budget"));
         }
-        let execution = stage(&mut source, actor, proposal.binding.workspace_id)?;
+        let execution = stage(
+            &mut source,
+            actor,
+            proposal.binding.workspace_id,
+            if matches!(mode, bootstrap::Mode::CrashLive) {
+                2000
+            } else {
+                0
+            },
+        )?;
         self.append(
             actor,
             head,
@@ -346,6 +409,7 @@ impl Store {
             Action::WorkspaceProbeRunIntent { launch },
         )?;
         let result = bootstrap::run(self, &execution, &profile, launch, mode)?;
+        crash::hit(crash::Point::WorkerExited);
         self.append(
             actor,
             self.state.head,
@@ -413,6 +477,10 @@ pub(in crate::windows) fn child(args: &[OsString]) -> Result<Value> {
             | "crash-after-create"
             | "crash-after-ready"
             | "crash-after-remove"
+            | "crash-before-bound"
+            | "crash-after-bound"
+            | "crash-live"
+            | "crash-after-exit"
     ) {
         return Err(invalid("probe-child-action"));
     }
@@ -427,6 +495,10 @@ pub(in crate::windows) fn child(args: &[OsString]) -> Result<Value> {
         "crash-after-create" => Some(crash::Point::ProbeCreated),
         "crash-after-ready" => Some(crash::Point::ProbeReady),
         "crash-after-remove" => Some(crash::Point::ProbeRemoved),
+        "crash-before-bound" => Some(crash::Point::BeforeWorkerBound),
+        "crash-after-bound" => Some(crash::Point::WorkerBound),
+        "crash-live" => Some(crash::Point::WorkerLive),
+        "crash-after-exit" => Some(crash::Point::WorkerExited),
         _ => None,
     };
     if let Some(point) = point {
@@ -441,6 +513,7 @@ pub(in crate::windows) fn child(args: &[OsString]) -> Result<Value> {
             match action {
                 "start-unassigned" => bootstrap::Mode::Unassigned,
                 "start-bad-mac" => bootstrap::Mode::BadMac,
+                "crash-live" => bootstrap::Mode::CrashLive,
                 _ => bootstrap::Mode::Normal,
             },
         )?,

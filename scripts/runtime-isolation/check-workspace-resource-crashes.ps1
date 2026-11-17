@@ -51,7 +51,7 @@ function Read-Own-Execution {
     if(-not [Security.Cryptography.CryptographicOperations]::FixedTimeEquals($expected,[byte[]]$wire[$domain.Length..($offset-1)])){throw 'Invalid fixture MAC'}
     $record=[Text.Encoding]::UTF8.GetString($wire,$offset,$wire.Length-$offset) | ConvertFrom-Json
     $execution=$record.action.execution
-    if($record.action.kind -ne 'commitWorkspaceProbe' -or $execution.version -ne 2 -or [Convert]::ToHexString([byte[]]$execution.workerSha256).ToLowerInvariant() -ne $ProbeSha256){throw 'Unexpected own fixture execution'}
+    if($record.action.kind -ne 'commitWorkspaceProbe' -or $execution.version -notin @(2,3) -or [Convert]::ToHexString([byte[]]$execution.workerSha256).ToLowerInvariant() -ne $ProbeSha256){throw 'Unexpected own fixture execution'}
     return $execution
 }
 function Profile-Exists([string]$Moniker) {

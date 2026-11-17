@@ -23,11 +23,13 @@ Aktuell innerhalb KQ-069: P1-Modell und P2a-Records sowie P2b-Probeworker samt e
 Begrenzte [Ressourcen-Reconciliation](docs/testing/product-start-resource-reconciliation.md) ist
 umgesetzt. Der
 [frische Ressourcen-Netzbeleg](docs/testing/product-start-resource-reconciliation-etw.md) ist
-ergänzt. Als Nächstes dauerhafter Workerstartbeleg und gesicherter Wiederanlauf vor Drained;
-vollständige Live-Worker-Crashbereinigung und persistente echte Arbeitsablagen-/UI-Bindung bleiben
-offen. P3 Bestandskopie sowie P4/P5 normale App-/Launcher-/Installerintegration und Produktabnahme
-folgen. Die normalen Produkt-Q-01/Q-02 bleiben offen; der neue Forschungsnetzbeleg ersetzt dieses
-Gate nicht. Das strikte Datenschutzziel bleibt unverändert.
+ergänzt.
+[Dauerhafte Workerbindung/Wiederanlauf vor Drained](docs/testing/product-start-worker-lifetime.md)
+ist für den synthetischen Ein-Prozess-Worker umgesetzt. Als Nächstes frisches ETW des neuen Builds;
+ungebundene Starts, mehrprozessige GUI-Lebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung
+bleiben offen. P3 Bestandskopie sowie P4/P5 normale App-/Launcher-/Installerintegration und
+Produktabnahme folgen. Die normalen Produkt-Q-01/Q-02 bleiben offen; der neue Forschungsnetzbeleg
+ersetzt dieses Gate nicht. Das strikte Datenschutzziel bleibt unverändert.
 
 ## M0 - Fundament (abgeschlossen)
 
@@ -215,7 +217,10 @@ Gate nicht. Das strikte Datenschutzziel bleibt unverändert.
              vier gezielte Crashfälle, unbekannte Profile und unbewiesene Workerenden gesperrt
        - [x] KQ-069 A: Frisches ETW des Ressourcen-ABI-2-Builds; 54 Controller/sechs Worker, acht
              Kontrollen/114 explizite Enden, null beobachtete Netzereignisse in den Messbäumen
-       - [ ] KQ-069 A: Dauerhaft belegter Workerstart/Wiederanlauf bei Crash vor Drained;
+       - [x] KQ-069 A: Dauerhafter Workerstartbeleg/Wiederanlauf vor Drained im
+             Ein-Prozess-Prototyp; drei gebundene Starts reconciliert, ungebundener Start
+             unverändert gesperrt
+       - [ ] KQ-069 A: Frisches ETW des Workerbindungs-v3-Builds; ungebundene Starts und
              vollständige Live-Worker-Crashbereinigung und persistente echte
              Arbeitsablagen-/UI-Bindung; danach P3–P5 isolierten Produktstarter/echte
              Projektmigration integrieren sowie weitere allgemeine Fensterende-/F08-Prüfung;

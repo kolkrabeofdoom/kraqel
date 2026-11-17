@@ -17,7 +17,7 @@ const P2A: [u8; 32] = *b"KRAQEL-P2A-META\0\x01\0\0\0\x05\0\x01\0\0\0\0\0\0\0\0\0
 #[unsafe(link_section = ".kqprod")]
 static P2A_EMBEDDED: [u8; 32] = P2A;
 // Synthetic worker bootstrap only. UI ABI stays zero; no authoring UI is advertised.
-const P2B: [u8; 32] = *b"KRAQEL-P2B-PROBE\x01\0\0\0\x05\0\x01\0\0\0\x02\0\0\0\0\0";
+const P2B: [u8; 32] = *b"KRAQEL-P2B-PROBE\x01\0\0\0\x05\0\x01\0\0\0\x03\0\0\0\0\0";
 #[used]
 #[unsafe(link_section = ".kqboot")]
 static P2B_EMBEDDED: [u8; 32] = P2B;

@@ -26,6 +26,10 @@ pub(super) enum Point {
     ProbeCreated,
     ProbeReady,
     ProbeRemoved,
+    BeforeWorkerBound,
+    WorkerBound,
+    WorkerLive,
+    WorkerExited,
 }
 thread_local! {static ARMED:Cell<Option<Point>>=const {Cell::new(None)};}
 pub(super) fn arm(root: &Path, point: Point) -> Result<()> {

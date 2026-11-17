@@ -279,6 +279,19 @@ Runtimehashs mit normaler Referenz und allen vier Ressourcenabbrüchen ergänzt;
 Produktgrenzen unverändert. RunIntent ohne Drained bleibt bis dauerhaft belegtem Lebenszeitende
 gesperrt, kein automatischer Cleanup aus einem verschwundenen Jobnamen.
 
+## P2b: Dauerhafte Workerbindung v3
+
+[Nachweis/Native Guards/Grenzen](../testing/product-start-worker-lifetime.md): Execution v3 und
+`.kqboot`-Bereinigungs-ABI 3; sechs reservierte Records. WorkerBound mit Launch/PID/Erzeugungszeit
+und Limit 1 vollständig vor Resume persistieren. Nur dieser aktive Record nutzt einen engen nativen
+Wächter für exakten benannten Job, reale Limits/Token/Lease; gemeinsame Serialisierung ist keine
+Autorität. Normale Mutationen verlangen weiter Jobleerstand. RecoveredDrain benötigt die passende
+dauerhafte Identität und nativ belegtes Ende, bevor eigenes Profilcleanup erlaubt wird. PID allein,
+verschwundener Jobname, fehlgeschlagene Zuweisung oder unsignierte Logs genügen nicht. Kein
+Terminierungszugriff auf fremde Prozesse, ungebundener Start bleibt gesperrt. Nur der synthetische
+Ein-Prozess-Worker, kein GUI-/Produktvertrag. Neuer Runtimehash ohne frisches ETW, keine Migration
+alter v1/v2-Probe-Historien oder Bestandsdatenadoption.
+
 ## Abgrenzung zum geplanten Produktstart
 
 P1 war zunächst ein reines Testmodell; P2a nutzt denselben Kern jetzt nach nativen Kontrollprüfungen

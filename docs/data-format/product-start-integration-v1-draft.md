@@ -179,8 +179,10 @@ ist gezielt belegt.
 [Begrenzte Ressourcen-Reconciliation](../testing/product-start-resource-reconciliation.md) ist
 implementiert; unbestätigte Profile/RunIntent ohne Drained bleiben gesperrt. Der
 [eigene frische ETW-Nachweis](../testing/product-start-resource-reconciliation-etw.md) des
-geänderten Runtimebuilds ist ergänzt. Nächster Scope: dauerhafter Workerstartbeleg und gesicherter
-Wiederanlauf nach Controller-Crash vor Drained. Vollständige Live-Worker- Crashbereinigung und
+geänderten Runtimebuilds ist ergänzt.
+[Dauerhafte Workerbindung und Wiederanlauf vor Drained](../testing/product-start-worker-lifetime.md)
+ist inzwischen für den synthetischen Ein-Prozess-Worker umgesetzt. Nächster begrenzter Scope ist
+frisches ETW des geänderten Builds. Ungebundene Starts und mehrprozessige GUI-Lebenszeiten sowie
 persistente echte Arbeitsablagen-/UI-Bindung fehlen; P2 insgesamt bleibt offen.
 
 Reihenfolge P1–P5 verhindert, dass der erfolgreiche Forschungsimport als Freigabe der gesamten

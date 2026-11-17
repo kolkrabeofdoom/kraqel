@@ -26,7 +26,7 @@ fn fixture() -> (PathBuf, Store) {
 fn commit(store: &mut Store) -> LaunchIdentity {
     let proposal = store.workspace_proposal(store.state.head, false).unwrap();
     let execution = Execution {
-        version: 2,
+        version: 3,
         probe_id: Uuid::new_v4(),
         workspace_id: proposal.binding.workspace_id,
         nonce: [2; 32],
@@ -34,6 +34,7 @@ fn commit(store: &mut Store) -> LaunchIdentity {
         root_sha256: [3; 32],
         policy_sha256: Sha256::digest(POLICY).into(),
         sentinel_sha256: Sha256::digest(SENTINEL).into(),
+        live_hold_ms: 0,
     };
     store
         .append(
@@ -139,6 +140,20 @@ fn ready_record_and_receipt_settlement_survive_authenticated_reopen_without_repl
             )
             .is_err()
     );
+    store
+        .append(
+            [1; 32],
+            store.state.head,
+            Action::WorkspaceProbeWorkerBound {
+                launch,
+                worker: lifetime::WorkerIdentity {
+                    pid: 123,
+                    creation_time: 1,
+                },
+                process_limit: 1,
+            },
+        )
+        .unwrap();
     store
         .append(
             [1; 32],
@@ -274,5 +289,156 @@ fn interruption_preserves_launch_history_and_next_generation() {
     let next = commit(&mut store);
     assert_eq!(next.generation, launch.generation + 1);
     assert_ne!(next.id, launch.id);
+    clean(root, store);
+}
+
+#[test]
+fn durable_worker_binding_and_end_evidence_are_ordered_context_bound_and_replayed() {
+    let (root, mut store) = fixture();
+    let path = store.root.clone();
+    let launch = commit(&mut store);
+    let worker = lifetime::WorkerIdentity {
+        pid: 123,
+        creation_time: 1,
+    };
+    assert!(
+        store
+            .append(
+                [1; 32],
+                store.state.head,
+                Action::WorkspaceProbeWorkerBound {
+                    launch,
+                    worker,
+                    process_limit: 1
+                }
+            )
+            .is_err()
+    );
+    store
+        .append(
+            [1; 32],
+            store.state.head,
+            Action::WorkspaceProbeProfileReady { launch },
+        )
+        .unwrap();
+    store
+        .append(
+            [1; 32],
+            store.state.head,
+            Action::WorkspaceProbeRunIntent { launch },
+        )
+        .unwrap();
+    let head = store.state.head;
+    assert!(
+        store
+            .bind_suspended_worker(launch, unsafe { GetCurrentProcess() })
+            .is_err()
+    );
+    assert_eq!(store.state.head, head);
+    assert!(
+        store
+            .append(
+                [1; 32],
+                head,
+                Action::WorkspaceProbeWorkerBound {
+                    launch,
+                    worker,
+                    process_limit: 2
+                }
+            )
+            .is_err()
+    );
+    assert!(
+        store
+            .append(
+                [1; 32],
+                head,
+                Action::WorkspaceProbeWorkerBound {
+                    launch,
+                    worker: lifetime::WorkerIdentity { pid: 0, ..worker },
+                    process_limit: 1
+                }
+            )
+            .is_err()
+    );
+    store
+        .append(
+            [1; 32],
+            head,
+            Action::WorkspaceProbeWorkerBound {
+                launch,
+                worker,
+                process_limit: 1,
+            },
+        )
+        .unwrap();
+    assert!(
+        store
+            .append(
+                [1; 32],
+                store.state.head,
+                Action::WorkspaceProbeWorkerBound {
+                    launch,
+                    worker,
+                    process_limit: 1
+                }
+            )
+            .is_err()
+    );
+    let head = store.state.head;
+    assert!(
+        store
+            .append(
+                [1; 32],
+                head,
+                Action::WorkspaceProbeRecoveredDrain {
+                    launch,
+                    worker,
+                    evidence: lifetime::EndEvidence::PidReused {
+                        observed_creation_time: 1
+                    }
+                }
+            )
+            .is_err()
+    );
+    assert!(
+        store
+            .append(
+                [1; 32],
+                head,
+                Action::WorkspaceProbeRecoveredDrain {
+                    launch,
+                    worker: lifetime::WorkerIdentity {
+                        creation_time: 2,
+                        ..worker
+                    },
+                    evidence: lifetime::EndEvidence::Signaled
+                }
+            )
+            .is_err()
+    );
+    drop(store);
+    let mut store = Store::open(&path).unwrap();
+    assert_eq!(store.state.probe.as_ref().unwrap().worker, Some(worker));
+    assert!(!store.state.probe.as_ref().unwrap().drained);
+    // Pure journal fixture: native end validation is tested separately, not granted by this append.
+    store
+        .append(
+            [1; 32],
+            head,
+            Action::WorkspaceProbeRecoveredDrain {
+                launch,
+                worker,
+                evidence: lifetime::EndEvidence::Signaled,
+            },
+        )
+        .unwrap();
+    drop(store);
+    let mut store = Store::open(&path).unwrap();
+    assert!(store.state.probe.as_ref().unwrap().drained);
+    store
+        .reconcile_probe_resources([1; 32], store.state.head)
+        .unwrap();
+    assert!(store.state.probe.is_none());
     clean(root, store);
 }

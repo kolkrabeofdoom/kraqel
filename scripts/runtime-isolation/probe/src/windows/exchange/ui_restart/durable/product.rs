@@ -83,6 +83,16 @@ enum Action {
     WorkspaceProbeDrained {
         launch: crate::product_start::LaunchIdentity,
     },
+    WorkspaceProbeWorkerBound {
+        launch: crate::product_start::LaunchIdentity,
+        worker: workspace_probe::lifetime::WorkerIdentity,
+        process_limit: u32,
+    },
+    WorkspaceProbeRecoveredDrain {
+        launch: crate::product_start::LaunchIdentity,
+        worker: workspace_probe::lifetime::WorkerIdentity,
+        evidence: workspace_probe::lifetime::EndEvidence,
+    },
     AbortUncreatedWorkspaceProbe {
         launch: crate::product_start::LaunchIdentity,
     },
@@ -188,6 +198,8 @@ impl State {
                 | Action::WorkspaceProbeProfileReady { .. }
                 | Action::WorkspaceProbeRunIntent { .. }
                 | Action::WorkspaceProbeDrained { .. }
+                | Action::WorkspaceProbeWorkerBound { .. }
+                | Action::WorkspaceProbeRecoveredDrain { .. }
                 | Action::AbortUncreatedWorkspaceProbe { .. }
                 | Action::FinishWorkspaceProbe { .. }
                 | Action::ReconcileWorkspaceProbe { .. }
@@ -504,6 +516,20 @@ impl Store {
     }
     fn append(&mut self, actor: [u8; 32], head: [u8; 32], action: Action) -> Result<()> {
         self.append_guard(actor, head)?;
+        self.append_with_checked_context(actor, head, action)
+    }
+    // Serialization only. Callers must first prove idle control OR the exact suspended worker
+    // under the held lease; this method never grants native execution/cleanup authority itself.
+    fn append_with_checked_context(
+        &mut self,
+        actor: [u8; 32],
+        head: [u8; 32],
+        action: Action,
+    ) -> Result<()> {
+        self.actor(actor)?;
+        if self.state.head != head || self.state.sequence + 1 >= MAX_RECORDS {
+            return Err(invalid("product-stale-head-or-budget"));
+        }
         let record = Record {
             version: 1,
             sequence: self.state.sequence + 1,

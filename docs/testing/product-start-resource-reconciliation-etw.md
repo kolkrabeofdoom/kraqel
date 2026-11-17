@@ -85,6 +85,11 @@ Build bei unverändertem Runtimecode; Format-, Fakten-, Hash-, Verweis- und Diff
 
 ## Lokale Ablage, Grenzen und nächster Schritt
 
+Inzwischen ergänzt ein
+[neuer v3-Runtimebuild dauerhafte Workerbindung](product-start-worker-lifetime.md). Diese Messung
+bleibt ausschließlich an `9021872…` gebunden; kein Übertrag auf neue Bytes. Der folgende nächste
+Scope beschreibt den damaligen Stand.
+
 Roh-ETL/XML, Root-PIDs/-pfade, Profil-/Launch-IDs, Schlüssel/Records und lokale Audithelfer bleiben
 außerhalb GitHub. Capturepfade: `%TEMP%/kraqel-resource-v2-etw-20261117-01-reference` und
 `…-reconciliation`. Buildmanifest und zusammengefasster Audit bei der oben genannten Buildsicherung.

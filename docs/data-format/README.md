@@ -11,9 +11,10 @@ Produkt-Migrationsweg. P2b ist als
 [Begrenzte Ressourcen-Reconciliation](../testing/product-start-resource-reconciliation.md) ist mit
 neuer Execution-/Cleanupversion implementiert. Deren
 [eigener frischer Netzbeleg](../testing/product-start-resource-reconciliation-etw.md) ist ergänzt.
-Dauerhafter Workerstartbeleg/Wiederanlauf vor Drained, vollständige Live-Worker-Crashbereinigung und
-persistente echte Arbeitsablagen-/UI-Bindung bleiben offen. Vorhandener Snapshot-v3-Import erzeugt
-neue IDs.
+[Dauerhafte Workerbindung/Wiederanlauf vor Drained](../testing/product-start-worker-lifetime.md) ist
+nun für den synthetischen Ein-Prozess-Worker implementiert. Eigener frischer Netznachweis des neuen
+Builds, ungebundene Starts/mehrprozessige Lebenszeiten und persistente echte
+Arbeitsablagen-/UI-Bindung bleiben offen. Vorhandener Snapshot-v3-Import erzeugt neue IDs.
 
 Der Exportstandard ist noch in Arbeit. Fest stehen folgende Invarianten:
 

@@ -7,7 +7,34 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 17. November 2026
 
-Aktuell:
+Aktuell: [Dauerhafte Workerbindung und Wiederanlauf](testing/product-start-worker-lifetime.md).
+Dauerhafte P2b-Workerbindung, 17. November: Execution v3/Bereinigungs-ABI 3, sechs Recordslots
+reserviert. WorkerBound bindet Launch, native PID/Erzeugungszeit und geprüfte Ein-Prozess-Jobpolicy
+vor Resume; enger nativer Lease-/Job-/Token-Wächter erlaubt nur diesen Record bei aktivem Worker,
+andere Storemutationen behalten Jobleerstand. Wiederanlauf vor Drained benötigt diesen MAC-Beleg und
+tatsächliches Ende derselben Prozessgeneration: signalisiertes Handle, andere Erzeugungszeit oder
+PID-Abwesenheit mit vollständigem Snapshot; keine fremde Terminierung, Fehler bleiben gesperrt.
+RecoveredDrain wird vor eigenem Profilcleanup gespeichert. Vier native Crashfälle: drei gebundene
+Starts sicher reconciliert und neue Generation erfolgreich; Start vor WorkerBound bleibt auch nach
+separatem eigenem Fixturecleanup pending/gesperrt. 47 Controller/sieben Worker, 63 Records, sieben
+verbrauchte Launches, 42 private Dateisperren; sieben Profile am Ende abwesend. 75 aktive
+Helfer-/Transporttests/Clippy und unabhängiger MAC-/PE-/Root-/Inventar-/Profilaudit grün, echte
+Daten und Schlüssel unverändert. Neuer gesicherter Runtimehash `37d7bec…`, kein
+App-/Transport-/Installer- umbau oder pnpm check. Nächster Scope: gezieltes frisches ETW dieses
+Controllers samt Worker-/ Lebenszeit-/Recoverypfaden. Voriger Netzbeleg bleibt an `9021872…`
+gebunden. Ein-Prozess-Prototyp ist keine mehrprozessige GUI; ungebundene Starts/unbestätigte
+Profile, persistente echte Arbeitsablagen-/UI-Bindung, P2 insgesamt/P3–P5 und Produkt-Q-01/Q-02
+offen; striktes Ziel unverändert.
+
+Gesicherter neuer Build `%TEMP%/kraqel-product-worker-lifetime-build-20261117-01`,
+`functional-root.txt`, privater Audit/Manifest. Reproduktion mit
+`check-workspace-worker-crashes.ps1` und expliziten Hashes aus dem Nachweis. Ein negativer
+synthetischer Store bleibt absichtlich pending: kein nachträgliches Binden, kein Schlüssel-/Kopf-
+Reset nach Fixturecleanup. Echte Vorschauablage nicht öffnen, übernehmen oder für neue EXE
+autorisieren. V2-Build/ETW getrennt unverändert behalten. Kein Übertrag der Ein-Prozess-Regel auf
+WebView2/mehrprozessige GUI und kein Importticket als Startautorität.
+
+Vorheriger Stand:
 [Frischer Ressourcen-Reconciliation-Netzbeleg](testing/product-start-resource-reconciliation-etw.md).
 Frisches Ressourcen-ABI-2-ETW, 17. November: unveränderter Runtimebuild `9021872…`, normaler
 Workerabschluss als Referenz gegenüber vier gezielten Ressourcenabbrüchen/Reconciliation. 54 direkte

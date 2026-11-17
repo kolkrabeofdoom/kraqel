@@ -10,6 +10,7 @@ pub(super) enum Mode {
     Normal,
     Unassigned,
     BadMac,
+    CrashLive,
 }
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -133,7 +134,7 @@ fn receive_before(file: &mut fs::File, deadline: Instant) -> Result<Vec<u8>> {
 }
 
 pub(super) fn run(
-    store: &Store,
+    store: &mut Store,
     execution: &Execution,
     profile: &Profile,
     launch: LaunchIdentity,
@@ -148,7 +149,9 @@ pub(super) fn run(
         return Err(invalid("probe-job-collision"));
     }
     let mut limits: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = unsafe { zeroed() };
-    limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+    limits.BasicLimitInformation.LimitFlags =
+        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | JOB_OBJECT_LIMIT_ACTIVE_PROCESS;
+    limits.BasicLimitInformation.ActiveProcessLimit = 1;
     check(
         unsafe {
             SetInformationJobObject(
@@ -195,7 +198,7 @@ pub(super) fn run(
 }
 
 fn run_with_job(
-    store: &Store,
+    store: &mut Store,
     execution: &Execution,
     profile: &Profile,
     launch: LaunchIdentity,
@@ -310,9 +313,10 @@ fn run_with_job(
         return Err(error);
     }
     let worker = worker.ok_or(invalid("probe-worker"))?;
+    let identity = lifetime::capture_identity(worker.0.0)?;
     write_json(
         &path.join("spawn.json"),
-        &json!({"pid":info.dwProcessId,"suspendedAtRecord":true}),
+        &json!({"pid":info.dwProcessId,"workerIdentity":identity,"suspendedAtRecord":true}),
     )?;
     let mut assigned = 0;
     check(
@@ -328,15 +332,43 @@ fn run_with_job(
     }
     verify_denials(worker.0.0, &store.root)?;
     starter::verify_start_lease(&store.root, &name)?;
+    lifetime::verify_single_process_job(job.0)?;
     write_json(
         &path.join("parent.json"),
-        &json!({"pid":info.dwProcessId,"token":facts,"exactJob":true,"privateDenials":6,"leaseHeld":true,"launch":launch}),
+        &json!({"pid":info.dwProcessId,"workerIdentity":identity,"singleProcessLimit":1,"token":facts,"exactJob":true,"privateDenials":6,"leaseHeld":true,"launch":launch}),
     )?;
+    crash::hit(crash::Point::BeforeWorkerBound);
+    if store.bind_suspended_worker(launch, worker.0.0)? != identity {
+        return Err(invalid("probe-worker-identity-changed"));
+    }
+    crash::hit(crash::Point::WorkerBound);
     if started.elapsed() > Duration::from_secs(30) {
         return Err(invalid("probe-bootstrap-expired"));
     }
     if unsafe { ResumeThread(worker.1.0) } == u32::MAX {
         return Err(fail("probe-resume"));
+    }
+    if matches!(mode, Mode::CrashLive) {
+        let wire = receive_before(&mut events, started + Duration::from_secs(30))?;
+        let receipt: Receipt = decode(&wire, &key, RECEIPT)?;
+        if receipt
+            != (Receipt {
+                version: 1,
+                launch,
+                nonce: execution.nonce,
+                worker_sha256: execution.worker_sha256,
+                fixtures_verified: true,
+            })
+            || unsafe { WaitForSingleObject(worker.0.0, 0) } != WAIT_TIMEOUT
+        {
+            return Err(invalid("probe-live-crash-not-running"));
+        }
+        write_json(
+            &path.join("worker-live.json"),
+            &json!({"authenticatedReceiptBeforeCrash":true,"workerWasAlive":true,"workerIdentity":identity}),
+        )?;
+        crash::hit(crash::Point::WorkerLive);
+        return Err(invalid("probe-live-crash-not-armed"));
     }
     if unsafe { WaitForSingleObject(worker.0.0, 10000) } != WAIT_OBJECT_0 {
         return Err(invalid("probe-worker-timeout"));
@@ -418,7 +450,8 @@ pub(in crate::windows) fn worker(args: &[OsString]) -> Result<()> {
         || boot.parent_pid == unsafe { GetCurrentProcessId() }
         || boot.launch.id != *expected.as_bytes()
         || boot.launch.generation == 0
-        || boot.execution.version != 2
+        || boot.execution.version != 3
+        || boot.execution.live_hold_ms > 2000
         || boot.execution.probe_id.is_nil()
         || boot.execution.workspace_id == [0; 16]
         || boot.execution.nonce == [0; 32]
@@ -476,6 +509,12 @@ pub(in crate::windows) fn worker(args: &[OsString]) -> Result<()> {
         "probe-worker-receipt",
         receipt_file.write_all(&encode(&receipt, key, RECEIPT)?),
     )?;
+    drop(receipt_file);
+    if boot.execution.live_hold_ms > 0 {
+        thread::sleep(Duration::from_millis(u64::from(
+            boot.execution.live_hold_ms,
+        )));
+    }
     Ok(())
 }
 
