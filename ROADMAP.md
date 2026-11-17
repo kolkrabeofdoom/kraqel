@@ -170,11 +170,13 @@
              Aufrufe, acht Kontrollen, 144 explizite Enden, 0 Nicht-Loopback
        - [x] KQ-069 A: Drei gezielte Prozessabbrüche zwischen Artefaktentfernung, Zielanlage und
              Prepare; authentisierter Retry/Recovery ohne zusätzliche Projektkopie
-       - [ ] KQ-069 A: Frisches ETW der neuen Programme einschließlich Prepare-Übergängen und
-             verwaltetem Kandidaten; isolierten Produktstarter/echte Projektmigration integrieren
-             sowie weitere allgemeine Fensterende-/F08-Prüfung; dauerhaften authentisierten
-             Produktbroker integrieren/abnehmen; weitere Formate/Git-/Providergrenzen;
-             UDP/IPv6/DNS/Broker kalibrieren; Packaging und F08-/M3-Vollprüfung
+       - [x] KQ-069 A: Frisches ETW der Prepare-Übergänge und des verwalteten Kandidaten; 59 direkte
+             Aufrufe, acht Kontrollen, 182 explizite Enden, 0 Nicht-Loopback
+       - [ ] KQ-069 A: Start-/Integrationsvertrag für normalen Produktstart mit bestehenden
+             Projekten; isolierten Produktstarter/echte Projektmigration integrieren sowie weitere
+             allgemeine Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
+             integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker
+             kalibrieren; Packaging und F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene

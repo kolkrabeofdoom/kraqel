@@ -7,6 +7,20 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 17. November 2026
 
+Neuester Netzbeleg:
+[Prepare-Übergänge/verwalteter Kandidat](testing/native-prepare-transition-etw.md). Frisches ETW der
+Prepare-Übergänge und des verwalteten Kandidaten, 17. November: unveränderte gesicherte Programme,
+zwei kurze gültige Phasen. Regulärer Schema-4-Update-/Recoverypfad als Referenz gegenüber den drei
+gezielten Übergangsabbrüchen; keine zusätzliche allgemeine Matrix. Alle 59 direkten Aufrufe
+einschließlich fünf hashbenannter verwalteter EXEs erfasst, acht Kontrollen,
+Nullverluste/Zuordnungslücken, 182 explizite Enden, 0 beobachtete Nicht-Loopback-/48 getrennte
+Loopback-Ereignisse. Unabhängige MAC-/Paket-/SQLite-/Kernel-Audits grün: vier Aufgaben/vier legitime
+Kopien, keine Replaykopie, Schlüssel/App-/Sitzungsbindung erhalten. 42 Diagnose-Tests, mittleres
+Prüfniveau ohne neuen Build oder Workspace-Gesamtlauf. Echte Vorschauablage unverändert,
+Erfassungen/Prozesse beendet, Rohbelege lokal. Nächster begrenzter Scope: Start-/Integrationsvertrag
+für normalen Produktstart mit bestehenden Projekten konkretisieren; Forschungsautorität nicht
+automatisch auf echte Daten übertragen. Striktes Ziel und offene Produkt-Q-01/Q-02 unverändert.
+
 Neuester funktionaler Stand:
 [Prepare-Übergangsabbrüche](testing/native-prepare-transition-crashes.md). Gezielte
 Prepare-Übergangsabbrüche, 17. November: drei standardmäßig inaktive Punkte im pfadbegrenzten

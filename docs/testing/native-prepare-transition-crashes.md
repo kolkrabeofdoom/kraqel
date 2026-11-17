@@ -84,7 +84,10 @@ nur Aggregate in Git.
 Geprüft ist authentisierter Retry mit vorherigem Abort, keine Stromausfallgarantie und kein
 allgemeines Orphan-Cleanup beim ersten Prepare ohne Abbruchhistorie. Unbekannte Artefakte und
 unvollständige Kontrollketten bleiben gesperrt; keine Kopf-/Schlüsselreparatur oder neue
-Importberechtigung. Dieser neue Broker hat noch keinen eigenen frischen ETW-Beleg. Frühere
-Netzbelege bleiben an ihre damaligen Programme/Pfade/Lebenszeiten gebunden. Nächster begrenzter
-Scope: gezielter frischer ETW-Vergleich der neuen Programme einschließlich dieser drei Übergänge und
-des verwalteten Kandidaten. Normale Produktintegration und weitere Produktabnahme bleiben offen.
+Importberechtigung. Inzwischen liegt der
+[eigene frische ETW-Beleg](native-prepare-transition-etw.md) der unveränderten Programme vor, mit
+regulärem verwaltetem Update-/Wiederanlaufpfad und den drei Übergängen. Der funktionale JSON-Beleg
+bleibt separat ohne Netzmessung; frühere Netzbelege gelten weiter nur für ihre
+Programme/Pfade/Lebenszeiten. Nächster begrenzter Scope: Start-/Integrationsvertrag für normalen
+Produktstart mit bestehenden Projekten. Normale Produktintegration und weitere Produktabnahme
+bleiben offen.

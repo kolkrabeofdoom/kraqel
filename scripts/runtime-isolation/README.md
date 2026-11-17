@@ -5,8 +5,12 @@ Neuester funktionaler Prüfstand:
 `check-update-reconciliation.ps1 -PrepareTransitions` prüft drei frische synthetische Fälle an
 `artifact-removed`, `package-created`, `prepare-recorded`; alternativ zu `-RetryAborted`. Frühe
 Abbrüche erzeugen kein Pending; gespeichertes leeres Pending ist vor Retry ausdrücklich abzubrechen.
-56 aktive Helfertests/Clippy, drei native Fälle und Daten-/MAC-Audit grün, keine Replaykopie. Neue
-Brokerbytes ohne eigenen frischen ETW-Beleg, echte Vorschauablage unverändert.
+56 aktive Helfertests/Clippy, drei native Fälle und Daten-/MAC-Audit grün, keine Replaykopie.
+[Eigener frischer ETW-Beleg](../../docs/testing/native-prepare-transition-etw.md) derselben
+Programme mit regulärem Update-/verwaltetem Wiederanlauf und drei Übergängen: acht Kontrollen, 182
+explizite Enden, 0 Nicht-Loopback-/48 getrennte Loopback-Ereignisse, alle 59 direkten Aufrufe
+erfasst. Kein neuer Build/keine Auswerteränderung, 42 Diagnose-Tests grün. Prozesse/Erfassungen
+beendet, echte Vorschauablage unverändert.
 
 [Eigener frischer ETW-Beleg des Retry-Brokers](../../docs/testing/native-package-artifact-retry-etw.md):
 gesicherte Programme unverändert, Referenz und Teilkopie/Abort/Retry/Aktivierung/verwalteter

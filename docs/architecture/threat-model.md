@@ -5,7 +5,12 @@ nach Artefaktentfernung/Zielanlage Kopf unverändert, kein Pending; nach Prepare
 mit leerer Kopie und explizitem Abbruch vor Retry. Drei native harte Prozessabbrüche bestätigen
 Wiederanlauf unter derselben Sperre ohne neue Importautorität. 56 Helfertests/Clippy und Daten-/
 MAC-Audit grün. Authentisierter Retry mit vorherigem Abort, kein allgemeines Erst-Prepare-Orphan-
-Cleanup oder Stromausfallnachweis. Neue Brokerbytes ohne frisches ETW; striktes Ziel unverändert.
+Cleanup oder Stromausfallnachweis. Inzwischen
+[eigener frischer ETW-Beleg](../testing/native-prepare-transition-etw.md) der unveränderten
+Programme: regulärer Update-/Recoverypfad und drei Übergänge, 59 direkte Aufrufe samt fünf
+verwalteten hashbenannten Starts, acht Kontrollen, 182 explizite Enden, 0 Nicht-Loopback-/48
+getrennte Loopback-Ereignisse. Daten-/MAC-/Kernel-Audit grün, keine Inhalts-/externe Dienst-/
+Produktattestierung. Striktes Ziel unverändert.
 
 [Sichere Paketartefakte/Retry](../testing/native-package-artifact-retry.md), 17. November: Ersetzung
 nur authentisiert abgebrochener Schema-4-Hashes, niemals aktivierter Pakete. Aktueller Actor/Kopf,

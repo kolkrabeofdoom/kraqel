@@ -4,8 +4,11 @@
 explizite, standardmäßig inaktive Punkte im begrenzten Forschungschild. Artefaktentfernung und
 Zielanlage erzeugen noch keine Autorität; nach signiertem Prepare muss leeres Pending vor Retry
 ausdrücklich abgebrochen werden. Drei native Fälle unter derselben Sperre erhalten Sitzung/Aufgabe,
-56 aktive Helfertests/Clippy und Daten-/MAC-Audit grün. Kein neuer Netzbeleg dieser Brokerbytes,
-keine fachliche Ausnahme oder Produktfreigabe; striktes Ziel unverändert.
+56 aktive Helfertests/Clippy und Daten-/MAC-Audit grün. Inzwischen
+[eigener frischer ETW-Beleg](../../testing/native-prepare-transition-etw.md): zwei gezielte Phasen,
+59 direkte Aufrufe einschließlich fünf hashbenannter verwalteter Starts, acht Kontrollen, 182
+explizite Enden, 0 Nicht-Loopback-/48 getrennte Loopback-Ereignisse. Keine Runtime-/Messguard-
+Änderung, fachliche Ausnahme oder Produktfreigabe; striktes Ziel unverändert.
 
 [Sichere Paketartefakte/Retry](../../testing/native-package-artifact-retry.md), 17. November:
 authentisierter Abort autorisiert eng begrenzte Ersetzung vor erneuter Vorbereitung unter derselben

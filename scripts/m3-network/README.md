@@ -1,5 +1,12 @@
 # Lokale Windows-Netzprüfung für M3
 
+[Frischer Prepare-Übergangs-/Kandidatenbeleg](../../docs/testing/native-prepare-transition-etw.md):
+regulärer Update-/Recoverypfad als Referenz gegenüber drei Übergangsabbrüchen, unveränderte
+Auswertung/Capture. 59 direkte Roots einschließlich fünf verwalteter hashbenannter Starts, acht
+Kontrollen, Nullverluste, 182 explizite Enden, 0 Nicht-Loopback. Vollständiger separater
+Aufruf-/GUI-/ Daten-/MAC-Abgleich, 42 Diagnose-Tests; kein neuer Build oder Übertrag auf andere
+Programme/Pfade.
+
 [Frischer Retry-/Kandidatenbeleg](../../docs/testing/native-package-artifact-retry-etw.md):
 unveränderte Auswertung/Capture, zwei kurze Phasen, 21 explizite native Roots einschließlich fünf
 hashbenannter verwalteter EXEs. Acht Kontrollen, Nullverluste, 144 explizite Enden, 0
