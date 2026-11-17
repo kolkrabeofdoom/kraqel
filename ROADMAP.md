@@ -174,9 +174,12 @@
              Aufrufe, acht Kontrollen, 182 explizite Enden, 0 Nicht-Loopback
        - [x] KQ-069 A: Start-/Integrationsvertrag v1 als Entwurf mit belegten Lücken und Stufen
              P1–P5; keine Runtime-/Migrationsfreigabe
-       - [ ] KQ-069 A: P1 reine versionierte Produktstart-/Bindungstypen und Zustandsregeln prüfen;
-             danach P2–P5 isolierten Produktstarter/echte Projektmigration integrieren sowie weitere
-             allgemeine Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
+       - [x] KQ-069 A: P1 reine versionierte Produktstart-/Bindungstypen und Zustandsregeln als
+             Testmodell; sieben neue Negativ-/Lebenszyklustests, keine Start-/Datenautorität
+       - [ ] KQ-069 A: P2a authentisierte persistente Arbeitsablagenbindung/Launch-Records in
+             frischen synthetischen Wurzeln ohne GUI; P2b Start ohne Importtask, danach P3–P5
+             isolierten Produktstarter/echte Projektmigration integrieren sowie weitere allgemeine
+             Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
              integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker
              kalibrieren; Packaging und F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit

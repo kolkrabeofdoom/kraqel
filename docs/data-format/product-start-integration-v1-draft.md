@@ -2,8 +2,10 @@
 
 Stand: 17. November 2026. **Implementierungsentwurf, keine Produktfreigabe und kein bereits
 ausführbares Protokoll.** Die Anforderungen unten sind für die nächste Integrationsstufe vorgesehen.
-Heute sind weder dieser Startvertrag noch die Bestandsdatenübernahme implementiert. Striktes
-Datenschutzziel und offene Produkt-Q-01/Q-02 bleiben unverändert.
+P1 ist inzwischen als
+[reines testexklusives Typ-/Zustandsmodell](../testing/product-start-p1-model.md) umgesetzt. Nativer
+Startvertrag, Authentisierung, Kontrollschema 5 und Bestandsdatenübernahme sind weiter nicht
+implementiert. Striktes Datenschutzziel und offene Produkt-Q-01/Q-02 bleiben unverändert.
 
 ## 1. Verifizierter Ausgangspunkt
 
@@ -48,6 +50,12 @@ Datei-/KI-Grants -> eigene ausdrückliche Vorgänge, keine Ableitung aus dem Sta
 ```
 
 ## 3. Autoritäts- und Zustandsvertrag
+
+P1 konkretisiert ausschließlich `WorkspaceBindingV1`/`StartProposalV1` im Testmodell:
+camelCase-JSON, UUIDs als 16-Byte- und Digests als 32-Byte-Arrays, strikt bekannte Felder und
+Payloadgrenze. Ergebnis `UntrustedStartProposal`, kein authentisierter Envelope. Der geplante native
+Autoritätsvertrag unten wird dadurch nicht vorweggenommen. Details und Grenzen im
+[P1-Nachweis](../testing/product-start-p1-model.md).
 
 Geplant ist ein separat versionierter `ProductStartAuthorizationV1` mit strikt unbekannte Felder
 ablehnender Form; **kein** derzeit akzeptierter Rendererrequest oder neues CLI-Freiformargument. Ein
@@ -148,13 +156,16 @@ offenzulegen.
 
 ## 6. Umsetzung und Abnahme
 
-| Stufe                            | Konkretes Ergebnis                                                                                                   | Notwendige Prüfung                                                                                                                                                                    |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P1 · nächster begrenzter Schritt | Reiner versionierter Start-/Bindungs-Zustandsvertrag mit neuen Typen; keine UI-/Datenübernahme                       | Zwecktrennung zu Import, fremder Kopf/App/Root, Replay, Budgetende, defekte Bindung; keine Autorität durch Parseerfolg                                                                |
-| P2                               | Nativer synthetischer Produktstart ohne Importtask, persistente Arbeitsablage, neuer Launch nach normalem Ende/Crash | Wenige echte Start-/Abbruchfälle, unabhängige Token-/Job-/MAC-/Datenprüfung, eigener ETW-Buildbeleg                                                                                   |
-| P3                               | Zerstörungsfreie Bestandskopie mit eigener idempotenter Übernahmeautorität                                           | Synthetisches Altprojekt mit WAL/Assets/UUIDs/Fehlerfällen, Quellen unverändert, keine Doppelkopie                                                                                    |
-| P4                               | Vollständige Schreiboberfläche hinter vorgeschaltetem Startguard; Dateiaustausch/Unterprozesse einzeln integrieren   | Bei App-/gemeinsamen Transport-/Packagingänderungen `pnpm check`, geeigneter Build, native Funktions-/Assistenzprüfung und frisches ETW                                               |
-| P5                               | Normaler Launcher/Installer ohne unisolierten Bypass, deklarierte kompatible Pakete, tragfähige Kontrollhistorie     | Direkter EXE-Start, Erststart/Bestandsstart, Neustart, Installation/Update/Deinstallation ohne Datenverlust; Produkt-Q-01/Q-02/F08/M3 und externe Dienstgrenzen ausdrücklich abnehmen |
+| Stufe                         | Konkretes Ergebnis                                                                                                   | Notwendige Prüfung                                                                                                                                                                    |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1 · umgesetzt als Testmodell | Reiner versionierter Start-/Bindungs-Zustandsvertrag mit neuen Typen; keine UI-/Datenübernahme                       | Zwecktrennung zu Import, fremder Kopf/App/Root, Replay, Budgetende, defekte Bindung; keine Autorität durch Parseerfolg                                                                |
+| P2                            | Nativer synthetischer Produktstart ohne Importtask, persistente Arbeitsablage, neuer Launch nach normalem Ende/Crash | Wenige echte Start-/Abbruchfälle, unabhängige Token-/Job-/MAC-/Datenprüfung, eigener ETW-Buildbeleg                                                                                   |
+| P3                            | Zerstörungsfreie Bestandskopie mit eigener idempotenter Übernahmeautorität                                           | Synthetisches Altprojekt mit WAL/Assets/UUIDs/Fehlerfällen, Quellen unverändert, keine Doppelkopie                                                                                    |
+| P4                            | Vollständige Schreiboberfläche hinter vorgeschaltetem Startguard; Dateiaustausch/Unterprozesse einzeln integrieren   | Bei App-/gemeinsamen Transport-/Packagingänderungen `pnpm check`, geeigneter Build, native Funktions-/Assistenzprüfung und frisches ETW                                               |
+| P5                            | Normaler Launcher/Installer ohne unisolierten Bypass, deklarierte kompatible Pakete, tragfähige Kontrollhistorie     | Direkter EXE-Start, Erststart/Bestandsstart, Neustart, Installation/Update/Deinstallation ohne Datenverlust; Produkt-Q-01/Q-02/F08/M3 und externe Dienstgrenzen ausdrücklich abnehmen |
+
+P2 wird in P2a (persistente authentisierte Bindung/Launch-Records ohne GUI) und P2b (synthetischer
+Bootstrap/Token/Job ohne Importtask) aufgeteilt. P2a ist der nächste begrenzte Scope.
 
 Reihenfolge P1–P5 verhindert, dass der erfolgreiche Forschungsimport als Freigabe der gesamten
 Schreiboberfläche gilt. Mittleres Prüfniveau bedeutet pro Implementierungsschritt gezielte relevante

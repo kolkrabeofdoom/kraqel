@@ -238,6 +238,11 @@ ausschließlich für seinen gesicherten Prüfbuild, nicht für automatisch aktua
 
 ## Abgrenzung zum geplanten Produktstart
 
+P1 ist [als reines Typ-/Zustandsmodell im Testziel](../testing/product-start-p1-model.md)
+implementiert. Dies ändert weder das native Kontrollschema noch MAC-Records, Commands, RestartTicket
+oder Paketdeklaration. Gültiges JSON und Modellbedingungen erzeugen keine Autorität; die native
+Schema-5-/Persistenz-/Bootstrapintegration bleibt ein separater Schritt.
+
 [Produktstart-/Bestandsdatenvertrag v1 · Entwurf](product-start-integration-v1-draft.md) trennt
 allgemeine Arbeitsablagenstarts von den hier implementierten Testsitzungen/Importaufgaben. Schema 5
 und eine dafür geeignete Paketdeklaration sind geplant, nicht in diesen Commands unterstützt. Kein

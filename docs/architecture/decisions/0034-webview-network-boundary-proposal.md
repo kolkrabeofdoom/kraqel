@@ -1,6 +1,15 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
 17. November:
+    [P1 als reines testexklusives Produktstartmodell](../../testing/product-start-p1-model.md)
+    umgesetzt. Neue versionierte Typen/Zustandsregeln, Parserfolg ist keine Autorität; keine
+    Importtask, I/O-/MAC-/OS-/Transport-/UI-Integration. Sieben neue Tests, 63 aktive
+    Helfertests/Clippy grün. Natives Schema 5/Paketdeklaration/Bootstrap/Bestandsübernahme weiter
+    offen. Nächster begrenzter Scope P2a persistente authentisierte Bindung/Launch-Records nur in
+    frischen synthetischen Wurzeln, ohne GUI-Start. Keine fachliche Ausnahme/Produktfreigabe;
+    striktes Datenschutzziel unverändert.
+
+18. November:
     [Produktstart-/Bestandsdatenvertrag v1 als Entwurf](../../data-format/product-start-integration-v1-draft.md)
     konkretisiert die nächste Integration, ohne sie als umgesetzt zu führen. Eigene Workspace-
     Startautorität statt Importtask, getrennte Hostkontrolle/Arbeitsablage, kein unisolierter

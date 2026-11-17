@@ -1,5 +1,13 @@
 # AppContainer-Forschungshelfer für KQ-069
 
+Neuester begrenzter Schritt:
+[Produktstart P1 · reines Testmodell](../../docs/testing/product-start-p1-model.md).
+`probe/src/product_start.rs` ist nur per `#[cfg(test)]` im Helfer-Testziel eingebunden. Keine neue
+CLI, I/O, Schlüssel-, MAC-, Transport- oder UI-Integration; Parserfolg bleibt unvertrauenswürdig.
+Sieben neue Modelltests, 63 aktive Helfer-/Transporttests und Clippy grün. Kein neuer EXE-Build/ETW;
+gesicherte Forschungsprogramme separat unverändert. P2a beginnt mit authentisierter persistenter
+Arbeitsablagenbindung/Launch-Records nur in frischen synthetischen Wurzeln, zunächst ohne GUI.
+
 Nächste Integrationsstufe:
 [Produktstart-/Bestandsdatenvertrag v1 · Entwurf](../../docs/data-format/product-start-integration-v1-draft.md).
 Statisch belegte Trennung zwischen normalem Tauri-Start und Forschungsoberfläche. P1 beginnt mit

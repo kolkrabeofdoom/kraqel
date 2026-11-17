@@ -1,5 +1,23 @@
 # Entwicklungsstatus
 
+Produktstart P1, 17. November: reine versionierte Bindungs-/Startvorschlagstypen und Zustandsregeln
+implementiert, ausschließlich `#[cfg(test)]` in `probe/src/main.rs`; keine produktive Autorität.
+`product_start.rs`/`product_start/tests.rs` ohne I/O/unsafe/Schlüssel/Transport/UI. Parser liefert
+`UntrustedStartProposal`, lehnt Import-/Fremdfelder und ungültige Versionen/Bindungen ab. Modell
+verbraucht Launch vor Running, erhält Binding/Replayhistorie bei Ende/Unterbrechung, reserviert
+Abschlussbudget; Ablehnungen ohne Mutation. Sieben neue Modelltests, insgesamt 63 aktive Helfer-/
+Transporttests und Clippy grün. Vorgeschlagenes Schema 5 bleibt nativ unimplementiert; Modellköpfe/
+Jobbedingungen sind keine MAC-/OS-Nachweise, keine Persistenz/Bootstrapfrist/Frameintegration.
+Mittleres Prüfniveau, kein App-/Helfer-EXE-Build, `pnpm check` oder neuer ETW-Lauf. Echte Daten/
+ACLs/Schlüssel unverändert, gesicherte Forschungsprogramme separat erhalten. Nächster begrenzter
+Scope P2a: authentisierte persistente Arbeitsablagenbindung/Launch-Records im Forschungsbroker, nur
+frische synthetische Wurzeln und zunächst ohne GUI; dann P2b Bootstrap/Token/Job ohne Importtask.
+Normale Produktintegration und Produkt-Q-01/Q-02 offen; striktes Datenschutzziel unverändert.
+
+[Implementierung/Prüfung/Grenzen](testing/product-start-p1-model.md).
+
+## Vorheriger Planungsstand
+
 Produktstart-/Bestandsdatenvertrag v1, 17. November: neuer ausdrücklicher Entwurf, keine
 Implementierung/Produktfreigabe. Statisch bestätigt: normaler Tauri-Start ohne vorgeschalteten
 Produktguard, getrennte Forschungs-UI, taskgebundenes RestartTicket v3 und migrationsfähige

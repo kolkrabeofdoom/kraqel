@@ -1,5 +1,13 @@
 # Bedrohungsmodell (Entwurf)
 
+[Produktstart P1 · reines Testmodell](../testing/product-start-p1-model.md), 17. November:
+versionierte Bindung/Startvorschlag strikt getrennt von Importautorität. Parser liefert unvertrautes
+Objekt; keine MACs/OS-Prüfung/Schlüssel/I/O oder Startcapability. Modell prüft Kontext/Kopf/Replay/
+Generation/Job/Pending/Budget vor Mutation und erhält Binding/Verbrauch bei Ende/Unterbrechung. Nur
+im Helfertestziel eingebunden, sieben neue Tests/63 aktive Helfertests/Clippy grün. Modelliertes
+Schema 5 ist keine native Storeunterstützung. P2a muss Persistenz/Authentisierung erst herstellen,
+ohne GUI oder echte Daten. Striktes Ziel und offene Produkt-Q-01/Q-02 unverändert.
+
 [Produktstart-/Bestandsdatenvertrag v1 · Entwurf](../data-format/product-start-integration-v1-draft.md), 17.
 November: neuer Planungsstand, keine implementierte Autorität. Normaler Start ist unisoliert;
 Import-Recovery berechtigt nicht zum allgemeinen Workspace-Start. Eigene versionierte Bindung,

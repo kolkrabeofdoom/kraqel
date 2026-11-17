@@ -7,6 +7,26 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 17. November 2026
 
+Neuester funktionaler Prüfstand: [Produktstart P1 · Testmodell](testing/product-start-p1-model.md).
+Produktstart P1, 17. November: reine versionierte Bindungs-/Startvorschlagstypen und Zustandsregeln
+implementiert, ausschließlich `#[cfg(test)]` in `probe/src/main.rs`; keine produktive Autorität.
+`product_start.rs`/`product_start/tests.rs` ohne I/O/unsafe/Schlüssel/Transport/UI. Parser liefert
+`UntrustedStartProposal`, lehnt Import-/Fremdfelder und ungültige Versionen/Bindungen ab. Modell
+verbraucht Launch vor Running, erhält Binding/Replayhistorie bei Ende/Unterbrechung, reserviert
+Abschlussbudget; Ablehnungen ohne Mutation. Sieben neue Modelltests, insgesamt 63 aktive Helfer-/
+Transporttests und Clippy grün. Vorgeschlagenes Schema 5 bleibt nativ unimplementiert; Modellköpfe/
+Jobbedingungen sind keine MAC-/OS-Nachweise, keine Persistenz/Bootstrapfrist/Frameintegration.
+Mittleres Prüfniveau, kein App-/Helfer-EXE-Build, `pnpm check` oder neuer ETW-Lauf. Echte Daten/
+ACLs/Schlüssel unverändert, gesicherte Forschungsprogramme separat erhalten. Nächster begrenzter
+Scope P2a: authentisierte persistente Arbeitsablagenbindung/Launch-Records im Forschungsbroker, nur
+frische synthetische Wurzeln und zunächst ohne GUI; dann P2b Bootstrap/Token/Job ohne Importtask.
+Normale Produktintegration und Produkt-Q-01/Q-02 offen; striktes Datenschutzziel unverändert.
+
+P2a darf weder Modellbedingungen als echte Token-/Jobattestierung noch Parseerfolg als
+Authentisierung verwenden. `StartModel` ist nicht serialisierbar; kein heimlicher Persistenzweg.
+Bisheriges RestartTicket/Importtask und Forschungs-CLI bleiben unverändert; Schema-5-/Paket- und
+Kontroll-MAC-Integration separat implementieren. Keine Freigabe/Kopie echter Vorschau-/Projektdaten.
+
 Neuester Planungsstand:
 [Produktstartvertrag v1 · Entwurf](data-format/product-start-integration-v1-draft.md).
 Produktstart-/Bestandsdatenvertrag v1, 17. November: neuer ausdrücklicher Entwurf, keine

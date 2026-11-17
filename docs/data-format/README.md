@@ -4,8 +4,10 @@
 beschreibt die geplante Integration der isolierten Oberfläche: getrennte Start-/Importautorität,
 Arbeitsablagenbindung und zerstörungsfreie Bestandskopie. Noch kein implementiertes Protokoll,
 Kontrollschema 5 oder Produkt-Migrationsweg; kein portables Snapshotformat. Reine
-Typ-/Zustandsprüfung P1 ist der nächste begrenzte Schritt. Der vorhandene Snapshot-v3-Import erzeugt
-weiterhin neue IDs.
+Typ-/Zustandsprüfung P1 ist inzwischen
+[als reines testexklusives Modell geprüft](../testing/product-start-p1-model.md); P2a persistente
+authentisierte Bindung ohne GUI ist der nächste begrenzte Schritt. Der vorhandene Snapshot-v3-Import
+erzeugt weiterhin neue IDs.
 
 Der Exportstandard ist noch in Arbeit. Fest stehen folgende Invarianten:
 
