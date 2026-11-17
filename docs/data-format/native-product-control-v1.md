@@ -273,8 +273,11 @@ ohne RunIntent bzw. mit Drained. Bestehendes unbestätigtes Profil und RunIntent
 gesperrt; Registryfehler sind keine Abwesenheit. Transition/Budget vor Löschung vorprüfen, danach
 Abwesenheit erneut bestätigen und terminalen Record schreiben. Keine Migration alter
 Execution-v1-Historien oder echte Produktdatenadoption. Vier native Crashfälle, einschließlich
-ausdrücklich verweigertem Cleanup einer unbestätigten eigenen Testfixture. Neuer Runtimehash ohne
-eigenen frischen ETW-Beleg, normale Produktgrenzen unverändert.
+ausdrücklich verweigertem Cleanup einer unbestätigten eigenen Testfixture.
+[Eigener frischer ETW-Beleg](../testing/product-start-resource-reconciliation-etw.md) des
+Runtimehashs mit normaler Referenz und allen vier Ressourcenabbrüchen ergänzt; normale
+Produktgrenzen unverändert. RunIntent ohne Drained bleibt bis dauerhaft belegtem Lebenszeitende
+gesperrt, kein automatischer Cleanup aus einem verschwundenen Jobnamen.
 
 ## Abgrenzung zum geplanten Produktstart
 

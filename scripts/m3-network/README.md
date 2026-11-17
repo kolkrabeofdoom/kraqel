@@ -1,5 +1,13 @@
 # Lokale Windows-Netzprüfung für M3
 
+[Frisches Ressourcen-ABI-2-ETW](../../docs/testing/product-start-resource-reconciliation-etw.md):
+unveränderte Capture-/Auswertehelfer, regulärer Workerabschluss und vier gezielte
+Ressourcenabbrüche. 54 explizite Controllerroots/sechs Worker/54 Controller-Konsolenhosts, 114
+explizite Enden, acht Kontrollen, Nullverluste/Zuordnungslücken, null beobachtete Netzereignisse in
+diesen Bäumen. Vollständiger separater Aufruf-/Worker-/MAC-/Daten-/Profilaudit und 42 Diagnose-Tests
+grün. Kein neuer Build; keine normale Produktfreigabe, externe Dienste/Prüfsteuerung außerhalb des
+Scopes.
+
 [Frischer P2b-Controller-/Workerbeleg](../../docs/testing/product-start-p2b-bootstrap-etw.md): zwei
 kurze gültige Phasen mit unveränderten Capture-/Auswertehelfern, 31 explizite native Roots, sechs
 separat gestartete Worker und 31 Controller-Konsolenhosts. Acht Kontrollen, Nullverluste, 68

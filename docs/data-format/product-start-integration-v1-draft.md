@@ -177,10 +177,11 @@ Bootstrap/Token/Job ohne Importtask) aufgeteilt. P2a ist als Record-only-Forschu
 ist als begrenzter Readonly-Probeworker umgesetzt. Frisches ETW für den finalen Controller/Worker
 ist gezielt belegt.
 [Begrenzte Ressourcen-Reconciliation](../testing/product-start-resource-reconciliation.md) ist
-implementiert; unbestätigte Profile/RunIntent ohne Drained bleiben gesperrt. Nächster begrenzter
-Scope ist eigener frischer ETW-Nachweis des geänderten Runtimebuilds.
-Ressourcen-Crash-Reconciliation und persistente echte Arbeitsablagen-/UI-Bindung fehlen; P2
-insgesamt bleibt offen.
+implementiert; unbestätigte Profile/RunIntent ohne Drained bleiben gesperrt. Der
+[eigene frische ETW-Nachweis](../testing/product-start-resource-reconciliation-etw.md) des
+geänderten Runtimebuilds ist ergänzt. Nächster Scope: dauerhafter Workerstartbeleg und gesicherter
+Wiederanlauf nach Controller-Crash vor Drained. Vollständige Live-Worker- Crashbereinigung und
+persistente echte Arbeitsablagen-/UI-Bindung fehlen; P2 insgesamt bleibt offen.
 
 Reihenfolge P1–P5 verhindert, dass der erfolgreiche Forschungsimport als Freigabe der gesamten
 Schreiboberfläche gilt. Mittleres Prüfniveau bedeutet pro Implementierungsschritt gezielte relevante

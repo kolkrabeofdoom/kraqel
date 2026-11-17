@@ -9,9 +9,11 @@ Produkt-Migrationsweg. P2b ist als
 [synthetischer Probeworker](../testing/product-start-p2b-bootstrap.md) umgesetzt;
 [frisches ETW](../testing/product-start-p2b-bootstrap-etw.md) ist für den Probeworker belegt.
 [Begrenzte Ressourcen-Reconciliation](../testing/product-start-resource-reconciliation.md) ist mit
-neuer Execution-/Cleanupversion implementiert. Deren frisches ETW, vollständige
-Live-Worker-Crashbereinigung und persistente echte Arbeitsablagen-/UI-Bindung bleiben offen.
-Vorhandener Snapshot-v3-Import erzeugt neue IDs.
+neuer Execution-/Cleanupversion implementiert. Deren
+[eigener frischer Netzbeleg](../testing/product-start-resource-reconciliation-etw.md) ist ergänzt.
+Dauerhafter Workerstartbeleg/Wiederanlauf vor Drained, vollständige Live-Worker-Crashbereinigung und
+persistente echte Arbeitsablagen-/UI-Bindung bleiben offen. Vorhandener Snapshot-v3-Import erzeugt
+neue IDs.
 
 Der Exportstandard ist noch in Arbeit. Fest stehen folgende Invarianten:
 

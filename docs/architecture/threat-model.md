@@ -1,5 +1,22 @@
 # Bedrohungsmodell (Entwurf)
 
+[Frischer Ressourcen-Reconciliation-Netzbeleg](../testing/product-start-resource-reconciliation-etw.md).
+Frisches Ressourcen-ABI-2-ETW, 17. November: unveränderter Runtimebuild `9021872…`, normaler
+Workerabschluss als Referenz gegenüber vier gezielten Ressourcenabbrüchen/Reconciliation. 54 direkte
+Controller, sechs Worker, 54 Controller-Konsolenhosts, alle 114 Enden/Eltern/Exitcodes explizit
+abgeglichen. Acht lokale TCP-/UDP-IPv4/IPv6-Kontrollen, Nullverluste/Zuordnungslücken, null
+beobachtete Netzereignisse in den ausgewählten Bäumen (auch null Loopback). Daten/MACs/
+Paket-/Rootbindung und Profile unabhängig geprüft: 67 Records, neun verbrauchte Launches, 36 private
+Dateisperren, acht Profile am Ende abwesend. Sieben Broker-Cleanups; die eine eigene mehrdeutige
+Fixture bleibt ausdrücklich separate Prüfablaufbereinigung, keine Produktfreigabe. 42 Diagnose-Tests
+grün, kein neuer Build/Runtime-/App-/Transport-/Installerumbau oder pnpm check. Rohdaten nur lokal,
+echte Vorschauablage unverändert. Nächster Scope: dauerhafter Workerstartbeleg und gesicherter
+Wiederanlauf bei Controller-Crash zwischen RunIntent und Drained; bis belegtem Lebenszeitende weiter
+gesperrt. P2 insgesamt/P3–P5 und Produkt-Q-01/Q-02 offen, striktes Ziel unverändert; Beleg gilt nur
+für diese Bytes/Lebenszeiten/Pfade.
+
+Vorheriger Stand:
+
 [Begrenzte P2b-Ressourcen-Reconciliation](../testing/product-start-resource-reconciliation.md).
 P2b-Ressourcen-Reconciliation, 17. November: Execution v2/Profilbereinigungs-ABI 2 mit neuen
 RunIntent-/Drained-Records, fünf Slots vor Ressourcenanlage reserviert. Unter derselben Lease werden

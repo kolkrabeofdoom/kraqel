@@ -97,6 +97,12 @@ App-/Transport-/Installerbuild oder `pnpm check`. Mittleres Prüfniveau ohne all
 
 ## Reproduktion, Sicherung und offene Gates
 
+Inzwischen liegt der [eigene frische ETW-Vergleich](product-start-resource-reconciliation-etw.md)
+für exakt diesen Runtimehash vor: zwei gültige Phasen, 54 Controller/sechs Worker, 114 explizite
+Enden, acht Kontrollen, null beobachtete Netzereignisse. Die folgende nächste Aufgabe beschreibt das
+Gate nach der Implementierung; aktueller Scope ist dauerhafter Workerstartbeleg und gesicherter
+Wiederanlauf zwischen RunIntent und Drained.
+
 `scripts/runtime-isolation/check-workspace-resource-crashes.ps1` verlangt explizite Hashes und
 erzeugt ausschließlich neue synthetische Ablagen. Keine vorhandenen Store-/Profilwurzeln übergeben.
 
