@@ -178,12 +178,14 @@
              Testmodell; sieben neue Negativ-/Lebenszyklustests, keine Start-/Datenautorität
        - [x] KQ-069 A: P2a authentisierte Schema-5-Workspace-/Launch-Records in synthetischen
              privaten Wurzeln ohne GUI; drei Abbruchfälle/Replayabwehr, keine Startcapability
-       - [ ] KQ-069 A: P2b authentisierter synthetischer Bootstrap/Token/Job ohne Importtask,
-             eigener frischer Netznachweis; danach P3–P5 isolierten Produktstarter/echte
-             Projektmigration integrieren sowie weitere allgemeine Fensterende-/F08-Prüfung;
-             dauerhaften authentisierten Produktbroker integrieren/abnehmen; weitere
-             Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren; Packaging und
-             F08-/M3-Vollprüfung
+       - [x] KQ-069 A: P2b-Probeworker ohne GUI/Importtask, authentisierter Bootstrap, suspendierte
+             Token-/Jobprüfung und kontrollierter Abschluss; drei gezielte native Fälle
+       - [ ] KQ-069 A: P2b frischer ETW-Beleg für Controller/Worker; Ressourcen-Crash-Reconciliation
+             und persistente echte Arbeitsablagen-/UI-Bindung; danach P3–P5 isolierten
+             Produktstarter/echte Projektmigration integrieren sowie weitere allgemeine
+             Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
+             integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker
+             kalibrieren; Packaging und F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene

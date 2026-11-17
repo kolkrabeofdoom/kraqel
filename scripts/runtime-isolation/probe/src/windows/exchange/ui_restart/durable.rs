@@ -18,6 +18,10 @@ pub(in super::super::super) use product::{
     start_series as product_start_series, transition_child as product_transition_child,
     transition_series as product_transition_series,
 };
+pub(in super::super::super) use product::{
+    workspace_probe_child as product_workspace_probe_child,
+    workspace_probe_worker as product_workspace_probe_worker,
+};
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]

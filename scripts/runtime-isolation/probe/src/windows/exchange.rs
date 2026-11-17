@@ -31,6 +31,7 @@ pub(super) use ui_restart::{
     product_crash_child, product_crash_series, product_session_child, product_session_series,
     product_start_series, product_transition_child, product_transition_series,
 };
+pub(super) use ui_restart::{product_workspace_probe_child, product_workspace_probe_worker};
 
 fn invalid(stage: &'static str) -> Failure {
     Failure { stage, code: -1 }

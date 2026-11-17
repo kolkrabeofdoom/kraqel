@@ -8,6 +8,7 @@ use uuid::Uuid;
 use windows_sys::Win32::System::Pipes::{CreatePipe, PeekNamedPipe};
 mod durable;
 pub(in super::super) use durable::product_workspace_child;
+pub(in super::super) use durable::{product_workspace_probe_child, product_workspace_probe_worker};
 mod live;
 pub(in super::super) use durable::product_storage;
 pub(in super::super) use durable::{combined_series, next_live, seed_live};

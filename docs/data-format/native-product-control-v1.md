@@ -246,11 +246,27 @@ unterstützt hier keine Brokerupdates/Importtestsitzungen; `.kqprod` deklariert 
 UI-ABI 0. Neues Bindestaging wird nicht adoptiert; unbekannte Reste/defekte Abschlüsse bleiben
 gesperrt. Der normale `broker-store` erhält keinen Migrate-v5- oder Produktstartcommand.
 
+## P2b: Synthetischer Workerbootstrap
+
+[Vertrag/Implementierung/Nachweis](../testing/product-start-p2b-bootstrap.md) ergänzt im eigenen
+pfadbegrenzten `product-workspace-probe-child` CommitWorkspaceProbe, WorkspaceProbeProfileReady,
+FinishWorkspaceProbe und ReconcileWorkspaceProbe. Schema 5/Workspace-Record-ABI 1; `.kqboot`
+deklariert getrennt Probe-ABI 1/UI-ABI 0/eigene normale Profilbereinigung ABI 1. Keine Erweiterung
+des normalen `broker-store`. Unter derselben Lease werden nur frische separate synthetische
+Probeprofile/Root-/Paket-/Policy-/Noncebindungen freigegeben, niemals die private P2a-Fixture.
+Permanentkey bleibt ausschließlich im Store; Bootstrap/Receipt erhalten eigene MAC-Domänen und einen
+frischen kanalgebundenen Einmalschlüssel. Vor Resume exakter Token/Job/Lease/private Denials; vor
+Ressourcenabschluss Jobleerstand am gehaltenen Kernelobjekt und Profilentfernung. Kontrollierte
+Ablehnungen verbrauchen ihren Launch; unklare Crash-/Profilerzeugungs-/Cleanupreste bleiben pending,
+kein automatischer Probe-Reconcile-CLI. Frisches ETW und persistente echte
+Arbeitsablage/GUI-Bootstrap fehlen weiterhin, kein Produktstart daraus ableiten.
+
 ## Abgrenzung zum geplanten Produktstart
 
 P1 war zunächst ein reines Testmodell; P2a nutzt denselben Kern jetzt nach nativen Kontrollprüfungen
-im record-only Forschungschild. Gültiges JSON bleibt unvertrauenswürdig. UI-Start/Bootstrap,
-vollständige Produktpaket-/Datenfreigabe und Bestandsübernahme sind weiterhin nicht implementiert.
+im Forschungschild. Gültiges JSON bleibt unvertrauenswürdig. Ein separater synthetischer
+P2b-Probeworker ist implementiert, UI-Start/Produktbootstrap, vollständige
+Produktpaket-/Datenfreigabe und Bestandsübernahme sind weiterhin nicht implementiert.
 [Produktstart-/Bestandsdatenvertrag v1](product-start-integration-v1-draft.md) trennt diese geplante
 Integration von Importaufgaben. Kein Wiederverwenden von Importticket v3 als Produktstart, keine
 automatische Übernahme der Vorschauablage und keine Migration durch

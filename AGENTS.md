@@ -294,8 +294,29 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
-Aktuell: [Produktstart P2a · Record-only](docs/testing/product-start-p2a-records.md). Produktstart
-P2a, 17. November: authentisierte persistente Schema-5-Bindungs-/Launch-Records im pfadbegrenzten
+Aktuell: [P2b · synthetischer Bootstrap](docs/testing/product-start-p2b-bootstrap.md). Produktstart
+P2b, 17. November: authentisierter synthetischer Workerbootstrap unter derselben Kontrollsperre,
+ohne GUI oder Importtask. Separate frische Probeprofile/-daten, keine ACL-Promotion der privaten
+P2a-Fixture. Commit/ProfileReady/Receiptabschluss bzw. kontrollierte Reconciliation persistiert;
+exakte Token-/Job-/Leaseprüfung vor Resume, eigener Einmalschlüssel statt Kontrollschlüssel,
+begrenzte Pipes mit monotoner Receiptfrist. Jobleerstand am gehaltenen Objekt vor Profilentfernung,
+unklare Crashressourcen bleiben gesperrt; keine automatische Crashbereinigung. `.kqboot` Probe-ABI
+1/UI-ABI 0, Legacy-/P2a-Marker unverändert. Vier neue Tests, 71 aktive Helfer-/Transporttests,
+gezielte Nachprüfung/Clippy grün. Drei finale native Fälle, 27 Kontrollprozesse, sechs Worker (vier
+Erfolge, eine MAC-Ablehnung, eine Sperre vor Resume), 30 private Zugriffssperren, sechs Probeprofile
+entfernt; unabhängiger MAC-/PE-/Root-/Prozess-/Profilaudit grün. Echte Daten und Vorschauablage
+unverändert. Finaler Broker/Worker `590c3d4…`, Sicherung
+`kraqel-product-start-p2b-build-20261117-05`, mehrere vorherige Entwicklungsbuilds nicht angenommen.
+Mittleres Prüfniveau ohne App-/Transport-/Installerumbau oder `pnpm check`. Nächster Scope:
+gezielter frischer ETW-Netzvergleich dieses Controllers samt separatem Workerpfad und beiden
+Ablehnungen. Alter ETW-Beleg nicht übertragbar. Danach Ressourcen-Crash-Reconciliation und echte
+persistente Arbeitsablagen-/UI-Bindung; P2 insgesamt/P3–P5 und Produkt-Q-01/Q-02 offen, striktes
+Datenschutzziel unverändert.
+
+Vorheriger funktionaler Stand:
+
+[Produktstart P2a · Record-only](docs/testing/product-start-p2a-records.md). Produktstart P2a, 17.
+November: authentisierte persistente Schema-5-Bindungs-/Launch-Records im pfadbegrenzten
 Forschungschild implementiert, nur synthetische private Ablagen ohne GUI. P1-Kern wird nach nativen
 Actor-/Kopf-/Job-/MAC-Prüfungen genutzt, Zustand aus Recorddigests rekonstruiert; erst passender
 Abschlusskopf gibt Store frei. `.kqprod` deklariert Record-ABI 1 und UI-Bootstrap-ABI 0;

@@ -28,6 +28,9 @@ pub(super) fn apply(
         pending: false,
         job: ModelJob::Empty,
     };
+    if state.probe.is_some() {
+        return Err(invalid("workspace-probe-pending"));
+    }
     match action {
         Action::BindWorkspace { binding }
             if state.workspace.is_none()
@@ -77,14 +80,14 @@ impl Store {
     fn workspace_root(&self) -> PathBuf {
         self.root.join("data/workspace")
     }
-    fn workspace_summary(&self) -> Value {
+    pub(super) fn workspace_summary(&self) -> Value {
         let model = self.state.workspace.as_ref();
         json!({"nativePreviewOnly":true,"productionAcceptance":false,"control":self.summary(),
             "workspaceBound":model.is_some(),"generation":model.map_or(0,StartModel::generation),
             "pendingLaunch":model.and_then(StartModel::pending_launch),"uiStarted":false,
             "profileCreated":false,"importTaskCreated":false,"networkMeasurement":false})
     }
-    fn verify_workspace_files(&self) -> Result<()> {
+    pub(super) fn verify_workspace_files(&self) -> Result<()> {
         let Some(model) = &self.state.workspace else {
             return Ok(());
         };
@@ -112,7 +115,7 @@ impl Store {
         }
         Ok(())
     }
-    fn bind_workspace(
+    pub(super) fn bind_workspace(
         &mut self,
         actor: [u8; 32],
         head: [u8; 32],
@@ -185,7 +188,11 @@ impl Store {
             },
         )
     }
-    fn workspace_proposal(&self, head: [u8; 32], replay: bool) -> Result<StartProposalV1> {
+    pub(super) fn workspace_proposal(
+        &self,
+        head: [u8; 32],
+        replay: bool,
+    ) -> Result<StartProposalV1> {
         let model = self
             .state
             .workspace

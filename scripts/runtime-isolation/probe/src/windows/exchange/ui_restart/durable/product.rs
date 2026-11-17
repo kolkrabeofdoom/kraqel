@@ -11,6 +11,7 @@ mod secure_fs;
 mod session;
 mod starter;
 mod workspace;
+mod workspace_probe;
 pub(in super::super::super::super) use crash::{child as crash_child, series as crash_series};
 use secure_fs::{
     binary_pin, local_path, path_wide, pin_directories, private_acl, protected_file,
@@ -22,6 +23,9 @@ pub(in crate::windows) use session::{transition_child, transition_series};
 pub(in super::super::super::super) use starter::series as start_series;
 pub(in super::super) use starter::verify_start_lease;
 pub(in crate::windows) use workspace::child as workspace_child;
+pub(in crate::windows) use workspace_probe::{
+    child as workspace_probe_child, worker as workspace_probe_worker,
+};
 
 const DOMAIN: &[u8] = b"KRAQEL-PRODUCT-CONTROL\0\x01";
 const MAX_RECORDS: usize = 256;
@@ -66,6 +70,20 @@ enum Action {
     ReconcileWorkspaceLaunch {
         launch: crate::product_start::LaunchIdentity,
     },
+    CommitWorkspaceProbe {
+        proposal: crate::product_start::StartProposalV1,
+        execution: workspace_probe::Execution,
+    },
+    WorkspaceProbeProfileReady {
+        launch: crate::product_start::LaunchIdentity,
+    },
+    FinishWorkspaceProbe {
+        launch: crate::product_start::LaunchIdentity,
+        receipt_sha256: [u8; 32],
+    },
+    ReconcileWorkspaceProbe {
+        launch: crate::product_start::LaunchIdentity,
+    },
 }
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -100,6 +118,7 @@ struct State {
     aborted_packages: std::collections::HashSet<[u8; 32]>,
     session: Option<BoundSession>,
     workspace: Option<crate::product_start::StartModel>,
+    probe: Option<workspace_probe::Pending>,
 }
 impl State {
     fn apply(&mut self, actor: [u8; 32], action: &Action) -> Result<()> {
@@ -154,6 +173,15 @@ impl State {
         Ok(())
     }
     fn apply_record(&mut self, actor: [u8; 32], action: &Action, digest: [u8; 32]) -> Result<()> {
+        if matches!(
+            action,
+            Action::CommitWorkspaceProbe { .. }
+                | Action::WorkspaceProbeProfileReady { .. }
+                | Action::FinishWorkspaceProbe { .. }
+                | Action::ReconcileWorkspaceProbe { .. }
+        ) {
+            return workspace_probe::apply(self, actor, action, digest);
+        }
         if matches!(
             action,
             Action::BindWorkspace { .. }
@@ -365,6 +393,7 @@ impl Store {
                     aborted_packages: std::collections::HashSet::new(),
                     session: None,
                     workspace: None,
+                    probe: None,
                 });
             } else {
                 let s = state.as_mut().ok_or(invalid("product-genesis-missing"))?;

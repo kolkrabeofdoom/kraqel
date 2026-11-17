@@ -5,8 +5,10 @@ beschreibt die geplante Integration der isolierten Oberfläche: getrennte Start-
 Arbeitsablagenbindung und zerstörungsfreie Bestandskopie. P1 ist als reiner Kern geprüft;
 [P2a](../testing/product-start-p2a-records.md) ergänzt authentisierte Schema-5-Records nur in
 privaten synthetischen Forschungsablagen ohne UI-Start. Kein portables Snapshotformat oder
-Produkt-Migrationsweg. P2b Bootstrap/Token/Job ohne Importtask bleibt offen. Vorhandener
-Snapshot-v3-Import erzeugt neue IDs.
+Produkt-Migrationsweg. P2b ist als
+[synthetischer Probeworker](../testing/product-start-p2b-bootstrap.md) umgesetzt; frisches ETW sowie
+persistente echte Arbeitsablagen-/UI-Bindung und Ressourcen-Crash-Reconciliation bleiben offen.
+Vorhandener Snapshot-v3-Import erzeugt neue IDs.
 
 Der Exportstandard ist noch in Arbeit. Fest stehen folgende Invarianten:
 

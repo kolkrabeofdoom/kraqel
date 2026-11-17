@@ -16,6 +16,21 @@ fn binding() -> WorkspaceBindingV1 {
         offline_policy_version: 1,
     }
 }
+#[test]
+fn auxiliary_profile_record_preserves_terminal_budget_and_launch_identity() {
+    let mut core = model(3);
+    let p = proposal();
+    core.commit(&parse(&p), [10; 32], idle()).unwrap();
+    let launch = core.pending_launch().unwrap();
+    assert!(core.sync_control_head([9; 32], [11; 32]).is_err());
+    core.sync_control_head([10; 32], [11; 32]).unwrap();
+    assert_eq!(core.pending_launch(), Some(launch));
+    assert!(core.sync_control_head([11; 32], [12; 32]).is_err());
+    core.settle(launch, [11; 32], [12; 32], Settlement::Interrupted, idle())
+        .unwrap();
+    assert_eq!(core.generation(), 1);
+    assert_eq!(core.binding(), &binding());
+}
 fn proposal() -> StartProposalV1 {
     StartProposalV1 {
         version: 1,

@@ -1,5 +1,16 @@
 # Bedrohungsmodell (Entwurf)
 
+[P2b-Probeworker](../testing/product-start-p2b-bootstrap.md), 17. November: separate synthetische
+Profile/Readonly-Daten, gleiche Kontrolllease, MAC-gebundene Launch-/Ressourcen-/Abschlussrecords.
+Eigener Einmalschlüssel, explizite drei Pipehandles, Token/exakter Job/private Dateisperren vor
+Resume; monotone Receiptfrist und Drainabfrage am gehaltenen Job vor Profilentfernung. Kein
+ACL-Grant auf private P2a-/Produktdaten, keine Importautorität/GUI. Drei gezielte native Fälle und
+unabhängiger Audit grün; kein frisches ETW dieses neuen Builds. Crashressourcen bleiben gesperrt,
+automatische Bereinigung/Bestandsübernahme und normale Produktintegration offen. Striktes Ziel
+unverändert.
+
+Vorheriger Stand:
+
 [P2a authentisierte Workspace-/Launch-Records](../testing/product-start-p2a-records.md), 17.
 November: Schema 5 nur im pfadbegrenzten Forschungschild, keine Importtestsitzung übernehmen.
 Vollständige MAC-/Root-/Actor-/Kopfprüfung vor Storefreigabe, Job-/Leaseguard vor Mutationen.

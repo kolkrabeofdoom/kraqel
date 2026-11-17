@@ -1,5 +1,16 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+[P2b-Probeworker](../../testing/product-start-p2b-bootstrap.md), 17. November: separate synthetische
+Profile/Readonly-Daten, gleiche Kontrolllease, MAC-gebundene Launch-/Ressourcen-/Abschlussrecords.
+Eigener Einmalschlüssel, explizite drei Pipehandles, Token/exakter Job/private Dateisperren vor
+Resume; monotone Receiptfrist und Drainabfrage am gehaltenen Job vor Profilentfernung. Kein
+ACL-Grant auf private P2a-/Produktdaten, keine Importautorität/GUI. Drei gezielte native Fälle und
+unabhängiger Audit grün; kein frisches ETW dieses neuen Builds. Crashressourcen bleiben gesperrt,
+automatische Bereinigung/Bestandsübernahme und normale Produktintegration offen. Striktes Ziel
+unverändert.
+
+Vorheriger Stand:
+
 17. November: [P2a Record-only](../../testing/product-start-p2a-records.md) persistiert Workspace-
     und Launch-Records mit Schema 5, nur frische synthetische private Wurzeln. Eigene
     `.kqprod`-Deklaration Record-ABI 1/UI-ABI 0, keine Startcapability oder Erweiterung des normalen

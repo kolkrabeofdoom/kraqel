@@ -219,8 +219,23 @@ impl StartModel {
         });
         Ok(())
     }
-    #[cfg(test)]
-    fn mark_running(
+    pub(crate) fn sync_control_head(
+        &mut self,
+        expected: Digest,
+        next: Digest,
+    ) -> Result<(), Rejection> {
+        if !matches!(self.phase, ModelPhase::Committed(_)) {
+            return Err(Rejection::Phase);
+        }
+        self.changed_head(expected, next)?;
+        if self.remaining_records < 2 {
+            return Err(Rejection::Budget);
+        }
+        self.remaining_records -= 1;
+        self.head = next;
+        Ok(())
+    }
+    pub(crate) fn mark_running(
         &mut self,
         launch: LaunchIdentity,
         expected_head: Digest,

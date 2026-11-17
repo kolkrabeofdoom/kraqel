@@ -5,6 +5,10 @@ für das normale Produkt**. [Bereinigte Aggregate](product-start-p2a-records.jso
 [Integrationsvertrag](../data-format/product-start-integration-v1-draft.md). Striktes
 Datenschutzziel und offene Produkt-Q-01/Q-02 bleiben unverändert.
 
+Inzwischen ergänzt [P2b](product-start-p2b-bootstrap.md) separate synthetische Probeworker, ohne
+diese private P2a-Fixture oder deren logische Profil-ID zu promovieren. Dieser Abschnitt beschreibt
+den historischen Record-only-Prüfstand und dessen eigenen Build.
+
 ## Implementierung und Grenze
 
 [`workspace.rs`](../../scripts/runtime-isolation/probe/src/windows/exchange/ui_restart/durable/product/workspace.rs)

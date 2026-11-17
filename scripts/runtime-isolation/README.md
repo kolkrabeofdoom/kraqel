@@ -1,6 +1,28 @@
 # AppContainer-Forschungshelfer für KQ-069
 
-Aktuell:
+Aktuell: [P2b · synthetischer Workerbootstrap](../../docs/testing/product-start-p2b-bootstrap.md).
+Produktstart P2b, 17. November: authentisierter synthetischer Workerbootstrap unter derselben
+Kontrollsperre, ohne GUI oder Importtask. Separate frische Probeprofile/-daten, keine ACL-Promotion
+der privaten P2a-Fixture. Commit/ProfileReady/Receiptabschluss bzw. kontrollierte Reconciliation
+persistiert; exakte Token-/Job-/Leaseprüfung vor Resume, eigener Einmalschlüssel statt
+Kontrollschlüssel, begrenzte Pipes mit monotoner Receiptfrist. Jobleerstand am gehaltenen Objekt vor
+Profilentfernung, unklare Crashressourcen bleiben gesperrt; keine automatische Crashbereinigung.
+`.kqboot` Probe-ABI 1/UI-ABI 0, Legacy-/P2a-Marker unverändert. Vier neue Tests, 71 aktive
+Helfer-/Transporttests, gezielte Nachprüfung/Clippy grün. Drei finale native Fälle, 27
+Kontrollprozesse, sechs Worker (vier Erfolge, eine MAC-Ablehnung, eine Sperre vor Resume), 30
+private Zugriffssperren, sechs Probeprofile entfernt; unabhängiger
+MAC-/PE-/Root-/Prozess-/Profilaudit grün. Echte Daten und Vorschauablage unverändert. Finaler
+Broker/Worker `590c3d4…`, Sicherung `kraqel-product-start-p2b-build-20261117-05`, mehrere vorherige
+Entwicklungsbuilds nicht angenommen. Mittleres Prüfniveau ohne App-/Transport-/Installerumbau oder
+`pnpm check`. Nächster Scope: gezielter frischer ETW-Netzvergleich dieses Controllers samt separatem
+Workerpfad und beiden Ablehnungen. Alter ETW-Beleg nicht übertragbar. Danach
+Ressourcen-Crash-Reconciliation und echte persistente Arbeitsablagen-/UI-Bindung; P2 insgesamt/P3–P5
+und Produkt-Q-01/Q-02 offen, striktes Datenschutzziel unverändert.
+
+`check-workspace-bootstrap.ps1` nutzt nur frische synthetische Wurzeln; keine GUI und keine
+Netzdiagnose aufrufen. Kontrollschlüssel bleibt privat. Hashes/Reproduktion im Nachweis.
+
+Vorheriger Stand:
 [Produktstart P2a · authentisierte Record-only-Forschung](../../docs/testing/product-start-p2a-records.md).
 `check-workspace-records.ps1` prüft drei frische synthetische Wurzeln ohne UI/Profile/Importtask;
 P1-Kern nach nativen Kontrollprüfungen, Schema 5/MAC-Records und `.kqprod`-Record-ABI 1/UI-ABI 0.
@@ -8,7 +30,7 @@ Vier neue Tests, 67 aktive Helfer-/Transporttests/Clippy und unabhängiger MAC-/
 Keine App-/Transport-/Installeränderung, keine Vorschau-/Bestandsübernahme. Private Fixtures nicht
 per Container-ACL promovieren. Neuer Broker ohne frisches ETW; P2b Bootstrap/Token/Job bleibt offen.
 
-Neuester begrenzter Schritt:
+Vorheriger begrenzter Schritt:
 [Produktstart P1 · reines Testmodell](../../docs/testing/product-start-p1-model.md).
 `probe/src/product_start.rs` ist nur per `#[cfg(test)]` im Helfer-Testziel eingebunden. Keine neue
 CLI, I/O, Schlüssel-, MAC-, Transport- oder UI-Integration; Parserfolg bleibt unvertrauenswürdig.
