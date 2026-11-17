@@ -1,5 +1,13 @@
 # Bedrohungsmodell (Entwurf)
 
+[Authentisierte Profilbereinigung](../testing/native-profile-cleanup.md), 17. November:
+Kontrollschema 4 signiert Sitzungsvorbereitung vor Profilerzeugung. Cleanup verlangt authentisierte
+Stilllegung, aktuellen Actor/Kopf und Jobleerstand; gleiche Sperre bis Abschlussrecord. Identität
+nicht aus Ordnern/Diagnosen, keine Importautorität oder Reparatur. Zwei native Fälle/kurzer
+Schema-4-Start und Recovery gezielt geprüft; bestehende Daten bleiben erhalten. Alt-Orphans ohne
+authentisierte Bindung und defekte Kontrollketten bleiben gesperrt. Neuer Broker ohne frisches ETW;
+striktes Ziel und offene Produktabnahme unverändert.
+
 [Übergangs-Crashpunkte und eigener frischer ETW-Beleg](../testing/native-session-transition-crash-etw.md), 17.
 November: 20 zusätzliche Übergangsabbrüche. Neun unvollständige Abschlüsse bleiben gesperrt; elf
 Zustände authentisierbar, davon vier explizit wiederanlaufbar. Eigener Testprofil-Cleanup gibt keine

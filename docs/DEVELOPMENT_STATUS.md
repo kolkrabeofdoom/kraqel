@@ -1,5 +1,21 @@
 # Entwicklungsstatus
 
+Authentisierte Profilbereinigung, 17. November: explizites Kontrollschema 4 persistiert Vorbereitung
+vor Profilerzeugung und Cleanupabschluss nach authentisierter Stilllegung. Dieselbe Kontrollsperre
+bleibt über Profillöschung und Recordabschluss gehalten. Wiederholung idempotent, Profilidentität
+nur aus Kontrollkette, keine neue Importautorität. Zwei gezielte neue Tests und zwei native Fälle
+bestanden: fehlendes Profil nach vorbereitendem Controllerabbruch sowie Cleanup-Reconciliation nach
+Stilllegungsabbruch. Kurzer Schema-4-Start/Recovery erhält eine Kopie mit zwei Dokumenten. 48 aktive
+Helfertests, Clippy, Format-/MAC-/Datenaudit grün. [Nachweis](testing/native-profile-cleanup.md),
+[Aggregate](testing/native-profile-cleanup.json). Auf ausdrücklichen Wunsch mittleres Prüfniveau:
+kein neuer Workspace-Gesamtlauf oder große Crash-/ETW-Matrix. Neuer Broker noch ohne frisches ETW;
+nächster Scope: gezielter Netzvergleich. Echte Vorschauablage unverändert, Testprozesse beendet.
+Alte ungebundene Orphans/defekte Kontrollketten bleiben gesperrt; normale
+Produktintegration/Updatepolitik weiter offen. Striktes Datenschutzziel unverändert, keine
+Produktfreigabe.
+
+## Vorheriger Prüfstand mit eigenem Netznachweis
+
 Sitzungsübergangs-Crashpunkte und eigener frischer ETW-Vergleich, 17. November: 20 neue
 Übergangsabbrüche an Bindung, Recovery-Startrecord und Stilllegung samt 13 vorbereitenden
 Controllerabbrüchen. Neun unvollständige Abschlüsse bleiben gesperrt, elf Zustände authentisierbar;

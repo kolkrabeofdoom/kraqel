@@ -514,6 +514,10 @@ fn initialize(root: &Path, app: &Path) -> Result<(Uuid, Profile, [u8; 32])> {
 // Caller must authenticate/pin a separately derived private product session parent first.
 fn initialize_bound(root: &Path, app: &Path, session: Uuid) -> Result<(Uuid, Profile, [u8; 32])> {
     io("restart-create-root", fs::create_dir(root))?;
+    initialize_created(root, app, session)
+}
+// Product schema 4 creates/pins the private root and authenticates its preparation first.
+fn initialize_created(root: &Path, app: &Path, session: Uuid) -> Result<(Uuid, Profile, [u8; 32])> {
     let profile = Profile::create(&format!("ui-restart-{}", session.simple()))?;
     grant(root, profile.sid, FILE_GENERIC_READ | FILE_GENERIC_EXECUTE)?;
     let data = root.join("data");

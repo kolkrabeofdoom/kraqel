@@ -255,8 +255,15 @@ cargo test -p kraqel-ai-service
 cargo test -p kraqel-continuity
 ```
 
-`pnpm check` ist vor einer Codeübergabe verbindlich. Einen vollständigen Tauri-Build nur ausführen,
-wenn Desktopintegration, Tauri-Konfiguration, Packaging oder Releaseverhalten betroffen sind:
+`pnpm check` ist vor einer Codeübergabe verbindlich, mit folgender begrenzter Ausnahme: Auf
+ausdrücklichen Wunsch vom 17. November gilt für ausschließlich isolierte Windows-Forschungshelfer
+ein mittleres Prüfniveau: gezielte Helfertests/Clippy, wenige aussagekräftige native Fälle sowie
+Format-/Faktenprüfung genügen. Keine große Crash-/ETW-Matrix ohne entsprechenden Auftrag
+wiederholen. Bei App-, gemeinsam genutzten Transport- oder Packagingänderungen bleibt `pnpm check`
+erforderlich.
+
+Einen vollständigen Tauri-Build nur ausführen, wenn Desktopintegration, Tauri-Konfiguration,
+Packaging oder Releaseverhalten betroffen sind:
 
 ```powershell
 pnpm --filter @kraqel/desktop tauri build --debug --no-bundle
@@ -287,7 +294,17 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
-Aktuell:
+Aktuell: [Authentisierte Profilbereinigung](docs/testing/native-profile-cleanup.md), 17. November.
+Explizites Kontrollschema 4 signiert Vorbereitung vor Profilerzeugung und Cleanupabschluss nach
+Stilllegung. `cleanup-session` leitet die Identität nur aus der Kontrollkette ab und hält dieselbe
+Sperre; wiederholter Aufruf mit aktuellem Kopf ist idempotent. Keine Importautorität oder Reparatur.
+Zwei neue Tests/zwei native Fälle, 48 aktive Helfertests und Clippy grün; kurzer Schema-4-Start/
+Recovery erhält die Projektkopie. Bewusst mittleres Prüfniveau gemäß obiger Nutzerpräferenz; keine
+neue große Crashmatrix, Workspace-Gesamtprüfung oder ETW-Messung. Neuer Broker ohne eigenen
+ETW-Beleg. Echte Vorschauablage/verwaltete EXE unverändert. Nächster Scope: gezieltes frisches ETW
+des Cleanup-Stands; ungebundene Alt-Orphans und unvollständige Kontrollketten bleiben gesperrt.
+
+Vorheriger Prüfstand:
 [Sitzungsübergangs-Crashpunkte und frisches ETW](docs/testing/native-session-transition-crash-etw.md), 17.
 November. 20 Übergangsabbrüche plus 13 vorbereitende Controllerabbrüche: neun Abschlüsse bleiben
 gesperrt, elf Kontrollzustände sind authentisierbar, davon vier explizit wiederanlaufbar. Status ist

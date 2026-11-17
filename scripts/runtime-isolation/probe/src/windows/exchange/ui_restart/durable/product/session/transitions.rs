@@ -12,7 +12,13 @@ fn allowed(action: &str, p: Point) -> bool {
             | Point::HeadPublished
     );
     match action {
-        "bind" => common || matches!(p, Point::SessionStaged | Point::BeforeSessionRun),
+        "bind" => {
+            common
+                || matches!(
+                    p,
+                    Point::SessionStaged | Point::BeforeSessionRun | Point::SessionPrepared
+                )
+        }
         "recover" => common || p == Point::BeforeSessionRun,
         "retire" => common || matches!(p, Point::RetireCommitted | Point::ProfileRemoved),
         _ => false,

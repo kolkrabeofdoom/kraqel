@@ -340,6 +340,18 @@ verleiht keine Importautorität.
 [Matrix, gesicherte Hashes und eigener frischer ETW-Beleg](../../docs/testing/native-session-transition-crash-etw.md).
 Produktprofil-Cleanup-Reconciliation/Schema-3-Updates und normale Produktintegration bleiben offen.
 
+## Authentisierte Profilbereinigung
+
+Kontrollschema 4 signiert Sitzungsvorbereitung vor Profilerzeugung und Cleanupabschluss nach
+Stilllegung. Native Vorschau: `broker-store migrate-v4 <aktueller Kopf>` und nach authentisierter
+Stilllegung `broker-store cleanup-session <aktueller Kopf>`. Actor/Kopf/Jobleerstand und dieselbe
+Kontrollsperre bleiben verpflichtend. Die Profilidentität stammt ausschließlich aus der
+Kontrollkette; kein Verzeichnis- oder Diagnoseimport. Wiederholung ist idempotent, Daten und
+Schlüssel bleiben erhalten. Ungebundene Alt-Orphans/defekte Kontrollketten bleiben gesperrt.
+[Nachweis und Prüftiefe](../../docs/testing/native-profile-cleanup.md): zwei native Fälle und
+gezielte Helferprüfung auf ausdrücklichen Wunsch statt großer neuer Testmatrix. Neuer Broker noch
+ohne eigenen ETW-Nachweis; keine automatische Autorisierung in der echten Vorschauablage.
+
 Primärquellen:
 [AppContainer für klassische Apps](https://learn.microsoft.com/en-us/windows/win32/secauthz/appcontainer-for-legacy-applications-),
 [Start mit Security Capabilities](https://learn.microsoft.com/en-us/windows/win32/secauthz/implementing-an-appcontainer),

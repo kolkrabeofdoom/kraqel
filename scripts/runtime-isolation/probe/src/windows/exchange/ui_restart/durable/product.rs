@@ -39,6 +39,8 @@ enum Action {
     BindSession { binding: Binding },
     RecoverSession { launch: Uuid },
     RetireSession,
+    PrepareSession { binding: Binding },
+    ProfileCleaned,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -78,7 +80,11 @@ impl State {
         }
         if matches!(
             action,
-            Action::BindSession { .. } | Action::RecoverSession { .. } | Action::RetireSession
+            Action::BindSession { .. }
+                | Action::RecoverSession { .. }
+                | Action::RetireSession
+                | Action::PrepareSession { .. }
+                | Action::ProfileCleaned
         ) {
             return session::apply(self, action);
         }
@@ -101,6 +107,9 @@ impl State {
             }
             Action::Migrate { from: 2, to: 3 } if self.pending.is_none() && self.schema == 2 => {
                 self.schema = 3
+            }
+            Action::Migrate { from: 3, to: 4 } if self.pending.is_none() && self.schema == 3 => {
+                self.schema = 4
             }
             _ => return Err(invalid("product-invalid-transition")),
         }
@@ -684,6 +693,9 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
     if args.len() == 2 && args[0] == "retire-session" {
         return store.retire_session(actor, parse_hash(&args[1])?);
     }
+    if args.len() == 2 && args[0] == "cleanup-session" {
+        return store.cleanup_profile(actor, parse_hash(&args[1])?);
+    }
     if args.len() == 4 && args[0] == "prepare" {
         store.prepare(
             actor,
@@ -695,6 +707,12 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
         store.activate(actor, parse_hash(&args[1])?)?;
     } else if args.len() == 2 && args[0] == "abort" {
         store.append(actor, parse_hash(&args[1])?, Action::Abort)?;
+    } else if args.len() == 2 && args[0] == "migrate-v4" {
+        store.append(
+            actor,
+            parse_hash(&args[1])?,
+            Action::Migrate { from: 3, to: 4 },
+        )?;
     } else if args.len() == 2 && args[0] == "migrate-v3" {
         store.append(
             actor,

@@ -1,5 +1,12 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+Profilbereinigung, 17. November: [Native Vorschau](../../testing/native-profile-cleanup.md) ergänzt
+signierte Vorbereitung in Kontrollschema 4 vor Profilerzeugung sowie idempotenten Cleanup nach
+signierter Stilllegung. Identität aus Kontrollkette, dieselbe Sperre, keine neue Importautorität.
+Zwei native Fälle und kurzer Start/Recovery mit Datenbestandserhalt geprüft. Bewusst mittleres
+Prüfniveau; kein neuer ETW-Beleg des geänderten Brokers. Produktintegration/weitere Crashpunkte
+bleiben offen, striktes Datenschutzziel unverändert.
+
 Übergangs-Crashpunkte und frisches ETW, 17. November:
 [Eigener Beleg](../../testing/native-session-transition-crash-etw.md) für 20 zusätzliche
 Sitzungsübergänge: neun gesperrte/elf authentisierbare Zustände, vier explizite Recoveries. Keine

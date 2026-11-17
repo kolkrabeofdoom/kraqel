@@ -673,3 +673,127 @@ fn session_retirement_replay_budget_and_stale_heads_never_reset_control() {
     assert_eq!(store.state.head, head);
     assert_eq!(hash(&f.root().join("control/authority.key")).unwrap(), key);
 }
+
+#[test]
+fn schema4_requires_matching_preparation_and_never_recovers_a_prepared_or_retired_session() {
+    let f = Fixture::new();
+    let mut store = f.store();
+    for from in 1..4 {
+        store
+            .append(
+                [1; 32],
+                store.state.head,
+                Action::Migrate { from, to: from + 1 },
+            )
+            .unwrap();
+    }
+    let binding = session_binding();
+    assert!(
+        store
+            .append(
+                [1; 32],
+                store.state.head,
+                Action::BindSession {
+                    binding: binding.clone()
+                }
+            )
+            .is_err()
+    );
+    store
+        .append(
+            [1; 32],
+            store.state.head,
+            Action::PrepareSession {
+                binding: binding.clone(),
+            },
+        )
+        .unwrap();
+    let head = store.state.head;
+    drop(store);
+    let mut store = Store::open(&f.root()).unwrap();
+    assert!(
+        store
+            .append(
+                [1; 32],
+                head,
+                Action::RecoverSession {
+                    launch: Uuid::new_v4()
+                }
+            )
+            .is_err()
+    );
+    assert!(
+        store
+            .append(
+                [1; 32],
+                head,
+                Action::BindSession {
+                    binding: session_binding()
+                }
+            )
+            .is_err()
+    );
+    assert!(store.cleanup_profile([1; 32], head).is_err());
+    store.append([1; 32], head, Action::RetireSession).unwrap();
+    store
+        .append([1; 32], store.state.head, Action::ProfileCleaned)
+        .unwrap();
+    let head = store.state.head;
+    drop(store);
+    let mut store = Store::open(&f.root()).unwrap();
+    assert!(
+        store
+            .append([1; 32], head, Action::BindSession { binding })
+            .is_err()
+    );
+    assert!(
+        store
+            .append(
+                [1; 32],
+                head,
+                Action::RecoverSession {
+                    launch: Uuid::new_v4()
+                }
+            )
+            .is_err()
+    );
+    assert!(store.append([1; 32], head, Action::ProfileCleaned).is_err());
+    assert_eq!(store.state.head, head);
+}
+
+#[test]
+fn cleanup_rejects_unbound_active_wrong_actor_and_stale_head_before_os_calls() {
+    let f = Fixture::new();
+    let mut store = f.store();
+    for from in 1..4 {
+        store
+            .append(
+                [1; 32],
+                store.state.head,
+                Action::Migrate { from, to: from + 1 },
+            )
+            .unwrap();
+    }
+    let head = store.state.head;
+    let key = hash(&f.root().join("control/authority.key")).unwrap();
+    assert!(store.cleanup_profile([1; 32], head).is_err());
+    let binding = session_binding();
+    store
+        .append(
+            [1; 32],
+            head,
+            Action::PrepareSession {
+                binding: binding.clone(),
+            },
+        )
+        .unwrap();
+    store
+        .append([1; 32], store.state.head, Action::BindSession { binding })
+        .unwrap();
+    let active = store.state.head;
+    assert!(store.cleanup_profile([1; 32], active).is_err());
+    assert!(store.cleanup_profile([2; 32], active).is_err());
+    assert!(store.cleanup_profile([1; 32], head).is_err());
+    assert_eq!(store.state.head, active);
+    assert_eq!(hash(&f.root().join("control/authority.key")).unwrap(), key);
+}

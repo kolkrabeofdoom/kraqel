@@ -15,6 +15,7 @@ pub(super) enum Point {
     PackagePartial,
     PackageSynced,
     SessionStaged,
+    SessionPrepared,
     BeforeSessionRun,
     RetireCommitted,
     ProfileRemoved,

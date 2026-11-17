@@ -7,7 +7,18 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 17. November 2026
 
-Neuester Prüfstand:
+Neuester funktionaler Stand: [Authentisierte Profilbereinigung](testing/native-profile-cleanup.md).
+Kontrollschema 4 signiert Vorbereitung vor Profilerzeugung und Cleanupabschluss; Wiederholung mit
+aktuellem Kopf idempotent, gleiche Kontrollsperre, keine neue Importautorität. Zwei native Fälle
+samt kurzem Start/Recovery und 48 Helfertests/Clippy bestanden; Daten-/MAC-Audit grün. Auf Wunsch
+mittleres Prüfniveau statt großer Matrix/Workspace-Gesamtprüfung. Kein frisches ETW des neuen
+Brokerhashs; nächster Scope: gezielter Netzvergleich des Cleanup-Stands. Echte Vorschauablage und
+unten genannte autorisierte EXE unverändert; neuer Prüfbroker nicht automatisch aktiviert.
+Testprofil/Prozesse beendet, private synthetische Belege erhalten. Ungebundene Alt-Orphans und
+unvollständige Kontrollketten nicht übernehmen oder reparieren. Striktes Ziel unverändert,
+Produktintegration weiter offen.
+
+Vorheriger Prüfstand: Neuester Prüfstand:
 [Übergangs-Crashpunkte und frisches ETW](testing/native-session-transition-crash-etw.md). 20 neue
 Übergangsabbrüche, neun gesperrte/elf authentisierbare Kontrollzustände, vier explizite Recoveries;
 Status ist kein Ausführungsgrant. Testprofil-Cleanup repariert keinen Kontrollzustand. Beide

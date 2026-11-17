@@ -1,5 +1,6 @@
 //! Native control-record authority for one persistent synthetic session per installation.
 use super::*;
+mod cleanup;
 mod transitions;
 pub(in crate::windows) use transitions::{child as transition_child, series as transition_series};
 
@@ -18,24 +19,39 @@ pub(super) struct BoundSession {
     binding: Binding,
     launches: Vec<Uuid>,
     retired: bool,
+    prepared: bool,
+    profile_cleaned: bool,
 }
 pub(super) fn apply(state: &mut State, action: &Action) -> Result<()> {
-    if state.schema != 3 || state.pending.is_some() {
+    if !matches!(state.schema, 3 | 4) || state.pending.is_some() {
         return Err(invalid("product-session-schema-or-pending"));
     }
     match action {
+        Action::PrepareSession { binding }
+            if state.schema == 4 && state.session.is_none() && valid_binding(binding) =>
+        {
+            state.session = Some(BoundSession {
+                binding: binding.clone(),
+                launches: Vec::new(),
+                retired: false,
+                prepared: true,
+                profile_cleaned: false,
+            });
+        }
         Action::BindSession { binding }
-            if state.session.is_none()
-                && !binding.session.is_nil()
-                && !binding.task.is_nil()
-                && !binding.launch.is_nil()
-                && binding.app != [0; 32]
-                && binding.root != [0; 32] =>
+            if valid_binding(binding)
+                && ((state.schema == 3 && state.session.is_none())
+                    || (state.schema == 4
+                        && state.session.as_ref().is_some_and(|s| {
+                            s.prepared && !s.retired && s.binding == *binding
+                        }))) =>
         {
             state.session = Some(BoundSession {
                 binding: binding.clone(),
                 launches: vec![binding.launch],
                 retired: false,
+                prepared: false,
+                profile_cleaned: false,
             });
         }
         Action::RecoverSession { launch } => {
@@ -43,7 +59,11 @@ pub(super) fn apply(state: &mut State, action: &Action) -> Result<()> {
                 .session
                 .as_mut()
                 .ok_or(invalid("product-session-unbound"))?;
-            if s.retired || launch.is_nil() || s.launches.contains(launch) || s.launches.len() >= 16
+            if s.prepared
+                || s.retired
+                || launch.is_nil()
+                || s.launches.contains(launch)
+                || s.launches.len() >= 16
             {
                 return Err(invalid("product-session-replay-or-retired"));
             }
@@ -59,15 +79,35 @@ pub(super) fn apply(state: &mut State, action: &Action) -> Result<()> {
             }
             s.retired = true;
         }
+        Action::ProfileCleaned if state.schema == 4 => {
+            let s = state
+                .session
+                .as_mut()
+                .ok_or(invalid("product-session-unbound"))?;
+            if !s.retired || s.profile_cleaned {
+                return Err(invalid("product-profile-cleanup-state"));
+            }
+            s.profile_cleaned = true;
+        }
         _ => return Err(invalid("product-session-transition")),
     }
     Ok(())
+}
+fn valid_binding(binding: &Binding) -> bool {
+    !binding.session.is_nil()
+        && !binding.task.is_nil()
+        && !binding.launch.is_nil()
+        && binding.app != [0; 32]
+        && binding.root != [0; 32]
 }
 
 impl Store {
     fn session_guard(&self, actor: [u8; 32], head: [u8; 32]) -> Result<()> {
         self.actor(actor)?;
-        if self.state.schema != 3 || self.state.pending.is_some() || self.state.head != head {
+        if !matches!(self.state.schema, 3 | 4)
+            || self.state.pending.is_some()
+            || self.state.head != head
+        {
             return Err(invalid("product-session-state"));
         }
         self.idle()?;
@@ -153,8 +193,28 @@ impl Store {
             point,
         };
         let root = self.session_root(&binding)?;
-        let (_, mut profile, pin) =
-            super::super::super::initialize_bound(&root, app, binding.session)?;
+        let prepared = self.state.schema == 4;
+        if prepared {
+            secure_directory(&root)?;
+            let _pins = pin_directories(&root)?;
+            binding.root = root_hash(&io(
+                "product-session-preparation-root",
+                root.canonicalize(),
+            )?);
+            self.append(
+                actor,
+                head,
+                Action::PrepareSession {
+                    binding: binding.clone(),
+                },
+            )?;
+            crash::hit(crash::Point::SessionPrepared);
+        }
+        let (_, mut profile, pin) = if prepared {
+            super::super::super::initialize_created(&root, app, binding.session)?
+        } else {
+            super::super::super::initialize_bound(&root, app, binding.session)?
+        };
         if pin != expected {
             return Err(invalid("product-session-staged-app"));
         }
@@ -163,12 +223,15 @@ impl Store {
         crash::hit(crash::Point::SessionStaged);
         // Once committing authority starts, failures must retain the profile, never reset it.
         profile.active = false;
-        self.append(actor, head, Action::BindSession { binding })?;
+        self.append(actor, self.state.head, Action::BindSession { binding })?;
         self.run_session(false, crash_controller)
     }
     pub(super) fn recover_session(&mut self, actor: [u8; 32], head: [u8; 32]) -> Result<Value> {
         self.actor(actor)?;
-        if self.state.schema != 3 || self.state.head != head || self.state.pending.is_some() {
+        if !matches!(self.state.schema, 3 | 4)
+            || self.state.head != head
+            || self.state.pending.is_some()
+        {
             return Err(invalid("product-session-state"));
         }
         // Old kill-on-close processes may still be draining after controller death. Wait only;
@@ -194,7 +257,7 @@ impl Store {
             .session
             .as_ref()
             .ok_or(invalid("product-session-unbound"))?;
-        if s.retired {
+        if s.retired || s.prepared {
             return Err(invalid("product-session-retired"));
         }
         let root = self.session_root(&s.binding)?;
@@ -303,18 +366,11 @@ impl Store {
             .session
             .as_ref()
             .ok_or(invalid("product-session-unbound"))?;
-        let id = s.binding.session;
-        self.append(actor, head, Action::RetireSession)?;
-        crash::hit(crash::Point::RetireCommitted);
-        let mut profile = super::super::reopen_profile(id)?;
-        if !profile.remove() {
-            return Err(invalid("product-session-retire-profile"));
+        if !s.retired {
+            self.append(actor, head, Action::RetireSession)?;
+            crash::hit(crash::Point::RetireCommitted);
         }
-        crash::hit(crash::Point::ProfileRemoved);
-        Ok(
-            json!({"nativePreviewOnly":true,"productionAcceptance":false,"retired":true,
-            "profileRemoved":true,"activeJobProcessesAtEnd":0,"networkMeasurement":false}),
-        )
+        self.cleanup_profile(actor, self.state.head)
     }
 }
 
@@ -339,19 +395,24 @@ pub(in crate::windows) fn child(args: &[OsString]) -> Result<Value> {
     store.actor(actor)?;
     let outcome = match action {
         "status" => json!(null),
-        "migrate" => {
+        "migrate" | "migrate4" => {
             store.append(actor, head, Action::Migrate { from: 1, to: 2 })?;
             store.append(actor, store.state.head, Action::Migrate { from: 2, to: 3 })?;
+            if action == "migrate4" {
+                store.append(actor, store.state.head, Action::Migrate { from: 3, to: 4 })?;
+            }
             json!(null)
         }
         "prepared" => {
             store.bind_session_inner(actor, head, app, expected, CrashPoint::Prepared, true)?
         }
+        "bind" => store.bind_session(actor, head, app, expected, CrashPoint::Completed)?,
         "completed" => {
             store.bind_session_inner(actor, head, app, expected, CrashPoint::Completed, true)?
         }
         "recover" => store.recover_session(actor, head)?,
         "retire" => store.retire_session(actor, head)?,
+        "cleanup" => store.cleanup_profile(actor, head)?,
         _ => return Err(invalid("product-session-child-action")),
     };
     Ok(json!({"control":store.summary(),"outcome":outcome}))

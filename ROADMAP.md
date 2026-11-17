@@ -154,7 +154,9 @@
        - [x] KQ-069 A: 20 zusätzliche Sitzungsübergangs-Crashpunkte und frisches ETW; neun
              gesperrte/ elf authentisierbare Zustände, acht Kontrollen, 458 explizite Enden, 0
              Nicht-Loopback
-       - [ ] KQ-069 A: Authentisierte Profil-Cleanup-Reconciliation; Schema-3-Updates, isolierten
+       - [x] KQ-069 A: Authentisierte Profilbereinigung unter Kontrollsperre; Kontrollschema 4, zwei
+             gezielte native Fälle, idempotenter Abschluss ohne neue Importautorität
+       - [ ] KQ-069 A: Gezieltes frisches ETW des Cleanup-Stands; Updatepolitik, isolierten
              Produktstarter/echte Projektmigration integrieren sowie weitere allgemeine
              Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
              integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker

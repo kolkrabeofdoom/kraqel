@@ -137,6 +137,26 @@ Unvollständige Records/Köpfe blockieren unverändert. Mehrsitzungsverwaltung, 
 allgemeine Bindungs-/Startrecord-Crashpunkte und echte Datenmigration bleiben offen. Echte
 Vorschauablage und ihre autorisierte EXE wurden für die Prüfung nicht verändert.
 
+## Authentisierte Profilbereinigung · Kontrollschema 4
+
+Explizites `migrate {from:3,to:4}` erlaubt `prepareSession {binding}` vor jeder neuen
+Profilerzeugung. Die private Sitzungswurzel existiert bereits und ist kanonisch gebunden; das Profil
+wurde noch nicht erzeugt. `bindSession` muss exakt der Vorbereitung entsprechen. Eine Vorbereitung
+allein ist kein Import-/Recoverygrant und kann ausschließlich ausdrücklich stillgelegt werden. Die
+bisherigen Sitzungs-/Startgrenzen bleiben bestehen, Brokerupdates weiter auf Schema 2 begrenzt.
+Keine automatische Übernahme ungebundener Alt-Orphans.
+
+`cleanup-session <aktueller Kopf>` verlangt authentisierte Stilllegung, aktuellen Actor/Kopf und
+Jobleerstand. Profilidentität nur aus Kontrollkette, keine caller-seitigen Namen oder Verzeichnisse.
+Dieselbe Kontrollsperre bleibt über Windows-Profillöschung und Abschluss gehalten. `retire-session`
+delegiert nach der Stilllegung dorthin; bei bereits signierter Stilllegung wird kein erneuter
+Retire-Record geschrieben. Erfolg oder präzises Nichtvorhandensein des Profils erlaubt in Schema 4
+den einmaligen `profileCleaned`-Record. Wiederholung mit aktuellem Kopf ist idempotent; andere
+OS-Fehler bleiben Fehler. Schema-3-Bindungen können ohne Schema-4-Abschlussrecord bereinigt werden.
+Kein Löschen von Projekten/Journalen/Kontrollschlüsseln, keine Kopf- oder Recordreparatur.
+[Gezielter nativer Nachweis](../testing/native-profile-cleanup.md). Weitere Crashpunkte und ein
+frischer ETW-Beleg dieses neuen Brokerhashs bleiben offen.
+
 ## Synthetische Crashprüfung
 
 `product-control-series <frische TEMP-Controllerwurzel> <Forschungs-App>` und der interne
@@ -179,6 +199,8 @@ kraqel-isolation-probe.exe broker-store init
 … broker-store bind-session <Forschungs-App> <erwartete App-SHA> <Haltepunkt> <erwarteter Kopfhash>
 … broker-store recover-session <erwarteter Kopfhash>
 … broker-store retire-session <erwarteter Kopfhash>
+… broker-store migrate-v4 <erwarteter Kopfhash>
+… broker-store cleanup-session <erwarteter Kopfhash>
 ```
 
 Nach Aktivierung weitere Commands über die verwaltete neue EXE unter `bin/<SHA>.exe` ausführen. Die
