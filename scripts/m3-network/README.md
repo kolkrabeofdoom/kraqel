@@ -1,5 +1,12 @@
 # Lokale Windows-Netzprüfung für M3
 
+[Frisches C3-Gruppen-ETW](../../docs/testing/product-start-p2c-group-bootstrap-etw.md): unveränderte
+Capture-/Auswertehelfer, regulärer Abschluss sowie Gruppenfehler/gesperrter Wiederanlauf. 28
+Controller, sieben Root-/fünf Kindrollen und 28 Konsolenhosts; 68 explizite Enden, acht Kontrollen,
+Nullverluste/Zuordnungslücken und null beobachtete Netzereignisse in diesen Bäumen. 28 native
+Controllerzeiten und elf dauerhafte Workerbindungen exakt zugeordnet, 66 MAC-Records/sechs Inventare
+geprüft. 42 Diagnose-Tests grün, kein neuer Build. UI-/Produkt-/Dienstgrenzen offen.
+
 [Frisches C2-Datenpfad-ETW](../../docs/testing/product-start-p2c-native-data-etw.md): unveränderte
 Capture-/Auswertehelfer, Referenz und Bearbeiten/Wiederöffnen/explizite Stilllegung. 15 Controller/
 15 Konsolenhosts, 30 explizite Enden, acht Kontrollen, Nullverluste/Zuordnungslücken und null

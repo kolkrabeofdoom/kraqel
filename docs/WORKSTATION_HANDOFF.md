@@ -7,32 +7,32 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 17. November 2026
 
-Aktuell · P2c C3-Synthesekern, 17. November 2026:
+Aktuell · frischer C3-Netzbeleg, 17. November 2026:
 
-[C3-Wächter/Mehrprozess-Bootstrap](testing/product-start-p2c-group-bootstrap.md) implementiert und
-gezielt nativ geprüft: eigene `.kqc3`-Probeversion, UI-ABI 0, neues gepinntes Codepaket. Derselbe
-Store/Lease und dieselbe gehaltene Jobinstanz mit Limit 2 über Root und echtes Kind; Profile/null
-Capabilities, Paket, Identität/Thread/Elternbezug und Jobmitglieder vor Resume geprüft.
-Accepted/Running dauerhaft vor Continue und erst danach Datenzugriff. Root endet bei lebendem
-suspendiertem Kind; zweiter Writer und Profilstilllegung bleiben gesperrt. Vier neue Tests, 96
-aktive Helfer-/Transporttests/vier bewusst ignoriert, Clippy grün. 22 Controlleraufrufe: zwei
-erfolgreiche Gruppen, drei abgewickelte Bootstrapfehler, ein gezielter Wächterabbruch. 51
-MAC-Records/sechs verbrauchte Launches unabhängig geprüft; nach Wächterverlust bleibt der negative
-Store auch nach eigenem separatem Fixturecleanup pending. Zwei Profile entfernt (ein Broker-/ein
-eigener Harnesscleanup), echte Kontrollhashes unverändert. Build `b24b3aa…` gesichert, noch kein
-frisches ETW. Gruppenschlüssel ist keine unabhängige Schreiber-PID-Autorität; kein Renderer/WebView
-oder normale UI freigegeben. Nächster Scope: gezieltes frisches C3-ETW samt Root/Kind und gesperrtem
-Wiederanlauf, danach C4. P2 insgesamt, vollständige Produktintegration/P3–P5 und Produkt-Q-01/Q-02
-bleiben offen; striktes Datenschutzziel unverändert.
+[Gezieltes C3-ETW](testing/product-start-p2c-group-bootstrap-etw.md) des unveränderten Builds
+`b24b3aa…` ist ergänzt: normaler Abschluss und Gruppenfehler/gesperrter Wiederanlauf. 28 Controller,
+sieben Root-/fünf Kindrollen, 28 Konsolenhosts; alle 68 Enden explizit. Acht lokale Kontrollen,
+Nullverluste/ Zuordnungslücken und null beobachtete Netzereignisse in diesen Bäumen einschließlich
+Loopback. Alle 28 nativen Controller-Erzeugungszeiten sowie sechs Root-/fünf Kindbindungen exakt mit
+Kernel abgeglichen; Root-Ende vor Kindende in allen fünf gebundenen Fällen. 66 MAC-Records/sieben
+verbrauchte Launches/sechs Inventare unabhängig geprüft; drei Profile entfernt (zwei Broker-/ein
+eigener Fixturecleanup), negativer Store weiter pending, echte Kontrollhashes unverändert. 42
+Diagnose-Tests grün, kein neuer Build/Runtimeumbau oder Produktfreigabe. Native UI-ABI bleibt 0;
+Gruppen-MAC ist keine unabhängige Renderer-/Schreiber-PID-Autorität. Als Nächstes **C4-Vertrag für
+Runtimepaketbindung und minimale isolierte Oberfläche** konkretisieren; keine automatische
+Übertragung auf WebView. P2 insgesamt/P3–P5 und Produkt-Q-01/Q-02 bleiben offen. Gesamt grob 65 %
+(60–70 %), nutzbarer 0.1-Funktionsumfang grob 80 %; keine Zeit-/Produktionsreifequote. Striktes
+Datenschutzziel unverändert.
 
-Gesicherter C3-Controller: `%TEMP%/kraqel-product-p2c-group-build-20261117-01/controller.exe`,
-SHA-256 `b24b3aac3d80bc59b63c74e2cbad03bf4980d8496b88434f3afc035fdbbe48af`. Funktionaler
-Forschungsordner/Audit im privaten Buildmanifest, Prozesse beendet, beide eigenen Profile entfernt.
-Ein Kontrollstore bleibt absichtlich pending; nicht reparieren, Schlüssel/Head nicht zurücksetzen
-und fehlendes Profil nicht als Startfreigabe behandeln. Separater Fixturecleanup war keine
-Broker-Reconciliation. Für ETW dasselbe Programm, frische synthetische Fälle und den festen
-C3-Rollenpfad verwenden; keine generischen Netzwerkdiagnosen oder echte Vorschauablage. Voriger
-C2-Netzbeleg gilt ausschließlich Build `73a7aad…`. Keine Rohdaten/Keys/PIDs nach GitHub.
+Gesicherter Controller: `%TEMP%/kraqel-product-p2c-group-build-20261117-01/controller.exe`, SHA-256
+`b24b3aac3d80bc59b63c74e2cbad03bf4980d8496b88434f3afc035fdbbe48af`, Runtimequellstand `6e2c089`.
+Private Captures `%TEMP%/kraqel-c3-etw-20261117-01-reference` und `…-group` konvertiert;
+Supervisor/Testprozesse beendet, drei Profile entfernt. Audit/Manifest beim Build ergänzt,
+synthetische Daten/Kontrollketten lokal erhalten. Ein negativer Store bleibt pending: nicht
+reparieren oder fehlendes Profil als Startfreigabe auslegen. Eigener Fixturecleanup war keine
+Broker-Reconciliation. Rohdaten/Keys/PIDs nicht nach GitHub oder neue Programme an echter
+Vorschauablage autorisieren. Für C4 Paketclosure/Runtime-/Command-/Kindrollenvertrag lesen;
+C3-Gruppenschlüssel nicht zur Rendererautorität machen. Ältere Netzbelege bleiben bytegebunden.
 
 Vorheriger Implementierungs-/Netznachweis:
 

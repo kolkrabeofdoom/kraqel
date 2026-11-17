@@ -191,9 +191,10 @@ Datenpfad umgesetzt: frische Schema-6-DATA-Stores, persistentes Profil und Paket
 Migration oder UI-Startautorität.
 [Frisches ETW dieses Builds](../testing/product-start-p2c-native-data-etw.md) ist ergänzt.
 [C3](../testing/product-start-p2c-group-bootstrap.md) ist als begrenzter synthetischer Mehrprozess-
-Kern implementiert; eigener frischer C3-Netzbeleg und danach C4 stehen aus. Ungebundene Starts und
-mehrprozessige GUI-Lebenszeiten sowie persistente echte Arbeitsablagen-/UI-Bindung fehlen; P2
-insgesamt bleibt offen.
+Kern implementiert; [frisches C3-ETW](../testing/product-start-p2c-group-bootstrap-etw.md) ist
+ergänzt. Als Nächstes folgt der C4-Vertrag für Runtime-Paket und minimale isolierte Oberfläche.
+Ungebundene Starts und mehrprozessige GUI-Lebenszeiten sowie persistente echte
+Arbeitsablagen-/UI-Bindung fehlen; P2 insgesamt bleibt offen.
 
 Reihenfolge P1–P5 verhindert, dass der erfolgreiche Forschungsimport als Freigabe der gesamten
 Schreiboberfläche gilt. Mittleres Prüfniveau bedeutet pro Implementierungsschritt gezielte relevante

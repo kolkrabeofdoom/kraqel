@@ -21,9 +21,11 @@ persistente Ablagen und native Paket-/Profilbindung in eigenen Schema-6-DATA-Sto
 oder Migration bestehender Stores. Der
 [eigene frische C2-Netzbeleg](../testing/product-start-p2c-native-data-etw.md) ist ergänzt.
 [C3](../testing/product-start-p2c-group-bootstrap.md) ergänzt einen begrenzten synthetischen
-Mehrprozess-Bootstrap mit gehaltenem Job; native UI-ABI bleibt 0. Als Nächstes eigener frischer
-C3-Netzbeleg, danach C4. Mehrprozessige Produktlebenszeiten und persistente echte
-Arbeitsablagen-/UI-Bindung bleiben offen. Vorhandener Snapshot-v3-Import erzeugt neue IDs.
+Mehrprozess-Bootstrap mit gehaltenem Job; native UI-ABI bleibt 0.
+[Frisches C3-ETW](../testing/product-start-p2c-group-bootstrap-etw.md) ist ergänzt. Als Nächstes
+folgt der C4-Vertrag für Runtime-Paket und minimale isolierte Oberfläche. Mehrprozessige
+Produktlebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung bleiben offen. Vorhandener
+Snapshot-v3-Import erzeugt neue IDs.
 
 Der Exportstandard ist noch in Arbeit. Fest stehen folgende Invarianten:
 

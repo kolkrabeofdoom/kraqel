@@ -14,9 +14,10 @@ Vorbereitung, Profilbestätigung, Bindung und explizite Stilllegung sind im Nach
 [Frisches C2-ETW](../testing/product-start-p2c-native-data-etw.md) dieses Builds ist ergänzt.
 [C3](../testing/product-start-p2c-group-bootstrap.md) ergänzt eigene Gruppenrecords und `.kqc3` für
 synthetische Root-/Kindrollen in frischen C2-Stores: native UI-ABI bleibt 0. C3-Pending sperrt
-allgemeine Storemutationen auch nach Verlust des Jobobjekts; kein automatischer Wiederanlauf. Der
-neue Build benötigt einen eigenen Netzbeleg. Keine normale Produktfreigabe. Die folgenden bisherigen
-Standardpfade und Updatekonventionen sind kein Einstieg in C2/C3.
+allgemeine Storemutationen auch nach Verlust des Jobobjekts; kein automatischer Wiederanlauf.
+[Frisches C3-ETW](../testing/product-start-p2c-group-bootstrap-etw.md) für die unveränderten
+Binärdateien ist ergänzt. Keine normale Produktfreigabe. Die folgenden bisherigen Standardpfade und
+Updatekonventionen sind kein Einstieg in C2/C3.
 
 ## Ablage und Vertrauensgrenze
 

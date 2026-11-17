@@ -1,14 +1,13 @@
 # Bedrohungsmodell (Entwurf)
 
-[C3-Synthesekern](../testing/product-start-p2c-group-bootstrap.md), 17. November 2026: residenter
-Wächter mit exklusiver Lease und kontinuierlich gehaltenem Zweiprozess-Job implementiert.
-Root/echtes Kind nativ vor Resume geprüft, private Daten gesperrt; Datenzugriff erst nach Continue.
-Root-Ende bei lebendem Kind gibt keine Freigabe. Ein harter Wächterabbruch bleibt auch nach
-separater eigener Fixturebereinigung pending/gesperrt; kein PID-/Jobnamenersatz für Gruppenende.
-Gruppen-MAC bindet den Kontext, beweist keine unabhängige Schreiber-PID: kein Renderer-/WebView-
-Vertrag daraus ableiten. 96 aktive Helfertests und 22 Controlleraufrufe geprüft; neuer Build
-`b24b3aa…` benötigt eigenen Netzbeleg. Native UI-ABI 0, Produkt-Q-01/Q-02 und striktes Ziel
-unverändert.
+[Frischer C3-Netzbeleg](../testing/product-start-p2c-group-bootstrap-etw.md), 17. November 2026:
+unveränderter Build `b24b3aa…`, Referenz und Gruppen-/gesperrter Wiederanlaufpfad. 28 Controller,
+zwölf Workerrollen, 68 explizite Enden, acht Kontrollen; Nullverluste/Zuordnungslücken und null
+beobachtete Netzereignisse in diesen Bäumen. Native/Kernelerzeugungszeiten und Elternbezüge
+abgeglichen, 66 MAC-Records/sechs Inventare und drei Profilabwesenheiten unabhängig bestätigt.
+Negativer Store bleibt pending, eigene Fixturebereinigung erzeugt keine Recoveryautorität.
+Gruppen-MAC bleibt kein Renderer-/Schreiber-PID-Nachweis, native UI-ABI 0. C4/Produkt-Q-01/Q-02 und
+externe Dienstgrenzen offen; striktes Datenschutzziel unverändert.
 
 Vorheriger Implementierungs-/Netznachweis:
 

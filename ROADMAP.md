@@ -9,6 +9,10 @@ gemessene Kennzahl, Aufgabenquote oder Zusage zum verbleibenden Zeitaufwand. Än
 können die Schätzung verschieben. Insbesondere sind die vielen Forschungsunterpunkte innerhalb
 KQ-069 Teil einer noch offenen Produktintegration.
 
+Auch nach C3 samt frischem ETW bleibt diese Schätzung unverändert: Die synthetischen
+Sicherheitsnachweise schließen wichtige Forschungsfragen, ersetzen aber weder die echte isolierte
+Oberfläche noch Bestandsmigration, Launcher-/Installerintegration und Produktabnahme.
+
 | Stufe    | Stand und wesentliche Restarbeit                                                                                                                                    |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | M0       | Fundament abgeschlossen.                                                                                                                                            |
@@ -28,7 +32,7 @@ ergänzt.
 ist für den synthetischen Ein-Prozess-Worker umgesetzt. Der
 [eigene frische Netzbeleg](docs/testing/product-start-worker-lifetime-etw.md) ist ergänzt. Der
 [P2c-Vertrag](docs/data-format/product-start-p2c-v1-draft.md) ist als Entwurf ausgearbeitet, nicht
-nativ implementiert. [C1-Modell](docs/testing/product-start-p2c-model.md) mit Typen,
+vollständig produktintegriert. [C1-Modell](docs/testing/product-start-p2c-model.md) mit Typen,
 Inventarcodierung und Lebenszyklus ist geprüft; 13 neue Tests, insgesamt 88 aktive Helfertests.
 [C2-Datenpfad](docs/testing/product-start-p2c-native-data.md) ist in frischen Schema-6-Stores
 umgesetzt: persistentes Profil, native Root-/Paketbindung und eigene explizite Stilllegung ohne UI.
@@ -36,8 +40,11 @@ umgesetzt: persistentes Profil, native Root-/Paketbindung und eigene explizite S
 [Frisches C2-ETW](docs/testing/product-start-p2c-native-data-etw.md) ist ergänzt: 15 Controller/15
 Konsolenhosts, 30 Enden, acht Kontrollen und null beobachtete Netzereignisse.
 [C3-Synthesekern](docs/testing/product-start-p2c-group-bootstrap.md) ist umgesetzt: 96 aktive
-Helfertests, 22 Controlleraufrufe und ein gesperrter Wächterabbruch. Nächster Schritt frisches
-C3-ETW, danach C4; ungebundene Starts, mehrprozessige GUI-Lebenszeiten und persistente echte
+Helfertests, 22 Controlleraufrufe und ein gesperrter Wächterabbruch.
+[Frisches C3-ETW](docs/testing/product-start-p2c-group-bootstrap-etw.md) bestätigt 28 Controller,
+zwölf Root-/Kindrollen, 68 explizite Enden und acht Kontrollen ohne beobachtetes Netz oder
+Erfassungsverluste. Nächster Schritt ist der C4-Vertrag für Runtime-Paket und minimale isolierte
+Oberfläche; ungebundene Starts, mehrprozessige GUI-Lebenszeiten und persistente echte
 Arbeitsablagen-/UI-Bindung bleiben offen. P3 Bestandskopie sowie P4/P5 normale
 App-/Launcher-/Installerintegration und Produktabnahme folgen. Die normalen Produkt-Q-01/Q-02
 bleiben offen; der neue Forschungsnetzbeleg ersetzt dieses Gate nicht. Das strikte Datenschutzziel
@@ -250,11 +257,14 @@ bleibt unverändert.
              [C3 synthetischer Wächter/Mehrprozess-Bootstrap](docs/testing/product-start-p2c-group-bootstrap.md)
              mit echtem Kind/Root-Ende, 96 aktiven Helfertests, 22 Controlleraufrufen und gesperrtem
              Crash
-       - [ ] KQ-069 A: frisches C3-ETW des Builds `b24b3aa…`, danach C4 WebView getrennt
-             integrieren; ungebundene Starts und vollständige Live-Worker-Crashbereinigung und
-             persistente echte Arbeitsablagen-/UI-Bindung; danach P3–P5 isolierten
-             Produktstarter/echte Projektmigration integrieren sowie weitere allgemeine
-             Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
+       - [x] KQ-069 A: [frisches C3-ETW](docs/testing/product-start-p2c-group-bootstrap-etw.md) des
+             unveränderten Builds `b24b3aa…`, einschließlich Root-/Kindrollen und gesperrtem
+             Wiederanlauf: 68 Enden, acht Kontrollen, null beobachtete Netzereignisse
+       - [ ] KQ-069 A: C4-Vertrag für explizites Runtime-Paket und minimale isolierte Oberfläche,
+             danach WebView getrennt integrieren; ungebundene Starts und vollständige
+             Live-Worker-Crashbereinigung und persistente echte Arbeitsablagen-/UI-Bindung; danach
+             P3–P5 isolierten Produktstarter/echte Projektmigration integrieren sowie weitere
+             allgemeine Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
              integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker
              kalibrieren; Packaging und F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit

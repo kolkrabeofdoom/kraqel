@@ -130,13 +130,14 @@ bereinigte Aggregate in Git.
 
 ## Verbleibende Gates
 
-Kein frischer ETW-Netzbeleg dieses neuen Builds; der C2-Beleg für `73a7aad…` wird nicht übertragen.
-Keine tatsächliche UI, WebView, SQLite-Schreiboberfläche, vollständige Runtime- Paketclosure,
-assistive GUI-Abnahme oder automatische Recovery nach Wächterverlust. Der Wächter ist heute ein
-residenter Forschungsaufruf, kein normaler Appstarter/Produktdienst. Nicht als neue Produktfreigabe
-oder universelle Netz-/Dienst-/Inhaltsattestierung verwenden.
+[Frisches C3-ETW](product-start-p2c-group-bootstrap-etw.md) ist inzwischen für denselben
+unveränderten Build ergänzt; der C2-Beleg für `73a7aad…` wird nicht übertragen. Die oben genannten
+Funktionsprüfungen bleiben der ursprüngliche Implementierungsnachweis und wurden dafür nicht
+wiederholt. Keine tatsächliche UI, WebView, SQLite-Schreiboberfläche, vollständige Runtime-
+Paketclosure, assistive GUI-Abnahme oder automatische Recovery nach Wächterverlust. Der Wächter ist
+heute ein residenter Forschungsaufruf, kein normaler Appstarter/Produktdienst. Nicht als neue
+Produktfreigabe oder universelle Netz-/Dienst-/Inhaltsattestierung verwenden.
 
-Nächster begrenzter Schritt: gezielter frischer ETW-Vergleich des C3-Controllers samt Root-/
-Kindrollen und dem einen gesperrten Wiederanlauf; danach C4 mit ausdrücklich gebundener Runtime und
-minimaler Oberfläche. P2 insgesamt, vollständige C3/C4-Produktintegration, P3–P5 und
-Produkt-Q-01/Q-02 bleiben offen. Das strikte Datenschutzziel bleibt unverändert.
+Nächster begrenzter Schritt: C4-Vertrag für ausdrücklich gebundenes Runtime-Paket und minimale
+isolierte Oberfläche vor deren Implementierung. P2 insgesamt, vollständige C3/C4-Produktintegration,
+P3–P5 und Produkt-Q-01/Q-02 bleiben offen. Das strikte Datenschutzziel bleibt unverändert.

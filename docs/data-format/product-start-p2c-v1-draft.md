@@ -235,12 +235,12 @@ Die native Vorbereitung bleibt vor der GUI; spätere Fehler/Fokus/Ansagen benöt
 
 ## 7. Kleine Umsetzungsschritte und gezielte Abnahme
 
-| Schritt                   | Nächster begrenzter Lieferumfang                                                                | Angemessene Prüfung                                                                                                      |
-| ------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| C1 — Modell geprüft       | Reine Typen/Codierung für Bindung, Inventar und Lebenszyklusmodell; keine neue native Autorität | 13 neue Modelltests; gesamter Helferlauf 88 aktiv bestanden, Clippy grün                                                 |
-| C2 — Datenpfad geprüft    | Neue synthetische persistente Ablage/Profil, Inventarprüfung und Bindungsrecords                | Vier neue native Tests, 92 aktive Helfertests/Clippy, zehn gesicherte Controlleraufrufe; eigenes frisches ETW ergänzt    |
-| C3 — Synthesekern geprüft | Wächter/Bootstrap mit Root und echtem Kind; keine UI-ABI-Unterstützung                          | Vier neue Tests, 96 aktive Helfertests/Clippy; 22 Controlleraufrufe und ein gesperrter Wächterabbruch; eigenes ETW offen |
-| C4                        | Gepinnte WebView-Minimaloberfläche und synthetische SQLite-Persistenz                           | Passende App-/Transportprüfungen, gezielte assistive Prüfung und frisches ETW der exakten Binaries/Kindrollen            |
+| Schritt                   | Nächster begrenzter Lieferumfang                                                                | Angemessene Prüfung                                                                                                                 |
+| ------------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| C1 — Modell geprüft       | Reine Typen/Codierung für Bindung, Inventar und Lebenszyklusmodell; keine neue native Autorität | 13 neue Modelltests; gesamter Helferlauf 88 aktiv bestanden, Clippy grün                                                            |
+| C2 — Datenpfad geprüft    | Neue synthetische persistente Ablage/Profil, Inventarprüfung und Bindungsrecords                | Vier neue native Tests, 92 aktive Helfertests/Clippy, zehn gesicherte Controlleraufrufe; eigenes frisches ETW ergänzt               |
+| C3 — Synthesekern geprüft | Wächter/Bootstrap mit Root und echtem Kind; keine UI-ABI-Unterstützung                          | Vier neue Tests, 96 aktive Helfertests/Clippy; 22 Controlleraufrufe und ein gesperrter Wächterabbruch; eigenes frisches ETW ergänzt |
+| C4                        | Gepinnte WebView-Minimaloberfläche und synthetische SQLite-Persistenz                           | Passende App-/Transportprüfungen, gezielte assistive Prüfung und frisches ETW der exakten Binaries/Kindrollen                       |
 
 Erforderliche Nachweise vor einer P2c-Freigabe: Daten/IDs/Profil bleiben über normalen Neustart
 erhalten; private Kontrollfiles bleiben unlesbar; manipuliertes Paket/Runtime/Root wird vor
@@ -262,6 +262,7 @@ Der ursprüngliche Vertragsentwurf wurde ausschließlich durch Quellen-/Link-/Fo
 geprüft. Inzwischen sind C1 im getrennten Modellmodul und C2 als eigener nativer DATA-Pfad gezielt
 getestet. Der normale Appstart und seine Befehle sind nicht integriert. Für den C2-Build ist
 [frisches ETW](../testing/product-start-p2c-native-data-etw.md) ergänzt; alle Netzbelege behalten
-ihre exakten Buildgrenzen. C3 ist inzwischen im synthetischen Umfang implementiert; dessen eigener
-Netzbeleg und danach C4 stehen aus. Die gesamte P2c-Implementierung und Produktabnahme sind
-weiterhin offen.
+ihre exakten Buildgrenzen. C3 ist inzwischen im synthetischen Umfang implementiert;
+[dessen eigener frischer Netzbeleg](../testing/product-start-p2c-group-bootstrap-etw.md) ist
+ergänzt. Als Nächstes folgt der C4-Vertrag für Runtime-Paket und minimale isolierte Oberfläche. Die
+gesamte P2c-Implementierung und Produktabnahme sind weiterhin offen.

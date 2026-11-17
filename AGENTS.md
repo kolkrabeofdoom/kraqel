@@ -294,23 +294,22 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
-Aktuell · P2c C3-Synthesekern, 17. November 2026:
+Aktuell · frischer C3-Netzbeleg, 17. November 2026:
 
-[C3-Wächter/Mehrprozess-Bootstrap](docs/testing/product-start-p2c-group-bootstrap.md) implementiert
-und gezielt nativ geprüft: eigene `.kqc3`-Probeversion, UI-ABI 0, neues gepinntes Codepaket.
-Derselbe Store/Lease und dieselbe gehaltene Jobinstanz mit Limit 2 über Root und echtes Kind;
-Profile/null Capabilities, Paket, Identität/Thread/Elternbezug und Jobmitglieder vor Resume geprüft.
-Accepted/Running dauerhaft vor Continue und erst danach Datenzugriff. Root endet bei lebendem
-suspendiertem Kind; zweiter Writer und Profilstilllegung bleiben gesperrt. Vier neue Tests, 96
-aktive Helfer-/Transporttests/vier bewusst ignoriert, Clippy grün. 22 Controlleraufrufe: zwei
-erfolgreiche Gruppen, drei abgewickelte Bootstrapfehler, ein gezielter Wächterabbruch. 51
-MAC-Records/sechs verbrauchte Launches unabhängig geprüft; nach Wächterverlust bleibt der negative
-Store auch nach eigenem separatem Fixturecleanup pending. Zwei Profile entfernt (ein Broker-/ein
-eigener Harnesscleanup), echte Kontrollhashes unverändert. Build `b24b3aa…` gesichert, noch kein
-frisches ETW. Gruppenschlüssel ist keine unabhängige Schreiber-PID-Autorität; kein Renderer/WebView
-oder normale UI freigegeben. Nächster Scope: gezieltes frisches C3-ETW samt Root/Kind und gesperrtem
-Wiederanlauf, danach C4. P2 insgesamt, vollständige Produktintegration/P3–P5 und Produkt-Q-01/Q-02
-bleiben offen; striktes Datenschutzziel unverändert.
+[Gezieltes C3-ETW](docs/testing/product-start-p2c-group-bootstrap-etw.md) des unveränderten Builds
+`b24b3aa…` ist ergänzt: normaler Abschluss und Gruppenfehler/gesperrter Wiederanlauf. 28 Controller,
+sieben Root-/fünf Kindrollen, 28 Konsolenhosts; alle 68 Enden explizit. Acht lokale Kontrollen,
+Nullverluste/ Zuordnungslücken und null beobachtete Netzereignisse in diesen Bäumen einschließlich
+Loopback. Alle 28 nativen Controller-Erzeugungszeiten sowie sechs Root-/fünf Kindbindungen exakt mit
+Kernel abgeglichen; Root-Ende vor Kindende in allen fünf gebundenen Fällen. 66 MAC-Records/sieben
+verbrauchte Launches/sechs Inventare unabhängig geprüft; drei Profile entfernt (zwei Broker-/ein
+eigener Fixturecleanup), negativer Store weiter pending, echte Kontrollhashes unverändert. 42
+Diagnose-Tests grün, kein neuer Build/Runtimeumbau oder Produktfreigabe. Native UI-ABI bleibt 0;
+Gruppen-MAC ist keine unabhängige Renderer-/Schreiber-PID-Autorität. Als Nächstes **C4-Vertrag für
+Runtimepaketbindung und minimale isolierte Oberfläche** konkretisieren; keine automatische
+Übertragung auf WebView. P2 insgesamt/P3–P5 und Produkt-Q-01/Q-02 bleiben offen. Gesamt grob 65 %
+(60–70 %), nutzbarer 0.1-Funktionsumfang grob 80 %; keine Zeit-/Produktionsreifequote. Striktes
+Datenschutzziel unverändert.
 
 Vorheriger Implementierungs-/Netznachweis:
 
