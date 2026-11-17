@@ -759,6 +759,10 @@ fn launch(root: &Path, app: Option<&Path>, resume: bool) -> Result<Value> {
 }
 pub fn main() {
     let args = std::env::args_os().skip(1).collect::<Vec<_>>();
+    if args.first().is_some_and(|a| a == "c4-root-probe-worker") {
+        let result = exchange::c4_root_worker(&args[1..]);
+        std::process::exit(if result.is_ok() { 0 } else { 2 });
+    }
     if args.first().is_some_and(|a| a == "c3-synthetic-worker") {
         let code = if exchange::group_worker(&args[1..]).is_ok() {
             0

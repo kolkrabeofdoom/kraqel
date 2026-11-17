@@ -3,6 +3,13 @@ use super::*;
 use crate::product_start_p2c::c4::{LoaderV1, Role, UiRuntimePackageV1};
 use windows_sys::Win32::System::Registry::*;
 mod creation_probe;
+mod root_bootstrap;
+#[cfg(test)]
+pub(super) use root_bootstrap::run as run_root_probe;
+pub(in crate::windows) use root_bootstrap::worker as c4_root_worker;
+pub(in super::super) use root_bootstrap::{C4ProbeEvent, C4ProbeState, apply_c4_probe};
+#[cfg(test)]
+pub(super) use root_bootstrap::{Identity, Stage};
 
 /// Only lifetime-bound pinned files; no persistable success token or native start capability.
 #[allow(dead_code)] // C4 UI/record integration deliberately remains unavailable.
@@ -13,6 +20,7 @@ pub(super) struct CandidatePins {
     _ui_root: RootIdentityV1,
     exe: PathBuf,
     exe_sha256: [u8; 32],
+    process_limit: u16,
 }
 
 fn environment_clear(values: impl IntoIterator<Item = (OsString, OsString)>) -> Result<()> {
@@ -181,6 +189,7 @@ impl Store {
             _ui_root: root_identity(&ui_root)?,
             exe: ui_root.join(&candidate.ui_exe),
             exe_sha256: root_program.sha256,
+            process_limit: candidate.policy.max_processes,
         })
     }
 }

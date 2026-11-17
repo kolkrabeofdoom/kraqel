@@ -1,5 +1,10 @@
 # P2c C4b: native Kandidatenprüfung und suspendierter Erzeugungsversuch
 
+Inzwischen ergänzt die getrennte
+[authentisierte Root-/WebView-Probe](product-start-p2c-c4b-root-bootstrap.md) den tatsächlichen
+leeren Runtimepfad. Die folgenden Zahlen/Angaben beschreiben den ursprünglichen Vorprüfungsstand,
+ohne dessen suspendierte Geschwister zur WebView-Abnahme umzudeuten.
+
 Stand: 17. November 2026. **Begrenzter C4b-Teilstand implementiert und geprüft; C4b insgesamt bleibt
 offen. Kein ausgeführter WebView-Browser-/Rendererpfad und keine native UI-Startfreigabe.**
 [C4-Vertrag](../data-format/product-start-p2c-c4-v1-draft.md),
@@ -116,9 +121,8 @@ Controller-Geschwister dürfen nicht als dieser Nachweis ausgegeben werden. Die
 [Microsoft-Prozessbeschreibung](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model)
 führt variable Rollen/Prozessgruppen auf; ein Joblimit 2 ist kein übertragbarer Runtimevertrag.
 
-Nächster begrenzter Schritt innerhalb C4b: separater authentisierter Rootbootstrap und ein
-quellengeprüfter nativer WebView-Erzeugungsversuch ohne Projektinhalte mit genau diesem
-Runtimekandidaten. Bis zur wirksamen Rollen-/Token-/Jobbindung bleibt Command-/Textfreigabe
-gesperrt. Keine neue UI-ABI, keine alte C2-/C3-Grantübernahme. Native UI-ABI weiterhin 0; C4c/d, P2
-insgesamt, P3–P5 und Produkt-Q-01/Q-02 offen. Der alte C3-ETW-Beleg gilt nur seinen gespeicherten
-Bytes; kein neuer C4-Netznachweis. Striktes Datenschutzziel unverändert.
+Der dort ursprünglich nächste Root-/Runtimeversuch ist inzwischen im oben verlinkten eigenen
+Nachweis geprüft. Weiter offen: vollständige Runtime-/Nichtsystemmodul-/Rollenbindung und zwei
+API-unzugeordnete Generationen vor Text-/Commandfreigabe, danach frisches ETW. Native UI-ABI bleibt
+0, keine Übernahme alter C2-/C3-Grants; C4b insgesamt, C4c/d, P2/P3–P5 und Produkt-Q-01/Q-02 offen.
+Striktes Datenschutzziel unverändert.

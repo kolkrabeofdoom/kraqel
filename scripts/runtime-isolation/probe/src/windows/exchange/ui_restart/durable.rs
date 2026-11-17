@@ -8,6 +8,7 @@ use windows_sys::Win32::System::SystemServices::JOB_OBJECT_QUERY;
 mod combined;
 mod product;
 pub(in super::super::super) use combined::{next_live, seed_live, series as combined_series};
+pub(in crate::windows) use product::c4_root_worker;
 pub(in super::super::super) use product::command as product_storage;
 pub(super) use product::verify_denials as verify_product_denials;
 pub(super) use product::verify_start_lease;

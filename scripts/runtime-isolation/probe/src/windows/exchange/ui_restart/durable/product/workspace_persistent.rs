@@ -5,6 +5,8 @@ use crate::product_start_p2c::{
 };
 use std::io::{Seek, SeekFrom};
 mod c4_preflight;
+pub(in crate::windows) use c4_preflight::c4_root_worker;
+pub(super) use c4_preflight::{C4ProbeEvent, C4ProbeState, apply_c4_probe};
 mod filesystem;
 mod group;
 use filesystem::*;

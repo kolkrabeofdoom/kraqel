@@ -20,6 +20,7 @@ unicode-normalization = "=0.1.25"
 serde = { version = "1", features = ["derive"] }
 
 [target.'cfg(windows)'.dependencies]
+webview2-com = "=0.39.1"
 hmac = "=0.12.1"
 zeroize = "=1.9.1"
 getrandom = "=0.4.3"

@@ -48,11 +48,12 @@ Runtime-Paket und minimale isolierte Oberfläche ist als Entwurf ergänzt.
 [C4a-Modellkern](docs/testing/product-start-p2c-c4a-model.md) implementiert reine
 Paket-/Policytypen, deterministische Codierung und getrennten versionierten Lebenszyklus; zwölf neue
 Tests, 108 aktive Helfertests/Clippy bestanden.
-[C4b-Vorprüfung](docs/testing/product-start-p2c-c4b-preflight.md) ergänzt native Paketpins und
-Overrideabwehr sowie zwei nie fortgesetzte Controller-Geschwister; 112 aktive Helfertests und ein
-expliziter lokaler Runtimeinventurtest bestanden. Offizieller Fixed-Version-Kandidat vorbereitet,
-keine Runtime ausgeführt. C4b insgesamt bleibt offen: Als Nächstes folgen authentisierter
-Rootbootstrap und tatsächlicher eingeschränkter WebView-Erzeugungsversuch ohne Projektinhalte;
+[C4b-Vorprüfung](docs/testing/product-start-p2c-c4b-preflight.md) und
+[authentisierter Root-/WebView-Probelauf](docs/testing/product-start-p2c-c4b-root-bootstrap.md) sind
+ergänzt: 115 aktive Helfertests, tatsächlicher leerer Fixed-Version-Lauf mit einem Root/sieben
+Runtimegenerationen und kontrolliertem Ende. Falsche MAC gesperrt; 14 MAC-Records unabhängig
+geprüft. C4b insgesamt bleibt offen: zwei API-unzugeordnete Generationen sowie vollständige
+Runtime-/Nichtsystemmodul-/Rollenbindung bearbeiten, danach frisches ETW des neuen Paars;
 ungebundene Starts, mehrprozessige GUI-Lebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung
 bleiben offen. P3 Bestandskopie sowie P4/P5 normale App-/Launcher-/Installerintegration und
 Produktabnahme folgen. Die normalen Produkt-Q-01/Q-02 bleiben offen; der neue Forschungsnetzbeleg
@@ -276,14 +277,19 @@ ersetzt dieses Gate nicht. Das strikte Datenschutzziel bleibt unverändert.
        - [x] KQ-069 A: [C4b-Teilstand](docs/testing/product-start-p2c-c4b-preflight.md), native
              Vorprüfung und nie fortgesetzte Controller-Geschwister; Runtimekandidat vorbereitet,
              kein WebView-Start-/Kindnachweis
-       - [ ] KQ-069 A: C4b authentisierten Rootbootstrap und tatsächlichen eingeschränkten
-             Mehrprozess-Erzeugungsweg; danach C4c/d WebView/SQLite unter belegtem
-             Rollen-/Token-/Jobvertrag getrennt integrieren; ungebundene Starts und vollständige
-             Live-Worker-Crashbereinigung und persistente echte Arbeitsablagen-/UI-Bindung; danach
-             P3–P5 isolierten Produktstarter/echte Projektmigration integrieren sowie weitere
-             allgemeine Fensterende-/F08-Prüfung; dauerhaften authentisierten Produktbroker
-             integrieren/abnehmen; weitere Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker
-             kalibrieren; Packaging und F08-/M3-Vollprüfung
+       - [x] KQ-069 A:
+             [C4b-Root-/WebView-Probe](docs/testing/product-start-p2c-c4b-root-bootstrap.md),
+             authentisierter Bootstrap und tatsächlicher leerer Kindpfad; 115 aktive Tests, keine
+             Produkt-/UI-Freigabe
+       - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung und
+             API-unzugeordnete Generationen, danach eigener Netzbeleg; anschließend C4c/d
+             WebView/SQLite unter belegtem Rollen-/Token-/Jobvertrag getrennt integrieren;
+             ungebundene Starts und vollständige Live-Worker-Crashbereinigung und persistente echte
+             Arbeitsablagen-/UI-Bindung; danach P3–P5 isolierten Produktstarter/echte
+             Projektmigration integrieren sowie weitere allgemeine Fensterende-/F08-Prüfung;
+             dauerhaften authentisierten Produktbroker integrieren/abnehmen; weitere
+             Formate/Git-/Providergrenzen; UDP/IPv6/DNS/Broker kalibrieren; Packaging und
+             F08-/M3-Vollprüfung
        - [ ] KQ-069: Strikte Isolation in normalen Start/Installer integrieren und vollständig mit
              ETW abnehmen; keine fachliche Runtime-Ausnahme (ADR 0034)
      - Vertrag: `docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md`; Nachweise und offene

@@ -24,6 +24,7 @@ pub(in crate::windows) use session::{transition_child, transition_series};
 pub(in super::super::super::super) use starter::series as start_series;
 pub(in super::super) use starter::verify_start_lease;
 pub(in crate::windows) use workspace::child as workspace_child;
+pub(in crate::windows) use workspace_persistent::c4_root_worker;
 pub(in crate::windows) use workspace_persistent::child as workspace_persistent_child;
 pub(in crate::windows) use workspace_persistent::{group_child, group_worker};
 pub(in crate::windows) use workspace_probe::{
@@ -41,6 +42,9 @@ const BAD_ATTRIBUTES: u32 = FILE_ATTRIBUTE_REPARSE_POINT
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(tag = "kind", rename_all = "camelCase", deny_unknown_fields)]
 enum Action {
+    C4RootProbe {
+        event: workspace_persistent::C4ProbeEvent,
+    },
     C3 {
         event: workspace_persistent::GroupEvent,
     },
@@ -159,6 +163,7 @@ struct State {
     probe: Option<workspace_probe::Pending>,
     c2: Option<workspace_persistent::Persistent>,
     c3: workspace_persistent::GroupState,
+    c4_probe: workspace_persistent::C4ProbeState,
 }
 impl State {
     fn apply(&mut self, actor: [u8; 32], action: &Action) -> Result<()> {
@@ -213,6 +218,12 @@ impl State {
         Ok(())
     }
     fn apply_record(&mut self, actor: [u8; 32], action: &Action, digest: [u8; 32]) -> Result<()> {
+        if let Action::C4RootProbe { event } = action {
+            return workspace_persistent::apply_c4_probe(self, actor, event);
+        }
+        if self.c4_probe.pending() {
+            return Err(invalid("c4-root-probe-pending"));
+        }
         if let Action::C3 { event } = action {
             return workspace_persistent::apply_group(self, actor, event);
         }
@@ -474,6 +485,7 @@ impl Store {
                     probe: None,
                     c2: None,
                     c3: Default::default(),
+                    c4_probe: Default::default(),
                 });
             } else {
                 let s = state.as_mut().ok_or(invalid("product-genesis-missing"))?;
@@ -560,6 +572,9 @@ impl Store {
         self.actor(actor)?;
         if self.state.c3.pending() {
             return Err(invalid("c3-group-pending"));
+        }
+        if self.state.c4_probe.pending() {
+            return Err(invalid("c4-root-probe-pending"));
         }
         self.idle()?;
         if self.state.head != head || self.state.sequence + 1 >= MAX_RECORDS {

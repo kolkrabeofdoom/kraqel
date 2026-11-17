@@ -21,6 +21,7 @@ mod ui_live;
 mod ui_restart;
 pub(super) use ui_grant::launch as launch_ui;
 pub(super) use ui_live::launch as launch_live_ui;
+pub(super) use ui_restart::c4_root_worker;
 pub(super) use ui_restart::launch as launch_restart_series;
 pub(super) use ui_restart::launch_assistive;
 pub(super) use ui_restart::product_storage;

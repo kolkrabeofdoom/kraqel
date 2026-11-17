@@ -147,6 +147,7 @@ fn synthetic_state() -> State {
             retired: false,
         }),
         c3: Default::default(),
+        c4_probe: Default::default(),
     }
 }
 #[test]

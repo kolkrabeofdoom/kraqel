@@ -60,6 +60,14 @@ impl Drop for Fixture {
 }
 
 fn c4_candidate(f: &Fixture, store: &Store, real_runtime: bool) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
+    c4_candidate_source(f, store, real_runtime, None)
+}
+fn c4_candidate_source(
+    f: &Fixture,
+    store: &Store,
+    real_runtime: bool,
+    executable: Option<&Path>,
+) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
     use crate::product_start_p2c::c4::{
         LoaderV1, Role, RolePolicyV1, UiPolicyV1, UiRuntimePackageV1,
     };
@@ -72,7 +80,9 @@ fn c4_candidate(f: &Fixture, store: &Store, real_runtime: bool) -> (Vec<u8>, Vec
     secure_directory(&ui).unwrap();
     let runtime = ui.join("runtime");
     secure_directory(&runtime).unwrap();
-    let source = std::env::current_exe().unwrap();
+    let source = executable
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| std::env::current_exe().unwrap());
     let bytes = fs::read(&source).unwrap();
     write_new(&host.join("host.exe"), &bytes).unwrap();
     write_new(&ui.join("ui.exe"), &bytes).unwrap();
@@ -153,25 +163,44 @@ fn c4_candidate(f: &Fixture, store: &Store, real_runtime: bool) -> (Vec<u8>, Vec
             bootstrap_version: 1,
             command_version: 1,
             record_version: 1,
-            max_processes: 3,
+            max_processes: if real_runtime { 16 } else { 3 },
             job_sha256: [3; 32],
             acl_sha256: [4; 32],
             environment_sha256: [5; 32],
             commands_sha256: [6; 32],
-            roles: [Role::Root, Role::Browser, Role::Renderer]
-                .into_iter()
-                .map(|role| RolePolicyV1 {
-                    role,
-                    image: if role == Role::Root {
-                        "ui.exe".into()
-                    } else {
-                        "runtime/msedgewebview2.exe".into()
-                    },
-                    max_instances: 1,
-                    arguments_sha256: [7; 32],
-                    token_sha256: [8; 32],
-                })
-                .collect(),
+            roles: if real_runtime {
+                vec![
+                    Role::Root,
+                    Role::Browser,
+                    Role::Renderer,
+                    Role::Gpu,
+                    Role::Utility,
+                    Role::CrashHandler,
+                ]
+            } else {
+                vec![Role::Root, Role::Browser, Role::Renderer]
+            }
+            .into_iter()
+            .map(|role| RolePolicyV1 {
+                role,
+                image: if role == Role::Root {
+                    "ui.exe".into()
+                } else {
+                    "runtime/msedgewebview2.exe".into()
+                },
+                max_instances: if real_runtime {
+                    match role {
+                        Role::Renderer => 4,
+                        Role::Utility => 8,
+                        _ => 1,
+                    }
+                } else {
+                    1
+                },
+                arguments_sha256: [7; 32],
+                token_sha256: [8; 32],
+            })
+            .collect(),
         },
         db_read_min: 6,
         db_read_max: 6,
@@ -303,6 +332,153 @@ fn c4_native_suspended_pair_is_born_contained_and_never_resumed() {
     assert_eq!(store.state.head, head);
     store.idle().unwrap();
     drop(pins);
+}
+
+#[test]
+fn c4_root_records_block_other_actions_replay_and_forged_drain_order() {
+    use c4_preflight::{Identity, Stage};
+    let f = Fixture::new();
+    let store = f.prepared();
+    let mut state = store.state.clone();
+    let mut event = C4ProbeEvent {
+        version: 1,
+        stage: Stage::Commit,
+        launch: Uuid::new_v4(),
+        workspace: state.c2.as_ref().unwrap().id,
+        package: [1; 32],
+        guardian: Identity {
+            pid: 42,
+            created: 3,
+        },
+        nonce: [2; 32],
+        root: None,
+    };
+    let actor = state.actor;
+    state
+        .apply_record(
+            actor,
+            &Action::C4RootProbe {
+                event: event.clone(),
+            },
+            [3; 32],
+        )
+        .unwrap();
+    assert!(
+        state
+            .apply_record(actor, &Action::RetireC2Workspace, [3; 32])
+            .is_err()
+    );
+    let mut wrong = event.clone();
+    wrong.stage = Stage::Finish;
+    assert!(
+        state
+            .apply_record(actor, &Action::C4RootProbe { event: wrong }, [3; 32])
+            .is_err()
+    );
+    event.stage = Stage::RootBound;
+    event.root = Some(Identity {
+        pid: 43,
+        created: 4,
+    });
+    state
+        .apply_record(
+            actor,
+            &Action::C4RootProbe {
+                event: event.clone(),
+            },
+            [3; 32],
+        )
+        .unwrap();
+    let mut wrong = event.clone();
+    wrong.stage = Stage::Accepted;
+    wrong.nonce = [5; 32];
+    assert!(
+        state
+            .apply_record(actor, &Action::C4RootProbe { event: wrong }, [3; 32])
+            .is_err()
+    );
+    let pending = state.clone();
+    assert!(pending.c4_probe.pending()); // Reconstructed state cannot infer drain from PID absence.
+    for stage in [
+        Stage::Accepted,
+        Stage::Running,
+        Stage::Drained,
+        Stage::Finish,
+    ] {
+        event.stage = stage;
+        state
+            .apply_record(
+                actor,
+                &Action::C4RootProbe {
+                    event: event.clone(),
+                },
+                [3; 32],
+            )
+            .unwrap();
+    }
+    assert!(!state.c4_probe.pending());
+    event.stage = Stage::Commit;
+    event.root = None;
+    assert!(
+        state
+            .apply_record(actor, &Action::C4RootProbe { event }, [3; 32])
+            .is_err()
+    );
+}
+
+#[test]
+#[ignore = "explicit local authenticated blank Fixed-Version WebView research; no project content"]
+fn c4_authenticated_root_and_real_webview_probe() {
+    let saved = std::env::temp_dir().join("kraqel-c4b-root-build-20261117-01");
+    let executable = saved.join("controller.exe");
+    assert!(executable.is_file());
+    let f = Fixture::new();
+    let mut store = f.prepared();
+    let head = store.state.head;
+    let (descriptor, host, ui) = c4_candidate_source(&f, &store, true, Some(&executable));
+    let pins = store
+        .verify_c4_candidate(f.actor, head, &descriptor, &host, &ui)
+        .unwrap();
+    let bad = c4_preflight::run_root_probe(&pins, &mut store, true).unwrap();
+    assert_eq!(bad["rootAuthenticated"], false);
+    assert_eq!(bad["continueSent"], false);
+    assert_eq!(bad["drained"], true);
+    let live = c4_preflight::run_root_probe(&pins, &mut store, false).unwrap();
+    // This is a research result, not an assertion that WebView initialization/isolation passed.
+    assert_eq!(live["rootAuthenticated"], true, "{live}");
+    assert_eq!(live["continueSent"], true);
+    assert_eq!(live["controlFinished"], true);
+    let id = store.state.c2.as_ref().unwrap().id;
+    let audit = saved.join(format!("audit-{}", Uuid::new_v4().simple()));
+    secure_directory(&audit).unwrap();
+    secure_directory(&audit.join("records")).unwrap();
+    for name in ["authority.key", "head.mac"] {
+        write_new(
+            &audit.join(name),
+            &fs::read(f.root.join("control").join(name)).unwrap(),
+        )
+        .unwrap();
+    }
+    for entry in fs::read_dir(f.root.join("control/records")).unwrap() {
+        let entry = entry.unwrap();
+        write_new(
+            &audit.join("records").join(entry.file_name()),
+            &fs::read(entry.path()).unwrap(),
+        )
+        .unwrap();
+    }
+    let report = json!({"badMac":bad,"live":live,"controlRoot":f.root,"dataRoot":data_root(id),"auditRoot":audit,"records":store.state.sequence,"sourceSha256":hex(&hash(&executable).unwrap())});
+    fs::write(
+        saved.join("run.json"),
+        serde_json::to_vec_pretty(&report).unwrap(),
+    )
+    .unwrap();
+    drop(pins);
+    drop(store);
+    let reopened = Store::open(&f.root).unwrap();
+    assert!(!reopened.state.c4_probe.pending());
+    assert!(reopened.state.c4_probe.used_count_for_test() == 2);
+    drop(reopened);
 }
 
 #[test]

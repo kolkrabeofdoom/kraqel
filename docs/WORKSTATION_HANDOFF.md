@@ -7,30 +7,34 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 17. November 2026
 
-Aktuell · C4b-Vorprüfung, 17. November 2026:
+Aktuell · C4b-Root-/WebView-Probe, 17. November 2026:
 
-[C4b-Vorprüfung und suspendierter Erzeugungsversuch](testing/product-start-p2c-c4b-preflight.md)
-sind als begrenzter nativer Teilstand implementiert/geprüft; **C4b insgesamt bleibt offen**. Native
-Paketpins, exakte begrenzte Inventur und Environment-/Registry-Overrideabwehr laufen unter derselben
-Kontrollsperre, ausschließlich in neuen synthetischen Kandidatenfixtures. Vier neue aktive Tests;
-Standardhelferlauf 112 aktiv bestanden/fünf ignoriert, zusätzlich ein expliziter lokaler
-Runtimeinventurtest bestanden; Clippy/rustfmt geprüft. Zwei Controller-Geschwister entstehen atomar
-im Job/AppContainer ohne Capabilities, bleiben suspendiert und werden ohne Resume beendet. Das
-belegt weder WebViews eigenen Kindpfad noch dessen Token-/Handle-/Modulbindung. Offizieller
-x64-Fixed-Version-Kandidat 157.0.4341.60 lokal geladen/entpackt und nativ inventarisiert; keine
-Installation oder Runtimeausführung. Keine neuen nativen UI-/Record-/Startberechtigungen, native
-UI-ABI bleibt 0. C4a-Modell und gespeicherte C3-Bytes/ETW behalten ihre eigenen Grenzen. Nächster
-Schritt **innerhalb C4b: authentisierter Rootbootstrap und belegbarer nativer
-WebView-Erzeugungsversuch ohne Projektinhalte** mit diesem Paket. Bis zur wirksamen Rollen-/Token-/
-Jobbindung keine Command-/Textfreigabe. C4c/d, P2 insgesamt/P3–P5 und Produkt-Q-01/Q-02 offen;
-striktes Datenschutzziel und Gesamtschätzung etwa 65 %/nutzbarer 0.1-Umfang etwa 80 % unverändert.
+[Authentisierter C4b-Root und tatsächlicher leerer WebView-Prozessbaum](testing/product-start-p2c-c4b-root-bootstrap.md)
+sind im begrenzten Forschungsumfang implementiert/geprüft. Eigene C4-Probeversion/MAC-Records unter
+derselben Kontrollsperre; falsche Grant-MAC und Root ohne Bootstrap abgewiesen. Accepted/Running vor
+Continue, Schlüssel/Bootstraphandles vor WebView geschlossen/gelöscht. Finaler leerer
+Fixed-Version-Lauf: ein Root/sieben Runtimegenerationen, alle acht nativ im AppContainer ohne
+Capabilities, gepinnte Images, sieben Elternbezüge und alle gehaltenen Handles beendet; native
+Job-Gesamtzahl ebenfalls acht. API ordnet fünf Generationen zu (Browser/Renderer/GPU/Utility), zwei
+bleiben ohne API-Rollenzuordnung. 14 MAC-Records, zehn C4-Proberecords/zwei verbrauchte Launches
+unabhängig geprüft. Drei neue aktive Tests; 115 Helfer-/Transporttests bestanden, sechs
+standardmäßig ignoriert; neuer lokaler Root-/Runtimefall zusätzlich bestanden, Clippy/rustfmt grün.
+Keine realen Projekte oder Tauri-Commands, native UI-ABI weiterhin 0, kein neuer Netznachweis. **C4b
+bleibt offen:** API-unzugeordnete Generationen sowie vollständige Runtime-/Nichtsystemmodul-/
+effektive Rollenbindung vor Command-/Textfreigabe bearbeiten; danach frisches ETW des exakten Paars.
+Polling ist keine vollständige Attestierung vor jedem dynamischen Kindstart. C4c/d, automatische
+Gruppen-Recovery, P2 insgesamt/P3–P5 und Produkt-Q-01/Q-02 offen. Striktes Datenschutzziel und grobe
+Gesamtschätzung 65 %/nutzbarer 0.1-Umfang 80 % unverändert.
 
-Lokaler Download bleibt unter `%TEMP%/kraqel-c4-runtime-20261117-01/`; CAB/Manifest und
-`expanded/Microsoft.WebView2.FixedVersionRuntime.157.0.4341.60.x64` erhalten. Keine Runtime-Binaries
-nach Git oder echten Kontrollstore autorisieren. Kandidatenfixture-/Prozess-/Profilcleanup der Tests
-erfolgt nur für deren eigene temporäre Wurzeln. Der explizite Inventurtest bleibt in CI ignoriert
-und benötigt den lokal bereitgestellten Kandidaten. Nicht als echte Rendererprüfung ausgeben oder
-die zwei suspendierten Geschwister automatisch fortsetzen.
+Sicherung `%TEMP%/kraqel-c4b-root-build-20261117-01/`: Roothelfer `controller.exe` (SHA `a8007de…`),
+tatsächlicher Testcontroller `test-controller.exe` (`fc19dae…`), privates `run.json`, geschützter
+lesender `audit-…`-Snapshot und unabhängiger Audit. Kein wiederverwendbarer Store oder Startgrant
+daraus; Schlüssel/IDs/Prozesspfade nicht publizieren. Frische Testprofile, eigene Daten- und
+Kontrollfixtures entfernt; ursprüngliches Runtime-CAB/`expanded` unter
+`%TEMP%/kraqel-c4-runtime-20261117-01/` behalten. Zwischenläufe mit Pfad-/Nullzeit-Handleabweisung
+nicht als Abnahme ausgeben. Neue Root-/Testcontrollerbytes benötigen ihren eigenen Netzbeleg;
+C3-Bytes und älteres ETW bleiben unverändert separat. Nächster Scope steht oben, keine vorzeitige
+UI-/Projektfreigabe oder automatische Recovery.
 
 Letzter nativer Netzbeleg · C3, 17. November 2026:
 

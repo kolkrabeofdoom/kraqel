@@ -1,10 +1,11 @@
 # Offenes KRAQEL-Datenformat
 
-[C4b-Teilstand](../testing/product-start-p2c-c4b-preflight.md): native Kandidaten-/Overrideprüfung
-und zwei nie fortgesetzte Controller-Geschwister geprüft. Offizieller Runtimekandidat lokal
-vorbereitet/inventarisiert; kein tatsächlicher WebView-Kindpfad, Bootstrap oder UI-Start belegt. C4b
-bleibt offen, als Nächstes folgen eigener authentisierter Rootbootstrap und belegbarer nativer
-Runtime-Erzeugungsversuch.
+[C4b-Root-/WebView-Probe](../testing/product-start-p2c-c4b-root-bootstrap.md) ergänzt
+authentisierten Rootbootstrap und den tatsächlichen leeren Runtime-Kindpfad unter derselben
+Kontrollsperre. Eigene versionierte C4-Probeactions, keine produktiven UI-Records/Startgrants;
+native UI-ABI bleibt 0. C4b insgesamt bleibt offen: zwei API-unzugeordnete Generationen und
+vollständige Runtime-/Nichtsystemmodul-/ effektive Rollenbindung vor Text-/Commandfreigabe, danach
+eigener frischer Netzbeleg.
 
 Der C4-Vertrag ist durch den [reinen C4a-Modellkern](../testing/product-start-p2c-c4a-model.md)
 ergänzt: Paket-/Policytypen, deterministische Codierung und versionierter Lebenszyklus, zwölf neue
