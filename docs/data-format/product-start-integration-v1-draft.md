@@ -6,9 +6,11 @@ P1 ist als [reiner Typ-/Zustandskern](../testing/product-start-p1-model.md) umge
 [P2a](../testing/product-start-p2a-records.md) ergänzt authentisierte Schema-5-Records
 ausschließlich in synthetischen privaten Forschungsablagen ohne UI-Start.
 [P2b](../testing/product-start-p2b-bootstrap.md) ergänzt einen getrennten synthetischen
-Readonly-Workerbootstrap mit Token-/Jobprüfung, ohne Importtask/GUI und ohne frisches ETW.
-Produktbootstrap, ausführbare Startautorität, Bestandsdatenübernahme und normale Integration fehlen
-weiterhin. Striktes Datenschutzziel und offene Produkt-Q-01/Q-02 bleiben unverändert.
+Readonly-Workerbootstrap mit Token-/Jobprüfung, ohne Importtask/GUI. Der
+[frische P2b-Netzbeleg](../testing/product-start-p2b-bootstrap-etw.md) gilt für diesen Probeworker,
+nicht für die normale Schreiboberfläche. Produktbootstrap, ausführbare Startautorität,
+Bestandsdatenübernahme und normale Integration fehlen weiterhin. Striktes Datenschutzziel und offene
+Produkt-Q-01/Q-02 bleiben unverändert.
 
 ## 1. Verifizierter Ausgangspunkt
 
@@ -173,8 +175,9 @@ offenzulegen.
 P2 wird in P2a (persistente authentisierte Bindung/Launch-Records ohne GUI) und P2b (synthetischer
 Bootstrap/Token/Job ohne Importtask) aufgeteilt. P2a ist als Record-only-Forschung umgesetzt; P2b
 ist als begrenzter Readonly-Probeworker umgesetzt. Frisches ETW für den finalen Controller/Worker
-ist der nächste begrenzte Scope. Ressourcen-Crash-Reconciliation und persistente echte
-Arbeitsablagen-/UI-Bindung fehlen; P2 insgesamt bleibt offen.
+ist gezielt belegt. Sichere Ressourcen-Crash-Reconciliation ist der nächste begrenzte Scope.
+Ressourcen-Crash-Reconciliation und persistente echte Arbeitsablagen-/UI-Bindung fehlen; P2
+insgesamt bleibt offen.
 
 Reihenfolge P1–P5 verhindert, dass der erfolgreiche Forschungsimport als Freigabe der gesamten
 Schreiboberfläche gilt. Mittleres Prüfniveau bedeutet pro Implementierungsschritt gezielte relevante

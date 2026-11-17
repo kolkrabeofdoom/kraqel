@@ -1,5 +1,12 @@
 # Lokale Windows-Netzprüfung für M3
 
+[Frischer P2b-Controller-/Workerbeleg](../../docs/testing/product-start-p2b-bootstrap-etw.md): zwei
+kurze gültige Phasen mit unveränderten Capture-/Auswertehelfern, 31 explizite native Roots, sechs
+separat gestartete Worker und 31 Controller-Konsolenhosts. Acht Kontrollen, Nullverluste, 68
+explizite Enden, null beobachtete Netzereignisse in diesen Bäumen. Workerzuordnung zusätzlich über
+private Startbelege/MAC-/Paket-/Root-/Token-/Job-/Profilaudit geprüft; 42 Diagnose-Tests grün. Kein
+neuer Runtimebuild, keine normale Produktfreigabe oder Übertragung auf andere Pfade.
+
 [Frischer Prepare-Übergangs-/Kandidatenbeleg](../../docs/testing/native-prepare-transition-etw.md):
 regulärer Update-/Recoverypfad als Referenz gegenüber drei Übergangsabbrüchen, unveränderte
 Auswertung/Capture. 59 direkte Roots einschließlich fünf verwalteter hashbenannter Starts, acht

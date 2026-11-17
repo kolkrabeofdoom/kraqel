@@ -258,8 +258,10 @@ Permanentkey bleibt ausschließlich im Store; Bootstrap/Receipt erhalten eigene 
 frischen kanalgebundenen Einmalschlüssel. Vor Resume exakter Token/Job/Lease/private Denials; vor
 Ressourcenabschluss Jobleerstand am gehaltenen Kernelobjekt und Profilentfernung. Kontrollierte
 Ablehnungen verbrauchen ihren Launch; unklare Crash-/Profilerzeugungs-/Cleanupreste bleiben pending,
-kein automatischer Probe-Reconcile-CLI. Frisches ETW und persistente echte
-Arbeitsablage/GUI-Bootstrap fehlen weiterhin, kein Produktstart daraus ableiten.
+kein automatischer Probe-Reconcile-CLI. Der
+[frische ETW-Beleg](../testing/product-start-p2b-bootstrap-etw.md) gilt ausschließlich für diesen
+synthetischen Worker/Controller. Persistente echte Arbeitsablage/GUI-Bootstrap und sichere
+Ressourcen-Crash-Reconciliation fehlen weiterhin, kein Produktstart daraus ableiten.
 
 ## Abgrenzung zum geplanten Produktstart
 

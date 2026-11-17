@@ -294,16 +294,34 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
-Aktuell: [P2b · synthetischer Bootstrap](docs/testing/product-start-p2b-bootstrap.md). Produktstart
-P2b, 17. November: authentisierter synthetischer Workerbootstrap unter derselben Kontrollsperre,
-ohne GUI oder Importtask. Separate frische Probeprofile/-daten, keine ACL-Promotion der privaten
-P2a-Fixture. Commit/ProfileReady/Receiptabschluss bzw. kontrollierte Reconciliation persistiert;
-exakte Token-/Job-/Leaseprüfung vor Resume, eigener Einmalschlüssel statt Kontrollschlüssel,
-begrenzte Pipes mit monotoner Receiptfrist. Jobleerstand am gehaltenen Objekt vor Profilentfernung,
-unklare Crashressourcen bleiben gesperrt; keine automatische Crashbereinigung. `.kqboot` Probe-ABI
-1/UI-ABI 0, Legacy-/P2a-Marker unverändert. Vier neue Tests, 71 aktive Helfer-/Transporttests,
-gezielte Nachprüfung/Clippy grün. Drei finale native Fälle, 27 Kontrollprozesse, sechs Worker (vier
-Erfolge, eine MAC-Ablehnung, eine Sperre vor Resume), 30 private Zugriffssperren, sechs Probeprofile
+Aktuell: [Frischer P2b-Netzbeleg](docs/testing/product-start-p2b-bootstrap-etw.md). Frisches
+P2b-ETW, 17. November: unveränderter gesicherter Runtimebuild `590c3d4…`, zwei kurze gültige
+Messungen – Kontrollablagenreferenz und drei gezielte Workerfälle. 31 Controller, sechs Worker, 31
+direkt zugeordnete Controller-Konsolenhosts, alle 68 Enden explizit. Acht lokale
+TCP-/UDP-IPv4/IPv6-Kontrollen, Nullverluste/Zuordnungslücken, null beobachtete Netzereignisse in den
+gemessenen Bäumen (auch null Loopback). Worker normal/MAC-Ablehnung/Sperre vor Resume und neue
+Generationen mit Replay/Kopfabwehr; native Daten/MACs, Token/Job/Lease und sechs entfernte Profile
+unabhängig bestätigt. Rohdaten nur lokal, echte Vorschauablage unverändert. 42 Diagnose-Tests;
+zusätzlich reinen Modelltest für Linux-Clippy korrigiert (Accessor statt privater Set-Zugriff), acht
+gezielte Kernprüfungen/Clippy grün. Keine Runtimeänderung/neuer Build,
+App-/Transport-/Installerumbau oder Workspace-Gesamtlauf. Nächster Scope: gesicherte
+Ressourcen-Crash-Reconciliation der P2b-Probeprofile, insbesondere
+Profilerzeugung/ProfileReady/Entfernung/Abschlussrecord. Keine Adoption unklarer Profile oder
+Bestandsdaten; P2 insgesamt, P3–P5 und Produkt-Q-01/Q-02 offen. Striktes Datenschutzziel
+unverändert, keine Übertragung auf normale App oder ungemessene Pfade.
+
+Vorheriger funktionaler Stand:
+
+[P2b · synthetischer Bootstrap](docs/testing/product-start-p2b-bootstrap.md). Produktstart P2b, 17.
+November: authentisierter synthetischer Workerbootstrap unter derselben Kontrollsperre, ohne GUI
+oder Importtask. Separate frische Probeprofile/-daten, keine ACL-Promotion der privaten P2a-Fixture.
+Commit/ProfileReady/Receiptabschluss bzw. kontrollierte Reconciliation persistiert; exakte
+Token-/Job-/Leaseprüfung vor Resume, eigener Einmalschlüssel statt Kontrollschlüssel, begrenzte
+Pipes mit monotoner Receiptfrist. Jobleerstand am gehaltenen Objekt vor Profilentfernung, unklare
+Crashressourcen bleiben gesperrt; keine automatische Crashbereinigung. `.kqboot` Probe-ABI 1/UI-ABI
+0, Legacy-/P2a-Marker unverändert. Vier neue Tests, 71 aktive Helfer-/Transporttests, gezielte
+Nachprüfung/Clippy grün. Drei finale native Fälle, 27 Kontrollprozesse, sechs Worker (vier Erfolge,
+eine MAC-Ablehnung, eine Sperre vor Resume), 30 private Zugriffssperren, sechs Probeprofile
 entfernt; unabhängiger MAC-/PE-/Root-/Prozess-/Profilaudit grün. Echte Daten und Vorschauablage
 unverändert. Finaler Broker/Worker `590c3d4…`, Sicherung
 `kraqel-product-start-p2b-build-20261117-05`, mehrere vorherige Entwicklungsbuilds nicht angenommen.

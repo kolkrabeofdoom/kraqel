@@ -206,9 +206,10 @@ fn inconsistent_pending_or_nonempty_jobs_never_commit_a_launch() {
 #[test]
 fn committed_generation_precedes_running_and_normal_close_preserves_binding() {
     let mut state = model(8);
+    assert_eq!(state.used_launch(), None);
     state.commit(&parse(&proposal()), [10; 32], idle()).unwrap();
     assert_eq!(state.phase, ModelPhase::Committed(launch()));
-    assert!(state.used_launches.contains(&launch().id));
+    assert_eq!(state.used_launch(), Some(launch().id));
     rejected(&mut state, Rejection::Job, |s| {
         s.mark_running(launch(), [10; 32], idle())
     });

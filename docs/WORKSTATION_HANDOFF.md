@@ -7,7 +7,31 @@ Commitverlauf.
 
 ## Aktuelle Entwicklungsübergabe · 17. November 2026
 
-Neuester Stand: [P2b · synthetischer Bootstrap](testing/product-start-p2b-bootstrap.md).
+Neuester Stand: [Frischer P2b-Netzbeleg](testing/product-start-p2b-bootstrap-etw.md). Frisches
+P2b-ETW, 17. November: unveränderter gesicherter Runtimebuild `590c3d4…`, zwei kurze gültige
+Messungen – Kontrollablagenreferenz und drei gezielte Workerfälle. 31 Controller, sechs Worker, 31
+direkt zugeordnete Controller-Konsolenhosts, alle 68 Enden explizit. Acht lokale
+TCP-/UDP-IPv4/IPv6-Kontrollen, Nullverluste/Zuordnungslücken, null beobachtete Netzereignisse in den
+gemessenen Bäumen (auch null Loopback). Worker normal/MAC-Ablehnung/Sperre vor Resume und neue
+Generationen mit Replay/Kopfabwehr; native Daten/MACs, Token/Job/Lease und sechs entfernte Profile
+unabhängig bestätigt. Rohdaten nur lokal, echte Vorschauablage unverändert. 42 Diagnose-Tests;
+zusätzlich reinen Modelltest für Linux-Clippy korrigiert (Accessor statt privater Set-Zugriff), acht
+gezielte Kernprüfungen/Clippy grün. Keine Runtimeänderung/neuer Build,
+App-/Transport-/Installerumbau oder Workspace-Gesamtlauf. Nächster Scope: gesicherte
+Ressourcen-Crash-Reconciliation der P2b-Probeprofile, insbesondere
+Profilerzeugung/ProfileReady/Entfernung/Abschlussrecord. Keine Adoption unklarer Profile oder
+Bestandsdaten; P2 insgesamt, P3–P5 und Produkt-Q-01/Q-02 offen. Striktes Datenschutzziel
+unverändert, keine Übertragung auf normale App oder ungemessene Pfade.
+
+Gesicherter Runtimebuild bleibt `kraqel-product-start-p2b-build-20261117-05`, Runtimequellstand
+`4c26ba4`. Hashidentische Messkopie `etw-package/kraqel-isolation-probe.exe`; sechs separat kopierte
+`worker.exe` durch private Records/Hash/Kernelstarts abgeglichen. Lokale Capturepfade
+`%TEMP%/kraqel-p2b-etw-20261117-01-reference` und `…-worker`, keine Rohdaten nach GitHub. Kein neuer
+Runtimebuild für die reine Test-/Dokumentationskorrektur. Nächste Arbeit gezielt an
+P2b-Ressourcencrashes; echte `.kraqel-broker-preview` weiterhin nicht öffnen, zurücksetzen oder neue
+Brokerhashes dort autorisieren. Frühere Abschnitte beschreiben historische Gates.
+
+Vorheriger Stand: [P2b · synthetischer Bootstrap](testing/product-start-p2b-bootstrap.md).
 Produktstart P2b, 17. November: authentisierter synthetischer Workerbootstrap unter derselben
 Kontrollsperre, ohne GUI oder Importtask. Separate frische Probeprofile/-daten, keine ACL-Promotion
 der privaten P2a-Fixture. Commit/ProfileReady/Receiptabschluss bzw. kontrollierte Reconciliation

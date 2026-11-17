@@ -115,6 +115,11 @@ Forschungsprogramm aufrufen; niemals vorhandene private Storewurzeln einsetzen.
 
 ## Offene Freigabegates
 
+Inzwischen liegt der [eigene frische ETW-Vergleich](product-start-p2b-bootstrap-etw.md) für den
+exakt unten beschriebenen finalen Runtimehash vor. Zwei gültige Phasen, 31 Controller/sechs Worker,
+null beobachtete Netzereignisse. Die folgende Formulierung beschreibt das vorherige Gate nach der
+Implementierung; nächster aktueller Schritt ist die sichere Ressourcen-Crash-Reconciliation.
+
 Nächster begrenzter Schritt: **gezielter frischer ETW-Netzvergleich des finalen Controllers und
 seines separat gestarteten Workerpfads**, einschließlich der beiden Ablehnungen; keine allgemeine
 GUI-/Importmatrix. Kein eigener Netzbeleg für diesen Build vorhanden. Alte ETW-Belege für

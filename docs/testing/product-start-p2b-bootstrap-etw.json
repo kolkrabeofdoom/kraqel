@@ -1,0 +1,134 @@
+{
+  "formatVersion": 1,
+  "measuredRuntimeSourceCommit": "4c26ba4aeb20e51aa3cfd374b69909d4fa54b794",
+  "nativePreviewOnly": true,
+  "productionAcceptance": false,
+  "controllerAndWorkerSha256": "590c3d4261bfc5f261a38e63d0b974972b9f8e8e7fb7c671e7065eb8ce75364b",
+  "uiFixtureSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+  "networkMeasurement": true,
+  "unchangedCaptureAndAnalyzer": true,
+  "newRuntimeBuild": false,
+  "diagnosticTestsPassed": 42,
+  "targetedCoreTestsPassed": 8,
+  "helperClippyPassed": true,
+  "fullWorkspaceCheck": false,
+  "normalPreviewStoreUsed": false,
+  "normalPreviewLastWriteUnchanged": true,
+  "rawEvidencePublished": false,
+  "allOwnedTracesStopped": true,
+  "controllerProcesses": 31,
+  "workerProcesses": 6,
+  "consoleHosts": 31,
+  "explicitProcessStops": 68,
+  "positiveControlsObserved": 8,
+  "lostEvents": 0,
+  "lostBuffers": 0,
+  "unattributableNetworkEvents": 0,
+  "nonLoopbackEvents": 0,
+  "loopbackEvents": 0,
+  "independentLifecycleAndDataAuditPassed": true,
+  "profilesCreatedAndRemoved": 6,
+  "actualPrivateDenials": 30,
+  "uiStarts": 0,
+  "importTasksCreated": 0,
+  "phases": [
+    {
+      "phase": "reference",
+      "analysis": {
+        "formatVersion": 1,
+        "measurementMode": "native-control",
+        "measurementValid": true,
+        "measurementProblems": [],
+        "result": "no-non-loopback-traffic-observed",
+        "rootStarts": 4,
+        "explicitRootImageBindings": 4,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 4,
+          "conhost.exe": 4
+        },
+        "loss": {
+          "EventsLost": 0,
+          "BuffersLost": 0
+        },
+        "positiveControls": {
+          "expected": 4,
+          "observed": 4
+        },
+        "unattributableNetworkEvents": 0,
+        "unknownDestinationEvents": 0,
+        "networkEvents": [],
+        "nonLoopbackEvents": 0,
+        "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths. Out-of-tree COM/Shell services are not attributed by this process-tree measurement."
+      },
+      "lifecycle": {
+        "independentLifecycleAuditPassed": true,
+        "rootStarts": 4,
+        "nativeCallsMatched": 4,
+        "workersMatched": 0,
+        "explicitProcessStops": 8,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 4,
+          "conhost.exe": 4
+        },
+        "controllerExitCodes": {
+          "0": 4
+        },
+        "workerExitCodes": {},
+        "nativeDataAuditPassed": true
+      }
+    },
+    {
+      "phase": "worker",
+      "analysis": {
+        "formatVersion": 1,
+        "measurementMode": "native-control",
+        "measurementValid": true,
+        "measurementProblems": [],
+        "result": "no-non-loopback-traffic-observed",
+        "rootStarts": 27,
+        "explicitRootImageBindings": 27,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 27,
+          "conhost.exe": 27,
+          "worker.exe": 6
+        },
+        "loss": {
+          "EventsLost": 0,
+          "BuffersLost": 0
+        },
+        "positiveControls": {
+          "expected": 4,
+          "observed": 4
+        },
+        "unattributableNetworkEvents": 0,
+        "unknownDestinationEvents": 0,
+        "networkEvents": [],
+        "nonLoopbackEvents": 0,
+        "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths. Out-of-tree COM/Shell services are not attributed by this process-tree measurement."
+      },
+      "lifecycle": {
+        "independentLifecycleAuditPassed": true,
+        "rootStarts": 27,
+        "nativeCallsMatched": 27,
+        "workersMatched": 6,
+        "explicitProcessStops": 60,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 27,
+          "conhost.exe": 27,
+          "worker.exe": 6
+        },
+        "controllerExitCodes": {
+          "0": 19,
+          "1": 8
+        },
+        "workerExitCodes": {
+          "0": 4,
+          "1": 1,
+          "2": 1
+        },
+        "nativeDataAuditPassed": true
+      }
+    }
+  ],
+  "limits": "Only the captured controller/worker lifetimes and exercised synthetic paths. No normal product/UI/data grant or HTTP/upload/content/out-of-tree COM/Shell/DNS service attestation, no physical network disconnection. Strict product Q-01/Q-02 remain open."
+}

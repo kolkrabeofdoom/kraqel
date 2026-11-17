@@ -1,6 +1,23 @@
 # AppContainer-Forschungshelfer für KQ-069
 
-Aktuell: [P2b · synthetischer Workerbootstrap](../../docs/testing/product-start-p2b-bootstrap.md).
+Aktuell: [Frischer P2b-ETW-Beleg](../../docs/testing/product-start-p2b-bootstrap-etw.md). Frisches
+P2b-ETW, 17. November: unveränderter gesicherter Runtimebuild `590c3d4…`, zwei kurze gültige
+Messungen – Kontrollablagenreferenz und drei gezielte Workerfälle. 31 Controller, sechs Worker, 31
+direkt zugeordnete Controller-Konsolenhosts, alle 68 Enden explizit. Acht lokale
+TCP-/UDP-IPv4/IPv6-Kontrollen, Nullverluste/Zuordnungslücken, null beobachtete Netzereignisse in den
+gemessenen Bäumen (auch null Loopback). Worker normal/MAC-Ablehnung/Sperre vor Resume und neue
+Generationen mit Replay/Kopfabwehr; native Daten/MACs, Token/Job/Lease und sechs entfernte Profile
+unabhängig bestätigt. Rohdaten nur lokal, echte Vorschauablage unverändert. 42 Diagnose-Tests;
+zusätzlich reinen Modelltest für Linux-Clippy korrigiert (Accessor statt privater Set-Zugriff), acht
+gezielte Kernprüfungen/Clippy grün. Keine Runtimeänderung/neuer Build,
+App-/Transport-/Installerumbau oder Workspace-Gesamtlauf. Nächster Scope: gesicherte
+Ressourcen-Crash-Reconciliation der P2b-Probeprofile, insbesondere
+Profilerzeugung/ProfileReady/Entfernung/Abschlussrecord. Keine Adoption unklarer Profile oder
+Bestandsdaten; P2 insgesamt, P3–P5 und Produkt-Q-01/Q-02 offen. Striktes Datenschutzziel
+unverändert, keine Übertragung auf normale App oder ungemessene Pfade.
+
+Vorheriger Stand:
+[P2b · synthetischer Workerbootstrap](../../docs/testing/product-start-p2b-bootstrap.md).
 Produktstart P2b, 17. November: authentisierter synthetischer Workerbootstrap unter derselben
 Kontrollsperre, ohne GUI oder Importtask. Separate frische Probeprofile/-daten, keine ACL-Promotion
 der privaten P2a-Fixture. Commit/ProfileReady/Receiptabschluss bzw. kontrollierte Reconciliation

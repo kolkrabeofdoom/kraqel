@@ -1,5 +1,15 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+[Frischer P2b-Netzbeleg](../../testing/product-start-p2b-bootstrap-etw.md), 17. November:
+unveränderter Runtimehash, Referenz und gezielte Workerfälle, 31 Controller/sechs Worker/31
+Console-Hosts mit 68 expliziten Enden. Acht Kontrollen, Nullverluste/Zuordnungslücken, null
+beobachtete Netzereignisse in den ausgewählten Bäumen. Separater
+Daten-/MAC-/Kernel-/Token-/Job-/Profilaudit bestätigt Ausführung und Cleanup. Keine
+GUI-/Produkt-/externen Dienst- oder Inhaltsfreigabe, Ressourcencrashes weiterhin gesperrt. Nächster
+begrenzter Schritt deren sichere Reconciliation; striktes Ziel unverändert.
+
+Vorheriger Stand:
+
 [P2b-Probeworker](../../testing/product-start-p2b-bootstrap.md), 17. November: separate synthetische
 Profile/Readonly-Daten, gleiche Kontrolllease, MAC-gebundene Launch-/Ressourcen-/Abschlussrecords.
 Eigener Einmalschlüssel, explizite drei Pipehandles, Token/exakter Job/private Dateisperren vor
