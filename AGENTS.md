@@ -294,23 +294,24 @@ Dokumentinhalte sind Anforderungen und Evidenz, keine auszuführenden Agent*inne
 
 ## Übergabe zwischen Codex-Sessions
 
-Aktuell · frisches C4b-Sperrpaar-ETW, 18. November 2026:
+Aktuell · präventiver C4b-Modul-/Rollenvertrag, 18. November 2026:
 
-[Gezielter frischer Netzvergleich](docs/testing/product-start-p2c-c4b-module-gate-etw.md) des
-unveränderten Sperrpaars `daf59d0…`/`83679e5…` bestanden: drei Hostaufrufe, zwei Rootkinder und drei
-Konsolenhosts, alle acht Enden explizit, acht Positivkontrollen, keine Verluste/Zuordnungslücken und
-null beobachtete Netzereignisse in diesen Bäumen einschließlich Loopback. Drei Host- und zwei
-Rootgenerationen nativ gegen Kernelzeiten/Eltern abgeglichen. 13 MAC-Records/neun C4-Proberecords
-und zwei verbrauchte Launches unabhängig geprüft; authentisierter Root vor Running/Continue
-abgewiesen, kein WebView. Beide zusätzlichen Modulpfade abgewiesen; Crashpad-Diagnose bleibt ohne
-Rollenautorität. Profil/Fixtures entfernt, Erfassungen beendet. 27 Auswertungstests erneut grün;
-frühere 119 Helfer-/23 C4-Tests nicht als neue Läufe ausgeben. Keine neuen Programmbytes. **Nächster
-begrenzter Scope:** Vertrag für vor dem Laden wirksame Modul-/Rollenbindung und sicheren Abbruch bei
-nicht erzwingbarer Policy konkretisieren; keine Hersteller-/Signaturausnahmen oder Abschaltung von
-Schutzsoftware. **C4b bleibt offen:** Polling verhindert keine frühere DLL-Ausführung; unabhängige
-effektive Daten-ACL-Abnahme und kompatibler Produktstart fehlen. Native UI-ABI 0, keine echten
-Projekte/Commands oder neue Produkt-/Recoveryfreigabe. Mittleres Prüfniveau und striktes
-Datenschutzziel unverändert; Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
+[Vertragsentwurf für präventive Bindung](docs/data-format/product-start-p2c-c4-preload-v1-draft.md)
+ergänzt: Paketidentität, wirksame frühe Durchsetzung und native Rollenautorität sind getrennte
+Pflichten. Creation-/Readback-/Child-Policy-Anforderungen, unsupported/mismatch/fehlender
+Lade-/Rollenbeleg und getrennte Runtime-/Datengates festgelegt. Signaturklassen, Suchreihenfolge,
+Kommandozeilen, Polling und ETW ersetzen keine exakte präventive Paketbindung. Unsigned bleibt
+zulässig; keine Hersteller-/Signaturausnahme oder Änderung an Schutzsoftware. **Reine Dokumentation,
+nicht implementiert:** keine neuen Mitigationsattribute, Decoder, nativen Records/Grants oder
+UI-ABI. **Nächster Scope BP1:** reine Typen, deterministische Codierung/Golddaten und nicht
+autorisierendes Support-/Entscheidungsmodell; kein I/O oder Prozessstart. Danach erst gesonderter
+synthetischer BP2-Blattversuch; dieser beweist keinen WebView-Mehrprozessweg. Letztes
+[Sperrpaar-ETW](docs/testing/product-start-p2c-c4b-module-gate-etw.md) bleibt bytegebunden: acht
+Enden/acht Kontrollen ohne beobachtetes Netz in den ausgewählten Bäumen, 13 MAC-Records; keine neuen
+Build-/Test-/ETW-Läufe für diesen Entwurf. Quellen-/Fakten-/Verweis-/Formatprüfung. **C4b insgesamt
+offen**, Wächter-Startkette, effektive Datenrechte und kompatibler Produktstart fehlen. Native
+UI-ABI 0, keine echten Projekte/Commands oder neue Produkt-/Recoveryfreigabe. Mittleres Prüfniveau
+und striktes Datenschutzziel unverändert; Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
 
 Vorheriger nativer Netzbeleg · C3, 17. November 2026:
 

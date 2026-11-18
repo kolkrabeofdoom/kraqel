@@ -1,5 +1,9 @@
 # P2c C4b: frischer ETW-Netzvergleich des Sperrpaars
 
+Fortsetzung:
+[präventiver Modul-/Rollenvertrag](../data-format/product-start-p2c-c4-preload-v1-draft.md). Reiner
+Entwurf; die folgenden Programme und gemessenen Ergebnisse bleiben unverändert.
+
 Stand: 18. November 2026. **Gezielter Netzvergleich bestanden; keine Produktfreigabe.**
 [Bereinigte Aggregate](product-start-p2c-c4b-module-gate-etw.json),
 [Modulsperre und funktionaler Nachweis](product-start-p2c-c4b-module-gate.md). Mittleres Prüfniveau

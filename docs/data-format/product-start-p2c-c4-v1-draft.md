@@ -1,31 +1,37 @@
 # P2c C4: Runtime-Paketbindung und minimale isolierte Oberfläche
 
-Aktuell · frisches C4b-Sperrpaar-ETW, 18. November 2026:
+Aktuell · präventiver C4b-Modul-/Rollenvertrag, 18. November 2026:
 
-[Gezielter frischer Netzvergleich](../testing/product-start-p2c-c4b-module-gate-etw.md) des
-unveränderten Sperrpaars `daf59d0…`/`83679e5…` bestanden: drei Hostaufrufe, zwei Rootkinder und drei
-Konsolenhosts, alle acht Enden explizit, acht Positivkontrollen, keine Verluste/Zuordnungslücken und
-null beobachtete Netzereignisse in diesen Bäumen einschließlich Loopback. Drei Host- und zwei
-Rootgenerationen nativ gegen Kernelzeiten/Eltern abgeglichen. 13 MAC-Records/neun C4-Proberecords
-und zwei verbrauchte Launches unabhängig geprüft; authentisierter Root vor Running/Continue
-abgewiesen, kein WebView. Beide zusätzlichen Modulpfade abgewiesen; Crashpad-Diagnose bleibt ohne
-Rollenautorität. Profil/Fixtures entfernt, Erfassungen beendet. 27 Auswertungstests erneut grün;
-frühere 119 Helfer-/23 C4-Tests nicht als neue Läufe ausgeben. Keine neuen Programmbytes. **Nächster
-begrenzter Scope:** Vertrag für vor dem Laden wirksame Modul-/Rollenbindung und sicheren Abbruch bei
-nicht erzwingbarer Policy konkretisieren; keine Hersteller-/Signaturausnahmen oder Abschaltung von
-Schutzsoftware. **C4b bleibt offen:** Polling verhindert keine frühere DLL-Ausführung; unabhängige
-effektive Daten-ACL-Abnahme und kompatibler Produktstart fehlen. Native UI-ABI 0, keine echten
-Projekte/Commands oder neue Produkt-/Recoveryfreigabe. Mittleres Prüfniveau und striktes
-Datenschutzziel unverändert; Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
+[Vertragsentwurf für präventive Bindung](../data-format/product-start-p2c-c4-preload-v1-draft.md)
+ergänzt: Paketidentität, wirksame frühe Durchsetzung und native Rollenautorität sind getrennte
+Pflichten. Creation-/Readback-/Child-Policy-Anforderungen, unsupported/mismatch/fehlender
+Lade-/Rollenbeleg und getrennte Runtime-/Datengates festgelegt. Signaturklassen, Suchreihenfolge,
+Kommandozeilen, Polling und ETW ersetzen keine exakte präventive Paketbindung. Unsigned bleibt
+zulässig; keine Hersteller-/Signaturausnahme oder Änderung an Schutzsoftware. **Reine Dokumentation,
+nicht implementiert:** keine neuen Mitigationsattribute, Decoder, nativen Records/Grants oder
+UI-ABI. **Nächster Scope BP1:** reine Typen, deterministische Codierung/Golddaten und nicht
+autorisierendes Support-/Entscheidungsmodell; kein I/O oder Prozessstart. Danach erst gesonderter
+synthetischer BP2-Blattversuch; dieser beweist keinen WebView-Mehrprozessweg. Letztes
+[Sperrpaar-ETW](../testing/product-start-p2c-c4b-module-gate-etw.md) bleibt bytegebunden: acht
+Enden/acht Kontrollen ohne beobachtetes Netz in den ausgewählten Bäumen, 13 MAC-Records; keine neuen
+Build-/Test-/ETW-Läufe für diesen Entwurf. Quellen-/Fakten-/Verweis-/Formatprüfung. **C4b insgesamt
+offen**, Wächter-Startkette, effektive Datenrechte und kompatibler Produktstart fehlen. Native
+UI-ABI 0, keine echten Projekte/Commands oder neue Produkt-/Recoveryfreigabe. Mittleres Prüfniveau
+und striktes Datenschutzziel unverändert; Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
 
-Status: **Vertragsentwurf v1, 17. November 2026; C4a-Modellkern implementiert/geprüft, native
-UI-Integration und Abnahme offen.**
+Status: **Vertragsentwurf v1, ergänzt am 18. November 2026; C4a-Modellkern implementiert/geprüft,
+native UI-Integration und Abnahme offen.**
 [C4a-Nachweis und genaue Codierung](../testing/product-start-p2c-c4a-model.md). Ergänzt den
 [P2c-Vertrag](product-start-p2c-v1-draft.md), den
 [Produktstartvertrag](product-start-integration-v1-draft.md) und
 [ADR 0034](../architecture/decisions/0034-webview-network-boundary-proposal.md). MUSS bezeichnet
 eine Implementierungsanforderung. Dieser Entwurf erteilt keine neue Start-, Datei-, Netzwerk- oder
 Migrationsautorität. Striktes Datenschutzziel und Produkt-Q-01/Q-02 unverändert.
+
+Der [präventive Modul-/Rollenvertrag](product-start-p2c-c4-preload-v1-draft.md) konkretisiert
+Creation-/Readback-Anforderungen, unbewiesene Paketbindung, separate Runtime-/Datenzulassung und
+zwingende Ablehnungen. Er ist ein zusätzlicher Entwurf, keine implementierte Erweiterung der
+aktuellen C4a-V1-Codierung, nativen Storeversion oder Startautorität.
 
 ## 1. Ausgangspunkt und erster Lieferumfang
 
@@ -149,17 +155,21 @@ Inhalte werden nicht bei jedem Start als unveränderlicher Paketdigest behandelt
    Diese Simulationsrecords sind keine nativen Lebenszyklusbelege; deren
    Persistenz-/Peer-/Root-/Rollenintegration und explizite alte Leserabwehr bleiben C4b.
 3. Root suspendiert atomar im eigenen Job erzeugen. Image/Token, native PID/Erzeugungszeit,
-   Handleliste, Profil, null Netzwerk-Capabilities und Jobpolicy prüfen; RootBound vor Resume.
+   Handleliste, Profil, null Netzwerk-Capabilities, Jobpolicy und erforderliche wirksame frühe
+   Lade-/Startbeschränkungen prüfen; RootBound vor Resume. Fehlende präventive Modul-/Rollenbindung
+   sperrt gemäß ergänzendem Vertrag. Eine nachträgliche Modulaufnahme schließt diese Lücke nicht.
 4. Root validiert den vollständigen Startgrant vor Framework-, DB- und WebViewinitialisierung.
-   Wächter persistiert Accepted/Running vor authentisiertem Continue. Erst danach gebundene
-   synthetische Daten öffnen. Die normale `run()`-Funktion ist kein Ersatzpfad.
+   Wächter persistiert Accepted/Running vor authentisiertem Continue. Dies allein erlaubt keine
+   Projektöffnung: erst nach zusätzlicher belegter Runtime-/Rollen-/Datenzulassung gemäß Schritt 6
+   gebundene synthetische Projektdaten öffnen. Die normale `run()`-Funktion ist kein Ersatzpfad.
 5. Runtime erstellen, ohne Netzwerk-/Loopback-Ausnahme, Breakaway oder Sandbox-Abschaltung.
    Ausschließlich belegte Rollen/Images/Argumentpolicies; verschachtelte Jobs erhalten die äußere
    Wächterbindung. Die C3-Grenze 2 darf nicht einfach entfernt werden. Fehlender Rollenbeleg oder
    Prozessbudgetüberschreitung führt zum kontrollierten Ende der eigenen gesamten Gruppe.
-6. Vor Textfreigabe und Commandaktivierung tatsächliche Runtimeauswahl und alle bis dahin
-   entstandenen Rollen abgleichen. Später entstehende Rollen bleiben ebenfalls überwacht. Tokens
-   können durch die Runtime weiter eingeschränkt sein; erforderlich sind belegte effektive
+6. Vor Projektöffnung, Textfreigabe und Commandaktivierung tatsächliche Runtimeauswahl und alle bis
+   dahin entstandenen Rollen abgleichen sowie effektive Datenrechte prüfen. Präventive Durchsetzung
+   MUSS auch für zukünftige Rollen/Nachladungen bestehen; spätere Beobachtung allein reicht nicht.
+   Tokens können durch die Runtime weiter eingeschränkt sein; erforderlich sind belegte effektive
    Beschränkungen, nicht ungeprüft identische Profil-SIDs aller Kinder.
 7. Beim Schließen Commands sperren und Transaktionen beenden; Root-Ende gibt keinen Workspace frei.
    Wächter hält Lease/Job bis zum nativen Leerstand derselben kontinuierlich gehaltenen Jobinstanz,
@@ -239,10 +249,11 @@ erforderlich für geänderte tatsächlich gestartete Binaries, nicht für diesen
 bereinigte Aggregate nach Git, Rohdaten/Schlüssel/IDs lokal. Außerhalb des Baums laufende
 COM-/Shell-/Systemdienste bleiben eine eigene Nachweisgrenze.
 
-Der ursprüngliche Vertragsstand war reine Dokumentation. Inzwischen ist C4a als reiner Modellkern
-mit zwölf neuen Tests (108 aktive Helfer-/Transporttests insgesamt) und Clippy/rustfmt geprüft. Kein
-nativer C4-Start, keine neue UI/Runtimeversion, Paketautorität, Migration oder eigene
-ETW-/Produktabnahme. Als Nächstes folgt C4b mit nativer Paket-/Overrideprüfung und belegbarem
-eingeschränktem Mehrprozess-Erzeugungsweg. Gesamtschätzung unverändert etwa 65 %, nutzbarer
-0.1-Umfang etwa 80 %; keine Zeit- oder Produktionsreifequote. P2 insgesamt, P3–P5,
+Historisch wurde C4a als reiner Modellkern mit zwölf neuen Tests geprüft. Inzwischen sind native
+C4b-Vorprüfung, leerer Forschungs-Root-/Runtimepfad, Modulsperre und die jeweils bytegebundenen
+ETW-Nachweise ergänzt; aktuelle Belege stehen oben. Das ist keine native produktive UI-/
+Projektfreigabe. Der zusätzliche präventive Vertrag ist reine Dokumentation; als Nächstes BP1 mit
+reinen Typen/Codierung und nicht autorisierendem Entscheidungsmodell. Keine neue Testzahl, native
+Policyumsetzung, Migration oder ETW-Abnahme aus diesem Entwurf. Gesamtschätzung unverändert etwa 65
+%, nutzbarer 0.1-Umfang etwa 80 %; keine Zeit- oder Produktionsreifequote. C4b insgesamt, P2, P3–P5,
 Langzeit-Kontrollstore und Produkt-Q-01/Q-02 bleiben offen.

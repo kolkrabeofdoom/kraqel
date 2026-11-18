@@ -1,20 +1,26 @@
 # P2c: persistente Arbeitsdaten, Paketbindung und Mehrprozess-UI
 
-[C4b-Root-/WebView-Probe](../testing/product-start-p2c-c4b-root-bootstrap.md) ergänzt
-authentisierten Rootbootstrap und den tatsächlichen leeren Runtime-Kindpfad unter derselben
-Kontrollsperre. Eigene versionierte C4-Probeactions, keine produktiven UI-Records/Startgrants;
-native UI-ABI bleibt 0. C4b insgesamt bleibt offen: zwei API-unzugeordnete Generationen und
-vollständige Runtime-/Nichtsystemmodul-/ effektive Rollenbindung vor Text-/Commandfreigabe, danach
-eigener frischer Netzbeleg.
+Aktuell · präventiver C4b-Modul-/Rollenvertrag, 18. November 2026:
 
-Der C4-Vertrag ist durch den [reinen C4a-Modellkern](../testing/product-start-p2c-c4a-model.md)
-ergänzt: Paket-/Policytypen, deterministische Codierung und versionierter Lebenszyklus, zwölf neue
-Tests. Keine native UI-/Startautorität; native UI-ABI bleibt 0. Nächster Schritt ist C4b mit nativer
-Paket-/Overrideprüfung und belegbarem eingeschränktem Mehrprozess-Erzeugungsweg. C3-Bytes und deren
-eigener ETW-Beleg bleiben separat unverändert.
+[Vertragsentwurf für präventive Bindung](../data-format/product-start-p2c-c4-preload-v1-draft.md)
+ergänzt: Paketidentität, wirksame frühe Durchsetzung und native Rollenautorität sind getrennte
+Pflichten. Creation-/Readback-/Child-Policy-Anforderungen, unsupported/mismatch/fehlender
+Lade-/Rollenbeleg und getrennte Runtime-/Datengates festgelegt. Signaturklassen, Suchreihenfolge,
+Kommandozeilen, Polling und ETW ersetzen keine exakte präventive Paketbindung. Unsigned bleibt
+zulässig; keine Hersteller-/Signaturausnahme oder Änderung an Schutzsoftware. **Reine Dokumentation,
+nicht implementiert:** keine neuen Mitigationsattribute, Decoder, nativen Records/Grants oder
+UI-ABI. **Nächster Scope BP1:** reine Typen, deterministische Codierung/Golddaten und nicht
+autorisierendes Support-/Entscheidungsmodell; kein I/O oder Prozessstart. Danach erst gesonderter
+synthetischer BP2-Blattversuch; dieser beweist keinen WebView-Mehrprozessweg. Letztes
+[Sperrpaar-ETW](../testing/product-start-p2c-c4b-module-gate-etw.md) bleibt bytegebunden: acht
+Enden/acht Kontrollen ohne beobachtetes Netz in den ausgewählten Bäumen, 13 MAC-Records; keine neuen
+Build-/Test-/ETW-Läufe für diesen Entwurf. Quellen-/Fakten-/Verweis-/Formatprüfung. **C4b insgesamt
+offen**, Wächter-Startkette, effektive Datenrechte und kompatibler Produktstart fehlen. Native
+UI-ABI 0, keine echten Projekte/Commands oder neue Produkt-/Recoveryfreigabe. Mittleres Prüfniveau
+und striktes Datenschutzziel unverändert; Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
 
-Status: **Vertragsentwurf v1, 17. November 2026; C1-Modell, native C2-Datenvorbereitung und
-synthetischer C3-Mehrprozess-Kern implementiert, UI-Umsetzung und Abnahme offen.**
+Status: **Vertragsentwurf v1, ergänzt am 18. November 2026; C1-Modell, native C2-Datenvorbereitung
+und synthetischer C3-Mehrprozess-Kern implementiert, UI-Umsetzung und Abnahme offen.**
 [C1-Nachweis](../testing/product-start-p2c-model.md),
 [C2-Nachweis](../testing/product-start-p2c-native-data.md),
 [C3-Nachweis](../testing/product-start-p2c-group-bootstrap.md). Ergänzt den
@@ -277,5 +283,6 @@ getestet. Der normale Appstart und seine Befehle sind nicht integriert. Für den
 [frisches ETW](../testing/product-start-p2c-native-data-etw.md) ergänzt; alle Netzbelege behalten
 ihre exakten Buildgrenzen. C3 ist inzwischen im synthetischen Umfang implementiert;
 [dessen eigener frischer Netzbeleg](../testing/product-start-p2c-group-bootstrap-etw.md) ist
-ergänzt. Der C4-Vertrag ist oben ergänzt; C4a ist oben belegt, C4b folgt als nativer Schritt. Die
-gesamte P2c-Implementierung und Produktabnahme sind weiterhin offen.
+ergänzt. C4a und begrenzte native C4b-Start-/Sperrnachweise sind oben verlinkt; der neue präventive
+Vertrag bleibt reine Dokumentation. Als Nächstes BP1 ohne native Autorität, keine
+C4c-/Produktfreigabe. P2c insgesamt und Produktabnahme sind weiterhin offen.

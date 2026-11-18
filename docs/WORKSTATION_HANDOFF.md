@@ -11,33 +11,41 @@ Commitverlauf.
 
 Arbeitsbranch **`feat/kq-069-live-file-selection`**,
 [Draft-PR #142](https://github.com/kolkrabeofdoom/kraqel/pull/142). `git pull --ff-only` zu Beginn
-dieser Sitzung: aktuell/sauber. CI von `59d059e`: Dependency Review grün, Windows/Linux beim
-Messabschluss noch laufend; neue Head-CI gesondert prüfen. Kein Merge, Release oder Produktstart
+dieser Sitzung: aktuell/sauber. CI von `a5a4b1b`: Dependency Review grün, Windows/Linux beim
+Vertragsabschluss noch laufend; neue Head-CI gesondert prüfen. Kein Merge, Release oder Produktstart
 daraus.
 
-Aktuell · frisches C4b-Sperrpaar-ETW, 18. November 2026:
+Aktuell · präventiver C4b-Modul-/Rollenvertrag, 18. November 2026:
 
-[Gezielter frischer Netzvergleich](testing/product-start-p2c-c4b-module-gate-etw.md) des
-unveränderten Sperrpaars `daf59d0…`/`83679e5…` bestanden: drei Hostaufrufe, zwei Rootkinder und drei
-Konsolenhosts, alle acht Enden explizit, acht Positivkontrollen, keine Verluste/Zuordnungslücken und
-null beobachtete Netzereignisse in diesen Bäumen einschließlich Loopback. Drei Host- und zwei
-Rootgenerationen nativ gegen Kernelzeiten/Eltern abgeglichen. 13 MAC-Records/neun C4-Proberecords
-und zwei verbrauchte Launches unabhängig geprüft; authentisierter Root vor Running/Continue
-abgewiesen, kein WebView. Beide zusätzlichen Modulpfade abgewiesen; Crashpad-Diagnose bleibt ohne
-Rollenautorität. Profil/Fixtures entfernt, Erfassungen beendet. 27 Auswertungstests erneut grün;
-frühere 119 Helfer-/23 C4-Tests nicht als neue Läufe ausgeben. Keine neuen Programmbytes. **Nächster
-begrenzter Scope:** Vertrag für vor dem Laden wirksame Modul-/Rollenbindung und sicheren Abbruch bei
-nicht erzwingbarer Policy konkretisieren; keine Hersteller-/Signaturausnahmen oder Abschaltung von
-Schutzsoftware. **C4b bleibt offen:** Polling verhindert keine frühere DLL-Ausführung; unabhängige
-effektive Daten-ACL-Abnahme und kompatibler Produktstart fehlen. Native UI-ABI 0, keine echten
-Projekte/Commands oder neue Produkt-/Recoveryfreigabe. Mittleres Prüfniveau und striktes
-Datenschutzziel unverändert; Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
+[Vertragsentwurf für präventive Bindung](data-format/product-start-p2c-c4-preload-v1-draft.md)
+ergänzt: Paketidentität, wirksame frühe Durchsetzung und native Rollenautorität sind getrennte
+Pflichten. Creation-/Readback-/Child-Policy-Anforderungen, unsupported/mismatch/fehlender
+Lade-/Rollenbeleg und getrennte Runtime-/Datengates festgelegt. Signaturklassen, Suchreihenfolge,
+Kommandozeilen, Polling und ETW ersetzen keine exakte präventive Paketbindung. Unsigned bleibt
+zulässig; keine Hersteller-/Signaturausnahme oder Änderung an Schutzsoftware. **Reine Dokumentation,
+nicht implementiert:** keine neuen Mitigationsattribute, Decoder, nativen Records/Grants oder
+UI-ABI. **Nächster Scope BP1:** reine Typen, deterministische Codierung/Golddaten und nicht
+autorisierendes Support-/Entscheidungsmodell; kein I/O oder Prozessstart. Danach erst gesonderter
+synthetischer BP2-Blattversuch; dieser beweist keinen WebView-Mehrprozessweg. Letztes
+[Sperrpaar-ETW](testing/product-start-p2c-c4b-module-gate-etw.md) bleibt bytegebunden: acht
+Enden/acht Kontrollen ohne beobachtetes Netz in den ausgewählten Bäumen, 13 MAC-Records; keine neuen
+Build-/Test-/ETW-Läufe für diesen Entwurf. Quellen-/Fakten-/Verweis-/Formatprüfung. **C4b insgesamt
+offen**, Wächter-Startkette, effektive Datenrechte und kompatibler Produktstart fehlen. Native
+UI-ABI 0, keine echten Projekte/Commands oder neue Produkt-/Recoveryfreigabe. Mittleres Prüfniveau
+und striktes Datenschutzziel unverändert; Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
 
-Nächster Schritt: **C4b-Vertrag für eine vor dem Laden wirksame Modul-/Rollenbindung** und sicheren
-Abbruch bei nicht erzwingbarer Policy ausarbeiten. Die neue Modulsperre ist kein Nachweis gegen
-bereits erfolgte DLL-Ausführung. Keine Hersteller-/Signaturausnahme, Abschaltung von Schutzsoftware
-oder neue Text-/Commandfreigabe. Effektive Datenrechte und kompatibler Produktstart bleiben offen;
-C4c/d nicht vorziehen.
+Nächster Schritt **BP1**: `PreloadPolicyV1`, Rollenregeln, Support-/Witness-/Entscheidungsmodell als
+reine Typen entwickeln, deterministische domänenseparierte Codierung und Golden-Bytes im Code und
+Vertrag ergänzen. 16-KiB-/Rollen-/Instanzgrenzen, unbekannte/widersprüchliche Regeln,
+Pflichtbits/Support, Kontextwechsel, fehlende Modul-/Rollenbelege und Replay prüfen. Modellwitnesses
+erteilen keine nativen Grants. Keine Windows-I/O-, CLI-, Runtime-, DB- oder UI-Aktivierung;
+bestehende C4a-V1-Codierung/Schema 6/ABI 0 nicht umdeuten.
+
+BP2 ist erst danach ein getrennter synthetischer Blattprozess-Fähigkeitsversuch ohne Projektdaten;
+kein Beweis der noch offenen präventiven WebView-Rollen-/Ladebindung. BP3/BP4 und C4c/d bleiben
+gesperrt, solange die jeweiligen nativen Voraussetzungen fehlen. Nicht unterstützte Pflichtregeln
+sperren; kein Maskieren, Auditfallback oder Kompatibilitätsbypass. Vorprüfungsabweisung verändert
+keinen Head; nach Launchreservierung bleibt der Auftrag verbraucht. Unsigned bleibt zulässig.
 
 Exaktes Paar weiter `%TEMP%/kraqel-c4b-module-gate-20261118-03/`: Root `daf59d0…`,
 Host-Testcontroller `83679e5…`, funktionaler Bericht `run-functional.json`, neuer gemessener Bericht
@@ -50,7 +58,7 @@ aktiven Store oder wiederverwendbaren Grant übernehmen. Alte Nachweise/Bytepaar
 Runtimequelle weiter `%TEMP%/kraqel-c4-runtime-20261117-01/expanded/`; CAB-Sicherung unverändert
 unter `artifacts/session-close-20261117-01/`. Bei TEMP-Verlust eigenes gesichertes CAB entpacken und
 Manifesthashes prüfen. Keine echten Projekte/echte Vorschauablage starten und Pending nicht
-reparieren. Keine neue Build-/Crashmatrix für diesen Messabschluss.
+reparieren. Für diesen reinen Vertrag keine neuen Programme/Prozesse, Builds, Tests oder ETW-Läufe.
 
 Gemessene Prozesse beendet, Testprofil/Daten-/Kontrollfixtures entfernt; beide eigenen Erfassungen
 gestoppt/konvertiert und eigener Supervisor beendet. Bestehende Systemerfassungen nicht angefasst.

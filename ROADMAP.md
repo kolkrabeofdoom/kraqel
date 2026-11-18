@@ -57,13 +57,16 @@ authentisierten Root vor Continue/WebView. Beide zusätzlichen Modulpfade abgewi
 unabhängig geprüft.
 [Frisches ETW des Sperrpaars](docs/testing/product-start-p2c-c4b-module-gate-etw.md) bestanden: acht
 explizite Enden/acht Kontrollen, keine Verluste/Zuordnungslücken oder beobachteten Netzereignisse in
-diesen Bäumen; 27 Auswertungstests erneut grün, kein neuer Build. Nächster Scope: Vertrag für vor
-dem Laden wirksame Modul-/Rollenbindung. C4b bleibt offen: vollständige
-Runtime-/Nichtsystemmodul-/effektive Rollenbindung vor Datenfreigabe und effektive Datenrechte;
-ungebundene Starts, mehrprozessige GUI-Lebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung
-bleiben offen. P3 Bestandskopie sowie P4/P5 normale App-/Launcher-/Installerintegration und
-Produktabnahme folgen. Die normalen Produkt-Q-01/Q-02 bleiben offen; der neue Forschungsnetzbeleg
-ersetzt dieses Gate nicht. Das strikte Datenschutzziel bleibt unverändert.
+diesen Bäumen; 27 Auswertungstests erneut grün, kein neuer Build.
+[Präventiver Modul-/Rollenvertrag](docs/data-format/product-start-p2c-c4-preload-v1-draft.md) jetzt
+als Entwurf ergänzt; keine neue Implementierung/Prüfabnahme. Nächster Scope BP1: reine Typen,
+deterministische Codierung und nicht autorisierendes Support-/Entscheidungsmodell. C4b bleibt offen:
+vollständige Runtime-/Nichtsystemmodul-/effektive Rollenbindung vor Datenfreigabe und effektive
+Datenrechte; ungebundene Starts, mehrprozessige GUI-Lebenszeiten und persistente echte
+Arbeitsablagen-/UI-Bindung bleiben offen. P3 Bestandskopie sowie P4/P5 normale
+App-/Launcher-/Installerintegration und Produktabnahme folgen. Die normalen Produkt-Q-01/Q-02
+bleiben offen; der neue Forschungsnetzbeleg ersetzt dieses Gate nicht. Das strikte Datenschutzziel
+bleibt unverändert.
 
 ## M0 - Fundament (abgeschlossen)
 
@@ -296,8 +299,11 @@ ersetzt dieses Gate nicht. Das strikte Datenschutzziel bleibt unverändert.
        - [x] KQ-069 A:
              [gezieltes frisches ETW des C4b-Sperrpaars](docs/testing/product-start-p2c-c4b-module-gate-etw.md),
              acht Enden/acht Kontrollen ohne beobachtetes Netz, kein neuer Build
-       - [ ] KQ-069 A: Vertrag für vor dem Laden wirksame Modul-/Rollenbindung und sicheren Abbruch
-             bei nicht erzwingbarer Policy konkretisieren
+       - [x] KQ-069 A:
+             [Vertragsentwurf präventive Modul-/Rollenbindung](docs/data-format/product-start-p2c-c4-preload-v1-draft.md),
+             keine Implementierung oder native Freigabe
+       - [ ] KQ-069 A: BP1 reine Typen, deterministische Codierung und nicht autorisierendes
+             Support-/Entscheidungsmodell; BP2-Blattversuch erst danach, WebView-/Datengates offen
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native
              Rollenbindung und effektive Datenrechte; neue Bytes erneut messen; anschließend C4c/d
              WebView/SQLite unter belegtem Rollen-/Token-/Jobvertrag getrennt integrieren;
