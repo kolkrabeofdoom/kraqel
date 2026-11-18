@@ -25,6 +25,14 @@ pub(super) struct CandidatePins {
     module_ids: std::collections::BTreeSet<(u64, [u8; 16])>,
 }
 
+/// BP3 admission boundary, not an OS capability query or a configurable policy assertion.
+/// No supported exact pre-execution module AND WebView role mechanism is implemented.
+/// File pins, snapshots, BP1 simulations and BP2 mitigation readback cannot satisfy this gate.
+/// Intentionally no success variant, caller-supplied witness, override or diagnostic bypass.
+fn require_preventive_runtime() -> Result<()> {
+    Err(invalid("c4-preload-mechanism-unavailable"))
+}
+
 #[cfg(test)]
 pub(super) fn test_module_paths(pins: &CandidatePins, paths: &[PathBuf]) -> Result<Vec<Value>> {
     let policy = module_policy::Policy::new(pins.module_ids.clone())?;

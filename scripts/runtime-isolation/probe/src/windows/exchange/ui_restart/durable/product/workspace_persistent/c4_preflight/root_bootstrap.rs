@@ -281,6 +281,9 @@ fn receive(f: &mut fs::File, deadline: Instant) -> Result<Vec<u8>> {
 }
 
 pub(in crate::windows) fn worker(args: &[OsString]) -> Result<()> {
+    // Also reject a direct/old-controller entry before acquiring untrusted raw handles.
+    // Old saved binaries retain their historical behavior; this reader grants nothing.
+    require_preventive_runtime()?;
     if args.len() != 4 {
         return Err(invalid("c4-worker-arguments"));
     }
@@ -390,6 +393,21 @@ pub(in crate::windows) fn worker(args: &[OsString]) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn bp3_worker_and_runtime_deny_before_handle_or_filesystem_use() {
+        let stage = "c4-preload-mechanism-unavailable";
+        for args in [vec![], vec![OsString::from("not-a-handle"); 4]] {
+            assert_eq!(worker(&args).unwrap_err().stage, stage);
+        }
+        // Empty paths would denote the current directory if used. The call must be denied
+        // before COM/window/runtime initialization, regardless of a caller's path claims.
+        assert_eq!(
+            runtime::blank(Path::new(""), Path::new(""))
+                .unwrap_err()
+                .stage,
+            stage
+        );
+    }
     #[test]
     fn c4_root_frames_are_domain_bound_and_reject_tampering() {
         let a = Ack {

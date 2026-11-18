@@ -343,6 +343,9 @@ pub(in super::super::super) fn run(
     store: &mut Store,
     bad_mac: bool,
 ) -> Result<Value> {
+    // Reject before profile/ACL/pipe/job creation or durable launch consumption. The retained
+    // historical observation code below must not become a fallback for missing prevention.
+    require_preventive_runtime()?;
     let actor = hash(&io("c4-root-self", std::env::current_exe())?)?;
     store.c2_guard(actor, store.state.head)?;
     let _base = store.verify_c2(actor, store.state.head)?;

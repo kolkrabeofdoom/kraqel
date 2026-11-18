@@ -37,6 +37,8 @@ fn wait<T>(rx: std::sync::mpsc::Receiver<windows::core::Result<T>>) -> Result<T>
     }
 }
 pub(super) fn blank(runtime: &Path, data: &Path) -> Result<Value> {
+    // Defense in depth: no direct internal call may skip BP3, even for a blank WebView.
+    require_preventive_runtime()?;
     win(
         "c4-webview-com",
         unsafe {

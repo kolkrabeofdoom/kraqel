@@ -61,13 +61,18 @@ diesen Bäumen; 27 Auswertungstests erneut grün, kein neuer Build.
 [Präventiver Modul-/Rollenvertrag](docs/data-format/product-start-p2c-c4-preload-v1-draft.md) jetzt
 als nativer Zielvertrag ergänzt. [BP1](docs/testing/product-start-p2c-bp1-model.md) implementiert
 inzwischen reine Typen, vier deterministische Modellformate und nicht autorisierendes Modell: 14
-neue Tests/133 aktive Helfertests und Clippy bestanden. Nächster Scope BP2: gesonderter nativer
-Blattversuch, keine Runtime-/Datenfreigabe. C4b bleibt offen: vollständige
-Runtime-/Nichtsystemmodul-/effektive Rollenbindung vor Datenfreigabe und effektive Datenrechte;
-ungebundene Starts, mehrprozessige GUI-Lebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung
-bleiben offen. P3 Bestandskopie sowie P4/P5 normale App-/Launcher-/Installerintegration und
-Produktabnahme folgen. Die normalen Produkt-Q-01/Q-02 bleiben offen; der neue Forschungsnetzbeleg
-ersetzt dieses Gate nicht. Das strikte Datenschutzziel bleibt unverändert.
+neue Tests/133 aktive Helfertests und Clippy bestanden.
+[BP2-Blattversuch samt eigenem ETW](docs/testing/product-start-p2c-bp2-native-leaf.md) ist
+inzwischen geprüft. Die
+[BP3-Machbarkeitsprüfung/Startsperre](docs/testing/product-start-p2c-bp3-admission.md) ist ergänzt:
+138 aktive Tests, frühe Abweisung auch gültiger C4-Kandidaten ohne belegten Mechanismus. BP3
+insgesamt offen; nächster begrenzter Scope ist eine separate synthetische Debug-Wächter-Probe, keine
+Runtime-/Datenfreigabe. C4b bleibt offen: vollständige Runtime-/Nichtsystemmodul-/effektive
+Rollenbindung vor Datenfreigabe und effektive Datenrechte; ungebundene Starts, mehrprozessige
+GUI-Lebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung bleiben offen. P3 Bestandskopie
+sowie P4/P5 normale App-/Launcher-/Installerintegration und Produktabnahme folgen. Die normalen
+Produkt-Q-01/Q-02 bleiben offen; der neue Forschungsnetzbeleg ersetzt dieses Gate nicht. Das strikte
+Datenschutzziel bleibt unverändert.
 
 ## M0 - Fundament (abgeschlossen)
 
@@ -308,8 +313,12 @@ ersetzt dieses Gate nicht. Das strikte Datenschutzziel bleibt unverändert.
        - [x] KQ-069 A:
              [BP2 nativer Blattversuch und eigenes ETW](docs/testing/product-start-p2c-bp2-native-leaf.md),
              Readback/Kindablehnung 367, drei neue Tests/136 insgesamt, kein Runtime-/Datengrant
+       - [x] KQ-069 A:
+             [BP3-Vorprüfung und native Startsperre](docs/testing/product-start-p2c-bp3-admission.md),
+             zwei aktive Regressionen/138 Tests, keine positive präventive Bindung oder neues ETW
        - [ ] KQ-069 A: BP3 unterstützten präventiven Wächter-/Modul-/Rollen-Erzeugungsweg und
-             Machbarkeit konkret nachweisen, BP4 effektive Datenrechte/Commands weiter offen
+             Machbarkeit konkret nachweisen; zunächst synthetische
+             Debug-Wächter-/Debugketten-Gegenprobe, BP4 effektive Datenrechte/Commands weiter offen
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native
              Rollenbindung und effektive Datenrechte; neue Bytes erneut messen; anschließend C4c/d
              WebView/SQLite unter belegtem Rollen-/Token-/Jobvertrag getrennt integrieren;

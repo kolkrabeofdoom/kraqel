@@ -1,6 +1,20 @@
 # Bedrohungsmodell (Entwurf)
 
-Aktuell · BP2 nativer synthetischer Blattversuch samt ETW, 18. November 2026:
+Aktuell · BP3-Machbarkeitsgrenze und native Startsperre, 18. November 2026:
+
+[BP3-Nachweis](../testing/product-start-p2c-bp3-admission.md): Für den aktuellen C4-Kandidaten ist
+noch kein vollständiger präventiver Modul-/WebView-Rollenmechanismus nachgewiesen. Der native
+Controller sperrt jetzt vor ACL-/Ressourcenanlage, Commit und CreateProcess; Worker und
+Runtime-Einstieg sperren zusätzlich vor Handleübernahme bzw. COM/WebView. Keine konfigurierbare
+Ausnahme oder Umdeutung von Paketpins, BP1/BP2 oder Diagnosen. Zwei aktive Regressionen, 138 aktive
+Helfer-/Transporttests und Clippy grün; sechs standardmäßig ignoriert. Drei direkte Workeraufrufe
+enden mit 2 ohne Ausgabe/Dateianlage. Kein neues ETW; frühere Messungen bleiben bytegebunden. **BP3
+insgesamt offen**, keine Runtime-/Datenfreigabe, BP4/C4c/d weiter gesperrt. Nächster begrenzter
+Scope: separate synthetische Debug-Wächter-Probe mit ausdrücklicher Debugketten-Gegenprobe; noch
+nicht implementiert. Keine System-/Schutzsoftware-/Signaturausnahme. Mittleres Prüfniveau und
+striktes Datenschutzziel unverändert; Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
+
+Vorheriger Stand · BP2 nativer synthetischer Blattversuch samt ETW, 18. November 2026:
 
 [BP2-Nachweis](../testing/product-start-p2c-bp2-native-leaf.md): unabhängige native Supportprüfung,
 NoRemote-/NoLowLabel-/Child-Policy atomar bei suspendierter Erstellung; Readback vor Resume und im

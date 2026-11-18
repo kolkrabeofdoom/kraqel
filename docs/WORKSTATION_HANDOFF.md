@@ -9,13 +9,44 @@ Commitverlauf.
 
 ### Aktueller Einstieg und gesicherter Stand
 
+Aktuell · BP3-Machbarkeitsgrenze und native Startsperre, 18. November 2026:
+
+[BP3-Nachweis](testing/product-start-p2c-bp3-admission.md): Für den aktuellen C4-Kandidaten ist noch
+kein vollständiger präventiver Modul-/WebView-Rollenmechanismus nachgewiesen. Der native Controller
+sperrt jetzt vor ACL-/Ressourcenanlage, Commit und CreateProcess; Worker und Runtime-Einstieg
+sperren zusätzlich vor Handleübernahme bzw. COM/WebView. Keine konfigurierbare Ausnahme oder
+Umdeutung von Paketpins, BP1/BP2 oder Diagnosen. Zwei aktive Regressionen, 138 aktive
+Helfer-/Transporttests und Clippy grün; sechs standardmäßig ignoriert. Drei direkte Workeraufrufe
+enden mit 2 ohne Ausgabe/Dateianlage. Kein neues ETW; frühere Messungen bleiben bytegebunden. **BP3
+insgesamt offen**, keine Runtime-/Datenfreigabe, BP4/C4c/d weiter gesperrt. Nächster begrenzter
+Scope: separate synthetische Debug-Wächter-Probe mit ausdrücklicher Debugketten-Gegenprobe; noch
+nicht implementiert. Keine System-/Schutzsoftware-/Signaturausnahme. Mittleres Prüfniveau und
+striktes Datenschutzziel unverändert; Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
+
+Arbeitsbranch unverändert `feat/kq-069-live-file-selection`, Draft-PR #142. Ausgangscommit dieser
+Sitzung `3772c0c`; dessen Windows-/Linux-CI beim letzten Abgleich noch laufend, Dependency Review
+grün. Neue Head-CI gesondert prüfen, kein Merge/Release. Checkout zu Beginn sauber.
+
+Neuer gesicherter, noch nicht ETW-gemessener Helfer unter `artifacts/bp3-admission-20261118-01/`:
+normal `04e38c2…`, Testcontroller `503fdbc…`, Manifest mit Quellhashes und drei direkten
+Abweisungen. Keine echte Kontrollablage oder alte Auditkopie übernehmen. Bei Rechnerwechsel
+Programme lokal neu bauen/prüfen; historische Netzbelege nicht auf neue Bytes übertragen. Die
+C4-Beobachtungsserie ist im neuen Build ausdrücklich nicht mehr aufrufbar, auch nicht mit einer
+alten Bootstrapnachricht. Der BP2-Blattzweck bleibt separat.
+
+Die Machbarkeitsprobe des Debug-Wächters muss zuerst die dokumentierte Unterbrechung der
+Debugvererbung durch einen eigenen DEBUG_PROCESS-Nachfahren untersuchen. Bei fehlendem Nachweis
+weiter sperren; keinen Runtime-/Datenstart, keine Signatur-/Herstellerausnahme oder AV-Änderung.
+
+### Vorherige BP2-Übergabe (historisch)
+
 Arbeitsbranch **`feat/kq-069-live-file-selection`**,
 [Draft-PR #142](https://github.com/kolkrabeofdoom/kraqel/pull/142). `git pull --ff-only` zu Beginn
 dieser Sitzung: aktuell/sauber. CI des vorherigen Übergabeheads `b881d59` vollständig grün
 (Windows/Linux/Dependency Review); neue Head-CI gesondert prüfen. Kein Merge, Release oder
 Produktstart daraus.
 
-Aktuell · BP2 nativer synthetischer Blattversuch samt ETW, 18. November 2026:
+Vorheriger Stand · BP2 nativer synthetischer Blattversuch samt ETW, 18. November 2026:
 
 [BP2-Nachweis](testing/product-start-p2c-bp2-native-leaf.md): unabhängige native Supportprüfung,
 NoRemote-/NoLowLabel-/Child-Policy atomar bei suspendierter Erstellung; Readback vor Resume und im

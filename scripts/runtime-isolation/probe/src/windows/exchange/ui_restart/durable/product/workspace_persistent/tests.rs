@@ -560,77 +560,68 @@ fn c4_root_records_block_other_actions_replay_and_forged_drain_order() {
 }
 
 #[test]
-#[ignore = "explicit local authenticated blank Fixed-Version WebView research; no project content"]
-fn c4_authenticated_root_rejects_external_modules_before_continue() {
-    let saved = std::env::temp_dir().join("kraqel-c4b-module-gate-20261118-03");
-    let executable = saved.join("controller.exe");
-    assert!(executable.is_file());
+fn bp3_verified_candidate_cannot_consume_launch_or_relax_acl_without_prevention() {
     let f = Fixture::new();
     let mut store = f.prepared();
     let head = store.state.head;
-    let (descriptor, host, ui) = c4_candidate_source(&f, &store, true, Some(&executable));
+    let sequence = store.state.sequence;
+    let id = store.state.c2.as_ref().unwrap().id;
+    let root = data_root(id);
+    let (descriptor, host, ui) = c4_candidate(&f, &store, false);
     let pins = store
         .verify_c4_candidate(f.actor, head, &descriptor, &host, &ui)
         .unwrap();
-    let origins: Vec<Value> = serde_json::from_slice(
-        &fs::read(
-            std::env::temp_dir()
-                .join("kraqel-c4b-observation-build-20261118-01/module-origins.json"),
-        )
-        .unwrap(),
+    let key = hash(&f.root.join("control/authority.key")).unwrap();
+    let project = fs::read(root.join("projects/synthetic.txt")).unwrap();
+    let sampled = c4_preflight::test_module_paths(
+        &pins,
+        &[
+            root.join("c4-candidate/ui/ui.exe"),
+            root.join("projects/synthetic.txt"),
+        ],
     )
     .unwrap();
-    let paths: Vec<_> = origins
-        .iter()
-        .map(|v| PathBuf::from(v["path"].as_str().unwrap()))
-        .collect();
-    assert_eq!(paths.len(), 2);
-    let module_checks = c4_preflight::test_module_paths(&pins, &paths).unwrap();
-    assert!(module_checks.iter().all(|entry| entry["allowed"] == false));
-    let bad = c4_preflight::run_root_probe(&pins, &mut store, true).unwrap();
-    assert_eq!(bad["rootAuthenticated"], false);
-    assert_eq!(bad["continueSent"], false);
-    assert_eq!(bad["drained"], true);
-    let live = c4_preflight::run_root_probe(&pins, &mut store, false).unwrap();
-    // This local workstation's external monitor must stop the authenticated root before WebView.
-    assert_eq!(live["rootAuthenticated"], true, "{live}");
-    assert_eq!(live["continueSent"], false);
-    assert_eq!(live["controllerError"]["stage"], "c4-module-outside-policy");
-    assert!(live["runtimeOutcome"].is_null());
-    assert_eq!(live["jobTotalProcesses"], 1);
-    assert_eq!(live["unobservedProcessCount"], 0);
-    assert_eq!(live["controlFinished"], true);
-    let id = store.state.c2.as_ref().unwrap().id;
-    let audit = saved.join(format!("audit-{}", Uuid::new_v4().simple()));
-    secure_directory(&audit).unwrap();
-    secure_directory(&audit.join("records")).unwrap();
-    for name in ["authority.key", "head.mac"] {
-        write_new(
-            &audit.join(name),
-            &fs::read(f.root.join("control").join(name)).unwrap(),
-        )
-        .unwrap();
+    assert_eq!(sampled[0]["allowed"], true);
+    assert_eq!(sampled[1]["allowed"], false);
+    let children = || {
+        let mut names: Vec<_> = fs::read_dir(&root)
+            .unwrap()
+            .map(|e| e.unwrap().file_name())
+            .collect();
+        names.sort();
+        names
+    };
+    let before = children();
+    // Neither a valid descriptor nor a diagnostic MAC-failure mode bypasses admission.
+    for bad_mac in [false, true] {
+        let err = c4_preflight::run_root_probe(&pins, &mut store, bad_mac).unwrap_err();
+        assert_eq!(err.stage, "c4-preload-mechanism-unavailable");
+        assert_eq!(store.state.head, head);
+        assert_eq!(store.state.sequence, sequence);
+        assert_eq!(store.state.c4_probe.used_count_for_test(), 0);
+        assert!(!store.state.c4_probe.pending());
+        assert_eq!(children(), before);
+        assert_eq!(hash(&f.root.join("control/authority.key")).unwrap(), key);
+        assert_eq!(
+            fs::read(root.join("projects/synthetic.txt")).unwrap(),
+            project
+        );
+        private_acl(&root.join("c4-candidate/ui"), true).unwrap();
+        private_acl(&root.join("c4-candidate/ui/ui.exe"), false).unwrap();
+        // Native read-only package/identity verification still works; denial is not corrupting it.
+        drop(
+            store
+                .verify_c4_candidate(f.actor, head, &descriptor, &host, &ui)
+                .unwrap(),
+        );
     }
-    for entry in fs::read_dir(f.root.join("control/records")).unwrap() {
-        let entry = entry.unwrap();
-        write_new(
-            &audit.join("records").join(entry.file_name()),
-            &fs::read(entry.path()).unwrap(),
-        )
-        .unwrap();
-    }
-    let report = json!({"badMac":bad,"live":live,"moduleChecks":module_checks,"controlRoot":f.root,"dataRoot":data_root(id),"auditRoot":audit,"records":store.state.sequence,"sourceSha256":hex(&hash(&executable).unwrap())});
-    fs::write(
-        saved.join("run.json"),
-        serde_json::to_vec_pretty(&report).unwrap(),
-    )
-    .unwrap();
     drop(pins);
     drop(store);
     let reopened = Store::open(&f.root).unwrap();
+    assert_eq!(reopened.state.head, head);
+    assert_eq!(reopened.state.sequence, sequence);
+    assert_eq!(reopened.state.c4_probe.used_count_for_test(), 0);
     assert!(!reopened.state.c4_probe.pending());
-    assert!(reopened.state.c4_probe.used_count_for_test() == 2);
-    drop(reopened);
 }
 
 #[test]
