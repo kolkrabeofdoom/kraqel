@@ -9,7 +9,13 @@ Commitverlauf.
 
 ### Aktueller Einstieg und gesicherter Stand
 
-Aktuell · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:
+Die Bewertung der unabhängigen BP3-Durchsetzung ist abgeschlossen. Für eigene synthetische Rollen
+ist erzwungene UMCI in einem separaten Offline-Gast mit vertrauenswürdigem Erzeuger als
+Machbarkeitsprobe ausgewählt. Für alle WebView2-Rollen fehlt weiterhin der belegte Erzeugungsweg vor
+Ausführung. C4 bleibt gesperrt. Die Gastprobe und ein eigener Netzbeleg stehen aus.
+[ADR 0035](architecture/decisions/0035-bp3-independent-process-and-image-enforcement.md).
+
+Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:
 
 [Debug-Wächter-Nachweis](testing/product-start-p2c-bp3-debug-guardian.md): Root beim Create-Ereignis
 vor User-Mode-Ausführung abgewiesen, normale Kindvererbung bestätigt. Ein Kind mit eigenem

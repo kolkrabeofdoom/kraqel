@@ -323,10 +323,13 @@ Datenschutzziel bleibt unverändert.
        - [x] KQ-069 A:
              [BP3 synthetische Debug-Wächter-/Vererbungsgegenprobe](docs/testing/product-start-p2c-bp3-debug-guardian.md),
              drei native Fälle/141 aktive Tests, Debugvererbung allein als Durchsetzung abgelehnt
-       - [ ] KQ-069 A: BP3 unterstützten präventiven Wächter-/Modul-/Rollen-Erzeugungsweg und
-             Machbarkeit konkret nachweisen; nach falsifizierter Debugvererbung zuerst
-             Architekturentscheid für unabhängige Erzeugungs-/Wächter-/Ladegrenze, BP4
-             Datenrechte/Commands weiter offen
+       - [x] KQ-069 A:
+             [BP3 unabhängige Prozess- und Imagefreigabe bewertet](docs/architecture/decisions/0035-bp3-independent-process-and-image-enforcement.md).
+             Erzwungene UMCI und eigener Erzeuger als synthetische Referenz im Offline-Gast
+             ausgewählt.
+       - [ ] KQ-069 A: Separate synthetische Gastprobe durchführen. Präventive Erzeugungs-, Modul-
+             und Rollenbindung für WebView2 bleibt offen. BP4 Datenrechte und Commands bleiben
+             gesperrt.
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native
              Rollenbindung und effektive Datenrechte; neue Bytes erneut messen; anschließend C4c/d
              WebView/SQLite unter belegtem Rollen-/Token-/Jobvertrag getrennt integrieren;

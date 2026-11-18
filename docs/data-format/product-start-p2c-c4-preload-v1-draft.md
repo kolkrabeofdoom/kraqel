@@ -32,6 +32,11 @@ C4-Bypass; keine Test-DLL/WebView oder nachträgliche Signatur-/Herstellerausnah
 ist ein Architekturentscheid für einen davon unabhängigen Durchsetzungsweg. Alte Netzbelege werden
 nicht auf das neue Forschungspaar übertragen.
 
+Die unabhängige Durchsetzung wurde bewertet. Die synthetische Gastreferenz kombiniert erzwungene
+Imageprüfung und eigene Rollenstarts. BP3 und die C4-Startsperre bleiben offen beziehungsweise
+aktiv, bis ein vollständiger präventiver WebView2-Pfad belegt ist.
+[ADR 0035](../architecture/decisions/0035-bp3-independent-process-and-image-enforcement.md).
+
 ## 1. Sicherheitsziel und verifizierte Grenze
 
 Nicht zugelassener ausführbarer Code MUSS vor seiner ersten Ausführung gesperrt sein. Das gilt für

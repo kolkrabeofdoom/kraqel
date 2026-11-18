@@ -146,9 +146,6 @@ Die bisherige C4-Startsperre bleibt unverändert zu. Kein weiteres WebView-/DLL-
 Annahme, die äußere Debugkette sei vollständig; kein zusätzlicher Testumfang repariert den
 beobachteten strukturellen Gegenfall. BP3, BP4/C4c/d und Produkt-Q-01/Q-02 bleiben offen.
 
-Nächster sinnvoller Scope ist ein begrenzter Architekturentscheid für einen **unabhängig
-durchgesetzten Erzeugungsweg**: konkrete Mechanismen müssen auch selbst eröffnete Debugketten,
-fremde/nachgeladene Module und den frühen Wächterstart abdecken. Eine reine Pipe-Brokeridee ohne
-vorherige Sperre direkter Runtime-Kindstarts genügt ebenfalls nicht. Keine automatische Wahl eines
-neuen UI-Stacks, keine VM-/Treiberinstallation, Systempolicy, Schutzsoftwareänderung oder
-Signaturpflicht. Das strikte Datenschutzziel bleibt unverändert.
+Die Folgebewertung liegt vor. Sie wählt erzwungene UMCI und einen eigenen Erzeuger im Offline-Gast
+als Referenz für synthetische Rollen. Die Gastprobe steht aus. C4 bleibt gesperrt.
+[ADR 0035](../architecture/decisions/0035-bp3-independent-process-and-image-enforcement.md).

@@ -1,5 +1,10 @@
 # ADR 0034: Windows-Laufzeitgrenze nach WebView2-Netzbefund
 
+Die unabhängige Durchsetzung wurde bewertet. Die synthetische Gastreferenz kombiniert erzwungene
+Imageprüfung und eigene Rollenstarts. BP3 und die C4-Startsperre bleiben offen beziehungsweise
+aktiv, bis ein vollständiger präventiver WebView2-Pfad belegt ist.
+[ADR 0035](0035-bp3-independent-process-and-image-enforcement.md).
+
 Aktuell · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:
 
 [Debug-Wächter-Nachweis](../../testing/product-start-p2c-bp3-debug-guardian.md): Root beim
