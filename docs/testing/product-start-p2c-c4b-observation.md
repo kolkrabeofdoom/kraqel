@@ -1,5 +1,8 @@
 # P2c C4b: native Generationen, Rollen- und Modulbeobachtung
 
+Fortsetzung: [verbindliche Modulsperre und Crashpad-Diagnose](product-start-p2c-c4b-module-gate.md).
+Der folgende ETW-/Bytebefund bleibt dem hier genannten Beobachtungsbuild zugeordnet.
+
 Stand: 18. November 2026. **Begrenzter Forschungsnachweis bestanden; keine produktive
 Paket-/Rollenfreigabe.** [Bereinigte Aggregate](product-start-p2c-c4b-observation.json),
 [vorheriger Bootstrapnachweis](product-start-p2c-c4b-root-bootstrap.md),

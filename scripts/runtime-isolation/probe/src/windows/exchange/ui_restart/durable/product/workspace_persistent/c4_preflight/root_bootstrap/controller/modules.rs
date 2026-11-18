@@ -1,4 +1,4 @@
-//! Bounded local diagnostics only: snapshots do not authorize DLLs or attest every load.
+//! Bounded sampling with fail-closed admission; snapshots do not attest every load or grant data.
 use super::*;
 use std::collections::{BTreeMap, BTreeSet};
 use windows_sys::Win32::Foundation::{ERROR_BAD_LENGTH, ERROR_NO_MORE_FILES};
@@ -9,8 +9,10 @@ pub(super) struct Observation {
     successes: u32,
     paths: BTreeSet<String>,
     errors: BTreeMap<String, u32>,
+    blocked: BTreeSet<String>,
 }
 impl Observation {
+    #[cfg(test)]
     pub(super) fn sample(&mut self, process: HANDLE) {
         // 30-second controller deadline remains authoritative; diagnostics have a separate cap.
         if self.attempts >= 256 {
@@ -34,7 +36,41 @@ impl Observation {
         }
     }
     pub(super) fn value(&self) -> Value {
-        json!({"diagnosticOnly":true,"attempts":self.attempts,"successfulSnapshots":self.successes,"paths":self.paths,"errors":self.errors,"completeLoadHistory":false,"packageBindingVerified":false})
+        json!({"attempts":self.attempts,"successfulSnapshots":self.successes,"paths":self.paths,"errors":self.errors,"blockedPaths":self.blocked,"completeLoadHistory":false,"packageBindingVerified":false})
+    }
+    pub(super) fn enforce(
+        &mut self,
+        process: HANDLE,
+        policy: &super::super::super::module_policy::Policy,
+    ) -> Result<()> {
+        self.attempts += 1;
+        let attempt = (|| {
+            if self.attempts > 256 {
+                return Err(invalid("c4-module-attempt-bound"));
+            }
+            let paths = snapshot(process)?;
+            if self.paths.union(&paths).count() > 512 {
+                return Err(invalid("c4-module-union-bound"));
+            }
+            for path in &paths {
+                if !policy.permits(Path::new(path))? {
+                    self.blocked.insert(path.clone());
+                }
+            }
+            self.paths.extend(paths);
+            self.successes += 1;
+            if !self.blocked.is_empty() {
+                return Err(invalid("c4-module-outside-policy"));
+            }
+            Ok(())
+        })();
+        if let Err(error) = &attempt {
+            *self
+                .errors
+                .entry(format!("{}:{}", error.stage, error.code))
+                .or_default() += 1;
+        }
+        attempt
     }
 }
 fn snapshot(process: HANDLE) -> Result<BTreeSet<String>> {

@@ -272,6 +272,7 @@ fn outcome(
     root: Identity,
     ui: &Path,
     seen: &mut std::collections::BTreeMap<(u32, u64), Observation>,
+    policy: &super::super::module_policy::Policy,
 ) -> Result<Value> {
     let mut bytes = Vec::new();
     let mut goal = 4;
@@ -283,7 +284,7 @@ fn outcome(
         sample(job, root, ui, seen)?;
         if Instant::now() >= next_modules {
             for observation in seen.values_mut() {
-                observation.modules.sample(observation.process.0);
+                observation.modules.enforce(observation.process.0, policy)?;
             }
             next_modules = Instant::now() + Duration::from_millis(100);
         }
@@ -350,6 +351,7 @@ pub(in super::super::super) fn run(
     }
     environment_clear(std::env::vars_os())?;
     registry_clear()?;
+    let module_policy = super::super::module_policy::Policy::new(pins.module_ids.clone())?;
     let id = store.state.c2.as_ref().unwrap().id;
     let p = profile(id)?;
     let ui = data_root(id).join("c4-candidate/ui");
@@ -517,6 +519,10 @@ pub(in super::super::super) fn run(
         }
         append(store, &mut event, Stage::Accepted, &job, Some(root), &p)?;
         accepted = true;
+        seen.get_mut(&(ack.process.pid, ack.process.created))
+            .ok_or(invalid("c4-root-observation-missing"))?
+            .modules
+            .enforce(root.0.0, &module_policy)?;
         append(store, &mut event, Stage::Running, &job, Some(root), &p)?;
         io(
             "c4-root-continue",
@@ -531,7 +537,21 @@ pub(in super::super::super) fn run(
             )?),
         )?;
         continued = true;
-        let result = outcome(&mut events, deadline, &job, ack.process, &ui, &mut seen)?;
+        let result = outcome(
+            &mut events,
+            deadline,
+            &job,
+            ack.process,
+            &ui,
+            &mut seen,
+            &module_policy,
+        )?;
+        let expected = seen
+            .iter()
+            .filter(|(_, o)| o.value["role"] == "runtime")
+            .map(|(k, _)| *k)
+            .collect();
+        require_role_coverage(&result, &expected)?;
         Ok(result)
     })();
     drop(write_go);
@@ -588,9 +608,66 @@ pub(in super::super::super) fn run(
     )
 }
 
+fn require_role_coverage(
+    result: &Value,
+    expected: &std::collections::BTreeSet<(u32, u64)>,
+) -> Result<()> {
+    let mut actual = std::collections::BTreeSet::new();
+    for role in result["webviewProcesses"]
+        .as_array()
+        .ok_or(invalid("c4-role-list"))?
+    {
+        if !role["kind"]
+            .as_i64()
+            .is_some_and(|kind| (0..=6).contains(&kind))
+        {
+            return Err(invalid("c4-role-kind"));
+        }
+        let pid = u32::try_from(role["pid"].as_u64().ok_or(invalid("c4-role-pid"))?)
+            .map_err(|_| invalid("c4-role-pid"))?;
+        let created = role["created"]
+            .as_u64()
+            .ok_or(invalid("c4-role-generation"))?;
+        if !actual.insert((pid, created)) {
+            return Err(invalid("c4-role-duplicate"));
+        }
+    }
+    if &actual != expected {
+        return Err(invalid("c4-role-unattested"));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn c4_role_coverage_rejects_unknown_generations_replayed_pid_and_unattested_crashpad() {
+        let expected = [(42, 100), (43, 101)].into();
+        let first = json!({"pid":42,"created":100,"kind":0});
+        let second = json!({"pid":43,"created":101,"kind":2});
+        assert!(
+            require_role_coverage(&json!({"webviewProcesses":[first,second]}), &expected).is_ok()
+        );
+        assert!(require_role_coverage(&json!({"webviewProcesses":[first]}), &expected).is_err());
+        assert!(
+            require_role_coverage(&json!({"webviewProcesses":[first,first]}), &expected).is_err()
+        );
+        assert!(
+            require_role_coverage(
+                &json!({"webviewProcesses":[first,{"pid":43,"created":102,"kind":2}]}),
+                &expected
+            )
+            .is_err()
+        );
+        assert!(
+            require_role_coverage(
+                &json!({"webviewProcesses":[first,{"pid":43,"created":101,"kind":7}]}),
+                &expected
+            )
+            .is_err()
+        );
+    }
     #[test]
     fn c4_image_identity_accepts_case_alias_but_not_equal_content_copy() {
         let root = std::env::temp_dir().join(format!(

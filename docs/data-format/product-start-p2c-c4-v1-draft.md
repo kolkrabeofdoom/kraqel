@@ -1,23 +1,23 @@
 # P2c C4: Runtime-Paketbindung und minimale isolierte Oberfläche
 
-Aktuell · C4b-Generations-/Moduldiagnose und frisches ETW, 18. November 2026:
+Aktuell · C4b-Crashpad-Diagnose und verbindliche Modulsperre, 18. November 2026:
 
-[Nativer Rollen-/Modulbefund und eigener Netzvergleich](../testing/product-start-p2c-c4b-observation.md)
-sind ergänzt. Wiederholte API-Aufnahmen binden Rollen an native PID/Erzeugungszeit; begrenzte
-ToolHelp-Diagnosen halten Fehler ausdrücklich fest. Zwei frische synthetische Läufe je ein
-Root/sechs Runtimegenerationen, fünf API-Zuordnungen aus 21 Abfragen, eine Runtimegeneration ohne
-API-Kind; 126 Modulaufnahmen ohne Diagnosefehler und je 14 unabhängig geprüfte MAC-Records. Zwei
-zusätzliche Module außerhalb von Windows-/Kandidatenbaum benötigen eine ausdrückliche sichere
-Policyentscheidung; ihre Signaturen erteilen keine Ausnahme. Kein vollständiger
-Modulbyte-/Ladehistoriennachweis. 117 aktive Helfer-/Transporttests, Clippy/rustfmt bestanden, sechs
-standardmäßig ignoriert. Frisches ETW des exakten Root-/Testcontrollerpaars: 14 explizite Enden,
-acht Kontrollen, keine Verluste/Zuordnungslücken und null beobachtete Netzereignisse in diesen
-Bäumen einschließlich Loopback. Keine Übertragung auf andere Bytes oder fremde Dienstprozesse. **C4b
-bleibt offen:** nicht API-zugeordnete Rolle, verbindliche Modul-/effektive Rollenbindung und
-unabhängige effektive Daten-ACL-Prüfung vor Text-/Commandfreigabe. Keine pauschalen Modul- oder
-Herstellerausnahmen, keine Änderung an Schutzsoftware. Native UI-ABI 0, keine realen Projekte, keine
-neue Produkt-/Recoveryfreigabe. Mittleres Prüfniveau und striktes Datenschutzziel unverändert;
-Gesamt grob 65 %, nutzbarer 0.1-Funktionsumfang grob 80 %.
+[Nativer Rollenbefund und Sperrnachweis](../testing/product-start-p2c-c4b-module-gate.md): Im
+gesonderten synthetischen Diagnoselauf passen beide API-unzugeordneten Generationen nativ zu
+`--type=crashpad-handler`. Dies erteilt keine Rollenautorität und identifiziert alte Generationen
+nicht rückwirkend. Neue native Modulpolicy bindet Kandidaten-Dateiidentitäten und eng begrenzte
+Windows-Plattformbereiche; fremde/unprüfbare Module sperren vor Running/Continue und in weiteren
+Aufnahmen. Keine Signatur-/Hersteller-/Dateinamenausnahme. Beide zusätzlichen Modulpfade abgewiesen;
+neuer Root live authentisiert, aber vor WebView gestoppt, kontrolliertes Drained/Finish. 13
+MAC-Records/neun C4-Proberecords unabhängig geprüft, Profil und Fixtures entfernt. Fehlende
+API-Generationen sperren zusätzlich; Crashpad-Kommandozeilen umgehen das nicht. 119 aktive
+Helfer-/Transporttests im Vollsatz, danach 23 gezielte C4-Tests und nativer Sperrfall bestanden;
+Clippy/rustfmt grün. Kein App-/Transport-/Installerumbau. **Nächster Scope: gezielter frischer
+ETW-Vergleich des neuen Sperrpaars.** Alter Netzbeleg gilt nur seinen exakten Bytes. **C4b bleibt
+offen:** vollständige Rollen-/Modulbindung vor Datenfreigabe und unabhängige effektive
+Daten-ACL-Abnahme; Polling verhindert keine frühere DLL-Ausführung. Native UI-ABI 0, keine echten
+Projekte/Commands oder neue Produkt-/Recoveryfreigabe. Mittleres Prüfniveau und striktes
+Datenschutzziel unverändert; Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
 
 Status: **Vertragsentwurf v1, 17. November 2026; C4a-Modellkern implementiert/geprüft, native
 UI-Integration und Abnahme offen.**

@@ -3,6 +3,7 @@ use super::*;
 use crate::product_start_p2c::c4::{LoaderV1, Role, UiRuntimePackageV1};
 use windows_sys::Win32::System::Registry::*;
 mod creation_probe;
+mod module_policy;
 mod root_bootstrap;
 #[cfg(test)]
 pub(super) use root_bootstrap::run as run_root_probe;
@@ -21,6 +22,19 @@ pub(super) struct CandidatePins {
     exe: PathBuf,
     exe_sha256: [u8; 32],
     process_limit: u16,
+    module_ids: std::collections::BTreeSet<(u64, [u8; 16])>,
+}
+
+#[cfg(test)]
+pub(super) fn test_module_paths(pins: &CandidatePins, paths: &[PathBuf]) -> Result<Vec<Value>> {
+    let policy = module_policy::Policy::new(pins.module_ids.clone())?;
+    Ok(paths
+        .iter()
+        .map(|path| match policy.permits(path) {
+            Ok(allowed) => json!({"allowed":allowed,"error":null}),
+            Err(error) => json!({"allowed":false,"error":{"stage":error.stage,"code":error.code}}),
+        })
+        .collect())
 }
 
 fn environment_clear(values: impl IntoIterator<Item = (OsString, OsString)>) -> Result<()> {
@@ -190,6 +204,11 @@ impl Store {
             exe: ui_root.join(&candidate.ui_exe),
             exe_sha256: root_program.sha256,
             process_limit: candidate.policy.max_processes,
+            module_ids: ui
+                .iter()
+                .filter(|entry| matches!(entry.role, FileRole::Program | FileRole::Library))
+                .map(|entry| module_policy::candidate_id(&ui_root.join(&entry.path)))
+                .collect::<Result<_>>()?,
         })
     }
 }

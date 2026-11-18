@@ -49,13 +49,14 @@ Runtime-Paket und minimale isolierte Oberfläche ist als Entwurf ergänzt.
 Paket-/Policytypen, deterministische Codierung und getrennten versionierten Lebenszyklus; zwölf neue
 Tests, 108 aktive Helfertests/Clippy bestanden.
 [C4b-Vorprüfung](docs/testing/product-start-p2c-c4b-preflight.md),
-[authentisierter Root-/WebView-Probelauf](docs/testing/product-start-p2c-c4b-root-bootstrap.md) und
-[Generations-/Moduldiagnose mit frischem ETW](docs/testing/product-start-p2c-c4b-observation.md)
-sind ergänzt. Aktuell 117 aktive Helfertests, je ein Root/sechs Runtimegenerationen, 21
-API-Abfragen, fünf generationsgebundene Rollen, eine API-unzugeordnete Generation und expliziter
-zusätzlicher Modulbefund. Gezieltes ETW: 14 Enden/acht Kontrollen ohne beobachtetes Netz oder
-Erfassungsverluste. C4b bleibt offen: vollständige Runtime-/Nichtsystemmodul-/Rollenbindung und
-effektive Datenrechte; ungebundene Starts, mehrprozessige GUI-Lebenszeiten und persistente echte
+[Root-/WebView-Probe](docs/testing/product-start-p2c-c4b-root-bootstrap.md),
+[Beobachtung mit eigenem ETW](docs/testing/product-start-p2c-c4b-observation.md) und
+[verbindliche Modulsperre/Crashpad-Diagnose](docs/testing/product-start-p2c-c4b-module-gate.md) sind
+ergänzt. 119 aktive Tests im Vollsatz, danach 23 gezielte C4-Tests; neue native Sperre stoppt den
+authentisierten Root vor Continue/WebView. Beide zusätzlichen Modulpfade abgewiesen, 13 MAC-Records
+unabhängig geprüft. Nächster Scope: frisches ETW des neuen Sperrpaars. C4b bleibt offen:
+vollständige Runtime-/Nichtsystemmodul-/effektive Rollenbindung vor Datenfreigabe und effektive
+Datenrechte; ungebundene Starts, mehrprozessige GUI-Lebenszeiten und persistente echte
 Arbeitsablagen-/UI-Bindung bleiben offen. P3 Bestandskopie sowie P4/P5 normale
 App-/Launcher-/Installerintegration und Produktabnahme folgen. Die normalen Produkt-Q-01/Q-02
 bleiben offen; der neue Forschungsnetzbeleg ersetzt dieses Gate nicht. Das strikte Datenschutzziel
@@ -286,6 +287,10 @@ bleibt unverändert.
        - [x] KQ-069 A:
              [C4b-Rollen-/Moduldiagnose und gezieltes ETW](docs/testing/product-start-p2c-c4b-observation.md),
              117 aktive Tests; zusätzliche Module ausdrücklich keine automatische Policyausnahme
+       - [x] KQ-069 A:
+             [C4b-Modulsperre/Crashpad-Diagnose](docs/testing/product-start-p2c-c4b-module-gate.md),
+             keine neue Runtime-/Textfreigabe; beide zusätzlichen Modulpfade abgewiesen
+       - [ ] KQ-069 A: gezieltes frisches ETW des neuen C4b-Sperrpaars
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, API-unzugeordnete
              Rolle und effektive Datenrechte; neue Bytes erneut messen; anschließend C4c/d
              WebView/SQLite unter belegtem Rollen-/Token-/Jobvertrag getrennt integrieren;

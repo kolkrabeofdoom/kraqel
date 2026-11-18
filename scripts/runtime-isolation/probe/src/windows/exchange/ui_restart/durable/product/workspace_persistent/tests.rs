@@ -428,8 +428,8 @@ fn c4_root_records_block_other_actions_replay_and_forged_drain_order() {
 
 #[test]
 #[ignore = "explicit local authenticated blank Fixed-Version WebView research; no project content"]
-fn c4_authenticated_root_and_real_webview_probe() {
-    let saved = std::env::temp_dir().join("kraqel-c4b-observation-build-20261118-01");
+fn c4_authenticated_root_rejects_external_modules_before_continue() {
+    let saved = std::env::temp_dir().join("kraqel-c4b-module-gate-20261118-03");
     let executable = saved.join("controller.exe");
     assert!(executable.is_file());
     let f = Fixture::new();
@@ -439,14 +439,33 @@ fn c4_authenticated_root_and_real_webview_probe() {
     let pins = store
         .verify_c4_candidate(f.actor, head, &descriptor, &host, &ui)
         .unwrap();
+    let origins: Vec<Value> = serde_json::from_slice(
+        &fs::read(
+            std::env::temp_dir()
+                .join("kraqel-c4b-observation-build-20261118-01/module-origins.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let paths: Vec<_> = origins
+        .iter()
+        .map(|v| PathBuf::from(v["path"].as_str().unwrap()))
+        .collect();
+    assert_eq!(paths.len(), 2);
+    let module_checks = c4_preflight::test_module_paths(&pins, &paths).unwrap();
+    assert!(module_checks.iter().all(|entry| entry["allowed"] == false));
     let bad = c4_preflight::run_root_probe(&pins, &mut store, true).unwrap();
     assert_eq!(bad["rootAuthenticated"], false);
     assert_eq!(bad["continueSent"], false);
     assert_eq!(bad["drained"], true);
     let live = c4_preflight::run_root_probe(&pins, &mut store, false).unwrap();
-    // This is a research result, not an assertion that WebView initialization/isolation passed.
+    // This local workstation's external monitor must stop the authenticated root before WebView.
     assert_eq!(live["rootAuthenticated"], true, "{live}");
-    assert_eq!(live["continueSent"], true);
+    assert_eq!(live["continueSent"], false);
+    assert_eq!(live["controllerError"]["stage"], "c4-module-outside-policy");
+    assert!(live["runtimeOutcome"].is_null());
+    assert_eq!(live["jobTotalProcesses"], 1);
+    assert_eq!(live["unobservedProcessCount"], 0);
     assert_eq!(live["controlFinished"], true);
     let id = store.state.c2.as_ref().unwrap().id;
     let audit = saved.join(format!("audit-{}", Uuid::new_v4().simple()));
@@ -467,7 +486,7 @@ fn c4_authenticated_root_and_real_webview_probe() {
         )
         .unwrap();
     }
-    let report = json!({"badMac":bad,"live":live,"controlRoot":f.root,"dataRoot":data_root(id),"auditRoot":audit,"records":store.state.sequence,"sourceSha256":hex(&hash(&executable).unwrap())});
+    let report = json!({"badMac":bad,"live":live,"moduleChecks":module_checks,"controlRoot":f.root,"dataRoot":data_root(id),"auditRoot":audit,"records":store.state.sequence,"sourceSha256":hex(&hash(&executable).unwrap())});
     fs::write(
         saved.join("run.json"),
         serde_json::to_vec_pretty(&report).unwrap(),
