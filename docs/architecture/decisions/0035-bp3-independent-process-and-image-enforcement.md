@@ -60,8 +60,11 @@ Für einen ersten begrenzten Versuch gelten diese Abnahmekriterien:
    Prozessbaums gehören zur Datenschutzprüfung des Gasts.
 
 Die Bewertung wurde anhand der Primärdokumentation und des bestehenden Quell- und Prüfstands
-abgeschlossen. Die Gastprobe, die Zuordnung realer WebView-Rollen und der eigene Netzbeleg stehen
-aus. BP3 insgesamt und `RuntimeStartAllowed` bleiben gesperrt. `DataAllowed` benötigt zusätzlich die
-getrennte BP4-Abnahme. Bis dahin erhält die Referenz weder echte Projektinhalte noch dauerhafte
-Kontrollschlüssel. Die normale KRAQEL-Auslieferung bleibt unsigniert und das strikte Datenschutzziel
-gilt.
+abgeschlossen. Die vorhandene synthetische Gastprobe hat zwei Blattrollen und die Sperre fremder
+EXE-/DLL-Images unter erzwungener UMCI nachgewiesen. Die Abnahmekriterien zu statischer Start-DLL,
+Handleprüfung vor Resume, Starterausfall, Richtlinienwechsel und eigenem Netzbeleg bleiben offen.
+Für die tatsächlichen WebView-Rollen fehlt der präventive Erzeugungsweg.
+[Ergebnis und Beleggrenzen](../../testing/product-start-p2c-bp3-umci-guest.md). BP3 insgesamt und
+`RuntimeStartAllowed` bleiben gesperrt. `DataAllowed` benötigt zusätzlich die getrennte BP4-Abnahme.
+Bis dahin erhält die Referenz weder echte Projektinhalte noch dauerhafte Kontrollschlüssel. Die
+normale KRAQEL-Auslieferung bleibt unsigniert und das strikte Datenschutzziel gilt.

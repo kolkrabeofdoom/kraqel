@@ -330,9 +330,14 @@ Datenschutzziel bleibt unverändert.
        - [x] KQ-069 A:
              [Starter, Testimages und Policyvorschau für die synthetische Gastprobe](docs/testing/product-start-p2c-bp3-umci-guest.md)
              vorbereitet und auf dem Host geprüft.
-       - [ ] KQ-069 A: Separate synthetische Gastprobe durchführen. Präventive Erzeugungs-, Modul-
-             und Rollenbindung für WebView2 bleibt offen. BP4 Datenrechte und Commands bleiben
-             gesperrt.
+       - [x] KQ-069 A: Separaten Hyper-V-Gast ohne virtuelle Netzadapter und mit Rücksetzpunkt für
+             die synthetische Probe bereitgestellt.
+       - [x] KQ-069 A: Vorhandene synthetische Gastprobe mit erzwungener UMCI und eigenem Starter
+             bestanden. Zwei Rollen, ein EXE- und vier DLL-Sperrereignisse, Job und Testprofil
+             bereinigt.
+       - [ ] KQ-069 A: Statisch importierte Start-DLL, Starterausfall, Richtlinienwechsel und
+             eigenen Netzbeleg prüfen. Präventive Rollenbindung für WebView2 und BP4-Datenrechte
+             bleiben offen.
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native
              Rollenbindung und effektive Datenrechte; neue Bytes erneut messen; anschließend C4c/d
              WebView/SQLite unter belegtem Rollen-/Token-/Jobvertrag getrennt integrieren;

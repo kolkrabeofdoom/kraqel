@@ -1,15 +1,15 @@
 # Entwicklungsstatus
 
-Die synthetische BP3-Gastprobe ist vorbereitet. Starter, Worker und DLL-Fixtures sind gebaut. Eine
-unaktivierte UMCI-Policyvorschau wurde erzeugt. Der Gastlauf wartet auf Zugang zu einem
-entbehrlichen Offline-Windows-Gast. Das aktuelle Konto kann das Hyper-V-VM-Inventar nicht lesen. C4
-bleibt gesperrt.
-[Gastablauf, Prüfstand und ausstehende Abnahme](testing/product-start-p2c-bp3-umci-guest.md).
+Die synthetische BP3-Probe im separaten Windows-Server-2025-Gast ist bestanden. Bei erzwungener UMCI
+lief derselbe fensterlose Worker in zwei Rollen mit unterschiedlichen Leserechten. Code Integrity
+protokollierte eine gesperrte EXE und vier DLL-Ladeversuche. Richtlinie, aufrufendes Programm und
+Zielhash sind für alle fünf Ereignisse abgeglichen. Job leer, Testprofil entfernt, Gast
+ausgeschaltet, null virtuelle Netzadapter und null aktivierte Integrationsdienste.
+[Prüfbericht und Wiederholung](testing/product-start-p2c-bp3-umci-guest.md).
 
-Die Bewertung der unabhängigen BP3-Durchsetzung ist abgeschlossen. Für eigene synthetische Rollen
-ist erzwungene UMCI in einem separaten Offline-Gast mit vertrauenswürdigem Erzeuger als
-Machbarkeitsprobe ausgewählt. Für alle WebView2-Rollen fehlt weiterhin der belegte Erzeugungsweg vor
-Ausführung. C4 bleibt gesperrt. Die Gastprobe und ein eigener Netzbeleg stehen aus.
+Als Nächstes eine fremde **statisch importierte Start-DLL** prüfen. Starterausfall, Wiederanlauf mit
+abweichender Richtlinie, eigener Netzbeleg und die Bindung aller realen WebView2-Rollen bleiben
+offen. C4-Start und BP4-Datenzugriff bleiben gesperrt.
 [ADR 0035](architecture/decisions/0035-bp3-independent-process-and-image-enforcement.md).
 
 Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:

@@ -169,7 +169,7 @@ int wmain(int argc, wchar_t **argv) {
     }
     DWORD rejection = GetLastError();
     printf("foreign-exe win32 %lu\n", rejection);
-    if (rejection != ERROR_INVALID_IMAGE_HASH)
+    if (rejection != ERROR_INVALID_IMAGE_HASH && rejection != ERROR_SYSTEM_INTEGRITY_POLICY_VIOLATION)
         return 3;
     wchar_t profile[64];
     if (FAILED(StringCchPrintfW(profile, 64, L"org.kraqel.bp3umci.%lu.%llu",

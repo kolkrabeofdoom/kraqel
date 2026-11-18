@@ -15,8 +15,10 @@ typedef DWORD (WINAPI *marker_proc)(void);
 
 static BOOL rejected_dll(const wchar_t *path) {
     HMODULE module = LoadLibraryExW(path, NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
-    if (!module)
-        return GetLastError() == ERROR_INVALID_IMAGE_HASH;
+    if (!module) {
+        DWORD error = GetLastError();
+        return error == ERROR_INVALID_IMAGE_HASH || error == ERROR_SYSTEM_INTEGRITY_POLICY_VIOLATION;
+    }
     FreeLibrary(module);
     return FALSE;
 }

@@ -13,15 +13,16 @@ $null = New-Item -ItemType Directory -Path $output
 $null = New-Item -ItemType Directory -Path (Join-Path $output 'allow')
 $null = New-Item -ItemType Directory -Path (Join-Path $output 'deny')
 
-function Build-Image([string]$Source, [string]$Target, [string[]]$Options) {
+function Build-Image([string]$Source, [string]$Target, [string[]]$Options, [string[]]$LinkOptions) {
     $binary = Join-Path $output $Target
     $object = "$binary.obj"
-    & cl.exe /nologo /W4 /WX /O2 /MT /utf-8 "/Fo$object" "/Fe$binary" @Options (Join-Path $PSScriptRoot $Source)
+    & cl.exe /nologo /W4 /WX /O2 /MT /utf-8 "/Fo$object" "/Fe$binary" @Options (Join-Path $PSScriptRoot $Source) @LinkOptions
     if ($LASTEXITCODE -ne 0) { throw "Compilation failed for $Target." }
     Remove-Item -LiteralPath $object
 }
 Build-Image 'starter.c' 'allow/bp3-starter.exe' @('userenv.lib','advapi32.lib')
-Build-Image 'worker.c' 'allow/bp3-worker.exe' @('advapi32.lib')
+# A console worker can request conhost.exe before wmain; leaf roles cannot start any child.
+Build-Image 'worker.c' 'allow/bp3-worker.exe' @('advapi32.lib') @('/link','/SUBSYSTEM:WINDOWS','/ENTRY:wmainCRTStartup')
 Build-Image 'worker.c' 'deny/foreign.exe' @('/DBP3_FOREIGN')
 Build-Image 'marker.c' 'allow/allowed.dll' @('/LD')
 Build-Image 'marker.c' 'deny/foreign.dll' @('/LD','/DBP3_FOREIGN')
