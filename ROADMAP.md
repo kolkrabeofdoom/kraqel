@@ -327,6 +327,9 @@ Datenschutzziel bleibt unverändert.
              [BP3 unabhängige Prozess- und Imagefreigabe bewertet](docs/architecture/decisions/0035-bp3-independent-process-and-image-enforcement.md).
              Erzwungene UMCI und eigener Erzeuger als synthetische Referenz im Offline-Gast
              ausgewählt.
+       - [x] KQ-069 A:
+             [Starter, Testimages und Policyvorschau für die synthetische Gastprobe](docs/testing/product-start-p2c-bp3-umci-guest.md)
+             vorbereitet und auf dem Host geprüft.
        - [ ] KQ-069 A: Separate synthetische Gastprobe durchführen. Präventive Erzeugungs-, Modul-
              und Rollenbindung für WebView2 bleibt offen. BP4 Datenrechte und Commands bleiben
              gesperrt.

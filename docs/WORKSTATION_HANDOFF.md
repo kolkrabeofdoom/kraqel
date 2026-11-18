@@ -9,6 +9,12 @@ Commitverlauf.
 
 ### Aktueller Einstieg und gesicherter Stand
 
+Die synthetische BP3-Gastprobe ist vorbereitet. Starter, Worker und DLL-Fixtures sind gebaut. Eine
+unaktivierte UMCI-Policyvorschau wurde erzeugt. Der Gastlauf wartet auf Zugang zu einem
+entbehrlichen Offline-Windows-Gast. Das aktuelle Konto kann das Hyper-V-VM-Inventar nicht lesen. C4
+bleibt gesperrt.
+[Gastablauf, Prüfstand und ausstehende Abnahme](testing/product-start-p2c-bp3-umci-guest.md).
+
 Die Bewertung der unabhängigen BP3-Durchsetzung ist abgeschlossen. Für eigene synthetische Rollen
 ist erzwungene UMCI in einem separaten Offline-Gast mit vertrauenswürdigem Erzeuger als
 Machbarkeitsprobe ausgewählt. Für alle WebView2-Rollen fehlt weiterhin der belegte Erzeugungsweg vor
