@@ -305,8 +305,11 @@ ersetzt dieses Gate nicht. Das strikte Datenschutzziel bleibt unverändert.
              keine Implementierung oder native Freigabe
        - [x] KQ-069 A: [BP1 reiner Präload-Modellkern](docs/testing/product-start-p2c-bp1-model.md),
              Typen/Codierung/Entscheidungen ohne native Autorität, 14 neue Tests/133 insgesamt
-       - [ ] KQ-069 A: BP2 gesonderter synthetischer Capability-/Creation-/Readback-Blattversuch;
-             danach eigener ETW-Nachweis des exakten Paars, WebView-/Datengates bleiben offen
+       - [x] KQ-069 A:
+             [BP2 nativer Blattversuch und eigenes ETW](docs/testing/product-start-p2c-bp2-native-leaf.md),
+             Readback/Kindablehnung 367, drei neue Tests/136 insgesamt, kein Runtime-/Datengrant
+       - [ ] KQ-069 A: BP3 unterstützten präventiven Wächter-/Modul-/Rollen-Erzeugungsweg und
+             Machbarkeit konkret nachweisen, BP4 effektive Datenrechte/Commands weiter offen
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native
              Rollenbindung und effektive Datenrechte; neue Bytes erneut messen; anschließend C4c/d
              WebView/SQLite unter belegtem Rollen-/Token-/Jobvertrag getrennt integrieren;

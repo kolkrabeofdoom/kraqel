@@ -286,7 +286,18 @@ impl Attributes {
         handles: &[HANDLE],
         jobs: &[HANDLE],
     ) -> Result<Self> {
-        let count = 1 + u32::from(!handles.is_empty()) + u32::from(!jobs.is_empty());
+        Self::with_creation_policy(caps, handles, jobs, None)
+    }
+    fn with_creation_policy(
+        caps: &SECURITY_CAPABILITIES,
+        handles: &[HANDLE],
+        jobs: &[HANDLE],
+        early: Option<(&u64, &u32)>,
+    ) -> Result<Self> {
+        let count = 1
+            + u32::from(!handles.is_empty())
+            + u32::from(!jobs.is_empty())
+            + if early.is_some() { 2 } else { 0 };
         let mut bytes = 0;
         unsafe {
             InitializeProcThreadAttributeList(null_mut(), count, 0, &mut bytes);
@@ -348,6 +359,36 @@ impl Attributes {
                     )
                 },
                 "set-creation-job-list",
+            )?;
+        }
+        if let Some((mitigations, child_policy)) = early {
+            check(
+                unsafe {
+                    UpdateProcThreadAttribute(
+                        ptr,
+                        0,
+                        PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY as usize,
+                        (mitigations as *const u64).cast(),
+                        size_of::<u64>(),
+                        null_mut(),
+                        null(),
+                    )
+                },
+                "bp2-creation-mitigation",
+            )?;
+            check(
+                unsafe {
+                    UpdateProcThreadAttribute(
+                        ptr,
+                        0,
+                        PROC_THREAD_ATTRIBUTE_CHILD_PROCESS_POLICY as usize,
+                        (child_policy as *const u32).cast(),
+                        size_of::<u32>(),
+                        null_mut(),
+                        null(),
+                    )
+                },
+                "bp2-creation-child-policy",
             )?;
         }
         Ok(value)
@@ -759,6 +800,13 @@ fn launch(root: &Path, app: Option<&Path>, resume: bool) -> Result<Value> {
 }
 pub fn main() {
     let args = std::env::args_os().skip(1).collect::<Vec<_>>();
+    if args.first().is_some_and(|a| a == "bp2-leaf-worker") {
+        let result = exchange::bp2_worker(&args[1..]);
+        std::process::exit(if result.is_ok() { 0 } else { 2 });
+    }
+    if args.first().is_some_and(|a| a == "bp2-must-not-start") {
+        std::process::exit(2);
+    }
     if args.first().is_some_and(|a| a == "c4-root-probe-worker") {
         let result = exchange::c4_root_worker(&args[1..]);
         std::process::exit(if result.is_ok() { 0 } else { 2 });

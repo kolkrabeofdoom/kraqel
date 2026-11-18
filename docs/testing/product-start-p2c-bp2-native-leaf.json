@@ -1,0 +1,93 @@
+{
+  "date": "2026-11-18",
+  "stage": "BP2-native-leaf-capability-and-fresh-etw",
+  "rootSha256": "5205d72be94b0810a9326ba00368d1fb9e81e2af1109c7c0a29ed1798a3788cd",
+  "testControllerSha256": "62d7a73c4ce3f776c2a866b7b8156dcac5c7f4e980086fd134b31c21509d142e",
+  "functional": {
+    "macRecords": 18,
+    "bp2Records": 14,
+    "consumedLaunches": 3,
+    "rootBindings": 3,
+    "accepted": 1,
+    "running": 1,
+    "drained": 3,
+    "finished": 3
+  },
+  "measured": {
+    "macRecords": 18,
+    "bp2Records": 14,
+    "consumedLaunches": 3,
+    "rootBindings": 3,
+    "accepted": 1,
+    "running": 1,
+    "drained": 3,
+    "finished": 3
+  },
+  "etwPhases": [
+    {
+      "phase": "reference",
+      "hostCalls": 2,
+      "leafProcesses": 0,
+      "consoleHosts": 2,
+      "explicitStops": 4,
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "networkEvents": [],
+      "nonLoopbackEvents": 0,
+      "unknownAttribution": 0,
+      "unknownDestinations": 0,
+      "measurementValid": true,
+      "secondsAfterReady": 0.5
+    },
+    {
+      "phase": "gate",
+      "hostCalls": 1,
+      "leafProcesses": 3,
+      "consoleHosts": 1,
+      "explicitStops": 5,
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "networkEvents": [],
+      "nonLoopbackEvents": 0,
+      "unknownAttribution": 0,
+      "unknownDestinations": 0,
+      "measurementValid": true,
+      "secondsAfterReady": 4.6
+    }
+  ],
+  "childBlockedError": 367,
+  "diagnosticJobLimit": 2,
+  "actualProcessesPerJob": 1,
+  "rootReadbackBeforeResume": true,
+  "childPolicyReadbackInLeaf": true,
+  "unsupportedBeforeCreate": true,
+  "mismatchBeforeResume": true,
+  "receiptsMacBound": true,
+  "nativeRuntimeAuthority": false,
+  "nativeDataAuthority": false,
+  "completeModuleBinding": false,
+  "modelWasNativeAuthority": false,
+  "nativeUiAbi": 0,
+  "activeTestsPassed": 136,
+  "newActiveTestsPassed": 3,
+  "defaultIgnoredTests": 7,
+  "extraNativeSeriesPassed": true,
+  "profilesAbsent": 2,
+  "ownFixturesRemoved": true,
+  "networkMeasurement": true,
+  "productionAcceptance": false,
+  "c4bComplete": false,
+  "realProjectDataUsed": false
+}

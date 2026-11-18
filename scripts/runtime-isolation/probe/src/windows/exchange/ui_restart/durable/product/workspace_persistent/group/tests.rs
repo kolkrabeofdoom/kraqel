@@ -148,6 +148,7 @@ fn synthetic_state() -> State {
         }),
         c3: Default::default(),
         c4_probe: Default::default(),
+        bp2_probe: Default::default(),
     }
 }
 #[test]

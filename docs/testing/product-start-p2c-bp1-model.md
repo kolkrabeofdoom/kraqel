@@ -1,5 +1,8 @@
 # P2c BP1: reine Präload-Typen, Codierung und Entscheidungsmodell
 
+Fortsetzung: [getrennter nativer BP2-Blattversuch](product-start-p2c-bp2-native-leaf.md). BP1 bleibt
+ein reines Modell; der folgende Modellnachweis erteilt keine native Autorität.
+
 Stand: 18. November 2026. **BP1 im reinen Modellumfang implementiert und geprüft; keine native
 Autorität.** [Bereinigte Prüfdaten](product-start-p2c-bp1-model.json),
 [präventiver Vertrag](../data-format/product-start-p2c-c4-preload-v1-draft.md).

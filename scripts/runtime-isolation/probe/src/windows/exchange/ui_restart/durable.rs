@@ -8,12 +8,12 @@ use windows_sys::Win32::System::SystemServices::JOB_OBJECT_QUERY;
 mod combined;
 mod product;
 pub(in super::super::super) use combined::{next_live, seed_live, series as combined_series};
-pub(in crate::windows) use product::c4_root_worker;
 pub(in super::super::super) use product::command as product_storage;
 pub(super) use product::verify_denials as verify_product_denials;
 pub(super) use product::verify_start_lease;
 pub(in super::super::super) use product::workspace_child as product_workspace_child;
 pub(in crate::windows) use product::workspace_persistent_child as product_workspace_persistent_child;
+pub(in crate::windows) use product::{bp2_worker, c4_root_worker};
 pub(in super::super::super) use product::{
     crash_child as product_crash_child, crash_series as product_crash_series,
     session_child as product_session_child, session_series as product_session_series,

@@ -1,7 +1,7 @@
 # P2c C4b: präventive Modul- und Rollenbindung
 
-Status: **Vertragsentwurf v1, 18. November 2026; BP1 als reiner Modellkern implementiert/geprüft,
-präventive native Durchsetzung offen und keine Startautorität.** Ergänzt
+Status: **Vertragsentwurf v1, 18. November 2026; BP1-Modell und begrenzter nativer BP2-Blattversuch
+geprüft, vollständige präventive Bindung und produktive Runtime-/Datenautorität offen.** Ergänzt
 [C4](product-start-p2c-c4-v1-draft.md),
 [ADR 0034](../architecture/decisions/0034-webview-network-boundary-proposal.md) und den
 [gemessenen Sperrstand](../testing/product-start-p2c-c4b-module-gate-etw.md). MUSS bezeichnet eine
@@ -10,7 +10,10 @@ zulässig, keine Zertifikats-/Signaturpflicht für das Produkt.
 
 [BP1-Nachweis und Prüfzahlen](../testing/product-start-p2c-bp1-model.md): geschlossene reine Typen,
 vier begrenzte kanonische Formate und nicht autorisierendes Modell. Native Anforderungen unten
-bleiben Zielvertrag; kein Windows-Readback oder neuer Erzeugungsweg wird durch BP1 implementiert.
+bleiben Zielvertrag; BP1 implementiert keinen nativen Erzeugungsweg. Der getrennte
+[BP2-Nachweis](../testing/product-start-p2c-bp2-native-leaf.md) ergänzt frühe NoRemote-/NoLowLabel-/
+Child-Policy und Readback ausschließlich für den synthetischen Blattversuch, keine vollständige
+präventive Paket- oder WebView-Rollenbindung.
 
 ## 1. Sicherheitsziel und verifizierte Grenze
 
@@ -29,13 +32,15 @@ früheren Start. Diese Host-Startbindung ist noch kein vorhandener nativer Nachw
 Root-Mitigationen allein dürfen diese offene Voraussetzung nicht verdecken; daraus wird keine
 Ausnahme für fremden Code im Wächter.
 
-Der Ist-Stand prüft Paketbytes und Dateiidentitäten, setzt AppContainer/Job/Handleliste beim
-Rootstart und stoppt einen authentisierten Root bei fremden Modulaufnahmen vor Continue. Er setzt
-**keine** eigenen Creation-Mitigation-/Child-Process-Policy-Attribute und liest deren wirksame
-Einstellungen nicht zurück. Der Root läuft bereits vor seiner Modulaufnahme.
+Der bisherige C4-Rootweg prüft Paketbytes und Dateiidentitäten, setzt AppContainer/Job/Handleliste
+und stoppt einen authentisierten Root bei fremden Modulaufnahmen vor Continue. Dieser Weg setzt
+weiterhin keine eigenen Creation-Mitigation-/Child-Process-Policy-Attribute; der Root läuft bereits
+vor seiner Modulaufnahme. Der getrennte BP2-Blattweg setzt die genannten frühen Attribute und liest
+sie vor Resume und im Worker zurück. Keine Übertragung auf den C4-Runtimeweg oder dessen Zulassung.
 [Attribute im Code](../../scripts/runtime-isolation/probe/src/windows.rs),
 [Startfolge](../../scripts/runtime-isolation/probe/src/windows/exchange/ui_restart/durable/product/workspace_persistent/c4_preflight/root_bootstrap/controller.rs).
-Die vorhandene Modulsperre und ETW erfüllen deshalb dieses präventive Ziel noch nicht.
+Die Modulsperre, grobe BP2-Regeln und ETW erfüllen das vollständige präventive Modul-/Rollenziel
+noch nicht.
 
 DLL-Einstiegscode kann beim Laden ausgeführt werden. Daraus folgt für diesen Vertrag: Eine erst im
 Programmeinstieg installierte Policy oder spätere Modulaufnahme ist für initiale DLLs zu spät.
@@ -189,12 +194,12 @@ Kandidaten.
 
 ## 7. Begrenzte Umsetzung und Abnahme
 
-| Teilstück                | Lieferumfang                                                                                          | Mittleres Prüfniveau                                                                                                                                              |
-| ------------------------ | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| BP1 — Modell geprüft     | Reine Typen, deterministische Codierung, Support-/Entscheidungsmodell; keine I/O- oder Startautorität | Rundlauf/Golden, Version/Unbekanntwerte, Grenzen, Kontextwechsel, fehlende Bits, nur Audit, fehlender Modul-/Rollenbeleg und Replay geprüft                       |
-| BP2 — danach             | Native Capability-/Creation-/Readback-Prüfung mit neuem synthetischem Blattprozess, keine Runtime/DB  | Ein regulärer begrenzter Lauf, Unsupported/Policyabweichung, ein verbotener Kindstart; Keys/Handles/Drain prüfen; gezieltes ETW der tatsächlich gestarteten Bytes |
-| BP3 — weiterhin gesperrt | Unterstützten präventiven Lade- und WebView-Mehrprozessweg nachweisen                                 | Ohne diesen Nachweis kein RuntimeStartAllowed; genaue Rolle/Policy und Vererbung pro Generation, keine Umgehung durch Renderer/Crashpad                           |
-| BP4 — weiterhin gesperrt | Daten-/Commandfreigabe erst nach separater effektiver ACL-/Rollenabnahme                              | Keine reale Projektübernahme; danach erst C4c/d erwägen                                                                                                           |
+| Teilstück                | Lieferumfang                                                                                          | Mittleres Prüfniveau                                                                                                                        |
+| ------------------------ | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| BP1 — Modell geprüft     | Reine Typen, deterministische Codierung, Support-/Entscheidungsmodell; keine I/O- oder Startautorität | Rundlauf/Golden, Version/Unbekanntwerte, Grenzen, Kontextwechsel, fehlende Bits, nur Audit, fehlender Modul-/Rollenbeleg und Replay geprüft |
+| BP2 — begrenzt geprüft   | Native Capability-/Creation-/Readback-Prüfung mit synthetischem Blattprozess, keine Runtime/DB        | Regulärer Lauf, Unsupported/abweichende Sollerwartung/MAC-Fehler, Kindablehnung 367, Handles/Drain und frisches ETW geprüft                 |
+| BP3 — weiterhin gesperrt | Unterstützten präventiven Lade- und WebView-Mehrprozessweg nachweisen                                 | Ohne diesen Nachweis kein RuntimeStartAllowed; genaue Rolle/Policy und Vererbung pro Generation, keine Umgehung durch Renderer/Crashpad     |
+| BP4 — weiterhin gesperrt | Daten-/Commandfreigabe erst nach separater effektiver ACL-/Rollenabnahme                              | Keine reale Projektübernahme; danach erst C4c/d erwägen                                                                                     |
 
 Ein erfolgreicher BP2-Blattprozess beweist BP3 nicht. Signaturprüfungen, ETW und negative Tests
 ergänzen den Nachweis; allein beweisen sie keine vollständige präventive Positivliste. Neue native
@@ -271,3 +276,8 @@ Feste Golden-Formate: Policy 309, Support 71, Witness 328, End 160 Bytes; vollst
 Policy-Golden-Bytes und vier feste SHA-256-Werte im Test, unabhängig gegen eine Python-Referenz
 geprüft. Die Daten sind vollständig synthetisch. Aktuelle Prüfzahlen und Grenzen stehen im
 [BP1-Nachweis](../testing/product-start-p2c-bp1-model.md), keine native Abnahme daraus.
+
+BP2 verwendet als eigenes diagnostisches Jobbudget zwei Plätze, um die Kindablehnung durch Policy
+von einer Quotenablehnung unterscheiden zu können. Beobachtet wird weiterhin nur ein Blatt pro Job.
+Dies verändert weder das BP1-Modellprofil noch eine Produktpolicy; konkrete Bytepaare, Readergrenze
+und native Ergebnisbindung stehen im BP2-Nachweis.

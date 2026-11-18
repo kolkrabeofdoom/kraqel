@@ -24,8 +24,8 @@ pub(in crate::windows) use session::{transition_child, transition_series};
 pub(in super::super::super::super) use starter::series as start_series;
 pub(in super::super) use starter::verify_start_lease;
 pub(in crate::windows) use workspace::child as workspace_child;
-pub(in crate::windows) use workspace_persistent::c4_root_worker;
 pub(in crate::windows) use workspace_persistent::child as workspace_persistent_child;
+pub(in crate::windows) use workspace_persistent::{bp2_worker, c4_root_worker};
 pub(in crate::windows) use workspace_persistent::{group_child, group_worker};
 pub(in crate::windows) use workspace_probe::{
     child as workspace_probe_child, worker as workspace_probe_worker,
@@ -42,6 +42,9 @@ const BAD_ATTRIBUTES: u32 = FILE_ATTRIBUTE_REPARSE_POINT
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(tag = "kind", rename_all = "camelCase", deny_unknown_fields)]
 enum Action {
+    Bp2LeafProbe {
+        event: workspace_persistent::Bp2Event,
+    },
     C4RootProbe {
         event: workspace_persistent::C4ProbeEvent,
     },
@@ -164,6 +167,7 @@ struct State {
     c2: Option<workspace_persistent::Persistent>,
     c3: workspace_persistent::GroupState,
     c4_probe: workspace_persistent::C4ProbeState,
+    bp2_probe: workspace_persistent::Bp2State,
 }
 impl State {
     fn apply(&mut self, actor: [u8; 32], action: &Action) -> Result<()> {
@@ -218,6 +222,12 @@ impl State {
         Ok(())
     }
     fn apply_record(&mut self, actor: [u8; 32], action: &Action, digest: [u8; 32]) -> Result<()> {
+        if let Action::Bp2LeafProbe { event } = action {
+            return workspace_persistent::apply_bp2(self, actor, event);
+        }
+        if self.bp2_probe.pending() {
+            return Err(invalid("bp2-probe-pending"));
+        }
         if let Action::C4RootProbe { event } = action {
             return workspace_persistent::apply_c4_probe(self, actor, event);
         }
@@ -486,6 +496,7 @@ impl Store {
                     c2: None,
                     c3: Default::default(),
                     c4_probe: Default::default(),
+                    bp2_probe: Default::default(),
                 });
             } else {
                 let s = state.as_mut().ok_or(invalid("product-genesis-missing"))?;
@@ -570,6 +581,9 @@ impl Store {
     }
     fn append_guard(&self, actor: [u8; 32], head: [u8; 32]) -> Result<()> {
         self.actor(actor)?;
+        if self.state.bp2_probe.pending() {
+            return Err(invalid("bp2-probe-pending"));
+        }
         if self.state.c3.pending() {
             return Err(invalid("c3-group-pending"));
         }

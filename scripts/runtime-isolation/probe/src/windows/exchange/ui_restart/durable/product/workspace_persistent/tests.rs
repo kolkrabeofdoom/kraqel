@@ -1,5 +1,138 @@
 use super::*;
 
+#[test]
+fn bp2_record_order_blocks_other_actions_and_launch_replay() {
+    let f = Fixture::new();
+    let store = f.prepared();
+    let mut state = store.state.clone();
+    let mut e = bp2::Bp2Event {
+        version: 1,
+        stage: bp2::Stage::Commit,
+        launch: Uuid::new_v4(),
+        workspace: state.c2.as_ref().unwrap().id,
+        package: [1; 32],
+        guardian: bp2::Identity {
+            pid: 42,
+            created: 1,
+        },
+        nonce: [2; 32],
+        root: None,
+        receipt: [0; 32],
+    };
+    state
+        .apply_record(f.actor, &Action::Bp2LeafProbe { event: e.clone() }, [3; 32])
+        .unwrap();
+    assert!(
+        state
+            .apply_record(f.actor, &Action::RetireC2Workspace, [3; 32])
+            .is_err()
+    );
+    assert!(
+        state
+            .apply_record(f.actor, &Action::Bp2LeafProbe { event: e.clone() }, [3; 32])
+            .is_err()
+    );
+    e.root = Some(bp2::Identity {
+        pid: 43,
+        created: 2,
+    });
+    e.stage = bp2::Stage::RootBound;
+    state
+        .apply_record(f.actor, &Action::Bp2LeafProbe { event: e.clone() }, [3; 32])
+        .unwrap();
+    let mut bad = e.clone();
+    bad.stage = bp2::Stage::Finish;
+    assert!(
+        state
+            .apply_record(f.actor, &Action::Bp2LeafProbe { event: bad }, [3; 32])
+            .is_err()
+    );
+    e.stage = bp2::Stage::Drained;
+    assert!(
+        state
+            .apply_record(f.actor, &Action::Bp2LeafProbe { event: e.clone() }, [3; 32])
+            .is_err()
+    );
+    e.receipt = [4; 32];
+    state
+        .apply_record(f.actor, &Action::Bp2LeafProbe { event: e.clone() }, [3; 32])
+        .unwrap();
+    e.stage = bp2::Stage::Finish;
+    state
+        .apply_record(f.actor, &Action::Bp2LeafProbe { event: e.clone() }, [3; 32])
+        .unwrap();
+    assert!(!state.bp2_probe.pending());
+    e.stage = bp2::Stage::Commit;
+    e.root = None;
+    e.receipt = [0; 32];
+    assert!(
+        state
+            .apply_record(f.actor, &Action::Bp2LeafProbe { event: e }, [3; 32])
+            .is_err()
+    );
+}
+
+#[test]
+#[ignore = "explicit new BP2 native leaf capability series; no UI/runtime/projects"]
+fn bp2_native_leaf_capability_series() {
+    let saved = std::env::temp_dir().join("kraqel-bp2-build-20261118-01");
+    let executable = saved.join("controller.exe");
+    assert!(executable.is_file());
+    let f = Fixture::new();
+    let mut store = f.prepared();
+    let head = store.state.head;
+    let sequence = store.state.sequence;
+    let unsupported = bp2::run(&executable, &mut store, bp2::Mode::UnsupportedRequirement).unwrap();
+    assert_eq!(unsupported["rejectedBeforeCreate"], true);
+    assert_eq!(head, store.state.head);
+    assert_eq!(sequence, store.state.sequence);
+    let mismatch = bp2::run(&executable, &mut store, bp2::Mode::ReadbackMismatch).unwrap();
+    assert_eq!(mismatch["receipt"]["resumed"], false, "{mismatch}");
+    assert_eq!(
+        mismatch["receipt"]["error"]["stage"],
+        "bp2-policy-readback-mismatch"
+    );
+    let bad = bp2::run(&executable, &mut store, bp2::Mode::BadMac).unwrap();
+    assert_eq!(bad["receipt"]["accepted"], false, "{bad}");
+    let live = bp2::run(&executable, &mut store, bp2::Mode::Normal).unwrap();
+    // Persist diagnostics before assertions; an unsupported native result stays a failed case.
+    let id = store.state.c2.as_ref().unwrap().id;
+    let audit = saved.join(format!("audit-{}", Uuid::new_v4().simple()));
+    secure_directory(&audit).unwrap();
+    secure_directory(&audit.join("records")).unwrap();
+    for name in ["authority.key", "head.mac"] {
+        write_new(
+            &audit.join(name),
+            &fs::read(f.root.join("control").join(name)).unwrap(),
+        )
+        .unwrap();
+    }
+    for entry in fs::read_dir(f.root.join("control/records")).unwrap() {
+        let entry = entry.unwrap();
+        write_new(
+            &audit.join("records").join(entry.file_name()),
+            &fs::read(entry.path()).unwrap(),
+        )
+        .unwrap();
+    }
+    let report = json!({"unsupported":unsupported,"mismatch":mismatch,"badMac":bad,"live":live,"controlRoot":f.root,"dataRoot":data_root(id),"auditRoot":audit,"records":store.state.sequence,"sourceSha256":hex(&hash(&executable).unwrap())});
+    fs::write(
+        saved.join("run.json"),
+        serde_json::to_vec_pretty(&report).unwrap(),
+    )
+    .unwrap();
+    assert!(live["receipt"]["error"].is_null(), "{live}");
+    assert_eq!(live["receipt"]["result"]["childError"], 367);
+    assert_eq!(live["receipt"]["jobTotalProcesses"], 1);
+    assert_eq!(live["controlFinished"], true);
+    assert_eq!(store.state.bp2_probe.used_count_for_test(), 3);
+    drop(store);
+    let reopened = Store::open(&f.root).unwrap();
+    assert!(!reopened.state.bp2_probe.pending());
+    assert_eq!(reopened.state.bp2_probe.used_count_for_test(), 3);
+    drop(reopened);
+}
+
 struct Fixture {
     base: PathBuf,
     root: PathBuf,

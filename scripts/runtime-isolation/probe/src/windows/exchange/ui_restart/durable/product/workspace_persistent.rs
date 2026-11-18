@@ -4,7 +4,10 @@ use crate::product_start_p2c::{
     self as contract, FileRole, InventoryEntry, PackageRole, RootIdentityV1, WorkspaceBindingV2,
 };
 use std::io::{Seek, SeekFrom};
+mod bp2;
 mod c4_preflight;
+pub(in crate::windows) use bp2::worker as bp2_worker;
+pub(super) use bp2::{Bp2Event, Bp2State, apply_bp2};
 pub(in crate::windows) use c4_preflight::c4_root_worker;
 pub(super) use c4_preflight::{C4ProbeEvent, C4ProbeState, apply_c4_probe};
 mod filesystem;

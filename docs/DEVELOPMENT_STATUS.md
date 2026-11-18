@@ -1,28 +1,28 @@
 # Entwicklungsstatus
 
-Aktuell · BP1 reiner Präload-Modellkern, 18. November 2026:
+Aktuell · BP2 nativer synthetischer Blattversuch samt ETW, 18. November 2026:
 
-[BP1-Nachweis](testing/product-start-p2c-bp1-model.md): geschlossene Policy-/Rollen-/Support-/
-Witness-/Entscheidungstypen, vier deterministische bounded Binärformate mit festen Golden-Daten und
-flüchtiges Modell implementiert. Fehlender Support wird nicht maskiert; Audit, Kontextwechsel,
-Replay, unklarer Drain und Wächterverlust sperren. Selbst vollständig positive Modellbehauptungen
-erteilen niemals Runtime-/Datenautorität; nur SyntheticLeafEligible im engen Modellprofil. 14 neue
-Tests, 133 aktive Helfer-/Transporttests insgesamt bestanden, sechs bewusst ignoriert;
-Clippy/rustfmt grün. Keine I/O-/Windows-/CLI-/Commandintegration, neuen Abhängigkeiten, MACs,
-nativen Witnesses oder Startuprechte. Testbuild von Produkt-/Runtimebuild unterscheiden; kein neuer
-ignorierter nativer Runtimefall/ETW-Lauf. Alte gesicherte Bytepaare/Nachweise bleiben separat.
-[Vertrag und genaue Codierung](data-format/product-start-p2c-c4-preload-v1-draft.md) ergänzt.
-**Nächster Scope BP2:** gesonderte native Capability-/Creation-/Readback-Prüfung mit frischem
-synthetischem Blattprozess und gesperrtem Kindstart; Modellentscheidungen sind keine nativen Grants.
-BP3 präventive Wächter-/Lade-/WebView-Rollenbindung und BP4 effektive Daten-/Commandfreigabe weiter
-offen; C4b insgesamt/C4c/d und Produkt-Q-01/Q-02 nicht abgeschlossen. ABI 0, echte Projekte,
-Kontrollstores, Schutzsoftware und striktes Datenschutzziel unverändert. Mittleres Prüfniveau;
-Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
+[BP2-Nachweis](testing/product-start-p2c-bp2-native-leaf.md): unabhängige native Supportprüfung,
+NoRemote-/NoLowLabel-/Child-Policy atomar bei suspendierter Erstellung; Readback vor Resume und im
+Blattprozess. Kindstart mit Windows-Fehler 367 abgewiesen, Jobbudget zwei zur Abgrenzung von
+Quotenfehlern, tatsächlich nur eine Generation je Job. Unsupported vor Create/Headänderung,
+abweichende Sollerwartung vor Resume und falsche MAC vor Accepted geprüft. Eigener BP2-Zweck,
+MAC-Frames/Records unter derselben Kontrollsperre, Ergebnis-Hashes in Endrecords gebunden. Je
+funktionaler/gemessener Serie 18 MAC-Records/14 BP2-Records/drei verbrauchte Launches geprüft,
+Profile/Fixtures entfernt. Frisches ETW des Paars `5205d72…`/`62d7a73…`: neun explizite Enden, acht
+Kontrollen, keine Verluste/Zuordnungslücken oder beobachtetes Netz in diesen Bäumen. Drei neue
+aktive Tests/136 insgesamt bestanden, sieben bewusst ignoriert, Clippy/rustfmt und 27
+Auswertungstests grün. Kein App-/Transport-/Installerumbau, native UI-ABI bleibt 0. **Keine
+Runtime-/Datenautorität:** BP1-Modell ist kein nativer Grant, BP2 keine vollständige
+Modul-/Rollenattestierung. **Nächster Scope BP3:** präventiven Wächter-/Lade-/WebView-Erzeugungsweg
+und Machbarkeit klären; Kindstartsperre nicht für Kompatibilität abschalten, keine Hersteller-/
+Signaturausnahme oder Schutzsoftwareänderung. BP4 Datenrechte/Commands und C4b insgesamt/C4c/d,
+P2/P3–P5 und Produkt-Q-01/Q-02 bleiben offen. Mittleres Prüfniveau und striktes Datenschutzziel
+unverändert; Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
 
-CI des vorherigen Vertragsstands `a6022d5` vollständig grün (Windows/Linux/Dependency Review).
-BP1-Implementierungsstand `0bdbdf0`; dessen neue CI gesondert prüfen.
+CI des vorherigen Übergabeheads `b881d59` vollständig grün (Windows/Linux/Dependency Review).
 [Aktuelle Übergabe](WORKSTATION_HANDOFF.md#aktueller-einstieg-und-gesicherter-stand); neue Head-CI
-getrennt prüfen.
+gesondert prüfen.
 
 Vorheriger nativer Netzbeleg · C3, 17. November 2026:
 

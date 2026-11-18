@@ -1,6 +1,6 @@
 //! Same live controller, exact profile/data/executable; each generation gets fresh kernel pipes.
 use super::*;
-pub(in crate::windows) use durable::c4_root_worker;
+pub(in crate::windows) use durable::{bp2_worker, c4_root_worker};
 use kraqel_isolation_transport::{
     CrashPoint, RecoverySummary, RestartEvent, RestartEventKind, RestartTicket, write_frame,
 };
