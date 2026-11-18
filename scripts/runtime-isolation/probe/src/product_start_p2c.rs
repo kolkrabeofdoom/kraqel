@@ -9,6 +9,7 @@ use std::collections::BTreeSet;
 use unicode_normalization::UnicodeNormalization;
 
 pub(crate) mod c4;
+pub(crate) mod preload;
 
 type Id = [u8; 16];
 type Digest = [u8; 32];

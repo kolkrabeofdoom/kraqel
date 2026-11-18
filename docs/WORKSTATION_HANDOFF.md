@@ -11,41 +11,47 @@ Commitverlauf.
 
 Arbeitsbranch **`feat/kq-069-live-file-selection`**,
 [Draft-PR #142](https://github.com/kolkrabeofdoom/kraqel/pull/142). `git pull --ff-only` zu Beginn
-dieser Sitzung: aktuell/sauber. CI von `a5a4b1b`: Dependency Review grün, Windows/Linux beim
-Vertragsabschluss noch laufend; neue Head-CI gesondert prüfen. Kein Merge, Release oder Produktstart
+dieser Sitzung: aktuell/sauber. CI von `a6022d5`: Linux/Dependency Review grün, Windows beim
+BP1-Abschluss noch laufend; neue Head-CI gesondert prüfen. Kein Merge, Release oder Produktstart
 daraus.
 
-Aktuell · präventiver C4b-Modul-/Rollenvertrag, 18. November 2026:
+Aktuell · BP1 reiner Präload-Modellkern, 18. November 2026:
 
-[Vertragsentwurf für präventive Bindung](data-format/product-start-p2c-c4-preload-v1-draft.md)
-ergänzt: Paketidentität, wirksame frühe Durchsetzung und native Rollenautorität sind getrennte
-Pflichten. Creation-/Readback-/Child-Policy-Anforderungen, unsupported/mismatch/fehlender
-Lade-/Rollenbeleg und getrennte Runtime-/Datengates festgelegt. Signaturklassen, Suchreihenfolge,
-Kommandozeilen, Polling und ETW ersetzen keine exakte präventive Paketbindung. Unsigned bleibt
-zulässig; keine Hersteller-/Signaturausnahme oder Änderung an Schutzsoftware. **Reine Dokumentation,
-nicht implementiert:** keine neuen Mitigationsattribute, Decoder, nativen Records/Grants oder
-UI-ABI. **Nächster Scope BP1:** reine Typen, deterministische Codierung/Golddaten und nicht
-autorisierendes Support-/Entscheidungsmodell; kein I/O oder Prozessstart. Danach erst gesonderter
-synthetischer BP2-Blattversuch; dieser beweist keinen WebView-Mehrprozessweg. Letztes
-[Sperrpaar-ETW](testing/product-start-p2c-c4b-module-gate-etw.md) bleibt bytegebunden: acht
-Enden/acht Kontrollen ohne beobachtetes Netz in den ausgewählten Bäumen, 13 MAC-Records; keine neuen
-Build-/Test-/ETW-Läufe für diesen Entwurf. Quellen-/Fakten-/Verweis-/Formatprüfung. **C4b insgesamt
-offen**, Wächter-Startkette, effektive Datenrechte und kompatibler Produktstart fehlen. Native
-UI-ABI 0, keine echten Projekte/Commands oder neue Produkt-/Recoveryfreigabe. Mittleres Prüfniveau
-und striktes Datenschutzziel unverändert; Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
+[BP1-Nachweis](testing/product-start-p2c-bp1-model.md): geschlossene Policy-/Rollen-/Support-/
+Witness-/Entscheidungstypen, vier deterministische bounded Binärformate mit festen Golden-Daten und
+flüchtiges Modell implementiert. Fehlender Support wird nicht maskiert; Audit, Kontextwechsel,
+Replay, unklarer Drain und Wächterverlust sperren. Selbst vollständig positive Modellbehauptungen
+erteilen niemals Runtime-/Datenautorität; nur SyntheticLeafEligible im engen Modellprofil. 14 neue
+Tests, 133 aktive Helfer-/Transporttests insgesamt bestanden, sechs bewusst ignoriert;
+Clippy/rustfmt grün. Keine I/O-/Windows-/CLI-/Commandintegration, neuen Abhängigkeiten, MACs,
+nativen Witnesses oder Startuprechte. Testbuild von Produkt-/Runtimebuild unterscheiden; kein neuer
+ignorierter nativer Runtimefall/ETW-Lauf. Alte gesicherte Bytepaare/Nachweise bleiben separat.
+[Vertrag und genaue Codierung](data-format/product-start-p2c-c4-preload-v1-draft.md) ergänzt.
+**Nächster Scope BP2:** gesonderte native Capability-/Creation-/Readback-Prüfung mit frischem
+synthetischem Blattprozess und gesperrtem Kindstart; Modellentscheidungen sind keine nativen Grants.
+BP3 präventive Wächter-/Lade-/WebView-Rollenbindung und BP4 effektive Daten-/Commandfreigabe weiter
+offen; C4b insgesamt/C4c/d und Produkt-Q-01/Q-02 nicht abgeschlossen. ABI 0, echte Projekte,
+Kontrollstores, Schutzsoftware und striktes Datenschutzziel unverändert. Mittleres Prüfniveau;
+Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
 
-Nächster Schritt **BP1**: `PreloadPolicyV1`, Rollenregeln, Support-/Witness-/Entscheidungsmodell als
-reine Typen entwickeln, deterministische domänenseparierte Codierung und Golden-Bytes im Code und
-Vertrag ergänzen. 16-KiB-/Rollen-/Instanzgrenzen, unbekannte/widersprüchliche Regeln,
-Pflichtbits/Support, Kontextwechsel, fehlende Modul-/Rollenbelege und Replay prüfen. Modellwitnesses
-erteilen keine nativen Grants. Keine Windows-I/O-, CLI-, Runtime-, DB- oder UI-Aktivierung;
-bestehende C4a-V1-Codierung/Schema 6/ABI 0 nicht umdeuten.
+Nächster Schritt **BP2**: ausschließlich frischen synthetischen Blattprozess für native
+Capability-/Creation-/Readback-Prüfung anlegen. Semantische Pflichtregeln des BP1-Blattprofils in
+Creation-Attribute übersetzen, tatsächliche Regeln am gehaltenen suspendierten Prozess zurücklesen,
+Unsupported/Abweichung vor Resume abweisen und einen verbotenen Kindstart prüfen. Eigenes
+Profil/Job/Handleliste, Auftragssperre und kontrolliertes Ende binden; anschließend gezieltes ETW
+des tatsächlich gestarteten exakten Paars. Noch kein nativer BP2-Weg implementiert.
 
-BP2 ist erst danach ein getrennter synthetischer Blattprozess-Fähigkeitsversuch ohne Projektdaten;
-kein Beweis der noch offenen präventiven WebView-Rollen-/Ladebindung. BP3/BP4 und C4c/d bleiben
-gesperrt, solange die jeweiligen nativen Voraussetzungen fehlen. Nicht unterstützte Pflichtregeln
-sperren; kein Maskieren, Auditfallback oder Kompatibilitätsbypass. Vorprüfungsabweisung verändert
-keinen Head; nach Launchreservierung bleibt der Auftrag verbraucht. Unsigned bleibt zulässig.
+Nicht das reine Modell als Startticket verwenden. Windows-Bitwerte und ihre Vererbung sind nicht in
+BP1 attestiert. Native Adapter müssen unabhängig prüfen, nur fixtureeigene Prüfschlüssel; keine
+bestehende echte Kontrollablage oder Daten/Projektpfade. BP3 präventive Host-/Lade-/
+WebView-Mehrprozessbindung und BP4 Datenfreigabe bleiben unerfüllt; C4c/d nicht vorziehen.
+
+Modellquellen `scripts/runtime-isolation/probe/src/product_start_p2c/preload.rs` mit
+`preload/codec.rs` und `preload/tests.rs`; kein Windows-/CLI-Verweis darauf. Vier kanonische Frames,
+keine MACs/Grants. Replay/Nonce/Rootgenerationen nur innerhalb flüchtiger Modellinstanz gesperrt;
+neue Instanz ist kein dauerhafter Wiederanlauf. Eine positive Blattbewertung lässt pending bis zum
+Modellende bestehen; Wächterverlust bleibt gesperrt. Native Schema-/ABI-/Dauerrecords bleiben
+unverändert.
 
 Exaktes Paar weiter `%TEMP%/kraqel-c4b-module-gate-20261118-03/`: Root `daf59d0…`,
 Host-Testcontroller `83679e5…`, funktionaler Bericht `run-functional.json`, neuer gemessener Bericht
@@ -58,7 +64,8 @@ aktiven Store oder wiederverwendbaren Grant übernehmen. Alte Nachweise/Bytepaar
 Runtimequelle weiter `%TEMP%/kraqel-c4-runtime-20261117-01/expanded/`; CAB-Sicherung unverändert
 unter `artifacts/session-close-20261117-01/`. Bei TEMP-Verlust eigenes gesichertes CAB entpacken und
 Manifesthashes prüfen. Keine echten Projekte/echte Vorschauablage starten und Pending nicht
-reparieren. Für diesen reinen Vertrag keine neuen Programme/Prozesse, Builds, Tests oder ETW-Läufe.
+reparieren. BP1 hat Modell-/Helfertests und Clippy ausgeführt; keine neuen GUI-/Runtimeversuche oder
+ETW-Läufe.
 
 Gemessene Prozesse beendet, Testprofil/Daten-/Kontrollfixtures entfernt; beide eigenen Erfassungen
 gestoppt/konvertiert und eigener Supervisor beendet. Bestehende Systemerfassungen nicht angefasst.

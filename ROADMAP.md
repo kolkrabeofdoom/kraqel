@@ -59,14 +59,15 @@ unabhängig geprüft.
 explizite Enden/acht Kontrollen, keine Verluste/Zuordnungslücken oder beobachteten Netzereignisse in
 diesen Bäumen; 27 Auswertungstests erneut grün, kein neuer Build.
 [Präventiver Modul-/Rollenvertrag](docs/data-format/product-start-p2c-c4-preload-v1-draft.md) jetzt
-als Entwurf ergänzt; keine neue Implementierung/Prüfabnahme. Nächster Scope BP1: reine Typen,
-deterministische Codierung und nicht autorisierendes Support-/Entscheidungsmodell. C4b bleibt offen:
-vollständige Runtime-/Nichtsystemmodul-/effektive Rollenbindung vor Datenfreigabe und effektive
-Datenrechte; ungebundene Starts, mehrprozessige GUI-Lebenszeiten und persistente echte
-Arbeitsablagen-/UI-Bindung bleiben offen. P3 Bestandskopie sowie P4/P5 normale
-App-/Launcher-/Installerintegration und Produktabnahme folgen. Die normalen Produkt-Q-01/Q-02
-bleiben offen; der neue Forschungsnetzbeleg ersetzt dieses Gate nicht. Das strikte Datenschutzziel
-bleibt unverändert.
+als nativer Zielvertrag ergänzt. [BP1](docs/testing/product-start-p2c-bp1-model.md) implementiert
+inzwischen reine Typen, vier deterministische Modellformate und nicht autorisierendes Modell: 14
+neue Tests/133 aktive Helfertests und Clippy bestanden. Nächster Scope BP2: gesonderter nativer
+Blattversuch, keine Runtime-/Datenfreigabe. C4b bleibt offen: vollständige
+Runtime-/Nichtsystemmodul-/effektive Rollenbindung vor Datenfreigabe und effektive Datenrechte;
+ungebundene Starts, mehrprozessige GUI-Lebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung
+bleiben offen. P3 Bestandskopie sowie P4/P5 normale App-/Launcher-/Installerintegration und
+Produktabnahme folgen. Die normalen Produkt-Q-01/Q-02 bleiben offen; der neue Forschungsnetzbeleg
+ersetzt dieses Gate nicht. Das strikte Datenschutzziel bleibt unverändert.
 
 ## M0 - Fundament (abgeschlossen)
 
@@ -302,8 +303,10 @@ bleibt unverändert.
        - [x] KQ-069 A:
              [Vertragsentwurf präventive Modul-/Rollenbindung](docs/data-format/product-start-p2c-c4-preload-v1-draft.md),
              keine Implementierung oder native Freigabe
-       - [ ] KQ-069 A: BP1 reine Typen, deterministische Codierung und nicht autorisierendes
-             Support-/Entscheidungsmodell; BP2-Blattversuch erst danach, WebView-/Datengates offen
+       - [x] KQ-069 A: [BP1 reiner Präload-Modellkern](docs/testing/product-start-p2c-bp1-model.md),
+             Typen/Codierung/Entscheidungen ohne native Autorität, 14 neue Tests/133 insgesamt
+       - [ ] KQ-069 A: BP2 gesonderter synthetischer Capability-/Creation-/Readback-Blattversuch;
+             danach eigener ETW-Nachweis des exakten Paars, WebView-/Datengates bleiben offen
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native
              Rollenbindung und effektive Datenrechte; neue Bytes erneut messen; anschließend C4c/d
              WebView/SQLite unter belegtem Rollen-/Token-/Jobvertrag getrennt integrieren;

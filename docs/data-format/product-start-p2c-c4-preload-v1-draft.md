@@ -1,11 +1,16 @@
 # P2c C4b: präventive Modul- und Rollenbindung
 
-Status: **Vertragsentwurf v1, 18. November 2026; nicht implementiert und keine Startautorität.**
-Ergänzt [C4](product-start-p2c-c4-v1-draft.md),
+Status: **Vertragsentwurf v1, 18. November 2026; BP1 als reiner Modellkern implementiert/geprüft,
+präventive native Durchsetzung offen und keine Startautorität.** Ergänzt
+[C4](product-start-p2c-c4-v1-draft.md),
 [ADR 0034](../architecture/decisions/0034-webview-network-boundary-proposal.md) und den
 [gemessenen Sperrstand](../testing/product-start-p2c-c4b-module-gate-etw.md). MUSS bezeichnet eine
 neue Implementierungsanforderung. Native UI-ABI bleibt 0; unverändert unsignierte KRAQEL-Programme
 zulässig, keine Zertifikats-/Signaturpflicht für das Produkt.
+
+[BP1-Nachweis und Prüfzahlen](../testing/product-start-p2c-bp1-model.md): geschlossene reine Typen,
+vier begrenzte kanonische Formate und nicht autorisierendes Modell. Native Anforderungen unten
+bleiben Zielvertrag; kein Windows-Readback oder neuer Erzeugungsweg wird durch BP1 implementiert.
 
 ## 1. Sicherheitsziel und verifizierte Grenze
 
@@ -85,7 +90,9 @@ ein getrennt belegter Mehrprozess-Erzeugungsweg erforderlich.
 
 ## 4. Vorgesehene Typen und Bindung
 
-Die folgenden Namen sind **Entwurfsnamen**, keine vorhandenen Rust-Typen, Decoder oder Commands.
+Die folgenden Typen sind in
+[BP1](../../scripts/runtime-isolation/probe/src/product_start_p2c/preload.rs) als reine Modelle
+implementiert. Es sind keine nativen Witnesses, Commands oder Startgrants.
 
 | Typ                 | Erforderlicher Inhalt                                                                                                                                                           |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -96,18 +103,18 @@ Die folgenden Namen sind **Entwurfsnamen**, keine vorhandenen Rust-Typen, Decode
 | `PreloadDecisionV1` | Nur `SyntheticLeafEligible` oder stabile Ablehnung; keine Runtime-/Datenautorität in diesem Teilmodell                                                                          |
 
 Pflichtfelder, Version, Zweck und Rollen sind geschlossen; unbekannte Werte und Null-Digests
-sperren. Der nächste reine Modellschritt MUSS deterministische, domänenseparierte, begrenzte
-Codierung samt Golden-Bytes festlegen. Höchstens 16 KiB je Policydeskriptor, maximal sechs
-C4-Rollen, keine Duplikate; Root genau einmal mit Instanzgrenze 1. Alle Instanzgrenzen positiv, ihre
-Summe höchstens Gesamtgrenze, Gesamtgrenze höchstens 16 für diese Forschungsstufe. Imageverweise
-nach den vorhandenen portablen C4-Pfadregeln, höchstens 1.024 UTF-8-Bytes. Keine freien
-Windows-Bitmasken, DLL-Pfade oder Herstellerlisten aus einer UI. Angeforderte Schutzregeln sind
-semantisch typisiert; ihre native Übersetzung ist gesondert zu prüfen.
+sperren. BP1 implementiert die deterministische, domänenseparierte, begrenzte Codierung samt
+Golden-Bytes gemäß Abschnitt 8. Höchstens 16 KiB je Policydeskriptor, maximal sechs C4-Rollen, keine
+Duplikate; Root genau einmal mit Instanzgrenze 1. Alle Instanzgrenzen positiv, ihre Summe höchstens
+Gesamtgrenze, Gesamtgrenze höchstens 16 für diese Forschungsstufe. Imageverweise nach den
+vorhandenen portablen C4-Pfadregeln, höchstens 1.024 UTF-8-Bytes. Keine freien Windows-Bitmasken,
+DLL-Pfade oder Herstellerlisten aus einer UI. Angeforderte Schutzregeln sind semantisch typisiert;
+ihre native Übersetzung ist gesondert zu prüfen.
 
-Reservierte reine Modellzwecke: `KRAQEL-C4-PRELOAD-POLICY\0\x01` für die künftige kanonische Policy
-und `KRAQEL-C4-PRELOAD-MODEL\0\x01` für die künftige Modellsimulation. Noch keine implementierten
-Decoder oder nativen MAC-/Grantdomänen; keine bestehenden Domains übernehmen. Die vollständige
-Bytecodierung wird in BP1 mit dem Code und verbindlichen Golden-Bytes ergänzt.
+Reine Modellpräfixe: `KRAQEL-C4-PRELOAD-POLICY\0\x01` für die kanonische Policy und
+`KRAQEL-C4-PRELOAD-MODEL\0\x01` für die Modellsimulation. Die vier BP1-Decoder sind implementiert;
+keine nativen MAC-/Grantdomänen oder bestehenden Domains übernommen. Verbindliche Golden-Bytes und
+Formate stehen in Abschnitt 8 und den verlinkten Tests.
 
 Modellwitnesses dürfen native Belege nur simulieren und niemals einen nativen Grant erzeugen.
 Spätere echte Witnesses entstehen ausschließlich intern beim Wächter aus gehaltenen Handles; kein
@@ -182,17 +189,17 @@ Kandidaten.
 
 ## 7. Begrenzte Umsetzung und Abnahme
 
-| Teilstück                | Lieferumfang                                                                                              | Mittleres Prüfniveau                                                                                                                                              |
-| ------------------------ | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| BP1 — als Nächstes       | Nur reine Typen, deterministische Codierung, Support-/Entscheidungsmodell; keine I/O- oder Startautorität | Rundlauf/Golden, Version/Unbekanntwerte, Grenzen, Kontextwechsel, fehlende Bits, nur Audit, fehlender Modul-/Rollenbeleg und Replay ablehnen                      |
-| BP2 — danach             | Native Capability-/Creation-/Readback-Prüfung mit neuem synthetischem Blattprozess, keine Runtime/DB      | Ein regulärer begrenzter Lauf, Unsupported/Policyabweichung, ein verbotener Kindstart; Keys/Handles/Drain prüfen; gezieltes ETW der tatsächlich gestarteten Bytes |
-| BP3 — weiterhin gesperrt | Unterstützten präventiven Lade- und WebView-Mehrprozessweg nachweisen                                     | Ohne diesen Nachweis kein RuntimeStartAllowed; genaue Rolle/Policy und Vererbung pro Generation, keine Umgehung durch Renderer/Crashpad                           |
-| BP4 — weiterhin gesperrt | Daten-/Commandfreigabe erst nach separater effektiver ACL-/Rollenabnahme                                  | Keine reale Projektübernahme; danach erst C4c/d erwägen                                                                                                           |
+| Teilstück                | Lieferumfang                                                                                          | Mittleres Prüfniveau                                                                                                                                              |
+| ------------------------ | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| BP1 — Modell geprüft     | Reine Typen, deterministische Codierung, Support-/Entscheidungsmodell; keine I/O- oder Startautorität | Rundlauf/Golden, Version/Unbekanntwerte, Grenzen, Kontextwechsel, fehlende Bits, nur Audit, fehlender Modul-/Rollenbeleg und Replay geprüft                       |
+| BP2 — danach             | Native Capability-/Creation-/Readback-Prüfung mit neuem synthetischem Blattprozess, keine Runtime/DB  | Ein regulärer begrenzter Lauf, Unsupported/Policyabweichung, ein verbotener Kindstart; Keys/Handles/Drain prüfen; gezieltes ETW der tatsächlich gestarteten Bytes |
+| BP3 — weiterhin gesperrt | Unterstützten präventiven Lade- und WebView-Mehrprozessweg nachweisen                                 | Ohne diesen Nachweis kein RuntimeStartAllowed; genaue Rolle/Policy und Vererbung pro Generation, keine Umgehung durch Renderer/Crashpad                           |
+| BP4 — weiterhin gesperrt | Daten-/Commandfreigabe erst nach separater effektiver ACL-/Rollenabnahme                              | Keine reale Projektübernahme; danach erst C4c/d erwägen                                                                                                           |
 
 Ein erfolgreicher BP2-Blattprozess beweist BP3 nicht. Signaturprüfungen, ETW und negative Tests
 ergänzen den Nachweis; allein beweisen sie keine vollständige präventive Positivliste. Neue native
-Ergebnisse brauchen ihren eigenen Byte-/Quellbezug. Dieser Vertrag erfordert weder Build noch
-erneutes ETW; Quellen-, Verweis-, Widerspruchs- und Formatprüfung genügen. Keine historische
+Ergebnisse brauchen ihren eigenen Byte-/Quellbezug. Reine Vertragsänderungen benötigen kein neues
+ETW; BP1 ist inzwischen durch gezielte Modell-/Helfertests und Clippy geprüft. Keine historische
 Prüfzahl als neuen Testlauf ausgeben. C4b insgesamt, P2/P3–P5 und Produkt-Q-01/Q-02 bleiben offen.
 
 BP2 ist ein eigener begrenzter Forschungszweck für tatsächlich verfügbare Mitigationsfähigkeiten:
@@ -206,3 +213,61 @@ eines positiven Fähigkeitsversuchs in `RuntimeStartAllowed`/`DataAllowed`.
 
 Nur neue fixtureeigene synthetische Prüfschlüssel dürfen den BP2-Forschungswächter erreichen; keine
 vorhandene produktive Kontrollablage und keine bestehende echte Schlüsselautorität.
+
+## 8. BP1-Codierung und Modellgrenze
+
+[Codec](../../scripts/runtime-isolation/probe/src/product_start_p2c/preload/codec.rs),
+[Golden-Tests](../../scripts/runtime-isolation/probe/src/product_start_p2c/preload/tests.rs). Alle
+Zahlen Little Endian, Arrays ohne Längenpräfix: Digest 32 Bytes, ID 16 Bytes. `str` ist
+u16-UTF-8-Bytelänge plus 1–1.024 Bytes; Policy-Imagepfade folgen zusätzlich den C4-Pfadregeln.
+`Generation` ist u32-PID plus u64-Erzeugungszeit, beide positiv, ausschließlich Modellmetadaten.
+`set` ist u8-Anzahl plus aufsteigend sortierte eindeutige u8-Tags, höchstens sieben. `bool`
+ausschließlich ein Byte 0/1. Alle vier Frames höchstens 16 KiB; kein JSON-/TLV-Fallback, unbekannte
+Tags, andere Versionen, Trunkierung oder überzählige Bytes werden abgewiesen.
+
+| Frame                        | Exakte Feldfolge nach Präfix                                                                                                                                                                                                                               |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Policy-Präfix                | u16-Version=1, u8-Zweck=1 (SyntheticModel), u8-Architektur=1 (WindowsX64), u32-Mindestbuild; Paket-/Controller-/Plattform-/Umgebungsdigest; u16-Gesamtgrenze, u8-Rollenanzahl; Rollen nach C4-Rollentag sortiert                                           |
+| Rolle innerhalb Policy       | u8-C4-Rolle; Image-`str`, Imagedigest, u16-Instanzgrenze; Argument-/Token-/Handlepolicydigest; erforderliches `set`; u8-Kindregel, u8-Ladeanforderung                                                                                                      |
+| Modellpräfix, Tag 1: Support | u16-Version=1, u8-Architektur, u32-OS-Build, Policydigest; `bool` QueryComplete, ChildPolicySupported, SimulatedHostAnchor; unterstütztes `set`                                                                                                            |
+| Modellpräfix, Tag 2: Witness | u16-Version=1, Request, Root-Generation; Support-/Image-/Argument-/Token-/Handledigest; `bool` ReadbackComplete; durchgesetztes `set`, Audit-`set`; u8-tatsächliche Kindregel; `bool` ThreadOptOut, RemoteDowngrade, SimulatedExactLoad, SimulatedRoleGate |
+| Modellpräfix, Tag 3: End     | u16-Version=1, Request, Root-Generation; `bool` RootEnded, SameJobDrained                                                                                                                                                                                  |
+
+Request-Feldfolge: u16-Kontextversion=1, Policydigest, u64-positive Bindungsrevision,
+Wächter-Generation, Job-ID, Launch-ID und Nonce (32 Bytes), IDs/Nonce nicht null. Job-ID ist ein
+Simulationslabel, kein serialisiertes Kernelhandle. Der Policy-SHA-256 umfasst den gesamten
+Policyframe; der Support-SHA-256 umfasst den gesamten Supportframe. Das Modell bindet beide Digests
+und den vollständigen Request sowie die ausdrücklich gebundene Rootgeneration.
+
+C4-Rollen bleiben 1 Root, 2 Browser, 3 Renderer, 4 GPU, 5 Utility, 6 CrashHandler. Schutzregel-Tags:
+1 NoRemoteImages, 2 NoLowLabelImages, 3 PreferSystem32, 4 MicrosoftSignedOnly, 5 StoreSignedOnly, 6
+ProhibitDynamicCode, 7 DisableExtensionPoints. Kindregel: 1 Denied, 2 RequiresBoundRole.
+Ladeanforderung ausschließlich 1 ExactPackageAndPlatform. Dies sind Modelltags, keine Windows-
+Bitmasken oder WebView-API-Kinds. Die beiden Signaturmodi sind als Anforderung im Modell exklusiv;
+eine Supportmenge darf hingegen die Unterstützung beider Alternativen beschreiben.
+
+Policyrollen werden beim Encodieren sortiert. Decoder verlangen die kanonische Bytefolge; keine
+Normalisierung nichtkanonischer Eingaben. Alle Policydigests positiv, Rollen-/Instanzgrenzen wie
+oben. Witness-Enforced und Witness-Audit dürfen sich nicht überschneiden; bewertete Regeln müssen
+als unterstützt angegeben sein. Audit zählt niemals als erforderliche Durchsetzung. Bei verlangter
+Dynamic-Code-Sperre führen Opt-out-/Downgradebehauptungen zur Ablehnung.
+
+Das flüchtige Modell reserviert höchstens 64 Launches; verbrauchte IDs/Nonces und gebundene
+Rootgenerationen bleiben innerhalb der Instanz gesperrt. Fremder Request-/Rootkontext mutiert die
+aktive Reservierung nicht. Eine passend zugeordnete Bewertung ist einmalig, auch bei Ablehnung.
+Positive Blattbewertung beendet keine Gruppe; End benötigt passenden Root und beide Endbehauptungen.
+Unklarer Drain und Wächterverlust halten pending. `cancel_unstarted` modelliert ausschließlich vor
+Rootbindung einen abgewiesenen Anlageversuch mit gleichem Request und behauptetem Jobleerstand; kein
+zusätzlicher nativer Endrecord und keine Wiederfreigabe des Launches. Das Modell selbst und seine
+Entscheidungen werden nicht serialisiert, wiederhergestellte Instanzen sind kein Replaybeleg.
+
+Eine Runtime-/Datenbewertung endet je nach Modelllücke in HostUnproven, LoadUnproven oder
+RoleUnproven; selbst vollständig positive Behauptungen ergeben NativeAuthorityUnavailable. Nur das
+engere Blattprofil kann SyntheticLeafEligible erhalten. Es erzeugt weder native Witnesses noch
+Runtime-/Datenautorität. Codec-/Modellfehler sind interne Rust-Enums, keine neuen registrierten
+Produktfehler. Native Marker-/Kontroll-/Grantformate bleiben unverändert.
+
+Feste Golden-Formate: Policy 309, Support 71, Witness 328, End 160 Bytes; vollständige
+Policy-Golden-Bytes und vier feste SHA-256-Werte im Test, unabhängig gegen eine Python-Referenz
+geprüft. Die Daten sind vollständig synthetisch. Aktuelle Prüfzahlen und Grenzen stehen im
+[BP1-Nachweis](../testing/product-start-p2c-bp1-model.md), keine native Abnahme daraus.

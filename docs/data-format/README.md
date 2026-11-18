@@ -1,23 +1,23 @@
 # Offenes KRAQEL-Datenformat
 
-Aktuell · präventiver C4b-Modul-/Rollenvertrag, 18. November 2026:
+Aktuell · BP1 reiner Präload-Modellkern, 18. November 2026:
 
-[Vertragsentwurf für präventive Bindung](../data-format/product-start-p2c-c4-preload-v1-draft.md)
-ergänzt: Paketidentität, wirksame frühe Durchsetzung und native Rollenautorität sind getrennte
-Pflichten. Creation-/Readback-/Child-Policy-Anforderungen, unsupported/mismatch/fehlender
-Lade-/Rollenbeleg und getrennte Runtime-/Datengates festgelegt. Signaturklassen, Suchreihenfolge,
-Kommandozeilen, Polling und ETW ersetzen keine exakte präventive Paketbindung. Unsigned bleibt
-zulässig; keine Hersteller-/Signaturausnahme oder Änderung an Schutzsoftware. **Reine Dokumentation,
-nicht implementiert:** keine neuen Mitigationsattribute, Decoder, nativen Records/Grants oder
-UI-ABI. **Nächster Scope BP1:** reine Typen, deterministische Codierung/Golddaten und nicht
-autorisierendes Support-/Entscheidungsmodell; kein I/O oder Prozessstart. Danach erst gesonderter
-synthetischer BP2-Blattversuch; dieser beweist keinen WebView-Mehrprozessweg. Letztes
-[Sperrpaar-ETW](../testing/product-start-p2c-c4b-module-gate-etw.md) bleibt bytegebunden: acht
-Enden/acht Kontrollen ohne beobachtetes Netz in den ausgewählten Bäumen, 13 MAC-Records; keine neuen
-Build-/Test-/ETW-Läufe für diesen Entwurf. Quellen-/Fakten-/Verweis-/Formatprüfung. **C4b insgesamt
-offen**, Wächter-Startkette, effektive Datenrechte und kompatibler Produktstart fehlen. Native
-UI-ABI 0, keine echten Projekte/Commands oder neue Produkt-/Recoveryfreigabe. Mittleres Prüfniveau
-und striktes Datenschutzziel unverändert; Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
+[BP1-Nachweis](../testing/product-start-p2c-bp1-model.md): geschlossene Policy-/Rollen-/Support-/
+Witness-/Entscheidungstypen, vier deterministische bounded Binärformate mit festen Golden-Daten und
+flüchtiges Modell implementiert. Fehlender Support wird nicht maskiert; Audit, Kontextwechsel,
+Replay, unklarer Drain und Wächterverlust sperren. Selbst vollständig positive Modellbehauptungen
+erteilen niemals Runtime-/Datenautorität; nur SyntheticLeafEligible im engen Modellprofil. 14 neue
+Tests, 133 aktive Helfer-/Transporttests insgesamt bestanden, sechs bewusst ignoriert;
+Clippy/rustfmt grün. Keine I/O-/Windows-/CLI-/Commandintegration, neuen Abhängigkeiten, MACs,
+nativen Witnesses oder Startuprechte. Testbuild von Produkt-/Runtimebuild unterscheiden; kein neuer
+ignorierter nativer Runtimefall/ETW-Lauf. Alte gesicherte Bytepaare/Nachweise bleiben separat.
+[Vertrag und genaue Codierung](../data-format/product-start-p2c-c4-preload-v1-draft.md) ergänzt.
+**Nächster Scope BP2:** gesonderte native Capability-/Creation-/Readback-Prüfung mit frischem
+synthetischem Blattprozess und gesperrtem Kindstart; Modellentscheidungen sind keine nativen Grants.
+BP3 präventive Wächter-/Lade-/WebView-Rollenbindung und BP4 effektive Daten-/Commandfreigabe weiter
+offen; C4b insgesamt/C4c/d und Produkt-Q-01/Q-02 nicht abgeschlossen. ABI 0, echte Projekte,
+Kontrollstores, Schutzsoftware und striktes Datenschutzziel unverändert. Mittleres Prüfniveau;
+Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
 
 Der C4-Vertrag ist durch den [reinen C4a-Modellkern](../testing/product-start-p2c-c4a-model.md)
 ergänzt: Paket-/Policytypen, deterministische Codierung und versionierter Lebenszyklus, zwölf neue
