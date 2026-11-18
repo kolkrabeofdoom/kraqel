@@ -9,6 +9,11 @@ Commitverlauf.
 
 ### Aktueller Einstieg und gesicherter Stand
 
+Der geprüfte Quellstand ist `4cc38cd` auf `feat/kq-069-live-file-selection`. Für die Fortsetzung im
+vorhandenen Checkout diesen Branch auswählen und mit `git pull --ff-only` aktualisieren. Die lokalen
+Gastbelege liegen unter `artifacts/bp3-offline-guest/result-series05/`. Der Gast ist für die Nacht
+heruntergefahren. [Draft-PR #142](https://github.com/kolkrabeofdoom/kraqel/pull/142).
+
 Die synthetische BP3-Probe im separaten Windows-Server-2025-Gast ist bestanden. Bei erzwungener UMCI
 lief derselbe fensterlose Worker in zwei Rollen mit unterschiedlichen Leserechten. Code Integrity
 protokollierte eine gesperrte EXE und vier DLL-Ladeversuche. Richtlinie, aufrufendes Programm und
@@ -835,7 +840,9 @@ Verfügbarkeit auf dem anderen Rechner neu prüfen, keine alternative Windows-Au
 
 ## Diesen Rechner sauber verlassen
 
-1. Nur auf einem geprüften, sauberen `main` enden:
+1. Bei einem offenen Arbeitsstand den oben genannten Arbeitsbranch pushen und mit
+   `git status --short --branch` den sauberen Checkout und den Abgleich mit GitHub prüfen. Nach
+   einem Merge den integrierten Stand auf `main` prüfen:
 
    ```powershell
    cd D:\kraqel
@@ -865,7 +872,8 @@ git status --short
 pnpm --filter @kraqel/desktop typecheck
 ```
 
-Für einen vorhandenen Checkout:
+Für einen vorhandenen Checkout nach einem Merge (bei einem offenen Draft-PR den Arbeitsbranch aus
+der aktuellen Übergabe auswählen):
 
 ```powershell
 cd D:\kraqel
