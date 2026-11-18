@@ -19,7 +19,8 @@ offen; C4b insgesamt/C4c/d und Produkt-Q-01/Q-02 nicht abgeschlossen. ABI 0, ech
 Kontrollstores, Schutzsoftware und striktes Datenschutzziel unverändert. Mittleres Prüfniveau;
 Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
 
-CI von `a6022d5`: Linux/Dependency Review grün, Windows beim BP1-Abschluss noch laufend.
+CI des vorherigen Vertragsstands `a6022d5` vollständig grün (Windows/Linux/Dependency Review).
+BP1-Implementierungsstand `0bdbdf0`; dessen neue CI gesondert prüfen.
 [Aktuelle Übergabe](WORKSTATION_HANDOFF.md#aktueller-einstieg-und-gesicherter-stand); neue Head-CI
 getrennt prüfen.
 

@@ -11,9 +11,9 @@ Commitverlauf.
 
 Arbeitsbranch **`feat/kq-069-live-file-selection`**,
 [Draft-PR #142](https://github.com/kolkrabeofdoom/kraqel/pull/142). `git pull --ff-only` zu Beginn
-dieser Sitzung: aktuell/sauber. CI von `a6022d5`: Linux/Dependency Review grün, Windows beim
-BP1-Abschluss noch laufend; neue Head-CI gesondert prüfen. Kein Merge, Release oder Produktstart
-daraus.
+dieser Sitzung: aktuell/sauber. CI des vorherigen Vertragsstands `a6022d5` vollständig grün
+(Windows/Linux/Dependency Review). BP1-Implementierungsstand `0bdbdf0`; neue Head-CI gesondert
+prüfen. Kein Merge, Release oder Produktstart daraus.
 
 Aktuell · BP1 reiner Präload-Modellkern, 18. November 2026:
 
