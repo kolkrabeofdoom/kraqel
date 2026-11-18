@@ -2,9 +2,11 @@
 #![cfg_attr(not(test), allow(dead_code))]
 use super::*;
 use windows_sys::Win32::System::Diagnostics::ToolHelp::*;
+mod modules;
 struct Observation {
     value: Value,
     process: Handle,
+    modules: modules::Observation,
 }
 
 struct Process(Handle, Handle);
@@ -215,7 +217,7 @@ fn sample(
         } else {
             Value::Null
         };
-        seen.insert((id.pid,id.created),Observation{value:json!({"pid":id.pid,"created":id.created,"role":role,"image":file,"expectedImagePath":expected,"expectedImage":expected_image,"token":facts,"parent":parent,"imageSha256":sha}),process});
+        seen.insert((id.pid,id.created),Observation{value:json!({"pid":id.pid,"created":id.created,"role":role,"image":file,"expectedImagePath":expected,"expectedImage":expected_image,"token":facts,"parent":parent,"imageSha256":sha}),process,modules:modules::Observation::default()});
         if !expected_image {
             return Err(invalid("c4-root-unexpected-image"));
         }
@@ -273,11 +275,18 @@ fn outcome(
 ) -> Result<Value> {
     let mut bytes = Vec::new();
     let mut goal = 4;
+    let mut next_modules = Instant::now();
     while bytes.len() < goal {
         if Instant::now() >= deadline {
             return Err(invalid("c4-root-runtime-deadline"));
         }
         sample(job, root, ui, seen)?;
+        if Instant::now() >= next_modules {
+            for observation in seen.values_mut() {
+                observation.modules.sample(observation.process.0);
+            }
+            next_modules = Instant::now() + Duration::from_millis(100);
+        }
         let mut available = 0;
         check(
             unsafe {
@@ -549,6 +558,7 @@ pub(in super::super::super) fn run(
         )?;
         observation.value["ended"] = json!(true);
         observation.value["exitCode"] = json!(code);
+        observation.value["moduleObservation"] = observation.modules.value();
     }
     let mut totals: JOBOBJECT_BASIC_ACCOUNTING_INFORMATION = unsafe { zeroed() };
     check(

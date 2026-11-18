@@ -1,5 +1,10 @@
 # P2c C4b: authentisierter Root und tatsächlicher leerer WebView-Prozessbaum
 
+Fortsetzung 18. November:
+[Rollen-/Moduldiagnose und eigener frischer Netzvergleich](product-start-p2c-c4b-observation.md).
+Die folgenden Bytehashes/Ergebnisse bleiben der historische Stand vom 17. November; aktuelle
+Prüfprogramme verwenden ein separates Sicherungsverzeichnis.
+
 Stand: 17. November 2026. **Begrenzter nativer Forschungsnachweis bestanden; C4b insgesamt,
 Produkt-Q-01/Q-02 und native UI-Freigabe bleiben offen.**
 [Bereinigte Aggregate](product-start-p2c-c4b-root-bootstrap.json),

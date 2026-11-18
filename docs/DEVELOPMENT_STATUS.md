@@ -1,30 +1,29 @@
 # Entwicklungsstatus
 
-Tagesabschluss 17. November 2026: Implementierungsstand `3340841` gesichert; konkrete
-[Startanleitung für morgen und geschützte lokale Sicherung](WORKSTATION_HANDOFF.md#tagesabschluss-und-einstieg-für-morgen).
-Keine eigenen Testprozesse/Erfassungen mehr aktiv. Remote-CI ist beim Abschluss noch nicht
-vollständig beendet; Status beim Wiederbeginn prüfen. Keine neue Entwicklungsstufe abgeschlossen.
+Aktuell · C4b-Generations-/Moduldiagnose und frisches ETW, 18. November 2026:
 
-Aktuell · C4b-Root-/WebView-Probe, 17. November 2026:
+[Nativer Rollen-/Modulbefund und eigener Netzvergleich](testing/product-start-p2c-c4b-observation.md)
+sind ergänzt. Wiederholte API-Aufnahmen binden Rollen an native PID/Erzeugungszeit; begrenzte
+ToolHelp-Diagnosen halten Fehler ausdrücklich fest. Zwei frische synthetische Läufe je ein
+Root/sechs Runtimegenerationen, fünf API-Zuordnungen aus 21 Abfragen, eine Runtimegeneration ohne
+API-Kind; 126 Modulaufnahmen ohne Diagnosefehler und je 14 unabhängig geprüfte MAC-Records. Zwei
+zusätzliche Module außerhalb von Windows-/Kandidatenbaum benötigen eine ausdrückliche sichere
+Policyentscheidung; ihre Signaturen erteilen keine Ausnahme. Kein vollständiger
+Modulbyte-/Ladehistoriennachweis. 117 aktive Helfer-/Transporttests, Clippy/rustfmt bestanden, sechs
+standardmäßig ignoriert. Frisches ETW des exakten Root-/Testcontrollerpaars: 14 explizite Enden,
+acht Kontrollen, keine Verluste/Zuordnungslücken und null beobachtete Netzereignisse in diesen
+Bäumen einschließlich Loopback. Keine Übertragung auf andere Bytes oder fremde Dienstprozesse. **C4b
+bleibt offen:** nicht API-zugeordnete Rolle, verbindliche Modul-/effektive Rollenbindung und
+unabhängige effektive Daten-ACL-Prüfung vor Text-/Commandfreigabe. Keine pauschalen Modul- oder
+Herstellerausnahmen, keine Änderung an Schutzsoftware. Native UI-ABI 0, keine realen Projekte, keine
+neue Produkt-/Recoveryfreigabe. Mittleres Prüfniveau und striktes Datenschutzziel unverändert;
+Gesamt grob 65 %, nutzbarer 0.1-Funktionsumfang grob 80 %.
 
-[Authentisierter C4b-Root und tatsächlicher leerer WebView-Prozessbaum](testing/product-start-p2c-c4b-root-bootstrap.md)
-sind im begrenzten Forschungsumfang implementiert/geprüft. Eigene C4-Probeversion/MAC-Records unter
-derselben Kontrollsperre; falsche Grant-MAC und Root ohne Bootstrap abgewiesen. Accepted/Running vor
-Continue, Schlüssel/Bootstraphandles vor WebView geschlossen/gelöscht. Finaler leerer
-Fixed-Version-Lauf: ein Root/sieben Runtimegenerationen, alle acht nativ im AppContainer ohne
-Capabilities, gepinnte Images, sieben Elternbezüge und alle gehaltenen Handles beendet; native
-Job-Gesamtzahl ebenfalls acht. API ordnet fünf Generationen zu (Browser/Renderer/GPU/Utility), zwei
-bleiben ohne API-Rollenzuordnung. 14 MAC-Records, zehn C4-Proberecords/zwei verbrauchte Launches
-unabhängig geprüft. Drei neue aktive Tests; 115 Helfer-/Transporttests bestanden, sechs
-standardmäßig ignoriert; neuer lokaler Root-/Runtimefall zusätzlich bestanden, Clippy/rustfmt grün.
-Keine realen Projekte oder Tauri-Commands, native UI-ABI weiterhin 0, kein neuer Netznachweis. **C4b
-bleibt offen:** API-unzugeordnete Generationen sowie vollständige Runtime-/Nichtsystemmodul-/
-effektive Rollenbindung vor Command-/Textfreigabe bearbeiten; danach frisches ETW des exakten Paars.
-Polling ist keine vollständige Attestierung vor jedem dynamischen Kindstart. C4c/d, automatische
-Gruppen-Recovery, P2 insgesamt/P3–P5 und Produkt-Q-01/Q-02 offen. Striktes Datenschutzziel und grobe
-Gesamtschätzung 65 %/nutzbarer 0.1-Umfang 80 % unverändert.
+CI des vorigen Übergabeheads `8cedaf5` unter Windows/Linux und Dependency Review vollständig grün.
+[Aktuelle Startanleitung und Sicherungen](WORKSTATION_HANDOFF.md#aktueller-einstieg-und-gesicherter-stand).
+Neue Head-CI getrennt prüfen.
 
-Letzter nativer Netzbeleg · C3, 17. November 2026:
+Vorheriger nativer Netzbeleg · C3, 17. November 2026:
 
 [Gezieltes C3-ETW](testing/product-start-p2c-group-bootstrap-etw.md) des unveränderten Builds
 `b24b3aa…` ist ergänzt: normaler Abschluss und Gruppenfehler/gesperrter Wiederanlauf. 28 Controller,

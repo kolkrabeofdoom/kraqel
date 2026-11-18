@@ -134,7 +134,11 @@ pub(super) fn blank(runtime: &Path, data: &Path) -> Result<Value> {
     win("c4-webview-blank", unsafe {
         view.Navigate(windows::core::w!("about:blank"))
     })?;
+    let extended: ICoreWebView2Environment8 = win("c4-webview-process-api", environment.cast())?;
+    let mut roles = std::collections::BTreeMap::new();
+    let mut samples = 0;
     let until = Instant::now() + Duration::from_secs(2);
+    let mut next_sample = Instant::now();
     while Instant::now() < until {
         let mut msg = unsafe { zeroed() };
         while unsafe { PeekMessageW(&mut msg, null_mut(), 0, 0, PM_REMOVE) } != 0 {
@@ -143,9 +147,28 @@ pub(super) fn blank(runtime: &Path, data: &Path) -> Result<Value> {
                 DispatchMessageW(&msg);
             }
         }
+        if Instant::now() >= next_sample {
+            process_roles(&extended, &mut roles)?;
+            samples += 1;
+            next_sample = Instant::now() + Duration::from_millis(100);
+        }
         thread::sleep(Duration::from_millis(10));
     }
-    let extended: ICoreWebView2Environment8 = win("c4-webview-process-api", environment.cast())?;
+    process_roles(&extended, &mut roles)?;
+    samples += 1;
+    win("c4-webview-close", unsafe { controller.Close() })?;
+    let roles: Vec<_> = roles
+        .into_iter()
+        .map(|((pid, created), kind)| json!({"pid":pid,"created":created,"kind":kind}))
+        .collect();
+    Ok(
+        json!({"runtimeCreated":true,"error":0,"webviewProcesses":roles,"processInfoSamples":samples,"roleObservationOnly":true}),
+    )
+}
+fn process_roles(
+    extended: &ICoreWebView2Environment8,
+    roles: &mut std::collections::BTreeMap<(u32, u64), i32>,
+) -> Result<()> {
     let processes = win("c4-webview-process-infos", unsafe {
         extended.GetProcessInfos()
     })?;
@@ -156,7 +179,6 @@ pub(super) fn blank(runtime: &Path, data: &Path) -> Result<Value> {
     if count > 16 {
         return Err(invalid("c4-webview-process-bound"));
     }
-    let mut roles = Vec::new();
     for n in 0..count {
         let info = win("c4-webview-process-info", unsafe {
             processes.GetValueAtIndex(n)
@@ -170,8 +192,65 @@ pub(super) fn blank(runtime: &Path, data: &Path) -> Result<Value> {
         if pid <= 0 {
             return Err(invalid("c4-webview-process-pid"));
         }
-        roles.push(json!({"pid":pid,"kind":kind.0}));
+        // Join API claims to a native generation, never to a bare recyclable PID.
+        let process = Handle(unsafe {
+            OpenProcess(
+                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SYNCHRONIZE,
+                0,
+                pid as u32,
+            )
+        });
+        if process.0.is_null() {
+            return Err(fail("c4-webview-role-process"));
+        }
+        let id = identity(process.0)?;
+        if unsafe { WaitForSingleObject(process.0, 0) } != WAIT_TIMEOUT {
+            return Err(invalid("c4-webview-role-process-ended"));
+        }
+        record_role(roles, id, kind.0)?;
     }
-    win("c4-webview-close", unsafe { controller.Close() })?;
-    Ok(json!({"runtimeCreated":true,"error":0,"webviewProcesses":roles}))
+    Ok(())
+}
+fn record_role(
+    roles: &mut std::collections::BTreeMap<(u32, u64), i32>,
+    id: Identity,
+    kind: i32,
+) -> Result<()> {
+    if !(0..=6).contains(&kind) {
+        return Err(invalid("c4-webview-role-kind"));
+    }
+    let key = (id.pid, id.created);
+    if let Some(previous) = roles.get(&key) {
+        if *previous != kind {
+            return Err(invalid("c4-webview-role-changed"));
+        }
+    } else {
+        if roles.len() >= 32 {
+            return Err(invalid("c4-webview-role-lifetime-bound"));
+        }
+        roles.insert(key, kind);
+    }
+    Ok(())
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn c4_roles_bind_generation_reject_conflicts_unknown_kinds_and_overflow() {
+        let mut roles = std::collections::BTreeMap::new();
+        let id = Identity {
+            pid: 42,
+            created: 1,
+        };
+        record_role(&mut roles, id, 0).unwrap();
+        record_role(&mut roles, id, 0).unwrap();
+        assert!(record_role(&mut roles, id, 1).is_err());
+        record_role(&mut roles, Identity { created: 2, ..id }, 1).unwrap();
+        assert!(record_role(&mut roles, Identity { created: 3, ..id }, 7).is_err());
+        for created in 3..=32 {
+            record_role(&mut roles, Identity { created, ..id }, 2).unwrap();
+        }
+        assert!(record_role(&mut roles, Identity { created: 33, ..id }, 2).is_err());
+        assert_eq!(roles.len(), 32);
+    }
 }

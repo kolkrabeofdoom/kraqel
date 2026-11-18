@@ -429,7 +429,7 @@ fn c4_root_records_block_other_actions_replay_and_forged_drain_order() {
 #[test]
 #[ignore = "explicit local authenticated blank Fixed-Version WebView research; no project content"]
 fn c4_authenticated_root_and_real_webview_probe() {
-    let saved = std::env::temp_dir().join("kraqel-c4b-root-build-20261117-01");
+    let saved = std::env::temp_dir().join("kraqel-c4b-observation-build-20261118-01");
     let executable = saved.join("controller.exe");
     assert!(executable.is_file());
     let f = Fixture::new();

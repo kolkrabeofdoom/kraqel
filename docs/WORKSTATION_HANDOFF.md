@@ -5,70 +5,61 @@ Code und Projektdokumentation; ein `.kraqel`-Archiv transportiert Manuskript, St
 Medien. Wer beides verwechselt, erhält entweder fehlende Kapitel oder einen sehr literarischen
 Commitverlauf.
 
-## Aktuelle Entwicklungsübergabe · 17. November 2026
+## Aktuelle Entwicklungsübergabe · 18. November 2026
 
-### Tagesabschluss und Einstieg für morgen
+### Aktueller Einstieg und gesicherter Stand
 
-Implementierungsstand **`3340841`**, Arbeitsbranch **`feat/kq-069-live-file-selection`**,
-[Draft-PR #142](https://github.com/kolkrabeofdoom/kraqel/pull/142). Neuere reine Übergabecommits
-ändern die geprüften Programme nicht. Lokale Prüfungen bestanden; Windows-/Linux-CI beim
-Tagesabschluss noch laufend, Dependency Review am Implementierungsstand bestanden. CI beim nächsten
-Start erneut prüfen; keine vollständige grüne CI behaupten oder daraus eine Produktfreigabe
-ableiten.
+Arbeitsbranch **`feat/kq-069-live-file-selection`**,
+[Draft-PR #142](https://github.com/kolkrabeofdoom/kraqel/pull/142). `git pull --ff-only` zu Beginn
+dieser Sitzung: aktuell/sauber. Windows-/Linux-CI und Dependency Review des vorigen Übergabeheads
+`8cedaf5` vollständig grün; CI neuer Commits gesondert prüfen. Kein Merge, Release oder Produktstart
+daraus.
 
-Keine eigenen Testcontroller, Root-/zugehörigen WebView-Prozesse oder `KRAQEL-M3-*`-Erfassungen mehr
-aktiv. Eigene temporäre Testprofile und Daten-/Kontrollfixtures sind entfernt; bestehende
-Systemerfassungen wurden nicht angefasst. Kein neuer Build oder Prüflauf zum Tagesabschluss.
+Aktuell · C4b-Generations-/Moduldiagnose und frisches ETW, 18. November 2026:
 
-Zusätzliche lokale Sicherung außerhalb von TEMP unter `artifacts/session-close-20261117-01/`:
-vollständige Root-Buildsicherung einschließlich privater lesender Audits sowie
-Runtime-CAB/Hash-/Signatur-/Herkunftsmanifest. Das Verzeichnis ist von Git ausgeschlossen und
-besitzt geschützte Konto-/SYSTEM-Rechte. Kopien gegen die Quellen und Manifesthashes geprüft. Die
-entpackte Runtime ist dort nicht doppelt abgelegt; bei TEMP-Verlust aus dem gesicherten CAB erneut
-mit Windows `expand` entpacken und Manifesthashes prüfen. `backup-index.json` nennt die
-ursprünglichen lokalen Zielpfade. Keine Auditdaten als aktiven Kontrollstore übernehmen; die
-Sicherung erteilt keine neue Start-/Importautorität. Private Sicherungen werden nicht auf einen
-anderen Rechner oder nach GitHub übertragen.
+[Nativer Rollen-/Modulbefund und eigener Netzvergleich](testing/product-start-p2c-c4b-observation.md)
+sind ergänzt. Wiederholte API-Aufnahmen binden Rollen an native PID/Erzeugungszeit; begrenzte
+ToolHelp-Diagnosen halten Fehler ausdrücklich fest. Zwei frische synthetische Läufe je ein
+Root/sechs Runtimegenerationen, fünf API-Zuordnungen aus 21 Abfragen, eine Runtimegeneration ohne
+API-Kind; 126 Modulaufnahmen ohne Diagnosefehler und je 14 unabhängig geprüfte MAC-Records. Zwei
+zusätzliche Module außerhalb von Windows-/Kandidatenbaum benötigen eine ausdrückliche sichere
+Policyentscheidung; ihre Signaturen erteilen keine Ausnahme. Kein vollständiger
+Modulbyte-/Ladehistoriennachweis. 117 aktive Helfer-/Transporttests, Clippy/rustfmt bestanden, sechs
+standardmäßig ignoriert. Frisches ETW des exakten Root-/Testcontrollerpaars: 14 explizite Enden,
+acht Kontrollen, keine Verluste/Zuordnungslücken und null beobachtete Netzereignisse in diesen
+Bäumen einschließlich Loopback. Keine Übertragung auf andere Bytes oder fremde Dienstprozesse. **C4b
+bleibt offen:** nicht API-zugeordnete Rolle, verbindliche Modul-/effektive Rollenbindung und
+unabhängige effektive Daten-ACL-Prüfung vor Text-/Commandfreigabe. Keine pauschalen Modul- oder
+Herstellerausnahmen, keine Änderung an Schutzsoftware. Native UI-ABI 0, keine realen Projekte, keine
+neue Produkt-/Recoveryfreigabe. Mittleres Prüfniveau und striktes Datenschutzziel unverändert;
+Gesamt grob 65 %, nutzbarer 0.1-Funktionsumfang grob 80 %.
 
-Zum Wiederbeginn: `git status`, Branch/Head und PR-CI prüfen, bei sauberem Checkout den oben
-genannten Arbeitsbranch mit `git pull --ff-only` aktualisieren; nicht versehentlich auf `main`
-weiterarbeiten. Danach diesen Übergabestand und den unten verlinkten Rootnachweis lesen. Nächster
-begrenzter Scope bleibt **C4b: zwei API-unzugeordnete Runtimegenerationen sowie vollständige
-Runtime-/Nichtsystemmodul-/effektive Rollenbindung klären**, anschließend eigener frischer
-ETW-Nachweis des exakten Paars. Keine neuen Projekte/Commands freigeben, Pending nicht reparieren
-und gespeicherte Programme nicht an der echten Vorschauablage autorisieren. Mittleres Prüfniveau und
-striktes Datenschutzziel bleiben bestehen.
+Nächster begrenzter Scope: die verbliebene API-unzugeordnete Runtimegeneration nativ identifizieren
+und die verbindliche Modul-/Rollen-Sperrentscheidung vor späterer Datenfreigabe umsetzen. Die zwei
+zusätzlichen Module aus Verhaltensüberwachung und HEVC-Decoder dabei ausdrücklich behandeln; keine
+pauschalen Hersteller-/Signaturausnahmen oder Abschaltung von Schutzsoftware. Die offiziellen APIs
+lassen Crashpad aus, das allein identifiziert den nativen Prozess noch nicht. Die zwei alten
+unzugeordneten Generationen sind nicht rückwirkend als aufgeklärt zu markieren. Effektive
+Datenrechte nach Runtimebetrieb zusätzlich unabhängig prüfen. Neue Bytes brauchen danach eigenen
+ETW-Beleg.
 
-Aktuell · C4b-Root-/WebView-Probe, 17. November 2026:
+Lokale aktuelle Sicherung `%TEMP%/kraqel-c4b-observation-build-20261118-01/` und geschützte Kopie
+`artifacts/c4b-observation-20261118-01/` außerhalb von TEMP: exaktes Root-/Testcontrollerpaar,
+Quell-/Hashmanifest, zwei private Laufberichte/MAC-Audits, Modulherkunft und bereinigter
+unabhängiger Audit. Rohes ETL/XML ausschließlich unter
+`%TEMP%/kraqel-c4b-observation-etw-20261118-01-{reference,runtime}/`. Die Programme werden nur an
+frischen synthetischen Fixtures autorisiert; gespeicherte lesende Audits sind kein aktiver Store und
+keine wiederverwendbaren Grants. Keys/PIDs/Pfade bleiben lokal.
 
-[Authentisierter C4b-Root und tatsächlicher leerer WebView-Prozessbaum](testing/product-start-p2c-c4b-root-bootstrap.md)
-sind im begrenzten Forschungsumfang implementiert/geprüft. Eigene C4-Probeversion/MAC-Records unter
-derselben Kontrollsperre; falsche Grant-MAC und Root ohne Bootstrap abgewiesen. Accepted/Running vor
-Continue, Schlüssel/Bootstraphandles vor WebView geschlossen/gelöscht. Finaler leerer
-Fixed-Version-Lauf: ein Root/sieben Runtimegenerationen, alle acht nativ im AppContainer ohne
-Capabilities, gepinnte Images, sieben Elternbezüge und alle gehaltenen Handles beendet; native
-Job-Gesamtzahl ebenfalls acht. API ordnet fünf Generationen zu (Browser/Renderer/GPU/Utility), zwei
-bleiben ohne API-Rollenzuordnung. 14 MAC-Records, zehn C4-Proberecords/zwei verbrauchte Launches
-unabhängig geprüft. Drei neue aktive Tests; 115 Helfer-/Transporttests bestanden, sechs
-standardmäßig ignoriert; neuer lokaler Root-/Runtimefall zusätzlich bestanden, Clippy/rustfmt grün.
-Keine realen Projekte oder Tauri-Commands, native UI-ABI weiterhin 0, kein neuer Netznachweis. **C4b
-bleibt offen:** API-unzugeordnete Generationen sowie vollständige Runtime-/Nichtsystemmodul-/
-effektive Rollenbindung vor Command-/Textfreigabe bearbeiten; danach frisches ETW des exakten Paars.
-Polling ist keine vollständige Attestierung vor jedem dynamischen Kindstart. C4c/d, automatische
-Gruppen-Recovery, P2 insgesamt/P3–P5 und Produkt-Q-01/Q-02 offen. Striktes Datenschutzziel und grobe
-Gesamtschätzung 65 %/nutzbarer 0.1-Umfang 80 % unverändert.
+Alte Sicherung `artifacts/session-close-20261117-01/` einschließlich Runtime-CAB unverändert.
+Runtimequelle weiter `%TEMP%/kraqel-c4-runtime-20261117-01/expanded/`; bei TEMP-Verlust offizielles
+gesichertes CAB entpacken und alte Manifesthashes prüfen. Keine realen Projekte/echte Vorschauablage
+starten, keine Pending-Reparatur oder neue UI-/Commandautorität. Mittleres Prüfniveau beibehalten.
+Eigene native Läufe beendet, Testprofile/Fixtures entfernt, beide Messungen gestoppt/konvertiert.
+Bestehende Systemerfassungen unverändert. Die Forschungsgrenze ersetzt keine Abnahme der normalen
+App.
 
-Sicherung `%TEMP%/kraqel-c4b-root-build-20261117-01/`: Roothelfer `controller.exe` (SHA `a8007de…`),
-tatsächlicher Testcontroller `test-controller.exe` (`fc19dae…`), privates `run.json`, geschützter
-lesender `audit-…`-Snapshot und unabhängiger Audit. Kein wiederverwendbarer Store oder Startgrant
-daraus; Schlüssel/IDs/Prozesspfade nicht publizieren. Frische Testprofile, eigene Daten- und
-Kontrollfixtures entfernt; ursprüngliches Runtime-CAB/`expanded` unter
-`%TEMP%/kraqel-c4-runtime-20261117-01/` behalten. Zwischenläufe mit Pfad-/Nullzeit-Handleabweisung
-nicht als Abnahme ausgeben. Neue Root-/Testcontrollerbytes benötigen ihren eigenen Netzbeleg;
-C3-Bytes und älteres ETW bleiben unverändert separat. Nächster Scope steht oben, keine vorzeitige
-UI-/Projektfreigabe oder automatische Recovery.
-
-Letzter nativer Netzbeleg · C3, 17. November 2026:
+Vorheriger nativer Netzbeleg · C3, 17. November 2026:
 
 [Gezieltes C3-ETW](testing/product-start-p2c-group-bootstrap-etw.md) des unveränderten Builds
 `b24b3aa…` ist ergänzt: normaler Abschluss und Gruppenfehler/gesperrter Wiederanlauf. 28 Controller,

@@ -48,16 +48,18 @@ Runtime-Paket und minimale isolierte Oberfläche ist als Entwurf ergänzt.
 [C4a-Modellkern](docs/testing/product-start-p2c-c4a-model.md) implementiert reine
 Paket-/Policytypen, deterministische Codierung und getrennten versionierten Lebenszyklus; zwölf neue
 Tests, 108 aktive Helfertests/Clippy bestanden.
-[C4b-Vorprüfung](docs/testing/product-start-p2c-c4b-preflight.md) und
-[authentisierter Root-/WebView-Probelauf](docs/testing/product-start-p2c-c4b-root-bootstrap.md) sind
-ergänzt: 115 aktive Helfertests, tatsächlicher leerer Fixed-Version-Lauf mit einem Root/sieben
-Runtimegenerationen und kontrolliertem Ende. Falsche MAC gesperrt; 14 MAC-Records unabhängig
-geprüft. C4b insgesamt bleibt offen: zwei API-unzugeordnete Generationen sowie vollständige
-Runtime-/Nichtsystemmodul-/Rollenbindung bearbeiten, danach frisches ETW des neuen Paars;
-ungebundene Starts, mehrprozessige GUI-Lebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung
-bleiben offen. P3 Bestandskopie sowie P4/P5 normale App-/Launcher-/Installerintegration und
-Produktabnahme folgen. Die normalen Produkt-Q-01/Q-02 bleiben offen; der neue Forschungsnetzbeleg
-ersetzt dieses Gate nicht. Das strikte Datenschutzziel bleibt unverändert.
+[C4b-Vorprüfung](docs/testing/product-start-p2c-c4b-preflight.md),
+[authentisierter Root-/WebView-Probelauf](docs/testing/product-start-p2c-c4b-root-bootstrap.md) und
+[Generations-/Moduldiagnose mit frischem ETW](docs/testing/product-start-p2c-c4b-observation.md)
+sind ergänzt. Aktuell 117 aktive Helfertests, je ein Root/sechs Runtimegenerationen, 21
+API-Abfragen, fünf generationsgebundene Rollen, eine API-unzugeordnete Generation und expliziter
+zusätzlicher Modulbefund. Gezieltes ETW: 14 Enden/acht Kontrollen ohne beobachtetes Netz oder
+Erfassungsverluste. C4b bleibt offen: vollständige Runtime-/Nichtsystemmodul-/Rollenbindung und
+effektive Datenrechte; ungebundene Starts, mehrprozessige GUI-Lebenszeiten und persistente echte
+Arbeitsablagen-/UI-Bindung bleiben offen. P3 Bestandskopie sowie P4/P5 normale
+App-/Launcher-/Installerintegration und Produktabnahme folgen. Die normalen Produkt-Q-01/Q-02
+bleiben offen; der neue Forschungsnetzbeleg ersetzt dieses Gate nicht. Das strikte Datenschutzziel
+bleibt unverändert.
 
 ## M0 - Fundament (abgeschlossen)
 
@@ -281,8 +283,11 @@ ersetzt dieses Gate nicht. Das strikte Datenschutzziel bleibt unverändert.
              [C4b-Root-/WebView-Probe](docs/testing/product-start-p2c-c4b-root-bootstrap.md),
              authentisierter Bootstrap und tatsächlicher leerer Kindpfad; 115 aktive Tests, keine
              Produkt-/UI-Freigabe
-       - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung und
-             API-unzugeordnete Generationen, danach eigener Netzbeleg; anschließend C4c/d
+       - [x] KQ-069 A:
+             [C4b-Rollen-/Moduldiagnose und gezieltes ETW](docs/testing/product-start-p2c-c4b-observation.md),
+             117 aktive Tests; zusätzliche Module ausdrücklich keine automatische Policyausnahme
+       - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, API-unzugeordnete
+             Rolle und effektive Datenrechte; neue Bytes erneut messen; anschließend C4c/d
              WebView/SQLite unter belegtem Rollen-/Token-/Jobvertrag getrennt integrieren;
              ungebundene Starts und vollständige Live-Worker-Crashbereinigung und persistente echte
              Arbeitsablagen-/UI-Bindung; danach P3–P5 isolierten Produktstarter/echte

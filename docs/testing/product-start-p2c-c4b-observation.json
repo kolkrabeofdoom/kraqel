@@ -1,0 +1,87 @@
+{
+  "date": "2026-11-18",
+  "stage": "C4b-generation-role-and-module-observation",
+  "rootSha256": "0ce6b48ff22af39624db14449d943562cb229835500b9ed1bab9214feeb48a42",
+  "testControllerSha256": "39015362731ed5579de304fea8fdd7cce1a1281bf4e6a717dd51f2d1cc080767",
+  "functional": {
+    "jobProcesses": 7,
+    "runtimeProcesses": 6,
+    "apiGenerations": 5,
+    "apiSamples": 21,
+    "runtimeGenerationsWithoutApiKind": 1,
+    "successfulModuleSnapshots": 126,
+    "modulePathPairs": 294,
+    "moduleDiagnosticErrors": 0,
+    "authenticatedRecords": 14,
+    "nativeParentLinks": 6
+  },
+  "measured": {
+    "jobProcesses": 7,
+    "runtimeProcesses": 6,
+    "apiGenerations": 5,
+    "apiSamples": 21,
+    "runtimeGenerationsWithoutApiKind": 1,
+    "successfulModuleSnapshots": 126,
+    "modulePathPairs": 294,
+    "moduleDiagnosticErrors": 0,
+    "authenticatedRecords": 14,
+    "nativeParentLinks": 6
+  },
+  "etwPhases": [
+    {
+      "phase": "reference",
+      "explicitRoots": 2,
+      "explicitProcessStops": 4,
+      "nativeGenerationsMatched": 0,
+      "processImages": {
+        "unbootstrapped-root": 1,
+        "conhost.exe": 2,
+        "host-test-controller": 1
+      },
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "nonLoopbackEvents": 0,
+      "networkEvents": [],
+      "measurementValid": true
+    },
+    {
+      "phase": "runtime",
+      "explicitRoots": 1,
+      "explicitProcessStops": 10,
+      "nativeGenerationsMatched": 8,
+      "processImages": {
+        "host-test-controller": 1,
+        "conhost.exe": 1,
+        "ui.exe": 2,
+        "msedgewebview2.exe": 6
+      },
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "nonLoopbackEvents": 0,
+      "networkEvents": [],
+      "measurementValid": true
+    }
+  ],
+  "profilesAbsent": 2,
+  "ownFixturesRemoved": true,
+  "nativeUiAbi": 0,
+  "productionAcceptance": false,
+  "c4bComplete": false,
+  "realProjectDataUsed": false,
+  "moduleBindingEnforced": false,
+  "completeLoadHistory": false,
+  "activeTestsPassed": 117,
+  "defaultIgnoredTests": 6
+}
