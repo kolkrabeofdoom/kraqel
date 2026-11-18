@@ -5,6 +5,11 @@ exakte Modul-/WebView-Rollenbindung weiterhin nicht nachgewiesen. BP3 insgesamt 
 [Präloadvertrag](../data-format/product-start-p2c-c4-preload-v1-draft.md) und das strikte
 Datenschutzziel gelten unverändert. Dieser Stand ist keine produktive Runtime-/Datenfreigabe.
 
+Folgestand: Die [separate synthetische Debug-Wächterprobe](product-start-p2c-bp3-debug-guardian.md)
+ist inzwischen durchgeführt. Selbst eröffnete Debugketten entziehen dem äußeren Wächter das
+Kindereignis. Debugvererbung allein ist deshalb ungeeignet; die hier geprüfte Startsperre bleibt
+unverändert. Prüfzahlen/Bytepaar in diesem Dokument beschreiben weiterhin den vorherigen Stand.
+
 ## Ergebnis der Mechanismenprüfung
 
 Die geprüften dokumentierten Schnittstellen liefern noch keinen implementierbaren vollständigen
@@ -100,10 +105,11 @@ ETW-Rohdaten erzeugt.
 dokumentierten Programmpaar. Aus den drei Startabweisungen folgt keine Netzfreiheit des neuen
 Helfers oder anderer Wege. Keine neue umfangreiche Crash-/ETW-Matrix und keine UAC-Anforderung.
 
-## Nächster begrenzter Umfang
+## Ursprünglicher Folgeumfang und aktuelles Ergebnis
 
-BP3 bleibt offen; BP4/C4c/d bleiben gesperrt. Nächster sinnvoller Versuch ist eine **separate
-synthetische Debug-Wächter-Machbarkeitsprobe**, keine Änderung des gesperrten C4-Pfads:
+BP3 bleibt offen; BP4/C4c/d bleiben gesperrt. Für die inzwischen durchgeführte **separate
+synthetische Debug-Wächter-Machbarkeitsprobe** war folgende Reihenfolge geplant, ohne Änderung des
+gesperrten C4-Pfads:
 
 1. Eigener nicht autorisierender Zweck ohne dauerhafte Kontrollschlüssel, DB, Projektpfade oder
    WebView. Begrenzte signaturfreie Test-EXE und Test-DLL mit rein lokalem synthetischem Marker;
@@ -118,6 +124,9 @@ synthetische Debug-Wächter-Machbarkeitsprobe**, keine Änderung des gesperrten 
    einem positiven Runtime-Witness ist weiterhin ein vollständiger Nachweis aller relevanten Wege
    erforderlich.
 
-Diese Folge ist geplant, noch nicht implementiert oder getestet. Kein Machbarkeitsversuch öffnet
+Die Prozess-Gegenprobe ist inzwischen implementiert und geprüft; sie widerlegt bereits die
+Vollständigkeit der bloßen Debugvererbung. Eine Test-DLL, vollständige Ladebindung und native
+Wächter-Crashprüfung wurden deshalb nicht als zusätzlicher Erfolg ausgegeben. Zuerst ist ein
+unabhängiger Durchsetzungsweg architektonisch zu bewerten. Kein Machbarkeitsversuch öffnet
 automatisch `RuntimeStartAllowed` oder `DataAllowed`. Kein Merge/Release oder Produktabnahme aus
 diesem Zwischenstand; Gesamtprojekt grob 65 %, nutzbarer 0.1-Umfang grob 80 % unverändert.

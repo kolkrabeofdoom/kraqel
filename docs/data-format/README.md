@@ -1,6 +1,22 @@
 # Offenes KRAQEL-Datenformat
 
-Aktuell · BP3-Machbarkeitsgrenze und native Startsperre, 18. November 2026:
+Aktuell · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:
+
+[Debug-Wächter-Nachweis](../testing/product-start-p2c-bp3-debug-guardian.md): Root beim
+Create-Ereignis vor User-Mode-Ausführung abgewiesen, normale Kindvererbung bestätigt. Ein Kind mit
+eigenem DEBUG_PROCESS läuft dagegen außerhalb der äußeren Debugkette; dieselbe Kindgeneration vorher
+vom Host an gehaltenem Handle, Token, Profil und Job geprüft. Kein AppContainer-/Jobausbruch. Drei
+native Fälle, neun Jobprozesse (fünf Worker/vier Konsolenhosts), sieben äußere Create-/Exit-Paare
+und zwei innere Create-Berichte; alle eigenen Jobs leer, Profile/Fixtures entfernt. **Debugvererbung
+allein ungeeignet für BP3.** Drei neue aktive Tests/141 Helfer-/Transporttests insgesamt und Clippy
+grün, sieben standardmäßig ignoriert. Kein frisches ETW oder tatsächlicher Wächter-Crash. C4-Sperre
+und native UI-ABI 0 unverändert; keine Runtime-/Datenautorität. BP3/BP4/C4c/d weiter offen. Nächster
+begrenzter Scope: Architekturentscheid für unabhängig durchgesetzte Erzeugung samt früher
+Wächter-/Ladebindung, keine weiteren Runtime-Versuche auf Basis bloßer Debugvererbung. Mittleres
+Prüfniveau und striktes Datenschutzziel unverändert; Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80
+%.
+
+Vorheriger Stand · BP3-Machbarkeitsgrenze und native Startsperre, 18. November 2026:
 
 [BP3-Nachweis](../testing/product-start-p2c-bp3-admission.md): Für den aktuellen C4-Kandidaten ist
 noch kein vollständiger präventiver Modul-/WebView-Rollenmechanismus nachgewiesen. Der native

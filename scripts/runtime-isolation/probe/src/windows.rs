@@ -6,6 +6,7 @@
 //! suspended root enters the kill-on-close job before ResumeThread. Only the fresh validated
 //! TEMP root/data receive additional ACL entries. No firewall or loopback-exemption policy is set.
 #![deny(unsafe_op_in_unsafe_fn)]
+mod debug_guardian;
 mod exchange;
 use serde_json::{Value, json};
 use std::{
@@ -800,6 +801,10 @@ fn launch(root: &Path, app: Option<&Path>, resume: bool) -> Result<Value> {
 }
 pub fn main() {
     let args = std::env::args_os().skip(1).collect::<Vec<_>>();
+    if args.first().is_some_and(|a| a == "bp3-debug-worker") {
+        let result = debug_guardian::worker(&args[1..]);
+        std::process::exit(if result.is_ok() { 0 } else { 2 });
+    }
     if args.first().is_some_and(|a| a == "bp2-leaf-worker") {
         let result = exchange::bp2_worker(&args[1..]);
         std::process::exit(if result.is_ok() { 0 } else { 2 });

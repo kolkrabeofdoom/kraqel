@@ -23,6 +23,15 @@ Runtime-Einstieg weisen ebenfalls vor ihrer Arbeit ab. Interner Forschungsfehler
 historische Beobachtungscode ist mit diesen Bytes nicht mehr aufrufbar; bestehende Records und alte
 Bytepaare bleiben unverändert. BP3 insgesamt weiterhin offen, keine Runtime-/Datenautorität.
 
+[BP3-Debug-Wächter-Gegenprobe](../testing/product-start-p2c-bp3-debug-guardian.md) inzwischen nativ
+geprüft: Rootabweisung vor User-Mode-Ausführung und normale Vererbung funktionieren, ein mit eigener
+Debugkette gestartetes synthetisches Kind läuft jedoch ohne äußeres Create-Ereignis. AppContainer
+und Job bleiben erhalten. Damit ist Debugvererbung allein als vollständige präventive Erzeugungs-
+und Rollenbindung ungeeignet. Kein positiver Runtime-/Datenwitness, kein neues Kontrollformat oder
+C4-Bypass; keine Test-DLL/WebView oder nachträgliche Signatur-/Herstellerausnahme. Nächster Scope
+ist ein Architekturentscheid für einen davon unabhängigen Durchsetzungsweg. Alte Netzbelege werden
+nicht auf das neue Forschungspaar übertragen.
+
 ## 1. Sicherheitsziel und verifizierte Grenze
 
 Nicht zugelassener ausführbarer Code MUSS vor seiner ersten Ausführung gesperrt sein. Das gilt für

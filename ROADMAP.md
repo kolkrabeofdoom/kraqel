@@ -66,7 +66,11 @@ neue Tests/133 aktive Helfertests und Clippy bestanden.
 inzwischen geprüft. Die
 [BP3-Machbarkeitsprüfung/Startsperre](docs/testing/product-start-p2c-bp3-admission.md) ist ergänzt:
 138 aktive Tests, frühe Abweisung auch gültiger C4-Kandidaten ohne belegten Mechanismus. BP3
-insgesamt offen; nächster begrenzter Scope ist eine separate synthetische Debug-Wächter-Probe, keine
+insgesamt offen. Die
+[synthetische Debug-Gegenprobe](docs/testing/product-start-p2c-bp3-debug-guardian.md) ist inzwischen
+durchgeführt: neun Jobprozesse in drei Fällen, selbst eröffnete Debugkette entzieht dem äußeren
+Wächter das Kindereignis. Debugvererbung allein ungeeignet, 141 aktive Tests bestanden. Nächster
+Scope ist ein Architekturentscheid für unabhängig durchgesetzte Erzeugungs-/Ladebindung; keine
 Runtime-/Datenfreigabe. C4b bleibt offen: vollständige Runtime-/Nichtsystemmodul-/effektive
 Rollenbindung vor Datenfreigabe und effektive Datenrechte; ungebundene Starts, mehrprozessige
 GUI-Lebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung bleiben offen. P3 Bestandskopie
@@ -316,9 +320,13 @@ Datenschutzziel bleibt unverändert.
        - [x] KQ-069 A:
              [BP3-Vorprüfung und native Startsperre](docs/testing/product-start-p2c-bp3-admission.md),
              zwei aktive Regressionen/138 Tests, keine positive präventive Bindung oder neues ETW
+       - [x] KQ-069 A:
+             [BP3 synthetische Debug-Wächter-/Vererbungsgegenprobe](docs/testing/product-start-p2c-bp3-debug-guardian.md),
+             drei native Fälle/141 aktive Tests, Debugvererbung allein als Durchsetzung abgelehnt
        - [ ] KQ-069 A: BP3 unterstützten präventiven Wächter-/Modul-/Rollen-Erzeugungsweg und
-             Machbarkeit konkret nachweisen; zunächst synthetische
-             Debug-Wächter-/Debugketten-Gegenprobe, BP4 effektive Datenrechte/Commands weiter offen
+             Machbarkeit konkret nachweisen; nach falsifizierter Debugvererbung zuerst
+             Architekturentscheid für unabhängige Erzeugungs-/Wächter-/Ladegrenze, BP4
+             Datenrechte/Commands weiter offen
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native
              Rollenbindung und effektive Datenrechte; neue Bytes erneut messen; anschließend C4c/d
              WebView/SQLite unter belegtem Rollen-/Token-/Jobvertrag getrennt integrieren;
