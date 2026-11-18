@@ -1,5 +1,10 @@
 # P2c C4b: Crashpad-Diagnose und verbindliche Modulsperre
 
+Fortsetzung:
+[frischer ETW-Netzvergleich dieses unveränderten Sperrpaars](product-start-p2c-c4b-module-gate-etw.md).
+Der folgende funktionale Stand bleibt separat dokumentiert; sein damaliger offener Netzbeleg ist
+dort inzwischen ergänzt.
+
 Stand: 18. November 2026. **Modulsperre im nativen Forschungsweg geprüft; C4b insgesamt und
 Produktfreigabe bleiben offen.** [Bereinigte Aggregate](product-start-p2c-c4b-module-gate.json),
 [vorheriger Beobachtungs-/ETW-Stand](product-start-p2c-c4b-observation.md),

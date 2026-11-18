@@ -54,13 +54,16 @@ Tests, 108 aktive Helfertests/Clippy bestanden.
 [verbindliche Modulsperre/Crashpad-Diagnose](docs/testing/product-start-p2c-c4b-module-gate.md) sind
 ergänzt. 119 aktive Tests im Vollsatz, danach 23 gezielte C4-Tests; neue native Sperre stoppt den
 authentisierten Root vor Continue/WebView. Beide zusätzlichen Modulpfade abgewiesen, 13 MAC-Records
-unabhängig geprüft. Nächster Scope: frisches ETW des neuen Sperrpaars. C4b bleibt offen:
-vollständige Runtime-/Nichtsystemmodul-/effektive Rollenbindung vor Datenfreigabe und effektive
-Datenrechte; ungebundene Starts, mehrprozessige GUI-Lebenszeiten und persistente echte
-Arbeitsablagen-/UI-Bindung bleiben offen. P3 Bestandskopie sowie P4/P5 normale
-App-/Launcher-/Installerintegration und Produktabnahme folgen. Die normalen Produkt-Q-01/Q-02
-bleiben offen; der neue Forschungsnetzbeleg ersetzt dieses Gate nicht. Das strikte Datenschutzziel
-bleibt unverändert.
+unabhängig geprüft.
+[Frisches ETW des Sperrpaars](docs/testing/product-start-p2c-c4b-module-gate-etw.md) bestanden: acht
+explizite Enden/acht Kontrollen, keine Verluste/Zuordnungslücken oder beobachteten Netzereignisse in
+diesen Bäumen; 27 Auswertungstests erneut grün, kein neuer Build. Nächster Scope: Vertrag für vor
+dem Laden wirksame Modul-/Rollenbindung. C4b bleibt offen: vollständige
+Runtime-/Nichtsystemmodul-/effektive Rollenbindung vor Datenfreigabe und effektive Datenrechte;
+ungebundene Starts, mehrprozessige GUI-Lebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung
+bleiben offen. P3 Bestandskopie sowie P4/P5 normale App-/Launcher-/Installerintegration und
+Produktabnahme folgen. Die normalen Produkt-Q-01/Q-02 bleiben offen; der neue Forschungsnetzbeleg
+ersetzt dieses Gate nicht. Das strikte Datenschutzziel bleibt unverändert.
 
 ## M0 - Fundament (abgeschlossen)
 
@@ -290,9 +293,13 @@ bleibt unverändert.
        - [x] KQ-069 A:
              [C4b-Modulsperre/Crashpad-Diagnose](docs/testing/product-start-p2c-c4b-module-gate.md),
              keine neue Runtime-/Textfreigabe; beide zusätzlichen Modulpfade abgewiesen
-       - [ ] KQ-069 A: gezieltes frisches ETW des neuen C4b-Sperrpaars
-       - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, API-unzugeordnete
-             Rolle und effektive Datenrechte; neue Bytes erneut messen; anschließend C4c/d
+       - [x] KQ-069 A:
+             [gezieltes frisches ETW des C4b-Sperrpaars](docs/testing/product-start-p2c-c4b-module-gate-etw.md),
+             acht Enden/acht Kontrollen ohne beobachtetes Netz, kein neuer Build
+       - [ ] KQ-069 A: Vertrag für vor dem Laden wirksame Modul-/Rollenbindung und sicheren Abbruch
+             bei nicht erzwingbarer Policy konkretisieren
+       - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native
+             Rollenbindung und effektive Datenrechte; neue Bytes erneut messen; anschließend C4c/d
              WebView/SQLite unter belegtem Rollen-/Token-/Jobvertrag getrennt integrieren;
              ungebundene Starts und vollständige Live-Worker-Crashbereinigung und persistente echte
              Arbeitsablagen-/UI-Bindung; danach P3–P5 isolierten Produktstarter/echte

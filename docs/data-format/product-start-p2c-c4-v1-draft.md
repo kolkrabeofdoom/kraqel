@@ -1,21 +1,20 @@
 # P2c C4: Runtime-Paketbindung und minimale isolierte Oberfläche
 
-Aktuell · C4b-Crashpad-Diagnose und verbindliche Modulsperre, 18. November 2026:
+Aktuell · frisches C4b-Sperrpaar-ETW, 18. November 2026:
 
-[Nativer Rollenbefund und Sperrnachweis](../testing/product-start-p2c-c4b-module-gate.md): Im
-gesonderten synthetischen Diagnoselauf passen beide API-unzugeordneten Generationen nativ zu
-`--type=crashpad-handler`. Dies erteilt keine Rollenautorität und identifiziert alte Generationen
-nicht rückwirkend. Neue native Modulpolicy bindet Kandidaten-Dateiidentitäten und eng begrenzte
-Windows-Plattformbereiche; fremde/unprüfbare Module sperren vor Running/Continue und in weiteren
-Aufnahmen. Keine Signatur-/Hersteller-/Dateinamenausnahme. Beide zusätzlichen Modulpfade abgewiesen;
-neuer Root live authentisiert, aber vor WebView gestoppt, kontrolliertes Drained/Finish. 13
-MAC-Records/neun C4-Proberecords unabhängig geprüft, Profil und Fixtures entfernt. Fehlende
-API-Generationen sperren zusätzlich; Crashpad-Kommandozeilen umgehen das nicht. 119 aktive
-Helfer-/Transporttests im Vollsatz, danach 23 gezielte C4-Tests und nativer Sperrfall bestanden;
-Clippy/rustfmt grün. Kein App-/Transport-/Installerumbau. **Nächster Scope: gezielter frischer
-ETW-Vergleich des neuen Sperrpaars.** Alter Netzbeleg gilt nur seinen exakten Bytes. **C4b bleibt
-offen:** vollständige Rollen-/Modulbindung vor Datenfreigabe und unabhängige effektive
-Daten-ACL-Abnahme; Polling verhindert keine frühere DLL-Ausführung. Native UI-ABI 0, keine echten
+[Gezielter frischer Netzvergleich](../testing/product-start-p2c-c4b-module-gate-etw.md) des
+unveränderten Sperrpaars `daf59d0…`/`83679e5…` bestanden: drei Hostaufrufe, zwei Rootkinder und drei
+Konsolenhosts, alle acht Enden explizit, acht Positivkontrollen, keine Verluste/Zuordnungslücken und
+null beobachtete Netzereignisse in diesen Bäumen einschließlich Loopback. Drei Host- und zwei
+Rootgenerationen nativ gegen Kernelzeiten/Eltern abgeglichen. 13 MAC-Records/neun C4-Proberecords
+und zwei verbrauchte Launches unabhängig geprüft; authentisierter Root vor Running/Continue
+abgewiesen, kein WebView. Beide zusätzlichen Modulpfade abgewiesen; Crashpad-Diagnose bleibt ohne
+Rollenautorität. Profil/Fixtures entfernt, Erfassungen beendet. 27 Auswertungstests erneut grün;
+frühere 119 Helfer-/23 C4-Tests nicht als neue Läufe ausgeben. Keine neuen Programmbytes. **Nächster
+begrenzter Scope:** Vertrag für vor dem Laden wirksame Modul-/Rollenbindung und sicheren Abbruch bei
+nicht erzwingbarer Policy konkretisieren; keine Hersteller-/Signaturausnahmen oder Abschaltung von
+Schutzsoftware. **C4b bleibt offen:** Polling verhindert keine frühere DLL-Ausführung; unabhängige
+effektive Daten-ACL-Abnahme und kompatibler Produktstart fehlen. Native UI-ABI 0, keine echten
 Projekte/Commands oder neue Produkt-/Recoveryfreigabe. Mittleres Prüfniveau und striktes
 Datenschutzziel unverändert; Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
 

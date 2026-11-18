@@ -11,50 +11,51 @@ Commitverlauf.
 
 Arbeitsbranch **`feat/kq-069-live-file-selection`**,
 [Draft-PR #142](https://github.com/kolkrabeofdoom/kraqel/pull/142). `git pull --ff-only` zu Beginn
-dieser Sitzung: aktuell/sauber. CI von `12cbe4d`: Linux/Dependency Review grün, Windows noch
-laufend; neue Head-CI gesondert prüfen. Kein Merge, Release oder Produktstart daraus.
+dieser Sitzung: aktuell/sauber. CI von `59d059e`: Dependency Review grün, Windows/Linux beim
+Messabschluss noch laufend; neue Head-CI gesondert prüfen. Kein Merge, Release oder Produktstart
+daraus.
 
-Aktuell · C4b-Crashpad-Diagnose und verbindliche Modulsperre, 18. November 2026:
+Aktuell · frisches C4b-Sperrpaar-ETW, 18. November 2026:
 
-[Nativer Rollenbefund und Sperrnachweis](testing/product-start-p2c-c4b-module-gate.md): Im
-gesonderten synthetischen Diagnoselauf passen beide API-unzugeordneten Generationen nativ zu
-`--type=crashpad-handler`. Dies erteilt keine Rollenautorität und identifiziert alte Generationen
-nicht rückwirkend. Neue native Modulpolicy bindet Kandidaten-Dateiidentitäten und eng begrenzte
-Windows-Plattformbereiche; fremde/unprüfbare Module sperren vor Running/Continue und in weiteren
-Aufnahmen. Keine Signatur-/Hersteller-/Dateinamenausnahme. Beide zusätzlichen Modulpfade abgewiesen;
-neuer Root live authentisiert, aber vor WebView gestoppt, kontrolliertes Drained/Finish. 13
-MAC-Records/neun C4-Proberecords unabhängig geprüft, Profil und Fixtures entfernt. Fehlende
-API-Generationen sperren zusätzlich; Crashpad-Kommandozeilen umgehen das nicht. 119 aktive
-Helfer-/Transporttests im Vollsatz, danach 23 gezielte C4-Tests und nativer Sperrfall bestanden;
-Clippy/rustfmt grün. Kein App-/Transport-/Installerumbau. **Nächster Scope: gezielter frischer
-ETW-Vergleich des neuen Sperrpaars.** Alter Netzbeleg gilt nur seinen exakten Bytes. **C4b bleibt
-offen:** vollständige Rollen-/Modulbindung vor Datenfreigabe und unabhängige effektive
-Daten-ACL-Abnahme; Polling verhindert keine frühere DLL-Ausführung. Native UI-ABI 0, keine echten
+[Gezielter frischer Netzvergleich](testing/product-start-p2c-c4b-module-gate-etw.md) des
+unveränderten Sperrpaars `daf59d0…`/`83679e5…` bestanden: drei Hostaufrufe, zwei Rootkinder und drei
+Konsolenhosts, alle acht Enden explizit, acht Positivkontrollen, keine Verluste/Zuordnungslücken und
+null beobachtete Netzereignisse in diesen Bäumen einschließlich Loopback. Drei Host- und zwei
+Rootgenerationen nativ gegen Kernelzeiten/Eltern abgeglichen. 13 MAC-Records/neun C4-Proberecords
+und zwei verbrauchte Launches unabhängig geprüft; authentisierter Root vor Running/Continue
+abgewiesen, kein WebView. Beide zusätzlichen Modulpfade abgewiesen; Crashpad-Diagnose bleibt ohne
+Rollenautorität. Profil/Fixtures entfernt, Erfassungen beendet. 27 Auswertungstests erneut grün;
+frühere 119 Helfer-/23 C4-Tests nicht als neue Läufe ausgeben. Keine neuen Programmbytes. **Nächster
+begrenzter Scope:** Vertrag für vor dem Laden wirksame Modul-/Rollenbindung und sicheren Abbruch bei
+nicht erzwingbarer Policy konkretisieren; keine Hersteller-/Signaturausnahmen oder Abschaltung von
+Schutzsoftware. **C4b bleibt offen:** Polling verhindert keine frühere DLL-Ausführung; unabhängige
+effektive Daten-ACL-Abnahme und kompatibler Produktstart fehlen. Native UI-ABI 0, keine echten
 Projekte/Commands oder neue Produkt-/Recoveryfreigabe. Mittleres Prüfniveau und striktes
 Datenschutzziel unverändert; Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
 
-Nächster Schritt: **gezieltes frisches ETW des neuen Sperrpaars**, nicht erneut den alten
-Beobachtungsbuild messen. Gesicherter Root `daf59d0…`, Testcontroller `83679e5…`; Referenz ohne
-Bootstrap, falsche MAC und authentisierter Abbruch vor Continue. Exakte Dateihashes und tatsächliche
-Hostgenerationen explizit binden; bestehende Messregeln unverändert verwenden. Keine breite Matrix.
+Nächster Schritt: **C4b-Vertrag für eine vor dem Laden wirksame Modul-/Rollenbindung** und sicheren
+Abbruch bei nicht erzwingbarer Policy ausarbeiten. Die neue Modulsperre ist kein Nachweis gegen
+bereits erfolgte DLL-Ausführung. Keine Hersteller-/Signaturausnahme, Abschaltung von Schutzsoftware
+oder neue Text-/Commandfreigabe. Effektive Datenrechte und kompatibler Produktstart bleiben offen;
+C4c/d nicht vorziehen.
 
-Private aktuelle Sicherungen `%TEMP%/kraqel-c4b-role-diagnostic-20261118-02/` und
-`%TEMP%/kraqel-c4b-module-gate-20261118-03/`, zusätzliche geschützte Kopie unter
-`artifacts/c4b-module-gate-20261118-03/`. Diagnose-, Testcontroller- und Rootbytes strikt getrennt
-halten. Private MAC-Audits/Kommandozeilen/Module und Quellmanifest bleiben lokal. Keine Auditkopie
-als aktiven Store übernehmen. Erstes gescheitertes Testassert vor C4-Start wegen fehlendem
-Verzeichniszugriff nicht als bestandenen Nachweis ausgeben; der korrigierte Lauf besteht.
+Exaktes Paar weiter `%TEMP%/kraqel-c4b-module-gate-20261118-03/`: Root `daf59d0…`,
+Host-Testcontroller `83679e5…`, funktionaler Bericht `run-functional.json`, neuer gemessener Bericht
+`run.json`, getrennte private MAC-Audits, `etw-independent-audit.json`. Frische Rohmessungen unter
+`%TEMP%/kraqel-c4b-gate-etw-20261118-01-{reference,gate}/`, geschützte zusätzliche Sicherung
+`artifacts/c4b-module-gate-etw-20261118-01/` außerhalb von TEMP einschließlich exaktem Paar,
+ETL/XML, Audit und Hashmanifest. Keys/PIDs/Pfade/Kommandozeilen bleiben lokal; keine Auditkopie als
+aktiven Store oder wiederverwendbaren Grant übernehmen. Alte Nachweise/Bytepaare unverändert.
 
-Alte Sicherungen `artifacts/c4b-observation-20261118-01/` und `artifacts/session-close-20261117-01/`
-einschließlich Runtime-CAB unverändert. Runtimequelle weiter
-`%TEMP%/kraqel-c4-runtime-20261117-01/expanded/`; bei TEMP-Verlust gesichertes CAB entpacken und
-Manifesthashes prüfen. Keine echten Projekte/echte Vorschauablage starten, Pending nicht reparieren,
-keine Modul-/Herstellerausnahme oder Änderung an Schutzsoftware. Der aktuelle Rechner wird durch die
-neue Forschungs-Root-Sperre absichtlich vor WebView abgewiesen. Kompatibler Produktstart, wirksame
-Bindung vor jedem dynamischen Laden und effektive Datenrechte bleiben offen.
+Runtimequelle weiter `%TEMP%/kraqel-c4-runtime-20261117-01/expanded/`; CAB-Sicherung unverändert
+unter `artifacts/session-close-20261117-01/`. Bei TEMP-Verlust eigenes gesichertes CAB entpacken und
+Manifesthashes prüfen. Keine echten Projekte/echte Vorschauablage starten und Pending nicht
+reparieren. Keine neue Build-/Crashmatrix für diesen Messabschluss.
 
-Eigene Läufe beendet, Profile/Daten-/Kontrollfixtures entfernt; in diesem Scope keine neue
-ETW-Erfassung gestartet und keine Systemerfassung angefasst. Mittleres Prüfniveau beibehalten.
+Gemessene Prozesse beendet, Testprofil/Daten-/Kontrollfixtures entfernt; beide eigenen Erfassungen
+gestoppt/konvertiert und eigener Supervisor beendet. Bestehende Systemerfassungen nicht angefasst.
+Mittleres Prüfniveau und striktes Datenschutzziel beibehalten. Neue Programmbytes benötigen einen
+eigenen frischen Netzbeleg; diese Messung erteilt keine Runtime-/Produktfreigabe.
 
 Vorheriger nativer Netzbeleg · C3, 17. November 2026:
 
