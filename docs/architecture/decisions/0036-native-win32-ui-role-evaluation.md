@@ -147,6 +147,25 @@ Am 19.11.2026 lief `open-win32-surface` mit identischen Binärdateien in frische
 
 SHA-256 des verwalteten Starters war `b838511b155ca62ac18855957515b6506eaef42299cf704c2d3f5b96b124e8f1`, die der Fensterrolle `01e907b71328219456a23dac4cb39d7b88e3e69ee28d1a2614ec22a64b22212d`. Die ETW-Auswertung band die Starter-PID an den vollständigen EXE-Namen und bestätigte die direkte Kindrolle. Beide Aufrufe meldeten bestätigten Bootstrap, gesperrte Produktdaten, unveränderten Kontrollkopf und leeren Job nach dem Schließen. Die Aussage gilt für den KRAQEL-Prozessbaum. Narrators eigener Netzverkehr und der anderer Windows-Dienste liegen außerhalb dieser Zuordnung. Der Sprachverlauf wurde für den Netzvergleich nicht ausgelesen, Rohspuren blieben lokal.
 
+### C4d · Abnahmeentscheidung für das verwaltete Win32-Paket
+
+**C4c ist für die schreibgeschützte synthetische Win32-Oberfläche abgeschlossen. C4d hat diesen Paketkandidaten zur weiteren Freigabe abgelehnt.** Der Umfang von C4c umfasst den authentisierten Fensterstart, die Tastaturbedienung, die bestätigten Narrator-Ansagen und das reguläre Ende. Der [ursprüngliche C4-Vertrag](../../data-format/product-start-p2c-c4-v1-draft.md#6-umsetzung-und-mittleres-prüfniveau) enthält zusätzlich Dokumentbefehle und synthetische SQLite-Persistenz. Deren Integration in diesen verwalteten Fensterpfad bleibt offen. Die separaten BP4b-Gastbefunde gelten für die dort geprüften Rollen und Binärstände.
+
+**Identität am 19.11.2026.** Der aktivierte, hashbenannte Starter hat das neu bereitgestellte Paket in einer frischen synthetischen Kontrollablage über `verify-win32-package` verifiziert. Kontrollkopf und Paketbindung stimmten überein. Der Aufruf startete keine Rolle und erteilte keine Datenfreigabe. Die SHA-256-Werte von Starter und Fensterrolle stimmen mit dem [C4c-Netzvergleich](#c4c-etw-netzvergleich-beim-fokuswechsel) überein. Für die übrigen Paketdateien belegt der Inventarabgleich die Identität im aktuellen Abnahmelauf.
+
+| Bestandteil | SHA-256 |
+| --- | --- |
+| Verwalteter Starter | `b838511b155ca62ac18855957515b6506eaef42299cf704c2d3f5b96b124e8f1` |
+| anchor.json | `52b4dc1f1a1dd28293e8c10e0613e034646907d1731db3f6e6c92d1c8fcc340f` |
+| native-leaf.exe | `01e907b71328219456a23dac4cb39d7b88e3e69ee28d1a2614ec22a64b22212d` |
+| pipe-check.exe | `5b2f019d340cab2fc7426137ea1a81b10df12defdb59a8bee6f499406b835f35` |
+| pipe-other.exe | `3c13c886b02af2541ab6e2918c408e121e0b3a2f6c8f806f8795fd28ba36974f` |
+| pipe-service.exe | `3dd1518dcfbd5c89dd7a31dbac8b812b3f25a4f28823813fb468dffabef9b70f` |
+
+**Offenes Abnahmekriterium.** Nach einem Wächterverlust verlangt der Vertrag eine dauerhafte Sperre, bis ein vertrauenswürdiger Endebeleg vorliegt. Die [Paketbindung](../../../scripts/runtime-isolation/probe/src/windows/exchange/ui_restart/durable/product/win32_binding.rs) protokolliert die Paketaufnahme. Der [verwaltete Fensterstart](../../../scripts/runtime-isolation/probe/src/windows/exchange/ui_restart/durable/product/win32_binding/suspended.rs) führt die Sitzung unter exklusiver Sperre und im Kill-on-close-Job, schreibt aber keinen authentisierten Start-/Endzustand für diese Fensterprozessgeneration. Nach Wegfall des Jobs liefert die Leerlaufprüfung keinen dauerhaften Beleg, ob die frühere Sitzung regulär abgeschlossen wurde. Die belegte Sperre eines zweiten Starters bei lebender Sitzung deckt diesen Fall nicht ab. Dieser Befund stammt aus dem Startpfad im Quellcode. Ein Wiederanlauf nach Crash wurde in dieser Abnahme nicht ausgeführt.
+
+Für den nächsten Kandidaten muss der Starter die ausstehende Sitzung unter derselben Kontrollsperre vor der Prozesserzeugung dauerhaft vermerken und erst nach bestätigtem Ende abschließen. Ein unaufgelöster Eintrag muss die nächste Fenstererzeugung sperren. Dann sind der gezielte Abbruch-/Neustartnachweis und der ETW-Vergleich für die tatsächlich geänderten Bytes fällig. Produktdaten und WebView2 bleiben gesperrt.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche
