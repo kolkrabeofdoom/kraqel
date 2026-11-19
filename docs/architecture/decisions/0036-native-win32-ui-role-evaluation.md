@@ -186,6 +186,14 @@ Am 19.11.2026 wurden der verwaltete Starter aus dem vorigen Abschnitt und die Fe
 
 Beim regulären Ende wurden Start und Abschluss dauerhaft vermerkt, die Sitzung war geschlossen und der Job leer. Nach dem Starterabbruch endete auch die Fensterrolle. Anschließend blieb der Startbeleg offen. Beim Neustart lieferte der Broker `win32-window-session-open`; ETW erfasste ausschließlich den Starter. Die anschließende lesende Statusabfrage bestätigte identischen Kontrollkopf und Sitzungszustand. In allen drei Erfassungen gab es null nicht zuordenbare Netzwerkereignisse. Die Aussage gilt für diese Binärdateien und Prozesslebenszeiten im synthetischen Vorschaupfad. Die Rohspuren blieben lokal; Netzwerkaktivität eigenständiger Windows-Dienste liegt außerhalb der Prozessbaumzuordnung.
 
+### C4d-Abschluss für den synthetischen Vorschaupfad
+
+**Entscheidung vom 19.11.2026.** Der Folgekandidat ist für den verwalteten Start des schreibgeschützten synthetischen Win32-Fensters abgenommen. Die Abnahme bindet den Starter `fda5ccc1dbe9fe88fad12fb497c2449faf9435b96be66a3885a353a097e833d4` an das vierteilige Rollenpaket mit Anker `52b4dc1f1a1dd28293e8c10e0613e034646907d1731db3f6e6c92d1c8fcc340f`. Der abschließende lesende Abgleich der vorhandenen Binärdateien und Messaggregate bestätigte die vier inventarisierten Imagehashes, den Anker und die Identität beider gemessenen Programme.
+
+Der authentisierte Sitzungsbeginn vor Prozesserzeugung und der generationsgebundene Endebeleg schließen die beim Vorgänger festgestellte Lücke. Nach regulärem Ende konnte eine neue Sitzung beginnen. Nach Starterabbruch endete die Rolle und die offene Sitzung sperrte den Neustart mit aktuellem Kontrollkopf. ETW belegte in diesem Fall genau einen Starter und null Fensterrollen. Alle drei Messpfade waren vollständig kalibriert, verlustfrei und ohne Netzwerkereignisse im gemessenen KRAQEL-Prozessbaum.
+
+Die Freigabe umfasst ausschließlich diesen lokalen Vorschaupfad mit festem Prüftext. Produktdaten und WebView2 bleiben gesperrt. Für den verwalteten Zugriff auf Szenen und SQLite ist eine eigene Integration erforderlich. Die Netzbeobachtung ist auf die gemessenen Prozesslebenszeiten begrenzt.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche
