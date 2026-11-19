@@ -77,3 +77,17 @@ Für die Wiederholung gilt der oben beschriebene ETW-Ablauf mit `-ExerciseTrial 
 Der gezielte Gastlauf `-Trial proof-consumed-loss` vom 19. November 2026 nutzte eine neue synthetische Ablage. Die Kontrollinstanz verbrauchte die Freigabe unter exklusiver Sperre und synchronisierte `read-consumed`. Unmittelbar danach endete sie hart mit Exitcode 104, noch vor dem Aufruf zur Erzeugung des Lesepaars. Der reguläre Neustart endete vor der Ablagevorbereitung mit Exitcode 102. Es entstand kein Lesepaar. Der Hash des Kontrollvermerks blieb über den Neustart gleich.
 
 Die schreibgeschützte Nachprüfung bestätigte `read-consumed` und die Entfernung der alten Startfreigaben, ohne SQLite zu öffnen. Die ursprüngliche gesperrte Ablage blieb unberührt. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden. Der erste Versuch endete vor dem Neustart an einer durch die Gast-Sprachrichtlinie gesperrten Diagnosemethode. Der vollständige Nachweis stammt vom Wiederholungslauf mit unveränderter Richtlinie und identischem Prüfprogramm.
+
+### ETW-Netzvergleich nach Verbrauch der Lesefreigabe
+
+Am 19. November 2026 liefen Referenz und Prüffall auf einer frischen Offline-Gastplatte. Alle vier Programm-Hashes stimmten mit dem vorstehenden Funktionslauf überein. ETW erfasste das ursprüngliche Schreibpaar, das Ende des Ausstellers (101), den Ausfall der Kontrollinstanz nach synchronisiertem Verbrauch (104) und den gesperrten Neustart (102). Es entstand kein Lesepaar. Der neu gestartete Prozess hatte keine Kindprozesse.
+
+| Messgröße | Referenz | Ausfall und Neustart |
+| --- | ---: | ---: |
+| ETW-Ereignisse / Prozesse im gemessenen Baum | 70 / 3 | 57 / 9 |
+| Netzwerkereignisse im gemessenen Baum | 0 | 0 |
+| Gastweite Loopback-Ereignisse / übrige oder unbekannte Ziele | 18 / 0 | 18 / 0 |
+| Erkannte TCP-/UDP-Kontrollen über IPv4 und IPv6 | 4/4 | 4/4 |
+| Verlorene Ereignisse und Puffer | 0 | 0 |
+
+Der Hash des Verbrauchsvermerks blieb über den Neustart gleich. Die schreibgeschützte Plattenprüfung bestätigte `read-consumed` und entfernte Startfreigaben, ohne die Datenbank zu öffnen. Die ursprüngliche gesperrte Ablage blieb unberührt. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Gastplatte verbunden. Zur Wiederholung den bestehenden ETW-Ablauf mit `-ExerciseTrial proof-consumed-loss` und der Auswertung `--proof proof-consumed-loss` verwenden. Rohspuren bleiben lokal.
