@@ -3,10 +3,16 @@ use super::*;
 use crate::native_win32_package::{IMAGES, PinnedPackage};
 
 mod suspended;
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum WindowMode {
+    Suspended,
+    Receipt,
+    Surface,
+}
 pub(super) enum Operation<'a> {
     Bind(&'a Path, [u8; 32]),
     Verify,
-    CheckWindow { resume: bool },
+    CheckWindow(WindowMode),
 }
 
 impl Store {
@@ -64,11 +70,11 @@ impl Store {
         if enrollment.is_some() {
             self.append(actor, head, Action::BindWin32Package { anchor: expected })?;
         }
-        if let Operation::CheckWindow { resume } = operation {
+        if let Operation::CheckWindow(mode) = operation {
             let image = pins
                 .image(suspended::WINDOW)
                 .ok_or(invalid("win32-window-not-pinned"))?;
-            return suspended::check_window(self, &root, image, resume);
+            return suspended::check_window(self, &root, image, mode);
         }
         Ok(
             json!({"nativePreviewOnly":true,"roleStarted":false,"dataAllowed":false,

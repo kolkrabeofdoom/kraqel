@@ -31,7 +31,7 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
         }
     }
 }
-fn show(endpoint: Option<bootstrap::Endpoint>) -> i32 {
+fn show(endpoint: Option<bootstrap::Endpoint>, mut surface: Option<std::fs::File>) -> i32 {
     unsafe {
         let instance = GetModuleHandleW(null());
         let name = wide("KRAQEL.Synthetic.Edit");
@@ -101,7 +101,24 @@ fn show(endpoint: Option<bootstrap::Endpoint>) -> i32 {
             }
         }
         SendDlgItemMessageW(hwnd, EDIT, EM_SETLIMITTEXT, 48, 0);
+        if surface.is_some() {
+            let edit = GetDlgItem(hwnd, EDIT);
+            if SendMessageW(edit, windows_sys::Win32::UI::Controls::EM_SETREADONLY, 1, 0) == 0
+                || SetWindowTextW(edit, wide("Rabe\r\n42").as_ptr()) == 0
+            {
+                return 24;
+            }
+        }
         ShowWindow(hwnd, SW_SHOW);
+        if let Some(output) = surface.as_mut() {
+            use std::io::Write;
+            if output
+                .write_all(&(hwnd as usize as u64).to_le_bytes())
+                .is_err()
+            {
+                return 20;
+            }
+        }
         if let Some(endpoint) = endpoint {
             let exit = endpoint
                 .window(
@@ -177,8 +194,37 @@ fn show(endpoint: Option<bootstrap::Endpoint>) -> i32 {
         }
     }
 }
-fn confirm_bootstrap() -> std::io::Result<()> {
-    use std::io::{Read, Write};
+fn acknowledge(
+    input: &mut impl std::io::Read,
+    output: &mut impl std::io::Write,
+    open: bool,
+) -> std::io::Result<()> {
+    let mut ticket = [0; 32];
+    input.read_exact(&mut ticket)?;
+    output.write_all(&window_receipt::receipt(&ticket))?;
+    if open {
+        let mut grant = [0; 32];
+        input.read_exact(&mut grant)?;
+        require(window_receipt::commitment(&grant) == ticket, "UI grant")?;
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn acknowledged_ticket_rejects_another_opening_grant() {
+        let ticket = window_receipt::commitment(&[1; 32]);
+        let input = [ticket, [2; 32]].concat();
+        let mut output = Vec::new();
+        assert!(acknowledge(&mut input.as_slice(), &mut output, true).is_err());
+        assert_eq!(output, window_receipt::receipt(&ticket));
+    }
+}
+
+fn confirm_bootstrap(profile: Option<&str>) -> std::io::Result<Option<std::fs::File>> {
     use windows_sys::Win32::Storage::FileSystem::{FILE_TYPE_PIPE, GetFileType};
     use windows_sys::Win32::System::Threading::{GetStartupInfoW, STARTUPINFOW};
 
@@ -195,23 +241,62 @@ fn confirm_bootstrap() -> std::io::Result<()> {
     use std::os::windows::io::BorrowedHandle;
     let input = unsafe { BorrowedHandle::borrow_raw(startup.hStdInput) };
     let output = unsafe { BorrowedHandle::borrow_raw(startup.hStdOutput) };
-    let mut ticket = [0; 32];
-    std::fs::File::from(input.try_clone_to_owned()?).read_exact(&mut ticket)?;
-    std::fs::File::from(output.try_clone_to_owned()?).write_all(&window_receipt::receipt(&ticket))
+    let mut input = std::fs::File::from(input.try_clone_to_owned()?);
+    let mut output = std::fs::File::from(output.try_clone_to_owned()?);
+    if let Some(profile) = profile {
+        let suffix = profile.strip_prefix("org.kraqel.probe.ui.").unwrap_or("");
+        require(
+            suffix.len() == 32 && suffix.bytes().all(|b| b.is_ascii_hexdigit()),
+            "UI profile",
+        )?;
+        unsafe {
+            use windows_sys::Win32::Security::{
+                FreeSid, Isolation::DeriveAppContainerSidFromAppContainerName,
+            };
+            use windows_sys::Win32::System::{
+                JobObjects::IsProcessInJob, Threading::GetCurrentProcess,
+            };
+            let mut sid = null_mut();
+            require(
+                DeriveAppContainerSidFromAppContainerName(wide(profile).as_ptr(), &mut sid) >= 0,
+                "UI profile SID",
+            )?;
+            let process = GetCurrentProcess();
+            let result = policy(process, sid);
+            FreeSid(sid);
+            result?;
+            let mut member = 0;
+            check(IsProcessInJob(process, null_mut(), &mut member))?;
+            require(member != 0, "UI job")?;
+        }
+    }
+    acknowledge(&mut input, &mut output, profile.is_some())?;
+    Ok(profile.map(|_| output))
 }
 
 fn main() {
+    if std::env::args_os().nth(1).as_deref() == Some(std::ffi::OsStr::new(window_receipt::UI_ARG)) {
+        let output = std::env::args()
+            .nth(2)
+            .and_then(|profile| confirm_bootstrap(Some(&profile)).ok())
+            .flatten();
+        std::process::exit(output.map_or(20, |out| show(None, Some(out))));
+    }
     if std::env::args_os().nth(1).as_deref() == Some(std::ffi::OsStr::new(window_receipt::ARG)) {
-        std::process::exit(if confirm_bootstrap().is_ok() { 0 } else { 20 });
+        std::process::exit(if confirm_bootstrap(None).is_ok() {
+            0
+        } else {
+            20
+        });
     }
     if bootstrap::Role::Window.receipt().exists() {
         let exit = bootstrap::Endpoint::open(bootstrap::Role::Window)
-            .map(|endpoint| show(Some(endpoint)))
+            .map(|endpoint| show(Some(endpoint), None))
             .unwrap_or(20);
         std::process::exit(exit);
     }
     if verify_leaf().is_err() {
         std::process::exit(20);
     }
-    std::process::exit(show(None));
+    std::process::exit(show(None, None));
 }

@@ -97,7 +97,13 @@ Der verwaltete Windows-Vorschaustart mit synthetischer Ablage bestätigte den R�
 
 Der getrennte Einstieg `broker-store check-win32-receipt <aktueller-Kopf-SHA256>` gibt der Fensterrolle zusätzlich nur das Schreibende einer zweiten anonymen Pipe als Standardausgabe. Nach erfolgreicher Ticketprüfung schließt der Starter sein Eingabe-Schreibende und setzt den primären Thread genau einmal fort. Im Empfangsmodus liest die Rolle das Ticket, sendet dessen domänengetrennten SHA-256-Empfangsbeleg und endet vor dem UI- oder Datenzugriff. Der Starter hält die Kontrollsperre und Pakethandles bis zur Beendigung und Bereinigung. Er verlangt binnen fünf Sekunden das Prozessende, Exitcode null und genau die erwarteten 32 Antwortbytes.
 
-Der lokale Windows-Lauf über die aktivierte verwaltete EXE bestätigte den Empfang, unveränderten Kontrollkopf und leeren Job. Eine separat gebundene synthetische Gegenrolle endete erfolgreich mit einer gleich langen falschen Antwort. Der Starter wies sie beim Belegvergleich ab. Der vorhandene Datei-ID-Test prüft jetzt den Pfad mit angefordertem Resume. Der nächste Integrationsschritt ist die synthetische Fensteroberfläche nach bestätigtem Bootstrap.
+Der lokale Windows-Lauf über die aktivierte verwaltete EXE bestätigte den Empfang, unveränderten Kontrollkopf und leeren Job. Eine separat gebundene synthetische Gegenrolle endete erfolgreich mit einer gleich langen falschen Antwort. Der Starter wies sie beim Belegvergleich ab. Der vorhandene Datei-ID-Test prüft jetzt den Pfad mit angefordertem Resume.
+
+### Synthetisches Fenster nach bestätigtem Empfang
+
+`broker-store check-win32-surface <aktueller-Kopf-SHA256>` hält die Kontrollsperre und die geprüften Dateien bis zum Ende des Fensterprozesses. Das UI-Ticket enthält den Hash eines generationsgebundenen Öffnungswerts. Erst nach erfolgreicher Prüfung der Antwort auf das Ticket sendet der Starter diesen Wert über die bestehende Pipe. Die Rolle prüft zusätzlich ihr AppContainer-Profil, die fehlenden Capabilities, die Prozessbeschränkungen und die Jobzugehörigkeit. Erst wenn der empfangene Öffnungswert zum Ticket passt, ruft sie den Fensteraufbau auf.
+
+Im lokalen Windows-Lauf zeigte die geprüfte Rolle den festen Zweizeiler im schreibgeschützten Textfeld. Der Starter prüfte Sichtbarkeit, Fensterklasse und Zugehörigkeit zum primären Thread und Prozess am gemeldeten HWND. Er schloss das Fenster per WM_CLOSE und bestätigte reguläres Prozessende sowie leeren Job. Der Kontrollkopf blieb unverändert. Eine gezielte Regression am Handshake der Rolle quittierte das Ticket und wies anschließend einen fremden Öffnungswert ab. Eine neue ETW-Messung gehört nicht zu diesem Nachweis.
 
 ## Kosten für den Editor
 

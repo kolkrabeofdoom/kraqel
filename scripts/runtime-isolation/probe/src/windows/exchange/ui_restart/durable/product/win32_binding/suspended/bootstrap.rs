@@ -38,11 +38,19 @@ pub(super) fn stage(
     pi: &PROCESS_INFORMATION,
     endpoint: HANDLE,
     writer: &mut fs::File,
+    surface: bool,
 ) -> Result<[u8; 32]> {
     let created = workspace_probe::lifetime::creation_time(pi.hProcess)?;
-    let tag = authenticator(store, image, pi, created)?
-        .finalize()
-        .into_bytes();
+    let mac = authenticator(store, image, pi, created)?;
+    // The receipt-only protocol exposes its tag. Derive the UI secret in a separate domain.
+    let mut secret_mac = mac.clone();
+    secret_mac.update(b"window-open-v1");
+    let secret: [u8; 32] = secret_mac.finalize().into_bytes().into();
+    let tag = if surface {
+        crate::window_receipt::commitment(&secret)
+    } else {
+        mac.finalize().into_bytes().into()
+    };
     io("win32-bootstrap-write", writer.write_all(&tag))?;
 
     // Inspect the actual recipient handle without consuming the ticket or running window code.
@@ -80,15 +88,10 @@ pub(super) fn stage(
     if read != 32 || available != 32 {
         return Err(invalid("win32-bootstrap-size"));
     }
-    authenticator(
-        store,
-        image,
-        pi,
-        workspace_probe::lifetime::creation_time(pi.hProcess)?,
-    )?
-    .verify_slice(&received)
-    .map_err(|_| invalid("win32-bootstrap-authentication"))?;
-    Ok(crate::window_receipt::receipt(&received))
+    if received != tag {
+        return Err(invalid("win32-bootstrap-authentication"));
+    }
+    Ok(if surface { secret } else { tag })
 }
 
 pub(super) fn resume_and_confirm(
@@ -131,6 +134,90 @@ pub(super) fn resume_and_confirm(
     )?;
     if read != 32 || available != 32 || ack != expected {
         return Err(invalid("win32-window-receipt-mismatch"));
+    }
+    Ok(())
+}
+
+// Read only complete fixed frames; the outer job tears down every timeout or protocol error.
+fn live_frame<const N: usize>(reply: &mut fs::File, process: HANDLE) -> Result<[u8; N]> {
+    let deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        let mut available = 0;
+        check(
+            unsafe {
+                PeekNamedPipe(
+                    reply.as_raw_handle(),
+                    null_mut(),
+                    0,
+                    null_mut(),
+                    &mut available,
+                    null_mut(),
+                )
+            },
+            "win32-window-live-pipe",
+        )?;
+        if available as usize == N {
+            let mut frame = [0; N];
+            io("win32-window-live-frame", reply.read_exact(&mut frame))?;
+            return Ok(frame);
+        }
+        if available as usize > N
+            || Instant::now() >= deadline
+            || unsafe { WaitForSingleObject(process, 10) } != WAIT_TIMEOUT
+        {
+            return Err(invalid("win32-window-live-frame"));
+        }
+    }
+}
+
+pub(super) fn confirm_and_open(
+    pi: &PROCESS_INFORMATION,
+    mut writer: fs::File,
+    mut reply: fs::File,
+    secret: [u8; 32],
+) -> Result<()> {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        GetClassNameW, GetWindowThreadProcessId, IsWindowVisible, PostMessageW, WM_CLOSE,
+    };
+    if unsafe { ResumeThread(pi.hThread) } != 1 {
+        return Err(invalid("win32-window-resume"));
+    }
+    let expected = crate::window_receipt::receipt(&crate::window_receipt::commitment(&secret));
+    if live_frame::<32>(&mut reply, pi.hProcess)? != expected {
+        return Err(invalid("win32-window-receipt-mismatch"));
+    }
+    io("win32-window-open-grant", writer.write_all(&secret))?;
+    drop(writer);
+    let handle = u64::from_le_bytes(live_frame::<8>(&mut reply, pi.hProcess)?);
+    let hwnd = usize::try_from(handle).map_err(|_| invalid("win32-window-handle"))? as HWND;
+    let mut pid = 0;
+    let mut class = [0u16; 64];
+    let tid = unsafe { GetWindowThreadProcessId(hwnd, &mut pid) };
+    let len = unsafe { GetClassNameW(hwnd, class.as_mut_ptr(), class.len() as i32) } as usize;
+    if pid != pi.dwProcessId
+        || tid != pi.dwThreadId
+        || unsafe { IsWindowVisible(hwnd) } == 0
+        || !class[..len]
+            .iter()
+            .copied()
+            .eq("KRAQEL.Synthetic.Edit".encode_utf16())
+    {
+        return Err(invalid("win32-window-surface-identity"));
+    }
+    check(
+        unsafe { PostMessageW(hwnd, WM_CLOSE, 0, 0) },
+        "win32-window-surface-close",
+    )?;
+    if unsafe { WaitForSingleObject(pi.hProcess, 5000) } != WAIT_OBJECT_0 {
+        return Err(invalid("win32-window-surface-timeout"));
+    }
+    let mut exit = 0;
+    check(
+        unsafe { GetExitCodeProcess(pi.hProcess, &mut exit) },
+        "win32-window-exit",
+    )?;
+    if exit != 40 {
+        return Err(invalid("win32-window-surface-exit"));
     }
     Ok(())
 }

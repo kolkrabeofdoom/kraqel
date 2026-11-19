@@ -8,8 +8,10 @@ pub(super) fn check_window(
     store: &Store,
     root: &Path,
     expected: &fs::File,
-    resume: bool,
+    mode: WindowMode,
 ) -> Result<Value> {
+    let resume = mode != WindowMode::Suspended;
+    let surface = mode == WindowMode::Surface;
     let image = root.join(WINDOW);
     let mut profile = Profile::create(&format!("ui.{}", Uuid::new_v4().simple()))?;
     let job_name = store.job_name();
@@ -69,7 +71,16 @@ pub(super) fn check_window(
     if let Some(out) = &response_writer {
         startup.StartupInfo.hStdOutput = out.as_raw_handle();
     }
-    let mut command = wide(format!("native-leaf.exe {}", crate::window_receipt::ARG));
+    let mut command = if surface {
+        let profile_name = String::from_utf16_lossy(&profile.name[..profile.name.len() - 1]);
+        wide(format!(
+            "native-leaf.exe {} {}",
+            crate::window_receipt::UI_ARG,
+            profile_name
+        ))
+    } else {
+        wide(format!("native-leaf.exe {}", crate::window_receipt::ARG))
+    };
     startup.lpAttributeList = attrs.ptr;
     let mut pi: PROCESS_INFORMATION = unsafe { zeroed() };
     let environment = crate::windows::exchange::ui_restart::environment(root);
@@ -155,10 +166,19 @@ pub(super) fn check_window(
         if secure_fs::file_id(&actual)? != secure_fs::file_id(expected)? {
             return Err(invalid("win32-window-image-identity"));
         }
-        let expected_ack = bootstrap::stage(store, expected, &pi, endpoints[0], &mut writer)?;
-        drop(writer);
+        let bootstrap_value =
+            bootstrap::stage(store, expected, &pi, endpoints[0], &mut writer, surface)?;
         if let Some(reply) = response_reader {
-            bootstrap::resume_and_confirm(&pi, &reply, expected_ack)?;
+            if surface {
+                bootstrap::confirm_and_open(&pi, writer, reply, bootstrap_value)?;
+            } else {
+                drop(writer);
+                bootstrap::resume_and_confirm(
+                    &pi,
+                    &reply,
+                    crate::window_receipt::receipt(&bootstrap_value),
+                )?;
+            }
         }
         Ok(())
     })();
@@ -175,7 +195,7 @@ pub(super) fn check_window(
     }
     Ok(
         json!({"nativePreviewOnly":true,"role":"window","suspendedIdentityVerified":true,
-        "bootstrapBoundBeforeResume":true,"roleResumed":resume,"bootstrapReceiptVerified":resume,"dataAllowed":false,"activeJobProcessesAtEnd":0,
+        "bootstrapBoundBeforeResume":true,"roleResumed":resume,"bootstrapReceiptVerified":resume,"syntheticWindowVerified":surface,"dataAllowed":false,"activeJobProcessesAtEnd":0,
         "headSha256":hex(&store.state.head)}),
     )
 }
@@ -197,7 +217,7 @@ mod tests {
         fs::write(&other, &bytes).unwrap();
         let wrong_pin = protected_file(&other).unwrap();
         assert_eq!(
-            check_window(&store, &bin, &wrong_pin, true)
+            check_window(&store, &bin, &wrong_pin, WindowMode::Surface)
                 .unwrap_err()
                 .stage,
             "win32-window-image-identity"
