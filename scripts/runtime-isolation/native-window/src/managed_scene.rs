@@ -8,9 +8,9 @@ use std::{
     ptr::null_mut,
 };
 use zeroize::Zeroizing;
-impl window_receipt::SceneRead {
+impl window_receipt::SceneOperation {
     pub fn from_argument(arg: Option<&std::ffi::OsStr>) -> Option<Self> {
-        [Self::Once, Self::CheckDeniedSave]
+        [Self::Once, Self::CheckDeniedSave, Self::CheckEditConflict]
             .into_iter()
             .find(|mode| arg == Some(std::ffi::OsStr::new(mode.argument())))
     }
@@ -151,28 +151,36 @@ impl Channel {
             .map_err(|_| io::Error::other("scene peer"))
     }
 }
-pub fn read(control: File, mode: window_receipt::SceneRead) -> io::Result<String> {
+pub fn exchange(control: File, mode: window_receipt::SceneOperation) -> io::Result<String> {
     let mut ch = Channel::open(control)?;
     ch.send(Handshake::Hello)?;
     ch.receive(Handshake::Ready)?;
     match mode {
-        window_receipt::SceneRead::Once => ch.binding.read_scene((&mut ch.reader, &mut ch.writer)),
-        window_receipt::SceneRead::CheckDeniedSave => {
+        window_receipt::SceneOperation::Once => {
+            ch.binding.read_scene((&mut ch.reader, &mut ch.writer))
+        }
+        window_receipt::SceneOperation::CheckEditConflict => ch
+            .binding
+            .check_edit_conflict(&mut ch.reader, &mut ch.writer),
+        window_receipt::SceneOperation::CheckDeniedSave => {
             ch.binding.check_denied_save(&mut ch.reader, &mut ch.writer)
         }
     }
     .map_err(|_| io::Error::other("scene read"))
 }
-pub fn serve(profile: &str, mode: window_receipt::SceneRead) -> io::Result<()> {
+pub fn serve(profile: &str, mode: window_receipt::SceneOperation) -> io::Result<()> {
     let (input, _output) = confirm_bootstrap(Some(profile), Role::Data)?;
     let mut ch = Channel::open(input)?;
     ch.receive(Handshake::Hello)?;
     ch.send(Handshake::Ready)?;
     match mode {
-        window_receipt::SceneRead::Once => {
+        window_receipt::SceneOperation::Once => {
             ch.binding.serve_scene_read(&mut ch.reader, &mut ch.writer)
         }
-        window_receipt::SceneRead::CheckDeniedSave => {
+        window_receipt::SceneOperation::CheckEditConflict => ch
+            .binding
+            .serve_edit_conflict(&mut ch.reader, &mut ch.writer),
+        window_receipt::SceneOperation::CheckDeniedSave => {
             ch.binding.serve_denied_save(&mut ch.reader, &mut ch.writer)
         }
     }

@@ -225,6 +225,12 @@ Die Auswertung bestätigte den Starter anhand seiner Start-PID und seines hashba
 
 Im gezielten Windows-Lauf las die Fensterrolle „Rabe“ / „42“ auf Revision 0 und versuchte, die gültige zweite Fassung „Rabe“ / „43“ mit erwarteter Revision 0 zu speichern. Der Dienst antwortete mit `DENIED`. Der erneute Abruf auf derselben Bindung bestätigte den ursprünglichen Text und Revision 0, bevor das schreibgeschützte Fenster angezeigt und regulär geschlossen wurde. Beide Jobs endeten, die Sitzung wurde abgeschlossen, Produktdaten blieben gesperrt. Der interaktive Einmalabruf behält seinen bisherigen Ablauf. Der ETW-Nachweis im vorigen Abschnitt bezieht sich auf den dort bezeichneten Binärstand.
 
+### Revisionskonflikt unter eigener Edit-Bindung
+
+`broker-store check-win32-scene-edit-conflict <aktueller-Kontrollkopf>` startet einen eigenen Auftrag für A/edit. Der Starter bindet den Edit-Prüfzweck in die authentisierte Kanal-ID ein. Nach dem Bootstrap bindet der Datendienst genau eine synthetische Szene im Arbeitsspeicher für die gesamte Folge. Beide Rollen nutzen den vorhandenen BP4b-Konfliktpfad.
+
+Im verwalteten Windows-Lauf las die Fensterrolle Szene A auf Revision 0 und speicherte „Rabe“ / „43“ mit erwarteter Revision 0. Der Dienst bestätigte Revision 1. Ein anschließender Versuch, den früheren Text „Rabe“ / „42“ erneut mit erwarteter Revision 0 zu speichern, erhielt die authentisierte Antwort `CONFLICT`. Der abschließende Abruf bestätigte „Rabe“ / „43“ auf Revision 1 unter derselben Bindung. Das Fenster zeigte das Ergebnis schreibgeschützt an und schloss regulär. Beide Jobs endeten und die Sitzung erhielt ihren Abschlussbeleg. Der Nachweis gilt für die laufende synthetische Sitzung; eine persistente Ablage war nicht beteiligt.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

@@ -47,9 +47,9 @@ pub(in super::super) fn read_scene(
     root: &Path,
     window: &fs::File,
     service: &fs::File,
-    mode: crate::window_receipt::SceneRead,
+    mode: crate::window_receipt::SceneOperation,
 ) -> Result<Value> {
-    use crate::window_receipt::SceneRead;
+    use crate::window_receipt::SceneOperation;
     use crate::windows::exchange::ui_restart::pipe;
     with_role(
         store,
@@ -88,8 +88,15 @@ pub(in super::super) fn read_scene(
                     bootstrap::confirm_grant(data, &mut to_data, &mut data_reply, &data_secret)?;
                     let mut material = Zeroizing::new([0u8; 96]);
                     let mut context = Sha256::new();
-                    context.update(b"KRAQEL-managed-A/read-v1");
-                    if mode == SceneRead::CheckDeniedSave {
+                    match mode {
+                        SceneOperation::CheckEditConflict => {
+                            context.update(b"KRAQEL-managed-A/edit-conflict-v1")
+                        }
+                        SceneOperation::Once | SceneOperation::CheckDeniedSave => {
+                            context.update(b"KRAQEL-managed-A/read-v1")
+                        }
+                    }
+                    if mode == SceneOperation::CheckDeniedSave {
                         context.update(mode.argument().as_bytes());
                     }
                     context.update(ui_secret);
@@ -116,12 +123,17 @@ pub(in super::super) fn read_scene(
                     Ok(())
                 },
             )?;
-            bootstrap::wait_surface(ui, &mut ui_reply, mode == SceneRead::Once)
+            bootstrap::wait_surface(ui, &mut ui_reply, mode == SceneOperation::Once)
         },
     )?;
     let mut result = json!({"nativePreviewOnly":true,"role":"window","syntheticScene":"A","revision":0,"readOnly":true,"dataAllowed":false,"activeJobProcessesAtEnd":0});
-    if mode == SceneRead::CheckDeniedSave {
+    if mode == SceneOperation::CheckDeniedSave {
         result["saveDenied"] = json!(true);
+    }
+    if mode == SceneOperation::CheckEditConflict {
+        result["readOnly"] = json!(false);
+        result["revision"] = json!(1);
+        result["staleSaveRejected"] = json!(true);
     }
     Ok(result)
 }

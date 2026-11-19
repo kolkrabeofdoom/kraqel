@@ -20,14 +20,16 @@ pub fn commitment(grant: &[u8; 32]) -> [u8; 32] {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub enum SceneRead {
+pub enum SceneOperation {
     Once,
     CheckDeniedSave,
+    CheckEditConflict,
 }
-impl SceneRead {
+impl SceneOperation {
     pub fn argument(self) -> &'static str {
         match self {
             Self::Once => "--managed-scene-a-read-v1",
+            Self::CheckEditConflict => "--managed-scene-a-edit-conflict-v1",
             Self::CheckDeniedSave => "--managed-scene-a-denied-save-v1",
         }
     }

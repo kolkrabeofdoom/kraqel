@@ -25,7 +25,7 @@ pub(super) enum WindowMode {
     Receipt,
     Surface,
     Interactive,
-    ReadScene(crate::window_receipt::SceneRead),
+    Scene(crate::window_receipt::SceneOperation),
 }
 pub(super) enum Operation<'a> {
     Bind(&'a Path, [u8; 32]),
@@ -98,7 +98,7 @@ impl Store {
             }
             self.append(actor, head, Action::BeginWin32Window { anchor: expected })?;
             let begin = self.state.head;
-            let mut result = if let WindowMode::ReadScene(scene_mode) = mode {
+            let mut result = if let WindowMode::Scene(scene_mode) = mode {
                 suspended::read_scene(
                     self,
                     &root,

@@ -22,7 +22,12 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 let mut value = [0u16; 64];
                 let n = GetDlgItemTextW(hwnd, EDIT, value.as_mut_ptr(), 64);
                 // Report only whether the public two-line fixture matched, never the input.
-                let ok = String::from_utf16_lossy(&value[..n as usize]) == "Rabe\r\n42";
+                let expected = if GetWindowLongPtrW(hwnd, GWLP_USERDATA) == 1 {
+                    "Rabe\r\n43"
+                } else {
+                    "Rabe\r\n42"
+                };
+                let ok = String::from_utf16_lossy(&value[..n as usize]) == expected;
                 DestroyWindow(hwnd);
                 PostQuitMessage(if ok { 40 } else { 41 });
                 0
@@ -105,6 +110,9 @@ fn show(
         }
         SendDlgItemMessageW(hwnd, EDIT, EM_SETLIMITTEXT, 48, 0);
         if let Some((_, text)) = &surface {
+            if text == "Rabe\n43" {
+                SetWindowLongPtrW(hwnd, GWLP_USERDATA, 1);
+            }
             let edit = GetDlgItem(hwnd, EDIT);
             if SendMessageW(edit, windows_sys::Win32::UI::Controls::EM_SETREADONLY, 1, 0) == 0
                 || SetWindowTextW(edit, wide(text.replace('\n', "\r\n")).as_ptr()) == 0
@@ -208,7 +216,7 @@ fn show(
 }
 fn main() {
     let arg = std::env::args_os().nth(1);
-    let scene = window_receipt::SceneRead::from_argument(arg.as_deref());
+    let scene = window_receipt::SceneOperation::from_argument(arg.as_deref());
     if scene.is_some() || arg.as_deref() == Some(std::ffi::OsStr::new(window_receipt::UI_ARG)) {
         let result = (|| -> std::io::Result<i32> {
             let profile = std::env::args()
@@ -217,7 +225,7 @@ fn main() {
             let (input, output) =
                 managed_scene::confirm_bootstrap(Some(&profile), bootstrap::Role::Window)?;
             let text = if let Some(mode) = scene {
-                managed_scene::read(input, mode)?
+                managed_scene::exchange(input, mode)?
             } else {
                 "Rabe\n42".to_owned()
             };

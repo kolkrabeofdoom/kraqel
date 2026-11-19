@@ -1,6 +1,6 @@
 use kraqel_window_probe::bootstrap::{Endpoint, Role};
 fn main() {
-    if let Some(mode) = kraqel_window_probe::window_receipt::SceneRead::from_argument(
+    if let Some(mode) = kraqel_window_probe::window_receipt::SceneOperation::from_argument(
         std::env::args_os().nth(1).as_deref(),
     ) {
         let ok = std::env::args().nth(2).is_some_and(|profile| {
