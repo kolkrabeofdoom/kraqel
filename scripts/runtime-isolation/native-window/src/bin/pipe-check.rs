@@ -538,6 +538,9 @@ fn main() {
         let anchor = Sha256::digest(std::fs::read(Path::new(DIR).join("anchor.json"))?);
         use release_proof::ProofCase;
         match trial.as_deref() {
+            Some("proof-consumed-loss") => {
+                return release_proof::exercise(&anchor, ProofCase::LossAfterConsumption);
+            }
             Some("proof-witness-loss") => {
                 return release_proof::exercise(&anchor, ProofCase::WitnessLoss);
             }

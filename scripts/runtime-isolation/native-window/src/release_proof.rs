@@ -94,6 +94,10 @@ struct Witness {
 
 impl Witness {
     fn release(&self) -> io::Result<bool> {
+        self.release_with(|| Ok(()))
+    }
+
+    fn release_with(&self, after_consumption: impl FnOnce() -> io::Result<()>) -> io::Result<bool> {
         let mut spent = self
             .spent
             .lock()
@@ -107,6 +111,7 @@ impl Witness {
         }
         *spent = true;
         record(&mut lock, SPENT, &self.id)?;
+        after_consumption()?;
         run(Trial::StoreRead)?;
         require(receipts_absent()?, "reader grants remain")?;
         Ok(true)
@@ -118,6 +123,7 @@ pub(super) enum ProofCase {
     Complete,
     MissingEnd,
     WitnessLoss,
+    LossAfterConsumption,
 }
 
 pub(super) fn exercise(anchor: &[u8], case: ProofCase) -> io::Result<()> {
@@ -154,6 +160,15 @@ pub(super) fn exercise(anchor: &[u8], case: ProofCase) -> io::Result<()> {
         .write_all(&nonce[..])?;
     drop(nonce);
     require(child.wait()?.code() == Some(101), "issuer crash missing")?;
+    if case == ProofCase::LossAfterConsumption {
+        witness.release_with(|| {
+            unsafe {
+                check(TerminateProcess(GetCurrentProcess(), 104))?;
+            }
+            Err(io::Error::other("post-consumption termination returned"))
+        })?;
+        return Err(io::Error::other("post-consumption crash missing"));
+    }
     if case == ProofCase::WitnessLoss {
         let mut lock = existing_lock()?;
         require(

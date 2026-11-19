@@ -71,3 +71,9 @@ Am 19. November 2026 liefen Referenz und Ausfallprobe auf einer frischen Offline
 | Verlorene Ereignisse und Puffer | 0 | 0 |
 
 Für die Wiederholung gilt der oben beschriebene ETW-Ablauf mit `-ExerciseTrial proof-witness-loss` und der Auswertung `--proof proof-witness-loss`. Die ursprüngliche gesperrte Ablage blieb unberührt, die Rohspuren lokal. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Gastplatte verbunden.
+
+## Ausfall nach Verbrauch und vor dem Rollenstart
+
+Der gezielte Gastlauf `-Trial proof-consumed-loss` vom 19. November 2026 nutzte eine neue synthetische Ablage. Die Kontrollinstanz verbrauchte die Freigabe unter exklusiver Sperre und synchronisierte `read-consumed`. Unmittelbar danach endete sie hart mit Exitcode 104, noch vor dem Aufruf zur Erzeugung des Lesepaars. Der reguläre Neustart endete vor der Ablagevorbereitung mit Exitcode 102. Es entstand kein Lesepaar. Der Hash des Kontrollvermerks blieb über den Neustart gleich.
+
+Die schreibgeschützte Nachprüfung bestätigte `read-consumed` und die Entfernung der alten Startfreigaben, ohne SQLite zu öffnen. Die ursprüngliche gesperrte Ablage blieb unberührt. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden. Der erste Versuch endete vor dem Neustart an einer durch die Gast-Sprachrichtlinie gesperrten Diagnosemethode. Der vollständige Nachweis stammt vom Wiederholungslauf mit unveränderter Richtlinie und identischem Prüfprogramm.
