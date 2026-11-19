@@ -4,6 +4,51 @@ const SAVE: &[u8] = br#"{"command":"c4_document_save_v1","expectedRevision":0,"t
 const READ: &[u8] = br#"{"command":"c4_document_read_v1"}"#;
 
 #[test]
+fn edit_probe_checks_saved_revision_conflict_and_final_content() {
+    let binding = || Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
+    let initial = br#"{"text":"Rabe\n42","revision":0}"#.as_slice();
+    let saved = br#"{"revision":1}"#.as_slice();
+    let conflict = br#"{"error":"CONFLICT"}"#.as_slice();
+    let updated = br#"{"text":"Rabe\n43","revision":1}"#.as_slice();
+    for (ack, retry, last, ok) in [
+        (saved, conflict, updated, true),
+        (br#"{"revision":2}"#, conflict, updated, false),
+        (saved, br#"{"error":"DENIED"}"#, updated, false),
+        (
+            saved,
+            conflict,
+            br#"{"text":"Rabe\n42","revision":1}"#,
+            false,
+        ),
+        (
+            saved,
+            conflict,
+            br#"{"text":"Rabe\n43","revision":2}"#,
+            false,
+        ),
+    ] {
+        let mut answers = Vec::new();
+        for (n, body) in [(1, initial), (2, ack), (3, retry), (4, last)] {
+            answers.extend(binding().encode(Kind::Response, n, body).unwrap());
+        }
+        let mut requests = Vec::new();
+        assert_eq!(
+            binding()
+                .check_edit_conflict(&mut answers.as_slice(), &mut requests)
+                .is_ok(),
+            ok
+        );
+        if ok {
+            let mut actual = Vec::new();
+            binding()
+                .serve_edit_conflict(&mut requests.as_slice(), &mut actual)
+                .unwrap();
+            assert_eq!(actual, answers);
+        }
+    }
+}
+
+#[test]
 fn write_probe_requires_denied_and_checks_the_final_revision() {
     let binding = || Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
     let original = br#"{"text":"Rabe\n42","revision":0}"#.as_slice();

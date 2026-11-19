@@ -1,4 +1,4 @@
-param([ValidateSet('read-scene','deny-save','handshake')][string]$Trial='deny-save')
+param([ValidateSet('read-scene','deny-save','edit-conflict','handshake')][string]$Trial='edit-conflict')
 $ErrorActionPreference='Stop'
 $dir='C:\Program Files\KRAQEL-Window-Probe'
 try {

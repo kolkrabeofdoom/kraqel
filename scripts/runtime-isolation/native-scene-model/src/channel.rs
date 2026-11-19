@@ -41,6 +41,14 @@ pub struct Binding {
     response: Zeroizing<Key>,
 }
 
+#[derive(Clone, Copy)]
+enum Expected {
+    Read,
+    Denied,
+    Saved,
+    Conflict,
+}
+
 impl Binding {
     /// Bootstrap material supplied by the trusted launcher, or by a synthetic model driver.
     pub fn from_keys(id: [u8; 32], request: Key, response: Key) -> Result<Self, Closed> {
@@ -65,7 +73,7 @@ impl Binding {
         self,
         pipes: (&mut impl std::io::Read, &mut impl std::io::Write),
     ) -> Result<String, Closed> {
-        self.read_at(1, pipes.0, pipes.1)
+        self.read_at(1, pipes.0, pipes.1, 0, "Rabe\n42")
     }
 
     fn exchange(
@@ -87,6 +95,8 @@ impl Binding {
         sequence: u64,
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
+        revision: u32,
+        text: &str,
     ) -> Result<String, Closed> {
         let body = self.exchange(
             sequence,
@@ -101,7 +111,7 @@ impl Binding {
             revision: u32,
         }
         let answer: Answer = serde_json::from_slice(&body).map_err(|_| Closed)?;
-        if answer.revision != 0 || answer.text != "Rabe\n42" {
+        if answer.revision != revision || answer.text != text {
             return Err(Closed);
         }
         Ok(answer.text)
@@ -114,7 +124,7 @@ impl Binding {
     ) -> Result<(), Closed> {
         let mut catalog = super::SyntheticCatalog::default();
         let mut scene = catalog.bind(super::Scene::A, super::Mode::Read);
-        self.reply_at(1, &mut scene, reader, writer, false)
+        self.reply_at(1, &mut scene, reader, writer, Expected::Read)
     }
 
     pub fn check_denied_save(
@@ -122,8 +132,44 @@ impl Binding {
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
     ) -> Result<String, Closed> {
-        let before = self.read_at(1, reader, writer)?;
+        let before = self.read_at(1, reader, writer, 0, "Rabe\n42")?;
         let denied = self.exchange(
+            2,
+            br#"{"command":"c4_document_save_v1","expectedRevision":0,"text":"Rabe\n43"}"#,
+            reader,
+            writer,
+        )?;
+        Self::expect_error(&denied, "DENIED")?;
+        let after = self.read_at(3, reader, writer, 0, "Rabe\n42")?;
+        if before != after {
+            return Err(Closed);
+        }
+        Ok(after)
+    }
+
+    fn expect_error(body: &[u8], expected: &str) -> Result<(), Closed> {
+        #[derive(serde::Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct ErrorReply {
+            error: String,
+        }
+        if serde_json::from_slice::<ErrorReply>(body)
+            .map_err(|_| Closed)?
+            .error
+            != expected
+        {
+            return Err(Closed);
+        }
+        Ok(())
+    }
+
+    pub fn check_edit_conflict(
+        self,
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+    ) -> Result<String, Closed> {
+        self.read_at(1, reader, writer, 0, "Rabe\n42")?;
+        let saved = self.exchange(
             2,
             br#"{"command":"c4_document_save_v1","expectedRevision":0,"text":"Rabe\n43"}"#,
             reader,
@@ -131,21 +177,42 @@ impl Binding {
         )?;
         #[derive(serde::Deserialize)]
         #[serde(deny_unknown_fields)]
-        struct ErrorReply {
-            error: String,
+        struct Saved {
+            revision: u32,
         }
-        if serde_json::from_slice::<ErrorReply>(&denied)
+        if serde_json::from_slice::<Saved>(&saved)
             .map_err(|_| Closed)?
-            .error
-            != "DENIED"
+            .revision
+            != 1
         {
             return Err(Closed);
         }
-        let after = self.read_at(3, reader, writer)?;
-        if before != after {
-            return Err(Closed);
+        let stale = self.exchange(
+            3,
+            br#"{"command":"c4_document_save_v1","expectedRevision":0,"text":"Rabe\n42"}"#,
+            reader,
+            writer,
+        )?;
+        Self::expect_error(&stale, "CONFLICT")?;
+        self.read_at(4, reader, writer, 1, "Rabe\n43")
+    }
+
+    pub fn serve_edit_conflict(
+        self,
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+    ) -> Result<(), Closed> {
+        let mut catalog = super::SyntheticCatalog::default();
+        let mut scene = catalog.bind(super::Scene::A, super::Mode::Edit);
+        for (n, expected) in [
+            (1, Expected::Read),
+            (2, Expected::Saved),
+            (3, Expected::Conflict),
+            (4, Expected::Read),
+        ] {
+            self.reply_at(n, &mut scene, reader, writer, expected)?;
         }
-        Ok(after)
+        Ok(())
     }
 
     pub fn serve_denied_save(
@@ -155,9 +222,9 @@ impl Binding {
     ) -> Result<(), Closed> {
         let mut catalog = super::SyntheticCatalog::default();
         let mut scene = catalog.bind(super::Scene::A, super::Mode::Read);
-        self.reply_at(1, &mut scene, reader, writer, false)?;
-        self.reply_at(2, &mut scene, reader, writer, true)?;
-        self.reply_at(3, &mut scene, reader, writer, false)
+        self.reply_at(1, &mut scene, reader, writer, Expected::Read)?;
+        self.reply_at(2, &mut scene, reader, writer, Expected::Denied)?;
+        self.reply_at(3, &mut scene, reader, writer, Expected::Read)
     }
 
     fn reply_at(
@@ -166,19 +233,26 @@ impl Binding {
         scene: &mut BoundScene,
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
-        expect_denial: bool,
+        expected: Expected,
     ) -> Result<(), Closed> {
         let frame = read_frame(reader)?;
         let body = self.decode(&frame, Kind::Request, sequence)?;
         let answer = scene.handle(body);
         if !matches!(
-            (&answer, expect_denial),
-            (super::Reply::Read { .. }, false)
+            (&answer, expected),
+            (super::Reply::Read { .. }, Expected::Read)
+                | (super::Reply::Saved { revision: 1 }, Expected::Saved)
+                | (
+                    super::Reply::Failure {
+                        error: super::Failure::Conflict
+                    },
+                    Expected::Conflict
+                )
                 | (
                     super::Reply::Failure {
                         error: super::Failure::Denied
                     },
-                    true
+                    Expected::Denied
                 )
         ) {
             return Err(Closed);

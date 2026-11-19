@@ -40,12 +40,14 @@ pub enum Purpose {
     Handshake,
     ReadA,
     DeniedSave,
+    EditConflict,
 }
 impl Purpose {
     fn scope(self) -> &'static str {
         match self {
             Self::Handshake => "A/edit",
             Self::ReadA => "A/read",
+            Self::EditConflict => "A/edit/conflict-check",
             Self::DeniedSave => "A/read/denial-check",
         }
     }
@@ -125,7 +127,9 @@ impl Endpoint {
         let (meta, handle) = receipt
             .split_once('\n')
             .ok_or(io::Error::other("receipt"))?;
-        let purpose = if meta.starts_with("BP4b-v1/A/read/denial-check/") {
+        let purpose = if meta.starts_with("BP4b-v1/A/edit/conflict-check/") {
+            Purpose::EditConflict
+        } else if meta.starts_with("BP4b-v1/A/read/denial-check/") {
             Purpose::DeniedSave
         } else if meta.starts_with("BP4b-v1/A/read/") {
             Purpose::ReadA
@@ -192,6 +196,14 @@ impl Endpoint {
         if !self.receive(Handshake::Ready)? {
             return Ok(63);
         }
+        if self.purpose == Purpose::EditConflict {
+            let text = self
+                .binding
+                .check_edit_conflict(&mut self.reader, &mut self.writer)
+                .map_err(|_| io::Error::other("edit response"))?;
+            display(&text)?;
+            return Ok(71);
+        }
         if self.purpose == Purpose::DeniedSave {
             let text = self
                 .binding
@@ -215,6 +227,12 @@ impl Endpoint {
             return Ok(61);
         }
         self.send(Handshake::Ready)?;
+        if self.purpose == Purpose::EditConflict {
+            self.binding
+                .serve_edit_conflict(&mut self.reader, &mut self.writer)
+                .map_err(|_| io::Error::other("edit exchange"))?;
+            return Ok(70);
+        }
         if self.purpose == Purpose::DeniedSave {
             self.binding
                 .serve_denied_save(&mut self.reader, &mut self.writer)

@@ -131,6 +131,7 @@ cargo test --locked --offline --manifest-path scripts/runtime-isolation/native-s
 
 BP4b-Framecodec und Zustandsmodell sind offline geprüft. Der
 [native Leseabruf](../testing/native-win32-scene-read.md) mit speicherresidentem Katalog ist bis zur
-Anzeige im Fenster belegt. Persistenz, native Schreibabnahme und ETW-Abnahme des Datenpfads stehen
-aus. Reale Manuskripte, allgemeines Rich Text, die Produkt-UI-ABI und eine produktive
-`DataAllowed`-Freigabe erfordern eine eigene Entscheidung und Nachweise.
+Anzeige im Fenster belegt. Der [native Edit-Gastlauf](../testing/native-win32-edit-conflict.md)
+bestätigt den Revisionskonflikt im speicherresidenten Katalog. Persistenz und ETW-Abnahme des
+Datenpfads stehen aus. Reale Manuskripte, allgemeines Rich Text, die Produkt-UI-ABI und eine
+produktive `DataAllowed`-Freigabe erfordern eine eigene Entscheidung und Nachweise.
