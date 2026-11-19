@@ -33,9 +33,11 @@ Sprachausgabe als bestanden. Die akustische Hörprüfung ist zurückgestellt.
 [Prüfbericht und Wiederholung](testing/native-win32-window-guest.md).
 
 Für BP4 liegt der
-[Vertrag für synthetische Win32-Szenen](data-format/native-win32-bp4-scene-v1-draft.md) vor.
-Nächster Schritt ist BP4a: Katalog, Commandformen, Szenenbindung und Revisionskonflikte als reines
-Modell prüfen. Die native Datenfreigabe und der Zugriff auf Produktprojekte bleiben gesperrt.
+[Vertrag für synthetische Win32-Szenen](data-format/native-win32-bp4-scene-v1-draft.md) vor. BP4a
+ist als eigenständiges Rust-Forschungsmodell geprüft. Eine exklusive Bindung begrenzt den Zugriff
+auf eine Katalogszene. Leseaufträge, Revisionskonflikte und ungültige Dokumente sind gegen
+unbeabsichtigtes Überschreiben getestet. Nächster Schritt für BP4b ist die Spezifikation der lokalen
+Kanalbindung und Replayabwehr vor der Gastprobe. Produktdaten bleiben gesperrt.
 
 Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:
 

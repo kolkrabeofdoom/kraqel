@@ -360,8 +360,11 @@ Datenschutzziel bleibt unverändert.
        - [x] KQ-069 A:
              [BP4-Vertrag für synthetische Win32-Szenen](docs/data-format/native-win32-bp4-scene-v1-draft.md)
              mit getrennten UI-/Datenrechten und revisionsgebundenem Speichern festgelegt.
-       - [ ] KQ-069 A: BP4a als reines Szenen-/Commandmodell prüfen, anschließend BP4b mit
-             effektiven Rechten, Wiederanlauf und eigenem ETW-Nachweis im Gast abnehmen.
+       - [x] KQ-069 A: BP4a als reines Rust-Modell geprüft: exklusive Szenenbindung,
+             Lese-/Editrolle, revisionsgebundenes Speichern und Abweisung fremder oder beschädigter
+             Inhalte.
+       - [ ] KQ-069 A: BP4b-Kanalbindung und Replayabwehr spezifizieren, effektive Rechte,
+             Wiederanlauf und eigenen ETW-Nachweis im Gast prüfen.
        - [ ] KQ-069 A: Durchsetzbaren Erzeugungsweg für jede Runtimegeneration belegen. Der geprüfte
              WebView2-Win32-Einstieg erfüllt BP3 nicht. Produktive BP4-Datenrechte bleiben offen.
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native

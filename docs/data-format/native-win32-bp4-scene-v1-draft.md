@@ -108,7 +108,27 @@ Offline-Gast.
 `saves_with_optimistic_revision_and_server_derived_plain_text` bestand offline in einer temporären
 Quellkopie. Er prüft Speichern, Wiederlesen und die Abweisung einer überholten Revision im
 vorhandenen Repository. Cargo verlangte für den direkten Lauf mit `--locked` eine Aktualisierung der
-Workspace-Lockdatei. Die temporäre Kopie durfte sie lokal auflösen. BP4a und BP4b stehen aus.
+Workspace-Lockdatei. Die temporäre Kopie durfte sie lokal auflösen.
 
-Der nächste Umsetzungsschritt ist BP4a. Reale Manuskripte, allgemeines Rich Text, die Produkt-UI-ABI
-und eine produktive `DataAllowed`-Freigabe erfordern eine eigene Entscheidung und Nachweise.
+### BP4a · umgesetztes Modell
+
+Das [Rust-Modell](../../scripts/runtime-isolation/native-scene-model/src/lib.rs) hält beide Szenen
+ausschließlich im Arbeitsspeicher. Eine exklusive Rust-Ausleihe bindet den Auftrag an einen
+Szeneneintrag und Modus. Nur der Prüfcode wählt die Bindung. Das Modell verarbeitet die drei
+Commandformen, prüft den vollständigen gespeicherten Dokumentbaum gegen den Szenenkatalog und
+ersetzt Dokument und Revision gemeinsam. Nur Katalogtexte können als Textantwort zurückkommen. Die
+[Tests](../../scripts/runtime-isolation/native-scene-model/src/tests.rs) prüfen beide Szenen, die
+Nur-Lese-Rolle, Konflikte, fremde Ziele, beschädigte Inhalte sowie Nachrichten- und
+Revisionsgrenzen. Eine Compiler-Gegenprobe prüft, dass eine alte Bindung nach Neubindung nicht
+weiterverwendet werden kann.
+
+Reproduktion ab Repositorywurzel:
+
+```sh
+cargo test --locked --offline --manifest-path scripts/runtime-isolation/native-scene-model/Cargo.toml
+```
+
+Für BP4b sind als Nächstes die lokale Kanalbindung an beide lebenden Rollen und die Replayabwehr zu
+spezifizieren. Persistenz, native Zugriffskontrollen, Fensteranbindung und ETW-Abnahme des
+Datenpfads stehen aus. Reale Manuskripte, allgemeines Rich Text, die Produkt-UI-ABI und eine
+produktive `DataAllowed`-Freigabe erfordern eine eigene Entscheidung und Nachweise.
