@@ -354,9 +354,16 @@ Datenschutzziel bleibt unverändert.
              Statischer Linkversuch für ein Unicode-Textfeld bestanden (ADR 0036).
        - [x] KQ-069 A: Natives UI-Blatt im interaktiven Offline-Gast mit Rollenbindung vor Resume,
              Startablehnung, Tastatur, Narrator-Sprachverlauf, Prozessende und ETW geprüft.
-       - [ ] KQ-069 A: Akustische Hörabnahme an einem isolierten lokalen Wiedergabeendpunkt.
+       - [x] KQ-069 A: Softwareseitige Sprachausgabe der Win32-Probe anhand von Fokus und
+             Narrator-Sprachverlauf abgenommen.
+       - [ ] KQ-069 A: Akustische Hörprüfung am isolierten Audioausgang zurückgestellt.
+       - [x] KQ-069 A:
+             [BP4-Vertrag für synthetische Win32-Szenen](docs/data-format/native-win32-bp4-scene-v1-draft.md)
+             mit getrennten UI-/Datenrechten und revisionsgebundenem Speichern festgelegt.
+       - [ ] KQ-069 A: BP4a als reines Szenen-/Commandmodell prüfen, anschließend BP4b mit
+             effektiven Rechten, Wiederanlauf und eigenem ETW-Nachweis im Gast abnehmen.
        - [ ] KQ-069 A: Durchsetzbaren Erzeugungsweg für jede Runtimegeneration belegen. Der geprüfte
-             Win32-Einstieg erfüllt BP3 nicht. BP4-Datenrechte bleiben offen.
+             WebView2-Win32-Einstieg erfüllt BP3 nicht. Produktive BP4-Datenrechte bleiben offen.
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native
              Rollenbindung und effektive Datenrechte; neue Bytes erneut messen; anschließend C4c/d
              WebView/SQLite unter belegtem Rollen-/Token-/Jobvertrag getrennt integrieren;

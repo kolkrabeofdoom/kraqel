@@ -5,6 +5,11 @@ erzwungener UMCI. Tastatur, die im Narrator-Sprachverlauf sichtbaren Ansagen, Jo
 ETW-Vergleich sind geprüft. Die akustische Abnahme und die Produktintegration bleiben offen.
 [Messwerte und Beleggrenzen](../../testing/native-win32-window-guest.md).
 
+Für die Fensterprobe ist der Softwarebeleg der Sprachausgabe als bestanden angenommen. Die
+akustische Prüfung ist zurückgestellt. Der nächste Versuch bindet genau eine synthetische Szene an
+ein UI-Blatt und einen getrennten Rust-Datendienst. Die native Durchsetzung steht aus.
+[BP4-Datenvertrag](../../data-format/native-win32-bp4-scene-v1-draft.md).
+
 **19. November 2026 · Als Kandidat für eine Machbarkeitsprobe ausgewählt.** Eine eigene, native
 Windows-EXE mit einem Unicode-Textfeld der Fensterklasse `EDIT` ist für KRAQEL prüfenswert. Das
 Fenster und seine Steuerelemente können im selben UI-Prozess liegen. Damit kann der

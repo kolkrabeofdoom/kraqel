@@ -3,7 +3,9 @@
 **19. November 2026.** Der neue isolierte UI-Prozess lief in der interaktiven Hyper-V-Basissitzung
 unter erzwungener UMCI. Rollenentscheidung vor Resume, Tastatur, Fokus, erzeugte Narrator-Ansagen,
 Prozessende und der ETW-Netzvergleich sind für die folgenden Programmbytes belegt. Die akustische
-Hörprüfung bleibt offen.
+Hörprüfung bleibt offen. Für die Fensterprobe gilt die softwareseitige Sprachausgabe anhand von
+UI-Automation und Narrator-Sprachverlauf als bestanden. Diese Bewertung erlaubt den Übergang zum
+[BP4-Szenenvertrag](../data-format/native-win32-bp4-scene-v1-draft.md).
 [Architekturentscheidung](../architecture/decisions/0036-native-win32-ui-role-evaluation.md).
 
 | Startfall                              | Beobachtung                                                                                                                                                                                                          |
