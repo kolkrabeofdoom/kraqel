@@ -956,7 +956,8 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
                 || args[0] == "check-win32-receipt"
                 || args[0] == "check-win32-surface"
                 || args[0] == "open-win32-surface"
-                || args[0] == "open-win32-scene"))
+                || args[0] == "open-win32-scene"
+                || args[0] == "check-win32-scene-denied-save"))
     {
         // The running broker itself must be the managed file, not a byte-identical copy.
         let running = file_info(&running_image)?;
@@ -977,7 +978,13 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
         } else if args[0] == "check-win32-receipt" {
             win32_binding::Operation::CheckWindow(win32_binding::WindowMode::Receipt)
         } else if args[0] == "open-win32-scene" {
-            win32_binding::Operation::CheckWindow(win32_binding::WindowMode::ReadScene)
+            win32_binding::Operation::CheckWindow(win32_binding::WindowMode::ReadScene(
+                crate::window_receipt::SceneRead::Once,
+            ))
+        } else if args[0] == "check-win32-scene-denied-save" {
+            win32_binding::Operation::CheckWindow(win32_binding::WindowMode::ReadScene(
+                crate::window_receipt::SceneRead::CheckDeniedSave,
+            ))
         } else if args[0] == "open-win32-surface" {
             win32_binding::Operation::CheckWindow(win32_binding::WindowMode::Interactive)
         } else if args[0] == "check-win32-surface" {

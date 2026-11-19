@@ -25,7 +25,7 @@ pub(super) enum WindowMode {
     Receipt,
     Surface,
     Interactive,
-    ReadScene,
+    ReadScene(crate::window_receipt::SceneRead),
 }
 pub(super) enum Operation<'a> {
     Bind(&'a Path, [u8; 32]),
@@ -98,13 +98,14 @@ impl Store {
             }
             self.append(actor, head, Action::BeginWin32Window { anchor: expected })?;
             let begin = self.state.head;
-            let mut result = if mode == WindowMode::ReadScene {
+            let mut result = if let WindowMode::ReadScene(scene_mode) = mode {
                 suspended::read_scene(
                     self,
                     &root,
                     image,
                     pins.image("pipe-service.exe")
                         .ok_or(invalid("win32-service-not-pinned"))?,
+                    scene_mode,
                 )?
             } else {
                 suspended::check_window(self, &root, image, mode)?

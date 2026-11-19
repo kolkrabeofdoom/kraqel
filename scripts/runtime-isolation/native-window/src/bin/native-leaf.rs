@@ -208,16 +208,16 @@ fn show(
 }
 fn main() {
     let arg = std::env::args_os().nth(1);
-    let scene = arg.as_deref() == Some(std::ffi::OsStr::new(window_receipt::SCENE_ARG));
-    if scene || arg.as_deref() == Some(std::ffi::OsStr::new(window_receipt::UI_ARG)) {
+    let scene = window_receipt::SceneRead::from_argument(arg.as_deref());
+    if scene.is_some() || arg.as_deref() == Some(std::ffi::OsStr::new(window_receipt::UI_ARG)) {
         let result = (|| -> std::io::Result<i32> {
             let profile = std::env::args()
                 .nth(2)
                 .ok_or(std::io::Error::other("missing profile"))?;
             let (input, output) =
                 managed_scene::confirm_bootstrap(Some(&profile), bootstrap::Role::Window)?;
-            let text = if scene {
-                managed_scene::read(input)?
+            let text = if let Some(mode) = scene {
+                managed_scene::read(input, mode)?
             } else {
                 "Rabe\n42".to_owned()
             };

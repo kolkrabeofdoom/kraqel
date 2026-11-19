@@ -8,6 +8,14 @@ use std::{
     ptr::null_mut,
 };
 use zeroize::Zeroizing;
+impl window_receipt::SceneRead {
+    pub fn from_argument(arg: Option<&std::ffi::OsStr>) -> Option<Self> {
+        [Self::Once, Self::CheckDeniedSave]
+            .into_iter()
+            .find(|mode| arg == Some(std::ffi::OsStr::new(mode.argument())))
+    }
+}
+
 fn acknowledge(
     input: &mut impl std::io::Read,
     output: &mut impl std::io::Write,
@@ -143,20 +151,30 @@ impl Channel {
             .map_err(|_| io::Error::other("scene peer"))
     }
 }
-pub fn read(control: File) -> io::Result<String> {
+pub fn read(control: File, mode: window_receipt::SceneRead) -> io::Result<String> {
     let mut ch = Channel::open(control)?;
     ch.send(Handshake::Hello)?;
     ch.receive(Handshake::Ready)?;
-    ch.binding
-        .read_scene((&mut ch.reader, &mut ch.writer))
-        .map_err(|_| io::Error::other("scene read"))
+    match mode {
+        window_receipt::SceneRead::Once => ch.binding.read_scene((&mut ch.reader, &mut ch.writer)),
+        window_receipt::SceneRead::CheckDeniedSave => {
+            ch.binding.check_denied_save(&mut ch.reader, &mut ch.writer)
+        }
+    }
+    .map_err(|_| io::Error::other("scene read"))
 }
-pub fn serve(profile: &str) -> io::Result<()> {
+pub fn serve(profile: &str, mode: window_receipt::SceneRead) -> io::Result<()> {
     let (input, _output) = confirm_bootstrap(Some(profile), Role::Data)?;
     let mut ch = Channel::open(input)?;
     ch.receive(Handshake::Hello)?;
     ch.send(Handshake::Ready)?;
-    ch.binding
-        .serve_scene_read(&mut ch.reader, &mut ch.writer)
-        .map_err(|_| io::Error::other("scene service"))
+    match mode {
+        window_receipt::SceneRead::Once => {
+            ch.binding.serve_scene_read(&mut ch.reader, &mut ch.writer)
+        }
+        window_receipt::SceneRead::CheckDeniedSave => {
+            ch.binding.serve_denied_save(&mut ch.reader, &mut ch.writer)
+        }
+    }
+    .map_err(|_| io::Error::other("scene service"))
 }

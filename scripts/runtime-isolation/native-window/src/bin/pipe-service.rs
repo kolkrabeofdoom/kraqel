@@ -1,13 +1,11 @@
 use kraqel_window_probe::bootstrap::{Endpoint, Role};
 fn main() {
-    if std::env::args_os().nth(1).as_deref()
-        == Some(std::ffi::OsStr::new(
-            kraqel_window_probe::window_receipt::SCENE_ARG,
-        ))
-    {
-        let ok = std::env::args()
-            .nth(2)
-            .is_some_and(|profile| kraqel_window_probe::managed_scene::serve(&profile).is_ok());
+    if let Some(mode) = kraqel_window_probe::window_receipt::SceneRead::from_argument(
+        std::env::args_os().nth(1).as_deref(),
+    ) {
+        let ok = std::env::args().nth(2).is_some_and(|profile| {
+            kraqel_window_probe::managed_scene::serve(&profile, mode).is_ok()
+        });
         std::process::exit(if ok { 0 } else { 65 });
     }
     std::process::exit(

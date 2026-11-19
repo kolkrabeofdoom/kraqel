@@ -219,6 +219,12 @@ Am 19.11.2026 wurden die drei oben angegebenen SHA-256-Werte vor der Messung an 
 
 Die Auswertung bestätigte den Starter anhand seiner Start-PID und seines hashbasierten EXE-Namens sowie die direkten Kindrollen und deren Prozessenden innerhalb der Starterlebenszeit. Im Szenenlauf bestätigte der Starter den Einmalabruf von Szene A auf Revision 0. In beiden Fällen blieb der Produktdatenzugriff gesperrt, der Job war am Ende leer und die authentisierte Sitzung regulär geschlossen. Es gab keine nicht zuordenbaren Netzwerkereignisse. Der Nachweis gilt für diesen lokalen synthetischen Ablauf und die erfassten Prozesslebenszeiten. Eigenständige Windows-Dienste liegen außerhalb der Prozessbaumzuordnung. Die Rohspuren bleiben lokal.
 
+### Schreibversuch unter der verwalteten Lesebindung
+
+`broker-store check-win32-scene-denied-save <aktueller-Kontrollkopf>` verwendet denselben isolierten Rollenstart wie der Einmalabruf. Der Starter bindet den Prüfzweck an den authentisierten Kanal. Fensterrolle und Datendienst verwenden die vorhandene BP4b-Gegenprobe. Der Dienst hält über alle drei Nachrichten denselben synthetischen Katalog und dieselbe Bindung an Szene A im Modus `Read`.
+
+Im gezielten Windows-Lauf las die Fensterrolle „Rabe“ / „42“ auf Revision 0 und versuchte, die gültige zweite Fassung „Rabe“ / „43“ mit erwarteter Revision 0 zu speichern. Der Dienst antwortete mit `DENIED`. Der erneute Abruf auf derselben Bindung bestätigte den ursprünglichen Text und Revision 0, bevor das schreibgeschützte Fenster angezeigt und regulär geschlossen wurde. Beide Jobs endeten, die Sitzung wurde abgeschlossen, Produktdaten blieben gesperrt. Der interaktive Einmalabruf behält seinen bisherigen Ablauf. Der ETW-Nachweis im vorigen Abschnitt bezieht sich auf den dort bezeichneten Binärstand.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

@@ -47,15 +47,16 @@ pub(in super::super) fn read_scene(
     root: &Path,
     window: &fs::File,
     service: &fs::File,
+    mode: crate::window_receipt::SceneRead,
 ) -> Result<Value> {
-    use crate::window_receipt::SCENE_ARG;
+    use crate::window_receipt::SceneRead;
     use crate::windows::exchange::ui_restart::pipe;
     with_role(
         store,
         root,
         window,
         WINDOW,
-        SCENE_ARG,
+        mode.argument(),
         true,
         |ui, endpoint, mut to_ui, reply| {
             let mut ui_reply = reply.ok_or(invalid("scene-ui-reply"))?;
@@ -65,7 +66,7 @@ pub(in super::super) fn read_scene(
                 root,
                 service,
                 "pipe-service.exe",
-                SCENE_ARG,
+                mode.argument(),
                 true,
                 |data, endpoint, mut to_data, reply| {
                     let mut data_reply = reply.ok_or(invalid("scene-data-reply"))?;
@@ -88,6 +89,9 @@ pub(in super::super) fn read_scene(
                     let mut material = Zeroizing::new([0u8; 96]);
                     let mut context = Sha256::new();
                     context.update(b"KRAQEL-managed-A/read-v1");
+                    if mode == SceneRead::CheckDeniedSave {
+                        context.update(mode.argument().as_bytes());
+                    }
                     context.update(ui_secret);
                     context.update(data_secret);
                     material[..32].copy_from_slice(&context.finalize());
@@ -112,10 +116,12 @@ pub(in super::super) fn read_scene(
                     Ok(())
                 },
             )?;
-            bootstrap::wait_surface(ui, &mut ui_reply, true)
+            bootstrap::wait_surface(ui, &mut ui_reply, mode == SceneRead::Once)
         },
     )?;
-    Ok(
-        json!({"nativePreviewOnly":true,"role":"window","syntheticScene":"A","revision":0,"readOnly":true,"dataAllowed":false,"activeJobProcessesAtEnd":0}),
-    )
+    let mut result = json!({"nativePreviewOnly":true,"role":"window","syntheticScene":"A","revision":0,"readOnly":true,"dataAllowed":false,"activeJobProcessesAtEnd":0});
+    if mode == SceneRead::CheckDeniedSave {
+        result["saveDenied"] = json!(true);
+    }
+    Ok(result)
 }

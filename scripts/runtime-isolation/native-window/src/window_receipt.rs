@@ -19,4 +19,16 @@ pub fn commitment(grant: &[u8; 32]) -> [u8; 32] {
     hash.finalize().into()
 }
 
-pub const SCENE_ARG: &str = "--managed-scene-a-read-v1";
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum SceneRead {
+    Once,
+    CheckDeniedSave,
+}
+impl SceneRead {
+    pub fn argument(self) -> &'static str {
+        match self {
+            Self::Once => "--managed-scene-a-read-v1",
+            Self::CheckDeniedSave => "--managed-scene-a-denied-save-v1",
+        }
+    }
+}
