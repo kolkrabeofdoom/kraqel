@@ -388,7 +388,8 @@ Datenschutzziel bleibt unverändert.
              Revision 0, leere Jobs und null Netzwerkereignisse im Prüfprozessbaum bestätigt.
        - [x] KQ-069 A: [Starterabbruch ohne Endebeleg](docs/testing/native-win32-starter-restart.md) geprüft.
              Die synthetische Ablage blieb bei drei Neustartversuchen gesperrt.
-       - [ ] KQ-069 A: Frischer ETW-Netzvergleich für Starterabbruch und gesperrten Wiederanlauf.
+       - [x] KQ-069 A: Frischer ETW-Netzvergleich für Starterabbruch und gesperrten Wiederanlauf.
+             Alle drei Neustarts ohne Kindprozess, null Netzwerkereignisse im Prüfprozessbaum.
        - [ ] KQ-069 A: Durchsetzbaren Erzeugungsweg für jede Runtimegeneration belegen. Der geprüfte
              WebView2-Win32-Einstieg erfüllt BP3 nicht. Produktive BP4-Datenrechte bleiben offen.
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native
