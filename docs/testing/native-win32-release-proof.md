@@ -184,3 +184,18 @@ Die schreibgeschützte Nachprüfung bestätigte den Verbrauchszustand und das Fe
 Der Gastlauf `-Trial proof-clean-restart` vom 19. November 2026 verwendet den bestehenden regulären Leselauf und startet danach eine frische Kontrollinstanz auf derselben synthetischen Ablage. Genau ein Lesezugriff bestätigte Revision 1. Beide Leserollen endeten regulär, beide Jobs waren leer und die erste Kontrollinstanz endete mit Code 0. Beim anschließenden Aufruf endete die neue Kontrollinstanz vor der Ablagevorbereitung mit Code 102.
 
 Der Hash von `pipe.lock` blieb über den Neustart gleich. Beide Startbelege und die Prozessliste fehlten vor und nach dem Neustart. Die schreibgeschützte Nachprüfung bestätigte `read-consumed`. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden.
+
+
+### ETW-Netzvergleich nach regulärem Abschluss
+
+Der frische Vergleich vom 19. November 2026 verwendete die vier Binärdateien des bestandenen Funktionslaufs auf einer neuen synthetischen Differenzplatte. ETW bestätigte das reguläre Ende beider Leserollen (74 und 75) und der Kontrollinstanz (0). Der anschließende Neustart endete mit Code 102 ohne Kindprozess. Der Gasttreiber bestätigte den unveränderten Verbrauchsvermerk. Beide Startbelege und die Prozessliste fehlten vor und nach dem Neustart.
+
+| Messgröße | Referenz | Regulärer Abschluss und Neustart |
+| --- | ---: | ---: |
+| ETW-Ereignisse / Prozesse im gemessenen Baum | 65 / 3 | 64 / 12 |
+| Netzwerkereignisse im gemessenen Baum | 0 | 0 |
+| Gastweite Loopback-Ereignisse / übrige oder unbekannte Ziele | 18 / 0 | 18 / 0 |
+| Erkannte TCP-/UDP-Kontrollen über IPv4 und IPv6 | 4/4 | 4/4 |
+| Verlorene Ereignisse und Puffer | 0 | 0 |
+
+Die schreibgeschützte Nachprüfung bestätigte den Zustand `read-consumed` und das Fehlen der Startartefakte. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden. Für die Wiederholung verwenden der bestehende ETW-Gasttreiber und die Auswertung `-ExerciseTrial proof-clean-restart` bzw. `--proof proof-clean-restart`. Die Rohspuren bleiben lokal.

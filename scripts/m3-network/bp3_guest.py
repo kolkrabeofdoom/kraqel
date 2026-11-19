@@ -80,7 +80,7 @@ def check_starter_restart(fixture, measured, exits, root_pid):
                         "Unexpected normal completion")
 
 
-WITNESS_CRASH_CODES = {"proof-witness-loss": 103, "proof-consumed-loss": 104, "proof-pre-cleanup-loss": 106, "proof-partial-cleanup-loss": 107, "proof-post-cleanup-loss": 108}
+WITNESS_EXITS_BEFORE_RESTART = {"proof-clean-restart": 0, "proof-witness-loss": 103, "proof-consumed-loss": 104, "proof-pre-cleanup-loss": 106, "proof-partial-cleanup-loss": 107, "proof-post-cleanup-loss": 108}
 
 
 def check_live_loss(fixture, measured, exits, root_pid):
@@ -116,7 +116,7 @@ def check_live_loss(fixture, measured, exits, root_pid):
 
 def check_release_roles(fixture, measured, exits, root_pid, proof):
     witness, issuer, *restarts = [p for p in fixture if p.image.endswith(r"\pipe-check.exe")]
-    if proof in WITNESS_CRASH_CODES:
+    if proof in WITNESS_EXITS_BEFORE_RESTART:
         restart, = restarts
         require(restart.parent == root_pid and witness.end <= restart.start
                 and exits.get((restart.pid, restart.start)) == 102, "Missing denied witness restart")
@@ -125,7 +125,7 @@ def check_release_roles(fixture, measured, exits, root_pid, proof):
     require(witness.parent == root_pid and issuer.parent == witness.pid
             and witness.contains(issuer.start) and witness.contains(issuer.end),
             "Unexpected witness/issuer lifetime")
-    require([exits.get((p.pid, p.start)) for p in (witness, issuer)] == [WITNESS_CRASH_CODES.get(proof, 0), 101],
+    require([exits.get((p.pid, p.start)) for p in (witness, issuer)] == [WITNESS_EXITS_BEFORE_RESTART.get(proof, 0), 101],
             "Missing proof decision or issuer crash")
     for parent in (issuer, witness):
         require(all(p in fixture for p in measured if p.parent == parent.pid and parent.contains(p.start)),
@@ -136,7 +136,7 @@ def check_release_roles(fixture, measured, exits, root_pid, proof):
         for n, proc in enumerate(generations):
             parent = issuer if n == 0 else witness
             require(proc.parent == parent.pid and parent.contains(proc.start) and parent.contains(proc.end)
-                    and (n == 0 or (proof in ("proof-run", "proof-pre-cleanup-loss", "proof-partial-cleanup-loss", "proof-post-cleanup-loss") and proc.start >= issuer.end))
+                    and (n == 0 or (proof in ("proof-run", "proof-clean-restart", "proof-pre-cleanup-loss", "proof-partial-cleanup-loss", "proof-post-cleanup-loss") and proc.start >= issuer.end))
                     and exits.get((proc.pid, proc.start)) == codes[n], "Unexpected proof role")
             require(not any(p.parent == proc.pid and proc.contains(p.start) for p in measured),
                     "Unexpected role descendant")
@@ -192,8 +192,8 @@ def check(trace, record, exercise, window=False, crashes=False, channel_ends=Fal
     if starter_restart:
         expected = Counter({"pipe-check.exe": 5, "native-leaf.exe": 3, "pipe-other.exe": 3, "pipe-service.exe": 3})
     if proof:
-        pairs = 2 if proof in ("proof-run", "proof-live-loss", "proof-pre-cleanup-loss", "proof-partial-cleanup-loss", "proof-post-cleanup-loss") else 1
-        controllers = 4 if proof == "proof-live-loss" else 3 if proof in WITNESS_CRASH_CODES else 2
+        pairs = 2 if proof in ("proof-run", "proof-clean-restart", "proof-live-loss", "proof-pre-cleanup-loss", "proof-partial-cleanup-loss", "proof-post-cleanup-loss") else 1
+        controllers = 4 if proof == "proof-live-loss" else 3 if proof in WITNESS_EXITS_BEFORE_RESTART else 2
         expected = Counter({"pipe-check.exe": controllers, "pipe-service.exe": pairs, "native-leaf.exe": pairs, "pipe-other.exe": pairs})
     require(roles == (expected if exercise else Counter()), f"Unexpected fixture roles: {roles}")
     if proof == "proof-live-loss" and exercise:
@@ -263,7 +263,7 @@ if __name__ == "__main__":
     group.add_argument("--commit-crashes", action="store_true")
     group.add_argument("--channel-ends", action="store_true")
     group.add_argument("--starter-restart", action="store_true")
-    group.add_argument("--proof", choices=("proof-run", "proof-incomplete", "proof-live-loss", *WITNESS_CRASH_CODES))
+    group.add_argument("--proof", choices=("proof-run", "proof-incomplete", "proof-live-loss", *WITNESS_EXITS_BEFORE_RESTART))
     args = parser.parse_args()
     result = {}
     for name in ("reference", "exercise"):
