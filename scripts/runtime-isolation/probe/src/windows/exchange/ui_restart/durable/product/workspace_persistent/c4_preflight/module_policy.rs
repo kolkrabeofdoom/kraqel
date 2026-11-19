@@ -3,21 +3,7 @@ use super::*;
 use std::collections::BTreeSet;
 use windows_sys::Win32::System::SystemInformation::{GetSystemDirectoryW, GetWindowsDirectoryW};
 type FileId = (u64, [u8; 16]);
-fn id(file: &fs::File) -> Result<FileId> {
-    let mut info: FILE_ID_INFO = unsafe { zeroed() };
-    check(
-        unsafe {
-            GetFileInformationByHandleEx(
-                file.as_raw_handle(),
-                FileIdInfo,
-                (&mut info as *mut FILE_ID_INFO).cast(),
-                size_of_val(&info) as u32,
-            )
-        },
-        "c4-module-file-id",
-    )?;
-    Ok((info.VolumeSerialNumber, info.FileId.Identifier))
-}
+use secure_fs::file_id as id;
 fn open(path: &Path, directory: bool) -> Result<fs::File> {
     let _parents = pin_directories(path.parent().ok_or(invalid("c4-module-parent"))?)?;
     let file = io(

@@ -915,7 +915,8 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
         return Ok(store.summary());
     }
     if (args.len() == 4 && args[0] == "bind-win32-package")
-        || (args.len() == 2 && args[0] == "verify-win32-package")
+        || (args.len() == 2
+            && (args[0] == "verify-win32-package" || args[0] == "check-win32-suspended"))
     {
         // The running broker itself must be the managed file, not a byte-identical copy.
         let running = file_info(&running_image)?;
@@ -929,12 +930,14 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
             return Err(invalid("win32-broker-not-managed-image"));
         }
         let head = parse_hash(args.last().unwrap())?;
-        let enrollment = if args.len() == 4 {
-            Some((Path::new(&args[1]), parse_hash(&args[2])?))
+        let operation = if args.len() == 4 {
+            win32_binding::Operation::Bind(Path::new(&args[1]), parse_hash(&args[2])?)
+        } else if args[0] == "check-win32-suspended" {
+            win32_binding::Operation::CheckWindow
         } else {
-            None
+            win32_binding::Operation::Verify
         };
-        return store.win32_binding(actor, head, enrollment);
+        return store.win32_binding(actor, head, operation);
     }
     if args.len() == 2 && args[0] == "check-container" {
         return store.check_container(Path::new(&args[1]));

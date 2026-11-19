@@ -251,3 +251,19 @@ pub(super) fn binary_pin(path: &Path) -> Result<(Vec<fs::File>, fs::File, [u8; 3
     }
     Ok((dirs, file, digest.finalize().into()))
 }
+
+pub(super) fn file_id(file: &fs::File) -> Result<(u64, [u8; 16])> {
+    let mut info: FILE_ID_INFO = unsafe { zeroed() };
+    check(
+        unsafe {
+            GetFileInformationByHandleEx(
+                file.as_raw_handle(),
+                FileIdInfo,
+                (&mut info as *mut FILE_ID_INFO).cast(),
+                size_of_val(&info) as u32,
+            )
+        },
+        "product-file-identity",
+    )?;
+    Ok((info.VolumeSerialNumber, info.FileId.Identifier))
+}

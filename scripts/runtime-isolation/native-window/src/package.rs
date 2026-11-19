@@ -30,7 +30,9 @@ struct Image {
 
 pub(crate) struct PinnedPackage {
     pub anchor_digest: [u8; 32],
-    _pins: Vec<File>,
+    _directory: File,
+    _anchor: File,
+    images: Vec<File>,
 }
 
 fn pin(path: &Path, directory: bool) -> io::Result<File> {
@@ -62,8 +64,13 @@ fn pin(path: &Path, directory: bool) -> io::Result<File> {
 }
 
 impl PinnedPackage {
+    pub fn image(&self, name: &str) -> Option<&File> {
+        let index = IMAGES.iter().position(|&image| image == name)?;
+        self.images.get(index)
+    }
     pub fn open(root: &Path, expected: Option<[u8; 32]>) -> io::Result<Self> {
-        let mut pins = vec![pin(root, true)?];
+        let directory = pin(root, true)?;
+        let mut images = Vec::with_capacity(IMAGES.len());
         let mut anchor = pin(&root.join("anchor.json"), false)?;
         if anchor.metadata()?.len() > 16 * 1024 {
             return Err(io::Error::other("package anchor too large"));
@@ -74,9 +81,18 @@ impl PinnedPackage {
         if expected.is_some_and(|trusted| trusted != anchor_digest) {
             return Err(io::Error::other("package anchor mismatch"));
         }
-        pins.push(anchor);
+
         let manifest: Anchor = serde_json::from_slice(&bytes)
             .map_err(|_| io::Error::other("invalid package anchor"))?;
+        for name in IMAGES {
+            images.push(pin(&root.join(name), false)?);
+        }
+        let package = Self {
+            anchor_digest,
+            _directory: directory,
+            _anchor: anchor,
+            images,
+        };
         for name in IMAGES {
             // Only these constant names are ever used as path components.
             let entry = manifest
@@ -84,7 +100,9 @@ impl PinnedPackage {
                 .iter()
                 .find(|item| item.name == name)
                 .ok_or(io::Error::other("incomplete package inventory"))?;
-            let mut file = pin(&root.join(name), false)?;
+            let mut file = package
+                .image(name)
+                .ok_or(io::Error::other("missing pinned image"))?;
             let size = file.metadata()?.len();
             if !(1..=128 * 1024 * 1024).contains(&size) {
                 return Err(io::Error::other("invalid package image length"));
@@ -94,11 +112,7 @@ impl PinnedPackage {
             if !format!("{:x}", hash.finalize()).eq_ignore_ascii_case(&entry.hash) {
                 return Err(io::Error::other("package image mismatch"));
             }
-            pins.push(file);
         }
-        Ok(Self {
-            anchor_digest,
-            _pins: pins,
-        })
+        Ok(package)
     }
 }

@@ -61,7 +61,7 @@ pub(super) fn capture_identity(process: HANDLE) -> Result<WorkerIdentity> {
     }
     Ok(identity)
 }
-pub(super) fn verify_single_process_job(job: HANDLE) -> Result<()> {
+pub(in super::super) fn verify_single_process_job(job: HANDLE) -> Result<()> {
     let mut limits: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = unsafe { zeroed() };
     check(
         unsafe {

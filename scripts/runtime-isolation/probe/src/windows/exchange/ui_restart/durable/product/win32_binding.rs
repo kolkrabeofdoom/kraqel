@@ -2,13 +2,24 @@
 use super::*;
 use crate::native_win32_package::{IMAGES, PinnedPackage};
 
+mod suspended;
+pub(super) enum Operation<'a> {
+    Bind(&'a Path, [u8; 32]),
+    Verify,
+    CheckWindow,
+}
+
 impl Store {
     pub(super) fn win32_binding(
         &mut self,
         actor: [u8; 32],
         head: [u8; 32],
-        enrollment: Option<(&Path, [u8; 32])>,
+        operation: Operation,
     ) -> Result<Value> {
+        let enrollment = match operation {
+            Operation::Bind(path, digest) => Some((path, digest)),
+            _ => None,
+        };
         self.append_guard(actor, head)?;
         if self.state.schema != 4 || self.state.pending.is_some() || self.state.activated.len() < 2
         {
@@ -52,6 +63,12 @@ impl Store {
         }
         if enrollment.is_some() {
             self.append(actor, head, Action::BindWin32Package { anchor: expected })?;
+        }
+        if matches!(operation, Operation::CheckWindow) {
+            let image = pins
+                .image(suspended::WINDOW)
+                .ok_or(invalid("win32-window-not-pinned"))?;
+            return suspended::check_window(self, &root, image);
         }
         Ok(
             json!({"nativePreviewOnly":true,"roleStarted":false,"dataAllowed":false,

@@ -1114,6 +1114,7 @@ fn aborted_package_hardlink_is_not_deleted_or_reauthorized() {
 
 #[test]
 fn win32_package_binding_is_durable_and_cannot_cross_activation() {
+    use win32_binding::Operation::{Bind, Verify};
     let f = Fixture::new();
     let mut store = schema4_pending(&f);
     let actor = store.state.pending.unwrap();
@@ -1132,17 +1133,19 @@ fn win32_package_binding_is_durable_and_cannot_cross_activation() {
     let head = store.state.head;
     assert!(
         store
-            .win32_binding(actor, head, Some((&dir, [9; 32])))
+            .win32_binding(actor, head, Bind(&dir, [9; 32]))
             .is_err()
     );
     assert_eq!(store.state.head, head);
     store
-        .win32_binding(actor, head, Some((&dir, digest)))
+        .win32_binding(actor, head, Bind(&dir, digest))
         .unwrap();
     drop(store);
     let mut store = Store::open(&f.root()).unwrap();
-    store.win32_binding(actor, store.state.head, None).unwrap();
-    assert!(store.win32_binding(actor, head, None).is_err());
+    store
+        .win32_binding(actor, store.state.head, Verify)
+        .unwrap();
+    assert!(store.win32_binding(actor, head, Verify).is_err());
     let managed_manifest = store
         .root
         .join("bin")
@@ -1154,7 +1157,11 @@ fn win32_package_binding_is_durable_and_cannot_cross_activation() {
         .unwrap()
         .write_all(b" ")
         .unwrap();
-    assert!(store.win32_binding(actor, store.state.head, None).is_err());
+    assert!(
+        store
+            .win32_binding(actor, store.state.head, Verify)
+            .is_err()
+    );
     fs::copy(&manifest, &managed_manifest).unwrap();
     let next = f.0.join("next.exe");
     fs::copy(f.candidate(), &next).unwrap();
@@ -1184,17 +1191,21 @@ fn win32_package_binding_is_durable_and_cannot_cross_activation() {
     store
         .prepare(actor, store.state.head, &next, next_actor)
         .unwrap();
-    assert!(store.win32_binding(actor, store.state.head, None).is_err());
+    assert!(
+        store
+            .win32_binding(actor, store.state.head, Verify)
+            .is_err()
+    );
     store.activate(actor, store.state.head).unwrap();
     assert_eq!(store.state.win32_anchor, Some((actor, digest)));
     assert!(
         store
-            .win32_binding(next_actor, store.state.head, None)
+            .win32_binding(next_actor, store.state.head, Verify)
             .is_err()
     );
     assert!(
         store
-            .win32_binding(actor, store.state.head, Some((&dir, digest)))
+            .win32_binding(actor, store.state.head, Bind(&dir, digest))
             .is_err()
     );
 }
