@@ -1,4 +1,4 @@
-param([ValidateSet('read-scene','deny-save','edit-conflict','durable-reopen','commit-crashes','channel-interruptions','window-close','channel-ends','handshake','reference','exercise')][string]$Trial='commit-crashes')
+param([ValidateSet('read-scene','deny-save','edit-conflict','durable-reopen','commit-crashes','channel-interruptions','window-close','channel-ends','starter-restart','handshake','reference','exercise')][string]$Trial='commit-crashes')
 $ErrorActionPreference='Stop'
 $dir='C:\Program Files\KRAQEL-Window-Probe'
 try {
@@ -15,6 +15,28 @@ try {
     }
     if ($Trial -eq 'reference') { Start-Sleep -Seconds 2; exit 0 }
     if ($Trial -eq 'exercise') { $Trial = 'commit-crashes' }
+    if ($Trial -eq 'starter-restart') {
+        & "$dir\pipe-check.exe" handshake
+        if ($LASTEXITCODE -ne 0) { throw 'Normal completion missing.' }
+        & "$dir\pipe-check.exe" starter-crash
+        if ($LASTEXITCODE -ne 101) { throw 'Pending transaction crash missing.' }
+        # Observe process teardown separately. This is not an end record.
+        $until=[DateTime]::UtcNow.AddSeconds(5)
+        do {
+            $live=@(Get-Process -Name native-leaf,pipe-service,pipe-other -ErrorAction SilentlyContinue)
+            if (!$live.Count) { break }
+            Start-Sleep -Milliseconds 50
+        } while ([DateTime]::UtcNow -lt $until)
+        if ($live.Count) { throw 'Probe role still running.' }
+        $lock=Join-Path $dir 'pipe.lock'
+        $pendingHash=(Get-FileHash -LiteralPath $lock).Hash
+        foreach ($attempt in 'reopen-close-read','read-scene','reopen-close-read') {
+            & "$dir\pipe-check.exe" $attempt
+            if ($LASTEXITCODE -ne 102 -or (Get-FileHash -LiteralPath $lock).Hash -ne $pendingHash) { throw 'Restart denial missing or record changed.' }
+        }
+        Write-Output 'Crash at pending transaction; roles ended; read, new start and repeated read blocked.'
+        exit 0
+    }
     & "$dir\pipe-check.exe" $Trial
     exit $LASTEXITCODE
 } catch { Write-Output $_.Exception.Message; exit 1 }

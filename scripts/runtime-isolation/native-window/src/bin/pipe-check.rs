@@ -273,7 +273,7 @@ impl Drop for Receipt {
     }
 }
 
-fn close_pending_window(ui: &Suspended, data: &Suspended) -> io::Result<()> {
+fn finish_pending_window(ui: &Suspended, data: &Suspended, crash_starter: bool) -> io::Result<()> {
     use windows_sys::Win32::UI::WindowsAndMessaging::*;
     let journal = Path::new(DIR)
         .join("scene-store-close")
@@ -297,6 +297,10 @@ fn close_pending_window(ui: &Suspended, data: &Suspended) -> io::Result<()> {
                 && IsWindowVisible(hwnd) != 0
                 && journal.try_exists()?
             {
+                if crash_starter {
+                    check(TerminateProcess(GetCurrentProcess(), 101))?;
+                    return Err(io::Error::other("starter termination returned"));
+                }
                 check(PostMessageW(hwnd, WM_CLOSE, 0, 0))?;
                 require(
                     WaitForSingleObject(data.proc.0, 5000) == WAIT_OBJECT_0,
@@ -313,6 +317,10 @@ fn close_pending_window(ui: &Suspended, data: &Suspended) -> io::Result<()> {
     }
 }
 fn run(trial: Trial) -> io::Result<()> {
+    run_pair(trial, false)
+}
+
+fn run_pair(trial: Trial, crash_starter: bool) -> io::Result<()> {
     guest_image("pipe-check.exe")?;
     let ui_profile = Profile::fresh(PROFILE)?;
     let data_profile = Profile::fresh(
@@ -414,7 +422,7 @@ fn run(trial: Trial) -> io::Result<()> {
                 "pair resume",
             )?;
             if trial == Trial::StorePhase(scene_store::StorePhase::WindowClose) {
-                close_pending_window(&ui, &data)?;
+                finish_pending_window(&ui, &data, crash_starter)?;
             }
             let pair = [data.proc.0, ui.proc.0];
             require(
@@ -457,18 +465,86 @@ fn run(trial: Trial) -> io::Result<()> {
     std::fs::remove_file(ids)?;
     result
 }
+// Only the elevated starter can modify this file in the protected package root.
+const PENDING: &[u8] = b"BP4b/starter-v1/pending";
+const DRAINED: &[u8] = b"BP4b/starter-v1/drained";
+
+fn record(file: &mut std::fs::File, state: &[u8], anchor: &[u8]) -> io::Result<()> {
+    use std::io::{Seek, Write};
+    file.rewind()?;
+    file.set_len(0)?;
+    file.write_all(state)?;
+    file.write_all(anchor)?;
+    file.sync_all()
+}
+
+fn receipts_absent() -> io::Result<bool> {
+    for name in ["window.start", "data.start", "pipe-targets.txt"] {
+        if Path::new(DIR).join(name).try_exists()? {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+fn begin(reopen: bool, anchor: &[u8]) -> io::Result<Option<std::fs::File>> {
+    use std::{io::Read, os::windows::fs::OpenOptionsExt};
+    let path = Path::new(DIR).join("pipe.lock");
+    let mut options = std::fs::OpenOptions::new();
+    options.read(true).write(true).share_mode(0);
+    let mut lock = match options.create_new(true).open(&path) {
+        Ok(f) => {
+            // A missing record cannot authorize an existing store or stale generation.
+            if reopen || !receipts_absent()? {
+                return Ok(None);
+            }
+            for entry in std::fs::read_dir(DIR)? {
+                if entry?
+                    .file_name()
+                    .to_string_lossy()
+                    .starts_with("scene-store-")
+                {
+                    return Ok(None);
+                }
+            }
+            f
+        }
+        Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
+            let mut f = options.create_new(false).open(path)?;
+            let expected = [DRAINED, anchor].concat();
+            if f.metadata()?.len() != expected.len() as u64 {
+                return Ok(None);
+            }
+            let mut bytes = vec![0; expected.len()];
+            f.read_exact(&mut bytes)?;
+            if bytes != expected || !receipts_absent()? {
+                return Ok(None);
+            }
+            f
+        }
+        Err(e) => return Err(e),
+    };
+    record(&mut lock, PENDING, anchor)?;
+    Ok(Some(lock))
+}
+
 fn main() {
     let result = (|| {
+        use sha2::{Digest, Sha256};
         guest_image("pipe-check.exe")?;
-        use std::os::windows::fs::OpenOptionsExt;
-        let _lock = std::fs::OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(false)
-            .share_mode(0)
-            .open(Path::new(DIR).join("pipe.lock"))?;
         let trial = std::env::args().nth(1);
-        if matches!(trial.as_deref(), Some("window-close" | "channel-ends")) {
+        let anchor = Sha256::digest(std::fs::read(Path::new(DIR).join("anchor.json"))?);
+        let Some(mut lock) = begin(trial.as_deref() == Some("reopen-close-read"), &anchor)? else {
+            println!("store locked: no verified end record");
+            std::process::exit(102);
+        };
+        if trial.as_deref() == Some("starter-crash") {
+            let phase = scene_store::StorePhase::WindowClose;
+            let _pins = scene_store::prepare(Some(phase))?;
+            run_pair(Trial::StorePhase(phase), true)
+        } else if trial.as_deref() == Some("reopen-close-read") {
+            run(Trial::StorePhase(scene_store::StorePhase::ReadClosed))
+        } else if matches!(trial.as_deref(), Some("window-close" | "channel-ends")) {
             use scene_store::StorePhase::*;
             if trial.as_deref() == Some("channel-ends") {
                 for (fault, readback) in [(Partial, ReadPartial), (Timeout, ReadTimeout)] {
@@ -514,7 +590,9 @@ fn main() {
             run(Trial::Valid)
         } else {
             run(Trial::Suspended)
-        }
+        }?;
+        require(receipts_absent()?, "generation receipts remain")?;
+        record(&mut lock, DRAINED, &anchor)
     })();
     if let Err(e) = result {
         eprintln!("pipe check: {e}");
