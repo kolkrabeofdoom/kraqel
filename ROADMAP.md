@@ -365,8 +365,9 @@ Datenschutzziel bleibt unverändert.
              Inhalte.
        - [x] KQ-069 A: BP4b-Kanalbindung und Replayabwehr für das synthetische Rollenpaar
              spezifiziert.
-       - [ ] KQ-069 A: BP4b-Framecodec und Replaymodell prüfen, anschließend effektive Rechte,
-             Wiederanlauf und eigenen ETW-Nachweis im Gast prüfen.
+       - [x] KQ-069 A: BP4b-Framecodec und Replaymodell mit BP4a-Szenenzugriff offline geprüft.
+       - [ ] KQ-069 A: Effektive Endpunktrechte, Wiederanlauf und eigenen ETW-Nachweis im Gast
+             prüfen.
        - [ ] KQ-069 A: Durchsetzbaren Erzeugungsweg für jede Runtimegeneration belegen. Der geprüfte
              WebView2-Win32-Einstieg erfüllt BP3 nicht. Produktive BP4-Datenrechte bleiben offen.
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native

@@ -1,6 +1,8 @@
 //! BP4a research model. The caller supplies a simulated binding, never a native grant.
 #![forbid(unsafe_code)]
 
+pub mod channel;
+
 use kraqel_domain::EditorDocument;
 use serde::{Deserialize, Serialize};
 use serde_json::json;

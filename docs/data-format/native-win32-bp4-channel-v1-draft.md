@@ -86,7 +86,7 @@ Anfrageschlüssel von Hex 20 bis 3f. Bei Nummer und Länge null umfasst der Head
 Frame 82 Byte. Erwarteter Tag: `fa777fcddf15349fc2f06e72cada2c0366e7588656f7b05bd167ac5ac2d4fbe9`.
 Diese festen Werte dienen ausschließlich dem Codetest.
 
-- **Als Nächstes im reinen Modell:** Golden-Frame für Header und MAC, HELLO/READY, Lesen und eine
+- **Im reinen Modell geprüft:** Golden-Frame für Header und MAC, HELLO/READY, Lesen und eine
   bestätigte Speicherung. Denselben REQUEST zweimal anbieten: genau ein Dispatch und ein
   Revisionswechsel. Doppelte Antwort, Lücke, Reflexion, falscher Tag, überlange Länge und Frame aus
   vorheriger Paarung jeweils ohne weitere Fachoperation abweisen.
@@ -97,3 +97,17 @@ Diese festen Werte dienen ausschließlich dem Codetest.
 - **Netzvergleich für die neuen Binärdateien:** Referenz und Datenlauf einschließlich Starter, UI
   und Datendienst, vier lokale Positivkontrollen und Verlustprüfung. Erst dieser Lauf liefert einen
   Netzbefund zum Datenkanal.
+
+Der [Framecodec](../../scripts/runtime-isolation/native-scene-model/src/channel.rs) verarbeitet
+vollständige Bytefolgen im Arbeitsspeicher. UI und Dienst führen getrennte Sequenzzustände; ein
+Protokollfehler schließt im Modell das Paar. Die fünf
+[Kanaltests](../../scripts/runtime-isolation/native-scene-model/src/channel/tests.rs) prüfen auch
+den Verbrauch einer Nummer bei fachlichem Fehler sowie das Ende bei u64-Maximum. Reproduktion ab
+Repositorywurzel:
+
+```sh
+cargo test --locked --offline --manifest-path scripts/runtime-isolation/native-scene-model/Cargo.toml
+```
+
+Die Gastprüfung muss insbesondere Prozessbindung, getrennte Endpunktrechte, Lesen aus einem
+partiellen Bytestrom, Timeout und beidseitiges Schließen über Prozessgrenzen nachweisen.

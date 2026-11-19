@@ -61,7 +61,8 @@ UTF-8-JSON, maximal 80 KiB pro Nachricht und 64 KiB UTF-8 pro Text. Rahmengröß
 prüfen. Nur die folgenden exakten Schlüssel, Typen und Werte sind zulässig. Doppelte und unbekannte
 Schlüssel, Restbytes, ungültiges UTF-8 und unbekannte Commands sperren den Aufruf. Die
 authentisierte Transportbindung und ihre Replayabwehr sind im
-[BP4b-Kanalvertrag](native-win32-bp4-channel-v1-draft.md) spezifiziert. Die Prüfung steht aus.
+[BP4b-Kanalvertrag](native-win32-bp4-channel-v1-draft.md) spezifiziert und im reinen Modell geprüft.
+Der Gastnachweis steht aus.
 
 | `command`                | Weitere Anfrageschlüssel      | Erfolgsantwort                                                                                      |
 | ------------------------ | ----------------------------- | --------------------------------------------------------------------------------------------------- |
@@ -128,7 +129,7 @@ Reproduktion ab Repositorywurzel:
 cargo test --locked --offline --manifest-path scripts/runtime-isolation/native-scene-model/Cargo.toml
 ```
 
-Für BP4b folgen Framecodec und Zustandsmodell gemäß Kanalvertrag. Persistenz, native
-Zugriffskontrollen, Fensteranbindung und ETW-Abnahme des Datenpfads stehen aus. Reale Manuskripte,
-allgemeines Rich Text, die Produkt-UI-ABI und eine produktive `DataAllowed`-Freigabe erfordern eine
-eigene Entscheidung und Nachweise.
+BP4b-Framecodec und Zustandsmodell sind offline geprüft. Persistenz, native Zugriffskontrollen,
+Fensteranbindung und ETW-Abnahme des Datenpfads stehen aus. Reale Manuskripte, allgemeines Rich
+Text, die Produkt-UI-ABI und eine produktive `DataAllowed`-Freigabe erfordern eine eigene
+Entscheidung und Nachweise.

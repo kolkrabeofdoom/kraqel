@@ -9,6 +9,9 @@ publish = false
 [workspace]
 
 [dependencies]
+hmac = "=0.12.1"
+sha2 = "=0.10.9"
+zeroize = "=1.9.1"
 kraqel-domain = { path = "../../../crates/domain" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
