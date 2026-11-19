@@ -141,3 +141,18 @@ Die schreibgeschützte Nachprüfung bestätigte den Verbrauchszustand, die verbl
 Der Gastlauf `-Trial proof-partial-cleanup-loss` vom 19. November 2026 verwendete eine frische synthetische Ablage. Nach regulärem Ende beider Leserollen und Prüfung der leeren Jobs entfernte die Kontrollinstanz die Prozessliste und den Fensterbeleg. Unmittelbar nach der Prüfung, dass `window.start` fehlte und `data.start` noch vorlag, endete sie hart mit Code 107.
 
 Der reguläre Neustart blieb vor der Ablagevorbereitung mit Code 102 gesperrt. Die Hashes von `pipe.lock` und `data.start` blieben gleich. Fensterbeleg und Prozessliste fehlten auch nach dem Neustart. Die schreibgeschützte Nachprüfung bestätigte dieses Inventar und den Zustand `read-consumed`. Beim ersten Versuch verglich das Prüfskript nur das erste Zeichen des einzelnen Beleg-Hashes. Nach Korrektur der Auswertung bestand der Wiederholungslauf mit identischen Binärdateien auf einer frischen Differenzplatte. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden.
+
+
+### ETW-Netzvergleich nach Entfernung des Fensterbelegs
+
+Der frische Vergleich vom 19. November 2026 verwendete die vier hashgleichen Programme des bestandenen Funktionslaufs auf einer neuen synthetischen Differenzplatte. ETW erfasste das reguläre Ende von Datendienst (74) und Fenster (75), den Ausfall der Kontrollinstanz (107) und den gesperrten Neustart (102) ohne Kindprozess. Der bestehende Gasttreiber bestätigte den unveränderten Verbrauchsvermerk und Datendienstbeleg über den Neustart. Fensterbeleg und Prozessliste fehlten weiterhin.
+
+| Messgröße | Referenz | Ausfall und Neustart |
+| --- | ---: | ---: |
+| ETW-Ereignisse / Prozesse im gemessenen Baum | 70 / 3 | 62 / 12 |
+| Netzwerkereignisse im gemessenen Baum | 0 | 0 |
+| Gastweite Loopback-Ereignisse / übrige oder unbekannte Ziele | 18 / 0 | 18 / 0 |
+| Erkannte TCP-/UDP-Kontrollen über IPv4 und IPv6 | 4/4 | 4/4 |
+| Verlorene Ereignisse und Puffer | 0 | 0 |
+
+Die schreibgeschützte Nachprüfung bestätigte den Verbrauchszustand und den verbliebenen Datendienstbeleg. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden. Für diesen Fall verwenden der bestehende ETW-Gasttreiber und die Auswertung `-ExerciseTrial proof-partial-cleanup-loss` bzw. `--proof proof-partial-cleanup-loss`. Rohspuren bleiben lokal.
