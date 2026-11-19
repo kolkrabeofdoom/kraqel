@@ -1,5 +1,10 @@
 # ADR 0036 – Native Windows-Oberfläche mit eigener Prozessrolle
 
+**Ergebnis der anschließenden Gastprobe:** Das eigene Win32-Fenster mit gebundener Rolle lief unter
+erzwungener UMCI. Tastatur, die im Narrator-Sprachverlauf sichtbaren Ansagen, Jobende und
+ETW-Vergleich sind geprüft. Die akustische Abnahme und die Produktintegration bleiben offen.
+[Messwerte und Beleggrenzen](../../testing/native-win32-window-guest.md).
+
 **19. November 2026 · Als Kandidat für eine Machbarkeitsprobe ausgewählt.** Eine eigene, native
 Windows-EXE mit einem Unicode-Textfeld der Fensterklasse `EDIT` ist für KRAQEL prüfenswert. Das
 Fenster und seine Steuerelemente können im selben UI-Prozess liegen. Damit kann der

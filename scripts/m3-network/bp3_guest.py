@@ -20,7 +20,7 @@ def require(condition, problem):
         raise ValueError(problem)
 
 
-def check(trace, record, exercise):
+def check(trace, record, exercise, window=False):
     require(record["exit"] == 0, "Workload failed")
     active = {}
     by_pid = defaultdict(list)
@@ -28,9 +28,11 @@ def check(trace, record, exercise):
     measured = []
     loss = []
     observed = set()
+    exits = {}
     net = Counter()
     guest_net = Counter()
     unknown = 0
+    directory = r"\\program files\\kraqel-window-probe" if window else r"\\bp3-umci-fixture"
     rows = sorted(events(trace), key=lambda row: row[0])
     for time, provider, event, _, data in rows:
         if "EventsLost" in data and "BuffersLost" in data:
@@ -41,6 +43,8 @@ def check(trace, record, exercise):
         if event == 2:
             if prior := active.pop(pid, None):
                 prior.end = time
+                if window and "ExitCode" in data:
+                    exits[(pid, prior.start)] = number(data["ExitCode"])
             continue
         parent = number(data["ParentProcessID"])
         image = data["ImageName"].lower().replace("/", "\\")
@@ -51,7 +55,7 @@ def check(trace, record, exercise):
         by_pid[pid].append(proc)
         if own:
             measured.append(proc)
-        if re.fullmatch(VOLUME + r"\\bp3-umci-fixture\\[^\\]+", image):
+        if re.fullmatch(VOLUME + directory + r"\\[^\\]+", image):
             fixture.append(proc)
 
     require(loss and not any(loss), "Missing loss header or lost events/buffers")
@@ -59,7 +63,20 @@ def check(trace, record, exercise):
     require(all(p.end for p in measured), "Missing workload process end")
     require(all(p.own for p in fixture), "Fixture outside workload")
     roles = Counter(p.image.rsplit("\\", 1)[1] for p in fixture)
-    require(roles == (EXPECTED if exercise else Counter()), f"Unexpected fixture roles: {roles}")
+    expected = Counter({"native-starter.exe": 1, "native-leaf.exe": 3, "observer.exe": 1}) if window else EXPECTED
+    require(roles == (expected if exercise else Counter()), f"Unexpected fixture roles: {roles}")
+    if window and exercise:
+        starter = next(p for p in fixture if p.image.endswith(r"\native-starter.exe"))
+        leaves = [p for p in fixture if p.image.endswith(r"\native-leaf.exe")]
+        observer = next(p for p in fixture if p.image.endswith(r"\observer.exe"))
+        require(observer.parent == record["root"] and starter.parent == record["root"] and
+                sum(p.parent == starter.pid and starter.contains(p.start) for p in leaves) == 2 and
+                sum(p.parent == record["root"] for p in leaves) == 1, "Unexpected probe parentage")
+        require(not any(child.parent == leaf.pid and leaf.contains(child.start)
+                        for leaf in leaves for child in measured), "Unexpected UI descendant")
+        require(exits.get((starter.pid, starter.start)) == 0 and sorted(
+            (leaf.parent == starter.pid, exits.get((leaf.pid, leaf.start), -1)) for leaf in leaves
+        ) == [(False, 20), (True, 40), (True, 75)], "Unexpected native probe exit codes")
     controls = record["controls"]
     require(len(controls) == 4 and {(c["protocol"], c["address"]) for c in controls} == CONTROL_SET,
             "Unexpected controls")
@@ -102,12 +119,13 @@ def check(trace, record, exercise):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=Path)
+    parser.add_argument("--native-window", action="store_true")
     args = parser.parse_args()
     result = {}
     for name in ("reference", "exercise"):
         path = args.directory
         record = json.loads((path / f"{name}.json").read_text(encoding="utf-8-sig"))
-        result[name] = check(path / f"{name}.xml", record, name == "exercise")
+        result[name] = check(path / f"{name}.xml", record, name == "exercise", args.native_window)
     print(json.dumps(result, indent=2))
     raise SystemExit(int(any(r["networkEvents"] or r["guestNetworkEvents"].get("otherOrUnknown")
                              for r in result.values())))

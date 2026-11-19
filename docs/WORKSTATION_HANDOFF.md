@@ -42,10 +42,11 @@ Startveto für verschachtelte Crashpad-Prozesse oder spätere Renderer. C4-Start
 bleiben bis zum Nachweis gemäß ADR 0035 gesperrt.
 [ADR 0035](architecture/decisions/0035-bp3-independent-process-and-image-enforcement.md).
 
-Als Alternative ist ein eigenes natives Win32-UI-Blatt ausgewählt. Der Linkversuch für ein
-Unicode-Textfeld ergab zwei direkte System-DLL-Importe. Nächster Schritt ist der erste interaktive
-Lauf im Offline-Gast mit geprüfter Rolle vor Resume und ausschließlich synthetischem Text.
-[Bewertung und Abbruchkriterien](architecture/decisions/0036-native-win32-ui-role-evaluation.md).
+Das isolierte native Win32-Fenster ist im interaktiven Offline-Gast mit synthetischem Text geprüft.
+Direktstart und falsche Rolle wurden gesperrt. Tastatureingabe, Fokuswechsel, Narrator-Ansagen im
+lokalen Speech Recap und reguläres Prozessende sind bestätigt. ETW ergab null TCP-/UDP-Ereignisse in
+beiden Messbäumen bei je vier Positivkontrollen. Eine Hörabnahme bleibt mangels Audioendpunkt offen.
+[Prüfbericht und Wiederholung](testing/native-win32-window-guest.md).
 
 Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:
 
