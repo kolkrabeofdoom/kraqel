@@ -41,6 +41,21 @@ aktive Wiedergabeendpunkte. Lautstärke, Aussprache und Hörbarkeit sind unverif
 Zwischenablageumleitung waren für die Probe entbehrlich.
 [Microsofts Narrator-Handbuch](https://support.microsoft.com/en-us/accessibility/windows/narrator/complete-guide-to-narrator).
 
+### Akustische Hörprüfung · 19. November 2026
+
+**Offen, vor dem Start angehalten.** Der gesicherte Gastbefund weist null aktive Wiedergabeendpunkte
+aus. Beim Abgleich auf dem Prüfhost war genau ein lokaler Wiedergabeendpunkt aktiv. Er gehört dem
+Host. Ein separater isolierter Prüfplatz mit direkt angeschlossenem Audioausgang stand ebenfalls
+nicht zur Verfügung. Ein erneuter Fensterlauf fand deshalb nicht statt. VMConnect würde für
+Host-Audio eine Ressourcenumleitung über die erweiterte Sitzung verwenden.
+[Microsofts Dokumentation zur VMConnect-Ressourcenumleitung](https://learn.microsoft.com/en-us/windows-server/virtualization/hyper-v/use-local-resources-virtual-machine-connection).
+
+Für die Wiederaufnahme zuerst den isolierten Wiedergabeweg und die unten aufgeführten Programmhashes
+bestätigen. Am laufenden Fenster den Fokus per Tastatur vom Textfeld zur Schaltfläche wechseln. Eine
+mithörende Person bestätigt für beide Fokuswechsel die tatsächlich gehörte Bezeichnung, die
+erkennbare Rolle und die Verständlichkeit. Als Beleg genügt die Rückmeldung je Bedienelement; eine
+Tonaufnahme ist dafür entbehrlich.
+
 ## ETW-Ergebnis
 
 | Messgröße                                             | Referenz | Fensterlauf |

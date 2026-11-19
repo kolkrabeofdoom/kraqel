@@ -48,6 +48,11 @@ lokalen Speech Recap und reguläres Prozessende sind bestätigt. ETW ergab null 
 beiden Messbäumen bei je vier Positivkontrollen. Eine Hörabnahme bleibt mangels Audioendpunkt offen.
 [Prüfbericht und Wiederholung](testing/native-win32-window-guest.md).
 
+Der Host-Abgleich für die Hörprüfung ergab einen aktiven hostseitigen Wiedergabeendpunkt. Für den
+isolierten Gast ist kein eigener Ausgang belegt, ein separater Prüfplatz war nicht verfügbar. Die
+akustische Prüfung erst bei verfügbarem isoliertem Wiedergabeweg und anwesender Hörperson wieder
+aufnehmen.
+
 Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:
 
 [Debug-Wächter-Nachweis](testing/product-start-p2c-bp3-debug-guardian.md): Root beim Create-Ereignis
