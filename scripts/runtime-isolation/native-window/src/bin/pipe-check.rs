@@ -251,7 +251,7 @@ enum Trial {
     DeniedSave,
     StoreRead,
     StoreEdit,
-    Crash(scene_store::CrashPhase),
+    StorePhase(scene_store::StorePhase),
     EditConflict,
     Valid,
 }
@@ -277,7 +277,7 @@ fn run(trial: Trial) -> io::Result<()> {
     guest_image("pipe-check.exe")?;
     let ui_profile = Profile::fresh(PROFILE)?;
     let data_profile = Profile::fresh(
-        if trial == Trial::StoreRead || matches!(trial,Trial::Crash(c) if c.reader()) {
+        if trial == Trial::StoreRead || matches!(trial,Trial::StorePhase(c) if c.reader()) {
             scene_store::READER
         } else {
             "org.kraqel.bp4.data"
@@ -316,8 +316,8 @@ fn run(trial: Trial) -> io::Result<()> {
             if role == Role::Data && trial == Trial::BadReady {
                 keys[95] ^= 1;
             }
-            let purpose = if let Trial::Crash(c) = trial {
-                bootstrap::Purpose::Crash(c)
+            let purpose = if let Trial::StorePhase(c) = trial {
+                bootstrap::Purpose::StorePhase(c)
             } else if trial == Trial::StoreEdit {
                 bootstrap::Purpose::StoreEdit
             } else if trial == Trial::StoreRead {
@@ -376,7 +376,16 @@ fn run(trial: Trial) -> io::Result<()> {
             )?;
             let pair = [data.proc.0, ui.proc.0];
             require(
-                WaitForMultipleObjects(2, pair.as_ptr(), 1, 30000) == WAIT_OBJECT_0,
+                WaitForMultipleObjects(
+                    2,
+                    pair.as_ptr(),
+                    1,
+                    if trial == Trial::StorePhase(scene_store::StorePhase::Timeout) {
+                        45000
+                    } else {
+                        30000
+                    },
+                ) == WAIT_OBJECT_0,
                 "pair deadline",
             )?;
             let (mut data_exit, mut ui_exit) = (0, 0);
@@ -388,7 +397,7 @@ fn run(trial: Trial) -> io::Result<()> {
                     == match trial {
                         Trial::ReadA => (66, 67),
                         Trial::StoreEdit => (72, 73),
-                        Trial::Crash(c) => c.exits(),
+                        Trial::StorePhase(c) => c.exits(),
                         Trial::StoreRead => (74, 75),
                         Trial::EditConflict => (70, 71),
                         Trial::DeniedSave => (68, 69),
@@ -416,17 +425,25 @@ fn main() {
             .truncate(false)
             .share_mode(0)
             .open(Path::new(DIR).join("pipe.lock"))?;
-        if std::env::args().nth(1).as_deref() == Some("commit-crashes") {
-            use scene_store::CrashPhase::*;
+        if std::env::args().nth(1).as_deref() == Some("channel-interruptions") {
+            use scene_store::StorePhase::*;
+            for (fault, readback) in [(Partial, ReadPartial), (Timeout, ReadTimeout)] {
+                let _pins = scene_store::prepare(Some(fault))?;
+                run(Trial::StorePhase(fault))?;
+                run(Trial::StorePhase(readback))?;
+            }
+            Ok(())
+        } else if std::env::args().nth(1).as_deref() == Some("commit-crashes") {
+            use scene_store::StorePhase::*;
             {
                 let _pins = scene_store::prepare(Some(Before))?;
-                run(Trial::Crash(Before))?;
-                run(Trial::Crash(Recover))?;
-                run(Trial::Crash(ReadOld))?;
+                run(Trial::StorePhase(Before))?;
+                run(Trial::StorePhase(Recover))?;
+                run(Trial::StorePhase(ReadOld))?;
             }
             let _pins = scene_store::prepare(Some(After))?;
-            run(Trial::Crash(After))?;
-            run(Trial::Crash(ReadNew))
+            run(Trial::StorePhase(After))?;
+            run(Trial::StorePhase(ReadNew))
         } else if std::env::args().nth(1).as_deref() == Some("durable-reopen") {
             let _pins = scene_store::prepare(None)?;
             run(Trial::StoreEdit)?;

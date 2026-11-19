@@ -42,13 +42,13 @@ pub enum Purpose {
     DeniedSave,
     EditConflict,
     StoreEdit,
-    Crash(crate::scene_store::CrashPhase),
+    StorePhase(crate::scene_store::StorePhase),
     StoreRead,
 }
 impl Purpose {
     fn scope(self) -> &'static str {
         match self {
-            Self::Crash(phase) => phase.scope(),
+            Self::StorePhase(phase) => phase.scope(),
             Self::Handshake => "A/edit",
             Self::ReadA => "A/read",
             Self::StoreRead => "A/read/sqlite-v1",
@@ -122,11 +122,11 @@ impl Endpoint {
         let (meta, handle) = receipt
             .split_once('\n')
             .ok_or(io::Error::other("receipt"))?;
-        let crash = crate::scene_store::CrashPhase::ALL
+        let store_phase = crate::scene_store::StorePhase::ALL
             .into_iter()
             .find(|p| meta.starts_with(&format!("BP4b-v1/{}/", p.scope())));
-        let purpose = if let Some(c) = crash {
-            Purpose::Crash(c)
+        let purpose = if let Some(c) = store_phase {
+            Purpose::StorePhase(c)
         } else if meta.starts_with("BP4b-v1/A/read/sqlite-v1/") {
             Purpose::StoreRead
         } else if meta.starts_with("BP4b-v1/A/edit/sqlite-v1/") {
@@ -141,7 +141,7 @@ impl Endpoint {
             Purpose::Handshake
         };
         let profile = if role == Role::Data
-            && (purpose == Purpose::StoreRead || crash.is_some_and(|p| p.reader()))
+            && (purpose == Purpose::StoreRead || store_phase.is_some_and(|p| p.reader()))
         {
             crate::scene_store::READER
         } else {
@@ -218,13 +218,33 @@ impl Endpoint {
         if !self.receive(Handshake::Ready)? {
             return Ok(63);
         }
-        if let Purpose::Crash(phase) = self.purpose {
+        if let Purpose::StorePhase(phase) = self.purpose {
+            use crate::scene_store::StorePhase::{Partial, Timeout};
+            if matches!(phase, Partial | Timeout) {
+                self.binding
+                    .partial_save(&mut self.reader, &mut self.writer)
+                    .map_err(|_| io::Error::other("partial write"))?;
+                let held_writer = if phase == Timeout {
+                    Some(self.writer)
+                } else {
+                    drop(self.writer);
+                    None
+                };
+                let closed = match self.reader.read(&mut [0u8; 1]) {
+                    Ok(0) => true,
+                    Err(e) => e.kind() == io::ErrorKind::BrokenPipe,
+                    _ => false,
+                };
+                drop(held_writer);
+                require(closed, "unexpected fault response")?;
+                return Ok(phase.exits().1 as i32);
+            }
             if phase.writer() {
                 self.binding
                     .unacknowledged_save(&mut self.reader, &mut self.writer)
                     .map_err(|_| io::Error::other("expected lost response"))?;
             } else {
-                let text = if phase == crate::scene_store::CrashPhase::ReadNew {
+                let text = if phase == crate::scene_store::StorePhase::ReadNew {
                     self.binding
                         .durable_window(true, &mut self.reader, &mut self.writer)
                 } else {
@@ -278,9 +298,9 @@ impl Endpoint {
         self.send(Handshake::Ready)?;
         if matches!(
             self.purpose,
-            Purpose::StoreEdit | Purpose::StoreRead | Purpose::Crash(_)
+            Purpose::StoreEdit | Purpose::StoreRead | Purpose::StorePhase(_)
         ) {
-            let phase = if let Purpose::Crash(c) = self.purpose {
+            let phase = if let Purpose::StorePhase(c) = self.purpose {
                 Some(c)
             } else {
                 None
@@ -291,13 +311,14 @@ impl Endpoint {
                 self.purpose == Purpose::StoreRead || phase.is_some_and(|c| c.reader()),
                 phase,
             )?;
-            self.binding
-                .durable_service(reopening, &mut self.reader, &mut self.writer, |body| {
-                    store
-                        .dispatch(body)
-                        .map_err(|_| kraqel_native_scene_model::channel::Closed)
-                })
-                .map_err(|_| io::Error::other("durable request"))?;
+            crate::frame_deadline::serve(
+                self.binding,
+                self.reader,
+                self.writer,
+                &mut store,
+                phase,
+                reopening,
+            )?;
             store.close()?;
             return Ok(phase.map_or(if reopening { 74 } else { 72 }, |c| c.exits().0 as i32));
         }

@@ -205,6 +205,22 @@ impl Binding {
         }
         Ok(())
     }
+    /// Send only the header and first body byte of an otherwise valid second request.
+    pub fn partial_save(
+        self,
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+    ) -> Result<(), Closed> {
+        self.read_at(1, reader, writer, 0, "Rabe\n42")?;
+        let frame = self.encode(
+            Kind::Request,
+            2,
+            br#"{"command":"c4_document_save_v1","expectedRevision":0,"text":"Rabe\n43"}"#,
+        )?;
+        writer
+            .write_all(&frame[..PARTIAL_SAVE_BYTES])
+            .map_err(|_| Closed)
+    }
     /// One authenticated save, with a distinct outcome only for disconnect BEFORE any response byte.
     pub fn unacknowledged_save(
         self,
@@ -376,6 +392,8 @@ impl Binding {
         Ok(&signed[HEADER..])
     }
 }
+
+pub const PARTIAL_SAVE_BYTES: usize = HEADER + 1;
 
 fn read_frame(reader: &mut impl std::io::Read) -> Result<Vec<u8>, Closed> {
     let mut header = [0; HEADER];

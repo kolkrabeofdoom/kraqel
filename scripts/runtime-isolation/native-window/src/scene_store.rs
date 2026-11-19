@@ -16,16 +16,24 @@ use windows_sys::Win32::{
 pub const READER: &str = "org.kraqel.bp4.store-reader";
 const WRITER: &str = "org.kraqel.bp4.data";
 #[derive(Clone, Copy, PartialEq)]
-pub enum CrashPhase {
+pub enum StorePhase {
+    Partial,
+    ReadPartial,
+    Timeout,
+    ReadTimeout,
     Before,
     Recover,
     ReadOld,
     After,
     ReadNew,
 }
-impl CrashPhase {
+impl StorePhase {
     pub fn scope(self) -> &'static str {
         match self {
+            Self::Partial => "A/edit/partial",
+            Self::ReadPartial => "A/read/partial",
+            Self::Timeout => "A/edit/timeout",
+            Self::ReadTimeout => "A/read/timeout",
             Self::Before => "A/edit/crash-before",
             Self::After => "A/edit/crash-after",
             Self::Recover => "A/recovery/crash-before",
@@ -33,7 +41,11 @@ impl CrashPhase {
             Self::ReadNew => "A/read/crash-after",
         }
     }
-    pub const ALL: [Self; 5] = [
+    pub const ALL: [Self; 9] = [
+        Self::Partial,
+        Self::ReadPartial,
+        Self::Timeout,
+        Self::ReadTimeout,
         Self::Before,
         Self::Recover,
         Self::ReadOld,
@@ -41,13 +53,23 @@ impl CrashPhase {
         Self::ReadNew,
     ];
     pub fn reader(self) -> bool {
-        matches!(self, Self::ReadOld | Self::ReadNew)
+        matches!(
+            self,
+            Self::ReadOld | Self::ReadNew | Self::ReadPartial | Self::ReadTimeout
+        )
     }
     pub fn writer(self) -> bool {
-        matches!(self, Self::Before | Self::After)
+        matches!(
+            self,
+            Self::Before | Self::After | Self::Partial | Self::Timeout
+        )
     }
     pub fn exits(self) -> (u32, u32) {
         match self {
+            Self::Partial => (89, 90),
+            Self::ReadPartial => (91, 92),
+            Self::Timeout => (93, 94),
+            Self::ReadTimeout => (95, 96),
             Self::Before => (80, 82),
             Self::After => (81, 82),
             Self::Recover => (83, 84),
@@ -56,11 +78,15 @@ impl CrashPhase {
         }
     }
 }
-fn directory(phase: Option<CrashPhase>) -> std::path::PathBuf {
+fn directory(phase: Option<StorePhase>) -> std::path::PathBuf {
     Path::new(DIR).join(match phase {
         None => "scene-store-v1",
-        Some(CrashPhase::After | CrashPhase::ReadNew) => "scene-store-after",
-        Some(_) => "scene-store-before",
+        Some(StorePhase::After | StorePhase::ReadNew) => "scene-store-after",
+        Some(StorePhase::Partial | StorePhase::ReadPartial) => "scene-store-partial",
+        Some(StorePhase::Timeout | StorePhase::ReadTimeout) => "scene-store-timeout",
+        Some(StorePhase::Before | StorePhase::Recover | StorePhase::ReadOld) => {
+            "scene-store-before"
+        }
     })
 }
 fn sid_text(profile: &str) -> io::Result<String> {
@@ -83,7 +109,7 @@ fn sid_text(profile: &str) -> io::Result<String> {
 
 /// Called under the starter's exclusive lock. Existing roots are refused. Both
 /// freshly created objects remain pinned against rename/deletion through both runs.
-pub fn prepare(phase: Option<CrashPhase>) -> io::Result<(File, File)> {
+pub fn prepare(phase: Option<StorePhase>) -> io::Result<(File, File)> {
     guest_image("pipe-check.exe")?;
     let acl = format!(
         "D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1301bf;;;{})(A;OICI;0x1200a9;;;{})S:(ML;OICI;NW;;;LW)",
@@ -136,14 +162,14 @@ pub fn prepare(phase: Option<CrashPhase>) -> io::Result<(File, File)> {
 pub struct Store {
     db: Connection,
     mode: Mode,
-    phase: Option<CrashPhase>,
+    phase: Option<StorePhase>,
 }
 fn failure(_: rusqlite::Error) -> io::Error {
     io::Error::other("fixture SQLite")
 }
 
 impl Store {
-    pub fn open(read_only: bool, phase: Option<CrashPhase>) -> io::Result<Self> {
+    pub fn open(read_only: bool, phase: Option<StorePhase>) -> io::Result<Self> {
         if read_only {
             require(
                 matches!(OpenOptions::new().write(true).open(directory(phase).join("synthetic.sqlite")), Err(ref e) if e.kind()==io::ErrorKind::PermissionDenied),
@@ -162,7 +188,7 @@ impl Store {
         .map_err(failure)?;
         db.execute_batch("PRAGMA trusted_schema=OFF; PRAGMA temp_store=MEMORY;")
             .map_err(failure)?;
-        if read_only || phase == Some(CrashPhase::Recover) {
+        if read_only || phase == Some(StorePhase::Recover) {
             db.execute_batch("PRAGMA query_only=ON").map_err(failure)?;
         } else {
             db.execute_batch("PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL;")
@@ -185,7 +211,7 @@ impl Store {
         Ok(Self {
             db,
             phase,
-            mode: if read_only || phase == Some(CrashPhase::Recover) {
+            mode: if read_only || phase == Some(StorePhase::Recover) {
                 Mode::Read
             } else {
                 Mode::Edit
@@ -219,13 +245,13 @@ impl Store {
                 "index row",
             )?;
         }
-        if matches!(reply, Reply::Saved { .. }) && self.phase == Some(CrashPhase::Before) {
+        if matches!(reply, Reply::Saved { .. }) && self.phase == Some(StorePhase::Before) {
             // Spill dirty pages while the rollback journal still protects revision zero.
             tx.cache_flush().map_err(failure)?;
             terminate_fixture(80)?;
         }
         tx.commit().map_err(failure)?;
-        if matches!(reply, Reply::Saved { .. }) && self.phase == Some(CrashPhase::After) {
+        if matches!(reply, Reply::Saved { .. }) && self.phase == Some(StorePhase::After) {
             terminate_fixture(81)?;
         }
         Ok(reply)
