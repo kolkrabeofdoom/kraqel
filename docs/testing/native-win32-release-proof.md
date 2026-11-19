@@ -119,3 +119,18 @@ Der schreibgeschützte Gegencheck bestätigte den Verbrauchszustand, die verblie
 Der gezielte Gastlauf `-Trial proof-pre-cleanup-loss` vom 19. November 2026 verwendete eine frische synthetische Ablage. Nach dem Lesen von Szene A auf Revision 1 endeten Datendienst (74) und Fenster (75) regulär. Erst nachdem die Kontrollinstanz beide Exitcodes und beide leeren Prozessjobs geprüft hatte, beendete sie sich hart mit Code 106. Zu diesem Zeitpunkt lagen die zwei Startbelege und die Prozessliste noch vor.
 
 Der reguläre Neustart endete vor der Ablagevorbereitung mit Code 102. Die Hashes des Verbrauchsvermerks und aller drei zurückgebliebenen Dateien blieben über den Neustart gleich. Die schreibgeschützte Nachprüfung bestätigte den Zustand `read-consumed`, die Rollenrechte und die erzwungene Richtlinie. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden.
+
+
+### ETW-Netzvergleich vor der Bereinigung
+
+Am 19. November 2026 liefen Referenz und Prüffall auf einer frischen synthetischen Differenzplatte. Alle vier Programm-Hashes entsprachen dem vorstehenden Funktionslauf. ETW bestätigte das reguläre Ende von Datendienst (74) und Fenster (75) vor dem Ausfall der Kontrollinstanz (106) und den darauffolgenden Neustart (102) ohne Kindprozess. Der Gasttreiber bestätigte die leeren Jobs am Ausfallpunkt und identische Hashes für den Verbrauchsvermerk, beide Startbelege und die Prozessliste vor und nach dem Neustart.
+
+| Messgröße | Referenz | Ausfall und Neustart |
+| --- | ---: | ---: |
+| ETW-Ereignisse / Prozesse im gemessenen Baum | 57 / 3 | 64 / 12 |
+| Netzwerkereignisse im gemessenen Baum | 0 | 0 |
+| Gastweite Loopback-Ereignisse / übrige oder unbekannte Ziele | 18 / 0 | 18 / 0 |
+| Erkannte TCP-/UDP-Kontrollen über IPv4 und IPv6 | 4/4 | 4/4 |
+| Verlorene Ereignisse und Puffer | 0 | 0 |
+
+Die schreibgeschützte Nachprüfung bestätigte den Verbrauchszustand, die verbliebenen Startbelege, die Rollenrechte und die erzwungene Richtlinie. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden. Der ETW-Gasttreiber und die Auswertung verwenden für diesen Fall `-ExerciseTrial proof-pre-cleanup-loss` bzw. `--proof proof-pre-cleanup-loss`. Rohspuren bleiben lokal.

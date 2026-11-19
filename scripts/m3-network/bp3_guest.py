@@ -80,7 +80,7 @@ def check_starter_restart(fixture, measured, exits, root_pid):
                         "Unexpected normal completion")
 
 
-WITNESS_CRASH_CODES = {"proof-witness-loss": 103, "proof-consumed-loss": 104}
+WITNESS_CRASH_CODES = {"proof-witness-loss": 103, "proof-consumed-loss": 104, "proof-pre-cleanup-loss": 106}
 
 
 def check_live_loss(fixture, measured, exits, root_pid):
@@ -136,7 +136,7 @@ def check_release_roles(fixture, measured, exits, root_pid, proof):
         for n, proc in enumerate(generations):
             parent = issuer if n == 0 else witness
             require(proc.parent == parent.pid and parent.contains(proc.start) and parent.contains(proc.end)
-                    and (n == 0 or (proof == "proof-run" and proc.start >= issuer.end))
+                    and (n == 0 or (proof in ("proof-run", "proof-pre-cleanup-loss") and proc.start >= issuer.end))
                     and exits.get((proc.pid, proc.start)) == codes[n], "Unexpected proof role")
             require(not any(p.parent == proc.pid and proc.contains(p.start) for p in measured),
                     "Unexpected role descendant")
@@ -192,7 +192,7 @@ def check(trace, record, exercise, window=False, crashes=False, channel_ends=Fal
     if starter_restart:
         expected = Counter({"pipe-check.exe": 5, "native-leaf.exe": 3, "pipe-other.exe": 3, "pipe-service.exe": 3})
     if proof:
-        pairs = 2 if proof in ("proof-run", "proof-live-loss") else 1
+        pairs = 2 if proof in ("proof-run", "proof-live-loss", "proof-pre-cleanup-loss") else 1
         controllers = 4 if proof == "proof-live-loss" else 3 if proof in WITNESS_CRASH_CODES else 2
         expected = Counter({"pipe-check.exe": controllers, "pipe-service.exe": pairs, "native-leaf.exe": pairs, "pipe-other.exe": pairs})
     require(roles == (expected if exercise else Counter()), f"Unexpected fixture roles: {roles}")

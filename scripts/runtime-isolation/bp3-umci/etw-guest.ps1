@@ -1,6 +1,6 @@
 # Called by the existing isolated guest task in the measurement overlay.
 param([guid]$GuestUuid, [string]$GuestBuild, [guid]$PolicyId, [string]$PolicySha256, [string]$ManifestSha256,
-    [ValidateSet('channel-ends','starter-restart','proof-run','proof-incomplete','proof-witness-loss','proof-consumed-loss','proof-live-loss')][string]$ExerciseTrial)
+    [ValidateSet('channel-ends','starter-restart','proof-run','proof-incomplete','proof-witness-loss','proof-consumed-loss','proof-live-loss','proof-pre-cleanup-loss')][string]$ExerciseTrial)
 $ErrorActionPreference = 'Stop'
 $out = 'C:\BP3-ETW'
 $system = "$env:SystemRoot\System32"
