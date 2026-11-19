@@ -163,3 +163,18 @@ Die schreibgeschützte Nachprüfung bestätigte den Verbrauchszustand und den ve
 Der gezielte Gastlauf `-Trial proof-post-cleanup-loss` vom 19. November 2026 bestand auf einer frischen synthetischen Ablage. Beide Leserollen endeten regulär und ihre Prozessjobs waren leer. Nach Entfernung des letzten Startbelegs prüfte die Kontrollinstanz, dass `window.start`, `data.start` und `pipe-targets.txt` fehlten. Noch unter derselben Kontrollsperre endete sie mit Code 108.
 
 Der reguläre Neustart blieb vor der Ablagevorbereitung mit Code 102 gesperrt. Der Hash von `pipe.lock` blieb gleich. Beide Startbelege und die Prozessliste fehlten vor und nach dem Neustart. Die schreibgeschützte Nachprüfung bestätigte dieses Inventar und den dauerhaften Zustand `read-consumed`. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden.
+
+
+### ETW-Netzvergleich nach Entfernung des letzten Startbelegs
+
+Am 19. November 2026 liefen Referenz und Ausfallprüfung auf einer frischen synthetischen Differenzplatte mit denselben vier Programm-Hashes wie im Funktionslauf. ETW erfasste das reguläre Ende beider Leserollen (74 und 75), den Ausfall der Kontrollinstanz (108) und den gesperrten Neustart (102) ohne Kindprozess. Der Gasttreiber bestätigte den unveränderten Hash des Verbrauchsvermerks. Beide Startbelege und die Prozessliste fehlten vor und nach dem Neustart.
+
+| Messgröße | Referenz | Ausfall und Neustart |
+| --- | ---: | ---: |
+| ETW-Ereignisse / Prozesse im gemessenen Baum | 54 / 3 | 63 / 12 |
+| Netzwerkereignisse im gemessenen Baum | 0 | 0 |
+| Gastweite Loopback-Ereignisse / übrige oder unbekannte Ziele | 18 / 0 | 18 / 0 |
+| Erkannte TCP-/UDP-Kontrollen über IPv4 und IPv6 | 4/4 | 4/4 |
+| Verlorene Ereignisse und Puffer | 0 | 0 |
+
+Die schreibgeschützte Nachprüfung bestätigte den Verbrauchszustand und das Fehlen der Startartefakte. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden. Für die Wiederholung verwenden der bestehende ETW-Gasttreiber und die Auswertung `-ExerciseTrial proof-post-cleanup-loss` bzw. `--proof proof-post-cleanup-loss`. Rohspuren bleiben lokal.
