@@ -249,6 +249,7 @@ fn drain(child: &Suspended) -> io::Result<()> {
 enum CleanupPoint {
     BeforeCleanup,
     AfterWindowReceipt,
+    AfterLastReceipt,
 }
 #[derive(Clone, Copy, PartialEq)]
 enum Trial {
@@ -499,6 +500,13 @@ fn run_pair(trial: Trial, crash_starter: bool) -> io::Result<()> {
             return Err(io::Error::other("partial cleanup termination returned"));
         }
     }
+    if trial == Trial::ReadCrash(CleanupPoint::AfterLastReceipt) {
+        require(receipts_absent()?, "reader cleanup incomplete")?;
+        unsafe {
+            check(TerminateProcess(GetCurrentProcess(), 108))?;
+        }
+        return Err(io::Error::other("post-cleanup termination returned"));
+    }
     Ok(())
 }
 // Only the elevated starter can modify this file in the protected package root.
@@ -572,6 +580,12 @@ fn main() {
         let anchor = Sha256::digest(std::fs::read(Path::new(DIR).join("anchor.json"))?);
         use release_proof::ProofCase;
         match trial.as_deref() {
+            Some("proof-post-cleanup-loss") => {
+                return release_proof::exercise(
+                    &anchor,
+                    ProofCase::CleanupLoss(CleanupPoint::AfterLastReceipt),
+                );
+            }
             Some("proof-partial-cleanup-loss") => {
                 return release_proof::exercise(
                     &anchor,

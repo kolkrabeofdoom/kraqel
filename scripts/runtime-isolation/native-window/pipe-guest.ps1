@@ -1,4 +1,4 @@
-param([ValidateSet('read-scene','deny-save','edit-conflict','durable-reopen','commit-crashes','channel-interruptions','window-close','channel-ends','starter-restart','proof-run','proof-incomplete','proof-witness-loss','proof-consumed-loss','proof-live-loss','proof-pre-cleanup-loss','proof-partial-cleanup-loss','handshake','reference','exercise')][string]$Trial='commit-crashes')
+param([ValidateSet('read-scene','deny-save','edit-conflict','durable-reopen','commit-crashes','channel-interruptions','window-close','channel-ends','starter-restart','proof-run','proof-incomplete','proof-witness-loss','proof-consumed-loss','proof-live-loss','proof-pre-cleanup-loss','proof-partial-cleanup-loss','proof-post-cleanup-loss','handshake','reference','exercise')][string]$Trial='commit-crashes')
 $ErrorActionPreference='Stop'
 $dir='C:\Program Files\KRAQEL-Window-Probe'
 try {
@@ -15,35 +15,37 @@ try {
     }
     if ($Trial -eq 'reference') { Start-Sleep -Seconds 2; exit 0 }
     if ($Trial -eq 'exercise') { $Trial = 'commit-crashes' }
-    if ($Trial -in 'proof-witness-loss','proof-consumed-loss','proof-live-loss','proof-pre-cleanup-loss','proof-partial-cleanup-loss') {
-        $partial = $Trial -eq 'proof-partial-cleanup-loss'
-        $consumed = $Trial -eq 'proof-consumed-loss'
-        $exitCode = if ($Trial -eq 'proof-live-loss') { 0 } elseif ($Trial -eq 'proof-pre-cleanup-loss') { 106 } elseif ($partial) { 107 } elseif ($consumed) { 104 } else { 103 }
+    $crashExits = @{
+        'proof-witness-loss' = 103
+        'proof-consumed-loss' = 104
+        'proof-live-loss' = 0
+        'proof-pre-cleanup-loss' = 106
+        'proof-partial-cleanup-loss' = 107
+        'proof-post-cleanup-loss' = 108
+    }
+    if ($crashExits.ContainsKey($Trial)) {
         & "$dir\pipe-check.exe" $Trial
-        if ($LASTEXITCODE -ne $exitCode) { throw 'Expected witness crash missing.' }
-        $path=Join-Path $dir 'pipe.lock'
-        $before=(Get-FileHash -LiteralPath $path).Hash
-        if ($partial -or $Trial -eq 'proof-pre-cleanup-loss') {
-            $receipts = 'window.start','data.start','pipe-targets.txt'
-            if ($partial) {
-                $receipts = @('data.start')
-                if ((Test-Path "$dir\window.start") -or (Test-Path "$dir\pipe-targets.txt")) { throw 'Incomplete first removal.' }
-            }
-            $receiptHashes = @(foreach ($name in $receipts) { (Get-FileHash -LiteralPath "$dir\$name").Hash })
+        if ($LASTEXITCODE -ne $crashExits[$Trial]) { throw 'Expected witness crash missing.' }
+        $present = @('pipe.lock')
+        $absent = @()
+        $artifacts = 'window.start','data.start','pipe-targets.txt'
+        switch ($Trial) {
+            'proof-pre-cleanup-loss' { $present += $artifacts }
+            'proof-partial-cleanup-loss' { $present += 'data.start'; $absent = 'window.start','pipe-targets.txt' }
+            'proof-post-cleanup-loss' { $absent = $artifacts }
+        }
+        $before = @{}
+        foreach ($name in $present) { $before[$name] = (Get-FileHash -LiteralPath "$dir\$name").Hash }
+        foreach ($name in $absent) {
+            if (Test-Path -LiteralPath "$dir\$name") { throw 'Unexpected artifact at crash point.' }
         }
         & "$dir\pipe-check.exe" proof-run
-        if ($LASTEXITCODE -ne 102 -or (Get-FileHash -LiteralPath $path).Hash -ne $before) {
-            throw 'Fresh witness denial or intact end record missing.'
+        if ($LASTEXITCODE -ne 102) { throw 'Fresh witness restart allowed.' }
+        foreach ($name in $present) {
+            if ((Get-FileHash -LiteralPath "$dir\$name").Hash -ne $before[$name]) { throw 'Durable state changed.' }
         }
-        if ($partial -or $Trial -eq 'proof-pre-cleanup-loss') {
-            if ($partial -and ((Test-Path "$dir\window.start") -or (Test-Path "$dir\pipe-targets.txt"))) {
-                throw 'Removed artifacts recreated on restart.'
-            }
-            for ($i = 0; $i -lt $receipts.Count; $i++) {
-                if ((Get-FileHash -LiteralPath (Join-Path $dir $receipts[$i])).Hash -ne $receiptHashes[$i]) {
-                    throw 'Stale receipt changed on denied restart.'
-                }
-            }
+        foreach ($name in $absent) {
+            if (Test-Path -LiteralPath "$dir\$name") { throw 'Removed artifact recreated on restart.' }
         }
         Write-Output 'Witness crash confirmed; fresh witness denied; durable state unchanged.'
         exit 0

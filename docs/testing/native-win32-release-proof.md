@@ -156,3 +156,10 @@ Der frische Vergleich vom 19. November 2026 verwendete die vier hashgleichen Pro
 | Verlorene Ereignisse und Puffer | 0 | 0 |
 
 Die schreibgeschützte Nachprüfung bestätigte den Verbrauchszustand und den verbliebenen Datendienstbeleg. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden. Für diesen Fall verwenden der bestehende ETW-Gasttreiber und die Auswertung `-ExerciseTrial proof-partial-cleanup-loss` bzw. `--proof proof-partial-cleanup-loss`. Rohspuren bleiben lokal.
+
+
+## Ausfall nach Entfernung des letzten Startbelegs
+
+Der gezielte Gastlauf `-Trial proof-post-cleanup-loss` vom 19. November 2026 bestand auf einer frischen synthetischen Ablage. Beide Leserollen endeten regulär und ihre Prozessjobs waren leer. Nach Entfernung des letzten Startbelegs prüfte die Kontrollinstanz, dass `window.start`, `data.start` und `pipe-targets.txt` fehlten. Noch unter derselben Kontrollsperre endete sie mit Code 108.
+
+Der reguläre Neustart blieb vor der Ablagevorbereitung mit Code 102 gesperrt. Der Hash von `pipe.lock` blieb gleich. Beide Startbelege und die Prozessliste fehlten vor und nach dem Neustart. Die schreibgeschützte Nachprüfung bestätigte dieses Inventar und den dauerhaften Zustand `read-consumed`. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden.
