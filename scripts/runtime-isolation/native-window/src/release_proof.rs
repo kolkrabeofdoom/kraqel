@@ -129,7 +129,7 @@ pub(super) enum ProofCase {
     WitnessLoss,
     LossAfterConsumption,
     LiveLoss,
-    BeforeCleanup,
+    CleanupLoss(CleanupPoint),
 }
 
 pub(super) fn exercise(anchor: &[u8], case: ProofCase) -> io::Result<()> {
@@ -166,9 +166,9 @@ pub(super) fn exercise(anchor: &[u8], case: ProofCase) -> io::Result<()> {
         .write_all(&nonce[..])?;
     drop(nonce);
     require(child.wait()?.code() == Some(101), "issuer crash missing")?;
-    if case == ProofCase::BeforeCleanup {
-        witness.release_with(Trial::ReadCrashBeforeCleanup, || Ok(()))?;
-        return Err(io::Error::other("pre-cleanup crash missing"));
+    if let ProofCase::CleanupLoss(point) = case {
+        witness.release_with(Trial::ReadCrash(point), || Ok(()))?;
+        return Err(io::Error::other("cleanup crash missing"));
     }
     if case == ProofCase::LiveLoss {
         witness.release_with(Trial::HeldRead, || Ok(()))?;

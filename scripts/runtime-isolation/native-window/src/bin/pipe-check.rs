@@ -246,6 +246,11 @@ fn drain(child: &Suspended) -> io::Result<()> {
     Err(io::Error::other("job drain"))
 }
 #[derive(Clone, Copy, PartialEq)]
+enum CleanupPoint {
+    BeforeCleanup,
+    AfterWindowReceipt,
+}
+#[derive(Clone, Copy, PartialEq)]
 enum Trial {
     Suspended,
     BadReady,
@@ -253,7 +258,7 @@ enum Trial {
     DeniedSave,
     StoreRead,
     HeldRead,
-    ReadCrashBeforeCleanup,
+    ReadCrash(CleanupPoint),
     StoreEdit,
     StorePhase(scene_store::StorePhase),
     EditConflict,
@@ -330,7 +335,7 @@ fn run_pair(trial: Trial, crash_starter: bool) -> io::Result<()> {
     let data_profile = Profile::fresh(
         if matches!(
             trial,
-            Trial::StoreRead | Trial::HeldRead | Trial::ReadCrashBeforeCleanup
+            Trial::StoreRead | Trial::HeldRead | Trial::ReadCrash(_)
         ) || matches!(trial,Trial::StorePhase(c) if c.reader())
         {
             scene_store::READER
@@ -377,7 +382,7 @@ fn run_pair(trial: Trial, crash_starter: bool) -> io::Result<()> {
                 bootstrap::Purpose::StoreEdit
             } else if trial == Trial::HeldRead {
                 bootstrap::Purpose::HeldRead
-            } else if matches!(trial, Trial::StoreRead | Trial::ReadCrashBeforeCleanup) {
+            } else if matches!(trial, Trial::StoreRead | Trial::ReadCrash(_)) {
                 bootstrap::Purpose::StoreRead
             } else if trial == Trial::EditConflict {
                 bootstrap::Purpose::EditConflict
@@ -458,7 +463,7 @@ fn run_pair(trial: Trial, crash_starter: bool) -> io::Result<()> {
                         Trial::ReadA => (66, 67),
                         Trial::StoreEdit => (72, 73),
                         Trial::StorePhase(c) => c.exits(),
-                        Trial::StoreRead | Trial::ReadCrashBeforeCleanup => (74, 75),
+                        Trial::StoreRead | Trial::ReadCrash(_) => (74, 75),
                         Trial::EditConflict => (70, 71),
                         Trial::DeniedSave => (68, 69),
                         Trial::BadReady => (60, 63),
@@ -470,14 +475,31 @@ fn run_pair(trial: Trial, crash_starter: bool) -> io::Result<()> {
         drain(&ui)?;
         drain(&data)?;
         println!("UI and data jobs empty");
-        if trial == Trial::ReadCrashBeforeCleanup {
+        if trial == Trial::ReadCrash(CleanupPoint::BeforeCleanup) {
             check(TerminateProcess(GetCurrentProcess(), 106))?;
             return Err(io::Error::other("pre-cleanup termination returned"));
         }
         Ok(())
     })();
     std::fs::remove_file(ids)?;
-    result
+    result?;
+    for receipt in receipts {
+        let crash_here = trial == Trial::ReadCrash(CleanupPoint::AfterWindowReceipt)
+            && receipt.0 == bootstrap::Role::Window.receipt();
+        drop(receipt);
+        if crash_here {
+            require(
+                !bootstrap::Role::Window.receipt().try_exists()?
+                    && bootstrap::Role::Data.receipt().is_file(),
+                "partial cleanup state",
+            )?;
+            unsafe {
+                check(TerminateProcess(GetCurrentProcess(), 107))?;
+            }
+            return Err(io::Error::other("partial cleanup termination returned"));
+        }
+    }
+    Ok(())
 }
 // Only the elevated starter can modify this file in the protected package root.
 const PENDING: &[u8] = b"BP4b/starter-v1/pending";
@@ -550,8 +572,17 @@ fn main() {
         let anchor = Sha256::digest(std::fs::read(Path::new(DIR).join("anchor.json"))?);
         use release_proof::ProofCase;
         match trial.as_deref() {
+            Some("proof-partial-cleanup-loss") => {
+                return release_proof::exercise(
+                    &anchor,
+                    ProofCase::CleanupLoss(CleanupPoint::AfterWindowReceipt),
+                );
+            }
             Some("proof-pre-cleanup-loss") => {
-                return release_proof::exercise(&anchor, ProofCase::BeforeCleanup);
+                return release_proof::exercise(
+                    &anchor,
+                    ProofCase::CleanupLoss(CleanupPoint::BeforeCleanup),
+                );
             }
             Some("proof-live-loss") => return release_proof::observe_live_loss(),
             Some("proof-live-witness") => {

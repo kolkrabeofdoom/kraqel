@@ -134,3 +134,10 @@ Am 19. November 2026 liefen Referenz und Prüffall auf einer frischen synthetisc
 | Verlorene Ereignisse und Puffer | 0 | 0 |
 
 Die schreibgeschützte Nachprüfung bestätigte den Verbrauchszustand, die verbliebenen Startbelege, die Rollenrechte und die erzwungene Richtlinie. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden. Der ETW-Gasttreiber und die Auswertung verwenden für diesen Fall `-ExerciseTrial proof-pre-cleanup-loss` bzw. `--proof proof-pre-cleanup-loss`. Rohspuren bleiben lokal.
+
+
+## Ausfall nach Entfernung des ersten Startbelegs
+
+Der Gastlauf `-Trial proof-partial-cleanup-loss` vom 19. November 2026 verwendete eine frische synthetische Ablage. Nach regulärem Ende beider Leserollen und Prüfung der leeren Jobs entfernte die Kontrollinstanz die Prozessliste und den Fensterbeleg. Unmittelbar nach der Prüfung, dass `window.start` fehlte und `data.start` noch vorlag, endete sie hart mit Code 107.
+
+Der reguläre Neustart blieb vor der Ablagevorbereitung mit Code 102 gesperrt. Die Hashes von `pipe.lock` und `data.start` blieben gleich. Fensterbeleg und Prozessliste fehlten auch nach dem Neustart. Die schreibgeschützte Nachprüfung bestätigte dieses Inventar und den Zustand `read-consumed`. Beim ersten Versuch verglich das Prüfskript nur das erste Zeichen des einzelnen Beleg-Hashes. Nach Korrektur der Auswertung bestand der Wiederholungslauf mit identischen Binärdateien auf einer frischen Differenzplatte. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden.
