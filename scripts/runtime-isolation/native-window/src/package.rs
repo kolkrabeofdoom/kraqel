@@ -9,7 +9,7 @@ use std::{
 };
 use windows_sys::Win32::Storage::FileSystem::*;
 
-const IMAGES: [&str; 4] = [
+pub(crate) const IMAGES: [&str; 4] = [
     "pipe-check.exe",
     "native-leaf.exe",
     "pipe-service.exe",
@@ -28,7 +28,7 @@ struct Image {
     hash: String,
 }
 
-pub(super) struct PinnedPackage {
+pub(crate) struct PinnedPackage {
     pub anchor_digest: [u8; 32],
     _pins: Vec<File>,
 }
@@ -47,7 +47,12 @@ fn pin(path: &Path, directory: bool) -> io::Result<File> {
         )
         .open(path)?;
     let meta = file.metadata()?;
-    if meta.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0
+    if meta.file_attributes()
+        & (FILE_ATTRIBUTE_REPARSE_POINT
+            | FILE_ATTRIBUTE_OFFLINE
+            | FILE_ATTRIBUTE_RECALL_ON_OPEN
+            | FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS)
+        != 0
         || (directory && !meta.is_dir())
         || (!directory && !meta.is_file())
     {
@@ -57,7 +62,7 @@ fn pin(path: &Path, directory: bool) -> io::Result<File> {
 }
 
 impl PinnedPackage {
-    pub fn open(root: &Path) -> io::Result<Self> {
+    pub fn open(root: &Path, expected: Option<[u8; 32]>) -> io::Result<Self> {
         let mut pins = vec![pin(root, true)?];
         let mut anchor = pin(&root.join("anchor.json"), false)?;
         if anchor.metadata()?.len() > 16 * 1024 {
@@ -65,6 +70,10 @@ impl PinnedPackage {
         }
         let mut bytes = Vec::new();
         anchor.read_to_end(&mut bytes)?;
+        let anchor_digest: [u8; 32] = Sha256::digest(&bytes).into();
+        if expected.is_some_and(|trusted| trusted != anchor_digest) {
+            return Err(io::Error::other("package anchor mismatch"));
+        }
         pins.push(anchor);
         let manifest: Anchor = serde_json::from_slice(&bytes)
             .map_err(|_| io::Error::other("invalid package anchor"))?;
@@ -76,6 +85,10 @@ impl PinnedPackage {
                 .find(|item| item.name == name)
                 .ok_or(io::Error::other("incomplete package inventory"))?;
             let mut file = pin(&root.join(name), false)?;
+            let size = file.metadata()?.len();
+            if !(1..=128 * 1024 * 1024).contains(&size) {
+                return Err(io::Error::other("invalid package image length"));
+            }
             let mut hash = Sha256::new();
             io::copy(&mut file, &mut hash)?;
             if !format!("{:x}", hash.finalize()).eq_ignore_ascii_case(&entry.hash) {
@@ -84,55 +97,8 @@ impl PinnedPackage {
             pins.push(file);
         }
         Ok(Self {
-            anchor_digest: Sha256::digest(bytes).into(),
+            anchor_digest,
             _pins: pins,
         })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn image_cannot_be_replaced_until_package_release_and_changed_bytes_are_denied() {
-        let root = std::env::temp_dir().join(format!("kraqel-package-{}", std::process::id()));
-        std::fs::create_dir(&root).unwrap();
-        let mut files = Vec::new();
-        for name in IMAGES {
-            std::fs::write(root.join(name), name).unwrap();
-            files.push(
-                serde_json::json!({"name":name, "hash":format!("{:x}",Sha256::digest(name))}),
-            );
-        }
-        std::fs::write(
-            root.join("anchor.json"),
-            serde_json::json!({"files":files}).to_string(),
-        )
-        .unwrap();
-        let package = PinnedPackage::open(&root).unwrap();
-        let target = root.join("pipe-service.exe");
-        assert_eq!(
-            std::fs::rename(&target, root.join("old.exe"))
-                .unwrap_err()
-                .raw_os_error(),
-            Some(32)
-        );
-        assert_eq!(
-            OpenOptions::new()
-                .write(true)
-                .open(&target)
-                .unwrap_err()
-                .raw_os_error(),
-            Some(32)
-        );
-        drop(package);
-        std::fs::write(target, b"changed").unwrap();
-        assert!(PinnedPackage::open(&root).is_err());
-        for name in IMAGES {
-            std::fs::remove_file(root.join(name)).unwrap();
-        }
-        std::fs::remove_file(root.join("anchor.json")).unwrap();
-        std::fs::remove_dir(root).unwrap();
     }
 }

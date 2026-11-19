@@ -1,5 +1,8 @@
 //! Bounded, synthetic AppContainer experiments, not a production launcher.
 // Pure rules; scoped Windows P2a records use them after native control checks.
+#[cfg(windows)]
+#[path = "../../native-window/src/package.rs"]
+mod native_win32_package;
 #[cfg(any(windows, test))]
 mod policy;
 #[cfg(any(windows, test))]

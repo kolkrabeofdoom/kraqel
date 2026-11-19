@@ -2,7 +2,7 @@
 
 ## Aktueller Schritt für KQ-069 · 19. November 2026
 
-Der [synthetische BP4b-Datenkanal](docs/data-format/native-win32-bp4-channel-v1-draft.md#abschluss-des-synthetischen-datenkanals) ist abgeschlossen. Auf dem nativen Win32-Pfad folgt die offene C4b-Paket- und Rollenbindung. Der erste Integrationsschritt bindet den Prüfstart an die vier EXE-Dateien des geschützten Gastpakets. Danach steht der Abgleich mit dem verwalteten Paket und der dauerhaften Kontrollsperre des Produktstarters an. Erst darauf bauen C4c (bedienbare synthetische Oberfläche) und C4d (Abnahme des konkreten Kandidaten) auf. Die WebView2-Startsperre und die Sperre für Produktdaten gelten weiterhin.
+Der [synthetische BP4b-Datenkanal](docs/data-format/native-win32-bp4-channel-v1-draft.md#abschluss-des-synthetischen-datenkanals) ist abgeschlossen. Auf dem nativen Win32-Pfad folgt die offene C4b-Paket- und Rollenbindung. Der erste Integrationsschritt bindet den Prüfstart an die vier EXE-Dateien des geschützten Gastpakets. Die C4b-Bindung an die aktive verwaltete Broker-Generation ist im Vorschau-Produktstarter umgesetzt. Offen ist der suspendierte Rollenstart bei durchgehend gehaltener Kontrollsperre und Paketbindung. Erst darauf bauen C4c (bedienbare synthetische Oberfläche) und C4d (Abnahme des konkreten Kandidaten) auf. Die WebView2-Startsperre und die Sperre für Produktdaten gelten weiterhin.
 
 ## Grobe Fortschrittseinschätzung · 17. November 2026
 

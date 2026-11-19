@@ -11,6 +11,19 @@ const EXPECTED: [u8; 32] = [
 #[used]
 #[unsafe(link_section = ".kqmeta")]
 static EMBEDDED: [u8; 32] = EXPECTED;
+// Declares support for replaying the schema-4 native package binding record.
+#[used]
+#[unsafe(link_section = ".kqwin")]
+static WIN32_BINDING: [u8; 32] = *b"KRAQEL-WIN32-BINDING-V1.........";
+pub(super) fn verify_win32_binding(file: &mut fs::File) -> Result<()> {
+    let size = io("win32-broker-size", file.metadata())?.len();
+    verify_named(
+        file,
+        size,
+        b".kqwin\0\0",
+        std::hint::black_box(&WIN32_BINDING),
+    )
+}
 // Separate declaration: schema-5 record ABI 1, UI bootstrap ABI 0 (not supported).
 const P2A: [u8; 32] = *b"KRAQEL-P2A-META\0\x01\0\0\0\x05\0\x01\0\0\0\0\0\0\0\0\0";
 #[used]

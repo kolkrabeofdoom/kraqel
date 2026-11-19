@@ -578,7 +578,7 @@ fn main() {
     let result = (|| {
         guest_image("pipe-check.exe")?;
         let trial = std::env::args().nth(1);
-        let package = package::PinnedPackage::open(Path::new(DIR))?;
+        let package = package::PinnedPackage::open(Path::new(DIR), None)?;
         let anchor = package.anchor_digest;
         use release_proof::ProofCase;
         match trial.as_deref() {
@@ -681,5 +681,54 @@ fn main() {
     if let Err(e) = result {
         eprintln!("pipe check: {e}");
         std::process::exit(1)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::package::{IMAGES, PinnedPackage};
+    use sha2::{Digest, Sha256};
+    use std::fs::OpenOptions;
+
+    #[test]
+    fn image_cannot_be_replaced_until_package_release_and_changed_bytes_are_denied() {
+        let root = std::env::temp_dir().join(format!("kraqel-package-{}", std::process::id()));
+        std::fs::create_dir(&root).unwrap();
+        let mut files = Vec::new();
+        for name in IMAGES {
+            std::fs::write(root.join(name), name).unwrap();
+            files.push(
+                serde_json::json!({"name":name, "hash":format!("{:x}",Sha256::digest(name))}),
+            );
+        }
+        std::fs::write(
+            root.join("anchor.json"),
+            serde_json::json!({"files":files}).to_string(),
+        )
+        .unwrap();
+        let package = PinnedPackage::open(&root, None).unwrap();
+        let target = root.join("pipe-service.exe");
+        assert_eq!(
+            std::fs::rename(&target, root.join("old.exe"))
+                .unwrap_err()
+                .raw_os_error(),
+            Some(32)
+        );
+        assert_eq!(
+            OpenOptions::new()
+                .write(true)
+                .open(&target)
+                .unwrap_err()
+                .raw_os_error(),
+            Some(32)
+        );
+        drop(package);
+        std::fs::write(target, b"changed").unwrap();
+        assert!(PinnedPackage::open(&root, None).is_err());
+        for name in IMAGES {
+            std::fs::remove_file(root.join(name)).unwrap();
+        }
+        std::fs::remove_file(root.join("anchor.json")).unwrap();
+        std::fs::remove_dir(root).unwrap();
     }
 }

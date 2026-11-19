@@ -1111,3 +1111,90 @@ fn aborted_package_hardlink_is_not_deleted_or_reauthorized() {
     assert_eq!(hash(&path).unwrap(), sha);
     assert_eq!(hash(&other).unwrap(), sha);
 }
+
+#[test]
+fn win32_package_binding_is_durable_and_cannot_cross_activation() {
+    let f = Fixture::new();
+    let mut store = schema4_pending(&f);
+    let actor = store.state.pending.unwrap();
+    store.activate([1; 32], store.state.head).unwrap();
+    let dir = f.0.join("source-win32");
+    secure_directory(&dir).unwrap();
+    let mut entries = Vec::new();
+    for name in crate::native_win32_package::IMAGES {
+        let path = dir.join(name);
+        fs::write(&path, name).unwrap();
+        entries.push(json!({"name":name,"hash":hex(&hash(&path).unwrap())}));
+    }
+    let manifest = dir.join("anchor.json");
+    fs::write(&manifest, json!({"files":entries}).to_string()).unwrap();
+    let digest = hash(&manifest).unwrap();
+    let head = store.state.head;
+    assert!(
+        store
+            .win32_binding(actor, head, Some((&dir, [9; 32])))
+            .is_err()
+    );
+    assert_eq!(store.state.head, head);
+    store
+        .win32_binding(actor, head, Some((&dir, digest)))
+        .unwrap();
+    drop(store);
+    let mut store = Store::open(&f.root()).unwrap();
+    store.win32_binding(actor, store.state.head, None).unwrap();
+    assert!(store.win32_binding(actor, head, None).is_err());
+    let managed_manifest = store
+        .root
+        .join("bin")
+        .join(format!("win32-{}", hex(&actor)))
+        .join("anchor.json");
+    fs::OpenOptions::new()
+        .append(true)
+        .open(&managed_manifest)
+        .unwrap()
+        .write_all(b" ")
+        .unwrap();
+    assert!(store.win32_binding(actor, store.state.head, None).is_err());
+    fs::copy(&manifest, &managed_manifest).unwrap();
+    let next = f.0.join("next.exe");
+    fs::copy(f.candidate(), &next).unwrap();
+    OpenOptions::new()
+        .append(true)
+        .open(&next)
+        .unwrap()
+        .write_all(b"next")
+        .unwrap();
+    // An older record reader must not be activated after enrollment.
+    let incompatible = f.0.join("incompatible.exe");
+    let mut bytes = fs::read(&next).unwrap();
+    let section = bytes
+        .windows(8)
+        .position(|name| name == b".kqwin\0\0")
+        .unwrap();
+    bytes[section + 1] = b'z';
+    fs::write(&incompatible, bytes).unwrap();
+    let head = store.state.head;
+    assert!(
+        store
+            .prepare(actor, head, &incompatible, hash(&incompatible).unwrap())
+            .is_err()
+    );
+    assert_eq!(store.state.head, head);
+    let next_actor = hash(&next).unwrap();
+    store
+        .prepare(actor, store.state.head, &next, next_actor)
+        .unwrap();
+    assert!(store.win32_binding(actor, store.state.head, None).is_err());
+    store.activate(actor, store.state.head).unwrap();
+    assert_eq!(store.state.win32_anchor, Some((actor, digest)));
+    assert!(
+        store
+            .win32_binding(next_actor, store.state.head, None)
+            .is_err()
+    );
+    assert!(
+        store
+            .win32_binding(actor, store.state.head, Some((&dir, digest)))
+            .is_err()
+    );
+}

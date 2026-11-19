@@ -10,6 +10,7 @@ mod package;
 mod secure_fs;
 mod session;
 mod starter;
+mod win32_binding;
 mod workspace;
 mod workspace_persistent;
 mod workspace_probe;
@@ -42,6 +43,9 @@ const BAD_ATTRIBUTES: u32 = FILE_ATTRIBUTE_REPARSE_POINT
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(tag = "kind", rename_all = "camelCase", deny_unknown_fields)]
 enum Action {
+    BindWin32Package {
+        anchor: [u8; 32],
+    },
     Bp2LeafProbe {
         event: workspace_persistent::Bp2Event,
     },
@@ -159,6 +163,7 @@ struct State {
     actor: [u8; 32],
     schema: u16,
     pending: Option<[u8; 32]>,
+    win32_anchor: Option<([u8; 32], [u8; 32])>,
     activated: std::collections::HashSet<[u8; 32]>,
     aborted_packages: std::collections::HashSet<[u8; 32]>,
     session: Option<BoundSession>,
@@ -185,6 +190,15 @@ impl State {
             return session::apply(self, action);
         }
         match action {
+            Action::BindWin32Package { anchor }
+                if self.schema == 4
+                    && self.pending.is_none()
+                    && self.activated.len() > 1
+                    && self.win32_anchor.is_none_or(|(owner, _)| owner != actor)
+                    && *anchor != [0; 32] =>
+            {
+                self.win32_anchor = Some((actor, *anchor));
+            }
             Action::Prepare { binary }
                 if matches!(self.schema, 2 | 4)
                     && self.pending.is_none()
@@ -488,6 +502,7 @@ impl Store {
                         1
                     },
                     pending: None,
+                    win32_anchor: None,
                     activated: std::collections::HashSet::from([record.actor]),
                     aborted_packages: std::collections::HashSet::new(),
                     session: None,
@@ -667,6 +682,9 @@ impl Store {
         }
         if self.state.schema == 4 {
             package::verify(&mut source)?;
+            if self.state.win32_anchor.is_some() {
+                package::verify_win32_binding(&mut source)?;
+            }
         }
         let action = Action::Prepare { binary: actual };
         // Authorize before touching leftovers. The same owner lease is held throughout.
@@ -721,6 +739,9 @@ impl Store {
         }
         if self.state.schema == 4 {
             package::verify(&mut file)?;
+            if self.state.win32_anchor.is_some() {
+                package::verify_win32_binding(&mut file)?;
+            }
         }
         self.append(actor, head, Action::Activate)
     }
@@ -884,7 +905,7 @@ fn default_root() -> Result<PathBuf> {
 pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value> {
     let root = default_root()?;
     let exe = io("product-current-exe", std::env::current_exe())?;
-    let (_parents, _exe, actor) = binary_pin(&exe)?;
+    let (_parents, running_image, actor) = binary_pin(&exe)?;
     if args.len() == 1 && args[0] == "init" {
         return Ok(Store::initialize(&root, actor)?.summary());
     }
@@ -892,6 +913,28 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
     store.actor(actor)?;
     if args.len() == 1 && args[0] == "status" {
         return Ok(store.summary());
+    }
+    if (args.len() == 4 && args[0] == "bind-win32-package")
+        || (args.len() == 2 && args[0] == "verify-win32-package")
+    {
+        // The running broker itself must be the managed file, not a byte-identical copy.
+        let running = file_info(&running_image)?;
+        let managed = protected_file(&store.package(actor))?;
+        let identity = file_info(&managed)?;
+        if identity.nNumberOfLinks != 1
+            || running.dwVolumeSerialNumber != identity.dwVolumeSerialNumber
+            || running.nFileIndexHigh != identity.nFileIndexHigh
+            || running.nFileIndexLow != identity.nFileIndexLow
+        {
+            return Err(invalid("win32-broker-not-managed-image"));
+        }
+        let head = parse_hash(args.last().unwrap())?;
+        let enrollment = if args.len() == 4 {
+            Some((Path::new(&args[1]), parse_hash(&args[2])?))
+        } else {
+            None
+        };
+        return store.win32_binding(actor, head, enrollment);
     }
     if args.len() == 2 && args[0] == "check-container" {
         return store.check_container(Path::new(&args[1]));

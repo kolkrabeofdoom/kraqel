@@ -64,7 +64,20 @@ Netzverhalten erfordern einen Lauf im Gast.
 
 Der [Prüfstarter](../../../scripts/runtime-isolation/native-window/src/bin/pipe-check.rs) hält das geschützte Paketverzeichnis, den Paketanker und die vier fest vorgegebenen EXE-Dateien über die Lebenszeit des Auftrags offen. Der [native Paketabgleich](../../../scripts/runtime-isolation/native-window/src/package.rs) prüft jeden SHA-256-Wert am gehaltenen Handle, bevor der Starter Kontrollablage oder Rollen öffnet. Schreib- und Löschfreigaben fehlen. Verzeichniseinträge mit Reparse-Attribut, ein unvollständiges Inventar und abweichende Programmbytes sperren den Start. Vertrauensbasis sind das vom Gastaufbau geschützte Paketverzeichnis, sein Anker und die erzwungene UMCI-Richtlinie.
 
-Ein gezielter Windows-Test bestätigte die Sperre für Schreiben und Umbenennen während der Bindung sowie die Abweisung nach einer Änderung der Datei. Ein regulärer Szenenabruf im Offline-Gast bestätigte den neuen Einstieg mit erzwungener Richtlinie (Datendienst 66, UI 67, Starter 0, beide Jobs leer). Die schreibgeschützte Nachprüfung bestätigte Programm- und Richtlinienhashes sowie entfernte Rollenbelege. Der nächste Integrationspunkt ist der Abgleich dieses Pakets mit der aktiven, verwalteten Paketgeneration unter der Produktkontrollsperre. Die Produkt-UI-ABI bleibt bei 0.
+Ein gezielter Windows-Test bestätigte die Sperre für Schreiben und Umbenennen während der Bindung sowie die Abweisung nach einer Änderung der Datei. Ein regulärer Szenenabruf im Offline-Gast bestätigte den neuen Einstieg mit erzwungener Richtlinie (Datendienst 66, UI 67, Starter 0, beide Jobs leer). Die schreibgeschützte Nachprüfung bestätigte Programm- und Richtlinienhashes sowie entfernte Rollenbelege. Die Anbindung an die aktive verwaltete Broker-Generation ist im folgenden Abschnitt beschrieben. Die Produkt-UI-ABI bleibt bei 0.
+
+### Aktive Generation im Produktstarter
+
+Der [Vorschau-Produktstarter](../../../scripts/runtime-isolation/probe/src/windows/exchange/ui_restart/durable/product/win32_binding.rs) bindet das Paket unter der exklusiven Sperre `control/owner.lock`. In einem Kontrollstore mit Schema 4 muss der laufende Broker dieselbe Datei wie die aktivierte, hashbenannte EXE in `bin` sein. Ein vorbereiteter Updatekandidat, ein überholter Kontrollkopf oder eine zweite Bindung derselben Generation sperren die Aufnahme. Ein frisch initialisierter Store benötigt zuerst eine regulär aktivierte Broker-Generation.
+
+| Aufruf über die aktive verwaltete EXE | Wirkung |
+| --- | --- |
+| `broker-store bind-win32-package <lokales-Paketverzeichnis> <erwarteter-Anker-SHA256> <aktueller-Kopf-SHA256>` | Prüft den unabhängig bereitgestellten Hash von `anchor.json` und die vier festen Rollenimages an gehaltenen Handles. Veröffentlicht die geprüfte Kopie per Verzeichnisumbenennung unter `bin/win32-<aktiver-Broker-SHA256>` und bindet ihren Anker einmalig durch einen authentisierten Kontrollrecord. |
+| `broker-store verify-win32-package <aktueller-Kopf-SHA256>` | Öffnet unter derselben Sperre den authentisierten Verlauf, die aktive Brokerdatei und das private Rollenpaket erneut. Erwarteter Anker und Zielverzeichnis folgen aus dem aktiven Zustand. |
+
+Ein Abbruch beim Kopieren kann ein privates temporäres Verzeichnis hinterlassen. Veröffentlichen allein erteilt keine Bindung. Eine Wiederholung prüft eine bereits veröffentlichte Kopie erneut. Bei Aktivierung eines anderen Brokers verliert die frühere Bindung ihre Gültigkeit. Ein Folgeupdate muss den Recordtyp unterstützen (PE-Abschnitt `.kqwin`), sobald er im Verlauf vorkommt.
+
+**Nachweis unter Windows:** Der gezielte Kontrollstore-Test prüfte falschen Anker, überholten Kopf, geänderten verwalteten Anker, Update-Pending, inkompatiblen Updatekandidaten und Generationswechsel. Ein separater Aufruf über die verwaltete Vorschau-EXE bestätigte Aufnahme und Wiederöffnung mit den vier Binärdateien der Win32-Gastprobe und einem synthetischen lokalen Inventaranker. Die bytegleiche externe Brokerkopie wurde abgewiesen. Die Prüfung endet mit Freigabe der Handles beim Rücksprung. Für den künftigen Rollenstart muss der Starter Sperre und Paketpins innerhalb desselben Aufrufs über die suspendierte Prozesserzeugung und Identitätsprüfung halten. Produktdaten bleiben gesperrt.
 
 ## Kosten für den Editor
 
