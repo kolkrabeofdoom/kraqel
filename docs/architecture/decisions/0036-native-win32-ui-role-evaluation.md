@@ -136,6 +136,17 @@ In einem frischen verwalteten Lauf mit synthetischer Ablage wurde das Prüffenst
 
 Der verwaltete Starter bestätigte beim Abschluss den unveränderten Kontrollkopf, gesperrte Produktdaten und den leeren Job. Ins Repository gelangte ausschließlich das Ergebnis. Für diese Prüfung wurden weder Sprachverlauf noch Screenshot oder Audio übernommen.
 
+### C4c-ETW-Netzvergleich beim Fokuswechsel
+
+Am 19.11.2026 lief `open-win32-surface` mit identischen Binärdateien in frischen synthetischen Ablagen. Der Messhelfer adressierte Tab an das fokussierte Feld der gebundenen Fensterrolle. In der Referenz lief Narrator nicht. Im Vergleich wurde der laufende lokale Windows-Narrator geprüft. Unmittelbar vor und nach Tab gehörte das Vordergrundfenster der Fensterrolle, und der Fokus ihres Threads wechselte von „Prüftext“ zu „Schließen“. Ein erster Narrator-Versuch mit Vordergrundwechsel während der Nachbeobachtung wurde verworfen. Nur diese Phase wurde wiederholt.
+
+| Gültige Phase | Prozesslebenszeiten mit Start und Ende | TCP-/UDP-Kontrollen über IPv4 und IPv6 | Verlorene Ereignisse / Puffer | Netzwerkereignisse von Starter und Fensterrolle |
+| --- | ---: | ---: | ---: | ---: |
+| Tab ohne Narrator | 2 | 4/4 | 0 / 0 | 0 |
+| Tab mit aktivem Narrator im KRAQEL-Vordergrundfenster | 2 | 4/4 | 0 / 0 | 0 |
+
+SHA-256 des verwalteten Starters war `b838511b155ca62ac18855957515b6506eaef42299cf704c2d3f5b96b124e8f1`, die der Fensterrolle `01e907b71328219456a23dac4cb39d7b88e3e69ee28d1a2614ec22a64b22212d`. Die ETW-Auswertung band die Starter-PID an den vollständigen EXE-Namen und bestätigte die direkte Kindrolle. Beide Aufrufe meldeten bestätigten Bootstrap, gesperrte Produktdaten, unveränderten Kontrollkopf und leeren Job nach dem Schließen. Die Aussage gilt für den KRAQEL-Prozessbaum. Narrators eigener Netzverkehr und der anderer Windows-Dienste liegen außerhalb dieser Zuordnung. Der Sprachverlauf wurde für den Netzvergleich nicht ausgelesen, Rohspuren blieben lokal.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche
