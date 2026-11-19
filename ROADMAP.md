@@ -347,6 +347,9 @@ Datenschutzziel bleibt unverändert.
              Beide Prozessbäume ohne beobachtete TCP-/UDP-Ereignisse, je vier Positivkontrollen.
        - [x] KQ-069 A: Tatsächliche WebView2-Elternkette und Win32-Schnittstellen des Kandidaten
              geprüft. Browser- und verschachtelte Crashpad-Kindstarts liegen im Runtimebaum.
+       - [x] KQ-069 A: Öffentliche Microsoft-SDKs (stabil und Vorschau) und Herstellerdokumentation
+             auf ein Startveto für verschachtelte Crashpad-Prozesse und spätere Renderer geprüft.
+             Für beide Fälle ist kein unterstützter Freigabepunkt dokumentiert (ADR 0035).
        - [ ] KQ-069 A: Durchsetzbaren Erzeugungsweg für jede Runtimegeneration belegen. Der geprüfte
              Win32-Einstieg erfüllt BP3 nicht. BP4-Datenrechte bleiben offen.
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native

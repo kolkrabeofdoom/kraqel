@@ -37,8 +37,9 @@ demselben Prüfpaket ergab null TCP-/UDP-Ereignisse in beiden Prozessbäumen. Al
 Loopback-Kontrollen waren in jedem Messfenster sichtbar. Die Rollenprüfung des echten
 WebView2-Kandidaten ergab sechs Runtimegenerationen mit einem WebView2-Prozess als Parent, darunter
 ein verschachtelter Crashpad-Start. Im eingebundenen Win32-SDK fehlt ein belegter Freigabepunkt vor
-jedem Kindstart. Wiederaufnahme bei einem nachgewiesenen Erzeugungsweg gemäß ADR 0035. C4-Start und
-BP4-Datenzugriff bleiben gesperrt.
+jedem Kindstart. Auch Microsofts öffentliches stabiles SDK und Vorschau-SDK dokumentieren kein
+Startveto für verschachtelte Crashpad-Prozesse oder spätere Renderer. C4-Start und BP4-Datenzugriff
+bleiben bis zum Nachweis gemäß ADR 0035 gesperrt.
 [ADR 0035](architecture/decisions/0035-bp3-independent-process-and-image-enforcement.md).
 
 Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:

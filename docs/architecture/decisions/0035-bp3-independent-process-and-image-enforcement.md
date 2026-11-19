@@ -119,3 +119,35 @@ Renderer verweigern können. Bis ein entsprechender Mechanismus vorliegt, bleibt
 WebView-Erzeugung gesperrt. Die fünf aktiven BP3-Tests bestanden offline mit den in `Cargo.lock`
 festgelegten Abhängigkeiten, darunter die Prüfungen am Controller-, Worker- und direkten
 Runtime-Einstieg.
+
+### Öffentliche Herstellerquellen zum Startveto · 19. November 2026
+
+Für **verschachtelte Crashpad-Starts** und **später erzeugte Renderer** ist in den geprüften
+öffentlichen Win32-Schnittstellen kein Freigabepunkt vor der ersten Ausführung dokumentiert. Geprüft
+wurden die von Microsoft veröffentlichten SDK-Pakete `1.0.4314.35` (stabil) und
+`1.0.4392-prerelease`, jeweils die mitgelieferte `WebView2.idl`, in der Vorschau zusätzlich
+`WebView2Experimental.idl`. Der Abgleich der Prozess-, Start- und Suspendierungs-APIs betrifft den
+veröffentlichten Schnittstellenvertrag. Eine individuelle Supportauskunft wurde nicht eingeholt.
+[Stabiles SDK](https://www.nuget.org/packages/Microsoft.Web.WebView2/1.0.4314.35),
+[Vorschau-SDK](https://www.nuget.org/packages/Microsoft.Web.WebView2/1.0.4392-prerelease).
+
+- **Crashpad.** Microsoft nimmt Crashpad ausdrücklich von der Prozessliste und der erweiterten
+  Momentaufnahme aus. Die Option `IsCustomCrashReportingEnabled` regelt die Übermittlung von
+  Absturzdaten. Für einen Start durch einen weiteren Crashpad-Prozess ist kein Callback mit
+  Vetorecht veröffentlicht.
+  [Prozessinfo-Spezifikation des WebView2-Teams](https://github.com/MicrosoftEdge/WebView2Feedback/blob/main/specs/ProcessInfo.md),
+  [erweiterte Prozessinfo](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2environment13),
+  [Crashreporting-Option](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2environmentoptions3).
+- **Späterer Renderer.** Laut Prozessmodell kann eine weitere WebView-Instanz bei einer anderen
+  Domain einen neuen Renderer auslösen. `ProcessInfosChanged` meldet eine bereits erkannte Änderung
+  der Prozessliste. Weder diese Benachrichtigung noch die zugehörige Abfrage gibt dem Host eine
+  ausstehende Erzeugung zur Entscheidung.
+  [Prozessmodell](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model),
+  [Win32-Ereignisvertrag](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2environment8).
+
+Microsoft empfiehlt Anbietern von Sicherheitssoftware ausdrücklich, die Kindprozesserzeugung der
+Runtime einschließlich Crashpad zuzulassen. Das ist eine Kompatibilitätsempfehlung. Für KRAQEL zählt
+der fehlende positive Nachweis im API-Vertrag: Ein Wechsel auf eines dieser SDKs allein rechtfertigt
+keine Freigabe. Eine Neubewertung braucht eine veröffentlichte Schnittstelle mit früher,
+verbindlicher Entscheidung für beide Prozessfälle.
+[Microsofts Kompatibilitätshinweise](https://learn.microsoft.com/en-us/deployedge/webview2-security-tools).
