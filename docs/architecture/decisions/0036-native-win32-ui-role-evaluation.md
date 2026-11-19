@@ -6,8 +6,7 @@ ETW-Vergleich sind geprüft. Die akustische Abnahme und die Produktintegration b
 [Messwerte und Beleggrenzen](../../testing/native-win32-window-guest.md).
 
 Für die Fensterprobe ist der Softwarebeleg der Sprachausgabe als bestanden angenommen. Die
-akustische Prüfung ist zurückgestellt. Der nächste Versuch bindet genau eine synthetische Szene an
-ein UI-Blatt und einen getrennten Rust-Datendienst. Die native Durchsetzung steht aus.
+akustische Prüfung ist zurückgestellt. Der synthetische BP4b-Kanal zwischen UI-Blatt und Rust-Datendienst ist abgeschlossen. Die weitere Integration betrifft den nativen C4b-Kandidaten.
 [BP4-Datenvertrag](../../data-format/native-win32-bp4-scene-v1-draft.md).
 
 **19. November 2026 · Als Kandidat für eine Machbarkeitsprobe ausgewählt.** Eine eigene, native
@@ -60,6 +59,12 @@ als direkte DLL-Importe und ein leeres Delay-Importverzeichnis. Der Versuch lieg
 `artifacts/native-ui-alternative-20261119/`. Die EXE wurde ausschließlich gebaut und statisch
 geprüft. Spätere DLL-Ladevorgänge, tatsächliche Kindstarts, Fensterbedienung, Barrierefreiheit und
 Netzverhalten erfordern einen Lauf im Gast.
+
+## C4b · Paketbindung im nativen Prüfstart
+
+Der [Prüfstarter](../../../scripts/runtime-isolation/native-window/src/bin/pipe-check.rs) hält das geschützte Paketverzeichnis, den Paketanker und die vier fest vorgegebenen EXE-Dateien über die Lebenszeit des Auftrags offen. Der [native Paketabgleich](../../../scripts/runtime-isolation/native-window/src/package.rs) prüft jeden SHA-256-Wert am gehaltenen Handle, bevor der Starter Kontrollablage oder Rollen öffnet. Schreib- und Löschfreigaben fehlen. Verzeichniseinträge mit Reparse-Attribut, ein unvollständiges Inventar und abweichende Programmbytes sperren den Start. Vertrauensbasis sind das vom Gastaufbau geschützte Paketverzeichnis, sein Anker und die erzwungene UMCI-Richtlinie.
+
+Ein gezielter Windows-Test bestätigte die Sperre für Schreiben und Umbenennen während der Bindung sowie die Abweisung nach einer Änderung der Datei. Ein regulärer Szenenabruf im Offline-Gast bestätigte den neuen Einstieg mit erzwungener Richtlinie (Datendienst 66, UI 67, Starter 0, beide Jobs leer). Die schreibgeschützte Nachprüfung bestätigte Programm- und Richtlinienhashes sowie entfernte Rollenbelege. Der nächste Integrationspunkt ist der Abgleich dieses Pakets mit der aktiven, verwalteten Paketgeneration unter der Produktkontrollsperre. Die Produkt-UI-ABI bleibt bei 0.
 
 ## Kosten für den Editor
 

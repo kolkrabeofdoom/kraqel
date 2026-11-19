@@ -1,4 +1,6 @@
 //! Pre-resume check for our own two suspended fixture generations, in the BP3 guest only.
+#[path = "../package.rs"]
+mod package;
 #[path = "../release_proof.rs"]
 mod release_proof;
 use kraqel_window_probe::{
@@ -574,10 +576,10 @@ fn begin(reopen: bool, anchor: &[u8]) -> io::Result<Option<std::fs::File>> {
 
 fn main() {
     let result = (|| {
-        use sha2::{Digest, Sha256};
         guest_image("pipe-check.exe")?;
         let trial = std::env::args().nth(1);
-        let anchor = Sha256::digest(std::fs::read(Path::new(DIR).join("anchor.json"))?);
+        let package = package::PinnedPackage::open(Path::new(DIR))?;
+        let anchor = package.anchor_digest;
         use release_proof::ProofCase;
         match trial.as_deref() {
             Some("proof-post-cleanup-loss") => {

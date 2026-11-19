@@ -8,6 +8,19 @@ geprüft. Produktprojekte bleiben gesperrt.
 [ADR 0036](../architecture/decisions/0036-native-win32-ui-role-evaluation.md) ·
 [Starter](../../scripts/runtime-isolation/native-window/src/bin/native-starter.rs)
 
+## Abschluss des synthetischen Datenkanals
+
+**BP4b ist für die geprüfte Win32-Forschungsprobe abgeschlossen.** Die Abnahme stützt sich auf die vorhandenen Gastläufe.
+
+| Eigenschaft | Nachweis |
+| --- | --- |
+| Nur die gebundenen Rollen erhalten die vorgesehenen Pipe-Enden. Die Gegenstelle muss sich authentisieren. | [Handle-Rechte](../testing/native-win32-pipe-rights.md), [HELLO/READY](../testing/native-win32-hello-ready.md) |
+| Die Lesebindung erlaubt einen Szenenabruf. Schreiben erfordert eine Edit-Bindung und die passende Revision. | [Lesen](../testing/native-win32-scene-read.md), [Schreibabweisung](../testing/native-win32-denied-save.md), [Revisionskonflikt](../testing/native-win32-edit-conflict.md) |
+| An der Commitgrenze bleibt genau die ursprüngliche oder die bestätigte Revision erhalten. Unvollständige Übertragungen und Fensterende führen zu keiner unbestätigten Änderung. | [SQLite-Wiederöffnung](../testing/native-win32-durable-reopen.md), [Commitgrenze](../testing/native-win32-commit-crashes.md), [Teilübertragung](../testing/native-win32-channel-interruptions.md), [Fensterende](../testing/native-win32-window-close.md) |
+| Ohne gültigen Endebeleg bleibt die Ablage gesperrt. Eine verbrauchte Lesefreigabe überlebt Bereinigung und Kaltstart als Sperre. | [Starterabbruch](../testing/native-win32-starter-restart.md), [Einmalfreigabe und ETW-Messgrenzen](../testing/native-win32-release-proof.md) |
+
+Die Kanalprüfungen verwendeten synthetische Katalogdaten. Tastaturbedienung und softwareseitige Sprachausgabe sind für die [Fensterprobe](../testing/native-win32-window-guest.md) separat belegt. Der bedienbare Editor mit explizitem Speichern über den gebundenen Kanal gehört zur offenen C4c-Integration. Für reale Projekte und eine produktive Datenfreigabe fehlen weiterhin die Integrationsnachweise.
+
 ## Wer verbindet sich mit wem?
 
 1. Unter exklusiver Kontrollsperre reserviert der Starter einen einmaligen Auftrag mit

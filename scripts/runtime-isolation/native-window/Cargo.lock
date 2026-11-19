@@ -210,6 +210,8 @@ dependencies = [
  "getrandom",
  "kraqel-native-scene-model",
  "rusqlite",
+ "serde",
+ "serde_json",
  "sha2",
  "windows-sys",
  "zeroize",
