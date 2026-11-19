@@ -200,13 +200,24 @@ Die Freigabe umfasst ausschließlich diesen lokalen Vorschaupfad mit festem Prü
 
 Nach HELLO/READY verarbeitet der Datendienst über das vorhandene BP4b-Protokoll genau einen Leseaufruf. Er bindet den eingebauten synthetischen Katalog an Szene A im Lesemodus. Die Fensterrolle prüft die authentisierte Antwort für Revision 0 und setzt den empfangenen Text vor dem Anzeigen in das schreibgeschützte Win32-Feld. Der Datendienst endet nach dem Abruf. Das Fenster bleibt bis zum Schließen bedienbar. Die Produktablage bleibt gesperrt. Dieser Schritt arbeitet im Speicher. Der Zugriff auf eine persistente Szenenablage ist offen.
 
-Der lokale Windows-Lauf prüfte Inhalt (`Rabe` und `42`) und Schreibschutz am sichtbaren Feld. Beide Jobs endeten und der Sitzungsbeleg wurde geschlossen. Eine Gegenprobe mit einem gebundenen Datendienst ohne den neuen Bootstrap brach vor der Szenenfreigabe ab; die Sitzung blieb gesperrt. Die frühere C4d-Abnahme gilt für die dort bezeichneten Bytes. Der frische ETW-Nachweis für den zusätzlichen Datendienst und die geänderten Rollen steht aus.
+Der lokale Windows-Lauf prüfte Inhalt (`Rabe` und `42`) und Schreibschutz am sichtbaren Feld. Beide Jobs endeten und der Sitzungsbeleg wurde geschlossen. Eine Gegenprobe mit einem gebundenen Datendienst ohne den neuen Bootstrap brach vor der Szenenfreigabe ab; die Sitzung blieb gesperrt. Die frühere C4d-Abnahme gilt für die dort bezeichneten Bytes.
 
 | Im Szenenlauf gestartetes Programm | SHA-256 |
 | --- | --- |
 | Verwalteter Starter | `8ab95846ef5888c3d8f06316f80164062bb5b407939203bee9062c49e5351c7a` |
 | native-leaf.exe | `f49f0c5d1e733d60caf978d2131c41f70876d65c70270ce458deff6c281ccec9` |
 | pipe-service.exe | `f7c47c896444928bf150dbf70a6be51950423eb359cf33e4c3faa04b9f48ef9f` |
+
+### ETW-Netzvergleich für den einmaligen Szenenabruf
+
+Am 19.11.2026 wurden die drei oben angegebenen SHA-256-Werte vor der Messung an den verwalteten Dateien bestätigt (Code-Stand `0dd8c05`). Zwei getrennte Erfassungen verwendeten dasselbe Paket und dieselbe synthetische Kontrollablage. In beiden Läufen prüfte der Messhelfer den festen Zweizeiler und den Schreibschutz am sichtbaren Fenster und schloss es regulär.
+
+| Messpfad | Vollständige Prozesslebenszeiten | Netzwerkereignisse im KRAQEL-Baum | Lokale TCP-/UDP-Kontrollen über IPv4/IPv6 | Verlorene Ereignisse / Puffer |
+| --- | --- | ---: | ---: | ---: |
+| Referenz · `open-win32-surface` | 1 Starter, 1 Fensterrolle | 0 | 4/4 | 0 / 0 |
+| Szene A · `open-win32-scene` | 1 Starter, 1 Fensterrolle, 1 Datendienst | 0 | 4/4 | 0 / 0 |
+
+Die Auswertung bestätigte den Starter anhand seiner Start-PID und seines hashbasierten EXE-Namens sowie die direkten Kindrollen und deren Prozessenden innerhalb der Starterlebenszeit. Im Szenenlauf bestätigte der Starter den Einmalabruf von Szene A auf Revision 0. In beiden Fällen blieb der Produktdatenzugriff gesperrt, der Job war am Ende leer und die authentisierte Sitzung regulär geschlossen. Es gab keine nicht zuordenbaren Netzwerkereignisse. Der Nachweis gilt für diesen lokalen synthetischen Ablauf und die erfassten Prozesslebenszeiten. Eigenständige Windows-Dienste liegen außerhalb der Prozessbaumzuordnung. Die Rohspuren bleiben lokal.
 
 ## Kosten für den Editor
 
