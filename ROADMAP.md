@@ -363,7 +363,9 @@ Datenschutzziel bleibt unverändert.
        - [x] KQ-069 A: BP4a als reines Rust-Modell geprüft: exklusive Szenenbindung,
              Lese-/Editrolle, revisionsgebundenes Speichern und Abweisung fremder oder beschädigter
              Inhalte.
-       - [ ] KQ-069 A: BP4b-Kanalbindung und Replayabwehr spezifizieren, effektive Rechte,
+       - [x] KQ-069 A: BP4b-Kanalbindung und Replayabwehr für das synthetische Rollenpaar
+             spezifiziert.
+       - [ ] KQ-069 A: BP4b-Framecodec und Replaymodell prüfen, anschließend effektive Rechte,
              Wiederanlauf und eigenen ETW-Nachweis im Gast prüfen.
        - [ ] KQ-069 A: Durchsetzbaren Erzeugungsweg für jede Runtimegeneration belegen. Der geprüfte
              WebView2-Win32-Einstieg erfüllt BP3 nicht. Produktive BP4-Datenrechte bleiben offen.

@@ -36,8 +36,10 @@ Für BP4 liegt der
 [Vertrag für synthetische Win32-Szenen](data-format/native-win32-bp4-scene-v1-draft.md) vor. BP4a
 ist als eigenständiges Rust-Forschungsmodell geprüft. Eine exklusive Bindung begrenzt den Zugriff
 auf eine Katalogszene. Leseaufträge, Revisionskonflikte und ungültige Dokumente sind gegen
-unbeabsichtigtes Überschreiben getestet. Nächster Schritt für BP4b ist die Spezifikation der lokalen
-Kanalbindung und Replayabwehr vor der Gastprobe. Produktdaten bleiben gesperrt.
+unbeabsichtigtes Überschreiben getestet. Der
+[BP4b-Kanalvertrag](data-format/native-win32-bp4-channel-v1-draft.md) legt Rollenbindung und
+Replayabwehr fest. Als Nächstes Framecodec und Zustandsübergänge im reinen Modell prüfen. Native
+Durchsetzung steht aus; Produktdaten bleiben gesperrt.
 
 Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:
 
