@@ -172,7 +172,19 @@ Unter derselben Kontrollsperre schreibt der verwaltete Starter nach der Paketpr�
 
 Erst nach erfolgreichem Rollenpfad, signalisiertem Prozessende, leerem Job und bestätigter Profilbereinigung schreibt der Starter `EndWin32Window` für genau diesen Digest. Der Aufruf liefert dann den neuen Kontrollkopf. Ein offener Beleg erlaubt die lesende Statusabfrage (`windowSessionOpen`), sperrt aber den nächsten Fensterstart und Änderungen am Kontrollzustand. Es gibt keinen externen Abschlussbefehl. Auch ein Fehler nach dauerhafter Vorbereitung und vor Prozesserzeugung lässt die Sitzung offen. Updates müssen nach dem ersten Sitzungseintrag die Unterstützung für dessen Verlauf im PE-Abschnitt `.kqwses` deklarieren.
 
-**Gezielter Windows-Nachweis.** Ein regulärer Fensterlauf erzeugte zwei Kontrollrecords und erlaubte die nächste Sitzung. Beim anschließenden Abbruch des verwalteten Starters mit sichtbarem, geprüftem Fenster endete die Rolle. Der neu gestartete Broker las die offene Sitzung aus dem Verlauf und wies den Fensterstart mit aktuellem Kopf als `win32-window-session-open` ab. Die Nachprüfung bestätigte unveränderten Kopf und offene Sitzung. Eine Regression prüfte zusätzlich, dass der Endebeleg einer früheren Sitzung die nachfolgende Sitzung nicht freigeben kann. SHA-256 des verwalteten Prüfkandidaten: `fda5ccc1dbe9fe88fad12fb497c2449faf9435b96be66a3885a353a097e833d4`. Für diesen geänderten Starter steht der gezielte ETW-Vergleich noch aus.
+**Gezielter Windows-Nachweis.** Ein regulärer Fensterlauf erzeugte zwei Kontrollrecords und erlaubte die nächste Sitzung. Beim anschließenden Abbruch des verwalteten Starters mit sichtbarem, geprüftem Fenster endete die Rolle. Der neu gestartete Broker las die offene Sitzung aus dem Verlauf und wies den Fensterstart mit aktuellem Kopf als `win32-window-session-open` ab. Die Nachprüfung bestätigte unveränderten Kopf und offene Sitzung. Eine Regression prüfte zusätzlich, dass der Endebeleg einer früheren Sitzung die nachfolgende Sitzung nicht freigeben kann. SHA-256 des verwalteten Prüfkandidaten: `fda5ccc1dbe9fe88fad12fb497c2449faf9435b96be66a3885a353a097e833d4`.
+
+### C4d · ETW-Netzvergleich des Folgekandidaten
+
+Am 19.11.2026 wurden der verwaltete Starter aus dem vorigen Abschnitt und die Fensterrolle `01e907b71328219456a23dac4cb39d7b88e3e69ee28d1a2614ec22a64b22212d` in derselben synthetischen Kontrollablage gemessen (Code-Stand `430f1d3`). Jede Phase hatte eine eigene Kernel-Netzwerk- und Prozesserfassung. Die Auswertung band den Starter über PID und vollständigen hashbasierten EXE-Namen. Sie prüfte die Start- und Endereignisse jeder erwarteten Prozessgeneration sowie die direkte Elternbeziehung der Fensterrolle.
+
+| Messpfad | Starter / Fensterrollen | Netzwerkereignisse im KRAQEL-Baum | Lokale TCP-/UDP-Kontrollen (IPv4/IPv6) | Verlorene Ereignisse / Puffer |
+| --- | ---: | ---: | ---: | ---: |
+| Reguläres Schließen nach sichtbarem Fenster | 1 / 1 | 0 | 4/4 | 0 / 0 |
+| Starterabbruch bei sichtbarem Fenster | 1 / 1 | 0 | 4/4 | 0 / 0 |
+| Neustart mit offenem Sitzungsbeleg und aktuellem Kontrollkopf | 1 / 0 | 0 | 4/4 | 0 / 0 |
+
+Beim regulären Ende wurden Start und Abschluss dauerhaft vermerkt, die Sitzung war geschlossen und der Job leer. Nach dem Starterabbruch endete auch die Fensterrolle. Anschließend blieb der Startbeleg offen. Beim Neustart lieferte der Broker `win32-window-session-open`; ETW erfasste ausschließlich den Starter. Die anschließende lesende Statusabfrage bestätigte identischen Kontrollkopf und Sitzungszustand. In allen drei Erfassungen gab es null nicht zuordenbare Netzwerkereignisse. Die Aussage gilt für diese Binärdateien und Prozesslebenszeiten im synthetischen Vorschaupfad. Die Rohspuren blieben lokal; Netzwerkaktivität eigenständiger Windows-Dienste liegt außerhalb der Prozessbaumzuordnung.
 
 ## Kosten für den Editor
 
