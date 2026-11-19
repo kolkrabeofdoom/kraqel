@@ -10,9 +10,15 @@ use std::{
 use zeroize::Zeroizing;
 impl window_receipt::SceneOperation {
     pub fn from_argument(arg: Option<&std::ffi::OsStr>) -> Option<Self> {
-        [Self::Once, Self::CheckDeniedSave, Self::CheckEditConflict]
-            .into_iter()
-            .find(|mode| arg == Some(std::ffi::OsStr::new(mode.argument())))
+        [
+            Self::Once,
+            Self::CheckDeniedSave,
+            Self::CheckEditConflict,
+            Self::SavePersistent,
+            Self::ReadPersistent,
+        ]
+        .into_iter()
+        .find(|mode| arg == Some(std::ffi::OsStr::new(mode.argument())))
     }
 }
 
@@ -107,7 +113,7 @@ struct Channel {
     writer: File,
 }
 impl Channel {
-    fn open(mut control: File) -> io::Result<Self> {
+    fn open(control: &mut File) -> io::Result<Self> {
         let mut keys = Zeroizing::new([0u8; 96]);
         control.read_exact(keys.as_mut())?;
         let binding = Binding::from_keys(
@@ -151,11 +157,17 @@ impl Channel {
             .map_err(|_| io::Error::other("scene peer"))
     }
 }
-pub fn exchange(control: File, mode: window_receipt::SceneOperation) -> io::Result<String> {
-    let mut ch = Channel::open(control)?;
+pub fn exchange(mut control: File, mode: window_receipt::SceneOperation) -> io::Result<String> {
+    let mut ch = Channel::open(&mut control)?;
     ch.send(Handshake::Hello)?;
     ch.receive(Handshake::Ready)?;
     match mode {
+        window_receipt::SceneOperation::SavePersistent
+        | window_receipt::SceneOperation::ReadPersistent => ch.binding.durable_window(
+            mode == window_receipt::SceneOperation::ReadPersistent,
+            &mut ch.reader,
+            &mut ch.writer,
+        ),
         window_receipt::SceneOperation::Once => {
             ch.binding.read_scene((&mut ch.reader, &mut ch.writer))
         }
@@ -169,11 +181,39 @@ pub fn exchange(control: File, mode: window_receipt::SceneOperation) -> io::Resu
     .map_err(|_| io::Error::other("scene read"))
 }
 pub fn serve(profile: &str, mode: window_receipt::SceneOperation) -> io::Result<()> {
-    let (input, _output) = confirm_bootstrap(Some(profile), Role::Data)?;
-    let mut ch = Channel::open(input)?;
+    let (mut input, _output) = confirm_bootstrap(Some(profile), Role::Data)?;
+    let mut ch = Channel::open(&mut input)?;
     ch.receive(Handshake::Hello)?;
     ch.send(Handshake::Ready)?;
     match mode {
+        window_receipt::SceneOperation::SavePersistent
+        | window_receipt::SceneOperation::ReadPersistent => {
+            let reopening = mode == window_receipt::SceneOperation::ReadPersistent;
+            let mut bytes = [0; 8];
+            input.read_exact(&mut bytes)?;
+            let raw = usize::try_from(u64::from_le_bytes(bytes))
+                .map_err(|_| io::Error::other("snapshot handle"))?
+                as windows_sys::Win32::Foundation::HANDLE;
+            use windows_sys::Win32::Storage::FileSystem::{FILE_TYPE_DISK, GetFileType};
+            require(
+                unsafe { GetFileType(raw) } == FILE_TYPE_DISK,
+                "snapshot file",
+            )?;
+            let mut file = unsafe { File::from_raw_handle(raw) };
+            let mut store = crate::scene_store::Store::managed(&mut file, reopening)?;
+            ch.binding
+                .durable_service(reopening, &mut ch.reader, &mut ch.writer, |body| {
+                    let reply = store
+                        .dispatch(body, || unreachable!())
+                        .map_err(|_| kraqel_native_scene_model::channel::Closed)?;
+                    if matches!(reply, kraqel_native_scene_model::Reply::Saved { .. }) {
+                        store
+                            .flush_managed(&mut file)
+                            .map_err(|_| kraqel_native_scene_model::channel::Closed)?;
+                    }
+                    Ok(reply)
+                })
+        }
         window_receipt::SceneOperation::Once => {
             ch.binding.serve_scene_read(&mut ch.reader, &mut ch.writer)
         }

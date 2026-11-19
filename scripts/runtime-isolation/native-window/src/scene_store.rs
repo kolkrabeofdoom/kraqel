@@ -203,11 +203,46 @@ impl Store {
         } else {
             OpenFlags::SQLITE_OPEN_READ_WRITE
         };
-        let mut db = Connection::open_with_flags(
+        let db = Connection::open_with_flags(
             directory(phase).join("synthetic.sqlite"),
             flags | OpenFlags::SQLITE_OPEN_NOFOLLOW,
         )
         .map_err(failure)?;
+        Self::configure(db, read_only, phase)
+    }
+
+    /// The managed service gets only this file handle; SQLite works in memory and
+    /// never opens a caller-supplied path or a filesystem journal.
+    pub fn managed(file: &mut File, reopening: bool) -> io::Result<Self> {
+        let size = file.metadata()?.len();
+        let mut db = Connection::open_in_memory().map_err(failure)?;
+        if reopening {
+            require(
+                (1..=crate::window_receipt::MAX_SCENE_DB).contains(&size),
+                "snapshot size",
+            )?;
+            db.deserialize_read_exact("main", file, size as usize, true)
+                .map_err(failure)?;
+        } else {
+            require(size == 0, "new snapshot")?;
+        }
+        Self::configure(db, reopening, None)
+    }
+    pub fn flush_managed(&self, file: &mut File) -> io::Result<()> {
+        use std::io::Write;
+        let image = self.db.serialize("main").map_err(failure)?;
+        require(
+            !image.is_empty() && image.len() as u64 <= crate::window_receipt::MAX_SCENE_DB,
+            "snapshot size",
+        )?;
+        file.write_all(&image)?;
+        file.sync_all()
+    }
+    fn configure(
+        mut db: Connection,
+        read_only: bool,
+        phase: Option<StorePhase>,
+    ) -> io::Result<Self> {
         db.execute_batch("PRAGMA trusted_schema=OFF; PRAGMA temp_store=MEMORY;")
             .map_err(failure)?;
         if read_only || phase == Some(StorePhase::Recover) {

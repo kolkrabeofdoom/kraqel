@@ -231,6 +231,14 @@ Im gezielten Windows-Lauf las die Fensterrolle „Rabe“ / „42“ auf Revisio
 
 Im verwalteten Windows-Lauf las die Fensterrolle Szene A auf Revision 0 und speicherte „Rabe“ / „43“ mit erwarteter Revision 0. Der Dienst bestätigte Revision 1. Ein anschließender Versuch, den früheren Text „Rabe“ / „42“ erneut mit erwarteter Revision 0 zu speichern, erhielt die authentisierte Antwort `CONFLICT`. Der abschließende Abruf bestätigte „Rabe“ / „43“ auf Revision 1 unter derselben Bindung. Das Fenster zeigte das Ergebnis schreibgeschützt an und schloss regulär. Beide Jobs endeten und die Sitzung erhielt ihren Abschlussbeleg. Der Nachweis gilt für die laufende synthetische Sitzung; eine persistente Ablage war nicht beteiligt.
 
+### Dauerhafte Szene A im verwalteten Teststore
+
+`broker-store save-win32-scene <Kontrollkopf>` legt unter der Kontrollsperre einmalig `data/scene-a-v1.sqlite` im privaten synthetischen Vorschau-Store an. Nur der isolierte Datendienst erhält nach dem Bootstrap das begrenzte Datei-Handle für seinen Auftrag. Er übernimmt die Änderung von „Rabe“ / „42“ zu „Rabe“ / „43“ in einer SQLite-Transaktion und schreibt das begrenzte SQLite-Abbild über dieses Handle. Die Speicherantwort folgt erst nach erfolgreicher Synchronisierung der Datei. Die Fensterrolle erhält den Szenentext über den authentisierten Kanal. Nach bestätigtem Rollenende bindet der authentisierte Abschlussrecord Volume, Datei-ID und SHA-256 an die Sitzung und die verwaltete Startergeneration. Bei unklarem Sitzungsende greift die bestehende Neustartsperre.
+
+`broker-store read-saved-win32-scene <neuer-Kontrollkopf>` verlangt diesen Abschlussrecord, die passende Paketgeneration und die unveränderte, exklusiv geöffnete Datei. Die Prüfung erfolgt vor dem neuen Rollenstart. Der frische Datendienst erhält nur Leserechte am Abbild und öffnet es in SQLite schreibgeschützt. Pfad und Abfrage sind fest vorgegeben. Die Fenstersitzung erhält eine neue A/read-Bindung.
+
+**Windows-Nachweis.** Nach vollständigem Ende des Speicherlaufs wurden Starter, Datendienst und Fensterrolle neu erzeugt. Die neue Lesesitzung bestätigte den gespeicherten Zweizeiler und Revision 1. Der Prüfaufbau verglich die Datenbankbytes vor und nach dem Lesen; sie waren identisch. Beide Sitzungen wurden regulär abgeschlossen. Eine nachträgliche Byteänderung an der isolierten Testdatei wurde vor einem weiteren Rollenstart mit `scene-snapshot-mismatch` abgewiesen; Kontrollkopf und Sitzungszustand blieben dabei unverändert. Der Nachweis betrifft einen Prozessneustart. Produktdaten bleiben gesperrt.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

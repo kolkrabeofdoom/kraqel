@@ -3,6 +3,67 @@ use super::*;
 use crate::native_win32_package::{IMAGES, PinnedPackage};
 
 mod suspended;
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct Snapshot {
+    volume: u64,
+    file_id: [u8; 16],
+    sha256: [u8; 32],
+}
+
+struct SnapshotFile {
+    file: fs::File,
+    _dirs: Vec<fs::File>,
+}
+impl SnapshotFile {
+    fn open(store: &Store, create: bool) -> Result<Self> {
+        let dir = store.root.join("data");
+        let dirs = pin_directories(&dir)?;
+        private_acl(&dir, true)?;
+        let path = dir.join("scene-a-v1.sqlite");
+        let file = io(
+            "scene-snapshot-open",
+            OpenOptions::new()
+                .read(true)
+                .write(create)
+                .create_new(create)
+                .share_mode(0)
+                .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT)
+                .open(&path),
+        )?;
+        let info = file_info(&file)?;
+        if info.dwFileAttributes & (BAD_ATTRIBUTES | FILE_ATTRIBUTE_DIRECTORY) != 0
+            || info.nNumberOfLinks != 1
+        {
+            return Err(invalid("scene-snapshot-file"));
+        }
+        private_acl(&path, false)?;
+        Ok(Self { file, _dirs: dirs })
+    }
+    fn identity(&mut self) -> Result<Snapshot> {
+        use std::io::{Read, Seek};
+        let size = io("scene-snapshot-size", self.file.metadata())?.len();
+        if !(1..=crate::window_receipt::MAX_SCENE_DB).contains(&size) {
+            return Err(invalid("scene-snapshot-size"));
+        }
+        io("scene-snapshot-rewind", self.file.rewind())?;
+        let mut bytes = Vec::with_capacity(size as usize);
+        io(
+            "scene-snapshot-read",
+            (&mut self.file).take(size + 1).read_to_end(&mut bytes),
+        )?;
+        if bytes.len() as u64 != size {
+            return Err(invalid("scene-snapshot-size"));
+        }
+        io("scene-snapshot-rewind", self.file.rewind())?;
+        let (volume, file_id) = secure_fs::file_id(&self.file)?;
+        Ok(Snapshot {
+            volume,
+            file_id,
+            sha256: Sha256::digest(bytes).into(),
+        })
+    }
+}
 
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
 pub(super) enum Session {
@@ -96,8 +157,35 @@ impl Store {
             if self.state.sequence + 2 >= MAX_RECORDS {
                 return Err(invalid("win32-window-record-budget"));
             }
+            use crate::window_receipt::SceneOperation::{ReadPersistent, SavePersistent};
+            let saving = mode == WindowMode::Scene(SavePersistent);
+            let mut snapshot = None;
+            if saving || mode == WindowMode::Scene(ReadPersistent) {
+                package::verify_scene_snapshot(&mut managed)?;
+                if saving {
+                    if self.state.scene_snapshot.is_some() {
+                        return Err(invalid("scene-snapshot-already-bound"));
+                    }
+                } else {
+                    let (owner, bound) = self
+                        .state
+                        .scene_snapshot
+                        .ok_or(invalid("scene-snapshot-unbound"))?;
+                    if owner != actor {
+                        return Err(invalid("scene-snapshot-owner"));
+                    }
+                    let mut opened = SnapshotFile::open(self, false)?;
+                    if opened.identity()? != bound {
+                        return Err(invalid("scene-snapshot-mismatch"));
+                    }
+                    snapshot = Some(opened);
+                }
+            }
             self.append(actor, head, Action::BeginWin32Window { anchor: expected })?;
             let begin = self.state.head;
+            if saving {
+                snapshot = Some(SnapshotFile::open(self, true)?);
+            }
             let mut result = if let WindowMode::Scene(scene_mode) = mode {
                 suspended::read_scene(
                     self,
@@ -106,13 +194,21 @@ impl Store {
                     pins.image("pipe-service.exe")
                         .ok_or(invalid("win32-service-not-pinned"))?,
                     scene_mode,
+                    snapshot.as_ref().map(|s| &s.file),
                 )?
             } else {
                 suspended::check_window(self, &root, image, mode)?
             };
             // Only the call holding the original lease reaches here after signaled process
             // end, empty job and profile cleanup. There is no external finish command.
-            self.append_with_checked_context(actor, begin, Action::EndWin32Window { begin })?;
+            let end = match snapshot.as_mut() {
+                Some(file) if saving => Action::EndWin32SceneSave {
+                    begin,
+                    snapshot: file.identity()?,
+                },
+                _ => Action::EndWin32Window { begin },
+            };
+            self.append_with_checked_context(actor, begin, end)?;
             result["headSha256"] = json!(hex(&self.state.head));
             return Ok(result);
         }

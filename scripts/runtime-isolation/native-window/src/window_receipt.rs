@@ -24,13 +24,19 @@ pub enum SceneOperation {
     Once,
     CheckDeniedSave,
     CheckEditConflict,
+    SavePersistent,
+    ReadPersistent,
 }
 impl SceneOperation {
     pub fn argument(self) -> &'static str {
         match self {
+            Self::SavePersistent => "--managed-scene-a-store-edit-v1",
+            Self::ReadPersistent => "--managed-scene-a-store-read-v1",
             Self::Once => "--managed-scene-a-read-v1",
             Self::CheckEditConflict => "--managed-scene-a-edit-conflict-v1",
             Self::CheckDeniedSave => "--managed-scene-a-denied-save-v1",
         }
     }
 }
+
+pub const MAX_SCENE_DB: u64 = 128 * 1024;

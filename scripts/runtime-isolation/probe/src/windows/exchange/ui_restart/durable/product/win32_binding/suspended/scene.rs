@@ -48,6 +48,7 @@ pub(in super::super) fn read_scene(
     window: &fs::File,
     service: &fs::File,
     mode: crate::window_receipt::SceneOperation,
+    snapshot: Option<&fs::File>,
 ) -> Result<Value> {
     use crate::window_receipt::SceneOperation;
     use crate::windows::exchange::ui_restart::pipe;
@@ -84,11 +85,28 @@ pub(in super::super) fn read_scene(
                         install(data.hProcess, request_read, read)?,
                         install(data.hProcess, response_write, write)?,
                     ];
+                    let snapshot_end = if let Some(file) = snapshot {
+                        let rights = if mode == SceneOperation::SavePersistent {
+                            write
+                        } else {
+                            read
+                        };
+                        Some(install(
+                            data.hProcess,
+                            io("scene-snapshot-clone", file.try_clone())?,
+                            rights | FILE_READ_ATTRIBUTES,
+                        )?)
+                    } else {
+                        None
+                    };
                     bootstrap::confirm_grant(ui, &mut to_ui, &mut ui_reply, &ui_secret)?;
                     bootstrap::confirm_grant(data, &mut to_data, &mut data_reply, &data_secret)?;
                     let mut material = Zeroizing::new([0u8; 96]);
                     let mut context = Sha256::new();
                     match mode {
+                        SceneOperation::SavePersistent | SceneOperation::ReadPersistent => {
+                            context.update(mode.argument().as_bytes())
+                        }
                         SceneOperation::CheckEditConflict => {
                             context.update(b"KRAQEL-managed-A/edit-conflict-v1")
                         }
@@ -103,10 +121,15 @@ pub(in super::super) fn read_scene(
                     context.update(data_secret);
                     material[..32].copy_from_slice(&context.finalize());
                     getrandom::fill(&mut material[32..]).map_err(|_| invalid("scene-keys"))?;
-                    for (mut control, ends) in [(to_data, data_ends), (to_ui, ui_ends)] {
+                    for (mut control, ends, storage) in
+                        [(to_data, data_ends, snapshot_end), (to_ui, ui_ends, None)]
+                    {
                         io("scene-channel-keys", control.write_all(&material[..]))?;
                         for end in ends {
                             io("scene-channel-end", control.write_all(&end))?;
+                        }
+                        if let Some(handle) = storage {
+                            io("scene-snapshot-end", control.write_all(&handle))?;
                         }
                     }
                     if unsafe { WaitForSingleObject(data.hProcess, 5000) } != WAIT_OBJECT_0 {
@@ -134,6 +157,14 @@ pub(in super::super) fn read_scene(
         result["readOnly"] = json!(false);
         result["revision"] = json!(1);
         result["staleSaveRejected"] = json!(true);
+    }
+    if matches!(
+        mode,
+        SceneOperation::SavePersistent | SceneOperation::ReadPersistent
+    ) {
+        result["revision"] = json!(1);
+        result["persistent"] = json!(true);
+        result["readOnly"] = json!(mode == SceneOperation::ReadPersistent);
     }
     Ok(result)
 }

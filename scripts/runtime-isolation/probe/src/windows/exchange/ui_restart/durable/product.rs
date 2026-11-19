@@ -46,6 +46,10 @@ enum Action {
     BeginWin32Window {
         anchor: [u8; 32],
     },
+    EndWin32SceneSave {
+        begin: [u8; 32],
+        snapshot: win32_binding::Snapshot,
+    },
     EndWin32Window {
         begin: [u8; 32],
     },
@@ -169,6 +173,7 @@ struct State {
     actor: [u8; 32],
     schema: u16,
     pending: Option<[u8; 32]>,
+    scene_snapshot: Option<([u8; 32], win32_binding::Snapshot)>,
     window_session: win32_binding::Session,
     win32_anchor: Option<([u8; 32], [u8; 32])>,
     activated: std::collections::HashSet<[u8; 32]>,
@@ -243,9 +248,15 @@ impl State {
         Ok(())
     }
     fn apply_record(&mut self, actor: [u8; 32], action: &Action, digest: [u8; 32]) -> Result<()> {
-        if let Action::EndWin32Window { begin } = action {
+        if let Action::EndWin32Window { begin } | Action::EndWin32SceneSave { begin, .. } = action {
             if actor != self.actor || self.window_session != win32_binding::Session::Open(*begin) {
                 return Err(invalid("win32-window-end-binding"));
+            }
+            if let Action::EndWin32SceneSave { snapshot, .. } = action {
+                if self.scene_snapshot.is_some() {
+                    return Err(invalid("scene-snapshot-already-bound"));
+                }
+                self.scene_snapshot = Some((actor, *snapshot));
             }
             self.window_session = win32_binding::Session::Closed;
             return Ok(());
@@ -528,6 +539,7 @@ impl Store {
                         1
                     },
                     pending: None,
+                    scene_snapshot: None,
                     window_session: Default::default(),
                     win32_anchor: None,
                     activated: std::collections::HashSet::from([record.actor]),
@@ -714,6 +726,9 @@ impl Store {
                 package::verify_win32_binding(&mut source)?;
                 if self.state.window_session != win32_binding::Session::Unused {
                     package::verify_window_session(&mut source)?;
+                    if self.state.scene_snapshot.is_some() {
+                        package::verify_scene_snapshot(&mut source)?;
+                    }
                 }
             }
         }
@@ -774,6 +789,9 @@ impl Store {
                 package::verify_win32_binding(&mut file)?;
                 if self.state.window_session != win32_binding::Session::Unused {
                     package::verify_window_session(&mut file)?;
+                    if self.state.scene_snapshot.is_some() {
+                        package::verify_scene_snapshot(&mut file)?;
+                    }
                 }
             }
         }
@@ -958,7 +976,9 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
                 || args[0] == "open-win32-surface"
                 || args[0] == "open-win32-scene"
                 || args[0] == "check-win32-scene-denied-save"
-                || args[0] == "check-win32-scene-edit-conflict"))
+                || args[0] == "check-win32-scene-edit-conflict"
+                || args[0] == "save-win32-scene"
+                || args[0] == "read-saved-win32-scene"))
     {
         // The running broker itself must be the managed file, not a byte-identical copy.
         let running = file_info(&running_image)?;
@@ -981,6 +1001,15 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
         } else if args[0] == "open-win32-scene" {
             win32_binding::Operation::CheckWindow(win32_binding::WindowMode::Scene(
                 crate::window_receipt::SceneOperation::Once,
+            ))
+        } else if args[0] == "save-win32-scene" || args[0] == "read-saved-win32-scene" {
+            use crate::window_receipt::SceneOperation;
+            win32_binding::Operation::CheckWindow(win32_binding::WindowMode::Scene(
+                if args[0] == "save-win32-scene" {
+                    SceneOperation::SavePersistent
+                } else {
+                    SceneOperation::ReadPersistent
+                },
             ))
         } else if args[0] == "check-win32-scene-edit-conflict" {
             win32_binding::Operation::CheckWindow(win32_binding::WindowMode::Scene(

@@ -7,7 +7,7 @@ publish = false
 [workspace]
 
 [dependencies]
-rusqlite = {version = "=0.39.0", features=["bundled"]}
+rusqlite = {version = "=0.39.0", features=["bundled","serialize"]}
 kraqel-native-scene-model = { path = "../native-scene-model" }
 getrandom = "=0.4.3"
 serde = { version = "=1.0.229", features = ["derive"] }
