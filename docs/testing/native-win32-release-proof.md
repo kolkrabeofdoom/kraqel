@@ -97,3 +97,18 @@ Der Hash des Verbrauchsvermerks blieb über den Neustart gleich. Die schreibgesc
 Auf einer frischen synthetischen Differenzplatte prüft `-Trial proof-live-loss` den Zeitraum nach dem Lesen von Szene A auf Revision 1. Das Fenster setzt seinen Bereitschaftstitel erst nach dem Rücklesen des angezeigten Texts. Der Datendienst hält die schreibgeschützt geöffnete Ablage. Ein separater Beobachtungsprozess gleicht beide Prozessgenerationen mit den geschützten Startbelegen ab und hält ausschließlich Prozesshandles für Abfrage und Synchronisation. Er prüft, dass beide Rollen leben, beendet die Kontrollinstanz mit Code 105 und wartet höchstens fünf Sekunden auf beide Prozessenden. Der anschließende reguläre Neustart muss vor der Ablagevorbereitung mit Code 102 enden. Der Hash von `pipe.lock` muss über diesen Neustart gleich bleiben.
 
 Der Gastlauf am 19. November 2026 bestand mit Prüfcode 0. Beide ursprünglichen Prozesshandles signalisierten innerhalb des Fünfsekundenfensters das Ende. Der Neustart endete mit Code 102, der Verbrauchsvermerk blieb unverändert. Die schreibgeschützte Nachprüfung bestätigte `read-consumed` und die zurückgebliebenen Startbelege der beendeten Generationen. Der Gast war ohne Netzwerkadapter und aktivierte Integrationsdienste eingerichtet. Er ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden.
+
+
+### ETW-Netzvergleich bei laufendem Lesepaar
+
+Am 19. November 2026 liefen Referenz und Ausfallprüfung auf einer frischen synthetischen Differenzplatte. Die Hashes aller vier Programme stimmten mit dem Funktionslauf überein. Der Beobachtungsprozess bestätigte beide lebenden Lesegenerationen unmittelbar vor dem Abbruch der Kontrollinstanz (105). ETW erfasste das Ende beider Rollen vor dem Ende des Beobachtungsprozesses und den anschließenden gesperrten Neustart (102) ohne Kindprozess. Der Verbrauchsvermerk blieb über den Neustart unverändert.
+
+| Messgröße | Referenz | Ausfall und Neustart |
+| --- | ---: | ---: |
+| ETW-Ereignisse / Prozesse im gemessenen Baum | 56 / 3 | 64 / 13 |
+| Netzwerkereignisse im gemessenen Baum | 0 | 0 |
+| Gastweite Loopback-Ereignisse / übrige oder unbekannte Ziele | 18 / 0 | 18 / 0 |
+| Erkannte TCP-/UDP-Kontrollen über IPv4 und IPv6 | 4/4 | 4/4 |
+| Verlorene Ereignisse und Puffer | 0 | 0 |
+
+Der schreibgeschützte Gegencheck bestätigte den Verbrauchszustand, die verbliebenen Startbelege, die Rollenrechte und die erzwungene Richtlinie. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden. Zur Wiederholung den ETW-Gasttreiber mit `-ExerciseTrial proof-live-loss` und die Auswertung mit `--proof proof-live-loss` verwenden. Die Rohspuren bleiben lokal.

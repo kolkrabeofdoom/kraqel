@@ -83,6 +83,37 @@ def check_starter_restart(fixture, measured, exits, root_pid):
 WITNESS_CRASH_CODES = {"proof-witness-loss": 103, "proof-consumed-loss": 104}
 
 
+def check_live_loss(fixture, measured, exits, root_pid):
+    observer, witness, issuer, restart = [p for p in fixture if p.image.endswith(r"\pipe-check.exe")]
+
+    def children(parent):
+        return [p for p in measured if p.parent == parent.pid and parent.contains(p.start)]
+
+    def exit_code(proc):
+        return exits.get((proc.pid, proc.start))
+
+    require(observer.parent == restart.parent == root_pid and observer.end <= restart.start
+            and [exit_code(p) for p in (observer, witness, issuer, restart)] == [0, 105, 101, 102],
+            "Missing observer completion, witness loss, issuer crash or restart denial")
+    require(children(observer) == [witness] and witness.end <= observer.end and not children(restart),
+            "Unexpected observer or restart descendants")
+    readers = [p for p in children(witness) if p != issuer]
+    writers = children(issuer)
+    require(issuer in children(witness) and issuer.end <= witness.end, "Unbound issuer")
+    for roles in (writers, readers):
+        require(len(roles) == 3 and all(p in fixture and not children(p) for p in roles)
+                and {p.image.rsplit("\\", 1)[-1] for p in roles}
+                == {"native-leaf.exe", "pipe-service.exe", "pipe-other.exe"}, "Unexpected role tree")
+    for proc in writers:
+        expected = {"native-leaf.exe": 73, "pipe-service.exe": 72, "pipe-other.exe": 42}
+        require(proc.end <= issuer.end and exit_code(proc) == expected[proc.image.rsplit("\\", 1)[-1]],
+                "Unexpected issuer role completion")
+    for proc in readers:
+        require(issuer.end <= proc.start and proc.end <= observer.end, "Reader survived observation")
+        if proc.image.endswith(r"\pipe-other.exe"):
+            require(exit_code(proc) == 42 and proc.end <= witness.end, "Missing reader preflight")
+
+
 def check_release_roles(fixture, measured, exits, root_pid, proof):
     witness, issuer, *restarts = [p for p in fixture if p.image.endswith(r"\pipe-check.exe")]
     if proof in WITNESS_CRASH_CODES:
@@ -161,10 +192,13 @@ def check(trace, record, exercise, window=False, crashes=False, channel_ends=Fal
     if starter_restart:
         expected = Counter({"pipe-check.exe": 5, "native-leaf.exe": 3, "pipe-other.exe": 3, "pipe-service.exe": 3})
     if proof:
-        pairs = 2 if proof == "proof-run" else 1
-        expected = Counter({"pipe-check.exe": 3 if proof in WITNESS_CRASH_CODES else 2, "pipe-service.exe": pairs, "native-leaf.exe": pairs, "pipe-other.exe": pairs})
+        pairs = 2 if proof in ("proof-run", "proof-live-loss") else 1
+        controllers = 4 if proof == "proof-live-loss" else 3 if proof in WITNESS_CRASH_CODES else 2
+        expected = Counter({"pipe-check.exe": controllers, "pipe-service.exe": pairs, "native-leaf.exe": pairs, "pipe-other.exe": pairs})
     require(roles == (expected if exercise else Counter()), f"Unexpected fixture roles: {roles}")
-    if proof and exercise:
+    if proof == "proof-live-loss" and exercise:
+        check_live_loss(fixture, measured, exits, record["root"])
+    elif proof and exercise:
         check_release_roles(fixture, measured, exits, record["root"], proof)
     if starter_restart and exercise:
         check_starter_restart(fixture, measured, exits, record["root"])
@@ -229,7 +263,7 @@ if __name__ == "__main__":
     group.add_argument("--commit-crashes", action="store_true")
     group.add_argument("--channel-ends", action="store_true")
     group.add_argument("--starter-restart", action="store_true")
-    group.add_argument("--proof", choices=("proof-run", "proof-incomplete", *WITNESS_CRASH_CODES))
+    group.add_argument("--proof", choices=("proof-run", "proof-incomplete", "proof-live-loss", *WITNESS_CRASH_CODES))
     args = parser.parse_args()
     result = {}
     for name in ("reference", "exercise"):
