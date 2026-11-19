@@ -1,5 +1,9 @@
 # BP4b · Unterbrochener Schreibframe und Empfangsfrist
 
+## Ergebnis vom 19. November 2026
+
+Beide Fehlerpfade und beide Wiederöffnungen bestanden mit den unten genannten Exitcodes. Die Oberfläche erhielt in beiden Fehlerfällen null Antwortbytes. Alle vier Prozesspaare hinterließen leere Jobs. Die unabhängige SQLite-Prüfung auf der ausgeschalteten Gastplatte bestätigte für beide Ablagen Revision 0, Dokument, Klartext, Suchindex und Integrität. Die Startfreigaben waren entfernt, die Rollenrechte und Paket-Hashes stimmten. Der Gast hatte keine Netzwerkadapter oder aktivierten Integrationsdienste und ist mit seiner ursprünglichen Platte ausgeschaltet. Der ETW-Netzvergleich für diesen Stand ist offen.
+
 ## Versuchsaufbau
 
 Im interaktiven Offline-Gast mit erzwungener UMCI erhält jeder Fall eine eigene SQLite-Testablage. Über das authentisierte Pipe-Paar liest die Oberfläche zuerst Szene A auf Revision 0. Für Anfrage 2 bildet sie einen gültigen Schreibframe mit erwarteter Revision 0 und geändertem synthetischem Text. Sie überträgt den 50-Byte-Header und das erste Nutzdatenbyte. Der Rest einschließlich Authentisierungstag bleibt aus.

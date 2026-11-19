@@ -117,5 +117,5 @@ bestätigt genau ein REQUEST/RESPONSE-Paar für A/read. Die
 Sequenznummern im Gast bestätigt.
 [Edit-Bindung und Konflikt](../testing/native-win32-edit-conflict.md) sind mit speicherresidentem
 Katalog bestätigt. [SQLite und regulärer Prozessneustart](../testing/native-win32-durable-reopen.md)
-sind im Gast geprüft. Der [Datendienstabbruch vor und nach Commit](../testing/native-win32-commit-crashes.md) ist geprüft. Offen sind gezielte Teilübertragung, Timeout,
-Fensterende und die übrigen Wiederanlauffälle. Der frische ETW-Netzvergleich deckt beide Commit-Abbruchpfade einschließlich Wiederöffnen ab.
+sind im Gast geprüft. Der [Datendienstabbruch vor und nach Commit](../testing/native-win32-commit-crashes.md) ist geprüft. Die [Teilübertragung und die Empfangsfrist von 30 Sekunden](../testing/native-win32-channel-interruptions.md) sind im Offline-Gast geprüft.
+Offen sind Fensterende, die übrigen Wiederanlauffälle und der Netzvergleich für diesen Build. Der frische ETW-Netzvergleich deckt beide Commit-Abbruchpfade einschließlich Wiederöffnen ab.

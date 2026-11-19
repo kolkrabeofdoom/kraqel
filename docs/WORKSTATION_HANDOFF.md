@@ -70,7 +70,8 @@ Schreibversuch mit Revision 0 und den unveränderten Endtext. Der
 Prozessneustart unter frischer Lesebindung sowie unabhängig auf der ausgeschalteten Gastplatte.
 Der [Datendienstabbruch an der Commitgrenze](testing/native-win32-commit-crashes.md) ist im Gast geprüft.
 Vor Commit bleibt Revision 0 erhalten, nach Commit vor Antwort Revision 1. Der frische ETW-Netzvergleich beider Pfade ergab null Netzwerkereignisse im Prüfprozessbaum.
-Als Nächstes stehen gezielte Teilübertragung und Timeout im Gast an. Produktdaten bleiben gesperrt.
+[Teilübertragung und 30-Sekunden-Timeout](testing/native-win32-channel-interruptions.md) sind im Gast bestätigt.
+Beide endeten ohne Schreibantwort und mit Revision 0. Offen sind Fensterende bei laufender Anfrage und ETW für diesen Build. Produktdaten bleiben gesperrt.
 
 Der Host-Abgleich für die Hörprüfung ergab einen aktiven hostseitigen Wiedergabeendpunkt. Für den
 isolierten Gast ist kein eigener Ausgang belegt, ein separater Prüfplatz war nicht verfügbar. Die
