@@ -11,10 +11,11 @@ Commitverlauf.
 
 Arbeitsbranch ist `feat/kq-069-live-file-selection`. Für die Fortsetzung im vorhandenen Checkout
 diesen Branch auswählen und mit `git pull --ff-only` aktualisieren. Die lokalen Belege zur
-Handleprüfung liegen unter `artifacts/bp3-offline-guest/result-series12/`. Die früheren Gastbelege
-liegen unter `artifacts/bp3-offline-guest/result-restart09/` (Wiederanlauf) und `result-series07/`
-im selben Verzeichnisbaum (Starterabbruch). Der Gast ist nach dem Lauf heruntergefahren.
-[Draft-PR #142](https://github.com/kolkrabeofdoom/kraqel/pull/142).
+Handleprüfung liegen unter `artifacts/bp3-offline-guest/result-series12/`, die frischen ETW-Spuren
+und das Protokoll des gemessenen Handlelaufs unter `artifacts/bp3-offline-guest/result-etw12a/`. Die
+früheren Gastbelege liegen unter `artifacts/bp3-offline-guest/result-restart09/` (Wiederanlauf) und
+`result-series07/` im selben Verzeichnisbaum (Starterabbruch). Der Gast ist nach dem Lauf
+heruntergefahren. [Draft-PR #142](https://github.com/kolkrabeofdoom/kraqel/pull/142).
 
 Der Offline-Gastlauf vom 19. November ist bestanden. Bei erzwungener UMCI erreichte das
 Kontrollprogramm mit statisch importierter erlaubter DLL den erwarteten Exit 50. Beim statischen
@@ -31,8 +32,9 @@ Richtlinie derselben ID, aber abweichendem CIP-Hash (UMCI 2), sperrte der regul�
 Starter. Zwei Prüffenster nach Gastneustarts mit je zwei Kontrollprozessen belegen null
 Starterstarts. Vor Resume ist für die synthetischen Blattrollen die Bindung an das offene
 Markerobjekt geprüft: Leserolle exakt `FILE_GENERIC_READ`, leere Rolle kein Handle auf dieses
-Objekt, reine Attributrechte als Leserolle vor Resume abgewiesen. Der nächste Schritt ist ein
-frischer ETW-Netzvergleich des geänderten Prüfpakets. Die präventive Bindung aller realen
+Objekt, reine Attributrechte als Leserolle vor Resume abgewiesen. Der frische ETW-Vergleich mit
+demselben Prüfpaket ergab null TCP-/UDP-Ereignisse in beiden Prozessbäumen. Alle vier
+Loopback-Kontrollen waren in jedem Messfenster sichtbar. Die präventive Bindung aller realen
 WebView2-Rollen bleibt offen. C4-Start und BP4-Datenzugriff bleiben gesperrt.
 [ADR 0035](architecture/decisions/0035-bp3-independent-process-and-image-enforcement.md).
 

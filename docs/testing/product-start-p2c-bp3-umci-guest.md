@@ -8,6 +8,47 @@ synthetischen Dateien wurden bei ausgeschalteter VM in die Gastplatte kopiert. B
 Installationsmedium und die Host-Einbindung der Gastplatte ausgehängt.
 [ADR 0035](../architecture/decisions/0035-bp3-independent-process-and-image-enforcement.md).
 
+## ETW-Netzvergleich am 19. November 2026
+
+Beide Zeitfenster liefen im selben Gaststart unter erzwungener UMCI auf einer Differenzplatte des
+geprüften Handle-Stands. Manifest, acht Fixturedateien, regulärer Gasteinstieg und installierte
+Richtlinie wurden vor dem Start abgeglichen. Der Manifesthash steht im nächsten Abschnitt.
+
+| Messgröße                                                   | Referenz | Prüflauf |
+| ----------------------------------------------------------- | -------: | -------: |
+| Erfasste ETW-Ereignisse insgesamt                           |       42 |       64 |
+| Prozesse im gemessenen Baum mit beobachtetem Start und Ende |        2 |       13 |
+| Davon synthetische Prüfprozesse                             |        0 |        8 |
+| TCP-/UDP-Ereignisse im gemessenen Baum                      |        0 |        0 |
+| TCP-/UDP-Ereignisse gastweit, beide Endpunkte auf Loopback  |       18 |       18 |
+| Zugeordnete Positivkontrollen / erwartet                    |    4 / 4 |    4 / 4 |
+| Verlorene Ereignisse oder Puffer                            |        0 |        0 |
+
+Die Referenz startete eine eigene PowerShell, prüfte das Manifest und wartete kurz. Im zweiten
+Fenster rief dieselbe Shell den regulären Gasteinstieg auf. ETW erfasste zwei Starter, vier Worker
+und beide statischen Importprogramme. Im selben Lauf bestätigte der Starter die exakte Lesemaske,
+die leere Rolle, die Abweisung der reduzierten Maske sowie den leeren Job nach Starterabbruch. Der
+Gasteinstieg bestätigte Exit 0 und die erwarteten CI-Sperren.
+
+Pro Fenster erzeugten vier separat gestartete Kontrollprozesse lokale TCP- und UDP-Ereignisse über
+IPv4 und IPv6. Die Zuordnung verwendete Start-PID, Image, Lebenszeit, Protokoll, Zielport und
+Loopbackadresse. Die beiden XML-Dekodierungen (Standard und `-lr`) ergaben dieselben Messwerte. Die
+Ereigniszahlen stimmten mit der jeweiligen ETL-Zusammenfassung überein. Der Beleg gilt für die
+beobachteten TCP-/UDP-Metadaten dieser Fenster im Gast ohne Netzadapter. Die echte
+WebView2-Laufzeit, Dateninhalte und andere Übertragungskanäle liegen außerhalb dieser Messung.
+[Bereinigte Zählwerte](product-start-p2c-bp3-umci-guest-etw.json).
+
+Zur Wiederholung eine frische Differenzplatte des ausgeschalteten, geprüften Gasts verwenden. Im
+Overlay `C:\BP3-ETW` anlegen und die beiden Skripte `etw-guest.ps1` und `etw-workload.ps1` aus
+`scripts/runtime-isolation/bp3-umci/` neben dem regulären Gasteinstieg ablegen. Nur den Messaufruf
+der vorhandenen Startaufgabe auf `etw-guest.ps1` umstellen und deren Stufe auf `reboot-pending`
+setzen. Nach dem automatischen Herunterfahren die Messdateien schreibgeschützt aus dem Overlay
+übernehmen und die ursprüngliche Gastplatte wieder auswählen. Für jedes Fenster (`reference`,
+`exercise`) die ETL mit `tracerpt <Name>.etl -of XML -o <Name>.xml -lr -y` dekodieren. Im Checkout
+`python scripts/m3-network/bp3_guest.py <lokales Ergebnisverzeichnis>` aufrufen und das native
+Ergebnis in `exercise.log` mit der Handleprüfung abgleichen. ETL, Prozesskennungen und
+Gastprotokolle bleiben lokal.
+
 ## Handle-Rechte vor der ersten Ausführung
 
 **Bestanden am 19. November 2026.** Vor Resume wurden folgende Werte im Offline-Gast gemessen:
@@ -139,7 +180,7 @@ SHA-256 `56aa438921ed13d158f998de84bd05d9353ca1b78475eb275841f9ca1c0122e1`.
 Die VM `KRAQEL-BP3-Offline` und die Rohbelege bleiben lokal. Der verifizierte Ergebnisstand liegt
 unter `artifacts/bp3-offline-guest/result-series05/`, das zugehörige Prüfpaket unter
 `artifacts/bp3-umci-fixture-05/`. Die Hostkonfiguration und die Ereignisse zu Ladesperren sind
-geprüft. Ein eigener ETW-Netzvergleich gehört weiterhin zur offenen Abnahme.
+geprüft. Der spätere Netzvergleich oben gilt für das Prüfpaket mit Handleprüfung.
 
 ### Befunde aus den Vorläufen
 
@@ -225,8 +266,8 @@ Artefakthashes übernehmen.
   gelinkten Programme im v2-Gastlauf. Der Handleunterschied ist durch Übergabeliste und Leseversuch
   nachgewiesen. Die Handleprüfung vor Resume ist oben dokumentiert.
 - Der Starter prüft Workerexit und Jobleerstand. Der Abbruchfall ist oben dokumentiert. Die beiden
-  Wiederanlaufsperren sind oben dokumentiert. Ein eigener Netzbeleg steht aus. Ein erfolgreicher
-  Gastlauf der vorhandenen Testfälle allein genügt daher nicht für die volle Abnahme nach ADR 0035.
+  Wiederanlaufsperren und der Netzvergleich des synthetischen Prüfpakets sind oben dokumentiert. Die
+  präventive Bindung der tatsächlichen WebView2-Rollen bleibt für ADR 0035 offen.
 
 Die Hostvalidierung umfasst den Build mit `/W4 /WX`, die Erzeugung der unaktivierten CIP aus der
 lokalen Windows-Plattformbasis, Prüfung von Artefakthashes und Policyoptionen sowie Startabweisung

@@ -63,7 +63,8 @@ Die Bewertung wurde anhand der Primärdokumentation und des bestehenden Quell- u
 abgeschlossen. Die vorhandene synthetische Gastprobe hat zwei Blattrollen und die Sperre fremder
 EXE-/DLL-Images unter erzwungener UMCI nachgewiesen. Die fremde statische Start-DLL wurde im Gast
 durch UMCI gesperrt, der Positivimport lief. Die effektiven Rechte am synthetischen Markerobjekt
-sind vor Resume geprüft. Der eigene Netzbeleg für diesen Binärstand bleibt offen. Bei fehlender
+sind vor Resume geprüft. Der ETW-Vergleich dieses Binärstands ergab null TCP-/UDP-Ereignisse im
+Referenz- und Prüfprozessbaum bei vier erfassten Positivkontrollen je Fenster. Bei fehlender
 Prüfrichtlinie und geänderter Richtlinienversion derselben ID ist die Wiederanlaufsperre des
 synthetischen Einstiegs belegt. Der gezielte Starterausfall mit laufendem synthetischem
 Blattprozess, dessen Ende und der Leerstand der Gruppe sind im Offline-Gast bestätigt. Für die

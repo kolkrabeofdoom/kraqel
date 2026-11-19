@@ -343,8 +343,9 @@ Datenschutzziel bleibt unverändert.
              identischer ID jeweils vor dem Starter gesperrt.
        - [x] KQ-069 A: Effektive Markerrechte vor Resume für Leserolle und leere Rolle geprüft,
              Negativkontrolle mit Attributrechten vor Ausführung abgewiesen.
-       - [ ] KQ-069 A: Frischen Netzbeleg des geänderten Prüfpakets erheben. Präventive
-             Rollenbindung für WebView2 und BP4-Datenrechte bleiben offen.
+       - [x] KQ-069 A: Frischer ETW-Netzvergleich des Prüfpakets mit Handleprüfung im Offline-Gast.
+             Beide Prozessbäume ohne beobachtete TCP-/UDP-Ereignisse, je vier Positivkontrollen.
+       - [ ] KQ-069 A: Präventive Rollenbindung für WebView2 klären. BP4-Datenrechte bleiben offen.
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native
              Rollenbindung und effektive Datenrechte; neue Bytes erneut messen; anschließend C4c/d
              WebView/SQLite unter belegtem Rollen-/Token-/Jobvertrag getrennt integrieren;
