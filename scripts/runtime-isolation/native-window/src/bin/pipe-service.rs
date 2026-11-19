@@ -1,4 +1,8 @@
-//! BP4b suspended data-role fixture. An unexpected resume fails closed.
+use kraqel_window_probe::bootstrap::{Endpoint, Role};
 fn main() {
-    std::process::exit(75);
+    std::process::exit(
+        Endpoint::open(Role::Data)
+            .and_then(Endpoint::service)
+            .unwrap_or(65),
+    );
 }

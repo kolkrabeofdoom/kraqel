@@ -1,3 +1,4 @@
+pub mod bootstrap;
 pub mod suspended;
 use std::io;
 use std::mem::{size_of, zeroed};

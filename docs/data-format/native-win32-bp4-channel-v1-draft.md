@@ -110,5 +110,6 @@ cargo test --locked --offline --manifest-path scripts/runtime-isolation/native-s
 ```
 
 Die [Gastprüfung der Pipe-Rechte](../testing/native-win32-pipe-rights.md) bestätigt die
-Endpunktzuordnung vor Resume. Offen sind authentisierter Bootstrap, Lesen aus einem partiellen
-Bytestrom, Timeout und beidseitiges Schließen über Prozessgrenzen.
+Endpunktzuordnung vor Resume. Der [native Startnachweis](../testing/native-win32-hello-ready.md)
+bestätigt Bootstrap und HELLO/READY. Offene Prüfungen umfassen Szenennachrichten, gezielte
+Teilübertragung, Timeout, Fensterende, Wiederanlauf und ETW für die neuen Bytes.

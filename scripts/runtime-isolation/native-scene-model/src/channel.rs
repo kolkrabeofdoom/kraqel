@@ -20,13 +20,46 @@ enum Kind {
     Response,
 }
 
-struct Binding {
+#[derive(Clone, Copy)]
+pub enum Handshake {
+    Hello,
+    Ready,
+}
+impl Handshake {
+    fn kind(self) -> Kind {
+        match self {
+            Self::Hello => Kind::Hello,
+            Self::Ready => Kind::Ready,
+        }
+    }
+}
+pub const HANDSHAKE_BYTES: usize = HEADER + TAG;
+
+pub struct Binding {
     id: [u8; 32],
     request: Zeroizing<Key>,
     response: Zeroizing<Key>,
 }
 
 impl Binding {
+    /// Bootstrap material supplied by the trusted launcher, or by a synthetic model driver.
+    pub fn from_keys(id: [u8; 32], request: Key, response: Key) -> Result<Self, Closed> {
+        if request == response {
+            return Err(Closed);
+        }
+        Ok(Self {
+            id,
+            request: Zeroizing::new(request),
+            response: Zeroizing::new(response),
+        })
+    }
+    pub fn handshake_frame(&self, message: Handshake) -> Result<Vec<u8>, Closed> {
+        self.encode(message.kind(), 0, &[])
+    }
+    pub fn verify_handshake(&self, message: Handshake, bytes: &[u8]) -> Result<(), Closed> {
+        self.decode(bytes, message.kind(), 0).map(|_| ())
+    }
+
     fn mac(&self, kind: Kind) -> Hmac<Sha256> {
         let key = match kind {
             Kind::Hello | Kind::Request => &self.request,

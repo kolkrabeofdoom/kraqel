@@ -12,6 +12,6 @@ try {
     foreach ($file in $expected.files) {
         if ((Get-FileHash -LiteralPath "$dir\$($file.name)").Hash -ne $file.hash) { throw 'Fixture mismatch.' }
     }
-    & "$dir\pipe-check.exe"
+    & "$dir\pipe-check.exe" handshake
     exit $LASTEXITCODE
 } catch { Write-Output $_.Exception.Message; exit 1 }

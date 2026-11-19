@@ -31,7 +31,7 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
         }
     }
 }
-fn show() -> i32 {
+fn show(endpoint: Option<bootstrap::Endpoint>) -> i32 {
     unsafe {
         let instance = GetModuleHandleW(null());
         let name = wide("KRAQEL.Synthetic.Edit");
@@ -102,6 +102,11 @@ fn show() -> i32 {
         }
         SendDlgItemMessageW(hwnd, EDIT, EM_SETLIMITTEXT, 48, 0);
         ShowWindow(hwnd, SW_SHOW);
+        if let Some(endpoint) = endpoint {
+            let exit = endpoint.window().unwrap_or(64);
+            DestroyWindow(hwnd);
+            return exit;
+        }
         SetFocus(GetDlgItem(hwnd, EDIT));
         let mut msg = MSG::default();
         loop {
@@ -132,8 +137,14 @@ fn show() -> i32 {
     }
 }
 fn main() {
+    if bootstrap::Role::Window.receipt().exists() {
+        let exit = bootstrap::Endpoint::open(bootstrap::Role::Window)
+            .map(|endpoint| show(Some(endpoint)))
+            .unwrap_or(20);
+        std::process::exit(exit);
+    }
     if verify_leaf().is_err() {
         std::process::exit(20);
     }
-    std::process::exit(show());
+    std::process::exit(show(None));
 }

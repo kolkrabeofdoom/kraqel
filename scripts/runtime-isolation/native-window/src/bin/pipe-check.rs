@@ -128,7 +128,7 @@ fn assign(
     source: &Handle,
     rights: u32,
     inventory: &mut Inventory,
-) -> io::Result<()> {
+) -> io::Result<usize> {
     unsafe {
         let mut remote = null_mut();
         check(DuplicateHandle(
@@ -158,7 +158,8 @@ fn assign(
         require(
             inventory.insert(remote as usize, (rights, 0)).is_none(),
             "unexpected existing handle",
-        )
+        )?;
+        Ok(remote as usize)
     }
 }
 fn check_pipe_acl(endpoint: &Handle, other: &Suspended) -> io::Result<()> {
@@ -219,9 +220,8 @@ fn check_pipe_acl(endpoint: &Handle, other: &Suspended) -> io::Result<()> {
         result
     }
 }
-fn finish(child: &Suspended) -> io::Result<()> {
+fn drain(child: &Suspended) -> io::Result<()> {
     unsafe {
-        check(TerminateProcess(child.proc.0, 75))?;
         require(
             WaitForSingleObject(child.proc.0, 5000) == WAIT_OBJECT_0,
             "child end",
@@ -243,7 +243,31 @@ fn finish(child: &Suspended) -> io::Result<()> {
     }
     Err(io::Error::other("job drain"))
 }
-fn run() -> io::Result<()> {
+#[derive(Clone, Copy, PartialEq)]
+enum Trial {
+    Suspended,
+    BadReady,
+    Valid,
+}
+
+struct Receipt(std::path::PathBuf);
+impl Receipt {
+    fn write(role: bootstrap::Role, content: &str) -> io::Result<Self> {
+        use std::io::Write;
+        let path = role.receipt();
+        let mut file = std::fs::File::create_new(&path)?;
+        let guard = Self(path);
+        file.write_all(content.as_bytes())?;
+        Ok(guard)
+    }
+}
+impl Drop for Receipt {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
+}
+
+fn run(trial: Trial) -> io::Result<()> {
     guest_image("pipe-check.exe")?;
     let ui_profile = Profile::fresh(PROFILE)?;
     let data_profile = Profile::fresh("org.kraqel.bp4.data")?;
@@ -258,15 +282,36 @@ fn run() -> io::Result<()> {
     let (br, bw) = pipe()?;
     let read = FILE_READ_DATA | SYNCHRONIZE;
     let write = FILE_WRITE_DATA | SYNCHRONIZE;
-    assign(&ui, &aw, write, &mut ui_set)?;
-    assign(&ui, &br, read, &mut ui_set)?;
-    assign(&data, &ar, read, &mut data_set)?;
-    assign(&data, &bw, write, &mut data_set)?;
+    let uw = assign(&ui, &aw, write, &mut ui_set)?;
+    let ur = assign(&ui, &br, read, &mut ui_set)?;
+    let dr = assign(&data, &ar, read, &mut data_set)?;
+    let dw = assign(&data, &bw, write, &mut data_set)?;
     for end in [&ar, &aw, &br, &bw] {
         check_pipe_acl(end, &other)?;
     }
     println!("four endpoint ACLs deny read, write and create-instance for the foreign token");
     drop((ar, aw, br, bw));
+    let mut receipts = Vec::new();
+    if trial != Trial::Suspended {
+        use bootstrap::Role;
+        use windows_sys::Win32::System::Memory::SECTION_MAP_READ;
+        let mut keys = zeroize::Zeroizing::new([0u8; 96]);
+        getrandom::fill(keys.as_mut_slice()).map_err(|_| io::Error::other("random material"))?;
+        for (role, child, ends, set) in [
+            (Role::Window, &ui, [ur, uw], &mut ui_set),
+            (Role::Data, &data, [dr, dw], &mut data_set),
+        ] {
+            if role == Role::Data && trial == Trial::BadReady {
+                keys[95] ^= 1;
+            }
+            let section = bootstrap::section(role, &ui.generation, &data.generation, ends, &keys)?;
+            let id = assign(child, &section, SECTION_MAP_READ, set)?;
+            receipts.push(Receipt::write(
+                role,
+                &bootstrap::receipt(role, &ui.generation, &data.generation, id),
+            )?);
+        }
+    }
     require(
         inventory(&ui)? == ui_set
             && inventory(&data)? == data_set
@@ -293,16 +338,54 @@ fn run() -> io::Result<()> {
         check(GetExitCodeProcess(other.proc.0, &mut exit))?;
         require(exit == 42, "countercheck denial")?;
         println!("foreign role: access denied for both held generations");
-        finish(&ui)?;
-        finish(&data)?;
-        println!("UI and data jobs empty; neither resumed");
+        if trial == Trial::Suspended {
+            check(TerminateProcess(ui.proc.0, 75))?;
+            check(TerminateProcess(data.proc.0, 75))?;
+        } else {
+            require(
+                ResumeThread(data.thread.0) == 1 && ResumeThread(ui.thread.0) == 1,
+                "pair resume",
+            )?;
+            let pair = [data.proc.0, ui.proc.0];
+            require(
+                WaitForMultipleObjects(2, pair.as_ptr(), 1, 30000) == WAIT_OBJECT_0,
+                "pair deadline",
+            )?;
+            let (mut data_exit, mut ui_exit) = (0, 0);
+            check(GetExitCodeProcess(data.proc.0, &mut data_exit))?;
+            check(GetExitCodeProcess(ui.proc.0, &mut ui_exit))?;
+            println!("data exit {data_exit}; UI exit {ui_exit}");
+            require(
+                data_exit == 60 && ui_exit == if trial == Trial::BadReady { 63 } else { 62 },
+                "handshake outcome",
+            )?;
+        }
+        drain(&ui)?;
+        drain(&data)?;
+        println!("UI and data jobs empty");
         Ok(())
     })();
     std::fs::remove_file(ids)?;
     result
 }
 fn main() {
-    if let Err(e) = run() {
+    let result = (|| {
+        guest_image("pipe-check.exe")?;
+        use std::os::windows::fs::OpenOptionsExt;
+        let _lock = std::fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .share_mode(0)
+            .open(Path::new(DIR).join("pipe.lock"))?;
+        if std::env::args().nth(1).as_deref() == Some("handshake") {
+            run(Trial::BadReady)?;
+            run(Trial::Valid)
+        } else {
+            run(Trial::Suspended)
+        }
+    })();
+    if let Err(e) = result {
         eprintln!("pipe check: {e}");
         std::process::exit(1)
     }

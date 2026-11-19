@@ -57,8 +57,10 @@ unbeabsichtigtes Überschreiben getestet. Der
 [BP4b-Kanalvertrag](data-format/native-win32-bp4-channel-v1-draft.md) legt Rollenbindung und
 Replayabwehr fest. Framecodec und Replayabwehr sind im reinen Modell geprüft. Die
 [Pipe-Prüfung im Offline-Gast](testing/native-win32-pipe-rights.md) bestätigt vor Resume die
-Endpunktrechte und die Zugriffssperre für den geprüften Fremdprozess. Nächster Schritt:
-rollengebundenen Bootstrap und HELLO/READY prüfen. Produktdaten bleiben gesperrt.
+Endpunktrechte und die Zugriffssperre für den geprüften Fremdprozess. Auch der
+[native HELLO/READY-Lauf](testing/native-win32-hello-ready.md) ist bestanden, einschließlich der
+Abweisung eines falsch authentisierten READY. Als Nächstes genau eine synthetische Szene auf dem
+gebundenen Kanal lesen. Produktdaten bleiben gesperrt.
 
 Der Host-Abgleich für die Hörprüfung ergab einen aktiven hostseitigen Wiedergabeendpunkt. Für den
 isolierten Gast ist kein eigener Ausgang belegt, ein separater Prüfplatz war nicht verfügbar. Die
