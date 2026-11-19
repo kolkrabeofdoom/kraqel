@@ -56,7 +56,8 @@ Vor Commit bleibt Revision 0 erhalten, nach Commit vor Antwort Revision 1. Der f
 [Teilübertragung und 30-Sekunden-Timeout](testing/native-win32-channel-interruptions.md) sind im Gast bestätigt.
 Beide endeten ohne Schreibantwort und mit Revision 0. [Fensterende vor Commit und ETW](testing/native-win32-window-close.md) sind für den neuen Build geprüft.
 Dienstende und Revision 0 sind bestätigt, im Prüfprozessbaum wurden null Netzwerkereignisse gemessen. Der [Wiederanlauf nach Starterabbruch](testing/native-win32-starter-restart.md) blieb dreimal gesperrt.
-Der frische ETW-Netzvergleich bestätigte null Netzwerkereignisse im Prüfprozessbaum. Alle drei gesperrten Starter endeten ohne Kindprozess. Produktdaten bleiben gesperrt.
+Der frische ETW-Netzvergleich bestätigte null Netzwerkereignisse im Prüfprozessbaum. Alle drei gesperrten Starter endeten ohne Kindprozess.
+Die [Freigabebedingungen nach Starterabbruch](data-format/native-win32-bp4-channel-v1-draft.md#freigabeentscheidung-nach-starterabbruch) sind spezifiziert. Für die bestehende Ablage fehlt der Endebeleg. Sie bleibt gesperrt. Ein positiver Freigabepfad ist offen. Produktdaten bleiben gesperrt.
 
 Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:
 

@@ -79,6 +79,23 @@ Transaktionsende darf eine neue Paarung unter der Kontrollsperre entstehen. Sie 
 Schlüssel und Kanal-ID und liest zuerst den gespeicherten Stand. Der alte Startauftrag bleibt
 verbraucht. Fehlt nach Starterabbruch ein verlässlicher Endebeleg, bleibt die Ablage gesperrt.
 
+### Freigabeentscheidung nach Starterabbruch
+
+**Entscheidung für die vorhandene synthetische Ablage:** Sie bleibt gesperrt. Im [gemessenen Abbruchlauf](../testing/native-win32-starter-restart.md) blieb `pending` zurück. Die ursprünglichen Jobhandles sind verloren und der Transaktionsausgang ist ungeklärt. Die drei abgewiesenen Neustarts und der ETW-Netzvergleich bestätigen die Sperre. Sie liefern keinen Endebeleg.
+
+**Stand der Implementierung.** Der [Prüfstarter](../../scripts/runtime-isolation/native-window/src/bin/pipe-check.rs) schreibt unter exklusiver Kontrollsperre vor Arbeitsbeginn `pending` und synchronisiert den Vermerk. Im regulären Ablauf wartet er auf die ursprünglichen Prozesshandles, prüft beide gehaltenen Jobs auf Leerstand und verlangt die Entfernung der Startinformationen. Erst dann schreibt und synchronisiert er `drained`. Beide Vermerke enthalten den Hash des Paketankers. Dieser identifiziert weder einen einzelnen Auftrag noch dessen SQLite-Ergebnis. Der bestehende Starter besitzt keinen Übergang, der eine nach einem Abbruch gesperrte Ablage wieder freigibt.
+
+**Bedingungen für einen künftigen Freigabepfad.** Alle folgenden Nachweise müssen unter derselben exklusiven Kontrollsperre zusammenpassen, bevor der Starter irgendeine Rolle startet oder SQLite öffnet.
+
+1. **Herkunft und Aktualität.** Ein lokal geschützter Startvermerk bindet vor dem ersten Rollenstart eine eindeutige Auftragsgeneration an Paket, Richtlinie, Sitzung und die konkrete synthetische Ablage. Der Endebeleg muss von der dafür vorgesehenen vertrauenswürdigen lokalen Kontrollinstanz stammen und exakt diesem offenen Auftrag entsprechen. Ein früherer Beleg desselben Pakets darf weder wiederverwendet noch durch Zurückspielen eines älteren Kontrollstands gültig werden.
+2. **Ende beider Rollen.** Die Kontrollinstanz hat das Ende der ursprünglichen Prozessgenerationen und den Leerstand beider zugehörigen Jobs anhand der seit dem Start gehaltenen Kernelobjekte festgestellt. Die alten Kanalenden und Startfreigaben sind unwirksam. Soll der Beleg erst nach dem Starterabbruch entstehen, muss eine überlebende Kontrollinstanz diese Beobachtungsmöglichkeit bereits vor dem Rollenstart erhalten haben. Ein späterer Prozessscan, eine freie Dateisperre oder eine fehlende PID ersetzt sie nicht.
+3. **Abgeschlossene Transaktion.** Ein dem Auftrag zugeordneter, dauerhafter Nachweis bestätigt entweder den erfolgten Commit samt Zielrevision oder den abgeschlossenen Rollback samt Ausgangsrevision. Eine Absichtserklärung vor Commit, eine ausgebliebene UI-Antwort und der Zustand einer Journaldatei reichen nicht aus. Ein Abbruch zwischen SQLite-Abschluss und dauerhafter Bestätigung bleibt ungeklärt. Auch zum Nachsehen bleibt die Datenbank in diesem Zustand geschlossen.
+4. **Einmaliger Übergang.** Erst wenn alle Nachweise vollständig sind, darf die Kontrollinstanz den alten Auftrag dauerhaft abschließen und seine Freigaben verbrauchen. Der erste neue Zugriff erfolgt unter frischer Lesebindung mit neuen Pipes, Schlüsseln und Kanal-ID. Er muss die belegte Revision bestätigen. Bei Abweichung endet die Paarung gesperrt. Ein Schreibauftrag erfordert eine eigene neue Edit-Bindung. Ein unterbrochener oder widersprüchlicher Kontrollübergang erlaubt keinen Zugriff.
+
+Für diesen Entscheid genügen lokale Zustandskennungen und gebundene Revisionen. Szenentext, Schlüssel, Rohframes und externe Dienste sind dafür entbehrlich. Ein manuelles Löschen oder Umschreiben des Sperrvermerks ist kein Freigabeverfahren.
+
+**Gezielte Abnahme vor einer Implementierungsfreigabe.** Auf einer frischen synthetischen Ablage genau einen passenden Abschluss zur einmaligen Lesefreigabe führen. Einen alten oder fremden Abschluss sowie den Abbruch vor dauerhafter Abschlussbestätigung vor jedem Rollenstart abweisen. Bei wiederholtem oder konkurrierendem Aufruf darf höchstens eine neue Lesepaarung entstehen. Diese Positiv- und Negativfälle sind geplant. Die heutige Sperrprüfung bleibt ihr eigener verifizierter Befund.
+
 ## Gezielte Abnahme
 
 Öffentlicher Testvektor für HELLO: Kanal-ID mit aufsteigenden Bytes von Hex 00 bis 1f,
