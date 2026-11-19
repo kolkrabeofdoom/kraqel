@@ -112,3 +112,10 @@ Am 19. November 2026 liefen Referenz und Ausfallprüfung auf einer frischen synt
 | Verlorene Ereignisse und Puffer | 0 | 0 |
 
 Der schreibgeschützte Gegencheck bestätigte den Verbrauchszustand, die verbliebenen Startbelege, die Rollenrechte und die erzwungene Richtlinie. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden. Zur Wiederholung den ETW-Gasttreiber mit `-ExerciseTrial proof-live-loss` und die Auswertung mit `--proof proof-live-loss` verwenden. Die Rohspuren bleiben lokal.
+
+
+## Ausfall nach Ende des Lesepaars vor der Bereinigung
+
+Der gezielte Gastlauf `-Trial proof-pre-cleanup-loss` vom 19. November 2026 verwendete eine frische synthetische Ablage. Nach dem Lesen von Szene A auf Revision 1 endeten Datendienst (74) und Fenster (75) regulär. Erst nachdem die Kontrollinstanz beide Exitcodes und beide leeren Prozessjobs geprüft hatte, beendete sie sich hart mit Code 106. Zu diesem Zeitpunkt lagen die zwei Startbelege und die Prozessliste noch vor.
+
+Der reguläre Neustart endete vor der Ablagevorbereitung mit Code 102. Die Hashes des Verbrauchsvermerks und aller drei zurückgebliebenen Dateien blieben über den Neustart gleich. Die schreibgeschützte Nachprüfung bestätigte den Zustand `read-consumed`, die Rollenrechte und die erzwungene Richtlinie. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden.

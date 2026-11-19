@@ -129,6 +129,7 @@ pub(super) enum ProofCase {
     WitnessLoss,
     LossAfterConsumption,
     LiveLoss,
+    BeforeCleanup,
 }
 
 pub(super) fn exercise(anchor: &[u8], case: ProofCase) -> io::Result<()> {
@@ -165,6 +166,10 @@ pub(super) fn exercise(anchor: &[u8], case: ProofCase) -> io::Result<()> {
         .write_all(&nonce[..])?;
     drop(nonce);
     require(child.wait()?.code() == Some(101), "issuer crash missing")?;
+    if case == ProofCase::BeforeCleanup {
+        witness.release_with(Trial::ReadCrashBeforeCleanup, || Ok(()))?;
+        return Err(io::Error::other("pre-cleanup crash missing"));
+    }
     if case == ProofCase::LiveLoss {
         witness.release_with(Trial::HeldRead, || Ok(()))?;
         return Err(io::Error::other("live witness crash missing"));

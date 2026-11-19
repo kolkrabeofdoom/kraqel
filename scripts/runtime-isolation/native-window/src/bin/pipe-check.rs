@@ -253,6 +253,7 @@ enum Trial {
     DeniedSave,
     StoreRead,
     HeldRead,
+    ReadCrashBeforeCleanup,
     StoreEdit,
     StorePhase(scene_store::StorePhase),
     EditConflict,
@@ -327,8 +328,10 @@ fn run_pair(trial: Trial, crash_starter: bool) -> io::Result<()> {
     guest_image("pipe-check.exe")?;
     let ui_profile = Profile::fresh(PROFILE)?;
     let data_profile = Profile::fresh(
-        if matches!(trial, Trial::StoreRead | Trial::HeldRead)
-            || matches!(trial,Trial::StorePhase(c) if c.reader())
+        if matches!(
+            trial,
+            Trial::StoreRead | Trial::HeldRead | Trial::ReadCrashBeforeCleanup
+        ) || matches!(trial,Trial::StorePhase(c) if c.reader())
         {
             scene_store::READER
         } else {
@@ -374,7 +377,7 @@ fn run_pair(trial: Trial, crash_starter: bool) -> io::Result<()> {
                 bootstrap::Purpose::StoreEdit
             } else if trial == Trial::HeldRead {
                 bootstrap::Purpose::HeldRead
-            } else if trial == Trial::StoreRead {
+            } else if matches!(trial, Trial::StoreRead | Trial::ReadCrashBeforeCleanup) {
                 bootstrap::Purpose::StoreRead
             } else if trial == Trial::EditConflict {
                 bootstrap::Purpose::EditConflict
@@ -455,7 +458,7 @@ fn run_pair(trial: Trial, crash_starter: bool) -> io::Result<()> {
                         Trial::ReadA => (66, 67),
                         Trial::StoreEdit => (72, 73),
                         Trial::StorePhase(c) => c.exits(),
-                        Trial::StoreRead => (74, 75),
+                        Trial::StoreRead | Trial::ReadCrashBeforeCleanup => (74, 75),
                         Trial::EditConflict => (70, 71),
                         Trial::DeniedSave => (68, 69),
                         Trial::BadReady => (60, 63),
@@ -467,6 +470,10 @@ fn run_pair(trial: Trial, crash_starter: bool) -> io::Result<()> {
         drain(&ui)?;
         drain(&data)?;
         println!("UI and data jobs empty");
+        if trial == Trial::ReadCrashBeforeCleanup {
+            check(TerminateProcess(GetCurrentProcess(), 106))?;
+            return Err(io::Error::other("pre-cleanup termination returned"));
+        }
         Ok(())
     })();
     std::fs::remove_file(ids)?;
@@ -543,6 +550,9 @@ fn main() {
         let anchor = Sha256::digest(std::fs::read(Path::new(DIR).join("anchor.json"))?);
         use release_proof::ProofCase;
         match trial.as_deref() {
+            Some("proof-pre-cleanup-loss") => {
+                return release_proof::exercise(&anchor, ProofCase::BeforeCleanup);
+            }
             Some("proof-live-loss") => return release_proof::observe_live_loss(),
             Some("proof-live-witness") => {
                 return release_proof::exercise(&anchor, ProofCase::LiveLoss);

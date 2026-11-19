@@ -1,4 +1,4 @@
-param([ValidateSet('read-scene','deny-save','edit-conflict','durable-reopen','commit-crashes','channel-interruptions','window-close','channel-ends','starter-restart','proof-run','proof-incomplete','proof-witness-loss','proof-consumed-loss','proof-live-loss','handshake','reference','exercise')][string]$Trial='commit-crashes')
+param([ValidateSet('read-scene','deny-save','edit-conflict','durable-reopen','commit-crashes','channel-interruptions','window-close','channel-ends','starter-restart','proof-run','proof-incomplete','proof-witness-loss','proof-consumed-loss','proof-live-loss','proof-pre-cleanup-loss','handshake','reference','exercise')][string]$Trial='commit-crashes')
 $ErrorActionPreference='Stop'
 $dir='C:\Program Files\KRAQEL-Window-Probe'
 try {
@@ -15,16 +15,27 @@ try {
     }
     if ($Trial -eq 'reference') { Start-Sleep -Seconds 2; exit 0 }
     if ($Trial -eq 'exercise') { $Trial = 'commit-crashes' }
-    if ($Trial -in 'proof-witness-loss','proof-consumed-loss','proof-live-loss') {
+    if ($Trial -in 'proof-witness-loss','proof-consumed-loss','proof-live-loss','proof-pre-cleanup-loss') {
         $consumed = $Trial -eq 'proof-consumed-loss'
-        $exitCode = if ($Trial -eq 'proof-live-loss') { 0 } elseif ($consumed) { 104 } else { 103 }
+        $exitCode = if ($Trial -eq 'proof-live-loss') { 0 } elseif ($Trial -eq 'proof-pre-cleanup-loss') { 106 } elseif ($consumed) { 104 } else { 103 }
         & "$dir\pipe-check.exe" $Trial
         if ($LASTEXITCODE -ne $exitCode) { throw 'Expected witness crash missing.' }
         $path=Join-Path $dir 'pipe.lock'
         $before=(Get-FileHash -LiteralPath $path).Hash
+        if ($Trial -eq 'proof-pre-cleanup-loss') {
+            $receipts = 'window.start','data.start','pipe-targets.txt'
+            $receiptHashes = foreach ($name in $receipts) { (Get-FileHash -LiteralPath "$dir\$name").Hash }
+        }
         & "$dir\pipe-check.exe" proof-run
         if ($LASTEXITCODE -ne 102 -or (Get-FileHash -LiteralPath $path).Hash -ne $before) {
             throw 'Fresh witness denial or intact end record missing.'
+        }
+        if ($Trial -eq 'proof-pre-cleanup-loss') {
+            for ($i = 0; $i -lt $receipts.Count; $i++) {
+                if ((Get-FileHash -LiteralPath (Join-Path $dir $receipts[$i])).Hash -ne $receiptHashes[$i]) {
+                    throw 'Stale receipt changed on denied restart.'
+                }
+            }
         }
         Write-Output 'Witness crash confirmed; fresh witness denied; durable state unchanged.'
         exit 0
