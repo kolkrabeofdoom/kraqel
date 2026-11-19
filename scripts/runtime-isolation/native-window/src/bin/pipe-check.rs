@@ -248,6 +248,7 @@ enum Trial {
     Suspended,
     BadReady,
     ReadA,
+    DeniedSave,
     Valid,
 }
 
@@ -305,7 +306,9 @@ fn run(trial: Trial) -> io::Result<()> {
             if role == Role::Data && trial == Trial::BadReady {
                 keys[95] ^= 1;
             }
-            let purpose = if trial == Trial::ReadA {
+            let purpose = if trial == Trial::DeniedSave {
+                bootstrap::Purpose::DeniedSave
+            } else if trial == Trial::ReadA {
                 bootstrap::Purpose::ReadA
             } else {
                 bootstrap::Purpose::Handshake
@@ -366,6 +369,7 @@ fn run(trial: Trial) -> io::Result<()> {
                 (data_exit, ui_exit)
                     == match trial {
                         Trial::ReadA => (66, 67),
+                        Trial::DeniedSave => (68, 69),
                         Trial::BadReady => (60, 63),
                         _ => (60, 62),
                     },
@@ -390,7 +394,9 @@ fn main() {
             .truncate(false)
             .share_mode(0)
             .open(Path::new(DIR).join("pipe.lock"))?;
-        if std::env::args().nth(1).as_deref() == Some("read-scene") {
+        if std::env::args().nth(1).as_deref() == Some("deny-save") {
+            run(Trial::DeniedSave)
+        } else if std::env::args().nth(1).as_deref() == Some("read-scene") {
             run(Trial::ReadA)
         } else if std::env::args().nth(1).as_deref() == Some("handshake") {
             run(Trial::BadReady)?;

@@ -65,18 +65,42 @@ impl Binding {
         self,
         pipes: (&mut impl std::io::Read, &mut impl std::io::Write),
     ) -> Result<String, Closed> {
-        let (reader, writer) = pipes;
-        let frame = self.encode(Kind::Request, 1, br#"{"command":"c4_document_read_v1"}"#)?;
-        writer.write_all(&frame).map_err(|_| Closed)?;
+        self.read_at(1, pipes.0, pipes.1)
+    }
+
+    fn exchange(
+        &self,
+        sequence: u64,
+        command: &[u8],
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+    ) -> Result<Vec<u8>, Closed> {
+        writer
+            .write_all(&self.encode(Kind::Request, sequence, command)?)
+            .map_err(|_| Closed)?;
         let frame = read_frame(reader)?;
-        let body = self.decode(&frame, Kind::Response, 1)?;
+        Ok(self.decode(&frame, Kind::Response, sequence)?.to_vec())
+    }
+
+    fn read_at(
+        &self,
+        sequence: u64,
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+    ) -> Result<String, Closed> {
+        let body = self.exchange(
+            sequence,
+            br#"{"command":"c4_document_read_v1"}"#,
+            reader,
+            writer,
+        )?;
         #[derive(serde::Deserialize)]
         #[serde(deny_unknown_fields)]
         struct Answer {
             text: String,
             revision: u32,
         }
-        let answer: Answer = serde_json::from_slice(body).map_err(|_| Closed)?;
+        let answer: Answer = serde_json::from_slice(&body).map_err(|_| Closed)?;
         if answer.revision != 0 || answer.text != "Rabe\n42" {
             return Err(Closed);
         }
@@ -88,17 +112,80 @@ impl Binding {
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
     ) -> Result<(), Closed> {
-        let frame = read_frame(reader)?;
-        let body = self.decode(&frame, Kind::Request, 1)?;
         let mut catalog = super::SyntheticCatalog::default();
         let mut scene = catalog.bind(super::Scene::A, super::Mode::Read);
+        self.reply_at(1, &mut scene, reader, writer, false)
+    }
+
+    pub fn check_denied_save(
+        self,
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+    ) -> Result<String, Closed> {
+        let before = self.read_at(1, reader, writer)?;
+        let denied = self.exchange(
+            2,
+            br#"{"command":"c4_document_save_v1","expectedRevision":0,"text":"Rabe\n43"}"#,
+            reader,
+            writer,
+        )?;
+        #[derive(serde::Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct ErrorReply {
+            error: String,
+        }
+        if serde_json::from_slice::<ErrorReply>(&denied)
+            .map_err(|_| Closed)?
+            .error
+            != "DENIED"
+        {
+            return Err(Closed);
+        }
+        let after = self.read_at(3, reader, writer)?;
+        if before != after {
+            return Err(Closed);
+        }
+        Ok(after)
+    }
+
+    pub fn serve_denied_save(
+        self,
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+    ) -> Result<(), Closed> {
+        let mut catalog = super::SyntheticCatalog::default();
+        let mut scene = catalog.bind(super::Scene::A, super::Mode::Read);
+        self.reply_at(1, &mut scene, reader, writer, false)?;
+        self.reply_at(2, &mut scene, reader, writer, true)?;
+        self.reply_at(3, &mut scene, reader, writer, false)
+    }
+
+    fn reply_at(
+        &self,
+        sequence: u64,
+        scene: &mut BoundScene,
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+        expect_denial: bool,
+    ) -> Result<(), Closed> {
+        let frame = read_frame(reader)?;
+        let body = self.decode(&frame, Kind::Request, sequence)?;
         let answer = scene.handle(body);
-        if !matches!(answer, super::Reply::Read { .. }) {
+        if !matches!(
+            (&answer, expect_denial),
+            (super::Reply::Read { .. }, false)
+                | (
+                    super::Reply::Failure {
+                        error: super::Failure::Denied
+                    },
+                    true
+                )
+        ) {
             return Err(Closed);
         }
         let payload = serde_json::to_vec(&answer).map_err(|_| Closed)?;
         writer
-            .write_all(&self.encode(Kind::Response, 1, &payload)?)
+            .write_all(&self.encode(Kind::Response, sequence, &payload)?)
             .map_err(|_| Closed)
     }
 

@@ -24,11 +24,11 @@ Vergleich zurück. Fachtexte, Schlüssel und Rohframes erscheinen nicht im Prüf
 
 Die vier Forschungsprogramme mit den Einstellungen der [Fensterprobe](native-win32-pipe-rights.md)
 bauen. Im frischen Offline-Gastoverlay die Programmhashes an die erzwungene UMCI-Richtlinie und den
-geschützten Paketanker binden. `pipe-guest.ps1` in der interaktiven Gastsitzung startet
-`pipe-check.exe read-scene`. Erwartet werden Dienst-Exit 66 nach der Antwort und UI-Exit 67 nach dem
-Vergleich im Textfeld. Die gesamte Paarprüfung verlangt Exit 0 und leere Jobs. Nach Gastende
-Ausgangsplatte, Netzadapter, Integrationsdienste, Image- und Policyhashes sowie entfernte
-Startbelege prüfen.
+geschützten Paketanker binden. Der aktuelle Runner `pipe-guest.ps1 -Trial read-scene` in der
+interaktiven Gastsitzung startet `pipe-check.exe read-scene`. Erwartet werden Dienst-Exit 66 nach
+der Antwort und UI-Exit 67 nach dem Vergleich im Textfeld. Die gesamte Paarprüfung verlangt Exit 0
+und leere Jobs. Nach Gastende Ausgangsplatte, Netzadapter, Integrationsdienste, Image- und
+Policyhashes sowie entfernte Startbelege prüfen.
 
 ## Geprüfte Binärdateien
 

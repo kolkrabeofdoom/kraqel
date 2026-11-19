@@ -33,10 +33,10 @@ höchstens 30 Sekunden auf das Prozesspaar. Die Prüfausgabe enthält nur feste 
 Exitcodes. Es gibt keinen Szenenaufruf.
 
 Für die Wiederholung den [Gastaufbau](native-win32-pipe-rights.md) mit den vier Images dieses Stands
-verwenden und in der interaktiven Sitzung `pipe-guest.ps1` ausführen. Der Runner startet
-`pipe-check.exe handshake`. Der erste Durchlauf ändert ein Bit im Antwortschlüssel des Diensts. Der
-zweite verwendet übereinstimmendes Schlüsselmaterial für das neue Paar.
-[Bootstrap-Implementierung](../../scripts/runtime-isolation/native-window/src/bootstrap.rs) ·
+verwenden und in der interaktiven Sitzung den aktuellen Runner `pipe-guest.ps1 -Trial handshake`
+ausführen. Der Runner startet `pipe-check.exe handshake`. Der erste Durchlauf ändert ein Bit im
+Antwortschlüssel des Diensts. Der zweite verwendet übereinstimmendes Schlüsselmaterial für das neue
+Paar. [Bootstrap-Implementierung](../../scripts/runtime-isolation/native-window/src/bootstrap.rs) ·
 [Kanalvertrag](../data-format/native-win32-bp4-channel-v1-draft.md)
 
 ## Gemessene Binärdateien

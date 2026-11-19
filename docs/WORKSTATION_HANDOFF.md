@@ -61,8 +61,10 @@ Endpunktrechte und die Zugriffssperre für den geprüften Fremdprozess. Auch der
 [native HELLO/READY-Lauf](testing/native-win32-hello-ready.md) ist bestanden, einschließlich der
 Abweisung eines falsch authentisierten READY. Der
 [native Leseabruf](testing/native-win32-scene-read.md) von A im Lesemodus ist bis zum
-schreibgeschützten Win32-Feld bestätigt. Als Nächstes einen Schreibversuch mit dieser Lesebindung im
-Gast abweisen und die unveränderte Revision prüfen. Produktdaten bleiben gesperrt.
+schreibgeschützten Win32-Feld bestätigt. Der
+[Schreibversuch unter derselben Lesebindung](testing/native-win32-denied-save.md) ergab DENIED. Die
+nächste Leseantwort bestätigte Text und Revision 0. Als Nächstes eine synthetische Änderung unter
+eigener Edit-Bindung samt Revisionskonflikt prüfen. Produktdaten bleiben gesperrt.
 
 Der Host-Abgleich für die Hörprüfung ergab einen aktiven hostseitigen Wiedergabeendpunkt. Für den
 isolierten Gast ist kein eigener Ausgang belegt, ein separater Prüfplatz war nicht verfügbar. Die

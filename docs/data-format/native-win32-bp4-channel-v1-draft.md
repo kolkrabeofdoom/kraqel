@@ -112,5 +112,7 @@ cargo test --locked --offline --manifest-path scripts/runtime-isolation/native-s
 Die [Gastprüfung der Pipe-Rechte](../testing/native-win32-pipe-rights.md) bestätigt die
 Endpunktzuordnung vor Resume. Der [native Startnachweis](../testing/native-win32-hello-ready.md)
 bestätigt Bootstrap und HELLO/READY. Der [native Leseabruf](../testing/native-win32-scene-read.md)
-bestätigt genau ein REQUEST/RESPONSE-Paar für A/read. Offene Prüfungen umfassen Schreibversuche,
-gezielte Teilübertragung, Timeout, Fensterende, Wiederanlauf und ETW für die neuen Bytes.
+bestätigt genau ein REQUEST/RESPONSE-Paar für A/read. Die
+[Schreibabweisung unter Lesebindung](../testing/native-win32-denied-save.md) ist über drei
+Sequenznummern im Gast bestätigt. Offen sind Speichern unter Edit-Bindung, gezielte Teilübertragung,
+Timeout, Fensterende, Wiederanlauf und ETW für die neuen Bytes.

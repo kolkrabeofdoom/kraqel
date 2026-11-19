@@ -1,3 +1,4 @@
+param([ValidateSet('read-scene','deny-save','handshake')][string]$Trial='deny-save')
 $ErrorActionPreference='Stop'
 $dir='C:\Program Files\KRAQEL-Window-Probe'
 try {
@@ -12,6 +13,6 @@ try {
     foreach ($file in $expected.files) {
         if ((Get-FileHash -LiteralPath "$dir\$($file.name)").Hash -ne $file.hash) { throw 'Fixture mismatch.' }
     }
-    & "$dir\pipe-check.exe" read-scene
+    & "$dir\pipe-check.exe" $Trial
     exit $LASTEXITCODE
 } catch { Write-Output $_.Exception.Message; exit 1 }

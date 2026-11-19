@@ -4,6 +4,42 @@ const SAVE: &[u8] = br#"{"command":"c4_document_save_v1","expectedRevision":0,"t
 const READ: &[u8] = br#"{"command":"c4_document_read_v1"}"#;
 
 #[test]
+fn write_probe_requires_denied_and_checks_the_final_revision() {
+    let binding = || Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
+    let original = br#"{"text":"Rabe\n42","revision":0}"#.as_slice();
+    for (middle, last, success) in [
+        (br#"{"error":"DENIED"}"#.as_slice(), original, true),
+        (br#"{"error":"CONFLICT"}"#, original, false),
+        (br#"{"revision":1}"#, original, false),
+        (
+            br#"{"error":"DENIED"}"#,
+            br#"{"text":"Rabe\n42","revision":1}"#,
+            false,
+        ),
+        (
+            br#"{"error":"DENIED"}"#,
+            br#"{"text":"Rabe\n43","revision":0}"#,
+            false,
+        ),
+    ] {
+        let mut answers = Vec::new();
+        for (n, body) in [(1, original), (2, middle), (3, last)] {
+            answers.extend(binding().encode(Kind::Response, n, body).unwrap());
+        }
+        let mut requests = Vec::new();
+        let result = binding().check_denied_save(&mut answers.as_slice(), &mut requests);
+        assert_eq!(result.is_ok(), success);
+        if success {
+            let mut actual = Vec::new();
+            binding()
+                .serve_denied_save(&mut requests.as_slice(), &mut actual)
+                .unwrap();
+            assert_eq!(actual, answers);
+        }
+    }
+}
+
+#[test]
 fn bound_guest_read_rejects_other_operations_and_invalid_frames_without_reply() {
     let binding = || Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
     let request = |body: &[u8]| binding().encode(Kind::Request, 1, body).unwrap();

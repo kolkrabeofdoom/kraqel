@@ -372,8 +372,10 @@ Datenschutzziel bleibt unverändert.
              und abweichendem Antwortschlüssel im Gast geprüft.
        - [x] KQ-069 A: Eine gebundene synthetische Szene nach HELLO/READY bis zum schreibgeschützten
              Win32-Feld gelesen.
-       - [ ] KQ-069 A: Schreibabweisung unter Lesebindung, synthetisches Speichern, Wiederanlauf und
-             eigenen ETW-Nachweis im Gast prüfen.
+       - [x] KQ-069 A: Schreibversuch unter derselben nativen Lesebindung mit DENIED abgewiesen,
+             Text und Revision 0 erneut gelesen.
+       - [ ] KQ-069 A: Synthetisches Speichern mit Edit-Bindung, Wiederanlauf und eigenen
+             ETW-Nachweis im Gast prüfen.
        - [ ] KQ-069 A: Durchsetzbaren Erzeugungsweg für jede Runtimegeneration belegen. Der geprüfte
              WebView2-Win32-Einstieg erfüllt BP3 nicht. Produktive BP4-Datenrechte bleiben offen.
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native

@@ -39,12 +39,14 @@ impl Role {
 pub enum Purpose {
     Handshake,
     ReadA,
+    DeniedSave,
 }
 impl Purpose {
     fn scope(self) -> &'static str {
         match self {
             Self::Handshake => "A/edit",
             Self::ReadA => "A/read",
+            Self::DeniedSave => "A/read/denial-check",
         }
     }
 }
@@ -123,7 +125,9 @@ impl Endpoint {
         let (meta, handle) = receipt
             .split_once('\n')
             .ok_or(io::Error::other("receipt"))?;
-        let purpose = if meta.starts_with("BP4b-v1/A/read/") {
+        let purpose = if meta.starts_with("BP4b-v1/A/read/denial-check/") {
+            Purpose::DeniedSave
+        } else if meta.starts_with("BP4b-v1/A/read/") {
             Purpose::ReadA
         } else {
             Purpose::Handshake
@@ -188,6 +192,14 @@ impl Endpoint {
         if !self.receive(Handshake::Ready)? {
             return Ok(63);
         }
+        if self.purpose == Purpose::DeniedSave {
+            let text = self
+                .binding
+                .check_denied_save(&mut self.reader, &mut self.writer)
+                .map_err(|_| io::Error::other("denial check"))?;
+            display(&text)?;
+            return Ok(69);
+        }
         if self.purpose == Purpose::ReadA {
             let text = self
                 .binding
@@ -203,6 +215,12 @@ impl Endpoint {
             return Ok(61);
         }
         self.send(Handshake::Ready)?;
+        if self.purpose == Purpose::DeniedSave {
+            self.binding
+                .serve_denied_save(&mut self.reader, &mut self.writer)
+                .map_err(|_| io::Error::other("denial exchange"))?;
+            return Ok(68);
+        }
         if self.purpose == Purpose::ReadA {
             self.binding
                 .serve_scene_read(&mut self.reader, &mut self.writer)
