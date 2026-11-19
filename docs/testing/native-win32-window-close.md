@@ -28,7 +28,7 @@ Ein frisches Prozesspaar prüft mit eigener authentisierter Lesebindung Text und
 ## Wiederholen
 
 1. Im vorbereiteten Offline-Gast auf frischer Differenzplatte den [Gasttreiber](../../scripts/runtime-isolation/native-window/pipe-guest.ps1) mit `-Trial window-close` starten. Erwartete Exitcode-Paare für Dienst/Fenster sind 97/98 und beim Wiederöffnen 99/100.
-2. Für den Netzvergleich ein zweites frisches Gastabbild mit denselben vier Programm-Hashes verwenden. Neben dem Gasttreiber den [ETW-Workload](../../scripts/runtime-isolation/native-window/channel-end-workload.ps1) als `etw-workload.ps1` im Setupverzeichnis bereitstellen. Der vorhandene [ETW-Gasttreiber](../../scripts/runtime-isolation/bp3-umci/etw-guest.ps1) führt Referenz und Prüflauf aus. Der Prüflauf umfasst Teilübertragung, Timeout und Fensterende, jeweils mit frischer Lesebindung.
+2. Für den Netzvergleich ein zweites frisches Gastabbild mit denselben vier Programm-Hashes verwenden. Den [Gasttreiber](../../scripts/runtime-isolation/native-window/pipe-guest.ps1) als `etw-workload.ps1` bereitstellen und den ETW-Runner mit `-ExerciseTrial channel-ends` starten. Der vorhandene [ETW-Gasttreiber](../../scripts/runtime-isolation/bp3-umci/etw-guest.ps1) führt Referenz und Prüflauf aus. Der Prüflauf umfasst Teilübertragung, Timeout und Fensterende, jeweils mit frischer Lesebindung.
 3. Beide ETLs nach Gastende mit `tracerpt -of XML -lr` als `reference.xml` und `exercise.xml` dekodieren. Die Laufbelege und Prozessgenerationen mit `python scripts/m3-network/bp3_guest.py --channel-ends <Ergebnisordner>` prüfen. Rohspuren verbleiben lokal.
 
 | Programm | SHA-256 für Einzellauf und ETW-Prüfpaar |

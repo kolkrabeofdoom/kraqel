@@ -1,5 +1,6 @@
 # Called by the existing isolated guest task in the measurement overlay.
-param([guid]$GuestUuid, [string]$GuestBuild, [guid]$PolicyId, [string]$PolicySha256, [string]$ManifestSha256)
+param([guid]$GuestUuid, [string]$GuestBuild, [guid]$PolicyId, [string]$PolicySha256, [string]$ManifestSha256,
+    [ValidateSet('channel-ends','starter-restart','proof-run','proof-incomplete')][string]$ExerciseTrial)
 $ErrorActionPreference = 'Stop'
 $out = 'C:\BP3-ETW'
 $system = "$env:SystemRoot\System32"
@@ -34,7 +35,8 @@ foreach ($mode in 'reference','exercise') {
                 $controls += @{pid=$helper.Id; image=$exe; protocol=$proto; address=$addr; port=$port}
             }
         }
-        $p = Start-Process "$system\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList "-NoProfile -File C:\BP3-Setup\etw-workload.ps1 $mode" -RedirectStandardOutput "$out\$mode.log" -RedirectStandardError "$out\$mode.err" -PassThru -Wait -WindowStyle Hidden
+        $workload = if ($mode -eq 'exercise' -and $ExerciseTrial) { $ExerciseTrial } else { $mode }
+        $p = Start-Process "$system\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList "-NoProfile -File C:\BP3-Setup\etw-workload.ps1 $workload" -RedirectStandardOutput "$out\$mode.log" -RedirectStandardError "$out\$mode.err" -PassThru -Wait -WindowStyle Hidden
         @{root=$p.Id; exit=$p.ExitCode; controls=$controls} | ConvertTo-Json -Depth 4 | Set-Content "$out\$mode.json"
         if ($p.ExitCode -ne 0) { throw "Workload $mode failed." }
     } finally {

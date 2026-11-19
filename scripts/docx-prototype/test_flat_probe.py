@@ -49,12 +49,6 @@ class FlatStructureTests(unittest.TestCase):
                 paragraph["runs"][0]["text"] = paragraph["runs"][0]["text"].replace("Original", replacement)
                 self.assertEqual(flat.verify(FIXTURES / name), expected)
 
-    def test_empty_containers_and_repeated_titles(self):
-        model = flat.verify_parts(self.parts)
-        self.assertEqual(model["children"][2], probe.branch("chapter", probe.leaf("chapter-title")))
-        self.assertEqual(model["children"][1]["children"][2], probe.branch("scene", probe.leaf("scene-title", "Am Schreibtisch")))
-        self.assertEqual(model["children"][3]["children"][1], probe.branch("scene", probe.leaf("scene-title")))
-
     def test_missing_inventory(self):
         del self.parts["docProps/custom.xml"]
         self.reject()

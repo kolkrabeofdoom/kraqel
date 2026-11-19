@@ -7,7 +7,7 @@
 | Starterabbruch nach dauerhaftem Endebeleg | Schreibpaar 72/73, Jobs leer. Die fremde Generation wurde abgewiesen. Von zwei konkurrierenden Aufrufen startete genau einer das Lesepaar 74/75. Dieses bestätigte Text und Revision 1. Erneuter Aufruf abgewiesen. Dauerhafter Schlusszustand `read-consumed`. |
 | Starterabbruch vor dauerhaftem Endebeleg | Schreibpaar 72/73, Jobs leer. Die Kontrollinstanz verweigerte die Freigabe. Kein Lesepaar, dauerhafter Schlusszustand `running`. |
 
-Beide Läufe endeten mit Prüfcode 0. Die schreibgeschützte Plattenprüfung bestätigte die erwarteten Kontrollzustände, entfernte Rollenfreigaben, Rollenrechte, Programm-Hashes und Richtlinie. Der Gast war ohne Netzwerkadapter und aktivierte Integrationsdienste eingerichtet. Er ist ausgeschaltet und wieder mit seiner ursprünglichen Platte verbunden. Der ETW-Netzvergleich für die neuen Programm-Hashes steht aus.
+Beide Läufe endeten mit Prüfcode 0. Die schreibgeschützte Plattenprüfung bestätigte die erwarteten Kontrollzustände, entfernte Rollenfreigaben, Rollenrechte, Programm-Hashes und Richtlinie. Der Gast war ohne Netzwerkadapter und aktivierte Integrationsdienste eingerichtet. Er ist ausgeschaltet und wieder mit seiner ursprünglichen Platte verbunden.
 
 ## Umfang der Probe
 
@@ -31,3 +31,21 @@ Im vorbereiteten Offline-Gast den [Gasttreiber](../../scripts/runtime-isolation/
 | pipe-check.exe | 55CE3130C51CA12C5A03500A1AF13AC6133A8FFA7ACD04F5AE40F709DA32AA05 |
 | pipe-other.exe | 9B1C8561C4FACB3CE6CFA79AF7E5E727CEDAC8FBA431A7CDE4B96FAA77DF8CB3 |
 | pipe-service.exe | 8299E653C28CA93835905DB834317C87BEAD46D5B8D12B314ECE05DDA81240A6 |
+
+## ETW-Netzvergleich am 19. November 2026
+
+Beide Messpaare liefen mit den oben genannten Binär-Hashes auf frischen Offline-Gastplatten. Die ursprüngliche gesperrte Ablage blieb unberührt. Der Abgleich von Elternprozessen, Lebenszeiten und Exitcodes erfasste im positiven Fall genau ein Lesepaar nach dem Starterabbruch. Im negativen Fall endete der Lauf nach der Schreibpaarung ohne Lesepaar.
+
+| Messgröße | Referenz positiv | Freigabe | Referenz negativ | Verweigerung |
+| --- | ---: | ---: | ---: | ---: |
+| ETW-Ereignisse | 54 | 60 | 52 | 55 |
+| Prozesse im Prüfbaum einschließlich Hülle | 3 | 11 | 3 | 8 |
+| Netzwerkereignisse im Prüfbaum | 0 | 0 | 0 | 0 |
+| Gastweite Loopback-Ereignisse | 18 | 18 | 18 | 18 |
+| Gastweite übrige oder unbekannte Ziele | 0 | 0 | 0 | 0 |
+| Erkannte TCP-/UDP-Kontrollen über IPv4 und IPv6 | 4/4 | 4/4 | 4/4 | 4/4 |
+| Verlorene Ereignisse und Puffer | 0 | 0 | 0 | 0 |
+
+Die Plattengegenprüfung bestätigte den Verbrauch im positiven und die fortbestehende Sperre im negativen Fall. Der Gast ist ausgeschaltet und wieder mit seiner ursprünglichen Platte verbunden. Rohspuren bleiben lokal.
+
+Für beide Läufe den Gasttreiber als `etw-workload.ps1` bereitstellen. Pro frischer Platte den [ETW-Gasttreiber](../../scripts/runtime-isolation/bp3-umci/etw-guest.ps1) mit `-ExerciseTrial proof-run` bzw. `-ExerciseTrial proof-incomplete` ausführen. Nach dem Dekodieren der ETLs mit `tracerpt -of XML -lr` prüft `python scripts/m3-network/bp3_guest.py --proof <Fall> <Ergebnisordner>` die erwarteten Prozessgenerationen sowie Netz-, Kontroll- und Verlustereignisse.

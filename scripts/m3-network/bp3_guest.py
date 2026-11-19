@@ -80,7 +80,29 @@ def check_starter_restart(fixture, measured, exits, root_pid):
                         "Unexpected normal completion")
 
 
-def check(trace, record, exercise, window=False, crashes=False, channel_ends=False, starter_restart=False):
+def check_release_roles(fixture, measured, exits, root_pid, released):
+    witness, issuer = [p for p in fixture if p.image.endswith(r"\pipe-check.exe")]
+    require(witness.parent == root_pid and issuer.parent == witness.pid
+            and witness.contains(issuer.start) and witness.contains(issuer.end),
+            "Unexpected witness/issuer lifetime")
+    require([exits.get((p.pid, p.start)) for p in (witness, issuer)] == [0, 101],
+            "Missing proof decision or issuer crash")
+    for parent in (issuer, witness):
+        require(all(p in fixture for p in measured if p.parent == parent.pid and parent.contains(p.start)),
+                "Unexpected proof process outside the pinned package")
+    for role, codes in {"pipe-service.exe": [72, 74], "native-leaf.exe": [73, 75],
+                        "pipe-other.exe": [42, 42]}.items():
+        generations = [p for p in fixture if p.image.endswith("\\" + role)]
+        for n, proc in enumerate(generations):
+            parent = issuer if n == 0 else witness
+            require(proc.parent == parent.pid and parent.contains(proc.start) and parent.contains(proc.end)
+                    and (n == 0 or (released and proc.start >= issuer.end))
+                    and exits.get((proc.pid, proc.start)) == codes[n], "Unexpected proof role")
+            require(not any(p.parent == proc.pid and proc.contains(p.start) for p in measured),
+                    "Unexpected role descendant")
+
+
+def check(trace, record, exercise, window=False, crashes=False, channel_ends=False, starter_restart=False, proof=None):
     require(record["exit"] == 0, "Workload failed")
     active = {}
     by_pid = defaultdict(list)
@@ -93,7 +115,7 @@ def check(trace, record, exercise, window=False, crashes=False, channel_ends=Fal
     guest_net = Counter()
     unknown = 0
     expected_exits = CHANNEL_END_EXITS if channel_ends else CRASH_EXITS if crashes else None
-    directory = r"\\program files\\kraqel-window-probe" if window or expected_exits or starter_restart else r"\\bp3-umci-fixture"
+    directory = r"\\program files\\kraqel-window-probe" if window or expected_exits or starter_restart or proof else r"\\bp3-umci-fixture"
     rows = sorted(events(trace), key=lambda row: row[0])
     for time, provider, event, _, data in rows:
         if "EventsLost" in data and "BuffersLost" in data:
@@ -104,7 +126,7 @@ def check(trace, record, exercise, window=False, crashes=False, channel_ends=Fal
         if event == 2:
             if prior := active.pop(pid, None):
                 prior.end = time
-                if (window or expected_exits or starter_restart) and "ExitCode" in data:
+                if (window or expected_exits or starter_restart or proof) and "ExitCode" in data:
                     exits[(pid, prior.start)] = number(data["ExitCode"])
             continue
         parent = number(data["ParentProcessID"])
@@ -129,7 +151,12 @@ def check(trace, record, exercise, window=False, crashes=False, channel_ends=Fal
         expected = Counter({name: len(codes) for name, codes in expected_exits.items()})
     if starter_restart:
         expected = Counter({"pipe-check.exe": 5, "native-leaf.exe": 3, "pipe-other.exe": 3, "pipe-service.exe": 3})
+    if proof:
+        pairs = 2 if proof == "proof-run" else 1
+        expected = Counter({"pipe-check.exe": 2, "pipe-service.exe": pairs, "native-leaf.exe": pairs, "pipe-other.exe": pairs})
     require(roles == (expected if exercise else Counter()), f"Unexpected fixture roles: {roles}")
+    if proof and exercise:
+        check_release_roles(fixture, measured, exits, record["root"], proof == "proof-run")
     if starter_restart and exercise:
         check_starter_restart(fixture, measured, exits, record["root"])
     if expected_exits and exercise:
@@ -193,12 +220,13 @@ if __name__ == "__main__":
     group.add_argument("--commit-crashes", action="store_true")
     group.add_argument("--channel-ends", action="store_true")
     group.add_argument("--starter-restart", action="store_true")
+    group.add_argument("--proof", choices=("proof-run", "proof-incomplete"))
     args = parser.parse_args()
     result = {}
     for name in ("reference", "exercise"):
         path = args.directory
         record = json.loads((path / f"{name}.json").read_text(encoding="utf-8-sig"))
-        result[name] = check(path / f"{name}.xml", record, name == "exercise", args.native_window, args.commit_crashes, args.channel_ends, args.starter_restart)
+        result[name] = check(path / f"{name}.xml", record, name == "exercise", args.native_window, args.commit_crashes, args.channel_ends, args.starter_restart, args.proof)
     print(json.dumps(result, indent=2))
     raise SystemExit(int(any(r["networkEvents"] or r["guestNetworkEvents"].get("otherOrUnknown")
                              for r in result.values())))

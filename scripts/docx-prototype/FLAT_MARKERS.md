@@ -81,7 +81,7 @@ markieren, durch `x` bzw. `y` ersetzen und speichern; in LibreOffice DOCX ausdr�
 Der Vergleich erhält insbesondere die zwei anschließenden Leerzeichen und sämtliche übrige Semantik.
 Bearbeitung wurde nicht durch nachträgliche XML-Änderungen simuliert.
 
-41 Tests sichern beide Darstellungen. Neue Negativfälle umfassen fehlende Teile, doppelte
+Die Strukturtests für die flache Darstellung prüfen unter anderem fehlende Teile, doppelte
 Eigenschaften/JSON-Felder, geänderte Nutzdaten, fremdes Inventar mit neuem Kopf-Hash, fehlende,
 doppelte und verschobene Marker, unbekannte Versionen, unmarkierten Text, ungültige Eltern, doppelte
 Kennungen, falsche Positionen/Rollen und widersprüchliche Nummerierung. Mehrere Fälle aktualisieren

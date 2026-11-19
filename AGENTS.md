@@ -24,6 +24,13 @@ Leitplanken:
 - Laufende SQLite-Dateien, Schlüssel, private Manuskripte und temporäre KI-Daten gehören nicht in
   Git.
 
+## Tests schlank halten
+
+- Prüfe für jeden Test, welches beobachtbare Verhalten er über welchen echten Codepfad absichert und welcher bestehende Test denselben Fehler bereits erkennen würde. Berücksichtige dabei auch andere Testebenen und den regulären Runner.
+- Behalte funktionale Tests, Unit-Tests und Regressionstests mit eigenständigem Fehlersignal. Führe doppelte Abläufe zusammen und erhalte ihre einzigartigen Assertions. Entwicklungsetappen, frühere Testzahlen und einmalige Messbelege gehören in die Projektdokumentation.
+- Eine Ergänzung ohne Verhaltensänderung braucht nur dann einen zusätzlichen Test, wenn eine konkrete Abdeckungslücke besteht. Erweitere bevorzugt einen vorhandenen Fall. Nutze für Änderungen den kleinsten aussagekräftigen Prüflauf.
+- Teure E2E-, Gast- und ETW-Läufe sind für Eigenschaften vorgesehen, die erst an dieser Grenze beobachtbar sind. Für BP4b gehören dazu Rollenrechte, einmaliger Verbrauch, Sperre und Netzwerkverhalten des konkreten Binärstands.
+
 ## Architektur und Technologie
 
 ```text
@@ -351,7 +358,7 @@ Vor Commit bleibt Revision 0 erhalten, nach Commit vor Antwort Revision 1. Der f
 Beide endeten ohne Schreibantwort und mit Revision 0. [Fensterende vor Commit und ETW](docs/testing/native-win32-window-close.md) sind für den neuen Build geprüft.
 Dienstende und Revision 0 sind bestätigt, im Prüfprozessbaum wurden null Netzwerkereignisse gemessen. Der [Wiederanlauf nach Starterabbruch](docs/testing/native-win32-starter-restart.md) blieb dreimal gesperrt.
 Der frische ETW-Netzvergleich bestätigte null Netzwerkereignisse im Prüfprozessbaum. Alle drei gesperrten Starter endeten ohne Kindprozess.
-Die [Freigabebedingungen nach Starterabbruch](docs/data-format/native-win32-bp4-channel-v1-draft.md#freigabeentscheidung-nach-starterabbruch) sind spezifiziert. Für die bestehende Ablage fehlt der Endebeleg. Sie bleibt gesperrt. Für eine neue synthetische Ablage ist die [einmalige Lesefreigabe](docs/testing/native-win32-release-proof.md) bei überlebender Kontrollinstanz geprüft. Vor dem Endebeleg bleibt auch die neue Ablage gesperrt. Produktdaten bleiben gesperrt.
+Die [Freigabebedingungen nach Starterabbruch](docs/data-format/native-win32-bp4-channel-v1-draft.md#freigabeentscheidung-nach-starterabbruch) sind spezifiziert. Für die bestehende Ablage fehlt der Endebeleg. Sie bleibt gesperrt. Für eine neue synthetische Ablage ist die [einmalige Lesefreigabe](docs/testing/native-win32-release-proof.md) bei überlebender Kontrollinstanz geprüft. Vor dem Endebeleg bleibt auch die neue Ablage gesperrt. Der ETW-Vergleich beider Pfade bestätigte null Netzwerkereignisse im jeweiligen Prüfprozessbaum. Produktdaten bleiben gesperrt.
 
 Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:
 

@@ -29,11 +29,7 @@ mit Kennung, Rolle, Elternkennung und Geschwisterposition. Es enthält keinen Ma
 Sichtbarer Text kommt ausschließlich aus den markierten Absätzen in `word/document.xml`. Die
 `kq1`-Grammatik ist experimentell und reserviert keine produktive Formatversion.
 
-Die 18 Tests vergleichen kanonische Semantik und echte Office-Fixtures und prüfen u. a. das
-Entfernen einer ganzen Szene, doppelte Kennungen, geänderte Geschwisterreihenfolge, fehlende Marker,
-unbekannte Versionen, beschädigtes Inventar, unmarkierte Absätze, widersprüchliche Nummerierung,
-falsche Überschriftenebenen, einen unzulässigen Listenstart, XML-Grenzen und doppelte ZIP-Namen. Die
-CI führt diese Tests zusätzlich zu den bestehenden Prüfungen unter Windows und Linux aus.
+Die laufenden Tests behalten die LibreOffice-Ablehnung der verschachtelten Darstellung sowie gemeinsame Prüfungen für Absatzformat, Nummerierung, Run-Aufteilung, XML und ZIP bei. Die flache Darstellung trägt die laufenden Office-Roundtrip- und Strukturtests.
 
 ## Ergebnis des Versuchs am 14 November 2026
 
