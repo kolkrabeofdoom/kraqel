@@ -221,9 +221,8 @@ impl Binding {
             .write_all(&frame[..PARTIAL_SAVE_BYTES])
             .map_err(|_| Closed)
     }
-    /// One authenticated save, with a distinct outcome only for disconnect BEFORE any response byte.
-    pub fn unacknowledged_save(
-        self,
+    pub fn send_pending_save(
+        &self,
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
     ) -> Result<(), Closed> {
@@ -231,7 +230,15 @@ impl Binding {
         let body = br#"{"command":"c4_document_save_v1","expectedRevision":0,"text":"Rabe\n43"}"#;
         writer
             .write_all(&self.encode(Kind::Request, 2, body)?)
-            .map_err(|_| Closed)?;
+            .map_err(|_| Closed)
+    }
+    /// One authenticated save, with a distinct outcome only for disconnect BEFORE any response byte.
+    pub fn unacknowledged_save(
+        self,
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+    ) -> Result<(), Closed> {
+        self.send_pending_save(reader, writer)?;
         match reader.read(&mut [0u8; 1]) {
             Ok(0) => Ok(()),
             Err(e) if e.kind() == std::io::ErrorKind::BrokenPipe => Ok(()),

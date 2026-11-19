@@ -21,6 +21,8 @@ pub enum StorePhase {
     ReadPartial,
     Timeout,
     ReadTimeout,
+    WindowClose,
+    ReadClosed,
     Before,
     Recover,
     ReadOld,
@@ -30,6 +32,8 @@ pub enum StorePhase {
 impl StorePhase {
     pub fn scope(self) -> &'static str {
         match self {
+            Self::WindowClose => "A/edit/window-close",
+            Self::ReadClosed => "A/read/window-close",
             Self::Partial => "A/edit/partial",
             Self::ReadPartial => "A/read/partial",
             Self::Timeout => "A/edit/timeout",
@@ -41,7 +45,9 @@ impl StorePhase {
             Self::ReadNew => "A/read/crash-after",
         }
     }
-    pub const ALL: [Self; 9] = [
+    pub const ALL: [Self; 11] = [
+        Self::WindowClose,
+        Self::ReadClosed,
         Self::Partial,
         Self::ReadPartial,
         Self::Timeout,
@@ -55,17 +61,23 @@ impl StorePhase {
     pub fn reader(self) -> bool {
         matches!(
             self,
-            Self::ReadOld | Self::ReadNew | Self::ReadPartial | Self::ReadTimeout
+            Self::ReadClosed
+                | Self::ReadOld
+                | Self::ReadNew
+                | Self::ReadPartial
+                | Self::ReadTimeout
         )
     }
     pub fn writer(self) -> bool {
         matches!(
             self,
-            Self::Before | Self::After | Self::Partial | Self::Timeout
+            Self::WindowClose | Self::Before | Self::After | Self::Partial | Self::Timeout
         )
     }
     pub fn exits(self) -> (u32, u32) {
         match self {
+            Self::WindowClose => (97, 98),
+            Self::ReadClosed => (99, 100),
             Self::Partial => (89, 90),
             Self::ReadPartial => (91, 92),
             Self::Timeout => (93, 94),
@@ -81,6 +93,7 @@ impl StorePhase {
 fn directory(phase: Option<StorePhase>) -> std::path::PathBuf {
     Path::new(DIR).join(match phase {
         None => "scene-store-v1",
+        Some(StorePhase::WindowClose | StorePhase::ReadClosed) => "scene-store-close",
         Some(StorePhase::After | StorePhase::ReadNew) => "scene-store-after",
         Some(StorePhase::Partial | StorePhase::ReadPartial) => "scene-store-partial",
         Some(StorePhase::Timeout | StorePhase::ReadTimeout) => "scene-store-timeout",
@@ -218,7 +231,11 @@ impl Store {
             },
         })
     }
-    pub fn dispatch(&mut self, body: &[u8]) -> io::Result<Reply> {
+    pub fn dispatch(
+        &mut self,
+        body: &[u8],
+        on_window_end: impl FnOnce() -> io::Result<()>,
+    ) -> io::Result<Reply> {
         let tx = self.db.transaction().map_err(failure)?;
         let (content, rev): (String, u32) = tx
             .query_row(
@@ -249,6 +266,12 @@ impl Store {
             // Spill dirty pages while the rollback journal still protects revision zero.
             tx.cache_flush().map_err(failure)?;
             terminate_fixture(80)?;
+        }
+        if matches!(reply, Reply::Saved { .. }) && self.phase == Some(StorePhase::WindowClose) {
+            tx.cache_flush().map_err(failure)?;
+            on_window_end()?;
+            tx.rollback().map_err(failure)?;
+            return Err(io::ErrorKind::ConnectionAborted.into());
         }
         tx.commit().map_err(failure)?;
         if matches!(reply, Reply::Saved { .. }) && self.phase == Some(StorePhase::After) {
@@ -289,13 +312,14 @@ mod tests {
         assert!(
             store
                 .dispatch(
-                    br#"{"command":"c4_document_save_v1","expectedRevision":0,"text":"Rabe\n43"}"#
+                    br#"{"command":"c4_document_save_v1","expectedRevision":0,"text":"Rabe\n43"}"#,
+                    || unreachable!()
                 )
                 .is_err()
         );
         assert!(matches!(
             store
-                .dispatch(br#"{"command":"c4_document_read_v1"}"#)
+                .dispatch(br#"{"command":"c4_document_read_v1"}"#, || unreachable!())
                 .unwrap(),
             Reply::Read {
                 text: "Rabe\n42",

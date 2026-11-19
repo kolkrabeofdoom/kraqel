@@ -104,21 +104,48 @@ fn show(endpoint: Option<bootstrap::Endpoint>) -> i32 {
         ShowWindow(hwnd, SW_SHOW);
         if let Some(endpoint) = endpoint {
             let exit = endpoint
-                .window(|text| {
-                    let edit = GetDlgItem(hwnd, EDIT);
-                    require(
-                        SendMessageW(edit, windows_sys::Win32::UI::Controls::EM_SETREADONLY, 1, 0)
-                            != 0,
-                        "readonly",
-                    )?;
-                    let shown = wide(text.replace('\n', "\r\n"));
-                    check(SetWindowTextW(edit, shown.as_ptr()))?;
-                    let mut actual = [0u16; 64];
-                    let n = GetWindowTextW(edit, actual.as_mut_ptr(), 64);
-                    require(actual[..n as usize] == shown[..shown.len() - 1], "display")
-                })
+                .window(
+                    |text| {
+                        let edit = GetDlgItem(hwnd, EDIT);
+                        require(
+                            SendMessageW(
+                                edit,
+                                windows_sys::Win32::UI::Controls::EM_SETREADONLY,
+                                1,
+                                0,
+                            ) != 0,
+                            "readonly",
+                        )?;
+                        let shown = wide(text.replace('\n', "\r\n"));
+                        check(SetWindowTextW(edit, shown.as_ptr()))?;
+                        let mut actual = [0u16; 64];
+                        let n = GetWindowTextW(edit, actual.as_mut_ptr(), 64);
+                        require(actual[..n as usize] == shown[..shown.len() - 1], "display")
+                    },
+                    || {
+                        check(SetWindowTextW(hwnd, wide(CLOSE_PENDING_TITLE).as_ptr()))?;
+                        let mut msg = MSG::default();
+                        loop {
+                            match GetMessageW(&mut msg, null_mut(), 0, 0) {
+                                -1 => return Err(std::io::Error::last_os_error()),
+                                0 => {
+                                    return require(
+                                        msg.wParam == 40 && IsWindow(hwnd) == 0,
+                                        "window close",
+                                    );
+                                }
+                                _ => {
+                                    TranslateMessage(&msg);
+                                    DispatchMessageW(&msg);
+                                }
+                            }
+                        }
+                    },
+                )
                 .unwrap_or(64);
-            DestroyWindow(hwnd);
+            if IsWindow(hwnd) != 0 {
+                DestroyWindow(hwnd);
+            }
             return exit;
         }
         SetFocus(GetDlgItem(hwnd, EDIT));

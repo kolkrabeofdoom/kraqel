@@ -28,13 +28,21 @@ CRASH_EXITS = {
 }
 
 
-def check_crash_roles(fixture, measured, exits, root_pid):
+CHANNEL_END_EXITS = {
+    "pipe-check.exe": [0],
+    "pipe-service.exe": [89, 91, 93, 95, 97, 99],
+    "native-leaf.exe": [90, 92, 94, 96, 98, 100],
+    "pipe-other.exe": [42] * 6,
+}
+
+
+def check_pipe_roles(fixture, measured, exits, root_pid, expected_exits):
     controller = next(p for p in fixture if p.image.endswith(r"\pipe-check.exe"))
     require(controller.parent == root_pid, "Unbound crash controller")
-    for image, codes in CRASH_EXITS.items():
+    for image, codes in expected_exits.items():
         roles = [p for p in fixture if p.image.endswith("\\" + image)]
         require([exits.get((p.pid, p.start)) for p in roles] == codes,
-                f"Unexpected crash/reopen exit sequence for {image}")
+                f"Unexpected service/UI exit sequence for {image}")
         if image == "pipe-check.exe":
             continue
         for role in roles:
@@ -44,7 +52,7 @@ def check_crash_roles(fixture, measured, exits, root_pid):
                     "Unexpected crash role descendant")
 
 
-def check(trace, record, exercise, window=False, crashes=False):
+def check(trace, record, exercise, window=False, crashes=False, channel_ends=False):
     require(record["exit"] == 0, "Workload failed")
     active = {}
     by_pid = defaultdict(list)
@@ -56,7 +64,8 @@ def check(trace, record, exercise, window=False, crashes=False):
     net = Counter()
     guest_net = Counter()
     unknown = 0
-    directory = r"\\program files\\kraqel-window-probe" if window or crashes else r"\\bp3-umci-fixture"
+    expected_exits = CHANNEL_END_EXITS if channel_ends else CRASH_EXITS if crashes else None
+    directory = r"\\program files\\kraqel-window-probe" if window or expected_exits else r"\\bp3-umci-fixture"
     rows = sorted(events(trace), key=lambda row: row[0])
     for time, provider, event, _, data in rows:
         if "EventsLost" in data and "BuffersLost" in data:
@@ -67,7 +76,7 @@ def check(trace, record, exercise, window=False, crashes=False):
         if event == 2:
             if prior := active.pop(pid, None):
                 prior.end = time
-                if (window or crashes) and "ExitCode" in data:
+                if (window or expected_exits) and "ExitCode" in data:
                     exits[(pid, prior.start)] = number(data["ExitCode"])
             continue
         parent = number(data["ParentProcessID"])
@@ -88,11 +97,11 @@ def check(trace, record, exercise, window=False, crashes=False):
     require(all(p.own for p in fixture), "Fixture outside workload")
     roles = Counter(p.image.rsplit("\\", 1)[1] for p in fixture)
     expected = Counter({"native-starter.exe": 1, "native-leaf.exe": 3, "observer.exe": 1}) if window else EXPECTED
-    if crashes:
-        expected = Counter({name: len(codes) for name, codes in CRASH_EXITS.items()})
+    if expected_exits:
+        expected = Counter({name: len(codes) for name, codes in expected_exits.items()})
     require(roles == (expected if exercise else Counter()), f"Unexpected fixture roles: {roles}")
-    if crashes and exercise:
-        check_crash_roles(fixture, measured, exits, record["root"])
+    if expected_exits and exercise:
+        check_pipe_roles(fixture, measured, exits, record["root"], expected_exits)
     if window and exercise:
         starter = next(p for p in fixture if p.image.endswith(r"\native-starter.exe"))
         leaves = [p for p in fixture if p.image.endswith(r"\native-leaf.exe")]
@@ -150,12 +159,13 @@ if __name__ == "__main__":
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--native-window", action="store_true")
     group.add_argument("--commit-crashes", action="store_true")
+    group.add_argument("--channel-ends", action="store_true")
     args = parser.parse_args()
     result = {}
     for name in ("reference", "exercise"):
         path = args.directory
         record = json.loads((path / f"{name}.json").read_text(encoding="utf-8-sig"))
-        result[name] = check(path / f"{name}.xml", record, name == "exercise", args.native_window, args.commit_crashes)
+        result[name] = check(path / f"{name}.xml", record, name == "exercise", args.native_window, args.commit_crashes, args.channel_ends)
     print(json.dumps(result, indent=2))
     raise SystemExit(int(any(r["networkEvents"] or r["guestNetworkEvents"].get("otherOrUnknown")
                              for r in result.values())))

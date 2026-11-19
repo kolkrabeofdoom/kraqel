@@ -273,6 +273,45 @@ impl Drop for Receipt {
     }
 }
 
+fn close_pending_window(ui: &Suspended, data: &Suspended) -> io::Result<()> {
+    use windows_sys::Win32::UI::WindowsAndMessaging::*;
+    let journal = Path::new(DIR)
+        .join("scene-store-close")
+        .join("synthetic.sqlite-journal");
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    unsafe {
+        loop {
+            require(
+                WaitForSingleObject(ui.proc.0, 0) == WAIT_TIMEOUT
+                    && WaitForSingleObject(data.proc.0, 0) == WAIT_TIMEOUT,
+                "expected live pair",
+            )?;
+            let hwnd = FindWindowW(
+                wide("KRAQEL.Synthetic.Edit").as_ptr(),
+                wide(CLOSE_PENDING_TITLE).as_ptr(),
+            );
+            let mut pid = 0;
+            if !hwnd.is_null()
+                && GetWindowThreadProcessId(hwnd, &mut pid) != 0
+                && pid == GetProcessId(ui.proc.0)
+                && IsWindowVisible(hwnd) != 0
+                && journal.try_exists()?
+            {
+                check(PostMessageW(hwnd, WM_CLOSE, 0, 0))?;
+                require(
+                    WaitForSingleObject(data.proc.0, 5000) == WAIT_OBJECT_0,
+                    "service did not end on close",
+                )?;
+                return Ok(());
+            }
+            require(
+                std::time::Instant::now() < deadline,
+                "pending window and journal",
+            )?;
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+    }
+}
 fn run(trial: Trial) -> io::Result<()> {
     guest_image("pipe-check.exe")?;
     let ui_profile = Profile::fresh(PROFILE)?;
@@ -374,6 +413,9 @@ fn run(trial: Trial) -> io::Result<()> {
                 ResumeThread(data.thread.0) == 1 && ResumeThread(ui.thread.0) == 1,
                 "pair resume",
             )?;
+            if trial == Trial::StorePhase(scene_store::StorePhase::WindowClose) {
+                close_pending_window(&ui, &data)?;
+            }
             let pair = [data.proc.0, ui.proc.0];
             require(
                 WaitForMultipleObjects(
@@ -425,7 +467,20 @@ fn main() {
             .truncate(false)
             .share_mode(0)
             .open(Path::new(DIR).join("pipe.lock"))?;
-        if std::env::args().nth(1).as_deref() == Some("channel-interruptions") {
+        let trial = std::env::args().nth(1);
+        if matches!(trial.as_deref(), Some("window-close" | "channel-ends")) {
+            use scene_store::StorePhase::*;
+            if trial.as_deref() == Some("channel-ends") {
+                for (fault, readback) in [(Partial, ReadPartial), (Timeout, ReadTimeout)] {
+                    let _pins = scene_store::prepare(Some(fault))?;
+                    run(Trial::StorePhase(fault))?;
+                    run(Trial::StorePhase(readback))?;
+                }
+            }
+            let _pins = scene_store::prepare(Some(WindowClose))?;
+            run(Trial::StorePhase(WindowClose))?;
+            run(Trial::StorePhase(ReadClosed))
+        } else if trial.as_deref() == Some("channel-interruptions") {
             use scene_store::StorePhase::*;
             for (fault, readback) in [(Partial, ReadPartial), (Timeout, ReadTimeout)] {
                 let _pins = scene_store::prepare(Some(fault))?;

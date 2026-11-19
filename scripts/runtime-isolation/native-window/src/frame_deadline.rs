@@ -17,7 +17,7 @@ use windows_sys::Win32::System::Pipes::PeekNamedPipe;
 const FRAME_TIMEOUT: Duration = Duration::from_secs(30);
 
 struct FrameReader<'a> {
-    pipe: File,
+    pipe: &'a File,
     completed: &'a Cell<usize>,
     generation: usize,
     started: Option<Instant>,
@@ -92,18 +92,37 @@ pub(crate) fn serve(
 ) -> io::Result<()> {
     let completed = Cell::new(0);
     let mut reader = FrameReader {
-        pipe,
+        pipe: &pipe,
         generation: 0,
         completed: &completed,
         started: None,
         received: 0,
         ending: None,
     };
+    let mut rolled_back = false;
     let result = binding.durable_service(reopening, &mut reader, &mut writer, |body| {
-        let reply = store.dispatch(body).map_err(|_| Closed)?;
+        let reply = store
+            .dispatch(body, || {
+                let mut input = &pipe;
+                match input.read(&mut [0; 1]) {
+                    Ok(0) => Ok(()),
+                    Err(e) if e.kind() == io::ErrorKind::BrokenPipe => Ok(()),
+                    _ => Err(io::Error::other("expected window EOF")),
+                }
+            })
+            .map_err(|error| {
+                rolled_back = error.kind() == io::ErrorKind::ConnectionAborted;
+                Closed
+            })?;
         completed.set(completed.get() + 1);
         Ok(reply)
     });
+    if phase == Some(StorePhase::WindowClose) {
+        return require(
+            result.is_err() && rolled_back && completed.get() == 1,
+            "window-end rollback",
+        );
+    }
     let expected = match phase {
         Some(StorePhase::Partial) => matches!(
             reader.ending,

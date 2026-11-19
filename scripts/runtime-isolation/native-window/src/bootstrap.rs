@@ -213,13 +213,25 @@ impl Endpoint {
         self.reader.read_exact(&mut frame)?;
         Ok(self.binding.verify_handshake(kind, &frame).is_ok())
     }
-    pub fn window(mut self, display: impl FnOnce(&str) -> io::Result<()>) -> io::Result<i32> {
+    pub fn window(
+        mut self,
+        display: impl FnOnce(&str) -> io::Result<()>,
+        wait_close: impl FnOnce() -> io::Result<()>,
+    ) -> io::Result<i32> {
         self.send(Handshake::Hello)?;
         if !self.receive(Handshake::Ready)? {
             return Ok(63);
         }
         if let Purpose::StorePhase(phase) = self.purpose {
             use crate::scene_store::StorePhase::{Partial, Timeout};
+            if phase == crate::scene_store::StorePhase::WindowClose {
+                self.binding
+                    .send_pending_save(&mut self.reader, &mut self.writer)
+                    .map_err(|_| io::Error::other("pending save"))?;
+                display("Rabe\n42")?;
+                wait_close()?;
+                return Ok(phase.exits().1 as i32);
+            }
             if matches!(phase, Partial | Timeout) {
                 self.binding
                     .partial_save(&mut self.reader, &mut self.writer)

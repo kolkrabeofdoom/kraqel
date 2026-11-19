@@ -384,7 +384,8 @@ Datenschutzziel bleibt unverändert.
              Je Lauf vier Positivkontrollen, null Verluste und null Netzwerkereignisse im Prüfprozessbaum.
        - [x] KQ-069 A: [Partieller Schreibframe und Kanal-Timeout](docs/testing/native-win32-channel-interruptions.md)
              im Offline-Gast geprüft. Beide frischen Lesepaare bestätigten Revision 0.
-       - [ ] KQ-069 A: Fensterende bei laufender Anfrage, danach ETW-Netzvergleich des geänderten Stands.
+       - [x] KQ-069 A: [Fensterende bei laufender Anfrage und frischer ETW-Netzvergleich](docs/testing/native-win32-window-close.md).
+             Revision 0, leere Jobs und null Netzwerkereignisse im Prüfprozessbaum bestätigt.
        - [ ] KQ-069 A: Durchsetzbaren Erzeugungsweg für jede Runtimegeneration belegen. Der geprüfte
              WebView2-Win32-Einstieg erfüllt BP3 nicht. Produktive BP4-Datenrechte bleiben offen.
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native

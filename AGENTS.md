@@ -348,7 +348,8 @@ Prozessneustart unter frischer Lesebindung sowie unabhängig auf der ausgeschalt
 Der [Datendienstabbruch an der Commitgrenze](docs/testing/native-win32-commit-crashes.md) ist im Gast geprüft.
 Vor Commit bleibt Revision 0 erhalten, nach Commit vor Antwort Revision 1. Der frische ETW-Netzvergleich beider Pfade ergab null Netzwerkereignisse im Prüfprozessbaum.
 [Teilübertragung und 30-Sekunden-Timeout](docs/testing/native-win32-channel-interruptions.md) sind im Gast bestätigt.
-Beide endeten ohne Schreibantwort und mit Revision 0. Offen sind Fensterende bei laufender Anfrage und ETW für diesen Build. Produktdaten bleiben gesperrt.
+Beide endeten ohne Schreibantwort und mit Revision 0. [Fensterende vor Commit und ETW](docs/testing/native-win32-window-close.md) sind für den neuen Build geprüft.
+Dienstende und Revision 0 sind bestätigt, im Prüfprozessbaum wurden null Netzwerkereignisse gemessen. Offen ist der Wiederanlauf nach Starterabbruch. Produktdaten bleiben gesperrt.
 
 Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:
 
