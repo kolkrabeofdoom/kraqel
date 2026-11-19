@@ -49,3 +49,11 @@ Beide Messpaare liefen mit den oben genannten Binär-Hashes auf frischen Offline
 Die Plattengegenprüfung bestätigte den Verbrauch im positiven und die fortbestehende Sperre im negativen Fall. Der Gast ist ausgeschaltet und wieder mit seiner ursprünglichen Platte verbunden. Rohspuren bleiben lokal.
 
 Für beide Läufe den Gasttreiber als `etw-workload.ps1` bereitstellen. Pro frischer Platte den [ETW-Gasttreiber](../../scripts/runtime-isolation/bp3-umci/etw-guest.ps1) mit `-ExerciseTrial proof-run` bzw. `-ExerciseTrial proof-incomplete` ausführen. Nach dem Dekodieren der ETLs mit `tracerpt -of XML -lr` prüft `python scripts/m3-network/bp3_guest.py --proof <Fall> <Ergebnisordner>` die erwarteten Prozessgenerationen sowie Netz-, Kontroll- und Verlustereignisse.
+
+## Ausfall der Kontrollinstanz vor dem Verbrauch
+
+Der Gastlauf `-Trial proof-witness-loss` vom 19. November 2026 verwendete eine weitere frische Differenzplatte. Nach dem bestätigten Commit auf Revision 1 und dem Ende des Schreibpaars (72/73, beide Jobs leer) prüfte die ursprüngliche Kontrollinstanz den synchronisierten Endebeleg gegen ihre eigene Generation und die Entfernung der alten Startfreigaben. Unter der exklusiven Sperre endete sie hart mit Exitcode 103, bevor sie die Freigabe verbrauchte.
+
+Eine neue Kontrollinstanz nahm den regulären Einstieg `proof-run`. Sie meldete die Sperre mit Exitcode 102 vor Ablagevorbereitung und Rollenstart. Kein Lesepaar entstand. Der SHA-256 des Kontrollvermerks war vor und nach dem Neustart identisch. Der schreibgeschützte Plattengegencheck bestätigte weiterhin `committed-revision-1/jobs-drained` und entfernte Startfreigaben. Die ursprüngliche gesperrte Ablage blieb unberührt. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Gastplatte verbunden.
+
+Dieser gezielte Lauf prüfte ausschließlich den Ausfall der Kontrollinstanz. SHA-256 des zugehörigen Prüfstarters: `E4A47166DB5DEFE6EE5F9D1FE3F463B52321A85DC1DD97592AD05220840035F2`.

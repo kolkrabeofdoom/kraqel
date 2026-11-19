@@ -1,4 +1,4 @@
-param([ValidateSet('read-scene','deny-save','edit-conflict','durable-reopen','commit-crashes','channel-interruptions','window-close','channel-ends','starter-restart','proof-run','proof-incomplete','handshake','reference','exercise')][string]$Trial='commit-crashes')
+param([ValidateSet('read-scene','deny-save','edit-conflict','durable-reopen','commit-crashes','channel-interruptions','window-close','channel-ends','starter-restart','proof-run','proof-incomplete','proof-witness-loss','handshake','reference','exercise')][string]$Trial='commit-crashes')
 $ErrorActionPreference='Stop'
 $dir='C:\Program Files\KRAQEL-Window-Probe'
 try {
@@ -15,6 +15,18 @@ try {
     }
     if ($Trial -eq 'reference') { Start-Sleep -Seconds 2; exit 0 }
     if ($Trial -eq 'exercise') { $Trial = 'commit-crashes' }
+    if ($Trial -eq 'proof-witness-loss') {
+        & "$dir\pipe-check.exe" proof-witness-loss
+        if ($LASTEXITCODE -ne 103) { throw 'Witness crash with matching end record missing.' }
+        $path=Join-Path $dir 'pipe.lock'
+        $before=(Get-FileHash -LiteralPath $path).Hash
+        & "$dir\pipe-check.exe" proof-run
+        if ($LASTEXITCODE -ne 102 -or (Get-FileHash -LiteralPath $path).Hash -ne $before) {
+            throw 'Fresh witness denial or intact end record missing.'
+        }
+        Write-Output 'Witness ended before consumption; fresh witness denied; end record unchanged.'
+        exit 0
+    }
     if ($Trial -eq 'starter-restart') {
         & "$dir\pipe-check.exe" handshake
         if ($LASTEXITCODE -ne 0) { throw 'Normal completion missing.' }

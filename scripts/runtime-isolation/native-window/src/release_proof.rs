@@ -113,8 +113,19 @@ impl Witness {
     }
 }
 
-pub(super) fn exercise(anchor: &[u8], incomplete: bool) -> io::Result<()> {
-    let mut lock = begin(false, anchor)?.ok_or(io::Error::other("existing store blocked"))?;
+#[derive(Clone, Copy, PartialEq)]
+pub(super) enum ProofCase {
+    Complete,
+    MissingEnd,
+    WitnessLoss,
+}
+
+pub(super) fn exercise(anchor: &[u8], case: ProofCase) -> io::Result<()> {
+    let Some(mut lock) = begin(false, anchor)? else {
+        println!("fresh witness blocked before store preparation");
+        std::process::exit(102);
+    };
+    let incomplete = case == ProofCase::MissingEnd;
     let pins = scene_store::prepare(None)?;
     let mut nonce = Zeroizing::new([0u8; 32]);
     getrandom::fill(&mut *nonce).map_err(|_| io::Error::other("generation unavailable"))?;
@@ -143,6 +154,18 @@ pub(super) fn exercise(anchor: &[u8], incomplete: bool) -> io::Result<()> {
         .write_all(&nonce[..])?;
     drop(nonce);
     require(child.wait()?.code() == Some(101), "issuer crash missing")?;
+    if case == ProofCase::WitnessLoss {
+        let mut lock = existing_lock()?;
+        require(
+            matches_record(&mut lock, END, &witness.id)? && receipts_absent()?,
+            "end not ready",
+        )?;
+        // No call to release: the generation and the store pins die with this process.
+        unsafe {
+            check(TerminateProcess(GetCurrentProcess(), 103))?;
+        }
+        return Err(io::Error::other("witness termination returned"));
+    }
     if incomplete {
         require(!witness.release()?, "incomplete release")?;
         println!("No durable end: read blocked");

@@ -536,9 +536,15 @@ fn main() {
         guest_image("pipe-check.exe")?;
         let trial = std::env::args().nth(1);
         let anchor = Sha256::digest(std::fs::read(Path::new(DIR).join("anchor.json"))?);
+        use release_proof::ProofCase;
         match trial.as_deref() {
-            Some("proof-run") => return release_proof::exercise(&anchor, false),
-            Some("proof-incomplete") => return release_proof::exercise(&anchor, true),
+            Some("proof-witness-loss") => {
+                return release_proof::exercise(&anchor, ProofCase::WitnessLoss);
+            }
+            Some("proof-run") => return release_proof::exercise(&anchor, ProofCase::Complete),
+            Some("proof-incomplete") => {
+                return release_proof::exercise(&anchor, ProofCase::MissingEnd);
+            }
             Some("proof-issuer") => return release_proof::issue(&anchor, false),
             Some("proof-issuer-incomplete") => return release_proof::issue(&anchor, true),
             _ => {}
