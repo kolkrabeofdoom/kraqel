@@ -35,18 +35,36 @@ impl Role {
     }
 }
 
-pub fn receipt(role: Role, ui: &str, data: &str, section: usize) -> String {
-    format!("BP4b-v1/A/edit/{}/{ui}/{data}\n{section}", role.name())
+#[derive(Clone, Copy, PartialEq)]
+pub enum Purpose {
+    Handshake,
+    ReadA,
+}
+impl Purpose {
+    fn scope(self) -> &'static str {
+        match self {
+            Self::Handshake => "A/edit",
+            Self::ReadA => "A/read",
+        }
+    }
+}
+pub fn receipt(purpose: Purpose, role: Role, ui: &str, data: &str, section: usize) -> String {
+    format!(
+        "BP4b-v1/{}/{}/{ui}/{data}\n{section}",
+        purpose.scope(),
+        role.name()
+    )
 }
 // Section bytes: context digest, channel ID, two keys, receiver-local read/write handles.
 const SIZE: usize = 32 * 4 + 8 * 2;
-fn context(role: Role, ui: &str, data: &str) -> io::Result<[u8; 32]> {
+fn context(purpose: Purpose, role: Role, ui: &str, data: &str) -> io::Result<[u8; 32]> {
     let mut hash = Sha256::new();
-    hash.update(receipt(role, ui, data, 0).as_bytes());
+    hash.update(receipt(purpose, role, ui, data, 0).as_bytes());
     hash.update(std::fs::read(Path::new(DIR).join("anchor.json"))?);
     Ok(hash.finalize().into())
 }
 pub fn section(
+    purpose: Purpose,
     role: Role,
     ui: &str,
     data: &str,
@@ -63,7 +81,7 @@ pub fn section(
             null(),
         ));
         require(!mapping.0.is_null(), "bootstrap section")?;
-        let digest = context(role, ui, data)?;
+        let digest = context(purpose, role, ui, data)?;
         let view = MapViewOfFile(mapping.0, FILE_MAP_WRITE, 0, 0, SIZE);
         require(!view.Value.is_null(), "bootstrap staging view")?;
         let bytes = std::slice::from_raw_parts_mut(view.Value.cast::<u8>(), SIZE);
@@ -77,6 +95,7 @@ pub fn section(
 }
 
 pub struct Endpoint {
+    purpose: Purpose,
     binding: Binding,
     reader: File,
     writer: File,
@@ -104,7 +123,12 @@ impl Endpoint {
         let (meta, handle) = receipt
             .split_once('\n')
             .ok_or(io::Error::other("receipt"))?;
-        let prefix = format!("BP4b-v1/A/edit/{}/", role.name());
+        let purpose = if meta.starts_with("BP4b-v1/A/read/") {
+            Purpose::ReadA
+        } else {
+            Purpose::Handshake
+        };
+        let prefix = format!("BP4b-v1/{}/{}/", purpose.scope(), role.name());
         let pair = meta.strip_prefix(&prefix).ok_or(io::Error::other("role"))?;
         let boundary = pair
             .find("/KRAQEL-NATIVE-EDIT-v1/")
@@ -117,7 +141,7 @@ impl Endpoint {
         let id = handle
             .parse::<usize>()
             .map_err(|_| io::Error::other("section"))?;
-        let digest = context(role, ui, data)?;
+        let digest = context(purpose, role, ui, data)?;
         unsafe {
             let section = Handle(id as HANDLE);
             let view = MapViewOfFile(section.0, FILE_MAP_READ, 0, 0, SIZE);
@@ -139,6 +163,7 @@ impl Endpoint {
                 "endpoints",
             )?;
             Ok(Self {
+                purpose,
                 binding,
                 reader: File::from_raw_handle(read as HANDLE),
                 writer: File::from_raw_handle(write as HANDLE),
@@ -158,19 +183,32 @@ impl Endpoint {
         self.reader.read_exact(&mut frame)?;
         Ok(self.binding.verify_handshake(kind, &frame).is_ok())
     }
-    pub fn window(mut self) -> io::Result<i32> {
+    pub fn window(mut self, display: impl FnOnce(&str) -> io::Result<()>) -> io::Result<i32> {
         self.send(Handshake::Hello)?;
-        Ok(if self.receive(Handshake::Ready)? {
-            62
-        } else {
-            63
-        })
+        if !self.receive(Handshake::Ready)? {
+            return Ok(63);
+        }
+        if self.purpose == Purpose::ReadA {
+            let text = self
+                .binding
+                .read_scene((&mut self.reader, &mut self.writer))
+                .map_err(|_| io::Error::other("scene response"))?;
+            display(&text)?;
+            return Ok(67);
+        }
+        Ok(62)
     }
     pub fn service(mut self) -> io::Result<i32> {
         if !self.receive(Handshake::Hello)? {
             return Ok(61);
         }
         self.send(Handshake::Ready)?;
+        if self.purpose == Purpose::ReadA {
+            self.binding
+                .serve_scene_read(&mut self.reader, &mut self.writer)
+                .map_err(|_| io::Error::other("scene request"))?;
+            return Ok(66);
+        }
         Ok(60)
     }
 }

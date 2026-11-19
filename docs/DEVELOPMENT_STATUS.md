@@ -42,8 +42,10 @@ Replayabwehr fest. Framecodec und Replayabwehr sind im reinen Modell geprüft. D
 [Pipe-Prüfung im Offline-Gast](testing/native-win32-pipe-rights.md) bestätigt vor Resume die
 Endpunktrechte und die Zugriffssperre für den geprüften Fremdprozess. Auch der
 [native HELLO/READY-Lauf](testing/native-win32-hello-ready.md) ist bestanden, einschließlich der
-Abweisung eines falsch authentisierten READY. Als Nächstes genau eine synthetische Szene auf dem
-gebundenen Kanal lesen. Produktdaten bleiben gesperrt.
+Abweisung eines falsch authentisierten READY. Der
+[native Leseabruf](testing/native-win32-scene-read.md) von A im Lesemodus ist bis zum
+schreibgeschützten Win32-Feld bestätigt. Als Nächstes einen Schreibversuch mit dieser Lesebindung im
+Gast abweisen und die unveränderte Revision prüfen. Produktdaten bleiben gesperrt.
 
 Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:
 

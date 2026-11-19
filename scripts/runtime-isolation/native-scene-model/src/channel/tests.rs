@@ -3,6 +3,46 @@ use crate::{Mode, Scene, SyntheticCatalog};
 const SAVE: &[u8] = br#"{"command":"c4_document_save_v1","expectedRevision":0,"text":"Rabe\n43"}"#;
 const READ: &[u8] = br#"{"command":"c4_document_read_v1"}"#;
 
+#[test]
+fn bound_guest_read_rejects_other_operations_and_invalid_frames_without_reply() {
+    let binding = || Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
+    let request = |body: &[u8]| binding().encode(Kind::Request, 1, body).unwrap();
+    let mut bad_tag = request(READ);
+    *bad_tag.last_mut().unwrap() ^= 1;
+    let mut oversized = request(READ);
+    oversized[46..50].copy_from_slice(&u32::MAX.to_le_bytes());
+    for frame in [
+        request(SAVE),
+        request(br#"{"command":"c4_document_read_v1","scene":"B"}"#),
+        bad_tag,
+        oversized,
+        request(READ)[..HEADER + 1].to_vec(),
+    ] {
+        let mut response = Vec::new();
+        assert_eq!(
+            binding().serve_scene_read(&mut frame.as_slice(), &mut response),
+            Err(Closed)
+        );
+        assert!(response.is_empty());
+    }
+}
+
+#[test]
+fn bound_guest_read_checks_the_authenticated_answer_before_display() {
+    let binding = || Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
+    for body in [
+        br#"{"text":"Mond\n7","revision":0}"#.as_slice(),
+        br#"{"text":"Rabe\n42","revision":1}"#,
+        br#"{"text":"Rabe\n42","revision":0,"extra":1}"#,
+    ] {
+        let frame = binding().encode(Kind::Response, 1, body).unwrap();
+        assert_eq!(
+            binding().read_scene((&mut frame.as_slice(), &mut Vec::new())),
+            Err(Closed)
+        );
+    }
+}
+
 fn pair(catalog: &mut SyntheticCatalog) -> Channel<'_> {
     Channel::new(
         catalog.bind(Scene::A, Mode::Edit),

@@ -247,6 +247,7 @@ fn drain(child: &Suspended) -> io::Result<()> {
 enum Trial {
     Suspended,
     BadReady,
+    ReadA,
     Valid,
 }
 
@@ -304,11 +305,17 @@ fn run(trial: Trial) -> io::Result<()> {
             if role == Role::Data && trial == Trial::BadReady {
                 keys[95] ^= 1;
             }
-            let section = bootstrap::section(role, &ui.generation, &data.generation, ends, &keys)?;
+            let purpose = if trial == Trial::ReadA {
+                bootstrap::Purpose::ReadA
+            } else {
+                bootstrap::Purpose::Handshake
+            };
+            let section =
+                bootstrap::section(purpose, role, &ui.generation, &data.generation, ends, &keys)?;
             let id = assign(child, &section, SECTION_MAP_READ, set)?;
             receipts.push(Receipt::write(
                 role,
-                &bootstrap::receipt(role, &ui.generation, &data.generation, id),
+                &bootstrap::receipt(purpose, role, &ui.generation, &data.generation, id),
             )?);
         }
     }
@@ -356,7 +363,12 @@ fn run(trial: Trial) -> io::Result<()> {
             check(GetExitCodeProcess(ui.proc.0, &mut ui_exit))?;
             println!("data exit {data_exit}; UI exit {ui_exit}");
             require(
-                data_exit == 60 && ui_exit == if trial == Trial::BadReady { 63 } else { 62 },
+                (data_exit, ui_exit)
+                    == match trial {
+                        Trial::ReadA => (66, 67),
+                        Trial::BadReady => (60, 63),
+                        _ => (60, 62),
+                    },
                 "handshake outcome",
             )?;
         }
@@ -378,7 +390,9 @@ fn main() {
             .truncate(false)
             .share_mode(0)
             .open(Path::new(DIR).join("pipe.lock"))?;
-        if std::env::args().nth(1).as_deref() == Some("handshake") {
+        if std::env::args().nth(1).as_deref() == Some("read-scene") {
+            run(Trial::ReadA)
+        } else if std::env::args().nth(1).as_deref() == Some("handshake") {
             run(Trial::BadReady)?;
             run(Trial::Valid)
         } else {

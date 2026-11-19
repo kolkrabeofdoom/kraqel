@@ -60,6 +60,48 @@ impl Binding {
         self.decode(bytes, message.kind(), 0).map(|_| ())
     }
 
+    /// Single-use guest exchange after READY. Each endpoint consumes its binding.
+    pub fn read_scene(
+        self,
+        pipes: (&mut impl std::io::Read, &mut impl std::io::Write),
+    ) -> Result<String, Closed> {
+        let (reader, writer) = pipes;
+        let frame = self.encode(Kind::Request, 1, br#"{"command":"c4_document_read_v1"}"#)?;
+        writer.write_all(&frame).map_err(|_| Closed)?;
+        let frame = read_frame(reader)?;
+        let body = self.decode(&frame, Kind::Response, 1)?;
+        #[derive(serde::Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Answer {
+            text: String,
+            revision: u32,
+        }
+        let answer: Answer = serde_json::from_slice(body).map_err(|_| Closed)?;
+        if answer.revision != 0 || answer.text != "Rabe\n42" {
+            return Err(Closed);
+        }
+        Ok(answer.text)
+    }
+
+    pub fn serve_scene_read(
+        self,
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+    ) -> Result<(), Closed> {
+        let frame = read_frame(reader)?;
+        let body = self.decode(&frame, Kind::Request, 1)?;
+        let mut catalog = super::SyntheticCatalog::default();
+        let mut scene = catalog.bind(super::Scene::A, super::Mode::Read);
+        let answer = scene.handle(body);
+        if !matches!(answer, super::Reply::Read { .. }) {
+            return Err(Closed);
+        }
+        let payload = serde_json::to_vec(&answer).map_err(|_| Closed)?;
+        writer
+            .write_all(&self.encode(Kind::Response, 1, &payload)?)
+            .map_err(|_| Closed)
+    }
+
     fn mac(&self, kind: Kind) -> Hmac<Sha256> {
         let key = match kind {
             Kind::Hello | Kind::Request => &self.request,
@@ -104,6 +146,21 @@ impl Binding {
         mac.verify_slice(tag).map_err(|_| Closed)?;
         Ok(&signed[HEADER..])
     }
+}
+
+fn read_frame(reader: &mut impl std::io::Read) -> Result<Vec<u8>, Closed> {
+    let mut header = [0; HEADER];
+    reader.read_exact(&mut header).map_err(|_| Closed)?;
+    let len = u32::from_le_bytes(header[46..50].try_into().unwrap()) as usize;
+    if len > MAX_FRAME_BYTES {
+        return Err(Closed);
+    }
+    let mut frame = vec![0; HEADER + len + TAG];
+    frame[..HEADER].copy_from_slice(&header);
+    reader
+        .read_exact(&mut frame[HEADER..])
+        .map_err(|_| Closed)?;
+    Ok(frame)
 }
 
 #[derive(Clone, Copy)]

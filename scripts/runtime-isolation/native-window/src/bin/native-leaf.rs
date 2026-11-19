@@ -103,7 +103,21 @@ fn show(endpoint: Option<bootstrap::Endpoint>) -> i32 {
         SendDlgItemMessageW(hwnd, EDIT, EM_SETLIMITTEXT, 48, 0);
         ShowWindow(hwnd, SW_SHOW);
         if let Some(endpoint) = endpoint {
-            let exit = endpoint.window().unwrap_or(64);
+            let exit = endpoint
+                .window(|text| {
+                    let edit = GetDlgItem(hwnd, EDIT);
+                    require(
+                        SendMessageW(edit, windows_sys::Win32::UI::Controls::EM_SETREADONLY, 1, 0)
+                            != 0,
+                        "readonly",
+                    )?;
+                    let shown = wide(text.replace('\n', "\r\n"));
+                    check(SetWindowTextW(edit, shown.as_ptr()))?;
+                    let mut actual = [0u16; 64];
+                    let n = GetWindowTextW(edit, actual.as_mut_ptr(), 64);
+                    require(actual[..n as usize] == shown[..shown.len() - 1], "display")
+                })
+                .unwrap_or(64);
             DestroyWindow(hwnd);
             return exit;
         }
