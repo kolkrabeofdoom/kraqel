@@ -8,6 +8,7 @@ pub(super) enum WindowMode {
     Suspended,
     Receipt,
     Surface,
+    Interactive,
 }
 pub(super) enum Operation<'a> {
     Bind(&'a Path, [u8; 32]),

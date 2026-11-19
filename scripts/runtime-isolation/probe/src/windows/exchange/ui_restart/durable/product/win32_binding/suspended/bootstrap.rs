@@ -175,6 +175,7 @@ pub(super) fn confirm_and_open(
     mut writer: fs::File,
     mut reply: fs::File,
     secret: [u8; 32],
+    interactive: bool,
 ) -> Result<()> {
     use windows_sys::Win32::UI::WindowsAndMessaging::{
         GetClassNameW, GetWindowThreadProcessId, IsWindowVisible, PostMessageW, WM_CLOSE,
@@ -204,11 +205,17 @@ pub(super) fn confirm_and_open(
     {
         return Err(invalid("win32-window-surface-identity"));
     }
-    check(
-        unsafe { PostMessageW(hwnd, WM_CLOSE, 0, 0) },
-        "win32-window-surface-close",
-    )?;
-    if unsafe { WaitForSingleObject(pi.hProcess, 5000) } != WAIT_OBJECT_0 {
+    let wait_ms = if interactive {
+        // The verified role owns the window until close; the broker retains the job and lock.
+        INFINITE
+    } else {
+        check(
+            unsafe { PostMessageW(hwnd, WM_CLOSE, 0, 0) },
+            "win32-window-surface-close",
+        )?;
+        5000
+    };
+    if unsafe { WaitForSingleObject(pi.hProcess, wait_ms) } != WAIT_OBJECT_0 {
         return Err(invalid("win32-window-surface-timeout"));
     }
     let mut exit = 0;

@@ -116,6 +116,12 @@ Am 19.11.2026 liefen auf dem lokalen Windows-Prüfplatz zwei getrennte ETW-Erfas
 
 Der vorhandene Auswerter ordnete den Starter über Start-PID und vollständigen EXE-Basisnamen zu. Die Prozessereignisse belegten für beide Läufe genau eine direkte Fensterrolle und beide Prozessenden innerhalb der Erfassung. Die Positivkontrollen umfassten je TCP und UDP über IPv4 und IPv6. Es gab keine nicht zuordenbaren Netzwerkereignisse. Beide Aufrufe bestätigten denselben Kontrollkopf, gesperrte Produktdaten und einen leeren Job am Ende. Die Aussage gilt für Kernel-Netzwerkereignisse dieser Prozesslebenszeiten. Eigenständige Windows-Dienste außerhalb des Prozessbaums liegen außerhalb dieser Zuordnung. Die Rohspuren verbleiben lokal.
 
+### C4c – Tastaturbedienung im verwalteten Fenster
+
+`broker-store open-win32-surface <aktueller-Kopf-SHA256>` öffnet das synthetische Fenster über dieselbe Bootstrap-Freigabe wie die C4b-Fensterprobe. Der Starter hält Kontrollsperre, Paketdateien und Job bis zum Schließen. Das schreibgeschützte Feld mit dem festen Zweizeiler erhält zuerst den Fokus. Tab und Umschalt+Tab wechseln zwischen Feld und Schaltfläche. Enter auf „Schließen“ oder Escape im Fenster beendet die Sitzung.
+
+Im Windows-Lauf wurden Tastenmeldungen gezielt an die Steuerelemente der geprüften Prozessgeneration gesendet. Der Fokus wechselte vom schreibgeschützten Feld zur Schaltfläche und zurück. Enter auf der Schaltfläche beendete den Prozess regulär. Ein zweiter Starter erhielt beim Kontrollzugriff während der Sitzung einen Freigabefehler (Windows-Code 32). Nach dem Schließen waren der Job leer, der Kontrollkopf unverändert und die Ablage für den Starter wieder zugänglich. Produktdaten blieben gesperrt. Eine manuelle Hörprüfung dieses Einstiegspunkts steht aus.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

@@ -11,7 +11,8 @@ pub(super) fn check_window(
     mode: WindowMode,
 ) -> Result<Value> {
     let resume = mode != WindowMode::Suspended;
-    let surface = mode == WindowMode::Surface;
+    let interactive = mode == WindowMode::Interactive;
+    let surface = interactive || mode == WindowMode::Surface;
     let image = root.join(WINDOW);
     let mut profile = Profile::create(&format!("ui.{}", Uuid::new_v4().simple()))?;
     let job_name = store.job_name();
@@ -170,7 +171,7 @@ pub(super) fn check_window(
             bootstrap::stage(store, expected, &pi, endpoints[0], &mut writer, surface)?;
         if let Some(reply) = response_reader {
             if surface {
-                bootstrap::confirm_and_open(&pi, writer, reply, bootstrap_value)?;
+                bootstrap::confirm_and_open(&pi, writer, reply, bootstrap_value, interactive)?;
             } else {
                 drop(writer);
                 bootstrap::resume_and_confirm(

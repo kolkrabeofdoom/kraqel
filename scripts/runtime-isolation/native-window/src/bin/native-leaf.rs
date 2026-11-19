@@ -187,6 +187,15 @@ fn show(endpoint: Option<bootstrap::Endpoint>, mut surface: Option<std::fs::File
                 SetFocus(GetDlgItem(hwnd, next));
                 continue;
             }
+            if surface.is_some()
+                && msg.message == WM_KEYDOWN
+                && (msg.wParam == usize::from(VK_ESCAPE)
+                    || (msg.wParam == usize::from(VK_RETURN)
+                        && GetFocus() == GetDlgItem(hwnd, CLOSE)))
+            {
+                PostMessageW(hwnd, WM_CLOSE, 0, 0);
+                continue;
+            }
             if IsDialogMessageW(hwnd, &msg) == 0 {
                 TranslateMessage(&msg);
                 DispatchMessageW(&msg);

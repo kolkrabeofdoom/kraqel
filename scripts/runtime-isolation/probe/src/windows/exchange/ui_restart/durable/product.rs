@@ -919,7 +919,8 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
             && (args[0] == "verify-win32-package"
                 || args[0] == "check-win32-suspended"
                 || args[0] == "check-win32-receipt"
-                || args[0] == "check-win32-surface"))
+                || args[0] == "check-win32-surface"
+                || args[0] == "open-win32-surface"))
     {
         // The running broker itself must be the managed file, not a byte-identical copy.
         let running = file_info(&running_image)?;
@@ -939,6 +940,8 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
             win32_binding::Operation::CheckWindow(win32_binding::WindowMode::Suspended)
         } else if args[0] == "check-win32-receipt" {
             win32_binding::Operation::CheckWindow(win32_binding::WindowMode::Receipt)
+        } else if args[0] == "open-win32-surface" {
+            win32_binding::Operation::CheckWindow(win32_binding::WindowMode::Interactive)
         } else if args[0] == "check-win32-surface" {
             win32_binding::Operation::CheckWindow(win32_binding::WindowMode::Surface)
         } else {
