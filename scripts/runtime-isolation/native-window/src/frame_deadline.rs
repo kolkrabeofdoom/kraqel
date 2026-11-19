@@ -84,7 +84,7 @@ impl Read for FrameReader<'_> {
 
 pub(crate) fn serve(
     binding: Binding,
-    pipe: File,
+    pipe: &File,
     mut writer: File,
     store: &mut Store,
     phase: Option<StorePhase>,
@@ -92,7 +92,7 @@ pub(crate) fn serve(
 ) -> io::Result<()> {
     let completed = Cell::new(0);
     let mut reader = FrameReader {
-        pipe: &pipe,
+        pipe,
         generation: 0,
         completed: &completed,
         started: None,
@@ -103,7 +103,7 @@ pub(crate) fn serve(
     let result = binding.durable_service(reopening, &mut reader, &mut writer, |body| {
         let reply = store
             .dispatch(body, || {
-                let mut input = &pipe;
+                let mut input = pipe;
                 match input.read(&mut [0; 1]) {
                     Ok(0) => Ok(()),
                     Err(e) if e.kind() == io::ErrorKind::BrokenPipe => Ok(()),

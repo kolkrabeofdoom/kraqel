@@ -122,8 +122,8 @@ fn show(endpoint: Option<bootstrap::Endpoint>) -> i32 {
                         let n = GetWindowTextW(edit, actual.as_mut_ptr(), 64);
                         require(actual[..n as usize] == shown[..shown.len() - 1], "display")
                     },
-                    || {
-                        check(SetWindowTextW(hwnd, wide(CLOSE_PENDING_TITLE).as_ptr()))?;
+                    |title| {
+                        check(SetWindowTextW(hwnd, wide(title).as_ptr()))?;
                         let mut msg = MSG::default();
                         loop {
                             match GetMessageW(&mut msg, null_mut(), 0, 0) {

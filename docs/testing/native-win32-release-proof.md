@@ -91,3 +91,9 @@ Am 19. November 2026 liefen Referenz und Prüffall auf einer frischen Offline-Ga
 | Verlorene Ereignisse und Puffer | 0 | 0 |
 
 Der Hash des Verbrauchsvermerks blieb über den Neustart gleich. Die schreibgeschützte Plattenprüfung bestätigte `read-consumed` und entfernte Startfreigaben, ohne die Datenbank zu öffnen. Die ursprüngliche gesperrte Ablage blieb unberührt. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Gastplatte verbunden. Zur Wiederholung den bestehenden ETW-Ablauf mit `-ExerciseTrial proof-consumed-loss` und der Auswertung `--proof proof-consumed-loss` verwenden. Rohspuren bleiben lokal.
+
+## Ausfall bei laufendem Lesepaar
+
+Auf einer frischen synthetischen Differenzplatte prüft `-Trial proof-live-loss` den Zeitraum nach dem Lesen von Szene A auf Revision 1. Das Fenster setzt seinen Bereitschaftstitel erst nach dem Rücklesen des angezeigten Texts. Der Datendienst hält die schreibgeschützt geöffnete Ablage. Ein separater Beobachtungsprozess gleicht beide Prozessgenerationen mit den geschützten Startbelegen ab und hält ausschließlich Prozesshandles für Abfrage und Synchronisation. Er prüft, dass beide Rollen leben, beendet die Kontrollinstanz mit Code 105 und wartet höchstens fünf Sekunden auf beide Prozessenden. Der anschließende reguläre Neustart muss vor der Ablagevorbereitung mit Code 102 enden. Der Hash von `pipe.lock` muss über diesen Neustart gleich bleiben.
+
+Der Gastlauf am 19. November 2026 bestand mit Prüfcode 0. Beide ursprünglichen Prozesshandles signalisierten innerhalb des Fünfsekundenfensters das Ende. Der Neustart endete mit Code 102, der Verbrauchsvermerk blieb unverändert. Die schreibgeschützte Nachprüfung bestätigte `read-consumed` und die zurückgebliebenen Startbelege der beendeten Generationen. Der Gast war ohne Netzwerkadapter und aktivierte Integrationsdienste eingerichtet. Er ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden.

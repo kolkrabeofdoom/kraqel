@@ -252,6 +252,7 @@ enum Trial {
     ReadA,
     DeniedSave,
     StoreRead,
+    HeldRead,
     StoreEdit,
     StorePhase(scene_store::StorePhase),
     EditConflict,
@@ -326,7 +327,9 @@ fn run_pair(trial: Trial, crash_starter: bool) -> io::Result<()> {
     guest_image("pipe-check.exe")?;
     let ui_profile = Profile::fresh(PROFILE)?;
     let data_profile = Profile::fresh(
-        if trial == Trial::StoreRead || matches!(trial,Trial::StorePhase(c) if c.reader()) {
+        if matches!(trial, Trial::StoreRead | Trial::HeldRead)
+            || matches!(trial,Trial::StorePhase(c) if c.reader())
+        {
             scene_store::READER
         } else {
             "org.kraqel.bp4.data"
@@ -369,6 +372,8 @@ fn run_pair(trial: Trial, crash_starter: bool) -> io::Result<()> {
                 bootstrap::Purpose::StorePhase(c)
             } else if trial == Trial::StoreEdit {
                 bootstrap::Purpose::StoreEdit
+            } else if trial == Trial::HeldRead {
+                bootstrap::Purpose::HeldRead
             } else if trial == Trial::StoreRead {
                 bootstrap::Purpose::StoreRead
             } else if trial == Trial::EditConflict {
@@ -538,6 +543,10 @@ fn main() {
         let anchor = Sha256::digest(std::fs::read(Path::new(DIR).join("anchor.json"))?);
         use release_proof::ProofCase;
         match trial.as_deref() {
+            Some("proof-live-loss") => return release_proof::observe_live_loss(),
+            Some("proof-live-witness") => {
+                return release_proof::exercise(&anchor, ProofCase::LiveLoss);
+            }
             Some("proof-consumed-loss") => {
                 return release_proof::exercise(&anchor, ProofCase::LossAfterConsumption);
             }

@@ -1,3 +1,4 @@
+pub const LIVE_READ_TITLE: &str = "KRAQEL BP4b - Lesepaar aktiv";
 pub const CLOSE_PENDING_TITLE: &str = "KRAQEL BP4b - Schreibanfrage offen";
 pub mod bootstrap;
 mod frame_deadline;

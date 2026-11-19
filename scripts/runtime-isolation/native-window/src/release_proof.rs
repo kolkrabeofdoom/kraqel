@@ -94,10 +94,14 @@ struct Witness {
 
 impl Witness {
     fn release(&self) -> io::Result<bool> {
-        self.release_with(|| Ok(()))
+        self.release_with(Trial::StoreRead, || Ok(()))
     }
 
-    fn release_with(&self, after_consumption: impl FnOnce() -> io::Result<()>) -> io::Result<bool> {
+    fn release_with(
+        &self,
+        trial: Trial,
+        after_consumption: impl FnOnce() -> io::Result<()>,
+    ) -> io::Result<bool> {
         let mut spent = self
             .spent
             .lock()
@@ -112,7 +116,7 @@ impl Witness {
         *spent = true;
         record(&mut lock, SPENT, &self.id)?;
         after_consumption()?;
-        run(Trial::StoreRead)?;
+        run(trial)?;
         require(receipts_absent()?, "reader grants remain")?;
         Ok(true)
     }
@@ -124,6 +128,7 @@ pub(super) enum ProofCase {
     MissingEnd,
     WitnessLoss,
     LossAfterConsumption,
+    LiveLoss,
 }
 
 pub(super) fn exercise(anchor: &[u8], case: ProofCase) -> io::Result<()> {
@@ -160,8 +165,12 @@ pub(super) fn exercise(anchor: &[u8], case: ProofCase) -> io::Result<()> {
         .write_all(&nonce[..])?;
     drop(nonce);
     require(child.wait()?.code() == Some(101), "issuer crash missing")?;
+    if case == ProofCase::LiveLoss {
+        witness.release_with(Trial::HeldRead, || Ok(()))?;
+        return Err(io::Error::other("live witness crash missing"));
+    }
     if case == ProofCase::LossAfterConsumption {
-        witness.release_with(|| {
+        witness.release_with(Trial::StoreRead, || {
             unsafe {
                 check(TerminateProcess(GetCurrentProcess(), 104))?;
             }
@@ -212,4 +221,91 @@ pub(super) fn exercise(anchor: &[u8], case: ProofCase) -> io::Result<()> {
         );
     }
     Ok(())
+}
+
+// Keep process handles, never job handles: the witness must remain the last job owner.
+pub(super) fn observe_live_loss() -> io::Result<()> {
+    use bootstrap::{Purpose, Role};
+    use std::time::{Duration, Instant};
+    use windows_sys::Win32::UI::WindowsAndMessaging::*;
+    let mut witness = Command::new(std::env::current_exe()?)
+        .arg("proof-live-witness")
+        .spawn()?;
+    let result = (|| unsafe {
+        let deadline = Instant::now() + Duration::from_secs(25);
+        let window_pid = loop {
+            require(
+                witness.try_wait()?.is_none() && Instant::now() < deadline,
+                "live read deadline",
+            )?;
+            let hwnd = FindWindowW(
+                wide("KRAQEL.Synthetic.Edit").as_ptr(),
+                wide(LIVE_READ_TITLE).as_ptr(),
+            );
+            let mut pid = 0;
+            if !hwnd.is_null()
+                && IsWindowVisible(hwnd) != 0
+                && GetWindowThreadProcessId(hwnd, &mut pid) != 0
+            {
+                break pid;
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        };
+        let targets = std::fs::read_to_string(Path::new(DIR).join("pipe-targets.txt"))?;
+        let ids = targets
+            .split_whitespace()
+            .map(str::parse::<u32>)
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|_| io::Error::other("invalid target"))?;
+        require(
+            ids.len() == 2 && ids[0] == window_pid && ids[0] != ids[1],
+            "reader identities",
+        )?;
+        let open = |id| -> io::Result<Handle> {
+            let handle = Handle(OpenProcess(
+                PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SYNCHRONIZE,
+                0,
+                id,
+            ));
+            require(!handle.0.is_null(), "observe reader")?;
+            Ok(handle)
+        };
+        let ui = open(ids[0])?;
+        let data = open(ids[1])?;
+        let (u, d) = (ticket(ui.0)?, ticket(data.0)?);
+        for role in [Role::Window, Role::Data] {
+            let record = std::fs::read_to_string(role.receipt())?;
+            let section = record
+                .split_once('\n')
+                .and_then(|(_, s)| s.parse().ok())
+                .ok_or(io::Error::other("reader receipt"))?;
+            require(
+                record == bootstrap::receipt(Purpose::HeldRead, role, &u, &d, section),
+                "reader generation",
+            )?;
+        }
+        require(
+            WaitForSingleObject(ui.0, 0) == WAIT_TIMEOUT
+                && WaitForSingleObject(data.0, 0) == WAIT_TIMEOUT,
+            "read pair inactive",
+        )?;
+        check(TerminateProcess(witness.as_raw_handle(), 105))?;
+        require(
+            witness.wait()?.code() == Some(105),
+            "live witness termination",
+        )?;
+        require(
+            WaitForMultipleObjects(2, [ui.0, data.0].as_ptr(), 1, 5000) == WAIT_OBJECT_0,
+            "read roles survived",
+        )?;
+        println!(
+            "Live authenticated read pair observed; witness terminated; both original processes ended"
+        );
+        Ok(())
+    })();
+    if result.is_err() {
+        let _ = witness.kill();
+        let _ = witness.wait();
+    }
+    result
 }

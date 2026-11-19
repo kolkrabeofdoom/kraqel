@@ -44,6 +44,7 @@ pub enum Purpose {
     StoreEdit,
     StorePhase(crate::scene_store::StorePhase),
     StoreRead,
+    HeldRead,
 }
 impl Purpose {
     fn scope(self) -> &'static str {
@@ -51,6 +52,7 @@ impl Purpose {
             Self::StorePhase(phase) => phase.scope(),
             Self::Handshake => "A/edit",
             Self::ReadA => "A/read",
+            Self::HeldRead => "A/read/sqlite-held-v1",
             Self::StoreRead => "A/read/sqlite-v1",
             Self::StoreEdit => "A/edit/sqlite-v1",
             Self::EditConflict => "A/edit/conflict-check",
@@ -127,6 +129,8 @@ impl Endpoint {
             .find(|p| meta.starts_with(&format!("BP4b-v1/{}/", p.scope())));
         let purpose = if let Some(c) = store_phase {
             Purpose::StorePhase(c)
+        } else if meta.starts_with("BP4b-v1/A/read/sqlite-held-v1/") {
+            Purpose::HeldRead
         } else if meta.starts_with("BP4b-v1/A/read/sqlite-v1/") {
             Purpose::StoreRead
         } else if meta.starts_with("BP4b-v1/A/edit/sqlite-v1/") {
@@ -141,7 +145,8 @@ impl Endpoint {
             Purpose::Handshake
         };
         let profile = if role == Role::Data
-            && (purpose == Purpose::StoreRead || store_phase.is_some_and(|p| p.reader()))
+            && (matches!(purpose, Purpose::StoreRead | Purpose::HeldRead)
+                || store_phase.is_some_and(|p| p.reader()))
         {
             crate::scene_store::READER
         } else {
@@ -216,7 +221,7 @@ impl Endpoint {
     pub fn window(
         mut self,
         display: impl FnOnce(&str) -> io::Result<()>,
-        wait_close: impl FnOnce() -> io::Result<()>,
+        wait_close: impl FnOnce(&str) -> io::Result<()>,
     ) -> io::Result<i32> {
         self.send(Handshake::Hello)?;
         if !self.receive(Handshake::Ready)? {
@@ -229,7 +234,7 @@ impl Endpoint {
                     .send_pending_save(&mut self.reader, &mut self.writer)
                     .map_err(|_| io::Error::other("pending save"))?;
                 display("Rabe\n42")?;
-                wait_close()?;
+                wait_close(CLOSE_PENDING_TITLE)?;
                 return Ok(phase.exits().1 as i32);
             }
             if matches!(phase, Partial | Timeout) {
@@ -268,13 +273,20 @@ impl Endpoint {
             }
             return Ok(phase.exits().1 as i32);
         }
-        if matches!(self.purpose, Purpose::StoreEdit | Purpose::StoreRead) {
-            let reopening = self.purpose == Purpose::StoreRead;
+        if matches!(
+            self.purpose,
+            Purpose::StoreEdit | Purpose::StoreRead | Purpose::HeldRead
+        ) {
+            let reopening = matches!(self.purpose, Purpose::StoreRead | Purpose::HeldRead);
             let text = self
                 .binding
                 .durable_window(reopening, &mut self.reader, &mut self.writer)
                 .map_err(|_| io::Error::other("durable response"))?;
             display(&text)?;
+            if self.purpose == Purpose::HeldRead {
+                wait_close(LIVE_READ_TITLE)?;
+                return Err(io::Error::other("reader closed before witness crash"));
+            }
             return Ok(if reopening { 75 } else { 73 });
         }
         if self.purpose == Purpose::EditConflict {
@@ -310,27 +322,33 @@ impl Endpoint {
         self.send(Handshake::Ready)?;
         if matches!(
             self.purpose,
-            Purpose::StoreEdit | Purpose::StoreRead | Purpose::StorePhase(_)
+            Purpose::StoreEdit | Purpose::StoreRead | Purpose::HeldRead | Purpose::StorePhase(_)
         ) {
             let phase = if let Purpose::StorePhase(c) = self.purpose {
                 Some(c)
             } else {
                 None
             };
-            let reopening =
-                self.purpose == Purpose::StoreRead || phase.is_some_and(|c| !c.writer());
+            let reopening = matches!(self.purpose, Purpose::StoreRead | Purpose::HeldRead)
+                || phase.is_some_and(|c| !c.writer());
             let mut store = crate::scene_store::Store::open(
-                self.purpose == Purpose::StoreRead || phase.is_some_and(|c| c.reader()),
+                matches!(self.purpose, Purpose::StoreRead | Purpose::HeldRead)
+                    || phase.is_some_and(|c| c.reader()),
                 phase,
             )?;
             crate::frame_deadline::serve(
                 self.binding,
-                self.reader,
+                &self.reader,
                 self.writer,
                 &mut store,
                 phase,
                 reopening,
             )?;
+            if self.purpose == Purpose::HeldRead {
+                // Keep the read-only store pinned until the window closes or our job ends.
+                self.reader.read(&mut [0u8; 1])?;
+                return Err(io::Error::other("reader ended before witness crash"));
+            }
             store.close()?;
             return Ok(phase.map_or(if reopening { 74 } else { 72 }, |c| c.exits().0 as i32));
         }
