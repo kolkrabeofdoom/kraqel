@@ -1,4 +1,6 @@
 //! Pre-resume check for our own two suspended fixture generations, in the BP3 guest only.
+#[path = "../release_proof.rs"]
+mod release_proof;
 use kraqel_window_probe::{
     suspended::{Suspended, suspended},
     *,
@@ -534,6 +536,13 @@ fn main() {
         guest_image("pipe-check.exe")?;
         let trial = std::env::args().nth(1);
         let anchor = Sha256::digest(std::fs::read(Path::new(DIR).join("anchor.json"))?);
+        match trial.as_deref() {
+            Some("proof-run") => return release_proof::exercise(&anchor, false),
+            Some("proof-incomplete") => return release_proof::exercise(&anchor, true),
+            Some("proof-issuer") => return release_proof::issue(&anchor, false),
+            Some("proof-issuer-incomplete") => return release_proof::issue(&anchor, true),
+            _ => {}
+        }
         let Some(mut lock) = begin(trial.as_deref() == Some("reopen-close-read"), &anchor)? else {
             println!("store locked: no verified end record");
             std::process::exit(102);

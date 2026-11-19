@@ -120,6 +120,29 @@ fn sid_text(profile: &str) -> io::Result<String> {
     }
 }
 
+fn pin(path: &Path, is_dir: bool) -> io::Result<File> {
+    OpenOptions::new()
+        .access_mode(FILE_READ_ATTRIBUTES)
+        .share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE)
+        .custom_flags(
+            FILE_FLAG_OPEN_REPARSE_POINT
+                | if is_dir {
+                    FILE_FLAG_BACKUP_SEMANTICS
+                } else {
+                    0
+                },
+        )
+        .open(path)
+}
+
+pub fn pin_existing_v1() -> io::Result<(File, File)> {
+    let root = directory(None);
+    Ok((
+        pin(&root, true)?,
+        pin(&root.join("synthetic.sqlite"), false)?,
+    ))
+}
+
 /// Called under the starter's exclusive lock. Existing roots are refused. Both
 /// freshly created objects remain pinned against rename/deletion through both runs.
 pub fn prepare(phase: Option<StorePhase>) -> io::Result<(File, File)> {
@@ -146,20 +169,6 @@ pub fn prepare(phase: Option<StorePhase>) -> io::Result<(File, File)> {
         LocalFree(sd);
         result?;
     }
-    let pin = |path: &Path, is_dir: bool| {
-        OpenOptions::new()
-            .access_mode(FILE_READ_ATTRIBUTES)
-            .share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE)
-            .custom_flags(
-                FILE_FLAG_OPEN_REPARSE_POINT
-                    | if is_dir {
-                        FILE_FLAG_BACKUP_SEMANTICS
-                    } else {
-                        0
-                    },
-            )
-            .open(path)
-    };
     let root = pin(&directory(phase), true)?;
     let file = OpenOptions::new()
         .read(true)

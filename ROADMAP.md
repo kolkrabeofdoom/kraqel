@@ -391,7 +391,8 @@ Datenschutzziel bleibt unverändert.
        - [x] KQ-069 A: Frischer ETW-Netzvergleich für Starterabbruch und gesperrten Wiederanlauf.
              Alle drei Neustarts ohne Kindprozess, null Netzwerkereignisse im Prüfprozessbaum.
        - [x] KQ-069 A: [Freigabebedingungen nach Starterabbruch](docs/data-format/native-win32-bp4-channel-v1-draft.md#freigabeentscheidung-nach-starterabbruch) spezifiziert.
-       - [ ] KQ-069 A: Generationsgebundenen Endebeleg und einmalige Lesefreigabe zunächst für eine neue synthetische Ablage nachweisen.
+       - [x] KQ-069 A: [Generationsgebundener Endebeleg und einmalige Lesefreigabe](docs/testing/native-win32-release-proof.md) auf neuer synthetischer Ablage bei überlebender Kontrollinstanz geprüft.
+       - [ ] KQ-069 A: Frischer ETW-Netzvergleich für Belegausstellung, einmalige Freigabe und verweigerten Lesezugriff.
        - [ ] KQ-069 A: Durchsetzbaren Erzeugungsweg für jede Runtimegeneration belegen. Der geprüfte
              WebView2-Win32-Einstieg erfüllt BP3 nicht. Produktive BP4-Datenrechte bleiben offen.
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native

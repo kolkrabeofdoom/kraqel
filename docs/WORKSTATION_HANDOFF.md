@@ -74,7 +74,7 @@ Vor Commit bleibt Revision 0 erhalten, nach Commit vor Antwort Revision 1. Der f
 Beide endeten ohne Schreibantwort und mit Revision 0. [Fensterende vor Commit und ETW](testing/native-win32-window-close.md) sind für den neuen Build geprüft.
 Dienstende und Revision 0 sind bestätigt, im Prüfprozessbaum wurden null Netzwerkereignisse gemessen. Der [Wiederanlauf nach Starterabbruch](testing/native-win32-starter-restart.md) blieb dreimal gesperrt.
 Der frische ETW-Netzvergleich bestätigte null Netzwerkereignisse im Prüfprozessbaum. Alle drei gesperrten Starter endeten ohne Kindprozess.
-Die [Freigabebedingungen nach Starterabbruch](data-format/native-win32-bp4-channel-v1-draft.md#freigabeentscheidung-nach-starterabbruch) sind spezifiziert. Für die bestehende Ablage fehlt der Endebeleg. Sie bleibt gesperrt. Ein positiver Freigabepfad ist offen. Produktdaten bleiben gesperrt.
+Die [Freigabebedingungen nach Starterabbruch](data-format/native-win32-bp4-channel-v1-draft.md#freigabeentscheidung-nach-starterabbruch) sind spezifiziert. Für die bestehende Ablage fehlt der Endebeleg. Sie bleibt gesperrt. Für eine neue synthetische Ablage ist die [einmalige Lesefreigabe](testing/native-win32-release-proof.md) bei überlebender Kontrollinstanz geprüft. Vor dem Endebeleg bleibt auch die neue Ablage gesperrt. Produktdaten bleiben gesperrt.
 
 Der Host-Abgleich für die Hörprüfung ergab einen aktiven hostseitigen Wiedergabeendpunkt. Für den
 isolierten Gast ist kein eigener Ausgang belegt, ein separater Prüfplatz war nicht verfügbar. Die
