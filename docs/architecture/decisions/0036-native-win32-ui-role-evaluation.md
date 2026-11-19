@@ -120,7 +120,15 @@ Der vorhandene Auswerter ordnete den Starter über Start-PID und vollständigen 
 
 `broker-store open-win32-surface <aktueller-Kopf-SHA256>` öffnet das synthetische Fenster über dieselbe Bootstrap-Freigabe wie die C4b-Fensterprobe. Der Starter hält Kontrollsperre, Paketdateien und Job bis zum Schließen. Das schreibgeschützte Feld mit dem festen Zweizeiler erhält zuerst den Fokus. Tab und Umschalt+Tab wechseln zwischen Feld und Schaltfläche. Enter auf „Schließen“ oder Escape im Fenster beendet die Sitzung.
 
-Im Windows-Lauf wurden Tastenmeldungen gezielt an die Steuerelemente der geprüften Prozessgeneration gesendet. Der Fokus wechselte vom schreibgeschützten Feld zur Schaltfläche und zurück. Enter auf der Schaltfläche beendete den Prozess regulär. Ein zweiter Starter erhielt beim Kontrollzugriff während der Sitzung einen Freigabefehler (Windows-Code 32). Nach dem Schließen waren der Job leer, der Kontrollkopf unverändert und die Ablage für den Starter wieder zugänglich. Produktdaten blieben gesperrt. Eine manuelle Hörprüfung dieses Einstiegspunkts steht aus.
+Im Windows-Lauf wurden Tastenmeldungen gezielt an die Steuerelemente der geprüften Prozessgeneration gesendet. Der Fokus wechselte vom schreibgeschützten Feld zur Schaltfläche und zurück. Enter auf der Schaltfläche beendete den Prozess regulär. Ein zweiter Starter erhielt beim Kontrollzugriff während der Sitzung einen Freigabefehler (Windows-Code 32). Nach dem Schließen waren der Job leer, der Kontrollkopf unverändert und die Ablage für den Starter wieder zugänglich. Produktdaten blieben gesperrt.
+
+### Softwareprüfung von Fokus, Beschriftung und Sprachausgabe
+
+Am 19.11.2026 lief `open-win32-surface` mit Stand `89e73de` und einer frischen synthetischen Ablage. Der lokale Beobachter ordnete das Fenster über seinen direkten Starterprozess und die verwaltete EXE-Datei zu. Er las ausschließlich die beiden Steuerelemente dieser Fensterinstanz. Im Fensterthread lag der Fokus zuerst auf dem schreibgeschützten Feld und nach einer gezielten Tab-Tastenmeldung auf der Schaltfläche. Native Windows UI Automation lieferte den Namen „Prüftext“, den Typ Edit, den Nur-Lese-Wert und den erwarteten Zweizeiler. Für die Schaltfläche lieferte sie den Namen „Schließen“ und den Typ Button.
+
+Die lokal installierte deutsche SAPI-Stimme Microsoft Hedda Desktop synthetisierte die geprüften Namen und lokalisierten Rollen sowie beim Feld den synthetischen Inhalt. Für beide Ausgaben entstanden im Arbeitsspeicher mindestens 100 ms PCM mit Ausschlägen über der Prüfschwelle (16 kHz, 16 Bit, mono). Der Beobachter verwendete keinen Wiedergabeausgang und speicherte keine Audiodatei. Nach dem Schließen bestätigte der Starter den unveränderten Kontrollkopf, gesperrte Produktdaten und den leeren Job.
+
+**Beleggrenze.** Das automatisiert geöffnete Fenster war im erfolgreichen Lauf im Hintergrund. `GetGUIThreadInfo` belegte den Fokus innerhalb seines Threads. UI Automation meldete für beide Elemente keinen desktopweiten Tastaturfokus. Der Softwarebeleg umfasst die zugänglichen Inhalte und deren lokale Synthese. Eine automatisch ausgelöste Narrator-Ansage beim Fokuswechsel im Vordergrund und das akustische Ergebnis bleiben offen.
 
 ## Kosten für den Editor
 
