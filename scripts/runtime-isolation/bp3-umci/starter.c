@@ -51,12 +51,16 @@ static DWORD allow_read(const wchar_t *path, PSID sid) {
     return error;
 }
 
-static BOOL role(const probe *test, HANDLE input) {
+typedef enum { LEAF, STATIC_ALLOWED, STATIC_FOREIGN } role_kind;
+
+static BOOL role(const probe *test, HANDLE input, role_kind kind) {
     SECURITY_CAPABILITIES caps = { test->sid, NULL, 0, 0 };
     DWORD child = PROCESS_CREATION_CHILD_PROCESS_RESTRICTED;
     DWORD64 code = PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON;
     HANDLE jobs[] = { test->job };
     BOOL delegate = input != NULL;
+    const char *label = kind == STATIC_ALLOWED ? "static-allowed" :
+                        kind == STATIC_FOREIGN ? "static-foreign" : delegate ? "reader" : "empty";
     SIZE_T bytes = 0;
     InitializeProcThreadAttributeList(NULL, delegate ? 5 : 4, 0, &bytes);
     LPPROC_THREAD_ATTRIBUTE_LIST attrs = bytes ? HeapAlloc(GetProcessHeap(), 0, bytes) : NULL;
@@ -119,11 +123,17 @@ static BOOL role(const probe *test, HANDLE input) {
         goto done;
     DWORD code_out = 0;
     stage = 5;
-    ok = GetExitCodeProcess(p.hProcess, &code_out) && code_out == 40;
-    printf("role %s worker-exit %lu\n", delegate ? "reader" : "empty", code_out);
+    if (GetExitCodeProcess(p.hProcess, &code_out)) {
+        if (kind == STATIC_FOREIGN)
+            /* STATUS_INVALID_IMAGE_HASH or STATUS_SYSTEM_INTEGRITY_POLICY_VIOLATION */
+            ok = code_out == 0xC0000428UL || code_out == 0xC0E90002UL;
+        else
+            ok = code_out == (kind == STATIC_ALLOWED ? 50UL : 40UL);
+    }
+    printf("role %s worker-exit %lu\n", label, code_out);
 done:
     if (!ok)
-        printf("role %s failed-stage %lu win32 %lu\n", delegate ? "reader" : "empty",
+        printf("role %s failed-stage %lu win32 %lu\n", label,
                stage, GetLastError());
     if (p.hProcess) {
         if (!ok) TerminateProcess(p.hProcess, 2);
@@ -196,7 +206,14 @@ int wmain(int argc, wchar_t **argv) {
     if (!test.job || !SetInformationJobObject(test.job, JobObjectExtendedLimitInformation,
                                              &limit, sizeof(limit)))
         goto finish;
-    ok = role(&test, input) && role(&test, NULL);
+    SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+    ok = role(&test, input, LEAF) && role(&test, NULL, LEAF);
+    const wchar_t *images[] = { L"bp3-static-allowed.exe", L"bp3-static-foreign.exe" };
+    for (unsigned i = 0; ok && i < 2; ++i) {
+        ok = SUCCEEDED(StringCchPrintfW(worker, MAX_PATH, L"%s\\%s", directory, images[i])) &&
+             allow_read(worker, test.sid) == ERROR_SUCCESS &&
+             role(&test, NULL, i == 0 ? STATIC_ALLOWED : STATIC_FOREIGN);
+    }
 finish:
     if (input != INVALID_HANDLE_VALUE) CloseHandle(input);
     BOOL drained = TRUE;

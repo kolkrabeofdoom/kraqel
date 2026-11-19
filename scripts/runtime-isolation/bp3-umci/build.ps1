@@ -26,14 +26,21 @@ Build-Image 'worker.c' 'allow/bp3-worker.exe' @('advapi32.lib') @('/link','/SUBS
 Build-Image 'worker.c' 'deny/foreign.exe' @('/DBP3_FOREIGN')
 Build-Image 'marker.c' 'allow/allowed.dll' @('/LD')
 Build-Image 'marker.c' 'deny/foreign.dll' @('/LD','/DBP3_FOREIGN')
+# Two ordinary PE import tables, one for each independently built DLL.
+foreach ($case in 'allowed','foreign') {
+    $importDir = if ($case -eq 'allowed') { 'allow' } else { 'deny' }
+    $library = Join-Path $output "$importDir/$case.lib"
+    Build-Image 'static-import.c' "allow/bp3-static-$case.exe" @($library) @('/link','/SUBSYSTEM:WINDOWS','/ENTRY:wmainCRTStartup')
+}
 foreach ($file in @('allow/allowed.lib','allow/allowed.exp','deny/foreign.lib','deny/foreign.exp')) {
     Remove-Item -LiteralPath (Join-Path $output $file)
 }
 Set-Content -LiteralPath (Join-Path $output 'input.bin') -Value 'K' -NoNewline -Encoding ascii
 $files = foreach ($name in @('allow/bp3-starter.exe','allow/bp3-worker.exe','allow/allowed.dll',
+                           'allow/bp3-static-allowed.exe','allow/bp3-static-foreign.exe',
                            'deny/foreign.exe','deny/foreign.dll','input.bin')) {
     $item = Get-Item -LiteralPath (Join-Path $output $name)
     [ordered]@{ path = $name; bytes = $item.Length; sha256 = (Get-FileHash -LiteralPath $item.FullName).Hash }
 }
-[ordered]@{ version = 1; purpose = 'bp3-umci-synthetic-fixture'; files = @($files) } |
+[ordered]@{ version = 2; purpose = 'bp3-umci-synthetic-fixture'; files = @($files) } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $output 'manifest.json') -Encoding utf8

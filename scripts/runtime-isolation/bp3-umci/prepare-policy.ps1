@@ -7,13 +7,16 @@ $ErrorActionPreference = 'Stop'
 $baseline = Join-Path $env:SystemRoot 'schemas\CodeIntegrity\ExamplePolicies\DefaultWindows_Enforced.xml'
 $allowed = Join-Path $FixtureDirectory 'allow'
 $expected = @('allowed.dll','bp3-starter.exe','bp3-worker.exe')
+$version = (Get-Content -LiteralPath (Join-Path $FixtureDirectory 'manifest.json') -Raw | ConvertFrom-Json).version
+if ($version -eq 2) { $expected += 'bp3-static-allowed.exe','bp3-static-foreign.exe' }
+elseif ($version -ne 1) { throw 'Unknown fixture manifest version.' }
 $files = @(Get-ChildItem -LiteralPath $allowed -Force)
 if ($files.Count -ne $expected.Count -or
     @($files | Where-Object {
         $_.PSIsContainer -or $_.Name -cnotin $expected -or
         ($_.Attributes -band [IO.FileAttributes]::ReparsePoint)
     }).Count -ne 0) {
-    throw 'Only the three built positive fixtures belong in the allow directory.'
+    throw 'Only the expected built positive fixtures belong in the allow directory.'
 }
 if (Test-Path -LiteralPath $OutputDirectory) { throw 'Choose a fresh policy output directory.' }
 $out = (New-Item -ItemType Directory -Path $OutputDirectory).FullName

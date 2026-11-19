@@ -1,15 +1,16 @@
 # Entwicklungsstatus
 
-Die synthetische BP3-Probe im separaten Windows-Server-2025-Gast ist bestanden. Bei erzwungener UMCI
-lief derselbe fensterlose Worker in zwei Rollen mit unterschiedlichen Leserechten. Code Integrity
-protokollierte eine gesperrte EXE und vier DLL-Ladeversuche. Richtlinie, aufrufendes Programm und
-Zielhash sind für alle fünf Ereignisse abgeglichen. Job leer, Testprofil entfernt, Gast
-ausgeschaltet, null virtuelle Netzadapter und null aktivierte Integrationsdienste.
+Der Offline-Gastlauf vom 19. November ist bestanden. Bei erzwungener UMCI erreichte das
+Kontrollprogramm mit statisch importierter erlaubter DLL den erwarteten Exit 50. Beim statischen
+Import der fremden DLL beendete der Windows-Loader den Prozess mit `0xC0E90002`. Ereignis 3077 ist
+dem Importprogramm, der Richtlinie und dem vollständigen DLL-Hash zugeordnet. Die beiden bisherigen
+Blattrollen bestanden ebenfalls. Der Gast ist ausgeschaltet.
 [Prüfbericht und Wiederholung](testing/product-start-p2c-bp3-umci-guest.md).
 
-Als Nächstes eine fremde **statisch importierte Start-DLL** prüfen. Starterausfall, Wiederanlauf mit
-abweichender Richtlinie, eigener Netzbeleg und die Bindung aller realen WebView2-Rollen bleiben
-offen. C4-Start und BP4-Datenzugriff bleiben gesperrt.
+Als Nächstes den gezielten Starterausfall mit laufendem Blattprozess und anschließendem Nachweis des
+Jobendes prüfen. Handleprüfung vor Resume, Wiederanlauf mit abweichender Richtlinie, eigener
+Netzbeleg und die Bindung aller realen WebView2-Rollen bleiben offen. C4-Start und BP4-Datenzugriff
+bleiben gesperrt.
 [ADR 0035](architecture/decisions/0035-bp3-independent-process-and-image-enforcement.md).
 
 Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:

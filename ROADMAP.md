@@ -335,9 +335,10 @@ Datenschutzziel bleibt unverändert.
        - [x] KQ-069 A: Vorhandene synthetische Gastprobe mit erzwungener UMCI und eigenem Starter
              bestanden. Zwei Rollen, ein EXE- und vier DLL-Sperrereignisse, Job und Testprofil
              bereinigt.
-       - [ ] KQ-069 A: Statisch importierte Start-DLL, Starterausfall, Richtlinienwechsel und
-             eigenen Netzbeleg prüfen. Präventive Rollenbindung für WebView2 und BP4-Datenrechte
-             bleiben offen.
+       - [x] KQ-069 A: Statischer DLL-Import im isolierten Blattprozess mit Positivkontrolle,
+             Loaderstatus und CI-Ereignis geprüft.
+       - [ ] KQ-069 A: Starterausfall, Richtlinienwechsel und eigenen Netzbeleg prüfen. Präventive
+             Rollenbindung für WebView2 und BP4-Datenrechte bleiben offen.
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native
              Rollenbindung und effektive Datenrechte; neue Bytes erneut messen; anschließend C4c/d
              WebView/SQLite unter belegtem Rollen-/Token-/Jobvertrag getrennt integrieren;

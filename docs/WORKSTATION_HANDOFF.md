@@ -5,25 +5,26 @@ Code und Projektdokumentation; ein `.kraqel`-Archiv transportiert Manuskript, St
 Medien. Wer beides verwechselt, erhält entweder fehlende Kapitel oder einen sehr literarischen
 Commitverlauf.
 
-## Aktuelle Entwicklungsübergabe · 18. November 2026
+## Aktuelle Entwicklungsübergabe · 19. November 2026
 
 ### Aktueller Einstieg und gesicherter Stand
 
-Der geprüfte Quellstand ist `4cc38cd` auf `feat/kq-069-live-file-selection`. Für die Fortsetzung im
-vorhandenen Checkout diesen Branch auswählen und mit `git pull --ff-only` aktualisieren. Die lokalen
-Gastbelege liegen unter `artifacts/bp3-offline-guest/result-series05/`. Der Gast ist für die Nacht
-heruntergefahren. [Draft-PR #142](https://github.com/kolkrabeofdoom/kraqel/pull/142).
+Arbeitsbranch ist `feat/kq-069-live-file-selection`. Für die Fortsetzung im vorhandenen Checkout
+diesen Branch auswählen und mit `git pull --ff-only` aktualisieren. Die lokalen Gastbelege liegen
+unter `artifacts/bp3-offline-guest/result-series06/`. Der Gast ist nach dem Lauf heruntergefahren.
+[Draft-PR #142](https://github.com/kolkrabeofdoom/kraqel/pull/142).
 
-Die synthetische BP3-Probe im separaten Windows-Server-2025-Gast ist bestanden. Bei erzwungener UMCI
-lief derselbe fensterlose Worker in zwei Rollen mit unterschiedlichen Leserechten. Code Integrity
-protokollierte eine gesperrte EXE und vier DLL-Ladeversuche. Richtlinie, aufrufendes Programm und
-Zielhash sind für alle fünf Ereignisse abgeglichen. Job leer, Testprofil entfernt, Gast
-ausgeschaltet, null virtuelle Netzadapter und null aktivierte Integrationsdienste.
+Der Offline-Gastlauf vom 19. November ist bestanden. Bei erzwungener UMCI erreichte das
+Kontrollprogramm mit statisch importierter erlaubter DLL den erwarteten Exit 50. Beim statischen
+Import der fremden DLL beendete der Windows-Loader den Prozess mit `0xC0E90002`. Ereignis 3077 ist
+dem Importprogramm, der Richtlinie und dem vollständigen DLL-Hash zugeordnet. Die beiden bisherigen
+Blattrollen bestanden ebenfalls. Der Gast ist ausgeschaltet.
 [Prüfbericht und Wiederholung](testing/product-start-p2c-bp3-umci-guest.md).
 
-Als Nächstes eine fremde **statisch importierte Start-DLL** prüfen. Starterausfall, Wiederanlauf mit
-abweichender Richtlinie, eigener Netzbeleg und die Bindung aller realen WebView2-Rollen bleiben
-offen. C4-Start und BP4-Datenzugriff bleiben gesperrt.
+Als Nächstes den gezielten Starterausfall mit laufendem Blattprozess und anschließendem Nachweis des
+Jobendes prüfen. Handleprüfung vor Resume, Wiederanlauf mit abweichender Richtlinie, eigener
+Netzbeleg und die Bindung aller realen WebView2-Rollen bleiben offen. C4-Start und BP4-Datenzugriff
+bleiben gesperrt.
 [ADR 0035](architecture/decisions/0035-bp3-independent-process-and-image-enforcement.md).
 
 Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:

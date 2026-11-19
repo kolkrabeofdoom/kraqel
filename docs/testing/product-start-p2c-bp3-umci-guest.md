@@ -8,7 +8,30 @@ synthetischen Dateien wurden bei ausgeschalteter VM in die Gastplatte kopiert. B
 Installationsmedium und die Host-Einbindung der Gastplatte ausgehängt.
 [ADR 0035](../architecture/decisions/0035-bp3-independent-process-and-image-enforcement.md).
 
-## Beobachtungen im Offline-Gast
+## Statische Start-DLL · 19. November 2026
+
+**Bestanden im Offline-Gast.** Der Positivimport erreichte den vorgesehenen Exit 50. Beim
+Negativimport endete der Prozess nach Resume mit `0xC0E90002` (Systemintegritätsrichtlinie
+verletzt). Das zugehörige Ereignis 3077 nennt `bp3-static-foreign.exe` und `foreign.dll`. Beim
+schreibgeschützten Gegencheck der Gastplatte stimmten für alle sechs Sperrereignisse
+Richtlinien-GUID, Prozesspfad, Zielpfad und vollständiger Zielhash. Davon entfiel eines auf die
+statische DLL, vier auf explizite DLL-Ladevorgänge und eines auf die fremde EXE. Starterexit 0, Job
+leer, Profil entfernt. Hyper-V bestätigte nach dem Lauf den ausgeschalteten Gast, null Netzadapter
+und null aktivierte Integrationsdienste. Die lokalen Belege liegen unter
+`artifacts/bp3-offline-guest/result-series06/`. SHA-256 des Fixturemanifests ist
+`f1d26bda1b720288444d8cb6a0036a46b06de318c90aa00ab0f02367bc1fa518`.
+
+Das Fixturemanifest v2 enthält acht Dateien. Zwei zugelassene fensterlose Programme werden aus
+derselben Quelle gebaut und gegen unterschiedliche Importbibliotheken gelinkt. Ihre regulären
+PE-Importtabellen enthalten `Bp3Marker` aus `allowed.dll` beziehungsweise `foreign.dll`. Der Starter
+verwendet für beide denselben vorbereiteten Blattprozess ohne delegierten Datenhandle und prüft
+Token, Job und Mitigations vor dem Resume. Der positive Kontrollstart muss den Export ausführen und
+50 zurückgeben. Für das gesperrte Programm zählen ausschließlich ein nativer Integritätsfehler und
+ein neues CI-Ereignis 3077 für seine statische Abhängigkeit. Der Runner gleicht dabei Zielpfad,
+Prozesspfad, Richtlinien-GUID und vollständigen SHA-256 der DLL ab.
+[Prüfprogramm](../../scripts/runtime-isolation/bp3-umci/static-import.c).
+
+## Beobachtungen im Offline-Gast am 18. November
 
 **Endstand vom 18. November 2026.** Die vorhandene synthetische Probe ist bestanden. Der
 abschließende Lauf startete von einem frischen Abzweig des Prüfpunkts. Das Fixturemanifest hat
@@ -64,22 +87,22 @@ vor dem Resume.
 3. Im **Gast** mit Windows PowerShell
    `prepare-policy.ps1 -FixtureDirectory <Paket> -OutputDirectory <neuer Ordner>` ausführen. Das
    Skript verwendet das mit dem Gast gelieferte DefaultWindows-Enforced-Template als Plattformbasis.
-   Es ergänzt Hashregeln ausschließlich für Starter, Worker und erlaubte DLL und kompiliert die
-   resultierende CIP. Prüfe das XML, seine Windows-Plattformregeln und die referenzierten Testhashes
-   vor der Übernahme. Die Windows-Basis enthält Plattformregeln von Microsoft. Diese Regeln bilden
-   keine vollständige Einzeldateiliste der Plattform. Die beiden negativen Fixtures müssen außerhalb
-   der ergänzten Allow-Regeln bleiben.
+   Es ergänzt Hashregeln für Starter, Worker, erlaubte DLL und in Manifest v2 beide statischen
+   Importprogramme. Es kompiliert die resultierende CIP. Prüfe das XML, seine
+   Windows-Plattformregeln und die referenzierten Testhashes vor der Übernahme. Die Windows-Basis
+   enthält Plattformregeln von Microsoft. Diese Regeln bilden keine vollständige Einzeldateiliste
+   der Plattform. Die beiden negativen Fixtures müssen außerhalb der ergänzten Allow-Regeln bleiben.
    [Policyregeln](https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/design/select-types-of-rules-to-create).
-4. In einem frischen `C:\BP3-UMCI-Fixture` im Gast die sechs im Manifest genannten Dateien flach
-   ablegen, zusammen mit `manifest.json`. Das Verzeichnis muss für die ausführende lokale
-   Gastidentität beschreibbar und gegen fremde Änderungen geschützt sein. Der synthetische Marker
-   bleibt für das AppContainer-Profil über den Dateipfad unzugänglich. Den Gast vor der
-   Policyaktivierung auf seinen Ausgangszustand rücksetzbar machen. Die geprüfte CIP ausschließlich
-   im autorisierten Gast mit CiTool aktivieren, erforderlichenfalls den Gast neu starten und
-   Policyaktivierung in Code Integrity prüfen. Bei unbeaufsichtigter Aktivierung CiTool mit `-json`
-   und abgeschlossenem Standardeingabestrom ausführen. Der erste Lauf hatte die Policy bereits
-   geladen und wartete danach im verborgenen Setup-Fenster auf Enter. Für die Abnahme zählen der
-   native Readback nach dem Neustart und die Ereignisse des eigentlichen Starterlaufs.
+4. In einem frischen `C:\BP3-UMCI-Fixture` im Gast alle im Manifest genannten Dateien flach ablegen,
+   zusammen mit `manifest.json`. Das Verzeichnis muss für die ausführende lokale Gastidentität
+   beschreibbar und gegen fremde Änderungen geschützt sein. Der synthetische Marker bleibt für das
+   AppContainer-Profil über den Dateipfad unzugänglich. Den Gast vor der Policyaktivierung auf
+   seinen Ausgangszustand rücksetzbar machen. Die geprüfte CIP ausschließlich im autorisierten Gast
+   mit CiTool aktivieren, erforderlichenfalls den Gast neu starten und Policyaktivierung in Code
+   Integrity prüfen. Bei unbeaufsichtigter Aktivierung CiTool mit `-json` und abgeschlossenem
+   Standardeingabestrom ausführen. Der erste Lauf hatte die Policy bereits geladen und wartete
+   danach im verborgenen Setup-Fenster auf Enter. Für die Abnahme zählen der native Readback nach
+   dem Neustart und die Ereignisse des eigentlichen Starterlaufs.
    [CiTool](https://learn.microsoft.com/en-us/windows/security/application-security/application-control/app-control-for-business/operations/citool-commands).
 5. Im Gast `run-guest.ps1` mit der geprüften Gast-UUID, OS-Version, Policy-ID, CIP-SHA-256 und
    Manifest-SHA-256 starten. Der Einstieg vergleicht Gastidentität und Build, Arbeitsgruppe,
@@ -107,10 +130,10 @@ Artefakthashes übernehmen.
   durch die Dynamic-Code-Policy.
 - Der Worker erwartet beim expliziten Laden der fremden DLL ebenfalls 577 oder 4551, lädt die
   erlaubte DLL und prüft ihren Export. Anschließend prüft er die fremde DLL erneut. Dies sind
-  explizite Ladevorgänge im laufenden Worker. Eine fremde statisch importierte Start-DLL ist eine
-  separate Abnahme und bisher nicht enthalten. Der Handleunterschied ist durch Übergabeliste und
-  Leseversuch nachgewiesen. Eine unabhängige Inspektion der Handle-Rechte im suspendierten
-  Zielprozess steht aus.
+  explizite Ladevorgänge im laufenden Worker. Den statischen Startimport prüfen die beiden gesondert
+  gelinkten Programme im v2-Gastlauf. Der Handleunterschied ist durch Übergabeliste und Leseversuch
+  nachgewiesen. Eine unabhängige Inspektion der Handle-Rechte im suspendierten Zielprozess steht
+  aus.
 - Der Starter prüft Workerexit und Jobleerstand. Ein tatsächlicher Starterabbruch, der Wiederanlauf
   bei geänderter Richtlinie und ein eigener Netzbeleg sind noch ausstehend. Ein erfolgreicher
   Gastlauf der vorhandenen Testfälle allein genügt daher nicht für die volle Abnahme nach ADR 0035.
