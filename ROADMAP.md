@@ -350,6 +350,10 @@ Datenschutzziel bleibt unverändert.
        - [x] KQ-069 A: Öffentliche Microsoft-SDKs (stabil und Vorschau) und Herstellerdokumentation
              auf ein Startveto für verschachtelte Crashpad-Prozesse und spätere Renderer geprüft.
              Für beide Fälle ist kein unterstützter Freigabepunkt dokumentiert (ADR 0035).
+       - [x] KQ-069 A: Native Win32-Oberfläche mit eigener UI-Rolle als Alternative bewertet.
+             Statischer Linkversuch für ein Unicode-Textfeld bestanden (ADR 0036).
+       - [ ] KQ-069 A: Ein natives UI-Blatt im interaktiven Offline-Gast mit gebundener Rolle,
+             Startablehnung, Tastatur, Sprachausgabe und eigenem Netzbeleg prüfen.
        - [ ] KQ-069 A: Durchsetzbaren Erzeugungsweg für jede Runtimegeneration belegen. Der geprüfte
              Win32-Einstieg erfüllt BP3 nicht. BP4-Datenrechte bleiben offen.
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native

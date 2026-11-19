@@ -25,6 +25,11 @@ Startveto für verschachtelte Crashpad-Prozesse oder spätere Renderer. C4-Start
 bleiben bis zum Nachweis gemäß ADR 0035 gesperrt.
 [ADR 0035](architecture/decisions/0035-bp3-independent-process-and-image-enforcement.md).
 
+Als Alternative ist ein eigenes natives Win32-UI-Blatt ausgewählt. Der Linkversuch für ein
+Unicode-Textfeld ergab zwei direkte System-DLL-Importe. Nächster Schritt ist der erste interaktive
+Lauf im Offline-Gast mit geprüfter Rolle vor Resume und ausschließlich synthetischem Text.
+[Bewertung und Abbruchkriterien](architecture/decisions/0036-native-win32-ui-role-evaluation.md).
+
 Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:
 
 [Debug-Wächter-Nachweis](testing/product-start-p2c-bp3-debug-guardian.md): Root beim Create-Ereignis

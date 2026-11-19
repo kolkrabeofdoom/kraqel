@@ -151,3 +151,6 @@ der fehlende positive Nachweis im API-Vertrag: Ein Wechsel auf eines dieser SDKs
 keine Freigabe. Eine Neubewertung braucht eine veröffentlichte Schnittstelle mit früher,
 verbindlicher Entscheidung für beide Prozessfälle.
 [Microsofts Kompatibilitätshinweise](https://learn.microsoft.com/en-us/deployedge/webview2-security-tools).
+
+Die Bewertung einer nativen Windows-Oberfläche mit eigener, vor Resume festgelegter Blattrolle steht
+in [ADR 0036](0036-native-win32-ui-role-evaluation.md).
