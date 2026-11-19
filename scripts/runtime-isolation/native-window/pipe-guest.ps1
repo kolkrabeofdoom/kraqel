@@ -1,4 +1,4 @@
-param([ValidateSet('read-scene','deny-save','edit-conflict','durable-reopen','commit-crashes','channel-interruptions','window-close','channel-ends','starter-restart','proof-run','proof-incomplete','proof-witness-loss','proof-consumed-loss','proof-live-loss','proof-pre-cleanup-loss','proof-partial-cleanup-loss','proof-post-cleanup-loss','handshake','reference','exercise')][string]$Trial='commit-crashes')
+param([ValidateSet('read-scene','deny-save','edit-conflict','durable-reopen','commit-crashes','channel-interruptions','window-close','channel-ends','starter-restart','proof-run','proof-clean-restart','proof-incomplete','proof-witness-loss','proof-consumed-loss','proof-live-loss','proof-pre-cleanup-loss','proof-partial-cleanup-loss','proof-post-cleanup-loss','handshake','reference','exercise')][string]$Trial='commit-crashes')
 $ErrorActionPreference='Stop'
 $dir='C:\Program Files\KRAQEL-Window-Probe'
 try {
@@ -15,7 +15,8 @@ try {
     }
     if ($Trial -eq 'reference') { Start-Sleep -Seconds 2; exit 0 }
     if ($Trial -eq 'exercise') { $Trial = 'commit-crashes' }
-    $crashExits = @{
+    $expectedExits = @{
+        'proof-clean-restart' = 0
         'proof-witness-loss' = 103
         'proof-consumed-loss' = 104
         'proof-live-loss' = 0
@@ -23,13 +24,15 @@ try {
         'proof-partial-cleanup-loss' = 107
         'proof-post-cleanup-loss' = 108
     }
-    if ($crashExits.ContainsKey($Trial)) {
-        & "$dir\pipe-check.exe" $Trial
-        if ($LASTEXITCODE -ne $crashExits[$Trial]) { throw 'Expected witness crash missing.' }
+    if ($expectedExits.ContainsKey($Trial)) {
+        $firstRun = if ($Trial -eq 'proof-clean-restart') { 'proof-run' } else { $Trial }
+        & "$dir\pipe-check.exe" $firstRun
+        if ($LASTEXITCODE -ne $expectedExits[$Trial]) { throw 'Unexpected first-run exit code.' }
         $present = @('pipe.lock')
         $absent = @()
         $artifacts = 'window.start','data.start','pipe-targets.txt'
         switch ($Trial) {
+            'proof-clean-restart' { $absent = $artifacts }
             'proof-pre-cleanup-loss' { $present += $artifacts }
             'proof-partial-cleanup-loss' { $present += 'data.start'; $absent = 'window.start','pipe-targets.txt' }
             'proof-post-cleanup-loss' { $absent = $artifacts }
@@ -37,7 +40,7 @@ try {
         $before = @{}
         foreach ($name in $present) { $before[$name] = (Get-FileHash -LiteralPath "$dir\$name").Hash }
         foreach ($name in $absent) {
-            if (Test-Path -LiteralPath "$dir\$name") { throw 'Unexpected artifact at crash point.' }
+            if (Test-Path -LiteralPath "$dir\$name") { throw 'Unexpected artifact before restart.' }
         }
         & "$dir\pipe-check.exe" proof-run
         if ($LASTEXITCODE -ne 102) { throw 'Fresh witness restart allowed.' }
@@ -47,7 +50,7 @@ try {
         foreach ($name in $absent) {
             if (Test-Path -LiteralPath "$dir\$name") { throw 'Removed artifact recreated on restart.' }
         }
-        Write-Output 'Witness crash confirmed; fresh witness denied; durable state unchanged.'
+        Write-Output 'Expected first-run exit confirmed; fresh witness denied; durable state unchanged.'
         exit 0
     }
     if ($Trial -eq 'starter-restart') {

@@ -178,3 +178,9 @@ Am 19. November 2026 liefen Referenz und Ausfallprüfung auf einer frischen synt
 | Verlorene Ereignisse und Puffer | 0 | 0 |
 
 Die schreibgeschützte Nachprüfung bestätigte den Verbrauchszustand und das Fehlen der Startartefakte. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden. Für die Wiederholung verwenden der bestehende ETW-Gasttreiber und die Auswertung `-ExerciseTrial proof-post-cleanup-loss` bzw. `--proof proof-post-cleanup-loss`. Rohspuren bleiben lokal.
+
+## Neustart nach regulärem Abschluss der Lesefreigabe
+
+Der Gastlauf `-Trial proof-clean-restart` vom 19. November 2026 verwendet den bestehenden regulären Leselauf und startet danach eine frische Kontrollinstanz auf derselben synthetischen Ablage. Genau ein Lesezugriff bestätigte Revision 1. Beide Leserollen endeten regulär, beide Jobs waren leer und die erste Kontrollinstanz endete mit Code 0. Beim anschließenden Aufruf endete die neue Kontrollinstanz vor der Ablagevorbereitung mit Code 102.
+
+Der Hash von `pipe.lock` blieb über den Neustart gleich. Beide Startbelege und die Prozessliste fehlten vor und nach dem Neustart. Die schreibgeschützte Nachprüfung bestätigte `read-consumed`. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden.
