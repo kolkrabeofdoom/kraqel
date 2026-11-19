@@ -8,6 +8,40 @@ synthetischen Dateien wurden bei ausgeschalteter VM in die Gastplatte kopiert. B
 Installationsmedium und die Host-Einbindung der Gastplatte ausgehängt.
 [ADR 0035](../architecture/decisions/0035-bp3-independent-process-and-image-enforcement.md).
 
+## Wiederanlauf mit fehlender oder abweichender Prüfrichtlinie
+
+**Bestanden am 19. November 2026.** Im ersten Prüffenster meldete Windows UMCI-Status 0 und keine
+KRAQEL-Prüfrichtlinie. Im zweiten meldete Windows nach einem weiteren Neustart Status 2 und die
+erzwungene ursprüngliche ID. Nur die Richtlinienversion war geändert. Der Einstieg sperrte im ersten
+Fall wegen fehlender Durchsetzung, im zweiten wegen abweichender installierter CIP-Bytes.
+
+Der schreibgeschützte Gegencheck der Gastplatte bestätigt in beiden Zeitfenstern je zwei
+Kontrollprozessstarts und null Starterstarts anhand der Security-Ereignisse 4688. Ereignis 4608
+belegt den Neustart zwischen den Fenstern. Der extern gesicherte Startanker blieb identisch. Der
+Gast ist aus und seine zuvor verwendete virtuelle Platte wieder ausgewählt. Die bereinigte
+Auswertung liegt lokal unter `artifacts/bp3-offline-guest/result-restart09/verified.json`.
+
+Als Referenz dienen der separat gesicherte Startanker, die unveränderten acht Fixturedateien und der
+reguläre Einstieg `run-guest.ps1` aus dem bestandenen Starterabbruch-Lauf. Beide Versuche verwenden
+dieselbe Gastidentität und denselben erwarteten CIP-Hash. Der Prüfbereich ist dieser synthetische
+Wiederanlaufpfad.
+
+1. Im entbehrlichen Offline-Gast einen frischen Abzweig des Prüfpunkts vor der Installation der
+   KRAQEL-Richtlinie verwenden. Fixturedateien, Startanker und Prüfskripte bereitstellen. Nur im
+   Gast erfolgreiche Prozesserzeugungen protokollieren (Security-Ereignis 4688). Nach dem
+   Gastneustart das Fehlen der erwarteten ID im CiTool-Inventar und der zugehörigen CIP auf der
+   Gastplatte prüfen.
+2. Aus der originalen Gast-XML zunächst den erwarteten CIP-Hash reproduzieren. Ausschließlich die
+   Richtlinienversion erhöhen, die neue CIP im Testgast installieren und den Gast neu starten. UMCI
+   muss erzwungen werden, die erwartete ID muss als aktiv erscheinen und die installierten Bytes
+   müssen der neuen CIP entsprechen.
+3. Pro Startversuch das folgende Skript im Gast mit `-Case Missing` bzw. `-Case Changed`,
+   `-AnchorPath` und dem separat gesicherten `-AnchorSha256` ausführen. Es prüft den exakten
+   Ablehnungsgrund und das Ereignisfenster zwischen zwei beobachtbaren Prozessstarts desselben
+   Prüfprozesses. Ein Starterereignis, fehlende Kontrollen oder ein anderer Fehler lassen die
+   Prüfung scheitern. Die Aufzeichnungen bleiben lokal.
+   [Wiederanlaufprüfung](../../scripts/runtime-isolation/bp3-umci/test-restart-policy.ps1).
+
 ## Starterabbruch bei laufendem Blattprozess
 
 **Bestanden am 19. November 2026.** Vor dem Abbruch war genau ein Blattprozess aktiv und hatte aus
@@ -159,8 +193,8 @@ Artefakthashes übernehmen.
   gelinkten Programme im v2-Gastlauf. Der Handleunterschied ist durch Übergabeliste und Leseversuch
   nachgewiesen. Eine unabhängige Inspektion der Handle-Rechte im suspendierten Zielprozess steht
   aus.
-- Der Starter prüft Workerexit und Jobleerstand. Der Abbruchfall ist oben dokumentiert. Der
-  Wiederanlauf bei geänderter Richtlinie und ein eigener Netzbeleg stehen aus. Ein erfolgreicher
+- Der Starter prüft Workerexit und Jobleerstand. Der Abbruchfall ist oben dokumentiert. Die beiden
+  Wiederanlaufsperren sind oben dokumentiert. Ein eigener Netzbeleg steht aus. Ein erfolgreicher
   Gastlauf der vorhandenen Testfälle allein genügt daher nicht für die volle Abnahme nach ADR 0035.
 
 Die Hostvalidierung umfasst den Build mit `/W4 /WX`, die Erzeugung der unaktivierten CIP aus der
