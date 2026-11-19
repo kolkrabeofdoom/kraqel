@@ -8,6 +8,7 @@
 
 typedef struct {
     HANDLE job;
+    HANDLE accounting_job;
     PSID sid;
     const wchar_t *worker;
     const wchar_t *directory;
@@ -51,13 +52,13 @@ static DWORD allow_read(const wchar_t *path, PSID sid) {
     return error;
 }
 
-typedef enum { LEAF, STATIC_ALLOWED, STATIC_FOREIGN } role_kind;
+typedef enum { LEAF, STATIC_ALLOWED, STATIC_FOREIGN, CRASH_LEAF } role_kind;
 
 static BOOL role(const probe *test, HANDLE input, role_kind kind) {
     SECURITY_CAPABILITIES caps = { test->sid, NULL, 0, 0 };
     DWORD child = PROCESS_CREATION_CHILD_PROCESS_RESTRICTED;
     DWORD64 code = PROCESS_CREATION_MITIGATION_POLICY_PROHIBIT_DYNAMIC_CODE_ALWAYS_ON;
-    HANDLE jobs[] = { test->job };
+    HANDLE jobs[] = { test->accounting_job, test->job };
     BOOL delegate = input != NULL;
     const char *label = kind == STATIC_ALLOWED ? "static-allowed" :
                         kind == STATIC_FOREIGN ? "static-foreign" : delegate ? "reader" : "empty";
@@ -75,7 +76,8 @@ static BOOL role(const probe *test, HANDLE input, role_kind kind) {
     if (!UpdateProcThreadAttribute(attrs, 0, PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES,
                                    &caps, sizeof(caps), NULL, NULL) ||
         !UpdateProcThreadAttribute(attrs, 0, PROC_THREAD_ATTRIBUTE_JOB_LIST,
-                                   jobs, sizeof(jobs), NULL, NULL) ||
+                                   test->accounting_job ? jobs : &jobs[1],
+                                   test->accounting_job ? sizeof(jobs) : sizeof(HANDLE), NULL, NULL) ||
         !UpdateProcThreadAttribute(attrs, 0, PROC_THREAD_ATTRIBUTE_CHILD_PROCESS_POLICY,
                                    &child, sizeof(child), NULL, NULL) ||
         !UpdateProcThreadAttribute(attrs, 0, PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY,
@@ -84,7 +86,7 @@ static BOOL role(const probe *test, HANDLE input, role_kind kind) {
                                                &input, sizeof(input), NULL, NULL)))
         goto done;
     wchar_t command[64] = L"bp3-worker none";
-    if (delegate && FAILED(StringCchPrintfW(command, 64, L"bp3-worker %llu",
+    if (delegate && FAILED(StringCchPrintfW(command, 64, kind == CRASH_LEAF ? L"bp3-worker crash-ready-%llu" : L"bp3-worker %llu",
                                            (unsigned long long)(uintptr_t)input)))
         goto done;
     STARTUPINFOEXW si = {0};
@@ -119,7 +121,7 @@ static BOOL role(const probe *test, HANDLE input, role_kind kind) {
         dynamic.AllowRemoteDowngrade || dynamic.AuditProhibitDynamicCode)
         goto done;
     stage = 4;
-    if (ResumeThread(p.hThread) != 1 || WaitForSingleObject(p.hProcess, 5000) != WAIT_OBJECT_0)
+    if (ResumeThread(p.hThread) != 1 || WaitForSingleObject(p.hProcess, kind == CRASH_LEAF ? 45000 : 5000) != WAIT_OBJECT_0)
         goto done;
     DWORD code_out = 0;
     stage = 5;
@@ -145,8 +147,92 @@ done:
     return ok;
 }
 
+/* Keep only the accounting job open in the observer. Holding the owner's
+   kill-on-close job here would itself suppress the behavior under test. */
+static BOOL crash_trial(const wchar_t *starter, const wchar_t *profile, const probe *test) {
+    SECURITY_ATTRIBUTES inherit = { sizeof(inherit), NULL, TRUE };
+    HANDLE accounting = CreateJobObjectW(&inherit, NULL);
+    HANDLE ready = CreateEventW(NULL, TRUE, FALSE, NULL);
+    HANDLE signal = NULL, leaf = NULL;
+    PROCESS_INFORMATION owner = {0};
+    BOOL ok = FALSE, initialized = FALSE;
+    SIZE_T bytes = 0;
+    InitializeProcThreadAttributeList(NULL, 1, 0, &bytes);
+    LPPROC_THREAD_ATTRIBUTE_LIST attrs = HeapAlloc(GetProcessHeap(), 0, bytes);
+    if (!accounting || !ready || !attrs ||
+        !DuplicateHandle(GetCurrentProcess(), ready, GetCurrentProcess(), &signal,
+                         EVENT_MODIFY_STATE, TRUE, 0))
+        goto done;
+    HANDLE handles[] = {accounting, signal};
+    initialized = InitializeProcThreadAttributeList(attrs, 1, 0, &bytes);
+    if (!initialized || !UpdateProcThreadAttribute(attrs, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
+                                                   handles, sizeof(handles), NULL, NULL))
+        goto done;
+    wchar_t cmd[256];
+    if (FAILED(StringCchPrintfW(cmd, 256, L"bp3-starter --crash-owner %llu %llu %s",
+                               (unsigned long long)(uintptr_t)accounting,
+                               (unsigned long long)(uintptr_t)signal, profile)))
+        goto done;
+    STARTUPINFOEXW startup = {0};
+    startup.StartupInfo.cb = sizeof(startup);
+    startup.lpAttributeList = attrs;
+    if (!CreateProcessW(starter, cmd, NULL, NULL, TRUE, EXTENDED_STARTUPINFO_PRESENT | CREATE_NO_WINDOW,
+                        NULL, test->directory, &startup.StartupInfo, &owner))
+        goto done;
+    HANDLE waiters[] = {owner.hProcess, ready};
+    if (WaitForMultipleObjects(2, waiters, FALSE, 10000) != WAIT_OBJECT_0 + 1)
+        goto done;
+    JOBOBJECT_BASIC_PROCESS_ID_LIST list;
+    if (!QueryInformationJobObject(accounting, JobObjectBasicProcessIdList, &list, sizeof(list), NULL) ||
+        list.NumberOfAssignedProcesses != 1 || list.NumberOfProcessIdsInList != 1)
+        goto done;
+    leaf = OpenProcess(SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION, FALSE, (DWORD)list.ProcessIdList[0]);
+    BOOL member = FALSE;
+    DWORD len = MAX_PATH, owner_exit, leaf_exit;
+    wchar_t image[MAX_PATH];
+    if (!leaf || !IsProcessInJob(leaf, accounting, &member) || !member ||
+        !QueryFullProcessImageNameW(leaf, 0, image, &len) || _wcsicmp(image, test->worker) ||
+        WaitForSingleObject(leaf, 0) != WAIT_TIMEOUT || WaitForSingleObject(owner.hProcess, 0) != WAIT_TIMEOUT)
+        goto done;
+    if (!TerminateProcess(owner.hProcess, 73) || WaitForSingleObject(owner.hProcess, 5000) != WAIT_OBJECT_0 ||
+        !GetExitCodeProcess(owner.hProcess, &owner_exit) || owner_exit != 73 ||
+        WaitForSingleObject(leaf, 5000) != WAIT_OBJECT_0 || !GetExitCodeProcess(leaf, &leaf_exit) ||
+        leaf_exit == 47)
+        goto done;
+    JOBOBJECT_BASIC_ACCOUNTING_INFORMATION counts;
+    ULONGLONG until = GetTickCount64() + 3000;
+    do {
+        if (!QueryInformationJobObject(accounting, JobObjectBasicAccountingInformation,
+                                       &counts, sizeof(counts), NULL))
+            goto done;
+        if (!counts.ActiveProcesses) break;
+        Sleep(20);
+    } while (GetTickCount64() < until);
+    ok = counts.TotalProcesses == 1 && counts.ActiveProcesses == 0;
+    if (ok) printf("starter-crash ready 1 active-before 1 starter-exit %lu leaf-exit %lu active-after 0 total 1\n",
+                   owner_exit, leaf_exit);
+done:
+    if (owner.hProcess) {
+        if (!ok) {
+            TerminateProcess(owner.hProcess, 74);
+            WaitForSingleObject(owner.hProcess, 5000);
+            TerminateJobObject(accounting, 74);
+        }
+        CloseHandle(owner.hProcess);
+        CloseHandle(owner.hThread);
+    }
+    if (leaf) CloseHandle(leaf);
+    if (initialized) DeleteProcThreadAttributeList(attrs);
+    if (attrs) HeapFree(GetProcessHeap(), 0, attrs);
+    if (signal) CloseHandle(signal);
+    if (ready) CloseHandle(ready);
+    if (accounting) CloseHandle(accounting);
+    return ok;
+}
+
 int wmain(int argc, wchar_t **argv) {
-    if (argc != 2 || wcscmp(argv[1], L"--prepared-offline-guest") != 0)
+    BOOL owner_mode = argc == 5 && wcscmp(argv[1], L"--crash-owner") == 0;
+    if (!owner_mode && (argc != 2 || wcscmp(argv[1], L"--prepared-offline-guest") != 0))
         return 2;
     wchar_t directory[MAX_PATH], worker[MAX_PATH], foreign[MAX_PATH], allowed_dll[MAX_PATH],
         foreign_dll[MAX_PATH], input_path[MAX_PATH];
@@ -165,6 +251,24 @@ int wmain(int argc, wchar_t **argv) {
     DWORD attributes = GetFileAttributesW(directory);
     if (attributes == INVALID_FILE_ATTRIBUTES || (attributes & FILE_ATTRIBUTE_REPARSE_POINT))
         return 2;
+    if (owner_mode) {
+        wchar_t *end;
+        HANDLE accounting = (HANDLE)(uintptr_t)_wcstoui64(argv[2], &end, 10);
+        if (!accounting || *end || wcsncmp(argv[4], L"org.kraqel.bp3umci.", 19)) return 2;
+        HANDLE signal = (HANDLE)(uintptr_t)_wcstoui64(argv[3], &end, 10);
+        if (!signal || *end) return 2;
+        probe held = { NULL, accounting, NULL, worker, directory };
+        if (FAILED(DeriveAppContainerSidFromAppContainerName(argv[4], &held.sid))) return 4;
+        held.job = CreateJobObjectW(NULL, NULL);
+        JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits = {0};
+        limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | JOB_OBJECT_LIMIT_ACTIVE_PROCESS;
+        limits.BasicLimitInformation.ActiveProcessLimit = 1;
+        if (held.job && SetInformationJobObject(held.job, JobObjectExtendedLimitInformation, &limits, sizeof(limits)))
+            role(&held, signal, CRASH_LEAF);
+        if (held.job) CloseHandle(held.job);
+        FreeSid(held.sid);
+        return 4; /* Normal return cannot satisfy the crash assertion. */
+    }
     STARTUPINFOW si = {0};
     si.cb = sizeof(si);
     PROCESS_INFORMATION p = {0};
@@ -185,7 +289,7 @@ int wmain(int argc, wchar_t **argv) {
     if (FAILED(StringCchPrintfW(profile, 64, L"org.kraqel.bp3umci.%lu.%llu",
                                GetCurrentProcessId(), GetTickCount64())))
         return 4;
-    probe test = { NULL, NULL, worker, directory };
+    probe test = { NULL, NULL, NULL, worker, directory };
     if (FAILED(CreateAppContainerProfile(profile, profile, profile, NULL, 0, &test.sid)))
         return 4;
     HANDLE input = INVALID_HANDLE_VALUE;
@@ -208,6 +312,8 @@ int wmain(int argc, wchar_t **argv) {
         goto finish;
     SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
     ok = role(&test, input, LEAF) && role(&test, NULL, LEAF);
+    wchar_t starter[MAX_PATH];
+    if (ok) ok = GetModuleFileNameW(NULL, starter, MAX_PATH) == length && crash_trial(starter, profile, &test);
     const wchar_t *images[] = { L"bp3-static-allowed.exe", L"bp3-static-foreign.exe" };
     for (unsigned i = 0; ok && i < 2; ++i) {
         ok = SUCCEEDED(StringCchPrintfW(worker, MAX_PATH, L"%s\\%s", directory, images[i])) &&

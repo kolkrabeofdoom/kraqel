@@ -54,6 +54,15 @@ int wmain(int argc, wchar_t **argv) {
         !IsProcessInJob(GetCurrentProcess(), NULL, &member) || !member ||
         argc != 2 || !GetModuleFileNameW(NULL, image, MAX_PATH))
         return BAD_CONTEXT;
+    if (wcsncmp(argv[1], L"crash-ready-", 12) == 0) {
+        wchar_t *end;
+        HANDLE event = (HANDLE)(uintptr_t)_wcstoui64(argv[1] + 12, &end, 10);
+        if (!event || *end || !SetEvent(event))
+            return BAD_CONTEXT;
+        CloseHandle(event);
+        Sleep(60000);
+        return 47; /* Distinguishable from termination by job close. */
+    }
     HANDLE by_path = CreateFileW(L"C:\\BP3-UMCI-Fixture\\input.bin", GENERIC_READ,
                                  FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
     if (by_path != INVALID_HANDLE_VALUE) {

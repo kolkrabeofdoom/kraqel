@@ -11,7 +11,7 @@ Commitverlauf.
 
 Arbeitsbranch ist `feat/kq-069-live-file-selection`. Für die Fortsetzung im vorhandenen Checkout
 diesen Branch auswählen und mit `git pull --ff-only` aktualisieren. Die lokalen Gastbelege liegen
-unter `artifacts/bp3-offline-guest/result-series06/`. Der Gast ist nach dem Lauf heruntergefahren.
+unter `artifacts/bp3-offline-guest/result-series07/`. Der Gast ist nach dem Lauf heruntergefahren.
 [Draft-PR #142](https://github.com/kolkrabeofdoom/kraqel/pull/142).
 
 Der Offline-Gastlauf vom 19. November ist bestanden. Bei erzwungener UMCI erreichte das
@@ -21,10 +21,12 @@ dem Importprogramm, der Richtlinie und dem vollständigen DLL-Hash zugeordnet. D
 Blattrollen bestanden ebenfalls. Der Gast ist ausgeschaltet.
 [Prüfbericht und Wiederholung](testing/product-start-p2c-bp3-umci-guest.md).
 
-Als Nächstes den gezielten Starterausfall mit laufendem Blattprozess und anschließendem Nachweis des
-Jobendes prüfen. Handleprüfung vor Resume, Wiederanlauf mit abweichender Richtlinie, eigener
-Netzbeleg und die Bindung aller realen WebView2-Rollen bleiben offen. C4-Start und BP4-Datenzugriff
-bleiben gesperrt.
+Der gezielte Abbruch des Starters bei laufendem Blattprozess ist im Offline-Gast bestätigt. Vor dem
+Abbruch war genau ein Blattprozess im Zähljob aktiv. Am gehaltenen Prozesshandle wurde sein Ende
+beobachtet. Danach meldete der Zähljob null aktive Prozesse bei einer Gesamtzahl von eins. Als
+Nächstes den Wiederanlauf mit fehlender oder abweichender Richtlinie prüfen. Handleprüfung vor
+Resume, eigener Netzbeleg und die Bindung aller realen WebView2-Rollen bleiben offen. C4-Start und
+BP4-Datenzugriff bleiben gesperrt.
 [ADR 0035](architecture/decisions/0035-bp3-independent-process-and-image-enforcement.md).
 
 Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:

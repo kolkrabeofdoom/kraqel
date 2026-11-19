@@ -63,8 +63,9 @@ Die Bewertung wurde anhand der Primärdokumentation und des bestehenden Quell- u
 abgeschlossen. Die vorhandene synthetische Gastprobe hat zwei Blattrollen und die Sperre fremder
 EXE-/DLL-Images unter erzwungener UMCI nachgewiesen. Die fremde statische Start-DLL wurde im Gast
 durch UMCI gesperrt, der Positivimport lief. Die Abnahmekriterien zu Handleprüfung vor Resume,
-Starterausfall, Richtlinienwechsel und eigenem Netzbeleg bleiben offen. Für die tatsächlichen
-WebView-Rollen fehlt der präventive Erzeugungsweg.
+Richtlinienwechsel und eigenem Netzbeleg bleiben offen. Der gezielte Starterausfall mit laufendem
+synthetischem Blattprozess, dessen Ende und der Leerstand der Gruppe sind im Offline-Gast bestätigt.
+Für die tatsächlichen WebView-Rollen fehlt der präventive Erzeugungsweg.
 [Ergebnis und Beleggrenzen](../../testing/product-start-p2c-bp3-umci-guest.md). BP3 insgesamt und
 `RuntimeStartAllowed` bleiben gesperrt. `DataAllowed` benötigt zusätzlich die getrennte BP4-Abnahme.
 Bis dahin erhält die Referenz weder echte Projektinhalte noch dauerhafte Kontrollschlüssel. Die

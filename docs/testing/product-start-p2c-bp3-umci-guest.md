@@ -8,6 +8,31 @@ synthetischen Dateien wurden bei ausgeschalteter VM in die Gastplatte kopiert. B
 Installationsmedium und die Host-Einbindung der Gastplatte ausgehängt.
 [ADR 0035](../architecture/decisions/0035-bp3-independent-process-and-image-enforcement.md).
 
+## Starterabbruch bei laufendem Blattprozess
+
+**Bestanden am 19. November 2026.** Vor dem Abbruch war genau ein Blattprozess aktiv und hatte aus
+seinem Programmeinstieg Bereitschaft gemeldet. Der Starter endete mit dem vorgegebenen Exit 73, der
+Blattprozess mit Exit 0. Sein gehaltener Prozesshandle wurde innerhalb der Wartefrist von fünf
+Sekunden signalisiert. Der äußere Job meldete anschließend `ActiveProcesses=0` und
+`TotalProcesses=1`. Diese Messung fand vor der Bereinigung statt. Die bisherigen Rollen- und
+Importkontrollen bestanden ebenfalls. Das Testprofil wurde entfernt und der Gast ausgeschaltet. Die
+lokalen Belege liegen unter `artifacts/bp3-offline-guest/result-series07/`, der Manifest-SHA-256
+lautet `a53099c2d9d3a40b89822bbfb98754e9509a0bf1388367fedca974154a2b9cbd`.
+
+Im eigenen Abbruchfall startet der Beobachter eine weitere Instanz des geprüften Starters. Nur diese
+Instanz hält den Handle des inneren Jobs mit `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`. Der Blattprozess
+wird suspendiert und atomar dem inneren sowie einem äußeren Zähljob zugewiesen. Nach der Prüfung von
+Job, Token und Mitigations wird er fortgesetzt. Im AppContainer signalisiert der Worker seine
+Bereitschaft über einen einzeln vererbten Signalhandle und wartet bis zu 60 Sekunden.
+
+Der Beobachter identifiziert den einzigen Prozess im Zähljob, öffnet und hält seinen Prozesshandle,
+prüft Image, Jobmitgliedschaft und Lebendzustand und beendet den Starter gezielt mit Exit 73. Er
+wartet auf beide Prozesshandles und liest die Buchhaltung des äußeren Jobs bei weiterhin offenem
+Handle aus. Der reguläre Worker-Timeout hat einen eigenen Exitcode. Eine Bereinigung nach Fehler
+kann den Test nicht bestehen lassen. Die Jobverschachtelung erlaubt die Schlussfolgerung vom leeren
+äußeren Job auf den inneren Job, dessen letzter Handle beim Abbruch geschlossen wird.
+[Windows-Jobhierarchie](https://learn.microsoft.com/en-us/windows/win32/procthread/nested-jobs).
+
 ## Statische Start-DLL · 19. November 2026
 
 **Bestanden im Offline-Gast.** Der Positivimport erreichte den vorgesehenen Exit 50. Beim
@@ -134,8 +159,8 @@ Artefakthashes übernehmen.
   gelinkten Programme im v2-Gastlauf. Der Handleunterschied ist durch Übergabeliste und Leseversuch
   nachgewiesen. Eine unabhängige Inspektion der Handle-Rechte im suspendierten Zielprozess steht
   aus.
-- Der Starter prüft Workerexit und Jobleerstand. Ein tatsächlicher Starterabbruch, der Wiederanlauf
-  bei geänderter Richtlinie und ein eigener Netzbeleg sind noch ausstehend. Ein erfolgreicher
+- Der Starter prüft Workerexit und Jobleerstand. Der Abbruchfall ist oben dokumentiert. Der
+  Wiederanlauf bei geänderter Richtlinie und ein eigener Netzbeleg stehen aus. Ein erfolgreicher
   Gastlauf der vorhandenen Testfälle allein genügt daher nicht für die volle Abnahme nach ADR 0035.
 
 Die Hostvalidierung umfasst den Build mit `/W4 /WX`, die Erzeugung der unaktivierten CIP aus der
