@@ -311,8 +311,11 @@ Starterstarts. Vor Resume ist für die synthetischen Blattrollen die Bindung an 
 Markerobjekt geprüft: Leserolle exakt `FILE_GENERIC_READ`, leere Rolle kein Handle auf dieses
 Objekt, reine Attributrechte als Leserolle vor Resume abgewiesen. Der frische ETW-Vergleich mit
 demselben Prüfpaket ergab null TCP-/UDP-Ereignisse in beiden Prozessbäumen. Alle vier
-Loopback-Kontrollen waren in jedem Messfenster sichtbar. Die präventive Bindung aller realen
-WebView2-Rollen bleibt offen. C4-Start und BP4-Datenzugriff bleiben gesperrt.
+Loopback-Kontrollen waren in jedem Messfenster sichtbar. Die Rollenprüfung des echten
+WebView2-Kandidaten ergab sechs Runtimegenerationen mit einem WebView2-Prozess als Parent, darunter
+ein verschachtelter Crashpad-Start. Im eingebundenen Win32-SDK fehlt ein belegter Freigabepunkt vor
+jedem Kindstart. Wiederaufnahme bei einem nachgewiesenen Erzeugungsweg gemäß ADR 0035. C4-Start und
+BP4-Datenzugriff bleiben gesperrt.
 [ADR 0035](docs/architecture/decisions/0035-bp3-independent-process-and-image-enforcement.md).
 
 Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:

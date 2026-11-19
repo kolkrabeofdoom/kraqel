@@ -73,3 +73,49 @@ tatsächlichen WebView-Rollen fehlt der präventive Erzeugungsweg.
 `RuntimeStartAllowed` bleiben gesperrt. `DataAllowed` benötigt zusätzlich die getrennte BP4-Abnahme.
 Bis dahin erhält die Referenz weder echte Projektinhalte noch dauerhafte Kontrollschlüssel. Die
 normale KRAQEL-Auslieferung bleibt unsigniert und das strikte Datenschutzziel gilt.
+
+## Tatsächliche WebView2-Prozesskette · 19. November 2026
+
+**Entscheidung für Fixed Version `157.0.4341.60` mit `webview2-com(-sys) 0.39.1`: Der unterstützte
+Win32-Einstieg erfüllt die präventive Rollenbindung von BP3 nicht.** Die Nachprüfung verwendet die
+gespeicherte Laufzeitaufnahme vom 18. November und die lokal eingebundenen COM-Schnittstellen. Für
+diesen Befund war kein neuer Browserstart erforderlich.
+
+| Nativer Parent                           | Beobachtete Kindgenerationen | Grundlage der Rollenbezeichnung                   |
+| ---------------------------------------- | ---------------------------- | ------------------------------------------------- |
+| Authentisierter KRAQEL-Forschungsprozess | 1 Browser                    | WebView2-Prozessinfo                              |
+| Browser                                  | 1 Renderer, 1 GPU, 2 Utility | WebView2-Prozessinfo                              |
+| Browser                                  | 1 Crashpad                   | Native Generation und diagnostisches Typ-Argument |
+| Erster Crashpad-Prozess                  | 1 weiterer Crashpad          | Native Generation und diagnostisches Typ-Argument |
+
+**Gegenprüfung.** Im lokalen Diagnoseverzeichnis `kraqel-c4b-role-diagnostic-20261118-02` wurden die
+acht Einträge aus `live.processObservations` über das Paar PID und Erzeugungszeit mit den
+Parent-Einträgen und den fünf WebView2-Prozessinfos verbunden. Für die zwei übrigen
+Runtimegenerationen wurde jeweils genau ein passender Eintrag aus `role-claims.json` mit dem
+Windows-Argumentparser geprüft. Alle sieben Runtimegenerationen hatten denselben Imagehash. Die
+Aufnahme zeigt AppContainer und jeweils null Capabilities. Der SID-Sollvergleich
+(`expectedIdentity`) ist in diesen Beobachtungseinträgen unbelegt. Die zwei Utility-Einträge liefern
+auch keinen autoritativen Untertyp. Die Tabelle beschreibt genau diesen Lauf und keine feste Anzahl
+künftiger Prozesse. [Früherer Diagnoselauf](../../testing/product-start-p2c-c4b-module-gate.md).
+
+**Wo die Durchsetzung fehlt.** Der KRAQEL-Worker übergibt dem Loader einen Runtimeordner, einen
+Datenordner, Optionen und einen Abschlusscallback. In den lokal geprüften Win32-VTables
+`ICoreWebView2Environment` bis `15` und `ICoreWebView2EnvironmentOptions` bis `8` ist kein
+Eintrittspunkt für eine verbindliche Startentscheidung pro Kindgeneration vorhanden.
+`ProcessInfosChanged` meldet Änderungen an der Prozessliste. Auch die erweiterte Prozessabfrage
+liefert eine Momentaufnahme und lässt Crashpad aus. Ein späterer Renderer kann während der Nutzung
+hinzukommen. Microsoft führt die eigenständige Erzeugung von Renderer, GPU, Netzwerk- und
+Crashpad-Prozessen als Voraussetzung für den regulären Betrieb auf.
+[Win32-Prozessliste](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2environment8),
+[erweiterte Prozessinformationen](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2environment13),
+[Prozessmodell](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model),
+[Herstellerhinweise zur Kindprozesserzeugung](https://learn.microsoft.com/en-us/deployedge/webview2-security-tools).
+
+**Kriterium für die Wiederaufnahme.** Für diesen Kandidaten braucht es eine belegte Schnittstelle,
+die _vor der ersten Ausführung_ jeder Generation eine authentisierte Rollenentscheidung ermöglicht,
+die effektiven Rechte bindet und bei ausbleibender Freigabe den Start verhindert. Ein erster
+Gegenversuch müsste auch einen verschachtelten Crashpad-Start sowie einen später angeforderten
+Renderer verweigern können. Bis ein entsprechender Mechanismus vorliegt, bleibt der C4-Pfad vor der
+WebView-Erzeugung gesperrt. Die fünf aktiven BP3-Tests bestanden offline mit den in `Cargo.lock`
+festgelegten Abhängigkeiten, darunter die Prüfungen am Controller-, Worker- und direkten
+Runtime-Einstieg.

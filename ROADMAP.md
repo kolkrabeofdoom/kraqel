@@ -345,7 +345,10 @@ Datenschutzziel bleibt unverändert.
              Negativkontrolle mit Attributrechten vor Ausführung abgewiesen.
        - [x] KQ-069 A: Frischer ETW-Netzvergleich des Prüfpakets mit Handleprüfung im Offline-Gast.
              Beide Prozessbäume ohne beobachtete TCP-/UDP-Ereignisse, je vier Positivkontrollen.
-       - [ ] KQ-069 A: Präventive Rollenbindung für WebView2 klären. BP4-Datenrechte bleiben offen.
+       - [x] KQ-069 A: Tatsächliche WebView2-Elternkette und Win32-Schnittstellen des Kandidaten
+             geprüft. Browser- und verschachtelte Crashpad-Kindstarts liegen im Runtimebaum.
+       - [ ] KQ-069 A: Durchsetzbaren Erzeugungsweg für jede Runtimegeneration belegen. Der geprüfte
+             Win32-Einstieg erfüllt BP3 nicht. BP4-Datenrechte bleiben offen.
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native
              Rollenbindung und effektive Datenrechte; neue Bytes erneut messen; anschließend C4c/d
              WebView/SQLite unter belegtem Rollen-/Token-/Jobvertrag getrennt integrieren;
