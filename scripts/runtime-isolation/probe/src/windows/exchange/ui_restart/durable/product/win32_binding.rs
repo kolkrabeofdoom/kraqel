@@ -6,7 +6,7 @@ mod suspended;
 pub(super) enum Operation<'a> {
     Bind(&'a Path, [u8; 32]),
     Verify,
-    CheckWindow,
+    CheckWindow { resume: bool },
 }
 
 impl Store {
@@ -64,11 +64,11 @@ impl Store {
         if enrollment.is_some() {
             self.append(actor, head, Action::BindWin32Package { anchor: expected })?;
         }
-        if matches!(operation, Operation::CheckWindow) {
+        if let Operation::CheckWindow { resume } = operation {
             let image = pins
                 .image(suspended::WINDOW)
                 .ok_or(invalid("win32-window-not-pinned"))?;
-            return suspended::check_window(self, &root, image);
+            return suspended::check_window(self, &root, image, resume);
         }
         Ok(
             json!({"nativePreviewOnly":true,"roleStarted":false,"dataAllowed":false,

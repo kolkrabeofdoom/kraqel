@@ -85,13 +85,19 @@ Ein Abbruch beim Kopieren kann ein privates temporäres Verzeichnis hinterlassen
 
 Vor einem möglichen Resume prüft der Starter die Zugehörigkeit von Prozess und primärem Thread, das erwartete Token, das Verbot von Kindstarts und dynamischem Code, die Jobmitgliedschaft und die wirksamen Joblimits. Eine zweite Öffnung der Kontrollsperre muss an der exklusiven Belegung scheitern. Der über das Prozesshandle ermittelte Imagepfad und die Volume- und 128-Bit-Datei-ID müssen zur gebundenen Fensterdatei passen. Der Prüfaufruf beendet den Job bei Erfolg und Abweisung ohne Resume. Ein erfolgreicher Abschluss setzt ein signalisiertes Prozessende, einen leeren Job und die Entfernung des Prüfprofils voraus.
 
-**Sicherheitsnachweis unter Windows.** Über die aktivierte verwaltete EXE lief der Einstieg mit den vier Programmbytes der Gastprobe in einer separaten synthetischen Vorschauablage. Die Fensteridentität war bestätigt, der Kontrollkopf unverändert und der Job am Ende leer. Eine gezielte Gegenprobe mit einem gehaltenen Handle auf eine bytegleiche zweite EXE scheiterte beim Datei-ID-Abgleich. Ein erster Entwicklungsversuch mit leerer Umgebung scheiterte bereits bei der Prozesserzeugung (Windows-Fehler 203). Der bestätigte Lauf verwendete den bestehenden begrenzten Umgebungsblock. Offen sind der kontrollierte Resume und die Empfangsbestätigung durch den laufenden Fenstercode. Produktdaten bleiben gesperrt.
+**Sicherheitsnachweis unter Windows.** Über die aktivierte verwaltete EXE lief der Einstieg mit den vier Programmbytes der Gastprobe in einer separaten synthetischen Vorschauablage. Die Fensteridentität war bestätigt, der Kontrollkopf unverändert und der Job am Ende leer. Eine gezielte Gegenprobe mit einem gehaltenen Handle auf eine bytegleiche zweite EXE scheiterte beim Datei-ID-Abgleich. Ein erster Entwicklungsversuch mit leerer Umgebung scheiterte bereits bei der Prozesserzeugung (Windows-Fehler 203). Der bestätigte Lauf verwendete den bestehenden begrenzten Umgebungsblock. Produktdaten bleiben gesperrt.
 
 ### Bootstrap vor Resume
 
 Erst nach der Identitätsprüfung schreibt der Starter ein 32-Byte-Ticket in die Pipe. Der HMAC-SHA256 bindet die versionierte Fensterrolle, Installation, Kontrollkopf, aktiven Broker, Paketanker, Volume- und Datei-ID sowie Prozess-ID, primäre Thread-ID und Prozess-Erzeugungszeit. Der Kontrollschlüssel verbleibt beim Starter. Unter derselben Sperre dupliziert der Starter das Lesehandle aus dem suspendierten Zielprozess zurück und prüft Länge und MAC der dort bereitliegenden Bytes, ohne sie zu verbrauchen. Das Ticket erteilt keine Datenrechte.
 
 Der verwaltete Windows-Vorschaustart mit synthetischer Ablage bestätigte den Rücklesepfad, unveränderten Kontrollkopf und leeren Job nach der Beendigung. Bei unveränderten numerischen Prozess- und Thread-IDs genügte eine abweichende Erzeugungszeit, um das frühere Ticket abzuweisen.
+
+### Kontrollierter Resume und Empfangsbestätigung
+
+Der getrennte Einstieg `broker-store check-win32-receipt <aktueller-Kopf-SHA256>` gibt der Fensterrolle zusätzlich nur das Schreibende einer zweiten anonymen Pipe als Standardausgabe. Nach erfolgreicher Ticketprüfung schließt der Starter sein Eingabe-Schreibende und setzt den primären Thread genau einmal fort. Im Empfangsmodus liest die Rolle das Ticket, sendet dessen domänengetrennten SHA-256-Empfangsbeleg und endet vor dem UI- oder Datenzugriff. Der Starter hält die Kontrollsperre und Pakethandles bis zur Beendigung und Bereinigung. Er verlangt binnen fünf Sekunden das Prozessende, Exitcode null und genau die erwarteten 32 Antwortbytes.
+
+Der lokale Windows-Lauf über die aktivierte verwaltete EXE bestätigte den Empfang, unveränderten Kontrollkopf und leeren Job. Eine separat gebundene synthetische Gegenrolle endete erfolgreich mit einer gleich langen falschen Antwort. Der Starter wies sie beim Belegvergleich ab. Der vorhandene Datei-ID-Test prüft jetzt den Pfad mit angefordertem Resume. Der nächste Integrationsschritt ist die synthetische Fensteroberfläche nach bestätigtem Bootstrap.
 
 ## Kosten für den Editor
 

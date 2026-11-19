@@ -38,7 +38,7 @@ pub(super) fn stage(
     pi: &PROCESS_INFORMATION,
     endpoint: HANDLE,
     writer: &mut fs::File,
-) -> Result<()> {
+) -> Result<[u8; 32]> {
     let created = workspace_probe::lifetime::creation_time(pi.hProcess)?;
     let tag = authenticator(store, image, pi, created)?
         .finalize()
@@ -87,7 +87,52 @@ pub(super) fn stage(
         workspace_probe::lifetime::creation_time(pi.hProcess)?,
     )?
     .verify_slice(&received)
-    .map_err(|_| invalid("win32-bootstrap-authentication"))
+    .map_err(|_| invalid("win32-bootstrap-authentication"))?;
+    Ok(crate::window_receipt::receipt(&received))
+}
+
+pub(super) fn resume_and_confirm(
+    pi: &PROCESS_INFORMATION,
+    reply: &fs::File,
+    expected: [u8; 32],
+) -> Result<()> {
+    if unsafe { ResumeThread(pi.hThread) } != 1 {
+        return Err(invalid("win32-window-resume"));
+    }
+    if unsafe { WaitForSingleObject(pi.hProcess, 5000) } != WAIT_OBJECT_0 {
+        return Err(invalid("win32-window-receipt-timeout"));
+    }
+    let mut exit = 0;
+    check(
+        unsafe { GetExitCodeProcess(pi.hProcess, &mut exit) },
+        "win32-window-exit",
+    )?;
+    if exit != 0 {
+        return Err(Failure {
+            stage: "win32-window-receipt-exit",
+            code: i64::from(exit),
+        });
+    }
+    // After process exit the only writer is gone. Inspect the entire frame without waiting for EOF.
+    let mut ack = [0u8; 32];
+    let (mut read, mut available) = (0, 0);
+    check(
+        unsafe {
+            PeekNamedPipe(
+                reply.as_raw_handle(),
+                ack.as_mut_ptr().cast(),
+                32,
+                &mut read,
+                &mut available,
+                null_mut(),
+            )
+        },
+        "win32-window-receipt-read",
+    )?;
+    if read != 32 || available != 32 || ack != expected {
+        return Err(invalid("win32-window-receipt-mismatch"));
+    }
+    Ok(())
 }
 
 #[cfg(test)]

@@ -1,10 +1,15 @@
-//! Pre-resume native UI gate. No resume, command channel or data grant.
+//! Native window identity gate and optional receipt-only resume.
 use super::*;
 mod bootstrap;
 
 pub(super) const WINDOW: &str = "native-leaf.exe";
 
-pub(super) fn check_window(store: &Store, root: &Path, expected: &fs::File) -> Result<Value> {
+pub(super) fn check_window(
+    store: &Store,
+    root: &Path,
+    expected: &fs::File,
+    resume: bool,
+) -> Result<Value> {
     let image = root.join(WINDOW);
     let mut profile = Profile::create(&format!("ui.{}", Uuid::new_v4().simple()))?;
     let job_name = store.job_name();
@@ -39,19 +44,32 @@ pub(super) fn check_window(store: &Store, root: &Path, expected: &fs::File) -> R
     let jobs = [job.0];
     let dynamic = 1u64 << 36;
     let no_children = 1u32;
-    // The empty read end is the only inherited capability. Publication follows identity readback.
+    // Pin both directions in the handle list. The receipt-only mode has no command channel.
     let (reader, mut writer) = crate::windows::exchange::ui_restart::pipe()?;
-    let endpoints = [reader.as_raw_handle()];
-    check(
-        unsafe { SetHandleInformation(endpoints[0], HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT) },
-        "win32-window-bootstrap-inherit",
-    )?;
+    let response = resume
+        .then(crate::windows::exchange::ui_restart::pipe)
+        .transpose()?;
+    let (response_reader, response_writer) = response.unzip();
+    let mut endpoints = vec![reader.as_raw_handle()];
+    if let Some(out) = &response_writer {
+        endpoints.push(out.as_raw_handle());
+    }
+    for endpoint in &endpoints {
+        check(
+            unsafe { SetHandleInformation(*endpoint, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT) },
+            "win32-window-bootstrap-inherit",
+        )?;
+    }
     let attrs =
         Attributes::with_creation_policy(&caps, &endpoints, &jobs, Some((&dynamic, &no_children)))?;
     let mut startup: STARTUPINFOEXW = unsafe { zeroed() };
     startup.StartupInfo.cb = size_of_val(&startup) as u32;
     startup.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
     startup.StartupInfo.hStdInput = endpoints[0];
+    if let Some(out) = &response_writer {
+        startup.StartupInfo.hStdOutput = out.as_raw_handle();
+    }
+    let mut command = wide(format!("native-leaf.exe {}", crate::window_receipt::ARG));
     startup.lpAttributeList = attrs.ptr;
     let mut pi: PROCESS_INFORMATION = unsafe { zeroed() };
     let environment = crate::windows::exchange::ui_restart::environment(root);
@@ -59,7 +77,11 @@ pub(super) fn check_window(store: &Store, root: &Path, expected: &fs::File) -> R
         unsafe {
             CreateProcessW(
                 path_wide(&image)?.as_ptr(),
-                null_mut(),
+                if resume {
+                    command.as_mut_ptr()
+                } else {
+                    null_mut()
+                },
                 null(),
                 null(),
                 1,
@@ -73,6 +95,7 @@ pub(super) fn check_window(store: &Store, root: &Path, expected: &fs::File) -> R
         "win32-window-create",
     )?;
     drop(reader);
+    drop(response_writer);
     let process = Handle(pi.hProcess);
     let primary = Handle(pi.hThread);
     let verified = (|| {
@@ -132,9 +155,13 @@ pub(super) fn check_window(store: &Store, root: &Path, expected: &fs::File) -> R
         if secure_fs::file_id(&actual)? != secure_fs::file_id(expected)? {
             return Err(invalid("win32-window-image-identity"));
         }
-        bootstrap::stage(store, expected, &pi, endpoints[0], &mut writer)
+        let expected_ack = bootstrap::stage(store, expected, &pi, endpoints[0], &mut writer)?;
+        drop(writer);
+        if let Some(reply) = response_reader {
+            bootstrap::resume_and_confirm(&pi, &reply, expected_ack)?;
+        }
+        Ok(())
     })();
-    drop(writer);
     // Release neither package pins nor owner lease while this generation is still live.
     check(unsafe { TerminateJobObject(job.0, 0) }, "win32-window-stop")?;
     if unsafe { WaitForSingleObject(process.0, 5000) } != WAIT_OBJECT_0 {
@@ -148,7 +175,7 @@ pub(super) fn check_window(store: &Store, root: &Path, expected: &fs::File) -> R
     }
     Ok(
         json!({"nativePreviewOnly":true,"role":"window","suspendedIdentityVerified":true,
-        "bootstrapBoundBeforeResume":true,"roleResumed":false,"dataAllowed":false,"activeJobProcessesAtEnd":0,
+        "bootstrapBoundBeforeResume":true,"roleResumed":resume,"bootstrapReceiptVerified":resume,"dataAllowed":false,"activeJobProcessesAtEnd":0,
         "headSha256":hex(&store.state.head)}),
     )
 }
@@ -170,7 +197,9 @@ mod tests {
         fs::write(&other, &bytes).unwrap();
         let wrong_pin = protected_file(&other).unwrap();
         assert_eq!(
-            check_window(&store, &bin, &wrong_pin).unwrap_err().stage,
+            check_window(&store, &bin, &wrong_pin, true)
+                .unwrap_err()
+                .stage,
             "win32-window-image-identity"
         );
         store.idle().unwrap();

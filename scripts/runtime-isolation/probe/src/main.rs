@@ -12,6 +12,9 @@ mod product_start_p2c;
 #[cfg(any(windows, test))]
 mod transfer;
 #[cfg(windows)]
+#[path = "../../native-window/src/window_receipt.rs"]
+mod window_receipt;
+#[cfg(windows)]
 mod windows;
 
 #[cfg(windows)]

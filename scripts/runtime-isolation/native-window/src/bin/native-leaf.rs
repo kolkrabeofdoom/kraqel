@@ -177,7 +177,33 @@ fn show(endpoint: Option<bootstrap::Endpoint>) -> i32 {
         }
     }
 }
+fn confirm_bootstrap() -> std::io::Result<()> {
+    use std::io::{Read, Write};
+    use windows_sys::Win32::Storage::FileSystem::{FILE_TYPE_PIPE, GetFileType};
+    use windows_sys::Win32::System::Threading::{GetStartupInfoW, STARTUPINFOW};
+
+    let mut startup = STARTUPINFOW::default();
+    unsafe { GetStartupInfoW(&mut startup) };
+    if startup.hStdInput == startup.hStdOutput
+        || [startup.hStdInput, startup.hStdOutput]
+            .iter()
+            .any(|h| unsafe { GetFileType(*h) } != FILE_TYPE_PIPE)
+    {
+        return Err(std::io::Error::other("invalid bootstrap endpoints"));
+    }
+    // Borrow the standard handles; process teardown owns their lifetime.
+    use std::os::windows::io::BorrowedHandle;
+    let input = unsafe { BorrowedHandle::borrow_raw(startup.hStdInput) };
+    let output = unsafe { BorrowedHandle::borrow_raw(startup.hStdOutput) };
+    let mut ticket = [0; 32];
+    std::fs::File::from(input.try_clone_to_owned()?).read_exact(&mut ticket)?;
+    std::fs::File::from(output.try_clone_to_owned()?).write_all(&window_receipt::receipt(&ticket))
+}
+
 fn main() {
+    if std::env::args_os().nth(1).as_deref() == Some(std::ffi::OsStr::new(window_receipt::ARG)) {
+        std::process::exit(if confirm_bootstrap().is_ok() { 0 } else { 20 });
+    }
     if bootstrap::Role::Window.receipt().exists() {
         let exit = bootstrap::Endpoint::open(bootstrap::Role::Window)
             .map(|endpoint| show(Some(endpoint)))
