@@ -24,6 +24,18 @@ pub(super) fn verify_win32_binding(file: &mut fs::File) -> Result<()> {
         std::hint::black_box(&WIN32_BINDING),
     )
 }
+#[used]
+#[unsafe(link_section = ".kqwses")]
+static WINDOW_SESSION: [u8; 32] = *b"KRAQEL-WINDOW-SESSION-V1........";
+pub(super) fn verify_window_session(file: &mut fs::File) -> Result<()> {
+    let size = io("win32-broker-size", file.metadata())?.len();
+    verify_named(
+        file,
+        size,
+        b".kqwses\0",
+        std::hint::black_box(&WINDOW_SESSION),
+    )
+}
 // Separate declaration: schema-5 record ABI 1, UI bootstrap ABI 0 (not supported).
 const P2A: [u8; 32] = *b"KRAQEL-P2A-META\0\x01\0\0\0\x05\0\x01\0\0\0\0\0\0\0\0\0";
 #[used]

@@ -3,6 +3,22 @@ use super::*;
 use crate::native_win32_package::{IMAGES, PinnedPackage};
 
 mod suspended;
+
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
+pub(super) enum Session {
+    #[default]
+    Unused,
+    Open([u8; 32]), // Digest of the unique, authenticated begin record.
+    Closed,
+}
+impl Session {
+    pub(super) fn require_closed(self) -> Result<()> {
+        if matches!(self, Self::Open(_)) {
+            return Err(invalid("win32-window-session-open"));
+        }
+        Ok(())
+    }
+}
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(super) enum WindowMode {
     Suspended,
@@ -75,7 +91,18 @@ impl Store {
             let image = pins
                 .image(suspended::WINDOW)
                 .ok_or(invalid("win32-window-not-pinned"))?;
-            return suspended::check_window(self, &root, image, mode);
+            package::verify_window_session(&mut managed)?;
+            if self.state.sequence + 2 >= MAX_RECORDS {
+                return Err(invalid("win32-window-record-budget"));
+            }
+            self.append(actor, head, Action::BeginWin32Window { anchor: expected })?;
+            let begin = self.state.head;
+            let mut result = suspended::check_window(self, &root, image, mode)?;
+            // Only the call holding the original lease reaches here after signaled process
+            // end, empty job and profile cleanup. There is no external finish command.
+            self.append_with_checked_context(actor, begin, Action::EndWin32Window { begin })?;
+            result["headSha256"] = json!(hex(&self.state.head));
+            return Ok(result);
         }
         Ok(
             json!({"nativePreviewOnly":true,"roleStarted":false,"dataAllowed":false,

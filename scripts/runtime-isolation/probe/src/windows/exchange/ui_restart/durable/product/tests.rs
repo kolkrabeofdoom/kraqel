@@ -1113,6 +1113,40 @@ fn aborted_package_hardlink_is_not_deleted_or_reauthorized() {
 }
 
 #[test]
+fn window_end_record_cannot_release_a_later_session() {
+    let f = Fixture::new();
+    let mut store = schema4_pending(&f);
+    let actor = store.state.pending.unwrap();
+    store.activate([1; 32], store.state.head).unwrap();
+    let anchor = [7; 32];
+    store
+        .append(actor, store.state.head, Action::BindWin32Package { anchor })
+        .unwrap();
+    store
+        .append(actor, store.state.head, Action::BeginWin32Window { anchor })
+        .unwrap();
+    let first = store.state.head;
+    store
+        .append_with_checked_context(actor, first, Action::EndWin32Window { begin: first })
+        .unwrap();
+    store
+        .append(actor, store.state.head, Action::BeginWin32Window { anchor })
+        .unwrap();
+    let second = store.state.head;
+    assert_eq!(
+        store
+            .append_with_checked_context(actor, second, Action::EndWin32Window { begin: first })
+            .unwrap_err()
+            .stage,
+        "win32-window-end-binding"
+    );
+    drop(store);
+    let reopened = Store::open(&f.root()).unwrap();
+    assert_eq!(reopened.state.head, second);
+    assert!(reopened.state.window_session == win32_binding::Session::Open(second));
+}
+
+#[test]
 fn win32_package_binding_is_durable_and_cannot_cross_activation() {
     use win32_binding::Operation::{Bind, Verify};
     let f = Fixture::new();

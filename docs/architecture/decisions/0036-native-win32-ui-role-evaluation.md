@@ -166,6 +166,14 @@ SHA-256 des verwalteten Starters war `b838511b155ca62ac18855957515b6506eaef42299
 
 Für den nächsten Kandidaten muss der Starter die ausstehende Sitzung unter derselben Kontrollsperre vor der Prozesserzeugung dauerhaft vermerken und erst nach bestätigtem Ende abschließen. Ein unaufgelöster Eintrag muss die nächste Fenstererzeugung sperren. Dann sind der gezielte Abbruch-/Neustartnachweis und der ETW-Vergleich für die tatsächlich geänderten Bytes fällig. Produktdaten und WebView2 bleiben gesperrt.
 
+### C4d · Dauerhafte Fenstersitzung im Folgekandidaten
+
+Unter derselben Kontrollsperre schreibt der verwaltete Starter nach der Paketprüfung und vor jeder Prozesserzeugung `BeginWin32Window` mit dem gebundenen Paketanker. Der bestehende HMAC-Verlauf bindet Installation, Starter, Vorgänger und eindeutige Operation. Record und Kontrollkopf müssen dauerhaft geschrieben sein, bevor ein Job oder ein Fensterprozess angelegt wird. Der Digest dieses Begin-Records bezeichnet die Sitzung und geht über den Kontrollkopf in die Bootstrap-Bindung ein.
+
+Erst nach erfolgreichem Rollenpfad, signalisiertem Prozessende, leerem Job und bestätigter Profilbereinigung schreibt der Starter `EndWin32Window` für genau diesen Digest. Der Aufruf liefert dann den neuen Kontrollkopf. Ein offener Beleg erlaubt die lesende Statusabfrage (`windowSessionOpen`), sperrt aber den nächsten Fensterstart und Änderungen am Kontrollzustand. Es gibt keinen externen Abschlussbefehl. Auch ein Fehler nach dauerhafter Vorbereitung und vor Prozesserzeugung lässt die Sitzung offen. Updates müssen nach dem ersten Sitzungseintrag die Unterstützung für dessen Verlauf im PE-Abschnitt `.kqwses` deklarieren.
+
+**Gezielter Windows-Nachweis.** Ein regulärer Fensterlauf erzeugte zwei Kontrollrecords und erlaubte die nächste Sitzung. Beim anschließenden Abbruch des verwalteten Starters mit sichtbarem, geprüftem Fenster endete die Rolle. Der neu gestartete Broker las die offene Sitzung aus dem Verlauf und wies den Fensterstart mit aktuellem Kopf als `win32-window-session-open` ab. Die Nachprüfung bestätigte unveränderten Kopf und offene Sitzung. Eine Regression prüfte zusätzlich, dass der Endebeleg einer früheren Sitzung die nachfolgende Sitzung nicht freigeben kann. SHA-256 des verwalteten Prüfkandidaten: `fda5ccc1dbe9fe88fad12fb497c2449faf9435b96be66a3885a353a097e833d4`. Für diesen geänderten Starter steht der gezielte ETW-Vergleich noch aus.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

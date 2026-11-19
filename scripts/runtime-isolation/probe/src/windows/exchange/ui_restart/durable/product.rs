@@ -43,6 +43,12 @@ const BAD_ATTRIBUTES: u32 = FILE_ATTRIBUTE_REPARSE_POINT
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(tag = "kind", rename_all = "camelCase", deny_unknown_fields)]
 enum Action {
+    BeginWin32Window {
+        anchor: [u8; 32],
+    },
+    EndWin32Window {
+        begin: [u8; 32],
+    },
     BindWin32Package {
         anchor: [u8; 32],
     },
@@ -163,6 +169,7 @@ struct State {
     actor: [u8; 32],
     schema: u16,
     pending: Option<[u8; 32]>,
+    window_session: win32_binding::Session,
     win32_anchor: Option<([u8; 32], [u8; 32])>,
     activated: std::collections::HashSet<[u8; 32]>,
     aborted_packages: std::collections::HashSet<[u8; 32]>,
@@ -236,6 +243,14 @@ impl State {
         Ok(())
     }
     fn apply_record(&mut self, actor: [u8; 32], action: &Action, digest: [u8; 32]) -> Result<()> {
+        if let Action::EndWin32Window { begin } = action {
+            if actor != self.actor || self.window_session != win32_binding::Session::Open(*begin) {
+                return Err(invalid("win32-window-end-binding"));
+            }
+            self.window_session = win32_binding::Session::Closed;
+            return Ok(());
+        }
+        self.window_session.require_closed()?;
         if let Action::Bp2LeafProbe { event } = action {
             return workspace_persistent::apply_bp2(self, actor, event);
         }
@@ -250,6 +265,17 @@ impl State {
         }
         if let Action::C3 { event } = action {
             return workspace_persistent::apply_group(self, actor, event);
+        }
+        if let Action::BeginWin32Window { anchor } = action {
+            if actor != self.actor
+                || self.schema != 4
+                || self.pending.is_some()
+                || self.win32_anchor != Some((actor, *anchor))
+            {
+                return Err(invalid("win32-window-start-binding"));
+            }
+            self.window_session = win32_binding::Session::Open(digest);
+            return Ok(());
         }
         if matches!(
             action,
@@ -502,6 +528,7 @@ impl Store {
                         1
                     },
                     pending: None,
+                    window_session: Default::default(),
                     win32_anchor: None,
                     activated: std::collections::HashSet::from([record.actor]),
                     aborted_packages: std::collections::HashSet::new(),
@@ -596,6 +623,7 @@ impl Store {
     }
     fn append_guard(&self, actor: [u8; 32], head: [u8; 32]) -> Result<()> {
         self.actor(actor)?;
+        self.state.window_session.require_closed()?;
         if self.state.bp2_probe.pending() {
             return Err(invalid("bp2-probe-pending"));
         }
@@ -684,6 +712,9 @@ impl Store {
             package::verify(&mut source)?;
             if self.state.win32_anchor.is_some() {
                 package::verify_win32_binding(&mut source)?;
+                if self.state.window_session != win32_binding::Session::Unused {
+                    package::verify_window_session(&mut source)?;
+                }
             }
         }
         let action = Action::Prepare { binary: actual };
@@ -741,12 +772,15 @@ impl Store {
             package::verify(&mut file)?;
             if self.state.win32_anchor.is_some() {
                 package::verify_win32_binding(&mut file)?;
+                if self.state.window_session != win32_binding::Session::Unused {
+                    package::verify_window_session(&mut file)?;
+                }
             }
         }
         self.append(actor, head, Action::Activate)
     }
     fn summary(&self) -> Value {
-        json!({"nativePreviewOnly":true,"productionAcceptance":false,"sequence":self.state.sequence,"controlSchema":self.state.schema,"pendingUpdate":self.state.pending.is_some(),"headSha256":hex(&self.state.head),"activeBinarySha256":hex(&self.state.actor),"networkMeasurement":false})
+        json!({"nativePreviewOnly":true,"productionAcceptance":false,"sequence":self.state.sequence,"controlSchema":self.state.schema,"pendingUpdate":self.state.pending.is_some(),"windowSessionOpen":matches!(self.state.window_session,win32_binding::Session::Open(_)),"headSha256":hex(&self.state.head),"activeBinarySha256":hex(&self.state.actor),"networkMeasurement":false})
     }
     fn check_container(&self, app: &Path) -> Result<Value> {
         let root = std::env::temp_dir().join(format!(
@@ -914,6 +948,7 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
     if args.len() == 1 && args[0] == "status" {
         return Ok(store.summary());
     }
+    store.state.window_session.require_closed()?;
     if (args.len() == 4 && args[0] == "bind-win32-package")
         || (args.len() == 2
             && (args[0] == "verify-win32-package"
