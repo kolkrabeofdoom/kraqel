@@ -128,7 +128,13 @@ Am 19.11.2026 lief `open-win32-surface` mit Stand `89e73de` und einer frischen s
 
 Die lokal installierte deutsche SAPI-Stimme Microsoft Hedda Desktop synthetisierte die geprüften Namen und lokalisierten Rollen sowie beim Feld den synthetischen Inhalt. Für beide Ausgaben entstanden im Arbeitsspeicher mindestens 100 ms PCM mit Ausschlägen über der Prüfschwelle (16 kHz, 16 Bit, mono). Der Beobachter verwendete keinen Wiedergabeausgang und speicherte keine Audiodatei. Nach dem Schließen bestätigte der Starter den unveränderten Kontrollkopf, gesperrte Produktdaten und den leeren Job.
 
-**Beleggrenze.** Das automatisiert geöffnete Fenster war im erfolgreichen Lauf im Hintergrund. `GetGUIThreadInfo` belegte den Fokus innerhalb seines Threads. UI Automation meldete für beide Elemente keinen desktopweiten Tastaturfokus. Der Softwarebeleg umfasst die zugänglichen Inhalte und deren lokale Synthese. Eine automatisch ausgelöste Narrator-Ansage beim Fokuswechsel im Vordergrund und das akustische Ergebnis bleiben offen.
+**Beleggrenze.** Das automatisiert geöffnete Fenster war im erfolgreichen Lauf im Hintergrund. `GetGUIThreadInfo` belegte den Fokus innerhalb seines Threads. UI Automation meldete für beide Elemente keinen desktopweiten Tastaturfokus. Der Softwarebeleg umfasst die zugänglichen Inhalte und deren lokale Synthese. Der anschließende Vordergrundlauf prüfte die automatisch erzeugten Ansagen direkt in Narrators Sprachverlauf.
+
+### Narrator beim Tab-Wechsel im Vordergrund
+
+In einem frischen verwalteten Lauf mit synthetischer Ablage wurde das Prüffenster nach bestätigtem Bootstrap in den Vordergrund geholt. Nach dem Fokuswechsel per Tab bestätigte die testende Person in Narrators eigenem Sprachverlauf die Reihenfolge „Prüftext“, dann „Schließen“ als Schaltfläche. Damit ist die automatische Ansage für diesen Bedienablauf softwareseitig bestätigt. Die unabhängige Fokusabfrage lieferte in diesem Lauf keine Stichprobe, die zugleich Vordergrundfenster, Steuerelement und laufenden Narrator erfasste. Der Beleg für die Ansage ist die Sichtprüfung des Sprachverlaufs.
+
+Der verwaltete Starter bestätigte beim Abschluss den unveränderten Kontrollkopf, gesperrte Produktdaten und den leeren Job. Ins Repository gelangte ausschließlich das Ergebnis. Für diese Prüfung wurden weder Sprachverlauf noch Screenshot oder Audio übernommen.
 
 ## Kosten für den Editor
 
