@@ -4,6 +4,29 @@ const SAVE: &[u8] = br#"{"command":"c4_document_save_v1","expectedRevision":0,"t
 const READ: &[u8] = br#"{"command":"c4_document_read_v1"}"#;
 
 #[test]
+fn interrupted_save_requires_a_verified_initial_read_and_zero_response_bytes() {
+    let binding = || Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
+    let first = binding()
+        .encode(Kind::Response, 1, br#"{"text":"Rabe\n42","revision":0}"#)
+        .unwrap();
+    assert!(
+        binding()
+            .unacknowledged_save(&mut first.as_slice(), &mut Vec::new())
+            .is_ok()
+    );
+    let mut partial = first;
+    partial.push(b'K');
+    assert_eq!(
+        binding().unacknowledged_save(&mut partial.as_slice(), &mut Vec::new()),
+        Err(Closed)
+    );
+    assert_eq!(
+        binding().unacknowledged_save(&mut &[][..], &mut Vec::new()),
+        Err(Closed)
+    );
+}
+
+#[test]
 fn edit_probe_checks_saved_revision_conflict_and_final_content() {
     let binding = || Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
     let initial = br#"{"text":"Rabe\n42","revision":0}"#.as_slice();

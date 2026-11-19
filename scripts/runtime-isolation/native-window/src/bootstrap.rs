@@ -42,11 +42,13 @@ pub enum Purpose {
     DeniedSave,
     EditConflict,
     StoreEdit,
+    Crash(crate::scene_store::CrashPhase),
     StoreRead,
 }
 impl Purpose {
     fn scope(self) -> &'static str {
         match self {
+            Self::Crash(phase) => phase.scope(),
             Self::Handshake => "A/edit",
             Self::ReadA => "A/read",
             Self::StoreRead => "A/read/sqlite-v1",
@@ -120,7 +122,12 @@ impl Endpoint {
         let (meta, handle) = receipt
             .split_once('\n')
             .ok_or(io::Error::other("receipt"))?;
-        let purpose = if meta.starts_with("BP4b-v1/A/read/sqlite-v1/") {
+        let crash = crate::scene_store::CrashPhase::ALL
+            .into_iter()
+            .find(|p| meta.starts_with(&format!("BP4b-v1/{}/", p.scope())));
+        let purpose = if let Some(c) = crash {
+            Purpose::Crash(c)
+        } else if meta.starts_with("BP4b-v1/A/read/sqlite-v1/") {
             Purpose::StoreRead
         } else if meta.starts_with("BP4b-v1/A/edit/sqlite-v1/") {
             Purpose::StoreEdit
@@ -133,7 +140,9 @@ impl Endpoint {
         } else {
             Purpose::Handshake
         };
-        let profile = if role == Role::Data && purpose == Purpose::StoreRead {
+        let profile = if role == Role::Data
+            && (purpose == Purpose::StoreRead || crash.is_some_and(|p| p.reader()))
+        {
             crate::scene_store::READER
         } else {
             profile
@@ -209,6 +218,24 @@ impl Endpoint {
         if !self.receive(Handshake::Ready)? {
             return Ok(63);
         }
+        if let Purpose::Crash(phase) = self.purpose {
+            if phase.writer() {
+                self.binding
+                    .unacknowledged_save(&mut self.reader, &mut self.writer)
+                    .map_err(|_| io::Error::other("expected lost response"))?;
+            } else {
+                let text = if phase == crate::scene_store::CrashPhase::ReadNew {
+                    self.binding
+                        .durable_window(true, &mut self.reader, &mut self.writer)
+                } else {
+                    self.binding
+                        .read_scene((&mut self.reader, &mut self.writer))
+                }
+                .map_err(|_| io::Error::other("crash readback"))?;
+                display(&text)?;
+            }
+            return Ok(phase.exits().1 as i32);
+        }
         if matches!(self.purpose, Purpose::StoreEdit | Purpose::StoreRead) {
             let reopening = self.purpose == Purpose::StoreRead;
             let text = self
@@ -249,9 +276,21 @@ impl Endpoint {
             return Ok(61);
         }
         self.send(Handshake::Ready)?;
-        if matches!(self.purpose, Purpose::StoreEdit | Purpose::StoreRead) {
-            let reopening = self.purpose == Purpose::StoreRead;
-            let mut store = crate::scene_store::Store::open(reopening)?;
+        if matches!(
+            self.purpose,
+            Purpose::StoreEdit | Purpose::StoreRead | Purpose::Crash(_)
+        ) {
+            let phase = if let Purpose::Crash(c) = self.purpose {
+                Some(c)
+            } else {
+                None
+            };
+            let reopening =
+                self.purpose == Purpose::StoreRead || phase.is_some_and(|c| !c.writer());
+            let mut store = crate::scene_store::Store::open(
+                self.purpose == Purpose::StoreRead || phase.is_some_and(|c| c.reader()),
+                phase,
+            )?;
             self.binding
                 .durable_service(reopening, &mut self.reader, &mut self.writer, |body| {
                     store
@@ -260,7 +299,7 @@ impl Endpoint {
                 })
                 .map_err(|_| io::Error::other("durable request"))?;
             store.close()?;
-            return Ok(if reopening { 74 } else { 72 });
+            return Ok(phase.map_or(if reopening { 74 } else { 72 }, |c| c.exits().0 as i32));
         }
         if self.purpose == Purpose::EditConflict {
             self.binding

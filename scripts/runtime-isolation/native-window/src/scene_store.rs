@@ -15,13 +15,54 @@ use windows_sys::Win32::{
 
 pub const READER: &str = "org.kraqel.bp4.store-reader";
 const WRITER: &str = "org.kraqel.bp4.data";
-fn directory() -> std::path::PathBuf {
-    Path::new(DIR).join("scene-store-v1")
+#[derive(Clone, Copy, PartialEq)]
+pub enum CrashPhase {
+    Before,
+    Recover,
+    ReadOld,
+    After,
+    ReadNew,
 }
-fn database() -> std::path::PathBuf {
-    directory().join("synthetic.sqlite")
+impl CrashPhase {
+    pub fn scope(self) -> &'static str {
+        match self {
+            Self::Before => "A/edit/crash-before",
+            Self::After => "A/edit/crash-after",
+            Self::Recover => "A/recovery/crash-before",
+            Self::ReadOld => "A/read/crash-before",
+            Self::ReadNew => "A/read/crash-after",
+        }
+    }
+    pub const ALL: [Self; 5] = [
+        Self::Before,
+        Self::Recover,
+        Self::ReadOld,
+        Self::After,
+        Self::ReadNew,
+    ];
+    pub fn reader(self) -> bool {
+        matches!(self, Self::ReadOld | Self::ReadNew)
+    }
+    pub fn writer(self) -> bool {
+        matches!(self, Self::Before | Self::After)
+    }
+    pub fn exits(self) -> (u32, u32) {
+        match self {
+            Self::Before => (80, 82),
+            Self::After => (81, 82),
+            Self::Recover => (83, 84),
+            Self::ReadOld => (85, 86),
+            Self::ReadNew => (87, 88),
+        }
+    }
 }
-
+fn directory(phase: Option<CrashPhase>) -> std::path::PathBuf {
+    Path::new(DIR).join(match phase {
+        None => "scene-store-v1",
+        Some(CrashPhase::After | CrashPhase::ReadNew) => "scene-store-after",
+        Some(_) => "scene-store-before",
+    })
+}
 fn sid_text(profile: &str) -> io::Result<String> {
     unsafe {
         let mut sid = null_mut();
@@ -42,7 +83,7 @@ fn sid_text(profile: &str) -> io::Result<String> {
 
 /// Called under the starter's exclusive lock. Existing roots are refused. Both
 /// freshly created objects remain pinned against rename/deletion through both runs.
-pub fn prepare() -> io::Result<(File, File)> {
+pub fn prepare(phase: Option<CrashPhase>) -> io::Result<(File, File)> {
     guest_image("pipe-check.exe")?;
     let acl = format!(
         "D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1301bf;;;{})(A;OICI;0x1200a9;;;{})S:(ML;OICI;NW;;;LW)",
@@ -62,7 +103,7 @@ pub fn prepare() -> io::Result<(File, File)> {
             lpSecurityDescriptor: sd,
             bInheritHandle: 0,
         };
-        let result = check(CreateDirectoryW(wide(directory()).as_ptr(), &sa));
+        let result = check(CreateDirectoryW(wide(directory(phase)).as_ptr(), &sa));
         LocalFree(sd);
         result?;
     }
@@ -80,14 +121,14 @@ pub fn prepare() -> io::Result<(File, File)> {
             )
             .open(path)
     };
-    let root = pin(&directory(), true)?;
+    let root = pin(&directory(phase), true)?;
     let file = OpenOptions::new()
         .read(true)
         .write(true)
         .create_new(true)
         .share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE)
-        .open(database())?;
-    let db = pin(&database(), false)?;
+        .open(directory(phase).join("synthetic.sqlite"))?;
+    let db = pin(&directory(phase).join("synthetic.sqlite"), false)?;
     drop(file);
     Ok((root, db))
 }
@@ -95,16 +136,17 @@ pub fn prepare() -> io::Result<(File, File)> {
 pub struct Store {
     db: Connection,
     mode: Mode,
+    phase: Option<CrashPhase>,
 }
 fn failure(_: rusqlite::Error) -> io::Error {
     io::Error::other("fixture SQLite")
 }
 
 impl Store {
-    pub fn open(read_only: bool) -> io::Result<Self> {
+    pub fn open(read_only: bool, phase: Option<CrashPhase>) -> io::Result<Self> {
         if read_only {
             require(
-                matches!(OpenOptions::new().write(true).open(database()), Err(ref e) if e.kind()==io::ErrorKind::PermissionDenied),
+                matches!(OpenOptions::new().write(true).open(directory(phase).join("synthetic.sqlite")), Err(ref e) if e.kind()==io::ErrorKind::PermissionDenied),
                 "reader write access",
             )?;
         }
@@ -113,12 +155,14 @@ impl Store {
         } else {
             OpenFlags::SQLITE_OPEN_READ_WRITE
         };
-        let mut db =
-            Connection::open_with_flags(database(), flags | OpenFlags::SQLITE_OPEN_NOFOLLOW)
-                .map_err(failure)?;
+        let mut db = Connection::open_with_flags(
+            directory(phase).join("synthetic.sqlite"),
+            flags | OpenFlags::SQLITE_OPEN_NOFOLLOW,
+        )
+        .map_err(failure)?;
         db.execute_batch("PRAGMA trusted_schema=OFF; PRAGMA temp_store=MEMORY;")
             .map_err(failure)?;
-        if read_only {
+        if read_only || phase == Some(CrashPhase::Recover) {
             db.execute_batch("PRAGMA query_only=ON").map_err(failure)?;
         } else {
             db.execute_batch("PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL;")
@@ -140,7 +184,12 @@ impl Store {
         }
         Ok(Self {
             db,
-            mode: if read_only { Mode::Read } else { Mode::Edit },
+            phase,
+            mode: if read_only || phase == Some(CrashPhase::Recover) {
+                Mode::Read
+            } else {
+                Mode::Edit
+            },
         })
     }
     pub fn dispatch(&mut self, body: &[u8]) -> io::Result<Reply> {
@@ -170,12 +219,27 @@ impl Store {
                 "index row",
             )?;
         }
+        if matches!(reply, Reply::Saved { .. }) && self.phase == Some(CrashPhase::Before) {
+            // Spill dirty pages while the rollback journal still protects revision zero.
+            tx.cache_flush().map_err(failure)?;
+            terminate_fixture(80)?;
+        }
         tx.commit().map_err(failure)?;
+        if matches!(reply, Reply::Saved { .. }) && self.phase == Some(CrashPhase::After) {
+            terminate_fixture(81)?;
+        }
         Ok(reply)
     }
     pub fn close(self) -> io::Result<()> {
         self.db.close().map_err(|(_, e)| failure(e))
     }
+}
+fn terminate_fixture(code: u32) -> io::Result<()> {
+    use windows_sys::Win32::System::Threading::{GetCurrentProcess, TerminateProcess};
+    unsafe {
+        check(TerminateProcess(GetCurrentProcess(), code))?;
+    }
+    Err(io::Error::other("service termination returned"))
 }
 #[cfg(test)]
 mod tests {
@@ -194,6 +258,7 @@ mod tests {
         let mut store = Store {
             db,
             mode: Mode::Edit,
+            phase: None,
         };
         assert!(
             store

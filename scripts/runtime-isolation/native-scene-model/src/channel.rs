@@ -205,6 +205,23 @@ impl Binding {
         }
         Ok(())
     }
+    /// One authenticated save, with a distinct outcome only for disconnect BEFORE any response byte.
+    pub fn unacknowledged_save(
+        self,
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+    ) -> Result<(), Closed> {
+        self.read_at(1, reader, writer, 0, "Rabe\n42")?;
+        let body = br#"{"command":"c4_document_save_v1","expectedRevision":0,"text":"Rabe\n43"}"#;
+        writer
+            .write_all(&self.encode(Kind::Request, 2, body)?)
+            .map_err(|_| Closed)?;
+        match reader.read(&mut [0u8; 1]) {
+            Ok(0) => Ok(()),
+            Err(e) if e.kind() == std::io::ErrorKind::BrokenPipe => Ok(()),
+            _ => Err(Closed),
+        }
+    }
     pub fn durable_window(
         self,
         reopening: bool,

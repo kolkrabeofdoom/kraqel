@@ -251,6 +251,7 @@ enum Trial {
     DeniedSave,
     StoreRead,
     StoreEdit,
+    Crash(scene_store::CrashPhase),
     EditConflict,
     Valid,
 }
@@ -275,11 +276,13 @@ impl Drop for Receipt {
 fn run(trial: Trial) -> io::Result<()> {
     guest_image("pipe-check.exe")?;
     let ui_profile = Profile::fresh(PROFILE)?;
-    let data_profile = Profile::fresh(if trial == Trial::StoreRead {
-        scene_store::READER
-    } else {
-        "org.kraqel.bp4.data"
-    })?;
+    let data_profile = Profile::fresh(
+        if trial == Trial::StoreRead || matches!(trial,Trial::Crash(c) if c.reader()) {
+            scene_store::READER
+        } else {
+            "org.kraqel.bp4.data"
+        },
+    )?;
     let other_profile = Profile::fresh("org.kraqel.bp4.other")?;
     let ui = unsafe { suspended(ui_profile.sid, CHILD) }?;
     let data = unsafe { suspended(data_profile.sid, "pipe-service.exe") }?;
@@ -313,7 +316,9 @@ fn run(trial: Trial) -> io::Result<()> {
             if role == Role::Data && trial == Trial::BadReady {
                 keys[95] ^= 1;
             }
-            let purpose = if trial == Trial::StoreEdit {
+            let purpose = if let Trial::Crash(c) = trial {
+                bootstrap::Purpose::Crash(c)
+            } else if trial == Trial::StoreEdit {
                 bootstrap::Purpose::StoreEdit
             } else if trial == Trial::StoreRead {
                 bootstrap::Purpose::StoreRead
@@ -383,6 +388,7 @@ fn run(trial: Trial) -> io::Result<()> {
                     == match trial {
                         Trial::ReadA => (66, 67),
                         Trial::StoreEdit => (72, 73),
+                        Trial::Crash(c) => c.exits(),
                         Trial::StoreRead => (74, 75),
                         Trial::EditConflict => (70, 71),
                         Trial::DeniedSave => (68, 69),
@@ -410,8 +416,19 @@ fn main() {
             .truncate(false)
             .share_mode(0)
             .open(Path::new(DIR).join("pipe.lock"))?;
-        if std::env::args().nth(1).as_deref() == Some("durable-reopen") {
-            let _pins = scene_store::prepare()?;
+        if std::env::args().nth(1).as_deref() == Some("commit-crashes") {
+            use scene_store::CrashPhase::*;
+            {
+                let _pins = scene_store::prepare(Some(Before))?;
+                run(Trial::Crash(Before))?;
+                run(Trial::Crash(Recover))?;
+                run(Trial::Crash(ReadOld))?;
+            }
+            let _pins = scene_store::prepare(Some(After))?;
+            run(Trial::Crash(After))?;
+            run(Trial::Crash(ReadNew))
+        } else if std::env::args().nth(1).as_deref() == Some("durable-reopen") {
+            let _pins = scene_store::prepare(None)?;
             run(Trial::StoreEdit)?;
             run(Trial::StoreRead)
         } else if std::env::args().nth(1).as_deref() == Some("edit-conflict") {

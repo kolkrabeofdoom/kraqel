@@ -378,8 +378,9 @@ Datenschutzziel bleibt unverändert.
              Revisionskonflikt und Endstand auf Revision 1 im Gast bestätigt.
        - [x] KQ-069 A: Szene A in isolierter SQLite-Testablage dauerhaft gespeichert, nach Neustart
              beider Rollen und auf der ausgeschalteten Gastplatte bestätigt.
-       - [ ] KQ-069 A: Abbruch vor/nach Commit und eigenen ETW-Netzvergleich des persistenten Pfads
-             im Gast prüfen.
+       - [x] KQ-069 A: Datendienstabbruch vor und nach Commit im Gast geprüft.
+             [Wiederöffnen und unabhängige Plattenprüfung](docs/testing/native-win32-commit-crashes.md) bestätigen Revision 0 bzw. 1.
+       - [ ] KQ-069 A: Frischen ETW-Netzvergleich beider Abbruch- und Wiederöffnungspfade durchführen.
        - [ ] KQ-069 A: Durchsetzbaren Erzeugungsweg für jede Runtimegeneration belegen. Der geprüfte
              WebView2-Win32-Einstieg erfüllt BP3 nicht. Produktive BP4-Datenrechte bleiben offen.
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native

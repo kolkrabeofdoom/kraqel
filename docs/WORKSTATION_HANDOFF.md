@@ -68,7 +68,8 @@ nächste Leseantwort bestätigte Text und Revision 0. Der
 Schreibversuch mit Revision 0 und den unveränderten Endtext. Der
 [SQLite-Gastlauf](testing/native-win32-durable-reopen.md) bestätigt Text und Revision 1 nach
 Prozessneustart unter frischer Lesebindung sowie unabhängig auf der ausgeschalteten Gastplatte.
-Nächster Schritt: Abbruch vor und nach Commit gegenprüfen. Produktdaten bleiben gesperrt.
+Der [Datendienstabbruch an der Commitgrenze](testing/native-win32-commit-crashes.md) ist im Gast geprüft.
+Vor Commit bleibt Revision 0 erhalten, nach Commit vor Antwort Revision 1. Der ETW-Netzvergleich beider Pfade steht aus. Produktdaten bleiben gesperrt.
 
 Der Host-Abgleich für die Hörprüfung ergab einen aktiven hostseitigen Wiedergabeendpunkt. Für den
 isolierten Gast ist kein eigener Ausgang belegt, ein separater Prüfplatz war nicht verfügbar. Die
