@@ -62,13 +62,13 @@ Für einen ersten begrenzten Versuch gelten diese Abnahmekriterien:
 Die Bewertung wurde anhand der Primärdokumentation und des bestehenden Quell- und Prüfstands
 abgeschlossen. Die vorhandene synthetische Gastprobe hat zwei Blattrollen und die Sperre fremder
 EXE-/DLL-Images unter erzwungener UMCI nachgewiesen. Die fremde statische Start-DLL wurde im Gast
-durch UMCI gesperrt, der Positivimport lief. Die Abnahmekriterien zu Handleprüfung vor Resume und
-eigenem Netzbeleg bleiben offen. Bei fehlender Prüfrichtlinie und geänderter Richtlinienversion
-derselben ID ist die Wiederanlaufsperre des synthetischen Einstiegs belegt. Der gezielte
-Starterausfall mit laufendem synthetischem Blattprozess, dessen Ende und der Leerstand der Gruppe
-sind im Offline-Gast bestätigt. Für die tatsächlichen WebView-Rollen fehlt der präventive
-Erzeugungsweg. [Ergebnis und Beleggrenzen](../../testing/product-start-p2c-bp3-umci-guest.md). BP3
-insgesamt und `RuntimeStartAllowed` bleiben gesperrt. `DataAllowed` benötigt zusätzlich die
-getrennte BP4-Abnahme. Bis dahin erhält die Referenz weder echte Projektinhalte noch dauerhafte
-Kontrollschlüssel. Die normale KRAQEL-Auslieferung bleibt unsigniert und das strikte Datenschutzziel
-gilt.
+durch UMCI gesperrt, der Positivimport lief. Die effektiven Rechte am synthetischen Markerobjekt
+sind vor Resume geprüft. Der eigene Netzbeleg für diesen Binärstand bleibt offen. Bei fehlender
+Prüfrichtlinie und geänderter Richtlinienversion derselben ID ist die Wiederanlaufsperre des
+synthetischen Einstiegs belegt. Der gezielte Starterausfall mit laufendem synthetischem
+Blattprozess, dessen Ende und der Leerstand der Gruppe sind im Offline-Gast bestätigt. Für die
+tatsächlichen WebView-Rollen fehlt der präventive Erzeugungsweg.
+[Ergebnis und Beleggrenzen](../../testing/product-start-p2c-bp3-umci-guest.md). BP3 insgesamt und
+`RuntimeStartAllowed` bleiben gesperrt. `DataAllowed` benötigt zusätzlich die getrennte BP4-Abnahme.
+Bis dahin erhält die Referenz weder echte Projektinhalte noch dauerhafte Kontrollschlüssel. Die
+normale KRAQEL-Auslieferung bleibt unsigniert und das strikte Datenschutzziel gilt.

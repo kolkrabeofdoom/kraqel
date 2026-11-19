@@ -8,6 +8,38 @@ synthetischen Dateien wurden bei ausgeschalteter VM in die Gastplatte kopiert. B
 Installationsmedium und die Host-Einbindung der Gastplatte ausgehängt.
 [ADR 0035](../architecture/decisions/0035-bp3-independent-process-and-image-enforcement.md).
 
+## Handle-Rechte vor der ersten Ausführung
+
+**Bestanden am 19. November 2026.** Vor Resume wurden folgende Werte im Offline-Gast gemessen:
+
+| Blattprozess                           | Beobachtung                                                                                                   | Folge                                                  |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Leserolle                              | Identisches Dateiobjekt, gewährte Maske `0x00120089` (`FILE_GENERIC_READ`)                                    | Fortgesetzt, Marker gelesen, Exit 40                   |
+| Leere Rolle                            | Genau ein Handle auf das offene Markerobjekt im gesamten System, gehalten vom Starter                         | Fortgesetzt, direkter Dateizugriff verweigert, Exit 40 |
+| Leserolle mit reduzierter Berechtigung | Identisches Objekt zu ihrem übergebenen Handle, Maske `0x00100080` (`FILE_READ_ATTRIBUTES` und `SYNCHRONIZE`) | Vor Resume gesperrt und mit Exit 75 beendet            |
+
+Der Starter endete mit Exit 0, der Job war leer und das Testprofil entfernt. Der Gast war nach dem
+Lauf aus, mit null Netzadaptern und null aktivierten Integrationsdiensten. Der Manifest-SHA-256
+lautet `2736fb3fd109e2f5acff3436518ae98c601e31c61035da131e147542109db854`. Die Belege liegen lokal
+unter `artifacts/bp3-offline-guest/result-series12/`. Die sechs erwarteten CI-Sperrereignisse sind
+für dieses Prüfpaket anhand von Zielhash, Richtlinie und Aufrufer abgeglichen.
+
+Die Prüfung erfolgt nach suspendierter Erzeugung und Identitäts-, Token-, Job- und
+Mitigationsprüfung am gehaltenen Prozesshandle. Der Starter liest bei der Leserolle genau den
+bekannten vererbten Markerhandle aus diesem Kind mit `DUPLICATE_SAME_ACCESS` zurück. Er vergleicht
+die Kernelobjektidentität mit dem eigenen offenen Marker und die vollständige gewährte Zugriffsmaske
+mit `FILE_GENERIC_READ`. Für die Rolle ohne Marker prüft er die Anzahl der Handles auf dieses offene
+Dateiobjekt. Bleibt genau einer, gehört dieser dem Starter. Die spätere verweigerte Öffnung über den
+Dateipfad ist ein eigener Test. Der Nachweis ist auf das synthetische Markerobjekt begrenzt.
+
+Die Negativkontrolle erhält einen gültigen Handle auf eine separate Öffnung derselben Datei mit
+reinen Attributrechten. Eine abweichende Maske sperrt den Leserollenstart. Für einen bestandenen
+Negativfall muss der Starter die Objektidentität bestätigen, die erwartete reduzierte Maske lesen
+und den weiterhin suspendierten Prozess mit Exit 75 beenden und abwarten. Der Crash-Blattprozess hat
+einen eigenen Vertrag für sein Bereitschaftsereignis mit genau `EVENT_MODIFY_STATE`.
+[Windows-Objektabfrage](https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryobject),
+[Vergleich der Objektidentität](https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-compareobjecthandles).
+
 ## Wiederanlauf mit fehlender oder abweichender Prüfrichtlinie
 
 **Bestanden am 19. November 2026.** Im ersten Prüffenster meldete Windows UMCI-Status 0 und keine
@@ -191,8 +223,7 @@ Artefakthashes übernehmen.
   erlaubte DLL und prüft ihren Export. Anschließend prüft er die fremde DLL erneut. Dies sind
   explizite Ladevorgänge im laufenden Worker. Den statischen Startimport prüfen die beiden gesondert
   gelinkten Programme im v2-Gastlauf. Der Handleunterschied ist durch Übergabeliste und Leseversuch
-  nachgewiesen. Eine unabhängige Inspektion der Handle-Rechte im suspendierten Zielprozess steht
-  aus.
+  nachgewiesen. Die Handleprüfung vor Resume ist oben dokumentiert.
 - Der Starter prüft Workerexit und Jobleerstand. Der Abbruchfall ist oben dokumentiert. Die beiden
   Wiederanlaufsperren sind oben dokumentiert. Ein eigener Netzbeleg steht aus. Ein erfolgreicher
   Gastlauf der vorhandenen Testfälle allein genügt daher nicht für die volle Abnahme nach ADR 0035.

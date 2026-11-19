@@ -1,5 +1,6 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <winternl.h>
 #include <userenv.h>
 #include <aclapi.h>
 #include <strsafe.h>
@@ -12,6 +13,7 @@ typedef struct {
     PSID sid;
     const wchar_t *worker;
     const wchar_t *directory;
+    HANDLE marker;
 } probe;
 
 static BOOL expected_token(HANDLE process, PSID sid) {
@@ -52,7 +54,30 @@ static DWORD allow_read(const wchar_t *path, PSID sid) {
     return error;
 }
 
-typedef enum { LEAF, STATIC_ALLOWED, STATIC_FOREIGN, CRASH_LEAF } role_kind;
+/* Only inspect our own fixture object and the child just returned by CreateProcess.
+   An inheritable handle keeps its numeric value in the child. */
+static BOOL basic_info(HANDLE handle, PUBLIC_OBJECT_BASIC_INFORMATION *info) {
+    typedef NTSTATUS (NTAPI *query_fn)(HANDLE, OBJECT_INFORMATION_CLASS, PVOID, ULONG, PULONG);
+    query_fn query = (query_fn)GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtQueryObject");
+    ULONG returned = 0;
+    return query && query(handle, ObjectBasicInformation, info, sizeof(*info), &returned) == 0 &&
+           returned == sizeof(*info);
+}
+
+static BOOL inherited_access(HANDLE child, HANDLE original, ACCESS_MASK *access) {
+    HANDLE local = NULL;
+    if (!DuplicateHandle(child, original, GetCurrentProcess(), &local, 0, FALSE, DUPLICATE_SAME_ACCESS))
+        return FALSE;
+    PUBLIC_OBJECT_BASIC_INFORMATION info = {0};
+    typedef BOOL (WINAPI *compare_fn)(HANDLE, HANDLE);
+    compare_fn compare = (compare_fn)GetProcAddress(GetModuleHandleW(L"kernelbase.dll"), "CompareObjectHandles");
+    BOOL ok = compare && compare(local, original) && basic_info(local, &info);
+    if (ok) *access = info.GrantedAccess;
+    CloseHandle(local);
+    return ok;
+}
+
+typedef enum { LEAF, STATIC_ALLOWED, STATIC_FOREIGN, CRASH_LEAF, REDUCED_READER } role_kind;
 
 static BOOL role(const probe *test, HANDLE input, role_kind kind) {
     SECURITY_CAPABILITIES caps = { test->sid, NULL, 0, 0 };
@@ -120,6 +145,35 @@ static BOOL role(const probe *test, HANDLE input, role_kind kind) {
         !dynamic.ProhibitDynamicCode || dynamic.AllowThreadOptOut ||
         dynamic.AllowRemoteDowngrade || dynamic.AuditProhibitDynamicCode)
         goto done;
+    /* The primary thread is still suspended throughout inspection. For roles
+       without a marker grant, the starter must own the only handle to its open
+       marker object. This also covers copies at other handle values. */
+    PUBLIC_OBJECT_BASIC_INFORMATION marker_info = {0};
+    if (kind != CRASH_LEAF && !test->marker) goto done;
+    if (test->marker && (!basic_info(test->marker, &marker_info) ||
+        marker_info.HandleCount != (input == test->marker ? 2UL : 1UL)))
+        goto done;
+    if (delegate) {
+        ACCESS_MASK access;
+        if (!inherited_access(p.hProcess, input, &access))
+            goto done;
+        ACCESS_MASK required = kind == CRASH_LEAF ? EVENT_MODIFY_STATE : FILE_GENERIC_READ;
+        if (access != required) {
+            /* Only a confirmed same-object, metadata-only grant is the intended
+               negative control. Terminate and reap it without resuming it. */
+            if (kind == REDUCED_READER && access == (FILE_READ_ATTRIBUTES | SYNCHRONIZE) &&
+                TerminateProcess(p.hProcess, 75) && WaitForSingleObject(p.hProcess, 5000) == WAIT_OBJECT_0) {
+                DWORD exit_code;
+                ok = GetExitCodeProcess(p.hProcess, &exit_code) && exit_code == 75;
+                if (ok) printf("pre-resume reduced-reader granted %08lx rejected exit 75\n", access);
+            }
+            goto done;
+        }
+        if (kind == REDUCED_READER) goto done;
+        if (kind == LEAF) printf("pre-resume reader same-object granted %08lx\n", access);
+    } else if (kind == LEAF) {
+        printf("pre-resume empty marker-handles %lu starter-only\n", marker_info.HandleCount);
+    }
     stage = 4;
     if (ResumeThread(p.hThread) != 1 || WaitForSingleObject(p.hProcess, kind == CRASH_LEAF ? 45000 : 5000) != WAIT_OBJECT_0)
         goto done;
@@ -257,7 +311,7 @@ int wmain(int argc, wchar_t **argv) {
         if (!accounting || *end || wcsncmp(argv[4], L"org.kraqel.bp3umci.", 19)) return 2;
         HANDLE signal = (HANDLE)(uintptr_t)_wcstoui64(argv[3], &end, 10);
         if (!signal || *end) return 2;
-        probe held = { NULL, accounting, NULL, worker, directory };
+        probe held = { NULL, accounting, NULL, worker, directory, NULL };
         if (FAILED(DeriveAppContainerSidFromAppContainerName(argv[4], &held.sid))) return 4;
         held.job = CreateJobObjectW(NULL, NULL);
         JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits = {0};
@@ -289,7 +343,7 @@ int wmain(int argc, wchar_t **argv) {
     if (FAILED(StringCchPrintfW(profile, 64, L"org.kraqel.bp3umci.%lu.%llu",
                                GetCurrentProcessId(), GetTickCount64())))
         return 4;
-    probe test = { NULL, NULL, NULL, worker, directory };
+    probe test = { NULL, NULL, NULL, worker, directory, NULL };
     if (FAILED(CreateAppContainerProfile(profile, profile, profile, NULL, 0, &test.sid)))
         return 4;
     HANDLE input = INVALID_HANDLE_VALUE;
@@ -302,6 +356,7 @@ int wmain(int argc, wchar_t **argv) {
                         FILE_FLAG_OPEN_REPARSE_POINT, NULL);
     if (input == INVALID_HANDLE_VALUE)
         goto finish;
+    test.marker = input;
     test.job = CreateJobObjectW(NULL, NULL);
     JOBOBJECT_EXTENDED_LIMIT_INFORMATION limit = {0};
     limit.BasicLimitInformation.LimitFlags =
@@ -312,6 +367,12 @@ int wmain(int argc, wchar_t **argv) {
         goto finish;
     SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
     ok = role(&test, input, LEAF) && role(&test, NULL, LEAF);
+    if (ok) {
+        HANDLE reduced = CreateFileW(input_path, FILE_READ_ATTRIBUTES, FILE_SHARE_READ, &inherit,
+                                     OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, NULL);
+        ok = reduced != INVALID_HANDLE_VALUE && role(&test, reduced, REDUCED_READER);
+        if (reduced != INVALID_HANDLE_VALUE) CloseHandle(reduced);
+    }
     wchar_t starter[MAX_PATH];
     if (ok) ok = GetModuleFileNameW(NULL, starter, MAX_PATH) == length && crash_trial(starter, profile, &test);
     const wchar_t *images[] = { L"bp3-static-allowed.exe", L"bp3-static-foreign.exe" };

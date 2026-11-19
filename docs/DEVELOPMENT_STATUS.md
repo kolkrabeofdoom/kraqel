@@ -13,9 +13,11 @@ beobachtet. Danach meldete der Zähljob null aktive Prozesse bei einer Gesamtzah
 Wiederanläufe des synthetischen Starts sind geprüft. Ohne Prüfrichtlinie (UMCI 0) und mit aktiver
 Richtlinie derselben ID, aber abweichendem CIP-Hash (UMCI 2), sperrte der reguläre Einstieg vor dem
 Starter. Zwei Prüffenster nach Gastneustarts mit je zwei Kontrollprozessen belegen null
-Starterstarts. Als Nächstes die effektiven Handle-Rechte des suspendierten Zielprozesses vor Resume
-prüfen. Eigener Netzbeleg und präventive Bindung aller realen WebView2-Rollen bleiben offen.
-C4-Start und BP4-Datenzugriff bleiben gesperrt.
+Starterstarts. Vor Resume ist für die synthetischen Blattrollen die Bindung an das offene
+Markerobjekt geprüft: Leserolle exakt `FILE_GENERIC_READ`, leere Rolle kein Handle auf dieses
+Objekt, reine Attributrechte als Leserolle vor Resume abgewiesen. Der nächste Schritt ist ein
+frischer ETW-Netzvergleich des geänderten Prüfpakets. Die präventive Bindung aller realen
+WebView2-Rollen bleibt offen. C4-Start und BP4-Datenzugriff bleiben gesperrt.
 [ADR 0035](architecture/decisions/0035-bp3-independent-process-and-image-enforcement.md).
 
 Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:

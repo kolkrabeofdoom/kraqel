@@ -341,7 +341,9 @@ Datenschutzziel bleibt unverändert.
              leerer Zähljob bestätigt.
        - [x] KQ-069 A: Wiederanlauf bei fehlender Richtlinie und geänderter Richtlinienversion mit
              identischer ID jeweils vor dem Starter gesperrt.
-       - [ ] KQ-069 A: Handle-Rechte vor Resume und eigenen Netzbeleg prüfen. Präventive
+       - [x] KQ-069 A: Effektive Markerrechte vor Resume für Leserolle und leere Rolle geprüft,
+             Negativkontrolle mit Attributrechten vor Ausführung abgewiesen.
+       - [ ] KQ-069 A: Frischen Netzbeleg des geänderten Prüfpakets erheben. Präventive
              Rollenbindung für WebView2 und BP4-Datenrechte bleiben offen.
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native
              Rollenbindung und effektive Datenrechte; neue Bytes erneut messen; anschließend C4c/d
