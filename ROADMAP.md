@@ -380,7 +380,8 @@ Datenschutzziel bleibt unverändert.
              beider Rollen und auf der ausgeschalteten Gastplatte bestätigt.
        - [x] KQ-069 A: Datendienstabbruch vor und nach Commit im Gast geprüft.
              [Wiederöffnen und unabhängige Plattenprüfung](docs/testing/native-win32-commit-crashes.md) bestätigen Revision 0 bzw. 1.
-       - [ ] KQ-069 A: Frischen ETW-Netzvergleich beider Abbruch- und Wiederöffnungspfade durchführen.
+       - [x] KQ-069 A: Beide Abbruch- und Wiederöffnungspfade mit frischem ETW-Netzvergleich geprüft.
+             Je Lauf vier Positivkontrollen, null Verluste und null Netzwerkereignisse im Prüfprozessbaum.
        - [ ] KQ-069 A: Durchsetzbaren Erzeugungsweg für jede Runtimegeneration belegen. Der geprüfte
              WebView2-Win32-Einstieg erfüllt BP3 nicht. Produktive BP4-Datenrechte bleiben offen.
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native

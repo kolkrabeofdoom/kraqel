@@ -20,7 +20,31 @@ def require(condition, problem):
         raise ValueError(problem)
 
 
-def check(trace, record, exercise, window=False):
+CRASH_EXITS = {
+    "pipe-check.exe": [0],
+    "pipe-service.exe": [80, 83, 85, 81, 87],
+    "native-leaf.exe": [82, 84, 86, 82, 88],
+    "pipe-other.exe": [42] * 5,
+}
+
+
+def check_crash_roles(fixture, measured, exits, root_pid):
+    controller = next(p for p in fixture if p.image.endswith(r"\pipe-check.exe"))
+    require(controller.parent == root_pid, "Unbound crash controller")
+    for image, codes in CRASH_EXITS.items():
+        roles = [p for p in fixture if p.image.endswith("\\" + image)]
+        require([exits.get((p.pid, p.start)) for p in roles] == codes,
+                f"Unexpected crash/reopen exit sequence for {image}")
+        if image == "pipe-check.exe":
+            continue
+        for role in roles:
+            require(role.parent == controller.pid and controller.contains(role.start),
+                    "Unbound crash role")
+            require(not any(p.parent == role.pid and role.contains(p.start) for p in measured),
+                    "Unexpected crash role descendant")
+
+
+def check(trace, record, exercise, window=False, crashes=False):
     require(record["exit"] == 0, "Workload failed")
     active = {}
     by_pid = defaultdict(list)
@@ -32,7 +56,7 @@ def check(trace, record, exercise, window=False):
     net = Counter()
     guest_net = Counter()
     unknown = 0
-    directory = r"\\program files\\kraqel-window-probe" if window else r"\\bp3-umci-fixture"
+    directory = r"\\program files\\kraqel-window-probe" if window or crashes else r"\\bp3-umci-fixture"
     rows = sorted(events(trace), key=lambda row: row[0])
     for time, provider, event, _, data in rows:
         if "EventsLost" in data and "BuffersLost" in data:
@@ -43,7 +67,7 @@ def check(trace, record, exercise, window=False):
         if event == 2:
             if prior := active.pop(pid, None):
                 prior.end = time
-                if window and "ExitCode" in data:
+                if (window or crashes) and "ExitCode" in data:
                     exits[(pid, prior.start)] = number(data["ExitCode"])
             continue
         parent = number(data["ParentProcessID"])
@@ -64,7 +88,11 @@ def check(trace, record, exercise, window=False):
     require(all(p.own for p in fixture), "Fixture outside workload")
     roles = Counter(p.image.rsplit("\\", 1)[1] for p in fixture)
     expected = Counter({"native-starter.exe": 1, "native-leaf.exe": 3, "observer.exe": 1}) if window else EXPECTED
+    if crashes:
+        expected = Counter({name: len(codes) for name, codes in CRASH_EXITS.items()})
     require(roles == (expected if exercise else Counter()), f"Unexpected fixture roles: {roles}")
+    if crashes and exercise:
+        check_crash_roles(fixture, measured, exits, record["root"])
     if window and exercise:
         starter = next(p for p in fixture if p.image.endswith(r"\native-starter.exe"))
         leaves = [p for p in fixture if p.image.endswith(r"\native-leaf.exe")]
@@ -119,13 +147,15 @@ def check(trace, record, exercise, window=False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=Path)
-    parser.add_argument("--native-window", action="store_true")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--native-window", action="store_true")
+    group.add_argument("--commit-crashes", action="store_true")
     args = parser.parse_args()
     result = {}
     for name in ("reference", "exercise"):
         path = args.directory
         record = json.loads((path / f"{name}.json").read_text(encoding="utf-8-sig"))
-        result[name] = check(path / f"{name}.xml", record, name == "exercise", args.native_window)
+        result[name] = check(path / f"{name}.xml", record, name == "exercise", args.native_window, args.commit_crashes)
     print(json.dumps(result, indent=2))
     raise SystemExit(int(any(r["networkEvents"] or r["guestNetworkEvents"].get("otherOrUnknown")
                              for r in result.values())))

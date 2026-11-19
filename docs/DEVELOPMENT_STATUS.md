@@ -52,7 +52,8 @@ Schreibversuch mit Revision 0 und den unveränderten Endtext. Der
 [SQLite-Gastlauf](testing/native-win32-durable-reopen.md) bestätigt Text und Revision 1 nach
 Prozessneustart unter frischer Lesebindung sowie unabhängig auf der ausgeschalteten Gastplatte.
 Der [Datendienstabbruch an der Commitgrenze](testing/native-win32-commit-crashes.md) ist im Gast geprüft.
-Vor Commit bleibt Revision 0 erhalten, nach Commit vor Antwort Revision 1. Der ETW-Netzvergleich beider Pfade steht aus. Produktdaten bleiben gesperrt.
+Vor Commit bleibt Revision 0 erhalten, nach Commit vor Antwort Revision 1. Der frische ETW-Netzvergleich beider Pfade ergab null Netzwerkereignisse im Prüfprozessbaum.
+Als Nächstes stehen gezielte Teilübertragung und Timeout im Gast an. Produktdaten bleiben gesperrt.
 
 Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:
 

@@ -1,4 +1,4 @@
-param([ValidateSet('read-scene','deny-save','edit-conflict','durable-reopen','commit-crashes','handshake')][string]$Trial='commit-crashes')
+param([ValidateSet('read-scene','deny-save','edit-conflict','durable-reopen','commit-crashes','handshake','reference','exercise')][string]$Trial='commit-crashes')
 $ErrorActionPreference='Stop'
 $dir='C:\Program Files\KRAQEL-Window-Probe'
 try {
@@ -13,6 +13,8 @@ try {
     foreach ($file in $expected.files) {
         if ((Get-FileHash -LiteralPath "$dir\$($file.name)").Hash -ne $file.hash) { throw 'Fixture mismatch.' }
     }
+    if ($Trial -eq 'reference') { Start-Sleep -Seconds 2; exit 0 }
+    if ($Trial -eq 'exercise') { $Trial = 'commit-crashes' }
     & "$dir\pipe-check.exe" $Trial
     exit $LASTEXITCODE
 } catch { Write-Output $_.Exception.Message; exit 1 }
