@@ -199,3 +199,10 @@ Der frische Vergleich vom 19. November 2026 verwendete die vier Binärdateien de
 | Verlorene Ereignisse und Puffer | 0 | 0 |
 
 Die schreibgeschützte Nachprüfung bestätigte den Zustand `read-consumed` und das Fehlen der Startartefakte. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden. Für die Wiederholung verwenden der bestehende ETW-Gasttreiber und die Auswertung `-ExerciseTrial proof-clean-restart` bzw. `--proof proof-clean-restart`. Die Rohspuren bleiben lokal.
+
+
+### Kaltstart des Gasts nach regulärem Abschluss
+
+Am 19. November 2026 startete die ausgeschaltete Offline-VM von einer neuen Differenzplatte auf Basis der heruntergefahrenen Platte des bestandenen regulären Leselaufs. Der Gast bestätigte, dass seine Betriebssystem-Startzeit nach dem Protokollabschluss des früheren Laufs lag. In dieser neuen Sitzung wurde der bestehende Aufruf `proof-run` genau einmal gegen die bereits verbrauchte Freigabe ausgeführt. Er endete vor der Ablagevorbereitung mit Code 102.
+
+Der hostseitig verglichene Hash von `pipe.lock` war vor dem Start und nach dem Herunterfahren identisch. Die schreibgeschützte Nachprüfung bestätigte `read-consumed` und das Fehlen beider Startbelege und der Prozessliste. Die vier Prüfprogramme und die erzwungene Richtlinie entsprachen dem früheren Lauf. Der Gast blieb ohne Netzwerkadapter und aktivierte Integrationsdienste. Er ist ausgeschaltet und wieder mit seiner ursprünglichen Platte verbunden.
