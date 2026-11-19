@@ -103,7 +103,18 @@ Der lokale Windows-Lauf über die aktivierte verwaltete EXE bestätigte den Empf
 
 `broker-store check-win32-surface <aktueller-Kopf-SHA256>` hält die Kontrollsperre und die geprüften Dateien bis zum Ende des Fensterprozesses. Das UI-Ticket enthält den Hash eines generationsgebundenen Öffnungswerts. Erst nach erfolgreicher Prüfung der Antwort auf das Ticket sendet der Starter diesen Wert über die bestehende Pipe. Die Rolle prüft zusätzlich ihr AppContainer-Profil, die fehlenden Capabilities, die Prozessbeschränkungen und die Jobzugehörigkeit. Erst wenn der empfangene Öffnungswert zum Ticket passt, ruft sie den Fensteraufbau auf.
 
-Im lokalen Windows-Lauf zeigte die geprüfte Rolle den festen Zweizeiler im schreibgeschützten Textfeld. Der Starter prüfte Sichtbarkeit, Fensterklasse und Zugehörigkeit zum primären Thread und Prozess am gemeldeten HWND. Er schloss das Fenster per WM_CLOSE und bestätigte reguläres Prozessende sowie leeren Job. Der Kontrollkopf blieb unverändert. Eine gezielte Regression am Handshake der Rolle quittierte das Ticket und wies anschließend einen fremden Öffnungswert ab. Eine neue ETW-Messung gehört nicht zu diesem Nachweis.
+Im lokalen Windows-Lauf zeigte die geprüfte Rolle den festen Zweizeiler im schreibgeschützten Textfeld. Der Starter prüfte Sichtbarkeit, Fensterklasse und Zugehörigkeit zum primären Thread und Prozess am gemeldeten HWND. Er schloss das Fenster per WM_CLOSE und bestätigte reguläres Prozessende sowie leeren Job. Der Kontrollkopf blieb unverändert. Eine gezielte Regression am Handshake der Rolle quittierte das Ticket und wies anschließend einen fremden Öffnungswert ab.
+
+### ETW-Netzvergleich der verwalteten Fensterrolle
+
+Am 19.11.2026 liefen auf dem lokalen Windows-Prüfplatz zwei getrennte ETW-Erfassungen für Code-Stand `2d767af`. Beide verwendeten dieselbe synthetische Ablage und dieselben gebundenen Dateien. SHA-256 des tatsächlich gestarteten hashbenannten Starters war `c9116cd4abec02b2c4836793b4fa95c3e4c9436f3c2297290fb200236f2a98e6`, SHA-256 von `native-leaf.exe` war `7cdb0553a8816637ffca4f6bc3ff698ff3adc3dc9ea51aac9980e12767ed1724`.
+
+| Messpfad | Vollständige Prozesslebenszeiten | Loopback-Positivkontrollen | Verlorene Ereignisse / Puffer | Netzwerkereignisse im Prozessbaum |
+| --- | ---: | ---: | ---: | ---: |
+| `check-win32-receipt`, Bootstrap ohne Fenster | 2 | 4/4 | 0 / 0 | 0 |
+| `check-win32-surface`, Freigabe, sichtbares Fenster und reguläres Schließen | 2 | 4/4 | 0 / 0 | 0 |
+
+Der vorhandene Auswerter ordnete den Starter über Start-PID und vollständigen EXE-Basisnamen zu. Die Prozessereignisse belegten für beide Läufe genau eine direkte Fensterrolle und beide Prozessenden innerhalb der Erfassung. Die Positivkontrollen umfassten je TCP und UDP über IPv4 und IPv6. Es gab keine nicht zuordenbaren Netzwerkereignisse. Beide Aufrufe bestätigten denselben Kontrollkopf, gesperrte Produktdaten und einen leeren Job am Ende. Die Aussage gilt für Kernel-Netzwerkereignisse dieser Prozesslebenszeiten. Eigenständige Windows-Dienste außerhalb des Prozessbaums liegen außerhalb dieser Zuordnung. Die Rohspuren verbleiben lokal.
 
 ## Kosten für den Editor
 
