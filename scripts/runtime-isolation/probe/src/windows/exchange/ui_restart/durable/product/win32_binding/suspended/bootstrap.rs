@@ -177,19 +177,36 @@ pub(super) fn confirm_and_open(
     secret: [u8; 32],
     interactive: bool,
 ) -> Result<()> {
-    use windows_sys::Win32::UI::WindowsAndMessaging::{
-        GetClassNameW, GetWindowThreadProcessId, IsWindowVisible, PostMessageW, WM_CLOSE,
-    };
+    confirm_grant(pi, &mut writer, &mut reply, &secret)?;
+    drop(writer);
+    wait_surface(pi, &mut reply, interactive)
+}
+
+pub(super) fn confirm_grant(
+    pi: &PROCESS_INFORMATION,
+    writer: &mut fs::File,
+    reply: &mut fs::File,
+    secret: &[u8; 32],
+) -> Result<()> {
     if unsafe { ResumeThread(pi.hThread) } != 1 {
         return Err(invalid("win32-window-resume"));
     }
-    let expected = crate::window_receipt::receipt(&crate::window_receipt::commitment(&secret));
-    if live_frame::<32>(&mut reply, pi.hProcess)? != expected {
+    let expected = crate::window_receipt::receipt(&crate::window_receipt::commitment(secret));
+    if live_frame::<32>(reply, pi.hProcess)? != expected {
         return Err(invalid("win32-window-receipt-mismatch"));
     }
-    io("win32-window-open-grant", writer.write_all(&secret))?;
-    drop(writer);
-    let handle = u64::from_le_bytes(live_frame::<8>(&mut reply, pi.hProcess)?);
+    io("win32-window-open-grant", writer.write_all(secret))
+}
+
+pub(super) fn wait_surface(
+    pi: &PROCESS_INFORMATION,
+    reply: &mut fs::File,
+    interactive: bool,
+) -> Result<()> {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        GetClassNameW, GetWindowThreadProcessId, IsWindowVisible, PostMessageW, WM_CLOSE,
+    };
+    let handle = u64::from_le_bytes(live_frame::<8>(reply, pi.hProcess)?);
     let hwnd = usize::try_from(handle).map_err(|_| invalid("win32-window-handle"))? as HWND;
     let mut pid = 0;
     let mut class = [0u16; 64];

@@ -1,6 +1,8 @@
 //! Native window identity gate and optional receipt-only resume.
 use super::*;
 mod bootstrap;
+mod scene;
+pub(super) use scene::read_scene;
 
 pub(super) const WINDOW: &str = "native-leaf.exe";
 
@@ -13,9 +15,67 @@ pub(super) fn check_window(
     let resume = mode != WindowMode::Suspended;
     let interactive = mode == WindowMode::Interactive;
     let surface = interactive || mode == WindowMode::Surface;
-    let image = root.join(WINDOW);
-    let mut profile = Profile::create(&format!("ui.{}", Uuid::new_v4().simple()))?;
-    let job_name = store.job_name();
+    with_role(
+        store,
+        root,
+        expected,
+        WINDOW,
+        if surface {
+            crate::window_receipt::UI_ARG
+        } else {
+            crate::window_receipt::ARG
+        },
+        resume,
+        |pi, endpoint, mut writer, reply| {
+            let bootstrap_value =
+                bootstrap::stage(store, expected, pi, endpoint, &mut writer, surface)?;
+            if let Some(reply) = reply {
+                if surface {
+                    bootstrap::confirm_and_open(pi, writer, reply, bootstrap_value, interactive)?;
+                } else {
+                    drop(writer);
+                    bootstrap::resume_and_confirm(
+                        pi,
+                        &reply,
+                        crate::window_receipt::receipt(&bootstrap_value),
+                    )?;
+                }
+            }
+            Ok(())
+        },
+    )?;
+    Ok(
+        json!({"nativePreviewOnly":true,"role":"window","suspendedIdentityVerified":true,
+        "bootstrapBoundBeforeResume":true,"roleResumed":resume,"bootstrapReceiptVerified":resume,"syntheticWindowVerified":surface,"dataAllowed":false,"activeJobProcessesAtEnd":0,
+        "headSha256":hex(&store.state.head)}),
+    )
+}
+
+fn with_role(
+    store: &Store,
+    root: &Path,
+    expected: &fs::File,
+    name: &str,
+    argument: &str,
+    resume: bool,
+    run: impl FnOnce(&PROCESS_INFORMATION, HANDLE, fs::File, Option<fs::File>) -> Result<()>,
+) -> Result<()> {
+    let image = root.join(name);
+    let data = name == "pipe-service.exe";
+    let profile_id = format!(
+        "{}.{}",
+        if data { "data" } else { "ui" },
+        Uuid::new_v4().simple()
+    );
+    let mut profile = Profile::create(&profile_id)?;
+    let job_name = if data {
+        wide(format!(
+            "Local\\KRAQEL.Scene.{}",
+            store.state.installation.simple()
+        ))
+    } else {
+        store.job_name()
+    };
     let job = Handle(unsafe { CreateJobObjectW(null(), job_name.as_ptr()) });
     if job.0.is_null() {
         return Err(fail("win32-window-job"));
@@ -48,7 +108,7 @@ pub(super) fn check_window(
     let dynamic = 1u64 << 36;
     let no_children = 1u32;
     // Pin both directions in the handle list. The receipt-only mode has no command channel.
-    let (reader, mut writer) = crate::windows::exchange::ui_restart::pipe()?;
+    let (reader, writer) = crate::windows::exchange::ui_restart::pipe()?;
     let response = resume
         .then(crate::windows::exchange::ui_restart::pipe)
         .transpose()?;
@@ -72,16 +132,8 @@ pub(super) fn check_window(
     if let Some(out) = &response_writer {
         startup.StartupInfo.hStdOutput = out.as_raw_handle();
     }
-    let mut command = if surface {
-        let profile_name = String::from_utf16_lossy(&profile.name[..profile.name.len() - 1]);
-        wide(format!(
-            "native-leaf.exe {} {}",
-            crate::window_receipt::UI_ARG,
-            profile_name
-        ))
-    } else {
-        wide(format!("native-leaf.exe {}", crate::window_receipt::ARG))
-    };
+    let profile_name = String::from_utf16_lossy(&profile.name[..profile.name.len() - 1]);
+    let mut command = wide(format!("{name} {argument} {profile_name}"));
     startup.lpAttributeList = attrs.ptr;
     let mut pi: PROCESS_INFORMATION = unsafe { zeroed() };
     let environment = crate::windows::exchange::ui_restart::environment(root);
@@ -167,38 +219,39 @@ pub(super) fn check_window(
         if secure_fs::file_id(&actual)? != secure_fs::file_id(expected)? {
             return Err(invalid("win32-window-image-identity"));
         }
-        let bootstrap_value =
-            bootstrap::stage(store, expected, &pi, endpoints[0], &mut writer, surface)?;
-        if let Some(reply) = response_reader {
-            if surface {
-                bootstrap::confirm_and_open(&pi, writer, reply, bootstrap_value, interactive)?;
-            } else {
-                drop(writer);
-                bootstrap::resume_and_confirm(
-                    &pi,
-                    &reply,
-                    crate::window_receipt::receipt(&bootstrap_value),
-                )?;
-            }
-        }
-        Ok(())
+        run(&pi, endpoints[0], writer, response_reader)
     })();
     // Release neither package pins nor owner lease while this generation is still live.
     check(unsafe { TerminateJobObject(job.0, 0) }, "win32-window-stop")?;
     if unsafe { WaitForSingleObject(process.0, 5000) } != WAIT_OBJECT_0 {
         return Err(invalid("win32-window-stop-timeout"));
     }
-    store.idle()?;
+    if data {
+        let mut info: JOBOBJECT_BASIC_ACCOUNTING_INFORMATION = unsafe { zeroed() };
+        check(
+            unsafe {
+                QueryInformationJobObject(
+                    job.0,
+                    JobObjectBasicAccountingInformation,
+                    (&raw mut info).cast(),
+                    size_of_val(&info) as u32,
+                    null_mut(),
+                )
+            },
+            "scene-job-drain",
+        )?;
+        if info.ActiveProcesses != 0 {
+            return Err(invalid("scene-job-not-empty"));
+        }
+    } else {
+        store.idle()?;
+    }
     let removed = profile.remove();
     verified?;
     if !removed {
         return Err(invalid("win32-window-profile-cleanup"));
     }
-    Ok(
-        json!({"nativePreviewOnly":true,"role":"window","suspendedIdentityVerified":true,
-        "bootstrapBoundBeforeResume":true,"roleResumed":resume,"bootstrapReceiptVerified":resume,"syntheticWindowVerified":surface,"dataAllowed":false,"activeJobProcessesAtEnd":0,
-        "headSha256":hex(&store.state.head)}),
-    )
+    Ok(())
 }
 
 #[cfg(test)]

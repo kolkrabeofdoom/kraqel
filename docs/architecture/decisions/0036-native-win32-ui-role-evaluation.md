@@ -194,6 +194,20 @@ Der authentisierte Sitzungsbeginn vor Prozesserzeugung und der generationsgebund
 
 Die Freigabe umfasst ausschließlich diesen lokalen Vorschaupfad mit festem Prüftext. Produktdaten und WebView2 bleiben gesperrt. Für den verwalteten Zugriff auf Szenen und SQLite ist eine eigene Integration erforderlich. Die Netzbeobachtung ist auf die gemessenen Prozesslebenszeiten begrenzt.
 
+### Verwalteter Einmalabruf der synthetischen Szene A
+
+`broker-store open-win32-scene <aktueller-Kopf-SHA256>` startet Fensterrolle und `pipe-service.exe` aus dem gebundenen Paket unter derselben Kontrollsperre und demselben dauerhaften Sitzungsbeleg. Jede Rolle hat einen eigenen AppContainer ohne Capabilities und einen eigenen Einprozess-Job. Der Starter prüft beide suspendierten Prozessgenerationen, Token, Mitigations und Imageidentitäten. Er dupliziert die anonymen Pipe-Enden mit einseitigen Rechten in die jeweilige Generation und vergleicht die zurückgelesenen Objektidentitäten. Erst nach beiden Bootstrap-Quittungen übermittelt er die Kanaldaten. Die Kanal-ID bindet beide Rollenbelege und den Zweck A/read; die Richtungsschlüssel sind frisch.
+
+Nach HELLO/READY verarbeitet der Datendienst über das vorhandene BP4b-Protokoll genau einen Leseaufruf. Er bindet den eingebauten synthetischen Katalog an Szene A im Lesemodus. Die Fensterrolle prüft die authentisierte Antwort für Revision 0 und setzt den empfangenen Text vor dem Anzeigen in das schreibgeschützte Win32-Feld. Der Datendienst endet nach dem Abruf. Das Fenster bleibt bis zum Schließen bedienbar. Die Produktablage bleibt gesperrt. Dieser Schritt arbeitet im Speicher. Der Zugriff auf eine persistente Szenenablage ist offen.
+
+Der lokale Windows-Lauf prüfte Inhalt (`Rabe` und `42`) und Schreibschutz am sichtbaren Feld. Beide Jobs endeten und der Sitzungsbeleg wurde geschlossen. Eine Gegenprobe mit einem gebundenen Datendienst ohne den neuen Bootstrap brach vor der Szenenfreigabe ab; die Sitzung blieb gesperrt. Die frühere C4d-Abnahme gilt für die dort bezeichneten Bytes. Der frische ETW-Nachweis für den zusätzlichen Datendienst und die geänderten Rollen steht aus.
+
+| Im Szenenlauf gestartetes Programm | SHA-256 |
+| --- | --- |
+| Verwalteter Starter | `8ab95846ef5888c3d8f06316f80164062bb5b407939203bee9062c49e5351c7a` |
+| native-leaf.exe | `f49f0c5d1e733d60caf978d2131c41f70876d65c70270ce458deff6c281ccec9` |
+| pipe-service.exe | `f7c47c896444928bf150dbf70a6be51950423eb359cf33e4c3faa04b9f48ef9f` |
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

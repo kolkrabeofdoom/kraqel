@@ -18,3 +18,5 @@ pub fn commitment(grant: &[u8; 32]) -> [u8; 32] {
     hash.update(grant);
     hash.finalize().into()
 }
+
+pub const SCENE_ARG: &str = "--managed-scene-a-read-v1";

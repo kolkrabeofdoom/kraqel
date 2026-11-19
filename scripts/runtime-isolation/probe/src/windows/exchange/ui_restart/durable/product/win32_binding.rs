@@ -25,6 +25,7 @@ pub(super) enum WindowMode {
     Receipt,
     Surface,
     Interactive,
+    ReadScene,
 }
 pub(super) enum Operation<'a> {
     Bind(&'a Path, [u8; 32]),
@@ -97,7 +98,17 @@ impl Store {
             }
             self.append(actor, head, Action::BeginWin32Window { anchor: expected })?;
             let begin = self.state.head;
-            let mut result = suspended::check_window(self, &root, image, mode)?;
+            let mut result = if mode == WindowMode::ReadScene {
+                suspended::read_scene(
+                    self,
+                    &root,
+                    image,
+                    pins.image("pipe-service.exe")
+                        .ok_or(invalid("win32-service-not-pinned"))?,
+                )?
+            } else {
+                suspended::check_window(self, &root, image, mode)?
+            };
             // Only the call holding the original lease reaches here after signaled process
             // end, empty job and profile cleanup. There is no external finish command.
             self.append_with_checked_context(actor, begin, Action::EndWin32Window { begin })?;
