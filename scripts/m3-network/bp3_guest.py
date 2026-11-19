@@ -80,12 +80,19 @@ def check_starter_restart(fixture, measured, exits, root_pid):
                         "Unexpected normal completion")
 
 
-def check_release_roles(fixture, measured, exits, root_pid, released):
-    witness, issuer = [p for p in fixture if p.image.endswith(r"\pipe-check.exe")]
+def check_release_roles(fixture, measured, exits, root_pid, proof):
+    witness_lost = proof == "proof-witness-loss"
+    witness, issuer, *restarts = [p for p in fixture if p.image.endswith(r"\pipe-check.exe")]
+    if witness_lost:
+        restart, = restarts
+        require(restart.parent == root_pid and witness.end <= restart.start
+                and exits.get((restart.pid, restart.start)) == 102, "Missing denied witness restart")
+        require(not any(p.parent == restart.pid and restart.contains(p.start) for p in measured),
+                "Denied witness started a child")
     require(witness.parent == root_pid and issuer.parent == witness.pid
             and witness.contains(issuer.start) and witness.contains(issuer.end),
             "Unexpected witness/issuer lifetime")
-    require([exits.get((p.pid, p.start)) for p in (witness, issuer)] == [0, 101],
+    require([exits.get((p.pid, p.start)) for p in (witness, issuer)] == [103 if witness_lost else 0, 101],
             "Missing proof decision or issuer crash")
     for parent in (issuer, witness):
         require(all(p in fixture for p in measured if p.parent == parent.pid and parent.contains(p.start)),
@@ -96,7 +103,7 @@ def check_release_roles(fixture, measured, exits, root_pid, released):
         for n, proc in enumerate(generations):
             parent = issuer if n == 0 else witness
             require(proc.parent == parent.pid and parent.contains(proc.start) and parent.contains(proc.end)
-                    and (n == 0 or (released and proc.start >= issuer.end))
+                    and (n == 0 or (proof == "proof-run" and proc.start >= issuer.end))
                     and exits.get((proc.pid, proc.start)) == codes[n], "Unexpected proof role")
             require(not any(p.parent == proc.pid and proc.contains(p.start) for p in measured),
                     "Unexpected role descendant")
@@ -153,10 +160,10 @@ def check(trace, record, exercise, window=False, crashes=False, channel_ends=Fal
         expected = Counter({"pipe-check.exe": 5, "native-leaf.exe": 3, "pipe-other.exe": 3, "pipe-service.exe": 3})
     if proof:
         pairs = 2 if proof == "proof-run" else 1
-        expected = Counter({"pipe-check.exe": 2, "pipe-service.exe": pairs, "native-leaf.exe": pairs, "pipe-other.exe": pairs})
+        expected = Counter({"pipe-check.exe": 3 if proof == "proof-witness-loss" else 2, "pipe-service.exe": pairs, "native-leaf.exe": pairs, "pipe-other.exe": pairs})
     require(roles == (expected if exercise else Counter()), f"Unexpected fixture roles: {roles}")
     if proof and exercise:
-        check_release_roles(fixture, measured, exits, record["root"], proof == "proof-run")
+        check_release_roles(fixture, measured, exits, record["root"], proof)
     if starter_restart and exercise:
         check_starter_restart(fixture, measured, exits, record["root"])
     if expected_exits and exercise:
@@ -220,7 +227,7 @@ if __name__ == "__main__":
     group.add_argument("--commit-crashes", action="store_true")
     group.add_argument("--channel-ends", action="store_true")
     group.add_argument("--starter-restart", action="store_true")
-    group.add_argument("--proof", choices=("proof-run", "proof-incomplete"))
+    group.add_argument("--proof", choices=("proof-run", "proof-incomplete", "proof-witness-loss"))
     args = parser.parse_args()
     result = {}
     for name in ("reference", "exercise"):

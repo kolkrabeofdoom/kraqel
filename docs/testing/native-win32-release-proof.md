@@ -57,3 +57,17 @@ Der Gastlauf `-Trial proof-witness-loss` vom 19. November 2026 verwendete eine w
 Eine neue Kontrollinstanz nahm den regulären Einstieg `proof-run`. Sie meldete die Sperre mit Exitcode 102 vor Ablagevorbereitung und Rollenstart. Kein Lesepaar entstand. Der SHA-256 des Kontrollvermerks war vor und nach dem Neustart identisch. Der schreibgeschützte Plattengegencheck bestätigte weiterhin `committed-revision-1/jobs-drained` und entfernte Startfreigaben. Die ursprüngliche gesperrte Ablage blieb unberührt. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Gastplatte verbunden.
 
 Dieser gezielte Lauf prüfte ausschließlich den Ausfall der Kontrollinstanz. SHA-256 des zugehörigen Prüfstarters: `E4A47166DB5DEFE6EE5F9D1FE3F463B52321A85DC1DD97592AD05220840035F2`.
+
+### ETW-Netzvergleich bei Ausfall der Kontrollinstanz
+
+Am 19. November 2026 liefen Referenz und Ausfallprobe auf einer frischen Offline-Differenzplatte mit denselben vier Programm-Hashes wie im vorstehenden Gastlauf. ETW bestätigte das Ende des Ausstellers (101), danach das Ende der Kontrollinstanz (103) und anschließend einen gesperrten Neustart (102) ohne Kindprozess. Nur das ursprüngliche Schreibpaar lief. Der Endebeleg blieb beim Neustart bytegleich und unverbraucht. Die schreibgeschützte Plattenprüfung bestätigte seinen Zustand und die entfernten Startfreigaben, ohne SQLite zu öffnen.
+
+| Messgröße | Referenz | Ausfall und Neustart |
+| --- | ---: | ---: |
+| ETW-Ereignisse / Prozesse im gemessenen Baum | 56 / 3 | 57 / 9 |
+| Netzwerkereignisse im gemessenen Baum | 0 | 0 |
+| Gastweite Loopback-Ereignisse / übrige oder unbekannte Ziele | 18 / 0 | 18 / 0 |
+| Erkannte TCP-/UDP-Kontrollen über IPv4 und IPv6 | 4/4 | 4/4 |
+| Verlorene Ereignisse und Puffer | 0 | 0 |
+
+Für die Wiederholung gilt der oben beschriebene ETW-Ablauf mit `-ExerciseTrial proof-witness-loss` und der Auswertung `--proof proof-witness-loss`. Die ursprüngliche gesperrte Ablage blieb unberührt, die Rohspuren lokal. Der Gast ist ausgeschaltet und wieder mit der ursprünglichen Gastplatte verbunden.
