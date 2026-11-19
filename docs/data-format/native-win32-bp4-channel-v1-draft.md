@@ -3,8 +3,8 @@
 **Spezifikation v1, KQ-069.** Dieses Protokoll bindet die drei
 [BP4a-Operationen](native-win32-bp4-scene-v1-draft.md) an ein einmalig gestartetes Prozesspaar im
 interaktiven Offline-Gast. Der bisherige Starter prüft ein UI-Blatt und startet es ohne
-Handlevererbung. Der zweite Rollenstart, die Endpunkte und alle folgenden nativen Nachweise sind
-geplant. Produktprojekte bleiben gesperrt.
+Handlevererbung. Zweiter Rollenstart und Endpunktrechte der suspendierten Rollen sind im Gast
+geprüft. Produktprojekte bleiben gesperrt.
 [ADR 0036](../architecture/decisions/0036-native-win32-ui-role-evaluation.md) ·
 [Starter](../../scripts/runtime-isolation/native-window/src/bin/native-starter.rs)
 
@@ -109,5 +109,6 @@ Repositorywurzel:
 cargo test --locked --offline --manifest-path scripts/runtime-isolation/native-scene-model/Cargo.toml
 ```
 
-Die Gastprüfung muss insbesondere Prozessbindung, getrennte Endpunktrechte, Lesen aus einem
-partiellen Bytestrom, Timeout und beidseitiges Schließen über Prozessgrenzen nachweisen.
+Die [Gastprüfung der Pipe-Rechte](../testing/native-win32-pipe-rights.md) bestätigt die
+Endpunktzuordnung vor Resume. Offen sind authentisierter Bootstrap, Lesen aus einem partiellen
+Bytestrom, Timeout und beidseitiges Schließen über Prozessgrenzen.

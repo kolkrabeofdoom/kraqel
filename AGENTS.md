@@ -332,9 +332,10 @@ BP4a ist als eigenständiges Rust-Forschungsmodell geprüft. Eine exklusive Bind
 Zugriff auf eine Katalogszene. Leseaufträge, Revisionskonflikte und ungültige Dokumente sind gegen
 unbeabsichtigtes Überschreiben getestet. Der
 [BP4b-Kanalvertrag](docs/data-format/native-win32-bp4-channel-v1-draft.md) legt Rollenbindung und
-Replayabwehr fest. Framecodec und Replayabwehr sind im reinen Modell geprüft. Als Nächstes die
-Endpunktrechte beider Rollen im Offline-Gast prüfen. Native Durchsetzung steht aus; Produktdaten
-bleiben gesperrt.
+Replayabwehr fest. Framecodec und Replayabwehr sind im reinen Modell geprüft. Die
+[Pipe-Prüfung im Offline-Gast](docs/testing/native-win32-pipe-rights.md) bestätigt vor Resume die
+Endpunktrechte und die Zugriffssperre für den geprüften Fremdprozess. Nächster Schritt:
+rollengebundenen Bootstrap und HELLO/READY prüfen. Produktdaten bleiben gesperrt.
 
 Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:
 
