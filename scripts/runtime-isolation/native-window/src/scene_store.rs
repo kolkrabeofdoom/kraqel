@@ -1,0 +1,215 @@
+//! Fixed, guest-only SQLite fixture. Neither paths nor SQL are supplied by the channel.
+use crate::*;
+use kraqel_native_scene_model::{Mode, Reply, Scene, SyntheticCatalog};
+use rusqlite::{Connection, OpenFlags, params};
+use std::{
+    fs::{File, OpenOptions},
+    os::windows::fs::OpenOptionsExt,
+    ptr::null_mut,
+};
+use windows_sys::Win32::{
+    Foundation::*,
+    Security::{Authorization::*, Isolation::*, *},
+    Storage::FileSystem::*,
+};
+
+pub const READER: &str = "org.kraqel.bp4.store-reader";
+const WRITER: &str = "org.kraqel.bp4.data";
+fn directory() -> std::path::PathBuf {
+    Path::new(DIR).join("scene-store-v1")
+}
+fn database() -> std::path::PathBuf {
+    directory().join("synthetic.sqlite")
+}
+
+fn sid_text(profile: &str) -> io::Result<String> {
+    unsafe {
+        let mut sid = null_mut();
+        require(
+            DeriveAppContainerSidFromAppContainerName(wide(profile).as_ptr(), &mut sid) >= 0,
+            "fixture SID",
+        )?;
+        let mut ptr = null_mut();
+        let result = check(ConvertSidToStringSidW(sid, &mut ptr));
+        FreeSid(sid);
+        result?;
+        let len = (0..184).find(|i| *ptr.add(*i) == 0);
+        let text = len.and_then(|n| String::from_utf16(std::slice::from_raw_parts(ptr, n)).ok());
+        LocalFree(ptr.cast());
+        text.ok_or(io::Error::other("SID length"))
+    }
+}
+
+/// Called under the starter's exclusive lock. Existing roots are refused. Both
+/// freshly created objects remain pinned against rename/deletion through both runs.
+pub fn prepare() -> io::Result<(File, File)> {
+    guest_image("pipe-check.exe")?;
+    let acl = format!(
+        "D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1301bf;;;{})(A;OICI;0x1200a9;;;{})S:(ML;OICI;NW;;;LW)",
+        sid_text(WRITER)?,
+        sid_text(READER)?
+    );
+    unsafe {
+        let mut sd = null_mut();
+        check(ConvertStringSecurityDescriptorToSecurityDescriptorW(
+            wide(acl).as_ptr(),
+            1,
+            &mut sd,
+            null_mut(),
+        ))?;
+        let sa = SECURITY_ATTRIBUTES {
+            nLength: size_of::<SECURITY_ATTRIBUTES>() as u32,
+            lpSecurityDescriptor: sd,
+            bInheritHandle: 0,
+        };
+        let result = check(CreateDirectoryW(wide(directory()).as_ptr(), &sa));
+        LocalFree(sd);
+        result?;
+    }
+    let pin = |path: &Path, is_dir: bool| {
+        OpenOptions::new()
+            .access_mode(FILE_READ_ATTRIBUTES)
+            .share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE)
+            .custom_flags(
+                FILE_FLAG_OPEN_REPARSE_POINT
+                    | if is_dir {
+                        FILE_FLAG_BACKUP_SEMANTICS
+                    } else {
+                        0
+                    },
+            )
+            .open(path)
+    };
+    let root = pin(&directory(), true)?;
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create_new(true)
+        .share_mode(FILE_SHARE_READ | FILE_SHARE_WRITE)
+        .open(database())?;
+    let db = pin(&database(), false)?;
+    drop(file);
+    Ok((root, db))
+}
+
+pub struct Store {
+    db: Connection,
+    mode: Mode,
+}
+fn failure(_: rusqlite::Error) -> io::Error {
+    io::Error::other("fixture SQLite")
+}
+
+impl Store {
+    pub fn open(read_only: bool) -> io::Result<Self> {
+        if read_only {
+            require(
+                matches!(OpenOptions::new().write(true).open(database()), Err(ref e) if e.kind()==io::ErrorKind::PermissionDenied),
+                "reader write access",
+            )?;
+        }
+        let flags = if read_only {
+            OpenFlags::SQLITE_OPEN_READ_ONLY
+        } else {
+            OpenFlags::SQLITE_OPEN_READ_WRITE
+        };
+        let mut db =
+            Connection::open_with_flags(database(), flags | OpenFlags::SQLITE_OPEN_NOFOLLOW)
+                .map_err(failure)?;
+        db.execute_batch("PRAGMA trusted_schema=OFF; PRAGMA temp_store=MEMORY;")
+            .map_err(failure)?;
+        if read_only {
+            db.execute_batch("PRAGMA query_only=ON").map_err(failure)?;
+        } else {
+            db.execute_batch("PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL;")
+                .map_err(failure)?;
+            let tx = db.transaction().map_err(failure)?;
+            tx.execute_batch("CREATE TABLE scene(id TEXT PRIMARY KEY CHECK(id='A'), document TEXT NOT NULL, plain_text TEXT NOT NULL, revision INTEGER NOT NULL); CREATE VIRTUAL TABLE scene_fts USING fts5(plain_text);").map_err(failure)?;
+            let (doc, rev) = SyntheticCatalog::default().snapshot_a();
+            tx.execute(
+                "INSERT INTO scene VALUES ('A',?1,?2,?3)",
+                params![doc, "Rabe\n42", rev],
+            )
+            .map_err(failure)?;
+            tx.execute(
+                "INSERT INTO scene_fts(rowid,plain_text) VALUES (1,?1)",
+                ["Rabe\n42"],
+            )
+            .map_err(failure)?;
+            tx.commit().map_err(failure)?;
+        }
+        Ok(Self {
+            db,
+            mode: if read_only { Mode::Read } else { Mode::Edit },
+        })
+    }
+    pub fn dispatch(&mut self, body: &[u8]) -> io::Result<Reply> {
+        let tx = self.db.transaction().map_err(failure)?;
+        let (content, rev): (String, u32) = tx
+            .query_row(
+                "SELECT document,revision FROM scene WHERE id='A' AND length(document)<=1024",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .map_err(failure)?;
+        let mut catalog = SyntheticCatalog::restore_a(rev, &content)
+            .ok_or(io::Error::other("invalid stored fixture"))?;
+        let mut scene = catalog.bind(Scene::A, self.mode);
+        let reply = scene.handle(body);
+        if let Reply::Saved { revision } = reply {
+            let Reply::Read { text, .. } = scene.handle(br#"{"command":"c4_document_read_v1"}"#)
+            else {
+                return Err(io::Error::other("invalid saved fixture"));
+            };
+            let (encoded, _) = catalog.snapshot_a();
+            require(tx.execute("UPDATE scene SET document=?1,plain_text=?2,revision=?3 WHERE id='A' AND revision=?4",params![encoded,text,revision,rev]).map_err(failure)?==1,"revision check")?;
+            require(
+                tx.execute("UPDATE scene_fts SET plain_text=?1 WHERE rowid=1", [text])
+                    .map_err(failure)?
+                    == 1,
+                "index row",
+            )?;
+        }
+        tx.commit().map_err(failure)?;
+        Ok(reply)
+    }
+    pub fn close(self) -> io::Result<()> {
+        self.db.close().map_err(|(_, e)| failure(e))
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn missing_index_row_rolls_back_document_and_revision() {
+        let db = Connection::open_in_memory().unwrap();
+        db.execute_batch("CREATE TABLE scene(id,document,plain_text,revision); CREATE TABLE scene_fts(plain_text);").unwrap();
+        let (doc, rev) = SyntheticCatalog::default().snapshot_a();
+        db.execute(
+            "INSERT INTO scene VALUES('A',?1,?2,?3)",
+            params![doc, "Rabe\n42", rev],
+        )
+        .unwrap();
+        let mut store = Store {
+            db,
+            mode: Mode::Edit,
+        };
+        assert!(
+            store
+                .dispatch(
+                    br#"{"command":"c4_document_save_v1","expectedRevision":0,"text":"Rabe\n43"}"#
+                )
+                .is_err()
+        );
+        assert!(matches!(
+            store
+                .dispatch(br#"{"command":"c4_document_read_v1"}"#)
+                .unwrap(),
+            Reply::Read {
+                text: "Rabe\n42",
+                revision: 0
+            }
+        ));
+    }
+}

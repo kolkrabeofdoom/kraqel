@@ -74,6 +74,28 @@ impl Default for SyntheticCatalog {
 }
 
 impl SyntheticCatalog {
+    /// Restore only canonical scene A fixtures from the separate BP4b database.
+    pub fn restore_a(revision: u32, encoded: &str) -> Option<Self> {
+        if revision > MAX_REVISION {
+            return None;
+        }
+        let content = Scene::A
+            .versions()
+            .into_iter()
+            .map(document)
+            .find(|d| serde_json::to_string(d).is_ok_and(|json| json == encoded))?;
+        Some(Self {
+            a: Record { content, revision },
+            ..Self::default()
+        })
+    }
+    pub fn snapshot_a(&self) -> (String, u32) {
+        (
+            serde_json::to_string(&self.a.content).expect("catalog JSON"),
+            self.a.revision,
+        )
+    }
+
     /// Only the model driver selects the scene and rights. The exclusive borrow lasts
     /// until this binding ends, including across reads and failed saves.
     ///

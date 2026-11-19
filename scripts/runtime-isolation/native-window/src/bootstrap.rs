@@ -41,12 +41,16 @@ pub enum Purpose {
     ReadA,
     DeniedSave,
     EditConflict,
+    StoreEdit,
+    StoreRead,
 }
 impl Purpose {
     fn scope(self) -> &'static str {
         match self {
             Self::Handshake => "A/edit",
             Self::ReadA => "A/read",
+            Self::StoreRead => "A/read/sqlite-v1",
+            Self::StoreEdit => "A/edit/sqlite-v1",
             Self::EditConflict => "A/edit/conflict-check",
             Self::DeniedSave => "A/read/denial-check",
         }
@@ -112,6 +116,28 @@ impl Endpoint {
             Role::Data => ("pipe-service.exe", "org.kraqel.bp4.data"),
         };
         guest_image(image)?;
+        let receipt = std::fs::read_to_string(role.receipt())?;
+        let (meta, handle) = receipt
+            .split_once('\n')
+            .ok_or(io::Error::other("receipt"))?;
+        let purpose = if meta.starts_with("BP4b-v1/A/read/sqlite-v1/") {
+            Purpose::StoreRead
+        } else if meta.starts_with("BP4b-v1/A/edit/sqlite-v1/") {
+            Purpose::StoreEdit
+        } else if meta.starts_with("BP4b-v1/A/edit/conflict-check/") {
+            Purpose::EditConflict
+        } else if meta.starts_with("BP4b-v1/A/read/denial-check/") {
+            Purpose::DeniedSave
+        } else if meta.starts_with("BP4b-v1/A/read/") {
+            Purpose::ReadA
+        } else {
+            Purpose::Handshake
+        };
+        let profile = if role == Role::Data && purpose == Purpose::StoreRead {
+            crate::scene_store::READER
+        } else {
+            profile
+        };
         let own = unsafe {
             let mut sid = null_mut();
             require(
@@ -122,19 +148,6 @@ impl Endpoint {
             FreeSid(sid);
             result?;
             ticket(GetCurrentProcess())?
-        };
-        let receipt = std::fs::read_to_string(role.receipt())?;
-        let (meta, handle) = receipt
-            .split_once('\n')
-            .ok_or(io::Error::other("receipt"))?;
-        let purpose = if meta.starts_with("BP4b-v1/A/edit/conflict-check/") {
-            Purpose::EditConflict
-        } else if meta.starts_with("BP4b-v1/A/read/denial-check/") {
-            Purpose::DeniedSave
-        } else if meta.starts_with("BP4b-v1/A/read/") {
-            Purpose::ReadA
-        } else {
-            Purpose::Handshake
         };
         let prefix = format!("BP4b-v1/{}/{}/", purpose.scope(), role.name());
         let pair = meta.strip_prefix(&prefix).ok_or(io::Error::other("role"))?;
@@ -196,6 +209,15 @@ impl Endpoint {
         if !self.receive(Handshake::Ready)? {
             return Ok(63);
         }
+        if matches!(self.purpose, Purpose::StoreEdit | Purpose::StoreRead) {
+            let reopening = self.purpose == Purpose::StoreRead;
+            let text = self
+                .binding
+                .durable_window(reopening, &mut self.reader, &mut self.writer)
+                .map_err(|_| io::Error::other("durable response"))?;
+            display(&text)?;
+            return Ok(if reopening { 75 } else { 73 });
+        }
         if self.purpose == Purpose::EditConflict {
             let text = self
                 .binding
@@ -227,6 +249,19 @@ impl Endpoint {
             return Ok(61);
         }
         self.send(Handshake::Ready)?;
+        if matches!(self.purpose, Purpose::StoreEdit | Purpose::StoreRead) {
+            let reopening = self.purpose == Purpose::StoreRead;
+            let mut store = crate::scene_store::Store::open(reopening)?;
+            self.binding
+                .durable_service(reopening, &mut self.reader, &mut self.writer, |body| {
+                    store
+                        .dispatch(body)
+                        .map_err(|_| kraqel_native_scene_model::channel::Closed)
+                })
+                .map_err(|_| io::Error::other("durable request"))?;
+            store.close()?;
+            return Ok(if reopening { 74 } else { 72 });
+        }
         if self.purpose == Purpose::EditConflict {
             self.binding
                 .serve_edit_conflict(&mut self.reader, &mut self.writer)

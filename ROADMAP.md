@@ -376,7 +376,9 @@ Datenschutzziel bleibt unverändert.
              Text und Revision 0 erneut gelesen.
        - [x] KQ-069 A: Speichern im synthetischen In-Memory-Katalog unter Edit-Bindung,
              Revisionskonflikt und Endstand auf Revision 1 im Gast bestätigt.
-       - [ ] KQ-069 A: Persistentes synthetisches Speichern, Wiederanlauf und eigenen ETW-Nachweis
+       - [x] KQ-069 A: Szene A in isolierter SQLite-Testablage dauerhaft gespeichert, nach Neustart
+             beider Rollen und auf der ausgeschalteten Gastplatte bestätigt.
+       - [ ] KQ-069 A: Abbruch vor/nach Commit und eigenen ETW-Netzvergleich des persistenten Pfads
              im Gast prüfen.
        - [ ] KQ-069 A: Durchsetzbaren Erzeugungsweg für jede Runtimegeneration belegen. Der geprüfte
              WebView2-Win32-Einstieg erfüllt BP3 nicht. Produktive BP4-Datenrechte bleiben offen.

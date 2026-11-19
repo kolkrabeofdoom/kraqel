@@ -169,6 +169,22 @@ impl Binding {
         writer: &mut impl std::io::Write,
     ) -> Result<String, Closed> {
         self.read_at(1, reader, writer, 0, "Rabe\n42")?;
+        self.save_first(reader, writer)?;
+        let stale = self.exchange(
+            3,
+            br#"{"command":"c4_document_save_v1","expectedRevision":0,"text":"Rabe\n42"}"#,
+            reader,
+            writer,
+        )?;
+        Self::expect_error(&stale, "CONFLICT")?;
+        self.read_at(4, reader, writer, 1, "Rabe\n43")
+    }
+
+    fn save_first(
+        &self,
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+    ) -> Result<(), Closed> {
         let saved = self.exchange(
             2,
             br#"{"command":"c4_document_save_v1","expectedRevision":0,"text":"Rabe\n43"}"#,
@@ -187,16 +203,42 @@ impl Binding {
         {
             return Err(Closed);
         }
-        let stale = self.exchange(
-            3,
-            br#"{"command":"c4_document_save_v1","expectedRevision":0,"text":"Rabe\n42"}"#,
-            reader,
-            writer,
-        )?;
-        Self::expect_error(&stale, "CONFLICT")?;
-        self.read_at(4, reader, writer, 1, "Rabe\n43")
+        Ok(())
     }
-
+    pub fn durable_window(
+        self,
+        reopening: bool,
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+    ) -> Result<String, Closed> {
+        if reopening {
+            return self.read_at(1, reader, writer, 1, "Rabe\n43");
+        }
+        self.read_at(1, reader, writer, 0, "Rabe\n42")?;
+        self.save_first(reader, writer)?;
+        self.read_at(3, reader, writer, 1, "Rabe\n43")
+    }
+    /// Storage dispatch returns a Saved reply only after its disk transaction commits.
+    pub fn durable_service(
+        self,
+        reopening: bool,
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+        mut dispatch: impl FnMut(&[u8]) -> Result<super::Reply, Closed>,
+    ) -> Result<(), Closed> {
+        let steps: &[Expected] = if reopening {
+            &[Expected::Read]
+        } else {
+            &[Expected::Read, Expected::Saved, Expected::Read]
+        };
+        for (index, expected) in steps.iter().enumerate() {
+            let seq = index as u64 + 1;
+            let frame = read_frame(reader)?;
+            let answer = dispatch(self.decode(&frame, Kind::Request, seq)?)?;
+            self.write_reply(seq, answer, writer, *expected)?;
+        }
+        Ok(())
+    }
     pub fn serve_edit_conflict(
         self,
         reader: &mut impl std::io::Read,
@@ -238,6 +280,15 @@ impl Binding {
         let frame = read_frame(reader)?;
         let body = self.decode(&frame, Kind::Request, sequence)?;
         let answer = scene.handle(body);
+        self.write_reply(sequence, answer, writer, expected)
+    }
+    fn write_reply(
+        &self,
+        sequence: u64,
+        answer: super::Reply,
+        writer: &mut impl std::io::Write,
+        expected: Expected,
+    ) -> Result<(), Closed> {
         if !matches!(
             (&answer, expected),
             (super::Reply::Read { .. }, Expected::Read)

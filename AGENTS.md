@@ -342,8 +342,10 @@ schreibgeschützten Win32-Feld bestätigt. Der
 [Schreibversuch unter derselben Lesebindung](docs/testing/native-win32-denied-save.md) ergab DENIED.
 Die nächste Leseantwort bestätigte Text und Revision 0. Der
 [Edit-Gastlauf](docs/testing/native-win32-edit-conflict.md) bestätigte Revision 1, CONFLICT beim
-zweiten Schreibversuch mit Revision 0 und den unveränderten Endtext. Als Nächstes die persistente
-synthetische Ablage mit Wiederöffnen unter neuer Bindung prüfen. Produktdaten bleiben gesperrt.
+zweiten Schreibversuch mit Revision 0 und den unveränderten Endtext. Der
+[SQLite-Gastlauf](docs/testing/native-win32-durable-reopen.md) bestätigt Text und Revision 1 nach
+Prozessneustart unter frischer Lesebindung sowie unabhängig auf der ausgeschalteten Gastplatte.
+Nächster Schritt: Abbruch vor und nach Commit gegenprüfen. Produktdaten bleiben gesperrt.
 
 Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:
 

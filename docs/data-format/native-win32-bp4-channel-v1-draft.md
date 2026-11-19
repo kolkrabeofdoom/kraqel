@@ -116,5 +116,6 @@ bestätigt genau ein REQUEST/RESPONSE-Paar für A/read. Die
 [Schreibabweisung unter Lesebindung](../testing/native-win32-denied-save.md) ist über drei
 Sequenznummern im Gast bestätigt.
 [Edit-Bindung und Konflikt](../testing/native-win32-edit-conflict.md) sind mit speicherresidentem
-Katalog bestätigt. Offen sind Persistenz, gezielte Teilübertragung, Timeout, Fensterende,
-Wiederanlauf und ETW für die neuen Bytes.
+Katalog bestätigt. [SQLite und regulärer Prozessneustart](../testing/native-win32-durable-reopen.md)
+sind im Gast geprüft. Offen sind Crash-Reconciliation, gezielte Teilübertragung, Timeout,
+Fensterende, Wiederanlauf und ETW für die neuen Bytes.

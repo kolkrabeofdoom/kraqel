@@ -1,4 +1,5 @@
 pub mod bootstrap;
+pub mod scene_store;
 pub mod suspended;
 use std::io;
 use std::mem::{size_of, zeroed};
