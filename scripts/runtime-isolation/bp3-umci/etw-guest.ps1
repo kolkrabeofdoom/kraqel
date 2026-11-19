@@ -1,6 +1,6 @@
 # Called by the existing isolated guest task in the measurement overlay.
 param([guid]$GuestUuid, [string]$GuestBuild, [guid]$PolicyId, [string]$PolicySha256, [string]$ManifestSha256,
-    [ValidateSet('channel-ends','starter-restart','proof-run','proof-clean-restart','proof-incomplete','proof-witness-loss','proof-consumed-loss','proof-live-loss','proof-pre-cleanup-loss','proof-partial-cleanup-loss','proof-post-cleanup-loss')][string]$ExerciseTrial)
+    [ValidateSet('channel-ends','starter-restart','proof-run','proof-clean-restart','proof-cold-restart','proof-incomplete','proof-witness-loss','proof-consumed-loss','proof-live-loss','proof-pre-cleanup-loss','proof-partial-cleanup-loss','proof-post-cleanup-loss')][string]$ExerciseTrial)
 $ErrorActionPreference = 'Stop'
 $out = 'C:\BP3-ETW'
 $system = "$env:SystemRoot\System32"
@@ -10,6 +10,11 @@ if ($machine.Name -ne 'KRAQEL-BP3' -or $machine.PartOfDomain -or
     @(Get-NetAdapter -IncludeHidden | Where-Object Status -eq Up).Count -or
     (Get-CimInstance -Namespace root\Microsoft\Windows\DeviceGuard -ClassName Win32_DeviceGuard).UsermodeCodeIntegrityPolicyEnforcementStatus -ne 2) {
     throw 'Guest boundary mismatch.'
+}
+if ($ExerciseTrial -eq 'proof-cold-restart') {
+    if ((Get-CimInstance Win32_OperatingSystem).LastBootUpTime -le (Get-Item "$out\pipe.log").LastWriteTime) {
+        throw 'Missing new guest boot after the completed read.'
+    }
 }
 $logger = "$system\logman.exe"
 '{7DD42A49-5329-4832-8DFD-43D979153A88} 0x30 4','{22FB2CD6-0E7B-422B-A0C7-2FAD1FD0E716} 0x10 4' | Set-Content "$out\providers.txt" -Encoding ascii
@@ -36,9 +41,14 @@ foreach ($mode in 'reference','exercise') {
             }
         }
         $workload = if ($mode -eq 'exercise' -and $ExerciseTrial) { $ExerciseTrial } else { $mode }
+        $expectedExit = 0
+        if ($workload -eq 'proof-cold-restart') {
+            $workload = 'proof-run'
+            $expectedExit = 102
+        }
         $p = Start-Process "$system\WindowsPowerShell\v1.0\powershell.exe" -ArgumentList "-NoProfile -File C:\BP3-Setup\etw-workload.ps1 $workload" -RedirectStandardOutput "$out\$mode.log" -RedirectStandardError "$out\$mode.err" -PassThru -Wait -WindowStyle Hidden
         @{root=$p.Id; exit=$p.ExitCode; controls=$controls} | ConvertTo-Json -Depth 4 | Set-Content "$out\$mode.json"
-        if ($p.ExitCode -ne 0) { throw "Workload $mode failed." }
+        if ($p.ExitCode -ne $expectedExit) { throw "Workload $mode failed." }
     } finally {
         & $logger stop $session -ets
         if ($LASTEXITCODE -ne 0) { throw 'Cannot stop guest trace.' }

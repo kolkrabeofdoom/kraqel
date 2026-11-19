@@ -206,3 +206,18 @@ Die schreibgeschützte Nachprüfung bestätigte den Zustand `read-consumed` und 
 Am 19. November 2026 startete die ausgeschaltete Offline-VM von einer neuen Differenzplatte auf Basis der heruntergefahrenen Platte des bestandenen regulären Leselaufs. Der Gast bestätigte, dass seine Betriebssystem-Startzeit nach dem Protokollabschluss des früheren Laufs lag. In dieser neuen Sitzung wurde der bestehende Aufruf `proof-run` genau einmal gegen die bereits verbrauchte Freigabe ausgeführt. Er endete vor der Ablagevorbereitung mit Code 102.
 
 Der hostseitig verglichene Hash von `pipe.lock` war vor dem Start und nach dem Herunterfahren identisch. Die schreibgeschützte Nachprüfung bestätigte `read-consumed` und das Fehlen beider Startbelege und der Prozessliste. Die vier Prüfprogramme und die erzwungene Richtlinie entsprachen dem früheren Lauf. Der Gast blieb ohne Netzwerkadapter und aktivierte Integrationsdienste. Er ist ausgeschaltet und wieder mit seiner ursprünglichen Platte verbunden.
+
+
+### ETW-Netzvergleich beim ersten Zugriff nach Kaltstart
+
+Eine frische Differenzplatte übernahm den verbrauchten Zustand des regulär abgeschlossenen Leselaufs. Die neue Betriebssystem-Startzeit lag nach dessen Protokollabschluss. Die ETW-Messfenster begannen nach der Anmeldung. Auf die Referenz folgte genau ein Zugriffsversuch. ETW erfasste eine Kontrollinstanz mit Exitcode 102 ohne Kindprozess. Der Hash des Verbrauchsvermerks blieb über den Kaltstart gleich, beide Startbelege und die Prozessliste fehlten weiterhin.
+
+| Messgröße | Referenz | Gesperrter Zugriff |
+| --- | ---: | ---: |
+| ETW-Ereignisse / Prozesse im gemessenen Baum | 68 / 3 | 48 / 4 |
+| Netzwerkereignisse im gemessenen Baum | 0 | 0 |
+| Gastweite Loopback-Ereignisse / übrige oder unbekannte Ziele | 18 / 0 | 18 / 0 |
+| Erkannte TCP-/UDP-Kontrollen über IPv4 und IPv6 | 4/4 | 4/4 |
+| Verlorene Ereignisse und Puffer | 0 | 0 |
+
+Der Offline-Gast ist ausgeschaltet und wieder mit der ursprünglichen Platte verbunden. Gasttreiber und Auswertung verwenden `-ExerciseTrial proof-cold-restart` bzw. `--proof proof-cold-restart`. Rohspuren bleiben lokal.

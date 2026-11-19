@@ -143,7 +143,8 @@ def check_release_roles(fixture, measured, exits, root_pid, proof):
 
 
 def check(trace, record, exercise, window=False, crashes=False, channel_ends=False, starter_restart=False, proof=None):
-    require(record["exit"] == 0, "Workload failed")
+    cold_denial = proof == "proof-cold-restart" and exercise
+    require(record["exit"] == (102 if cold_denial else 0), "Workload failed")
     active = {}
     by_pid = defaultdict(list)
     fixture = []
@@ -191,12 +192,20 @@ def check(trace, record, exercise, window=False, crashes=False, channel_ends=Fal
         expected = Counter({name: len(codes) for name, codes in expected_exits.items()})
     if starter_restart:
         expected = Counter({"pipe-check.exe": 5, "native-leaf.exe": 3, "pipe-other.exe": 3, "pipe-service.exe": 3})
-    if proof:
+    if proof == "proof-cold-restart":
+        expected = Counter({"pipe-check.exe": 1})
+    elif proof:
         pairs = 2 if proof in ("proof-run", "proof-clean-restart", "proof-live-loss", "proof-pre-cleanup-loss", "proof-partial-cleanup-loss", "proof-post-cleanup-loss") else 1
         controllers = 4 if proof == "proof-live-loss" else 3 if proof in WITNESS_EXITS_BEFORE_RESTART else 2
         expected = Counter({"pipe-check.exe": controllers, "pipe-service.exe": pairs, "native-leaf.exe": pairs, "pipe-other.exe": pairs})
     require(roles == (expected if exercise else Counter()), f"Unexpected fixture roles: {roles}")
-    if proof == "proof-live-loss" and exercise:
+    if cold_denial:
+        restart, = fixture
+        require(restart.parent == record["root"] and exits.get((restart.pid, restart.start)) == 102,
+                "Missing cold restart denial")
+        require(not any(p.parent == restart.pid and restart.contains(p.start) for p in measured),
+                "Denied cold restart started a child")
+    elif proof == "proof-live-loss" and exercise:
         check_live_loss(fixture, measured, exits, record["root"])
     elif proof and exercise:
         check_release_roles(fixture, measured, exits, record["root"], proof)
@@ -263,7 +272,7 @@ if __name__ == "__main__":
     group.add_argument("--commit-crashes", action="store_true")
     group.add_argument("--channel-ends", action="store_true")
     group.add_argument("--starter-restart", action="store_true")
-    group.add_argument("--proof", choices=("proof-run", "proof-incomplete", "proof-live-loss", *WITNESS_EXITS_BEFORE_RESTART))
+    group.add_argument("--proof", choices=("proof-cold-restart", "proof-run", "proof-incomplete", "proof-live-loss", *WITNESS_EXITS_BEFORE_RESTART))
     args = parser.parse_args()
     result = {}
     for name in ("reference", "exercise"):
