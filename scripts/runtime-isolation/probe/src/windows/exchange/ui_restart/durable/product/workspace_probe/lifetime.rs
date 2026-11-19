@@ -38,7 +38,7 @@ impl EndEvidence {
             }
     }
 }
-fn creation_time(process: HANDLE) -> Result<u64> {
+pub(in super::super) fn creation_time(process: HANDLE) -> Result<u64> {
     let (mut created, mut exited, mut kernel, mut user): (FILETIME, FILETIME, FILETIME, FILETIME) =
         unsafe { zeroed() };
     check(

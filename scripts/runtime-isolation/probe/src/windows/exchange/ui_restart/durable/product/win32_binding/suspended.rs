@@ -1,5 +1,6 @@
-//! Readback-only native UI gate. No resume, command channel or data grant.
+//! Pre-resume native UI gate. No resume, command channel or data grant.
 use super::*;
+mod bootstrap;
 
 pub(super) const WINDOW: &str = "native-leaf.exe";
 
@@ -38,10 +39,19 @@ pub(super) fn check_window(store: &Store, root: &Path, expected: &fs::File) -> R
     let jobs = [job.0];
     let dynamic = 1u64 << 36;
     let no_children = 1u32;
+    // The empty read end is the only inherited capability. Publication follows identity readback.
+    let (reader, mut writer) = crate::windows::exchange::ui_restart::pipe()?;
+    let endpoints = [reader.as_raw_handle()];
+    check(
+        unsafe { SetHandleInformation(endpoints[0], HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT) },
+        "win32-window-bootstrap-inherit",
+    )?;
     let attrs =
-        Attributes::with_creation_policy(&caps, &[], &jobs, Some((&dynamic, &no_children)))?;
+        Attributes::with_creation_policy(&caps, &endpoints, &jobs, Some((&dynamic, &no_children)))?;
     let mut startup: STARTUPINFOEXW = unsafe { zeroed() };
     startup.StartupInfo.cb = size_of_val(&startup) as u32;
+    startup.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
+    startup.StartupInfo.hStdInput = endpoints[0];
     startup.lpAttributeList = attrs.ptr;
     let mut pi: PROCESS_INFORMATION = unsafe { zeroed() };
     let environment = crate::windows::exchange::ui_restart::environment(root);
@@ -52,7 +62,7 @@ pub(super) fn check_window(store: &Store, root: &Path, expected: &fs::File) -> R
                 null_mut(),
                 null(),
                 null(),
-                0,
+                1,
                 CREATE_SUSPENDED | EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT,
                 environment.as_ptr().cast(),
                 path_wide(root)?.as_ptr(),
@@ -62,6 +72,7 @@ pub(super) fn check_window(store: &Store, root: &Path, expected: &fs::File) -> R
         },
         "win32-window-create",
     )?;
+    drop(reader);
     let process = Handle(pi.hProcess);
     let primary = Handle(pi.hThread);
     let verified = (|| {
@@ -121,21 +132,23 @@ pub(super) fn check_window(store: &Store, root: &Path, expected: &fs::File) -> R
         if secure_fs::file_id(&actual)? != secure_fs::file_id(expected)? {
             return Err(invalid("win32-window-image-identity"));
         }
-        Ok(())
+        bootstrap::stage(store, expected, &pi, endpoints[0], &mut writer)
     })();
+    drop(writer);
     // Release neither package pins nor owner lease while this generation is still live.
     check(unsafe { TerminateJobObject(job.0, 0) }, "win32-window-stop")?;
     if unsafe { WaitForSingleObject(process.0, 5000) } != WAIT_OBJECT_0 {
         return Err(invalid("win32-window-stop-timeout"));
     }
     store.idle()?;
+    let removed = profile.remove();
     verified?;
-    if !profile.remove() {
+    if !removed {
         return Err(invalid("win32-window-profile-cleanup"));
     }
     Ok(
         json!({"nativePreviewOnly":true,"role":"window","suspendedIdentityVerified":true,
-        "roleResumed":false,"dataAllowed":false,"activeJobProcessesAtEnd":0,
+        "bootstrapBoundBeforeResume":true,"roleResumed":false,"dataAllowed":false,"activeJobProcessesAtEnd":0,
         "headSha256":hex(&store.state.head)}),
     )
 }
