@@ -1,5 +1,8 @@
 # Rechnerwechsel und Arbeitsübergabe
 
+Im synthetischen Win32-Editor sind Rückgängig und Wiederholen über beide Absätze verfügbar. Der Verlauf bleibt auf das offene Fenster beschränkt.
+
+
 Der [authentisierte Abschluss beim Verwerfen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#authentisierter-abschluss-beim-verwerfen) gibt die synthetische Ablage nach regulärem Schließen wieder frei. Ein erzwungenes Prozessende hält sie gesperrt. Der [ETW-Netzvergleich](architecture/decisions/0036-native-win32-ui-role-evaluation.md#etw-beim-bestätigten-verwerfen-und-wiederöffnen) bestätigte null Netzwerkereignisse in den gemessenen Prozessbäumen beim Verwerfen und erneuten Lesen.
 
 

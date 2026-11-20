@@ -48,6 +48,84 @@ fn draft_text(hwnd: HWND) -> Option<String> {
     Some(format!("{}\n{}", paragraph(EDIT)?, paragraph(SECOND)?))
 }
 
+/// Bounded to this window's message loop. A new edit removes the redo branch.
+struct DraftHistory {
+    states: std::collections::VecDeque<String>,
+    current: usize,
+}
+
+impl DraftHistory {
+    fn new(text: String) -> Self {
+        Self {
+            states: [text].into(),
+            current: 0,
+        }
+    }
+
+    fn record(&mut self, text: String) {
+        if self.states[self.current] == text {
+            return;
+        }
+        self.states.truncate(self.current + 1);
+        self.states.push_back(text);
+        if self.states.len() > 65 {
+            self.states.pop_front();
+        }
+        self.current = self.states.len() - 1;
+    }
+
+    fn step(&mut self, redo: bool) -> Option<&str> {
+        let next = if redo {
+            self.current + 1
+        } else {
+            self.current.checked_sub(1)?
+        };
+        let text = self.states.get(next)?;
+        self.current = next;
+        Some(text)
+    }
+}
+
+fn restore_draft(hwnd: HWND, text: &str) -> bool {
+    let Some((first, second)) = text.split_once('\n') else {
+        return false;
+    };
+    let Some(current) = draft_text(hwnd) else {
+        return false;
+    };
+    let Some((old_first, old_second)) = current.split_once('\n') else {
+        return false;
+    };
+    unsafe {
+        for (id, old, new) in [(EDIT, old_first, first), (SECOND, old_second, second)] {
+            if old == new {
+                continue;
+            }
+            let field = GetDlgItem(hwnd, id);
+            if SetWindowTextW(field, wide(new).as_ptr()) == 0 {
+                return false;
+            }
+            let common_suffix = old
+                .chars()
+                .rev()
+                .zip(new.chars().rev())
+                .take_while(|(a, b)| a == b)
+                .map(|(_, c)| c.len_utf16())
+                .sum::<usize>();
+            let caret = new.encode_utf16().count() - common_suffix;
+            SetFocus(field);
+            SendMessageW(
+                field,
+                windows_sys::Win32::UI::Controls::EM_SETSEL,
+                caret,
+                caret as isize,
+            );
+        }
+    }
+    update_draft_status(hwnd);
+    true
+}
+
 fn draft_changed(hwnd: HWND) -> bool {
     let current = draft_text(hwnd);
     EXPECTED.with_borrow(|initial| current.as_ref() != Some(initial))
@@ -402,6 +480,10 @@ fn show(
             return exit;
         }
         SetFocus(GetDlgItem(hwnd, EDIT));
+        let mut history = draft
+            .as_ref()
+            .and_then(|_| draft_text(hwnd))
+            .map(DraftHistory::new);
         let mut msg = MSG::default();
         loop {
             match GetMessageW(&mut msg, null_mut(), 0, 0) {
@@ -411,6 +493,26 @@ fn show(
             }
             if let Some(result) = draft.as_deref_mut() {
                 let key = msg.wParam as u16;
+                let Some(history) = history.as_mut() else {
+                    return 24;
+                };
+                if let Some(text) = draft_text(hwnd) {
+                    history.record(text);
+                }
+                let ctrl = msg.message == WM_KEYDOWN
+                    && GetKeyState(i32::from(VK_CONTROL)) < 0
+                    && GetKeyState(i32::from(VK_MENU)) >= 0;
+                let undo = (ctrl && key == 0x5a) || (msg.message == WM_CHAR && key == 26);
+                let redo = (ctrl && key == 0x59) || (msg.message == WM_CHAR && key == 25);
+                if undo || redo {
+                    let forward = redo || GetKeyState(i32::from(VK_SHIFT)) < 0;
+                    if let Some(text) = history.step(forward) {
+                        if !restore_draft(hwnd, text) {
+                            return 24;
+                        }
+                    }
+                    continue;
+                }
                 if msg.message == DISCARD_DRAFT
                     || (msg.message == WM_KEYDOWN
                         && key == VK_RETURN
@@ -427,6 +529,7 @@ fn show(
                             return 24;
                         }
                     }
+                    *history = DraftHistory::new(initial.clone());
                     update_draft_status(hwnd);
                     SetFocus(GetDlgItem(hwnd, EDIT));
                     continue;

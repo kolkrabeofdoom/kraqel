@@ -300,6 +300,10 @@ Der Fenstertitel zeigt „Ungespeicherte Änderungen“, sobald einer der beiden
 
 Beim Schließen eines veränderten Entwurfs fragt der Editor, ob beide Änderungen verworfen werden sollen. „Nein“ ist vorausgewählt. Im Windows-Lauf blieben nach „Nein“ die Eingaben erhalten und ließen sich per Tastatur speichern und erneut öffnen. Nach „Ja“ schloss das Fenster ohne Veröffentlichung einer Revision.
 
+Der Tastatureditor hält bis zu 64 Änderungen der beiden Absätze in der Reihenfolge ihrer Eingabe im Fensterspeicher. Strg+Z nimmt den letzten Schritt zurück. Strg+Y und Strg+Umschalt+Z wiederholen ihn. Eine neue Eingabe nach dem Zurückgehen verwirft den Wiederholungszweig. „Änderungen verwerfen“ leert den Verlauf, ebenso endet er mit dem Fenster. Die Datenbankrevision ändert sich erst beim Speichern.
+
+Der gezielte Windows-Lauf verwendete native Zeichennachrichten für Änderungen in beiden Absätzen sowie für Rückgängig und Wiederholen. Das Zurückgehen bis zum geladenen Stand deaktivierte Speichern. Neue Eingabe und explizites Verwerfen begrenzten den Verlauf wie vorgesehen. Anschließendes Speichern und Wiederöffnen bestätigten Revision 1 mit Fettmarkierung am zweiten Absatz.
+
 ### Gespeicherte markierte Szene weiterbearbeiten
 
 Ein erneuter Aufruf von `edit-win32-scene <aktueller Kontrollkopf>` öffnet die zuletzt bestätigte markierte Fassung mit einer frischen Edit-Bindung. Der Starter prüft unter der Kontrollsperre Eigentümergeneration, Dateiidentität und Hash. Er übergibt dem Datendienst ein Lesehandle für die bestätigte Fassung und ein Schreibhandle für die exklusiv neu angelegte Folgedatei. Die Fensterrolle erhält ausschließlich den Szenenkanal. Die erwartete Revision gehört zum Bootstrap des neuen Auftrags. Dienst und Fenster prüfen die Revision beim Speichern und Rücklesen. Nach regulärem Rollenende bindet der Abschlussrecord die neue Generation. Bei unklarem Sitzungsende bleibt die Sperre wirksam.
