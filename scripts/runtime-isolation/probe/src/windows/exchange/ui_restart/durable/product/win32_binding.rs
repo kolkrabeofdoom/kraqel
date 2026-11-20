@@ -38,6 +38,11 @@ impl SnapshotFile {
             OpenOptions::new()
                 .read(true)
                 .write(create)
+                .access_mode(if create {
+                    GENERIC_READ | GENERIC_WRITE | DELETE
+                } else {
+                    GENERIC_READ
+                })
                 .create_new(create)
                 .share_mode(0)
                 .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT)
@@ -51,6 +56,20 @@ impl SnapshotFile {
         }
         private_acl(&path, false)?;
         Ok(Self { file, _dirs: dirs })
+    }
+    fn remove_new(self) -> Result<()> {
+        let disposition = FILE_DISPOSITION_INFO { DeleteFile: true };
+        check(
+            unsafe {
+                SetFileInformationByHandle(
+                    self.file.as_raw_handle(),
+                    FileDispositionInfo,
+                    (&raw const disposition).cast(),
+                    size_of::<FILE_DISPOSITION_INFO>() as u32,
+                )
+            },
+            "scene-discard-cleanup",
+        )
     }
     fn identity(&mut self, revision: u32) -> Result<Snapshot> {
         use std::io::{Read, Seek};
@@ -237,6 +256,19 @@ impl Store {
             };
             // Only the call holding the original lease reaches here after signaled process
             // end, empty job and profile cleanup. There is no external finish command.
+            if result["discarded"] == true {
+                let candidate = snapshot.take().ok_or(invalid("scene-discard-candidate"))?;
+                if io("scene-discard-size", candidate.file.metadata())?.len() != 0 {
+                    return Err(invalid("scene-discard-nonempty"));
+                }
+                candidate.remove_new()?;
+                if revision == 0 {
+                    baseline
+                        .take()
+                        .ok_or(invalid("scene-discard-baseline"))?
+                        .remove_new()?;
+                }
+            }
             let end = match snapshot.as_mut() {
                 Some(file) if saving => Action::EndWin32SceneSave {
                     begin,

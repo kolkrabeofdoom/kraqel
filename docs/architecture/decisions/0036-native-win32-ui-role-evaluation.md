@@ -290,7 +290,7 @@ Im verwalteten Windows-Lauf endeten Speichern und erneutes Lesen von Revision 1 
 
 ### Tastatureingabe in Szene A
 
-`broker-store edit-win32-scene <Kontrollkopf>` startet in einer frischen synthetischen Ablage die eigene Edit-Bindung. Nach authentisiertem Bootstrap und Erhalt der markierten Fassung auf Revision 0 öffnet das Fenster zwei einzeilige Eingabefelder. Tab und Umschalt+Tab wechseln zwischen beiden Absätzen und „Speichern“. Strg+S oder Enter auf „Speichern“ sendet den eingegebenen Text. Jeder Absatz enthält 1 bis 48 UTF-16-Codeeinheiten. Der Dienst prüft den vollständigen Dokumentbaum, die Edit-Bindung und die erwartete Revision. Er ersetzt die beiden Textwerte und bewahrt die Markierung des zweiten Absatzes. Vor dem dauerhaften Abschluss prüft die Fensterrolle den authentisierten Rücklesewert. Schließen ohne Speichern erzeugt keinen Abschlussbeleg. Die bestehende Neustartsperre greift.
+`broker-store edit-win32-scene <Kontrollkopf>` startet in einer frischen synthetischen Ablage die eigene Edit-Bindung. Nach authentisiertem Bootstrap und Erhalt der markierten Fassung auf Revision 0 öffnet das Fenster zwei einzeilige Eingabefelder. Tab und Umschalt+Tab wechseln zwischen beiden Absätzen und „Speichern“. Strg+S oder Enter auf „Speichern“ sendet den eingegebenen Text. Jeder Absatz enthält 1 bis 48 UTF-16-Codeeinheiten. Der Dienst prüft den vollständigen Dokumentbaum, die Edit-Bindung und die erwartete Revision. Er ersetzt die beiden Textwerte und bewahrt die Markierung des zweiten Absatzes. Vor dem dauerhaften Abschluss prüft die Fensterrolle den authentisierten Rücklesewert.
 
 Der lokale Windows-Lauf verwendete native Zeichen- und Tastennachrichten für „Kolkrabe“ und „Stern 47“, Tab und Enter. Ein neuer `read-saved-win32-scene`-Auftrag öffnete Revision 1 schreibgeschützt. Die unabhängige SQLite-Abfrage bestätigte beide Textwerte und die Fettmarkierung ausschließlich am zweiten Absatz. Die Edit-Bindung gilt für einen einzelnen Speichervorgang an synthetischen Testdaten.
 
@@ -298,7 +298,7 @@ Der lokale Windows-Lauf verwendete native Zeichen- und Tastennachrichten für �
 
 Der Fenstertitel zeigt „Ungespeicherte Änderungen“, sobald einer der beiden Absätze vom geladenen Text abweicht. Bei identischem Inhalt sind Speichern und Verwerfen deaktiviert und werden bei der Tab-Navigation übersprungen. Ein Speicherbefehl vergleicht den Text vor dem Absenden erneut. Im Windows-Lauf wechselten Fenstertitel und Schaltflächen beim Tippen und manuellen Zurückändern. Ein expliziter Speicherbefehl bei unverändertem Text ließ das Fenster offen. Die anschließende tatsächliche Änderung wurde als Revision 1 gespeichert und schreibgeschützt mit erhaltener Fettmarkierung geöffnet.
 
-Beim Schließen eines veränderten Entwurfs fragt der Editor, ob beide Änderungen verworfen werden sollen. „Nein“ ist vorausgewählt. Im Windows-Lauf blieben nach „Nein“ die Eingaben erhalten und ließen sich per Tastatur speichern und erneut öffnen. Nach „Ja“ schloss das Fenster ohne Veröffentlichung einer Revision. Der fehlende Abschlussbeleg sperrte den Neustart dieser Testsitzung weiterhin.
+Beim Schließen eines veränderten Entwurfs fragt der Editor, ob beide Änderungen verworfen werden sollen. „Nein“ ist vorausgewählt. Im Windows-Lauf blieben nach „Nein“ die Eingaben erhalten und ließen sich per Tastatur speichern und erneut öffnen. Nach „Ja“ schloss das Fenster ohne Veröffentlichung einer Revision.
 
 ### Gespeicherte markierte Szene weiterbearbeiten
 
@@ -307,6 +307,12 @@ Ein erneuter Aufruf von `edit-win32-scene <aktueller Kontrollkopf>` öffnet die 
 Im Windows-Lauf wurde Revision 1 gespeichert und im Folgeauftrag per Tastaturnachrichten zu „Kolkrabe“ und „Stern 47“ geändert. Unter frischer Lesebindung öffnete sich Revision 2. Die unabhängige SQLite-Abfrage bestätigte die beiden Absätze mit Fettmarkierung am zweiten Textknoten; der SHA-256-Wert der vorherigen Datei blieb unverändert. Der Nachweis gilt für die isolierte synthetische Ablage.
 
 Ein zweiter Aufruf von `edit-win32-scene` mit dem Kontrollkopf vor der Bearbeitung von Revision 1 wurde nach Abschluss von Revision 2 mit `product-stale-head-or-budget` abgewiesen. Vor und nach dem abgewiesenen Aufruf waren Sequenz, Kontrollkopf, geschlossener Sitzungszustand sowie Dateinamen und SHA-256-Werte der Szenenablage identisch. Revision 3 wurde nicht angelegt. Die Kopfprüfung liegt im Starter vor Sitzungsbeginn und Rollenstart. Mit dem aktuellen Kontrollkopf ließ sich Revision 2 anschließend schreibgeschützt öffnen; der SQLite-Gegencheck bestätigte beide Texte und die Fettmarkierung.
+
+### Authentisierter Abschluss beim Verwerfen
+
+Beim regulären Schließen ohne Speichern sendet die Fensterrolle an Stelle der Speicheranfrage die authentisierte Verwerfanforderung auf Sequenz 2. Der Datendienst quittiert sie vor jedem Schreibzug. Beide geprüften Rollen melden ihren getrennten, an das frische Kanalmaterial gebundenen Endebeleg über ihre jeweilige Bootstrap-Pipe. Der Starter verlangt beide Belege, die vorgesehenen Exitcodes, beendete Rollen und leere Jobs. Unter der ursprünglichen Kontrollsperre entfernt er den nachweislich leeren Kandidaten über das gehaltene Handle. Beim ersten Entwurf entfernt er auch die neu erzeugte synthetische Basisdatei. Erst danach schreibt er den regulären authentisierten Sitzungsabschluss. Ein vorzeitiges Ende ohne vollständige Nachweise lässt die Sitzung offen.
+
+Der Windows-Lauf prüfte drei Fälle. Nach bestätigtem Verwerfen einer Änderung an Revision 1 blieb deren Datei bytegleich und ließ sich schreibgeschützt neu öffnen. Nach Verwerfen des ersten Entwurfs blieben keine SQLite-Dateien zurück und ein neuer Auftrag konnte Revision 1 anlegen. Nach erzwungenem Abbruch der Fensterrolle blieb der nächste Edit-Auftrag mit `win32-window-session-open` gesperrt.
 
 ## Kosten für den Editor
 

@@ -4,6 +4,8 @@ use hmac::{Hmac, Mac};
 use sha2::Sha256;
 use zeroize::Zeroizing;
 
+const DISCARD: &[u8] = br#"{"command":"discard_draft_v1"}"#;
+const DISCARDED: &[u8] = br#"{"discarded":true}"#;
 const HEADER: usize = 50;
 const TAG: usize = 32;
 type Key = [u8; 32];
@@ -311,8 +313,8 @@ impl Binding {
         revision: u32,
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
-        edit: impl FnOnce(&SceneView) -> Result<String, Closed>,
-    ) -> Result<SceneView, Closed> {
+        edit: impl FnOnce(&SceneView) -> Result<Option<String>, Closed>,
+    ) -> Result<Option<SceneView>, Closed> {
         let original = self.read_bound_view(1, reader, writer, revision)?;
         if revision == 0 && original.text != "Rabe\n42" {
             return Err(Closed);
@@ -320,7 +322,14 @@ impl Binding {
         if !original.bold_second {
             return Err(Closed);
         }
-        let text = edit(&original)?;
+        let Some(text) = edit(&original)? else {
+            let ack = self.exchange(2, DISCARD, reader, writer)?;
+            return if ack == DISCARDED {
+                Ok(None)
+            } else {
+                Err(Closed)
+            };
+        };
         if !super::valid_paragraphs(&text) {
             return Err(Closed);
         }
@@ -335,7 +344,7 @@ impl Binding {
         if !saved.bold_second {
             return Err(Closed);
         }
-        Ok(saved)
+        Ok(Some(saved))
     }
     /// Storage dispatch returns a Saved reply only after its disk transaction commits.
     pub fn durable_service(
@@ -345,16 +354,18 @@ impl Binding {
         writer: &mut impl std::io::Write,
         dispatch: impl FnMut(&[u8]) -> Result<super::Reply, Closed>,
     ) -> Result<(), Closed> {
-        self.revision_service(reopening, 0, reader, writer, dispatch)
+        self.revision_service(reopening, 0, false, reader, writer, dispatch)
+            .map(|_| ())
     }
     pub fn revision_service(
         self,
         reopening: bool,
         revision: u32,
+        allow_discard: bool,
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
         mut dispatch: impl FnMut(&[u8]) -> Result<super::Reply, Closed>,
-    ) -> Result<(), Closed> {
+    ) -> Result<bool, Closed> {
         let steps: &[Expected] = if reopening {
             &[Expected::Read]
         } else {
@@ -367,10 +378,17 @@ impl Binding {
         for (index, expected) in steps.iter().enumerate() {
             let seq = index as u64 + 1;
             let frame = read_frame(reader)?;
-            let answer = dispatch(self.decode(&frame, Kind::Request, seq)?)?;
+            let body = self.decode(&frame, Kind::Request, seq)?;
+            if allow_discard && !reopening && seq == 2 && body == DISCARD {
+                writer
+                    .write_all(&self.encode(Kind::Response, seq, DISCARDED)?)
+                    .map_err(|_| Closed)?;
+                return Ok(true);
+            }
+            let answer = dispatch(body)?;
             self.write_reply(seq, answer, writer, *expected)?;
         }
-        Ok(())
+        Ok(false)
     }
     pub fn serve_edit_conflict(
         self,

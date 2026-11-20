@@ -112,11 +112,12 @@ pub fn confirm_bootstrap(profile: Option<&str>, role: Role) -> std::io::Result<(
 
 struct Channel {
     binding: Binding,
+    discard_receipt: [u8; 32],
     reader: File,
     writer: File,
 }
 impl Channel {
-    fn open(control: &mut File) -> io::Result<Self> {
+    fn open(control: &mut File, window: bool) -> io::Result<Self> {
         let mut keys = Zeroizing::new([0u8; 96]);
         control.read_exact(keys.as_mut())?;
         let binding = Binding::from_keys(
@@ -140,6 +141,7 @@ impl Channel {
         require(read != write, "scene ends")?;
         Ok(Self {
             binding,
+            discard_receipt: window_receipt::discard_receipt(&keys, window),
             reader: unsafe { File::from_raw_handle(read) },
             writer: unsafe { File::from_raw_handle(write) },
         })
@@ -173,9 +175,10 @@ fn bound_revision(mode: window_receipt::SceneOperation, control: &mut File) -> i
 pub fn exchange(
     mut control: File,
     mode: window_receipt::SceneOperation,
-    edit: impl FnOnce(&str) -> Option<String>,
-) -> io::Result<(String, bool)> {
-    let mut ch = Channel::open(&mut control)?;
+    output: &mut File,
+    edit: impl FnOnce(&str) -> io::Result<Option<String>>,
+) -> io::Result<Option<(String, bool)>> {
+    let mut ch = Channel::open(&mut control, true)?;
     ch.send(Handshake::Hello)?;
     ch.receive(Handshake::Ready)?;
     let revision = bound_revision(mode, &mut control)?;
@@ -184,12 +187,18 @@ pub fn exchange(
             .binding
             .read_bound_view(1, &mut ch.reader, &mut ch.writer, revision)
             .map(|v| (v.text, v.bold_second)),
-        window_receipt::SceneOperation::Revise | window_receipt::SceneOperation::KeyboardEdit => ch
-            .binding
-            .keyboard_view(revision, &mut ch.reader, &mut ch.writer, |v| {
-                edit(&v.text).ok_or(kraqel_native_scene_model::channel::Closed)
-            })
-            .map(|v| (v.text, v.bold_second)),
+        window_receipt::SceneOperation::Revise | window_receipt::SceneOperation::KeyboardEdit => {
+            let view = ch
+                .binding
+                .keyboard_view(revision, &mut ch.reader, &mut ch.writer, |v| {
+                    edit(&v.text).map_err(|_| kraqel_native_scene_model::channel::Closed)
+                })
+                .map_err(|_| io::Error::other("scene edit"))?;
+            if view.is_none() {
+                output.write_all(&ch.discard_receipt)?;
+            }
+            return Ok(view.map(|v| (v.text, v.bold_second)));
+        }
         window_receipt::SceneOperation::SavePersistent
         | window_receipt::SceneOperation::ReadPersistent => ch
             .binding
@@ -212,6 +221,7 @@ pub fn exchange(
             .check_denied_save(&mut ch.reader, &mut ch.writer)
             .map(|t| (t, false)),
     }
+    .map(Some)
     .map_err(|_| io::Error::other("scene read"))
 }
 fn snapshot_handle(input: &mut File) -> io::Result<File> {
@@ -227,9 +237,9 @@ fn snapshot_handle(input: &mut File) -> io::Result<File> {
     )?;
     Ok(unsafe { File::from_raw_handle(raw) })
 }
-pub fn serve(profile: &str, mode: window_receipt::SceneOperation) -> io::Result<()> {
-    let (mut input, _output) = confirm_bootstrap(Some(profile), Role::Data)?;
-    let mut ch = Channel::open(&mut input)?;
+pub fn serve(profile: &str, mode: window_receipt::SceneOperation) -> io::Result<u32> {
+    let (mut input, mut output) = confirm_bootstrap(Some(profile), Role::Data)?;
+    let mut ch = Channel::open(&mut input, false)?;
     ch.receive(Handshake::Hello)?;
     ch.send(Handshake::Ready)?;
     let revision = bound_revision(mode, &mut input)?;
@@ -258,29 +268,42 @@ pub fn serve(profile: &str, mode: window_receipt::SceneOperation) -> io::Result<
                     crate::scene_store::Store::managed(&mut baseline, false)?
                 }
             };
-            ch.binding.revision_service(
-                reopening,
-                revision,
-                &mut ch.reader,
-                &mut ch.writer,
-                |body| {
-                    let reply = store
-                        .dispatch(body, || unreachable!())
-                        .map_err(|_| kraqel_native_scene_model::channel::Closed)?;
-                    if matches!(reply, kraqel_native_scene_model::Reply::Saved { .. }) {
-                        if cfg!(feature = "probe-stop-before-snapshot") {
-                            std::process::exit(80);
-                        }
-                        store
-                            .flush_managed(&mut file, true)
+            let discarded = ch
+                .binding
+                .revision_service(
+                    reopening,
+                    revision,
+                    matches!(
+                        mode,
+                        window_receipt::SceneOperation::Revise
+                            | window_receipt::SceneOperation::KeyboardEdit
+                    ),
+                    &mut ch.reader,
+                    &mut ch.writer,
+                    |body| {
+                        let reply = store
+                            .dispatch(body, || unreachable!())
                             .map_err(|_| kraqel_native_scene_model::channel::Closed)?;
-                        if cfg!(feature = "probe-stop-after-snapshot") {
-                            std::process::exit(81);
+                        if matches!(reply, kraqel_native_scene_model::Reply::Saved { .. }) {
+                            if cfg!(feature = "probe-stop-before-snapshot") {
+                                std::process::exit(80);
+                            }
+                            store
+                                .flush_managed(&mut file, true)
+                                .map_err(|_| kraqel_native_scene_model::channel::Closed)?;
+                            if cfg!(feature = "probe-stop-after-snapshot") {
+                                std::process::exit(81);
+                            }
                         }
-                    }
-                    Ok(reply)
-                },
-            )
+                        Ok(reply)
+                    },
+                )
+                .map_err(|_| io::Error::other("scene service"))?;
+            if discarded {
+                output.write_all(&ch.discard_receipt)?;
+                return Ok(window_receipt::DISCARDED_EXIT);
+            }
+            Ok(())
         }
         window_receipt::SceneOperation::Once => {
             ch.binding.serve_scene_read(&mut ch.reader, &mut ch.writer)
@@ -292,5 +315,6 @@ pub fn serve(profile: &str, mode: window_receipt::SceneOperation) -> io::Result<
             ch.binding.serve_denied_save(&mut ch.reader, &mut ch.writer)
         }
     }
+    .map(|_| 0)
     .map_err(|_| io::Error::other("scene service"))
 }

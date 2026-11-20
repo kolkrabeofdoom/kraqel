@@ -139,7 +139,7 @@ pub(super) fn resume_and_confirm(
 }
 
 // Read only complete fixed frames; the outer job tears down every timeout or protocol error.
-fn live_frame<const N: usize>(reply: &mut fs::File, process: HANDLE) -> Result<[u8; N]> {
+pub(super) fn live_frame<const N: usize>(reply: &mut fs::File, process: HANDLE) -> Result<[u8; N]> {
     let deadline = Instant::now() + Duration::from_secs(5);
     loop {
         let mut available = 0;

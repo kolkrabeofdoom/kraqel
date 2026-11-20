@@ -53,6 +53,7 @@ pub(in super::super) fn read_scene(
 ) -> Result<Value> {
     use crate::window_receipt::SceneOperation;
     use crate::windows::exchange::ui_restart::pipe;
+    let mut discarded = false;
     with_role(
         store,
         root,
@@ -164,7 +165,10 @@ pub(in super::super) fn read_scene(
                         } else {
                             unsafe { WaitForSingleObject(data.hProcess, 5000) }
                         };
-                    if ended != WAIT_OBJECT_0 {
+                    if ended != WAIT_OBJECT_0
+                        && !(ended == WAIT_OBJECT_0 + 1
+                            && unsafe { WaitForSingleObject(data.hProcess, 5000) } == WAIT_OBJECT_0)
+                    {
                         return Err(invalid("scene-service-timeout"));
                     }
                     let mut exit = 0;
@@ -172,15 +176,45 @@ pub(in super::super) fn read_scene(
                         unsafe { GetExitCodeProcess(data.hProcess, &mut exit) },
                         "scene-service-exit",
                     )?;
+                    if exit == crate::window_receipt::DISCARDED_EXIT
+                        && matches!(mode, SceneOperation::KeyboardEdit | SceneOperation::Revise)
+                    {
+                        if unsafe { WaitForSingleObject(ui.hProcess, 5000) } != WAIT_OBJECT_0 {
+                            return Err(invalid("scene-discard-ui-timeout"));
+                        }
+                        let mut ui_exit = 0;
+                        check(
+                            unsafe { GetExitCodeProcess(ui.hProcess, &mut ui_exit) },
+                            "scene-discard-ui-exit",
+                        )?;
+                        if ui_exit != exit
+                            || bootstrap::live_frame::<32>(&mut data_reply, data.hProcess)?
+                                != crate::window_receipt::discard_receipt(&material, false)
+                            || bootstrap::live_frame::<32>(&mut ui_reply, ui.hProcess)?
+                                != crate::window_receipt::discard_receipt(&material, true)
+                        {
+                            return Err(invalid("scene-discard-receipt"));
+                        }
+                        discarded = true;
+                        return Ok(());
+                    }
                     if exit != 0 {
                         return Err(invalid("scene-service-denied"));
                     }
                     Ok(())
                 },
             )?;
+            if discarded {
+                return Ok(());
+            }
             bootstrap::wait_surface(ui, &mut ui_reply, mode == SceneOperation::Once)
         },
     )?;
+    if discarded {
+        return Ok(
+            json!({"nativePreviewOnly":true,"role":"window","syntheticScene":"A","revision":revision,"discarded":true,"persistent":revision>0,"dataAllowed":false,"activeJobProcessesAtEnd":0}),
+        );
+    }
     let mut result = json!({"nativePreviewOnly":true,"role":"window","syntheticScene":"A","revision":0,"readOnly":true,"dataAllowed":false,"activeJobProcessesAtEnd":0});
     if mode == SceneOperation::CheckDeniedSave {
         result["saveDenied"] = json!(true);

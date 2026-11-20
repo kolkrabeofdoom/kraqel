@@ -145,8 +145,15 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                         && font_description(font)
                             .is_some_and(|desc| desc.lfWeight == FW_BOLD as i32)
                 };
+                let editing = !GetDlgItem(hwnd, SAVE).is_null();
                 destroy_surface(hwnd);
-                PostQuitMessage(if ok { 40 } else { 41 });
+                PostQuitMessage(if editing {
+                    window_receipt::DISCARDED_EXIT as i32
+                } else if ok {
+                    40
+                } else {
+                    41
+                });
                 0
             }
             _ => DefWindowProcW(hwnd, msg, w, l),
@@ -509,15 +516,26 @@ fn main() {
             let profile = std::env::args()
                 .nth(2)
                 .ok_or(std::io::Error::other("missing profile"))?;
-            let (input, output) =
+            let (input, mut output) =
                 managed_scene::confirm_bootstrap(Some(&profile), bootstrap::Role::Window)?;
             let (text, marked) = if let Some(mode) = scene {
-                managed_scene::exchange(input, mode, |initial| {
+                let dialog_output = output.try_clone()?;
+                let view = managed_scene::exchange(input, mode, &mut output, |initial| {
                     let mut draft = String::new();
-                    let surface = (output.try_clone().ok()?, initial.to_owned(), true);
-                    let code = show(None, Some(surface), Some(&mut draft));
-                    (code == 40 && !draft.is_empty()).then_some(draft)
-                })?
+                    match show(
+                        None,
+                        Some((dialog_output, initial.to_owned(), true)),
+                        Some(&mut draft),
+                    ) {
+                        40 if !draft.is_empty() => Ok(Some(draft)),
+                        code if code == window_receipt::DISCARDED_EXIT as i32 => Ok(None),
+                        _ => Err(std::io::Error::other("editor ended unexpectedly")),
+                    }
+                })?;
+                let Some(view) = view else {
+                    return Ok(window_receipt::DISCARDED_EXIT as i32);
+                };
+                view
             } else {
                 ("Rabe\n42".to_owned(), false)
             };

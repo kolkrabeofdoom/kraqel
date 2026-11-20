@@ -36,9 +36,9 @@ impl SceneOperation {
     }
     pub fn argument(self) -> &'static str {
         match self {
-            Self::Revise => "--managed-scene-a-revise-v1",
+            Self::Revise => "--managed-scene-a-revise-v2",
             Self::ReadRevision => "--managed-scene-a-revision-read-v1",
-            Self::KeyboardEdit => "--managed-scene-a-keyboard-v1",
+            Self::KeyboardEdit => "--managed-scene-a-keyboard-v2",
             Self::SavePersistent => "--managed-scene-a-store-edit-v2",
             Self::ReadPersistent => "--managed-scene-a-store-read-v1",
             Self::Once => "--managed-scene-a-read-v1",
@@ -49,3 +49,12 @@ impl SceneOperation {
 }
 
 pub const MAX_SCENE_DB: u64 = 128 * 1024;
+
+pub const DISCARDED_EXIT: u32 = 42;
+pub fn discard_receipt(material: &[u8; 96], window: bool) -> [u8; 32] {
+    let mut hash = Sha256::new();
+    hash.update(b"KRAQEL-SCENE-DISCARD-V1");
+    hash.update([u8::from(window)]);
+    hash.update(material);
+    hash.finalize().into()
+}
