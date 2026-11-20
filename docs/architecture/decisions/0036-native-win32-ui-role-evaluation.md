@@ -258,6 +258,24 @@ Der verwaltete Speicherauftrag verwendet seit der zweiten Version des Edit-Boots
 
 Im gezielten Windows-Lauf vom 20. November 2026 beendete das Prüffeature `probe-stop-mid-snapshot` den Dienst nach 16.384 geschriebenen und synchronisierten Bytes des 32.768 Byte großen Abbilds. Eine unabhängige schreibgeschützte SQLite-Abfrage bestätigte in der Basisdatei Szene A mit „Rabe“ / „42“ auf Revision 0 und intakter Datenbank. Der offene Sitzungsbeleg sperrte den neuen Leseauftrag bei unverändertem Kontrollkopf. Ein regulärer Lauf mit den beiden neu gebauten Rollen ohne Prüffeature bestätigte anschließend das Speichern und Wiederöffnen von Revision 1 unter frischer Lesebindung.
 
+### ETW beim dauerhaften Speichern und Wiederöffnen
+
+Am 20. November 2026 wurden die regulären Programmdateien zum Quellstand `40ab6b4` mit zwei lokalen ETW-Erfassungen verglichen. Die Referenz öffnete und schloss das synthetische Fenster. Die zweite Erfassung umfasste in einer frischen privaten Testablage das Speichern von Szene A und den separaten Starteraufruf zum erneuten Lesen. Der erste Auftrag meldete Revision 1, der zweite dieselbe Revision unter frischer Lesebindung. Die Jobs waren nach jedem Auftrag leer.
+
+| Auftrag | Erfasste Rollen einschließlich Starter | Zugeordnete Netzwerkereignisse |
+| --- | --- | ---: |
+| `check-win32-surface` | Starter und Fenster | 0 |
+| `save-win32-scene` | Starter, Fenster und Datendienst | 0 |
+| `read-saved-win32-scene` | neuer Starter, neues Fenster und neuer Datendienst | 0 |
+
+Beide Erfassungen enthielten alle vier lokalen TCP-/UDP-Positivkontrollen über IPv4 und IPv6. Die Auswertung meldete jeweils null verlorene Ereignisse, verlorene Puffer und nicht zuordenbare Netzwerkereignisse. Der Befund gilt für die erfassten Prozessbäume während der regulären Aufträge. Die Abbruchvarianten waren Gegenstand der funktionalen Prüfung. Rohspuren verbleiben lokal.
+
+SHA-256 der erfassten Dateien:
+
+- Verwalteter Starter: `53fca2b28c0361c16f9ffcdbb7b48ac49b7616fb5f966e1e149b602636d53add`
+- Win32-Fensterrolle: `8d77b0a1fd5e040e6ec1228a9642b43ffbf85a5917c845aadceff0a0fcaec61b`
+- Datendienst: `164ac72f511350fd9321e3bd69aebf227466cf43b0143ffe0d787b45729c36cb`
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

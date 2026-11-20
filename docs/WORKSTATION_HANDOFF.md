@@ -2,6 +2,7 @@
 
 Der [Teilabbruch beim Speichern](architecture/decisions/0036-native-win32-ui-role-evaluation.md#unterbrechung-während-des-schreibens) ist geprüft. Die getrennte Basisdatei bewahrte Revision 0, während der neue Leseauftrag gesperrt blieb. Reguläres Speichern und Wiederöffnen von Revision 1 ist mit dem aktualisierten Rollenpaket bestätigt.
 
+Der [ETW-Vergleich des regulären Speicher- und Lesepfads](architecture/decisions/0036-native-win32-ui-role-evaluation.md#etw-beim-dauerhaften-speichern-und-wiederöffnen) ergab für beide Aufträge null Netzwerkereignisse im jeweiligen Prozessbaum.
 
 Beim verwalteten Speichern von Szene A sind die beiden [Datendienstabbrüche an der dauerhaften Speichergrenze](architecture/decisions/0036-native-win32-ui-role-evaluation.md#datendienstabbruch-an-der-dauerhaften-speichergrenze) geprüft. Auf der Platte blieben Revision 0 bzw. 1 erhalten; der offene Sitzungsbeleg sperrte beide Neustarts.
 
