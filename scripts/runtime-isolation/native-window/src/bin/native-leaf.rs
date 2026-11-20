@@ -14,10 +14,13 @@ const EDIT: i32 = 101;
 const CLOSE: i32 = 102;
 const SECOND: i32 = 103;
 const SAVE: i32 = 104;
+const DISCARD: i32 = 105;
+const DRAFT_LABEL: &str = "Szene A · Zwei Absätze, zweiter fett";
 thread_local! {
     static EXPECTED: std::cell::RefCell<String> = std::cell::RefCell::new(String::new());
 }
 const SAVE_DRAFT: u32 = WM_APP + 1;
+const DISCARD_DRAFT: u32 = WM_APP + 2;
 unsafe extern "system" fn local_edit(
     hwnd: HWND,
     msg: u32,
@@ -39,6 +42,10 @@ fn font_description(font: HFONT) -> Option<LOGFONTW> {
 unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> LRESULT {
     unsafe {
         match msg {
+            WM_COMMAND if w & 0xffff == DISCARD as usize => {
+                PostMessageW(hwnd, DISCARD_DRAFT, 0, 0);
+                0
+            }
             WM_COMMAND if w & 0xffff == SAVE as usize => {
                 PostMessageW(hwnd, SAVE_DRAFT, 0, 0);
                 0
@@ -125,7 +132,7 @@ fn show(
                 LABEL,
                 "STATIC",
                 if draft.is_some() {
-                    "Szene A · Zwei Absätze, zweiter fett"
+                    DRAFT_LABEL
                 } else {
                     "&Prüftext"
                 },
@@ -169,6 +176,27 @@ fn show(
                 null(),
             )
             .is_null()
+            {
+                return 24;
+            }
+        }
+        if draft.is_some() {
+            if MoveWindow(GetDlgItem(hwnd, SAVE), 15, 120, 195, 30, 0) == 0
+                || CreateWindowExW(
+                    0,
+                    wide("BUTTON").as_ptr(),
+                    wide("Änderungen &verwerfen").as_ptr(),
+                    WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON as u32,
+                    219,
+                    120,
+                    206,
+                    30,
+                    hwnd,
+                    DISCARD as _,
+                    instance,
+                    null(),
+                )
+                .is_null()
             {
                 return 24;
             }
@@ -305,6 +333,25 @@ fn show(
             }
             if let Some(result) = draft.as_deref_mut() {
                 let key = msg.wParam as u16;
+                if msg.message == DISCARD_DRAFT
+                    || (msg.message == WM_KEYDOWN
+                        && key == VK_RETURN
+                        && GetFocus() == GetDlgItem(hwnd, DISCARD))
+                {
+                    let Some((_, initial, _)) = surface.as_ref() else {
+                        return 24;
+                    };
+                    let Some((first, second)) = initial.split_once('\n') else {
+                        return 24;
+                    };
+                    for (id, text) in [(EDIT, first), (SECOND, second), (LABEL, DRAFT_LABEL)] {
+                        if SetWindowTextW(GetDlgItem(hwnd, id), wide(text).as_ptr()) == 0 {
+                            return 24;
+                        }
+                    }
+                    SetFocus(GetDlgItem(hwnd, EDIT));
+                    continue;
+                }
                 let ctrl_save = msg.message == WM_KEYDOWN
                     && key == 0x53
                     && GetKeyState(i32::from(VK_CONTROL)) < 0;
@@ -348,18 +395,18 @@ fn show(
                 && GetKeyState(i32::from(VK_MENU)) >= 0
             {
                 let next = if draft.is_some() {
-                    let ids = [EDIT, SECOND, action];
+                    let ids = [EDIT, SECOND, action, DISCARD];
                     let index = ids
                         .iter()
                         .position(|id| GetDlgItem(hwnd, *id) == GetFocus())
                         .unwrap_or(0);
                     ids[(index
                         + if GetKeyState(i32::from(VK_SHIFT)) < 0 {
-                            2
+                            ids.len() - 1
                         } else {
                             1
                         })
-                        % 3]
+                        % ids.len()]
                 } else if GetFocus() == GetDlgItem(hwnd, EDIT) {
                     CLOSE
                 } else {

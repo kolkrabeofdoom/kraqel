@@ -294,6 +294,8 @@ Im verwalteten Windows-Lauf endeten Speichern und erneutes Lesen von Revision 1 
 
 Der lokale Windows-Lauf verwendete native Zeichen- und Tastennachrichten für „Kolkrabe“ und „Stern 47“, Tab und Enter. Ein neuer `read-saved-win32-scene`-Auftrag öffnete Revision 1 schreibgeschützt. Die unabhängige SQLite-Abfrage bestätigte beide Textwerte und die Fettmarkierung ausschließlich am zweiten Absatz. Die Edit-Bindung gilt für einen einzelnen Speichervorgang an synthetischen Testdaten.
 
+„Änderungen verwerfen“ setzt beide Eingabefelder auf die beim Öffnen authentisiert gelesenen Absätze zurück. Die Aktion ist per Tab und Enter erreichbar, setzt den Fokus in den ersten Absatz und löst keinen Speicherauftrag aus. Im gezielten Windows-Lauf wurden beide bearbeiteten Felder auf „Rabe“ und „42“ zurückgesetzt. Anschließend wurden im selben Fenster andere Texte eingegeben, gespeichert und unter frischer Lesebindung auf Revision 1 mit erhaltener Fettmarkierung geöffnet.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche
