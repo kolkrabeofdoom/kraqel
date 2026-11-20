@@ -23,12 +23,15 @@ const WORD_COUNT: i32 = 106;
 
 thread_local! {
     static SECOND_WEIGHT: std::cell::Cell<i32> = const { std::cell::Cell::new(0) };
+    static INITIAL_BOLD: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static EXPECTED: std::cell::RefCell<String> = std::cell::RefCell::new(String::new());
 }
 const SAVE_DRAFT: u32 = WM_APP + 1;
 const DISCARD_DRAFT: u32 = WM_APP + 2;
 const UNDO: usize = 201;
 const REDO: usize = 202;
+const BOLD_SECOND: usize = 204;
+const TOGGLE_BOLD: u32 = WM_APP + 5;
 const SELECT_PARAGRAPH: usize = 203;
 const HISTORY_UNDO: u32 = WM_APP + 3;
 const HISTORY_REDO: u32 = WM_APP + 4;
@@ -52,6 +55,7 @@ fn install_editor_menu(hwnd: HWND) -> bool {
                 &[
                     (UNDO, "&Rückgängig\tStrg+Z"),
                     (REDO, "&Wiederholen\tStrg+Y"),
+                    (BOLD_SECOND, "Zweiter Absatz &fett\tStrg+B"),
                     (SELECT_PARAGRAPH, "&Absatz auswählen\tStrg+A"),
                 ][..],
             ),
@@ -230,6 +234,29 @@ fn draft_text(hwnd: HWND) -> Option<String> {
     ))
 }
 
+fn is_bold() -> bool {
+    SECOND_WEIGHT.get() == FW_BOLD as i32
+}
+
+fn set_bold(hwnd: HWND, bold: bool) -> bool {
+    unsafe {
+        if bold != is_bold() {
+            SECOND_WEIGHT.set(if bold { FW_BOLD } else { FW_NORMAL } as i32);
+            if !apply_fonts(hwnd, GetDpiForWindow(hwnd)) {
+                return false;
+            }
+        }
+        CheckMenuItem(
+            GetMenu(hwnd),
+            BOLD_SECOND as u32,
+            MF_BYCOMMAND | if bold { MF_CHECKED } else { MF_UNCHECKED },
+        );
+        SetDlgItemTextW(hwnd, LABEL, wide(draft_label()).as_ptr());
+        update_draft_status(hwnd);
+        true
+    }
+}
+
 fn draft_label() -> &'static str {
     if SECOND_WEIGHT.get() == FW_BOLD as i32 {
         "Szene A · Zwei Absätze, zweiter fett"
@@ -240,31 +267,32 @@ fn draft_label() -> &'static str {
 
 /// Bounded to this window's message loop. A new edit removes the redo branch.
 struct DraftHistory {
-    states: std::collections::VecDeque<String>,
+    states: std::collections::VecDeque<(String, bool)>,
     current: usize,
 }
 
 impl DraftHistory {
     fn new(text: String) -> Self {
         Self {
-            states: [text].into(),
+            states: [(text, is_bold())].into(),
             current: 0,
         }
     }
 
     fn record(&mut self, text: String) {
-        if self.states[self.current] == text {
+        let state = (text, is_bold());
+        if self.states[self.current] == state {
             return;
         }
         self.states.truncate(self.current + 1);
-        self.states.push_back(text);
+        self.states.push_back(state);
         if self.states.len() > 65 {
             self.states.pop_front();
         }
         self.current = self.states.len() - 1;
     }
 
-    fn step(&mut self, redo: bool) -> Option<&str> {
+    fn step(&mut self, redo: bool) -> Option<&(String, bool)> {
         let next = if redo {
             self.current + 1
         } else {
@@ -318,7 +346,8 @@ fn restore_draft(hwnd: HWND, text: &str) -> bool {
 
 fn draft_changed(hwnd: HWND) -> bool {
     let current = draft_text(hwnd);
-    EXPECTED.with_borrow(|initial| current.as_ref() != Some(initial))
+    is_bold() != INITIAL_BOLD.get()
+        || EXPECTED.with_borrow(|initial| current.as_ref() != Some(initial))
 }
 
 fn destroy_surface(hwnd: HWND) {
@@ -388,7 +417,8 @@ fn update_draft_status(hwnd: HWND) {
             return;
         }
         let current = draft_text(hwnd);
-        let dirty = EXPECTED.with_borrow(|initial| current.as_ref() != Some(initial));
+        let dirty = is_bold() != INITIAL_BOLD.get()
+            || EXPECTED.with_borrow(|initial| current.as_ref() != Some(initial));
         if let Some(text) = current {
             // Match countWords in packages/editor, including ECMAScript's whitespace exceptions.
             let count = text
@@ -552,6 +582,10 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 );
                 0
             }
+            WM_COMMAND if w == BOLD_SECOND => {
+                PostMessageW(hwnd, TOGGLE_BOLD, 0, 0);
+                0
+            }
             WM_COMMAND if w == SELECT_PARAGRAPH => {
                 select_paragraph(hwnd);
                 0
@@ -628,13 +662,14 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
 fn show(
     endpoint: Option<bootstrap::Endpoint>,
     mut surface: Option<(std::fs::File, String, Option<bool>)>,
-    mut draft: Option<&mut String>,
+    mut draft: Option<&mut (String, bool)>,
 ) -> i32 {
     unsafe {
         if SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2).is_null() {
             return 24;
         }
         let bold = surface.as_ref().and_then(|(_, _, style)| *style) == Some(true);
+        INITIAL_BOLD.set(bold);
         SECOND_WEIGHT.set(if bold { FW_BOLD } else { FW_NORMAL } as i32);
         EXPECTED.with_borrow_mut(|value| {
             *value = surface
@@ -819,7 +854,9 @@ fn show(
             }
         }
         if draft.is_some() {
-            update_draft_status(hwnd);
+            if !set_bold(hwnd, bold) {
+                return 24;
+            }
         }
         if !apply_fonts(hwnd, GetDpiForWindow(hwnd)) || !layout_surface(hwnd) {
             return 24;
@@ -905,6 +942,15 @@ fn show(
                 let ctrl = msg.message == WM_KEYDOWN
                     && GetKeyState(i32::from(VK_CONTROL)) < 0
                     && GetKeyState(i32::from(VK_MENU)) >= 0;
+                if msg.message == TOGGLE_BOLD
+                    || (ctrl && key == 0x42)
+                    || (msg.message == WM_CHAR && key == 2)
+                {
+                    if !set_bold(hwnd, !is_bold()) {
+                        return 24;
+                    }
+                    continue;
+                }
                 if (ctrl && key == 0x41) || (msg.message == WM_CHAR && key == 1) {
                     select_paragraph(hwnd);
                     continue;
@@ -917,8 +963,8 @@ fn show(
                     || (msg.message == WM_CHAR && key == 25);
                 if undo || redo {
                     let forward = redo || (ctrl && GetKeyState(i32::from(VK_SHIFT)) < 0);
-                    if let Some(text) = history.step(forward) {
-                        if !restore_draft(hwnd, text) {
+                    if let Some((text, bold)) = history.step(forward) {
+                        if !set_bold(hwnd, *bold) || !restore_draft(hwnd, text) {
                             return 24;
                         }
                     }
@@ -935,6 +981,9 @@ fn show(
                     let Some((first, second)) = initial.split_once('\n') else {
                         return 24;
                     };
+                    if !set_bold(hwnd, INITIAL_BOLD.get()) {
+                        return 24;
+                    }
                     for (id, text) in [(EDIT, first), (SECOND, second), (LABEL, draft_label())] {
                         if SetWindowTextW(GetDlgItem(hwnd, id), wide(text).as_ptr()) == 0 {
                             return 24;
@@ -953,11 +1002,13 @@ fn show(
                     && GetFocus() == GetDlgItem(hwnd, action);
                 if msg.message == SAVE_DRAFT || ctrl_save || enter_save {
                     if let Some(value) = draft_text(hwnd) {
-                        if EXPECTED.with_borrow(|initial| initial == &value) {
+                        if is_bold() == INITIAL_BOLD.get()
+                            && EXPECTED.with_borrow(|initial| initial == &value)
+                        {
                             continue;
                         }
                         if kraqel_native_scene_model::valid_paragraphs(&value) {
-                            *result = value;
+                            *result = (value, is_bold());
                             destroy_surface(hwnd);
                             return 40;
                         }
@@ -1049,13 +1100,13 @@ fn main() {
             let (text, marked) = if let Some(mode) = scene {
                 let dialog_output = output.try_clone()?;
                 let view = managed_scene::exchange(input, mode, &mut output, |initial, bold| {
-                    let mut draft = String::new();
+                    let mut draft = (String::new(), bold);
                     match show(
                         None,
                         Some((dialog_output, initial.to_owned(), Some(bold))),
                         Some(&mut draft),
                     ) {
-                        40 if !draft.is_empty() => Ok(Some(draft)),
+                        40 if !draft.0.is_empty() => Ok(Some(draft)),
                         code if code == window_receipt::DISCARDED_EXIT as i32 => Ok(None),
                         _ => Err(std::io::Error::other("editor ended unexpectedly")),
                     }

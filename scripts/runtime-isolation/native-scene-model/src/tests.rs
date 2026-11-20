@@ -124,6 +124,14 @@ fn read_binding_cannot_write_or_select_another_target_or_mode() {
         reply(&mut binding, READ),
         json!({"text":"Mond\n7","revision":0})
     );
+
+    let formatted = br#"{"command":"c4_document_save_v2","expectedRevision":1,"text":"Rabe\n42","boldSecond":true}"#;
+    let before = catalog.snapshot_a();
+    for (mode, expected) in [(Mode::Read, "DENIED"), (Mode::Edit, "CONFLICT")] {
+        let result = catalog.bind(Scene::A, mode).handle_managed(formatted);
+        assert_eq!(to_value(result).unwrap(), json!({"error": expected}));
+        assert_eq!(catalog.snapshot_a(), before);
+    }
 }
 
 #[test]

@@ -176,7 +176,7 @@ pub fn exchange(
     mut control: File,
     mode: window_receipt::SceneOperation,
     output: &mut File,
-    edit: impl FnOnce(&str, bool) -> io::Result<Option<String>>,
+    edit: impl FnOnce(&str, bool) -> io::Result<Option<(String, bool)>>,
 ) -> io::Result<Option<(String, bool)>> {
     let mut ch = Channel::open(&mut control, true)?;
     ch.send(Handshake::Hello)?;

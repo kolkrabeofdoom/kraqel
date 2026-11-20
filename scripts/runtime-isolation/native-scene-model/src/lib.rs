@@ -69,7 +69,9 @@ impl Scene {
 pub const MAX_PARAGRAPH_UTF16: usize = 48;
 
 pub fn valid_paragraph(text: &str) -> bool {
-    !text.is_empty() && text.encode_utf16().count() <= MAX_PARAGRAPH_UTF16 && !text.chars().any(char::is_control)
+    !text.is_empty()
+        && text.encode_utf16().count() <= MAX_PARAGRAPH_UTF16
+        && !text.chars().any(char::is_control)
 }
 
 pub fn valid_paragraphs(text: &str) -> bool {
@@ -84,8 +86,8 @@ fn managed_text(doc: &EditorDocument, revision: u32) -> Option<String> {
         paragraphs[0]["content"][0]["text"].as_str()?,
         paragraphs[1]["content"][0]["text"].as_str()?
     );
-    // Unmarked v1 fixtures had fixed text until their first interactive follow-up edit.
-    let plain_allowed = revision >= 2 || Scene::A.versions().contains(&text.as_str());
+    // The initial plain fixture is fixed; committed edits may explicitly remove bold.
+    let plain_allowed = revision >= 1 || Scene::A.versions().contains(&text.as_str());
     (valid_paragraphs(&text)
         && (marked_document(&text) == *doc || plain_allowed && document(&text) == *doc))
         .then_some(text)
@@ -201,6 +203,14 @@ enum Request {
         expected_revision: u32,
         text: String,
     },
+    #[serde(rename = "c4_document_save_v2")]
+    SaveFormatted {
+        #[serde(rename = "expectedRevision")]
+        expected_revision: u32,
+        text: String,
+        #[serde(rename = "boldSecond")]
+        bold_second: bool,
+    },
 }
 
 #[derive(Serialize)]
@@ -277,39 +287,61 @@ impl BoundScene<'_> {
             Request::Save {
                 expected_revision,
                 text,
-            } => {
-                if self.mode != Mode::Edit {
-                    return Err(Failure::Denied);
-                }
-                if text.len() > MAX_TEXT_BYTES || expected_revision > MAX_REVISION {
-                    return Err(Failure::Limit);
-                }
-                self.current_text(editable_fixture)?;
-                if !(self.scene.versions().contains(&text.as_str())
-                    || editable_fixture
-                        && valid_paragraphs(&text)
-                        && (revision >= 1
-                            || self.record.content.document["content"][1]["content"][0]
-                                .get("marks")
-                                .is_some()))
-                {
-                    return Err(Failure::Invalid);
-                }
-                if revision != expected_revision {
-                    return Err(Failure::Conflict);
-                }
-                if revision == MAX_REVISION {
-                    return Err(Failure::Limit);
-                }
-                let revision = revision + 1;
-                let (first, second) = text.split_once('\n').ok_or(Failure::Invalid)?;
-                let paragraphs = &mut self.record.content.document["content"];
-                paragraphs[0]["content"][0]["text"] = json!(first);
-                paragraphs[1]["content"][0]["text"] = json!(second);
-                self.record.revision = revision;
-                Ok(Reply::Saved { revision })
-            }
+            } => self.save(expected_revision, text, None, editable_fixture),
+            Request::SaveFormatted {
+                expected_revision,
+                text,
+                bold_second,
+            } if editable_fixture => self.save(expected_revision, text, Some(bold_second), true),
+            Request::SaveFormatted { .. } => Err(Failure::Denied),
         }
+    }
+
+    fn save(
+        &mut self,
+        expected_revision: u32,
+        text: String,
+        bold: Option<bool>,
+        editable_fixture: bool,
+    ) -> Result<Reply, Failure> {
+        let revision = self.record.revision;
+        if self.mode != Mode::Edit {
+            return Err(Failure::Denied);
+        }
+        if text.len() > MAX_TEXT_BYTES || expected_revision > MAX_REVISION {
+            return Err(Failure::Limit);
+        }
+        self.current_text(editable_fixture)?;
+        if !(self.scene.versions().contains(&text.as_str())
+            || editable_fixture
+                && valid_paragraphs(&text)
+                && (revision >= 1
+                    || self.record.content.document["content"][1]["content"][0]
+                        .get("marks")
+                        .is_some()))
+        {
+            return Err(Failure::Invalid);
+        }
+        if revision != expected_revision {
+            return Err(Failure::Conflict);
+        }
+        if revision == MAX_REVISION {
+            return Err(Failure::Limit);
+        }
+        let marked = bold.unwrap_or_else(|| {
+            self.record.content.document["content"][1]["content"][0]
+                .get("marks")
+                .is_some()
+        });
+        self.record.content = if marked {
+            marked_document(&text)
+        } else {
+            document(&text)
+        };
+        self.record.revision += 1;
+        Ok(Reply::Saved {
+            revision: self.record.revision,
+        })
     }
 
     // Match the entire stored tree, including the envelope version. A plain-text

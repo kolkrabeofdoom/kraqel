@@ -348,7 +348,10 @@ Für jeden der drei Aufrufe ergab die Zuordnung null Netzwerkereignisse im KRAQE
 
 ### Weiterbearbeiten unformatierter Altbestände
 
-Eine gespeicherte synthetische Szene A der ersten Generation kann zwei unmarkierte Absätze enthalten. Der Editor übernimmt deren Darstellung aus der authentisierten Leseantwort. Beim Speichern und Rücklesen muss die Markierung mit dem Ausgangszustand übereinstimmen. Für unmarkierte Folgerevisionen prüft der Dienst den vollständigen Dokumentbaum einschließlich Version und Absatzstruktur.
+Eine gespeicherte synthetische Szene A der ersten Generation kann zwei unmarkierte Absätze enthalten. Der Editor übernimmt deren Darstellung aus der authentisierten Leseantwort. Der bisherige Speicherbefehl v1 erhält die vorhandene Markierung. Der verwaltete Editor verwendet
+`c4_document_save_v2` mit Pflichtfeld `boldSecond` und erwarteter Revision. Nur eine Edit-Bindung
+an die verwaltete Szene A darf diesen Befehl ausführen. Die Fensterrolle vergleicht beim Rücklesen
+Text, Revision und Markierung mit dem beauftragten Zustand. Für unmarkierte Folgerevisionen prüft der Dienst den vollständigen Dokumentbaum einschließlich Version und Absatzstruktur.
 
 Im Windows-Kompatibilitätslauf erzeugte ein isolierter Prüfdienst den früheren unmarkierten Ausgangszustand. Revision 1 wurde über die normale Edit-Bindung geändert und als Revision 2 schreibgeschützt wieder geöffnet. Die SQLite-Prüfung bestätigte zwei unmarkierte Absätze und unveränderte Bytes der Quelldatei. Ein separater Lauf mit dem regulären Dienst bestätigte die weiterhin fett markierte zweite Zeile bei einer neu angelegten Szene. Die Prüfung bezieht sich auf das Datenformat; eine Paketmigration einer bestehenden Installation war kein Teil des Laufs.
 

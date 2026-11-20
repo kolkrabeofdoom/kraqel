@@ -218,7 +218,7 @@ impl Binding {
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
     ) -> Result<(), Closed> {
-        self.save_text(reader, writer, 0, "Rabe\n43")
+        self.save_text(reader, writer, 0, "Rabe\n43", None)
     }
     fn save_text(
         &self,
@@ -226,8 +226,13 @@ impl Binding {
         writer: &mut impl std::io::Write,
         revision: u32,
         text: &str,
+        bold: Option<bool>,
     ) -> Result<(), Closed> {
-        let body=serde_json::to_vec(&serde_json::json!({"command":"c4_document_save_v1","expectedRevision":revision,"text":text})).map_err(|_|Closed)?;
+        let body = match bold {
+            Some(mark) => serde_json::json!({"command":"c4_document_save_v2","expectedRevision":revision,"text":text,"boldSecond":mark}),
+            None => serde_json::json!({"command":"c4_document_save_v1","expectedRevision":revision,"text":text}),
+        };
+        let body = serde_json::to_vec(&body).map_err(|_| Closed)?;
         let saved = self.exchange(2, &body, reader, writer)?;
         #[derive(serde::Deserialize)]
         #[serde(deny_unknown_fields)]
@@ -313,7 +318,7 @@ impl Binding {
         revision: u32,
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
-        edit: impl FnOnce(&SceneView) -> Result<Option<String>, Closed>,
+        edit: impl FnOnce(&SceneView) -> Result<Option<(String, bool)>, Closed>,
     ) -> Result<Option<SceneView>, Closed> {
         let original = self.read_bound_view(1, reader, writer, revision)?;
         if revision == 0 && original.text != "Rabe\n42" {
@@ -322,7 +327,7 @@ impl Binding {
         if revision == 0 && !original.bold_second {
             return Err(Closed);
         }
-        let Some(text) = edit(&original)? else {
+        let Some((text, bold)) = edit(&original)? else {
             let ack = self.exchange(2, DISCARD, reader, writer)?;
             return if ack == DISCARDED {
                 Ok(None)
@@ -333,7 +338,7 @@ impl Binding {
         if !super::valid_paragraphs(&text) {
             return Err(Closed);
         }
-        self.save_text(reader, writer, original.revision, &text)?;
+        self.save_text(reader, writer, original.revision, &text, Some(bold))?;
         let saved = self.read_view(
             3,
             reader,
@@ -341,7 +346,7 @@ impl Binding {
             revision.checked_add(1).ok_or(Closed)?,
             &text,
         )?;
-        if saved.bold_second != original.bold_second {
+        if saved.bold_second != bold {
             return Err(Closed);
         }
         Ok(Some(saved))

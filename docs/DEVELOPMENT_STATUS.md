@@ -14,6 +14,13 @@ die Korrektur eines leeren Absatzes beim Schließen und das anschließende Speic
 geprüft. Die wieder geöffnete Revision 1 enthielt beide Texte und die Fettmarkierung. Beim
 Verwerfen einer Folgeänderung blieb die gespeicherte Datei bytegleich und erneut lesbar.
 
+Unter **Bearbeiten → Zweiter Absatz fett** oder mit Strg+B lässt sich die Markierung des
+gesamten zweiten Absatzes umschalten. Eine reine Formatänderung aktiviert Speichern und zählt
+als eigene Revision. Rückgängig, Wiederholen und Verwerfen berücksichtigen Text und Markierung
+gemeinsam. Im verwalteten Windows-Lauf öffnete sich Revision 1 mit geändertem Text ohne
+Fettmarkierung. Im frischen Edit-Auftrag wurde ausschließlich die Markierung geändert. Revision 2
+enthielt nach erneutem Öffnen denselben Text mit fett markiertem zweitem Absatz.
+
 Die beiden einzeiligen Absätze sind auf je 48 UTF-16-Einheiten begrenzt. Das Fenster zeigt die
 Eingabegrenze an und fokussiert beim Speicherversuch einen ungültigen Absatz. Die bisherigen
 Windows-Läufe belegen die Abweisung überlanger Inhalte und das vollständige Einfügen,
