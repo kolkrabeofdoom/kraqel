@@ -8,7 +8,10 @@ use windows_sys::Win32::{
     System::LibraryLoader::GetModuleHandleW,
     UI::{HiDpi::*, Input::KeyboardAndMouse::*, WindowsAndMessaging::*},
 };
-use windows_sys::Win32::{System::SystemServices::SS_LEFT, UI::Controls::EM_SETLIMITTEXT};
+use windows_sys::Win32::{
+    System::SystemServices::SS_LEFT,
+    UI::Controls::{EM_GETSEL, EM_REPLACESEL, EM_SETLIMITTEXT, EM_SETSEL},
+};
 
 const LABEL: i32 = 100;
 const EDIT: i32 = 101;
@@ -43,10 +46,52 @@ unsafe extern "system" fn local_edit(
     msg: u32,
     w: WPARAM,
     l: LPARAM,
-    _id: usize,
-    _data: usize,
+    id: usize,
+    pending_high: usize,
 ) -> LRESULT {
     unsafe {
+        // Subclass data belongs to this EDIT only. Wait for the complete scalar before
+        // changing text or creating an undo entry in either paragraph.
+        if msg == WM_CHAR && (0xd800..=0xdbff).contains(&w) {
+            windows_sys::Win32::UI::Shell::SetWindowSubclass(hwnd, Some(local_edit), id, w);
+            return 0;
+        }
+        if pending_high != 0
+            && matches!(
+                msg,
+                WM_CHAR | WM_KILLFOCUS | WM_SETTEXT | EM_SETSEL | WM_LBUTTONDOWN | WM_KEYDOWN
+            )
+        {
+            windows_sys::Win32::UI::Shell::SetWindowSubclass(hwnd, Some(local_edit), id, 0);
+        }
+        if msg == WM_CHAR && (0xdc00..=0xdfff).contains(&w) {
+            if pending_high == 0 || GetWindowLongW(hwnd, GWL_STYLE) & ES_READONLY != 0 {
+                return 0;
+            }
+            let mut start = 0u32;
+            let mut end = 0u32;
+            SendMessageW(
+                hwnd,
+                EM_GETSEL,
+                (&mut start as *mut u32) as WPARAM,
+                (&mut end as *mut u32) as LPARAM,
+            );
+            let selected = end.saturating_sub(start);
+            let length = GetWindowTextLengthW(hwnd) as u32;
+            if length.saturating_sub(selected) + 2 <= MAX_PARAGRAPH_UTF16 as u32 {
+                let pair = [pending_high as u16, w as u16, 0];
+                SendMessageW(hwnd, EM_REPLACESEL, 1, pair.as_ptr() as LPARAM);
+            } else {
+                let control = GetDlgCtrlID(hwnd) as usize;
+                SendMessageW(
+                    GetParent(hwnd),
+                    WM_COMMAND,
+                    control | ((EN_MAXTEXT as usize) << 16),
+                    hwnd as LPARAM,
+                );
+            }
+            return 0;
+        }
         if clipboard_command(
             msg,
             w,

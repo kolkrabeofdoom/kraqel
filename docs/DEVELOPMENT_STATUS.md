@@ -9,7 +9,12 @@ Bei Tastatureingabe zeigt das Fenster für jeden Absatz an, sobald dessen Grenze
 UTF-16-Einheiten erreicht ist. Im verwalteten Windows-Lauf blieb der Text bei einer weiteren
 Eingabe unverändert. Nach Entfernen eines Zeichens verschwand der Hinweis. Ein zweiter Absatz
 mit 46 Buchstaben und einem Vogel-Emoji ließ sich an der Grenze vollständig und mit erhaltener
-Fettmarkierung speichern und wieder öffnen.
+Fettmarkierung speichern und wieder öffnen. Bei nur einer freien Einheit blieb vor der
+Korrektur eine einzelne Surrogathälfte im Feld stehen. Jetzt fügt die Fensterrolle ein per
+`WM_CHAR` eingegebenes Surrogatpaar gemeinsam ein. Im Windows-Lauf blieben in beiden Feldern
+alle 47 Buchstaben beim abgewiesenen Einfügen erhalten. Nach Markieren des letzten Buchstabens
+passte das Emoji vollständig. Die wieder geöffnete Revision 1 enthielt den zweiten Absatz
+einschließlich Emoji und Fettmarkierung.
 
 Der Offline-Gastlauf vom 19. November ist bestanden. Bei erzwungener UMCI erreichte das
 Kontrollprogramm mit statisch importierter erlaubter DLL den erwarteten Exit 50. Beim statischen
