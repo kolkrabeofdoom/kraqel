@@ -1,6 +1,6 @@
 # Rechnerwechsel und Arbeitsübergabe
 
-Der [authentisierte Abschluss beim Verwerfen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#authentisierter-abschluss-beim-verwerfen) gibt die synthetische Ablage nach regulärem Schließen wieder frei. Ein erzwungenes Prozessende hält sie gesperrt.
+Der [authentisierte Abschluss beim Verwerfen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#authentisierter-abschluss-beim-verwerfen) gibt die synthetische Ablage nach regulärem Schließen wieder frei. Ein erzwungenes Prozessende hält sie gesperrt. Der [ETW-Netzvergleich](architecture/decisions/0036-native-win32-ui-role-evaluation.md#etw-beim-bestätigten-verwerfen-und-wiederöffnen) bestätigte null Netzwerkereignisse in den gemessenen Prozessbäumen beim Verwerfen und erneuten Lesen.
 
 
 Der verwaltete Auftrag `edit-win32-scene` kann die [zuletzt gespeicherte markierte Szene weiterbearbeiten](architecture/decisions/0036-native-win32-ui-role-evaluation.md#gespeicherte-markierte-szene-weiterbearbeiten). Der Windows-Lauf bestätigte Revision 2 mit erhaltener Fettmarkierung und unveränderter Quelldatei auf Revision 1.

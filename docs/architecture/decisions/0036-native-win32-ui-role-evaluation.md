@@ -314,6 +314,18 @@ Beim regulären Schließen ohne Speichern sendet die Fensterrolle an Stelle der 
 
 Der Windows-Lauf prüfte drei Fälle. Nach bestätigtem Verwerfen einer Änderung an Revision 1 blieb deren Datei bytegleich und ließ sich schreibgeschützt neu öffnen. Nach Verwerfen des ersten Entwurfs blieben keine SQLite-Dateien zurück und ein neuer Auftrag konnte Revision 1 anlegen. Nach erzwungenem Abbruch der Fensterrolle blieb der nächste Edit-Auftrag mit `win32-window-session-open` gesperrt.
 
+### ETW beim bestätigten Verwerfen und Wiederöffnen
+
+Für den regulären Binärstand zu `f0cbb5d` enthielt die erste Messung den Referenzaufruf `check-win32-surface` (Starter und Fenster). In der zweiten Messung wurde die vorbereitete Revision 1 bearbeitet und das Verwerfen beim Schließen bestätigt. Der anschließende Leseauftrag unter frischer Bindung bestätigte Revision 1. Für beide Aufträge wurden Starter, Fenster und Datendienst jeweils anhand der erfassten Prozesslebenszeiten ausgewertet. Der Dateihash von Revision 1 blieb unverändert.
+
+Für jeden der drei Aufrufe ergab die Zuordnung null Netzwerkereignisse im KRAQEL-Prozessbaum. Beide Erfassungen enthielten vier von vier lokalen TCP-/UDP-Kontrollen über IPv4 und IPv6, null nicht zuordenbare Netzwerkereignisse und null verlorene Ereignisse oder Puffer. Der Nachweis gilt für diese Prozessbäume und Abläufe. Die Rohspuren bleiben lokal.
+
+| Binärdatei | SHA-256 |
+| --- | --- |
+| Verwalteter Starter | `13d448540a2a5c5d46a8be38777fd7603ddb6703c742a0cee3e4d5815e7a9da6` |
+| Fensterrolle | `82189d56b0be13befc03e53977f09f2332ec54b970a949ca3f761db6ebcb59e6` |
+| Datendienst | `51a080c6a929f5110ca6f16ddb03ea0d17fd5b44e6040df8c85370e91b7ea4b5` |
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche
