@@ -10,6 +10,7 @@ publish = false
 # Dedicated synthetic service binaries for the two durable commit boundaries.
 probe-stop-before-snapshot = []
 probe-stop-after-snapshot = []
+probe-stop-mid-snapshot = []
 
 [dependencies]
 rusqlite = {version = "=0.39.0", features=["bundled","serialize"]}

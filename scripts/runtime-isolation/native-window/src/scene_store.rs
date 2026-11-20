@@ -229,25 +229,23 @@ impl Store {
         let store = Self::configure(db, reopening, None)?;
         if !reopening {
             // Preserve the initial committed scene even if the service dies before saving.
-            store.flush_managed(file)?;
+            store.flush_managed(file, false)?;
         }
         Ok(store)
     }
-    pub fn flush_managed(&self, file: &mut File) -> io::Result<()> {
-        use std::io::{Seek, Write};
+    pub fn flush_managed(&self, file: &mut File, saving: bool) -> io::Result<()> {
+        use std::io::Write;
         let image = self.db.serialize("main").map_err(failure)?;
         require(
             !image.is_empty() && image.len() as u64 <= crate::window_receipt::MAX_SCENE_DB,
             "snapshot size",
         )?;
-        // This fixture only replaces the fixed-size A image. Refuse a size change
-        // before writing so a shorter image cannot leave an old suffix.
-        let previous = file.metadata()?.len();
-        require(
-            previous == 0 || previous == image.len() as u64,
-            "snapshot extent",
-        )?;
-        file.rewind()?;
+        require(file.metadata()?.len() == 0, "new snapshot")?;
+        if saving && cfg!(feature = "probe-stop-mid-snapshot") {
+            file.write_all(&image[..image.len() / 2])?;
+            file.sync_all()?;
+            std::process::exit(82);
+        }
         file.write_all(&image)?;
         file.sync_all()
     }

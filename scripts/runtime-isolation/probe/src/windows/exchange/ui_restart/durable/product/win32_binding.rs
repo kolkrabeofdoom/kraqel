@@ -16,11 +16,11 @@ struct SnapshotFile {
     _dirs: Vec<fs::File>,
 }
 impl SnapshotFile {
-    fn open(store: &Store, create: bool) -> Result<Self> {
+    fn open(store: &Store, name: &'static str, create: bool) -> Result<Self> {
         let dir = store.root.join("data");
         let dirs = pin_directories(&dir)?;
         private_acl(&dir, true)?;
-        let path = dir.join("scene-a-v1.sqlite");
+        let path = dir.join(name);
         let file = io(
             "scene-snapshot-open",
             OpenOptions::new()
@@ -174,7 +174,7 @@ impl Store {
                     if owner != actor {
                         return Err(invalid("scene-snapshot-owner"));
                     }
-                    let mut opened = SnapshotFile::open(self, false)?;
+                    let mut opened = SnapshotFile::open(self, "scene-a-v1.sqlite", false)?;
                     if opened.identity()? != bound {
                         return Err(invalid("scene-snapshot-mismatch"));
                     }
@@ -183,9 +183,12 @@ impl Store {
             }
             self.append(actor, head, Action::BeginWin32Window { anchor: expected })?;
             let begin = self.state.head;
-            if saving {
-                snapshot = Some(SnapshotFile::open(self, true)?);
-            }
+            let baseline = if saving {
+                snapshot = Some(SnapshotFile::open(self, "scene-a-v1.sqlite", true)?);
+                Some(SnapshotFile::open(self, "scene-a-base-v2.sqlite", true)?)
+            } else {
+                None
+            };
             let mut result = if let WindowMode::Scene(scene_mode) = mode {
                 suspended::read_scene(
                     self,
@@ -194,7 +197,10 @@ impl Store {
                     pins.image("pipe-service.exe")
                         .ok_or(invalid("win32-service-not-pinned"))?,
                     scene_mode,
-                    snapshot.as_ref().map(|s| &s.file),
+                    [
+                        snapshot.as_ref().map(|s| &s.file),
+                        baseline.as_ref().map(|s| &s.file),
+                    ],
                 )?
             } else {
                 suspended::check_window(self, &root, image, mode)?

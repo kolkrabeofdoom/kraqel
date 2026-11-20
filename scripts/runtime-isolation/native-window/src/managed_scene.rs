@@ -180,6 +180,19 @@ pub fn exchange(mut control: File, mode: window_receipt::SceneOperation) -> io::
     }
     .map_err(|_| io::Error::other("scene read"))
 }
+fn snapshot_handle(input: &mut File) -> io::Result<File> {
+    let mut bytes = [0; 8];
+    input.read_exact(&mut bytes)?;
+    let raw = usize::try_from(u64::from_le_bytes(bytes))
+        .map_err(|_| io::Error::other("snapshot handle"))?
+        as windows_sys::Win32::Foundation::HANDLE;
+    use windows_sys::Win32::Storage::FileSystem::{FILE_TYPE_DISK, GetFileType};
+    require(
+        unsafe { GetFileType(raw) } == FILE_TYPE_DISK,
+        "snapshot file",
+    )?;
+    Ok(unsafe { File::from_raw_handle(raw) })
+}
 pub fn serve(profile: &str, mode: window_receipt::SceneOperation) -> io::Result<()> {
     let (mut input, _output) = confirm_bootstrap(Some(profile), Role::Data)?;
     let mut ch = Channel::open(&mut input)?;
@@ -189,18 +202,13 @@ pub fn serve(profile: &str, mode: window_receipt::SceneOperation) -> io::Result<
         window_receipt::SceneOperation::SavePersistent
         | window_receipt::SceneOperation::ReadPersistent => {
             let reopening = mode == window_receipt::SceneOperation::ReadPersistent;
-            let mut bytes = [0; 8];
-            input.read_exact(&mut bytes)?;
-            let raw = usize::try_from(u64::from_le_bytes(bytes))
-                .map_err(|_| io::Error::other("snapshot handle"))?
-                as windows_sys::Win32::Foundation::HANDLE;
-            use windows_sys::Win32::Storage::FileSystem::{FILE_TYPE_DISK, GetFileType};
-            require(
-                unsafe { GetFileType(raw) } == FILE_TYPE_DISK,
-                "snapshot file",
-            )?;
-            let mut file = unsafe { File::from_raw_handle(raw) };
-            let mut store = crate::scene_store::Store::managed(&mut file, reopening)?;
+            let mut file = snapshot_handle(&mut input)?;
+            let mut store = if reopening {
+                crate::scene_store::Store::managed(&mut file, true)?
+            } else {
+                let mut baseline = snapshot_handle(&mut input)?;
+                crate::scene_store::Store::managed(&mut baseline, false)?
+            };
             ch.binding
                 .durable_service(reopening, &mut ch.reader, &mut ch.writer, |body| {
                     let reply = store
@@ -211,7 +219,7 @@ pub fn serve(profile: &str, mode: window_receipt::SceneOperation) -> io::Result<
                             std::process::exit(80);
                         }
                         store
-                            .flush_managed(&mut file)
+                            .flush_managed(&mut file, true)
                             .map_err(|_| kraqel_native_scene_model::channel::Closed)?;
                         if cfg!(feature = "probe-stop-after-snapshot") {
                             std::process::exit(81);

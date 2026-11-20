@@ -252,6 +252,12 @@ Für den Windows-Lauf vom 20. November 2026 erhielt jeder der beiden frischen pr
 
 Beide Dateien bestanden die SQLite-Integritätsprüfung. Beide Speicheraufträge endeten mit `scene-service-denied`. Der Sitzungsbeleg blieb offen. Der erneute Brokeraufruf verweigerte das Lesen mit `win32-window-session-open`; der authentisierte Kontrollkopf blieb dabei unverändert. Die beiden Befunde betreffen Prozessabbrüche an den angegebenen Grenzen. Ein Abbruch mitten im Überschreiben des Abbilds oder ein Stromausfall ist damit nicht geprüft.
 
+### Unterbrechung während des Schreibens
+
+Der verwaltete Speicherauftrag verwendet seit der zweiten Version des Edit-Bootstraps zwei exklusiv neu angelegte Dateien im privaten Teststore. Der Datendienst synchronisiert Revision 0 in `scene-a-base-v2.sqlite` und schließt sein Handle dafür, bevor er die Speicheranfrage verarbeitet. Revision 1 schreibt er in `scene-a-v1.sqlite`. Die Fensterrolle erhält ausschließlich die Kanalenden. Der Starter bindet die neue Fassung erst nach regulärem Sitzungsende über Dateiidentität und Hash an den Kontrollverlauf. Bestehende regulär abgeschlossene Abbilder behalten das bisherige Leseformat.
+
+Im gezielten Windows-Lauf vom 20. November 2026 beendete das Prüffeature `probe-stop-mid-snapshot` den Dienst nach 16.384 geschriebenen und synchronisierten Bytes des 32.768 Byte großen Abbilds. Eine unabhängige schreibgeschützte SQLite-Abfrage bestätigte in der Basisdatei Szene A mit „Rabe“ / „42“ auf Revision 0 und intakter Datenbank. Der offene Sitzungsbeleg sperrte den neuen Leseauftrag bei unverändertem Kontrollkopf. Ein regulärer Lauf mit den beiden neu gebauten Rollen ohne Prüffeature bestätigte anschließend das Speichern und Wiederöffnen von Revision 1 unter frischer Lesebindung.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche
