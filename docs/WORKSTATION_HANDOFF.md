@@ -1,5 +1,8 @@
 # Rechnerwechsel und Arbeitsübergabe
 
+Der Win32-Editor übernimmt beim Weiterbearbeiten auch die [unformatierte Fassung einer älteren synthetischen Szene](architecture/decisions/0036-native-win32-ui-role-evaluation.md#weiterbearbeiten-unformatierter-altbestände).
+
+
 Im synthetischen Win32-Editor sind Rückgängig und Wiederholen über beide Absätze verfügbar. Der Verlauf bleibt auf das offene Fenster beschränkt.
 
 

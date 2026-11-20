@@ -330,6 +330,12 @@ Für jeden der drei Aufrufe ergab die Zuordnung null Netzwerkereignisse im KRAQE
 | Fensterrolle | `82189d56b0be13befc03e53977f09f2332ec54b970a949ca3f761db6ebcb59e6` |
 | Datendienst | `51a080c6a929f5110ca6f16ddb03ea0d17fd5b44e6040df8c85370e91b7ea4b5` |
 
+### Weiterbearbeiten unformatierter Altbestände
+
+Eine gespeicherte synthetische Szene A der ersten Generation kann zwei unmarkierte Absätze enthalten. Der Editor übernimmt deren Darstellung aus der authentisierten Leseantwort. Beim Speichern und Rücklesen muss die Markierung mit dem Ausgangszustand übereinstimmen. Für unmarkierte Folgerevisionen prüft der Dienst den vollständigen Dokumentbaum einschließlich Version und Absatzstruktur.
+
+Im Windows-Kompatibilitätslauf erzeugte ein isolierter Prüfdienst den früheren unmarkierten Ausgangszustand. Revision 1 wurde über die normale Edit-Bindung geändert und als Revision 2 schreibgeschützt wieder geöffnet. Die SQLite-Prüfung bestätigte zwei unmarkierte Absätze und unveränderte Bytes der Quelldatei. Ein separater Lauf mit dem regulären Dienst bestätigte die weiterhin fett markierte zweite Zeile bei einer neu angelegten Szene. Die Prüfung bezieht sich auf das Datenformat; eine Paketmigration einer bestehenden Installation war kein Teil des Laufs.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

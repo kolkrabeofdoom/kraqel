@@ -176,7 +176,7 @@ pub fn exchange(
     mut control: File,
     mode: window_receipt::SceneOperation,
     output: &mut File,
-    edit: impl FnOnce(&str) -> io::Result<Option<String>>,
+    edit: impl FnOnce(&str, bool) -> io::Result<Option<String>>,
 ) -> io::Result<Option<(String, bool)>> {
     let mut ch = Channel::open(&mut control, true)?;
     ch.send(Handshake::Hello)?;
@@ -191,7 +191,8 @@ pub fn exchange(
             let view = ch
                 .binding
                 .keyboard_view(revision, &mut ch.reader, &mut ch.writer, |v| {
-                    edit(&v.text).map_err(|_| kraqel_native_scene_model::channel::Closed)
+                    edit(&v.text, v.bold_second)
+                        .map_err(|_| kraqel_native_scene_model::channel::Closed)
                 })
                 .map_err(|_| io::Error::other("scene edit"))?;
             if view.is_none() {

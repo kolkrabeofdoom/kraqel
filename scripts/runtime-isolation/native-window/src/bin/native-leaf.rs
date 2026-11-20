@@ -15,8 +15,9 @@ const CLOSE: i32 = 102;
 const SECOND: i32 = 103;
 const SAVE: i32 = 104;
 const DISCARD: i32 = 105;
-const DRAFT_LABEL: &str = "Szene A · Zwei Absätze, zweiter fett";
+
 thread_local! {
+    static SECOND_WEIGHT: std::cell::Cell<i32> = const { std::cell::Cell::new(0) };
     static EXPECTED: std::cell::RefCell<String> = std::cell::RefCell::new(String::new());
 }
 const SAVE_DRAFT: u32 = WM_APP + 1;
@@ -221,7 +222,7 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                     let number = String::from_utf16_lossy(&value[..n as usize]);
                     format!("{first}\n{number}") == expected
                         && font_description(font)
-                            .is_some_and(|desc| desc.lfWeight == FW_BOLD as i32)
+                            .is_some_and(|desc| desc.lfWeight == SECOND_WEIGHT.get())
                 };
                 let editing = !GetDlgItem(hwnd, SAVE).is_null();
                 destroy_surface(hwnd);
@@ -240,10 +241,17 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
 }
 fn show(
     endpoint: Option<bootstrap::Endpoint>,
-    mut surface: Option<(std::fs::File, String, bool)>,
+    mut surface: Option<(std::fs::File, String, Option<bool>)>,
     mut draft: Option<&mut String>,
 ) -> i32 {
     unsafe {
+        let bold = surface.as_ref().and_then(|(_, _, style)| *style) == Some(true);
+        let draft_label = if bold {
+            "Szene A · Zwei Absätze, zweiter fett"
+        } else {
+            "Szene A · Zwei Absätze"
+        };
+        SECOND_WEIGHT.set(if bold { FW_BOLD } else { FW_NORMAL } as i32);
         EXPECTED.with_borrow_mut(|value| {
             *value = surface
                 .as_ref()
@@ -285,7 +293,7 @@ fn show(
                 LABEL,
                 "STATIC",
                 if draft.is_some() {
-                    DRAFT_LABEL
+                    draft_label
                 } else {
                     "&Prüftext"
                 },
@@ -358,7 +366,7 @@ fn show(
         if let Some((_, text, marked)) = &surface {
             let edit = GetDlgItem(hwnd, EDIT);
             let mut visible = text.as_str();
-            if *marked {
+            if marked.is_some() {
                 let Some((first, number)) = text.split_once('\n') else {
                     return 24;
                 };
@@ -367,8 +375,8 @@ fn show(
                 let Some(mut desc) = font_description(normal) else {
                     return 24;
                 };
-                desc.lfWeight = FW_BOLD as i32;
-                let bold = CreateFontIndirectW(&desc);
+                desc.lfWeight = SECOND_WEIGHT.get();
+                let paragraph_font = CreateFontIndirectW(&desc);
                 let second = CreateWindowExW(
                     0,
                     wide(if draft.is_some() { "EDIT" } else { "STATIC" }).as_ptr(),
@@ -389,7 +397,10 @@ fn show(
                     instance,
                     null(),
                 );
-                if bold.is_null() || second.is_null() || MoveWindow(edit, 15, 38, 410, 26, 1) == 0 {
+                if paragraph_font.is_null()
+                    || second.is_null()
+                    || MoveWindow(edit, 15, 38, 410, 26, 1) == 0
+                {
                     return 24;
                 }
                 if draft.is_some() {
@@ -407,7 +418,7 @@ fn show(
                     }
                 }
                 SendMessageW(edit, WM_SETFONT, normal as usize, 1);
-                SendMessageW(second, WM_SETFONT, bold as usize, 1);
+                SendMessageW(second, WM_SETFONT, paragraph_font as usize, 1);
             }
             if SendMessageW(
                 edit,
@@ -524,7 +535,7 @@ fn show(
                     let Some((first, second)) = initial.split_once('\n') else {
                         return 24;
                     };
-                    for (id, text) in [(EDIT, first), (SECOND, second), (LABEL, DRAFT_LABEL)] {
+                    for (id, text) in [(EDIT, first), (SECOND, second), (LABEL, draft_label)] {
                         if SetWindowTextW(GetDlgItem(hwnd, id), wide(text).as_ptr()) == 0 {
                             return 24;
                         }
@@ -623,11 +634,11 @@ fn main() {
                 managed_scene::confirm_bootstrap(Some(&profile), bootstrap::Role::Window)?;
             let (text, marked) = if let Some(mode) = scene {
                 let dialog_output = output.try_clone()?;
-                let view = managed_scene::exchange(input, mode, &mut output, |initial| {
+                let view = managed_scene::exchange(input, mode, &mut output, |initial, bold| {
                     let mut draft = String::new();
                     match show(
                         None,
-                        Some((dialog_output, initial.to_owned(), true)),
+                        Some((dialog_output, initial.to_owned(), Some(bold))),
                         Some(&mut draft),
                     ) {
                         40 if !draft.is_empty() => Ok(Some(draft)),
@@ -642,7 +653,22 @@ fn main() {
             } else {
                 ("Rabe\n42".to_owned(), false)
             };
-            Ok(show(None, Some((output, text, marked)), None))
+            let split = marked
+                || matches!(
+                    scene,
+                    Some(
+                        window_receipt::SceneOperation::ReadPersistent
+                            | window_receipt::SceneOperation::ReadRevision
+                            | window_receipt::SceneOperation::Revise
+                            | window_receipt::SceneOperation::KeyboardEdit
+                            | window_receipt::SceneOperation::SavePersistent
+                    )
+                );
+            Ok(show(
+                None,
+                Some((output, text, split.then_some(marked))),
+                None,
+            ))
         })();
         std::process::exit(result.unwrap_or(20));
     }

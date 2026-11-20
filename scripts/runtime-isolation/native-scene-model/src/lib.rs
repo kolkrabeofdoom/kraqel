@@ -74,14 +74,18 @@ pub fn valid_paragraphs(text: &str) -> bool {
     })
 }
 
-fn marked_text(doc: &EditorDocument) -> Option<String> {
+fn managed_text(doc: &EditorDocument, revision: u32) -> Option<String> {
     let paragraphs = &doc.document["content"];
     let text = format!(
         "{}\n{}",
         paragraphs[0]["content"][0]["text"].as_str()?,
         paragraphs[1]["content"][0]["text"].as_str()?
     );
-    (valid_paragraphs(&text) && marked_document(&text) == *doc).then_some(text)
+    // Unmarked v1 fixtures had fixed text until their first interactive follow-up edit.
+    let plain_allowed = revision >= 2 || Scene::A.versions().contains(&text.as_str());
+    (valid_paragraphs(&text)
+        && (marked_document(&text) == *doc || plain_allowed && document(&text) == *doc))
+        .then_some(text)
 }
 
 struct Record {
@@ -139,7 +143,7 @@ impl SyntheticCatalog {
             return Some(old);
         }
         let content = serde_json::from_str(encoded).ok()?;
-        marked_text(&content)?;
+        managed_text(&content, revision)?;
         (revision <= MAX_REVISION).then(|| Self {
             a: Record { content, revision },
             ..Self::default()
@@ -253,11 +257,7 @@ impl BoundScene<'_> {
         }
 
         let revision = self.record.revision;
-        let marked = managed
-            && self.scene == Scene::A
-            && self.record.content.document["content"][1]["content"][0]
-                .get("marks")
-                .is_some();
+        let editable_fixture = managed && self.scene == Scene::A;
         match request {
             Request::Status {} => Ok(Reply::Status {
                 scene: self.scene,
@@ -265,7 +265,7 @@ impl BoundScene<'_> {
                 revision,
             }),
             Request::Read {} => Ok(Reply::Read {
-                text: self.current_text(marked)?,
+                text: self.current_text(editable_fixture)?,
                 revision,
                 bold_second: self.record.content.document["content"][1]["content"][0]
                     .get("marks")
@@ -281,9 +281,14 @@ impl BoundScene<'_> {
                 if text.len() > MAX_TEXT_BYTES || expected_revision > MAX_REVISION {
                     return Err(Failure::Limit);
                 }
-                self.current_text(marked)?;
+                self.current_text(editable_fixture)?;
                 if !(self.scene.versions().contains(&text.as_str())
-                    || marked && valid_paragraphs(&text))
+                    || editable_fixture
+                        && valid_paragraphs(&text)
+                        && (revision >= 1
+                            || self.record.content.document["content"][1]["content"][0]
+                                .get("marks")
+                                .is_some()))
                 {
                     return Err(Failure::Invalid);
                 }
@@ -306,9 +311,10 @@ impl BoundScene<'_> {
 
     // Match the entire stored tree, including the envelope version. A plain-text
     // projection could hide marks, attributes, or content belonging to another scene.
-    fn current_text(&self, marked: bool) -> Result<String, Failure> {
-        if marked {
-            return marked_text(&self.record.content).ok_or(Failure::Invalid);
+    fn current_text(&self, editable_fixture: bool) -> Result<String, Failure> {
+        if editable_fixture {
+            return managed_text(&self.record.content, self.record.revision)
+                .ok_or(Failure::Invalid);
         }
         self.scene
             .documents()

@@ -319,7 +319,7 @@ impl Binding {
         if revision == 0 && original.text != "Rabe\n42" {
             return Err(Closed);
         }
-        if !original.bold_second {
+        if revision == 0 && !original.bold_second {
             return Err(Closed);
         }
         let Some(text) = edit(&original)? else {
@@ -341,7 +341,7 @@ impl Binding {
             revision.checked_add(1).ok_or(Closed)?,
             &text,
         )?;
-        if !saved.bold_second {
+        if saved.bold_second != original.bold_second {
             return Err(Closed);
         }
         Ok(Some(saved))
