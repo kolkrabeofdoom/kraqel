@@ -23,6 +23,20 @@ thread_local! {
 }
 const SAVE_DRAFT: u32 = WM_APP + 1;
 const DISCARD_DRAFT: u32 = WM_APP + 2;
+fn clipboard_command(msg: u32, key: WPARAM, ctrl: bool, shift: bool) -> bool {
+    match msg {
+        WM_COPY | WM_CUT | WM_PASTE | WM_CONTEXTMENU => true,
+        // Translated Ctrl+C, Ctrl+V and Ctrl+X can reach EDIT as characters.
+        WM_CHAR => matches!(key, 3 | 22 | 24),
+        WM_KEYDOWN => {
+            (ctrl && matches!(key, 0x43 | 0x56 | 0x58))
+                || ((ctrl || shift) && key == usize::from(VK_INSERT))
+                || (shift && key == usize::from(VK_DELETE))
+        }
+        _ => false,
+    }
+}
+
 unsafe extern "system" fn local_edit(
     hwnd: HWND,
     msg: u32,
@@ -31,11 +45,23 @@ unsafe extern "system" fn local_edit(
     _id: usize,
     _data: usize,
 ) -> LRESULT {
-    match msg {
-        WM_COPY | WM_CUT | WM_PASTE | WM_CONTEXTMENU => 0,
-        _ => unsafe { windows_sys::Win32::UI::Shell::DefSubclassProc(hwnd, msg, w, l) },
+    unsafe {
+        if clipboard_command(
+            msg,
+            w,
+            GetKeyState(i32::from(VK_CONTROL)) < 0,
+            GetKeyState(i32::from(VK_SHIFT)) < 0,
+        ) {
+            return 0;
+        }
+        windows_sys::Win32::UI::Shell::DefSubclassProc(hwnd, msg, w, l)
     }
 }
+
+fn protect_editor_field(field: HWND) -> bool {
+    unsafe { windows_sys::Win32::UI::Shell::SetWindowSubclass(field, Some(local_edit), 1, 0) != 0 }
+}
+
 fn font_description(font: HFONT) -> Option<LOGFONTW> {
     let mut desc = LOGFONTW::default();
     let size = size_of::<LOGFONTW>() as i32;
@@ -381,6 +407,9 @@ fn show(
                 return 24;
             }
         }
+        if !protect_editor_field(GetDlgItem(hwnd, EDIT)) {
+            return 24;
+        }
         SendDlgItemMessageW(hwnd, EDIT, EM_SETLIMITTEXT, 48, 0);
         if let Some((_, text, marked)) = &surface {
             let edit = GetDlgItem(hwnd, EDIT);
@@ -423,17 +452,9 @@ fn show(
                     return 24;
                 }
                 if draft.is_some() {
-                    for field in [edit, second] {
-                        SendMessageW(field, EM_SETLIMITTEXT, 48, 0);
-                        if windows_sys::Win32::UI::Shell::SetWindowSubclass(
-                            field,
-                            Some(local_edit),
-                            1,
-                            0,
-                        ) == 0
-                        {
-                            return 24;
-                        }
+                    SendMessageW(second, EM_SETLIMITTEXT, 48, 0);
+                    if !protect_editor_field(second) {
+                        return 24;
                     }
                 }
                 SendMessageW(edit, WM_SETFONT, normal as usize, 1);
@@ -710,4 +731,30 @@ fn main() {
         std::process::exit(20);
     }
     std::process::exit(show(None, None, None));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn clipboard_shortcuts_and_direct_commands_are_consumed_but_typing_is_allowed() {
+        for msg in [WM_COPY, WM_CUT, WM_PASTE, WM_CONTEXTMENU] {
+            assert!(clipboard_command(msg, 0, false, false));
+        }
+        for (letter, ch) in [(0x43, 3), (0x56, 22), (0x58, 24)] {
+            assert!(clipboard_command(WM_KEYDOWN, letter, true, false));
+            assert!(clipboard_command(WM_CHAR, ch, false, false));
+            assert!(!clipboard_command(WM_CHAR, letter, false, false));
+        }
+        assert!(clipboard_command(WM_KEYDOWN, VK_INSERT.into(), true, false));
+        assert!(clipboard_command(WM_KEYDOWN, VK_INSERT.into(), false, true));
+        assert!(clipboard_command(WM_KEYDOWN, VK_DELETE.into(), false, true));
+        assert!(!clipboard_command(
+            WM_KEYDOWN,
+            VK_DELETE.into(),
+            false,
+            false
+        ));
+        assert!(!clipboard_command(WM_KEYDOWN, 0x5a, true, false));
+    }
 }

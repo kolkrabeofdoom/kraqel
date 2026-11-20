@@ -338,6 +338,12 @@ Eine gespeicherte synthetische Szene A der ersten Generation kann zwei unmarkier
 
 Im Windows-Kompatibilitätslauf erzeugte ein isolierter Prüfdienst den früheren unmarkierten Ausgangszustand. Revision 1 wurde über die normale Edit-Bindung geändert und als Revision 2 schreibgeschützt wieder geöffnet. Die SQLite-Prüfung bestätigte zwei unmarkierte Absätze und unveränderte Bytes der Quelldatei. Ein separater Lauf mit dem regulären Dienst bestätigte die weiterhin fett markierte zweite Zeile bei einer neu angelegten Szene. Die Prüfung bezieht sich auf das Datenformat; eine Paketmigration einer bestehenden Installation war kein Teil des Laufs.
 
+### Zwischenablage in nativen Textfeldern
+
+Die Fensterrolle installiert den lokalen Nachrichtenfilter am ersten EDIT-Steuerelement auch in der schreibgeschützten Vorschau. Im Bearbeitungsfenster gilt er zusätzlich für das zweite Eingabefeld. Schlägt die Installation fehl, endet der Fensteraufbau vor der Anzeige. Der zweite Absatz der Vorschau ist ein statisches Anzeigeelement.
+
+Der Filter unterdrückt die Win32-Befehle für Kopieren, Ausschneiden, Einfügen und das Kontextmenü sowie die entsprechenden Strg-, Einfüge- und Umschalt-Tastenkombinationen. Der gezielte Filtertest deckt direkte Nachrichten, übersetzte Steuerzeichen und reguläre Eingabe ab. Der verwaltete Windows-Lauf bestätigte Bearbeiten, Speichern und erneutes Öffnen der fett markierten Szene. Für diese Prüfungen wurde der Inhalt der Systemzwischenablage weder gelesen noch ersetzt.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche
