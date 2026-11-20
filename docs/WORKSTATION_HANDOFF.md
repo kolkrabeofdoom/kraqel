@@ -1,5 +1,8 @@
 # Rechnerwechsel und Arbeitsübergabe
 
+Beim verwalteten Szenenzugriff ist der [Erhalt einer Fettmarkierung beim Ändern des markierten Textes](architecture/decisions/0036-native-win32-ui-role-evaluation.md#textänderung-in-einem-markierten-absatz) bis zum Wiederöffnen verifiziert. Die Fensteransicht zeigt weiterhin Klartext.
+
+
 Der [Teilabbruch beim Speichern](architecture/decisions/0036-native-win32-ui-role-evaluation.md#unterbrechung-während-des-schreibens) ist geprüft. Die getrennte Basisdatei bewahrte Revision 0, während der neue Leseauftrag gesperrt blieb. Reguläres Speichern und Wiederöffnen von Revision 1 ist mit dem aktualisierten Rollenpaket bestätigt.
 
 Der [ETW-Vergleich des regulären Speicher- und Lesepfads](architecture/decisions/0036-native-win32-ui-role-evaluation.md#etw-beim-dauerhaften-speichern-und-wiederöffnen) ergab für beide Aufträge null Netzwerkereignisse im jeweiligen Prozessbaum.

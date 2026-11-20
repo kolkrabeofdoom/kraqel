@@ -44,6 +44,27 @@ fn document(text: &str) -> EditorDocument {
     }
 }
 
+// Only the second text node in this fixed scene may carry a bold mark.
+fn marked_document(text: &str) -> EditorDocument {
+    let mut doc = document(text);
+    doc.document["content"][1]["content"][0]["marks"] = json!([{"type":"bold"}]);
+    doc
+}
+
+impl Scene {
+    fn documents(self) -> impl Iterator<Item = (&'static str, EditorDocument)> {
+        self.versions().into_iter().flat_map(move |text| {
+            [
+                Some(document(text)),
+                (self == Scene::A).then(|| marked_document(text)),
+            ]
+            .into_iter()
+            .flatten()
+            .map(move |doc| (text, doc))
+        })
+    }
+}
+
 struct Record {
     content: EditorDocument,
     revision: u32,
@@ -74,15 +95,20 @@ impl Default for SyntheticCatalog {
 }
 
 impl SyntheticCatalog {
+    pub fn with_marked_scene_a() -> Self {
+        let mut catalog = Self::default();
+        catalog.a.content = marked_document(Scene::A.versions()[0]);
+        catalog
+    }
+
     /// Restore only canonical scene A fixtures from the separate BP4b database.
     pub fn restore_a(revision: u32, encoded: &str) -> Option<Self> {
         if revision > MAX_REVISION {
             return None;
         }
         let content = Scene::A
-            .versions()
-            .into_iter()
-            .map(document)
+            .documents()
+            .map(|(_, doc)| doc)
             .find(|d| serde_json::to_string(d).is_ok_and(|json| json == encoded))?;
         Some(Self {
             a: Record { content, revision },
@@ -221,10 +247,12 @@ impl BoundScene<'_> {
                     return Err(Failure::Limit);
                 }
                 let revision = revision + 1;
-                *self.record = Record {
-                    content: document(&text),
-                    revision,
-                };
+                // Both accepted versions share the first paragraph. Change only the
+                // second text leaf after validating the entire stored tree above.
+                let (_, replacement) = text.split_once('\n').ok_or(Failure::Invalid)?;
+                self.record.content.document["content"][1]["content"][0]["text"] =
+                    json!(replacement);
+                self.record.revision = revision;
                 Ok(Reply::Saved { revision })
             }
         }
@@ -234,9 +262,9 @@ impl BoundScene<'_> {
     // projection could hide marks, attributes, or content belonging to another scene.
     fn current_text(&self) -> Result<&'static str, Failure> {
         self.scene
-            .versions()
-            .into_iter()
-            .find(|text| document(text) == self.record.content)
+            .documents()
+            .find(|(_, doc)| *doc == self.record.content)
+            .map(|(text, _)| text)
             .ok_or(Failure::Invalid)
     }
 }

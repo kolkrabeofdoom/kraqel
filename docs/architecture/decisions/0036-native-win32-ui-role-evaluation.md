@@ -276,6 +276,12 @@ SHA-256 der erfassten Dateien:
 - Win32-Fensterrolle: `8d77b0a1fd5e040e6ec1228a9642b43ffbf85a5917c845aadceff0a0fcaec61b`
 - Datendienst: `164ac72f511350fd9321e3bd69aebf227466cf43b0143ffe0d787b45729c36cb`
 
+### Textänderung in einem markierten Absatz
+
+Der verwaltete synthetische Speicherlauf legt Szene A mit zwei Absätzen an. Im zweiten Absatz ist der Textknoten „42“ fett markiert. Die feste Edit-Anfrage ändert die Zahl zu „43“. Der Datendienst prüft zuerst die Edit-Bindung, die erwartete Revision und den vollständigen zulässigen Dokumentbaum. Dann ersetzt er ausschließlich den Textwert des zweiten Knotens. Eine frische Lesebindung akzeptiert sowohl die bisherige unformatierte Szene A als auch diese genau definierte markierte Variante. Die Fensterrolle empfängt weiterhin die Klartextansicht.
+
+Im Windows-Lauf vom 20. November 2026 bestätigte der neu gestartete Leseprozess Revision 1. Eine unabhängige SQLite-Abfrage verglich die vollständigen versionierten Dokumente in Basisdatei und gespeicherter Fassung mit den erwarteten Bäumen. Beide enthielten genau zwei Absätze und dieselbe Fettmarkierung an der Zahl. Klartext und Revision stimmten jeweils mit dem Dokument überein. Der vorhandene Modelltest für unzulässige Dokumentbäume bestätigte weiterhin die Ablehnung einer unerwarteten Markierung am ersten Absatz.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

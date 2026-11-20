@@ -208,7 +208,7 @@ impl Store {
             flags | OpenFlags::SQLITE_OPEN_NOFOLLOW,
         )
         .map_err(failure)?;
-        Self::configure(db, read_only, phase)
+        Self::configure(db, read_only, phase, SyntheticCatalog::default)
     }
 
     /// The managed service gets only this file handle; SQLite works in memory and
@@ -226,7 +226,7 @@ impl Store {
         } else {
             require(size == 0, "new snapshot")?;
         }
-        let store = Self::configure(db, reopening, None)?;
+        let store = Self::configure(db, reopening, None, SyntheticCatalog::with_marked_scene_a)?;
         if !reopening {
             // Preserve the initial committed scene even if the service dies before saving.
             store.flush_managed(file, false)?;
@@ -253,6 +253,7 @@ impl Store {
         mut db: Connection,
         read_only: bool,
         phase: Option<StorePhase>,
+        initial: fn() -> SyntheticCatalog,
     ) -> io::Result<Self> {
         db.execute_batch("PRAGMA trusted_schema=OFF; PRAGMA temp_store=MEMORY;")
             .map_err(failure)?;
@@ -263,7 +264,7 @@ impl Store {
                 .map_err(failure)?;
             let tx = db.transaction().map_err(failure)?;
             tx.execute_batch("CREATE TABLE scene(id TEXT PRIMARY KEY CHECK(id='A'), document TEXT NOT NULL, plain_text TEXT NOT NULL, revision INTEGER NOT NULL); CREATE VIRTUAL TABLE scene_fts USING fts5(plain_text);").map_err(failure)?;
-            let (doc, rev) = SyntheticCatalog::default().snapshot_a();
+            let (doc, rev) = initial().snapshot_a();
             tx.execute(
                 "INSERT INTO scene VALUES ('A',?1,?2,?3)",
                 params![doc, "Rabe\n42", rev],

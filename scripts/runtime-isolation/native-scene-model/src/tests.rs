@@ -17,11 +17,40 @@ fn reply(binding: &mut BoundScene<'_>, bytes: &[u8]) -> Value {
 
 #[test]
 fn each_binding_edits_only_its_scene_and_preserves_both_paragraphs() {
-    for (scene, other, id, original, edited, untouched) in [
-        (Scene::A, Scene::B, "A", "Rabe\n42", "Rabe\n43", "Mond\n7"),
-        (Scene::B, Scene::A, "B", "Mond\n7", "Mond\n8", "Rabe\n42"),
+    for (scene, other, id, original, edited, untouched, bold) in [
+        (
+            Scene::A,
+            Scene::B,
+            "A",
+            "Rabe\n42",
+            "Rabe\n43",
+            "Mond\n7",
+            false,
+        ),
+        (
+            Scene::A,
+            Scene::B,
+            "A",
+            "Rabe\n42",
+            "Rabe\n43",
+            "Mond\n7",
+            true,
+        ),
+        (
+            Scene::B,
+            Scene::A,
+            "B",
+            "Mond\n7",
+            "Mond\n8",
+            "Rabe\n42",
+            false,
+        ),
     ] {
-        let mut catalog = SyntheticCatalog::default();
+        let mut catalog = if bold {
+            SyntheticCatalog::with_marked_scene_a()
+        } else {
+            SyntheticCatalog::default()
+        };
         let mut binding = catalog.bind(scene, Mode::Edit);
         assert_eq!(
             reply(&mut binding, STATUS),
@@ -44,11 +73,15 @@ fn each_binding_edits_only_its_scene_and_preserves_both_paragraphs() {
         let mut reopened = catalog.bind(scene, Mode::Read);
         let lines: Vec<_> = edited.split('\n').collect();
         assert_eq!(reopened.record.content.version, 1);
+        let mut second = json!({"type":"text","text":lines[1]});
+        if bold {
+            second["marks"] = json!([{"type":"bold"}]);
+        }
         assert_eq!(
             reopened.record.content.document,
             json!({"type":"doc","content":[
                 {"type":"paragraph","content":[{"type":"text","text":lines[0]}]},
-                {"type":"paragraph","content":[{"type":"text","text":lines[1]}]}
+                {"type":"paragraph","content":[second]}
             ]})
         );
         assert_eq!(
