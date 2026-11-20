@@ -157,26 +157,35 @@ impl Channel {
             .map_err(|_| io::Error::other("scene peer"))
     }
 }
-pub fn exchange(mut control: File, mode: window_receipt::SceneOperation) -> io::Result<String> {
+pub fn exchange(
+    mut control: File,
+    mode: window_receipt::SceneOperation,
+) -> io::Result<(String, bool)> {
     let mut ch = Channel::open(&mut control)?;
     ch.send(Handshake::Hello)?;
     ch.receive(Handshake::Ready)?;
     match mode {
         window_receipt::SceneOperation::SavePersistent
-        | window_receipt::SceneOperation::ReadPersistent => ch.binding.durable_window(
-            mode == window_receipt::SceneOperation::ReadPersistent,
-            &mut ch.reader,
-            &mut ch.writer,
-        ),
-        window_receipt::SceneOperation::Once => {
-            ch.binding.read_scene((&mut ch.reader, &mut ch.writer))
-        }
+        | window_receipt::SceneOperation::ReadPersistent => ch
+            .binding
+            .durable_view(
+                mode == window_receipt::SceneOperation::ReadPersistent,
+                &mut ch.reader,
+                &mut ch.writer,
+            )
+            .map(|v| (v.text, v.bold_second)),
+        window_receipt::SceneOperation::Once => ch
+            .binding
+            .read_scene((&mut ch.reader, &mut ch.writer))
+            .map(|t| (t, false)),
         window_receipt::SceneOperation::CheckEditConflict => ch
             .binding
-            .check_edit_conflict(&mut ch.reader, &mut ch.writer),
-        window_receipt::SceneOperation::CheckDeniedSave => {
-            ch.binding.check_denied_save(&mut ch.reader, &mut ch.writer)
-        }
+            .check_edit_conflict(&mut ch.reader, &mut ch.writer)
+            .map(|t| (t, false)),
+        window_receipt::SceneOperation::CheckDeniedSave => ch
+            .binding
+            .check_denied_save(&mut ch.reader, &mut ch.writer)
+            .map(|t| (t, false)),
     }
     .map_err(|_| io::Error::other("scene read"))
 }

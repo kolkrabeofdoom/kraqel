@@ -177,6 +177,8 @@ pub enum Reply {
     Read {
         text: &'static str,
         revision: u32,
+        #[serde(skip_serializing_if = "std::ops::Not::not")]
+        bold_second: bool,
     },
     Saved {
         revision: u32,
@@ -225,6 +227,9 @@ impl BoundScene<'_> {
             Request::Read {} => Ok(Reply::Read {
                 text: self.current_text()?,
                 revision,
+                bold_second: self.record.content.document["content"][1]["content"][0]
+                    .get("marks")
+                    .is_some(),
             }),
             Request::Save {
                 expected_revision,

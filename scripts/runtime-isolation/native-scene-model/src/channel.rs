@@ -49,6 +49,15 @@ enum Expected {
     Conflict,
 }
 
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SceneView {
+    pub text: String,
+    revision: u32,
+    #[serde(default)]
+    pub bold_second: bool,
+}
+
 impl Binding {
     /// Bootstrap material supplied by the trusted launcher, or by a synthetic model driver.
     pub fn from_keys(id: [u8; 32], request: Key, response: Key) -> Result<Self, Closed> {
@@ -98,23 +107,32 @@ impl Binding {
         revision: u32,
         text: &str,
     ) -> Result<String, Closed> {
+        let view = self.read_view(sequence, reader, writer, revision, text)?;
+        if view.bold_second {
+            return Err(Closed);
+        }
+        Ok(view.text)
+    }
+
+    fn read_view(
+        &self,
+        sequence: u64,
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+        revision: u32,
+        text: &str,
+    ) -> Result<SceneView, Closed> {
         let body = self.exchange(
             sequence,
             br#"{"command":"c4_document_read_v1"}"#,
             reader,
             writer,
         )?;
-        #[derive(serde::Deserialize)]
-        #[serde(deny_unknown_fields)]
-        struct Answer {
-            text: String,
-            revision: u32,
-        }
-        let answer: Answer = serde_json::from_slice(&body).map_err(|_| Closed)?;
+        let answer: SceneView = serde_json::from_slice(&body).map_err(|_| Closed)?;
         if answer.revision != revision || answer.text != text {
             return Err(Closed);
         }
-        Ok(answer.text)
+        Ok(answer)
     }
 
     pub fn serve_scene_read(
@@ -251,12 +269,21 @@ impl Binding {
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
     ) -> Result<String, Closed> {
+        let view = self.durable_view(reopening, reader, writer)?;
+        Ok(view.text)
+    }
+    pub fn durable_view(
+        self,
+        reopening: bool,
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+    ) -> Result<SceneView, Closed> {
         if reopening {
-            return self.read_at(1, reader, writer, 1, "Rabe\n43");
+            return self.read_view(1, reader, writer, 1, "Rabe\n43");
         }
-        self.read_at(1, reader, writer, 0, "Rabe\n42")?;
+        self.read_view(1, reader, writer, 0, "Rabe\n42")?;
         self.save_first(reader, writer)?;
-        self.read_at(3, reader, writer, 1, "Rabe\n43")
+        self.read_view(3, reader, writer, 1, "Rabe\n43")
     }
     /// Storage dispatch returns a Saved reply only after its disk transaction commits.
     pub fn durable_service(

@@ -379,6 +379,7 @@ mod tests {
                 .unwrap(),
             Reply::Read {
                 text: "Rabe\n42",
+                bold_second: false,
                 revision: 0
             }
         ));

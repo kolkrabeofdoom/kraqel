@@ -282,6 +282,12 @@ Der verwaltete synthetische Speicherlauf legt Szene A mit zwei Absätzen an. Im 
 
 Im Windows-Lauf vom 20. November 2026 bestätigte der neu gestartete Leseprozess Revision 1. Eine unabhängige SQLite-Abfrage verglich die vollständigen versionierten Dokumente in Basisdatei und gespeicherter Fassung mit den erwarteten Bäumen. Beide enthielten genau zwei Absätze und dieselbe Fettmarkierung an der Zahl. Klartext und Revision stimmten jeweils mit dem Dokument überein. Der vorhandene Modelltest für unzulässige Dokumentbäume bestätigte weiterhin die Ablehnung einer unerwarteten Markierung am ersten Absatz.
 
+### Formatierte Vorschau
+
+Der Datendienst überträgt bei einer validierten Fettmarkierung ein zusätzliches Darstellungsmerkmal in der authentisierten Leseantwort. Ohne dieses Merkmal zeigt das Fenster weiterhin Klartext. Für den markierten zweiten Absatz verwendet es ein eigenes natives Anzeigeelement mit fetter Schrift. Schriftdateien, RTF und externe Inhalte werden für die Darstellung nicht benötigt.
+
+Im verwalteten Windows-Lauf endeten Speichern und erneutes Lesen von Revision 1 regulär. Beim Schließen prüft die Fensterrolle die beiden angezeigten Absatztexte und das am zweiten Steuerelement abgerufene Schriftgewicht. Der vorhandene Modelltest umfasst die Leseantworten für die markierte und die unmarkierte Szene.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

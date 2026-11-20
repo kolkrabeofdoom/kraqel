@@ -56,10 +56,14 @@ fn each_binding_edits_only_its_scene_and_preserves_both_paragraphs() {
             reply(&mut binding, STATUS),
             json!({"scene":id,"mode":"edit","revision":0})
         );
-        assert_eq!(
-            reply(&mut binding, READ),
-            json!({"text":original,"revision":0})
-        );
+        let expected_read = |text, revision| {
+            let mut answer = json!({"text":text,"revision":revision});
+            if bold {
+                answer["bold_second"] = json!(true);
+            }
+            answer
+        };
+        assert_eq!(reply(&mut binding, READ), expected_read(original, 0));
         assert_eq!(
             reply(&mut binding, &save(0, untouched)),
             json!({"error":"INVALID"})
@@ -84,10 +88,7 @@ fn each_binding_edits_only_its_scene_and_preserves_both_paragraphs() {
                 {"type":"paragraph","content":[second]}
             ]})
         );
-        assert_eq!(
-            reply(&mut reopened, READ),
-            json!({"text":edited,"revision":1})
-        );
+        assert_eq!(reply(&mut reopened, READ), expected_read(edited, 1));
 
         let mut countercheck = catalog.bind(other, Mode::Read);
         assert_eq!(

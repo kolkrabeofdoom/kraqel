@@ -3,6 +3,7 @@ use kraqel_window_probe::*;
 use std::ptr::{null, null_mut};
 use windows_sys::Win32::{
     Foundation::*,
+    Graphics::Gdi::*,
     System::LibraryLoader::GetModuleHandleW,
     UI::{Input::KeyboardAndMouse::*, WindowsAndMessaging::*},
 };
@@ -11,6 +12,12 @@ use windows_sys::Win32::{System::SystemServices::SS_LEFT, UI::Controls::EM_SETLI
 const LABEL: i32 = 100;
 const EDIT: i32 = 101;
 const CLOSE: i32 = 102;
+const SECOND: i32 = 103;
+fn font_description(font: HFONT) -> Option<LOGFONTW> {
+    let mut desc = LOGFONTW::default();
+    let size = size_of::<LOGFONTW>() as i32;
+    (unsafe { GetObjectW(font, size, (&mut desc as *mut LOGFONTW).cast()) } == size).then_some(desc)
+}
 unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> LRESULT {
     unsafe {
         match msg {
@@ -27,8 +34,26 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 } else {
                     "Rabe\r\n42"
                 };
-                let ok = String::from_utf16_lossy(&value[..n as usize]) == expected;
+                let first = String::from_utf16_lossy(&value[..n as usize]);
+                let second = GetDlgItem(hwnd, SECOND);
+                let font = if second.is_null() {
+                    null_mut()
+                } else {
+                    SendMessageW(second, WM_GETFONT, 0, 0) as HFONT
+                };
+                let ok = if second.is_null() {
+                    first == expected
+                } else {
+                    let n = GetWindowTextW(second, value.as_mut_ptr(), 64);
+                    let number = String::from_utf16_lossy(&value[..n as usize]);
+                    format!("{first}\r\n{number}") == expected
+                        && font_description(font)
+                            .is_some_and(|desc| desc.lfWeight == FW_BOLD as i32)
+                };
                 DestroyWindow(hwnd);
+                if !font.is_null() {
+                    DeleteObject(font);
+                }
                 PostQuitMessage(if ok { 40 } else { 41 });
                 0
             }
@@ -38,7 +63,7 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
 }
 fn show(
     endpoint: Option<bootstrap::Endpoint>,
-    mut surface: Option<(std::fs::File, String)>,
+    mut surface: Option<(std::fs::File, String, bool)>,
 ) -> i32 {
     unsafe {
         let instance = GetModuleHandleW(null());
@@ -109,19 +134,51 @@ fn show(
             }
         }
         SendDlgItemMessageW(hwnd, EDIT, EM_SETLIMITTEXT, 48, 0);
-        if let Some((_, text)) = &surface {
+        if let Some((_, text, marked)) = &surface {
             if text == "Rabe\n43" {
                 SetWindowLongPtrW(hwnd, GWLP_USERDATA, 1);
             }
             let edit = GetDlgItem(hwnd, EDIT);
+            let mut visible = text.as_str();
+            if *marked {
+                let Some((first, number)) = text.split_once('\n') else {
+                    return 24;
+                };
+                visible = first;
+                let normal = GetStockObject(DEFAULT_GUI_FONT);
+                let Some(mut desc) = font_description(normal) else {
+                    return 24;
+                };
+                desc.lfWeight = FW_BOLD as i32;
+                let bold = CreateFontIndirectW(&desc);
+                let second = CreateWindowExW(
+                    0,
+                    wide("STATIC").as_ptr(),
+                    wide(number).as_ptr(),
+                    WS_CHILD | WS_VISIBLE | SS_LEFT,
+                    18,
+                    68,
+                    400,
+                    32,
+                    hwnd,
+                    SECOND as _,
+                    instance,
+                    null(),
+                );
+                if bold.is_null() || second.is_null() || MoveWindow(edit, 15, 38, 410, 26, 1) == 0 {
+                    return 24;
+                }
+                SendMessageW(edit, WM_SETFONT, normal as usize, 1);
+                SendMessageW(second, WM_SETFONT, bold as usize, 1);
+            }
             if SendMessageW(edit, windows_sys::Win32::UI::Controls::EM_SETREADONLY, 1, 0) == 0
-                || SetWindowTextW(edit, wide(text.replace('\n', "\r\n")).as_ptr()) == 0
+                || SetWindowTextW(edit, wide(visible.replace('\n', "\r\n")).as_ptr()) == 0
             {
                 return 24;
             }
         }
         ShowWindow(hwnd, SW_SHOW);
-        if let Some((output, _)) = surface.as_mut() {
+        if let Some((output, _, _)) = surface.as_mut() {
             use std::io::Write;
             if output
                 .write_all(&(hwnd as usize as u64).to_le_bytes())
@@ -224,12 +281,12 @@ fn main() {
                 .ok_or(std::io::Error::other("missing profile"))?;
             let (input, output) =
                 managed_scene::confirm_bootstrap(Some(&profile), bootstrap::Role::Window)?;
-            let text = if let Some(mode) = scene {
+            let (text, marked) = if let Some(mode) = scene {
                 managed_scene::exchange(input, mode)?
             } else {
-                "Rabe\n42".to_owned()
+                ("Rabe\n42".to_owned(), false)
             };
-            Ok(show(None, Some((output, text))))
+            Ok(show(None, Some((output, text, marked))))
         })();
         std::process::exit(result.unwrap_or(20));
     }
