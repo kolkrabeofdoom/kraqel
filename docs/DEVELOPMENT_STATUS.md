@@ -20,6 +20,11 @@ Rücktaste und Entf entfernen im Szeneneditor auch bei einer Auswahlgrenze inner
 UTF-16-Surrogatpaars das vollständige Zeichen. Im verwalteten Windows-Lauf wurde in beiden
 Absatzfeldern aus `A🐦B` jeweils `AB`. Geprüft wurden die reguläre Cursorposition für beide
 Löschrichtungen und die programmgesteuerte Auswahl jeweils einer einzelnen Surrogathälfte.
+Beim Überschreiben ersetzt die Tastatureingabe das ganze angeschnittene Zeichen. Liegt nur die
+Einfügemarke zwischen seinen UTF-16-Einheiten, wird der neue Text dahinter eingefügt.
+Im verwalteten Windows-Lauf ließ sich in beiden Feldern auch bei voller Absatzlänge ein Vogel-Emoji
+durch ein Katzen-Emoji ersetzen. Revision 1 enthielt nach dem Wiederöffnen beide vollständigen
+Texte und die Fettmarkierung des zweiten Absatzes.
 
 Der Offline-Gastlauf vom 19. November ist bestanden. Bei erzwungener UMCI erreichte das
 Kontrollprogramm mit statisch importierter erlaubter DLL den erwarteten Exit 50. Beim statischen

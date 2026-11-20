@@ -41,7 +41,7 @@ fn clipboard_command(msg: u32, key: WPARAM, ctrl: bool, shift: bool) -> bool {
     }
 }
 
-fn expand_delete_selection(hwnd: HWND) {
+fn align_edit_selection(hwnd: HWND, inserting: bool) -> usize {
     unsafe {
         // Scene fields are bounded, so both UTF-16 offsets fit in EM_GETSEL's packed result.
         let range = SendMessageW(hwnd, EM_GETSEL, 0, 0) as u32;
@@ -55,16 +55,18 @@ fn expand_delete_selection(hwnd: HWND) {
                 && (0xd800..=0xdbff).contains(&buf[at - 1])
                 && (0xdc00..=0xdfff).contains(&buf[at])
         };
-        let left = splits_pair(start);
-        let right = splits_pair(end);
-        if left || right {
-            SendMessageW(
-                hwnd,
-                EM_SETSEL,
-                start - usize::from(left),
-                (end + usize::from(right)) as LPARAM,
-            );
+        // With an empty selection, typing at a split pair inserts after the character.
+        // A deletion there, or a selection touching half a pair, covers the entire pair.
+        let aligned_end = end + usize::from(splits_pair(end));
+        let aligned_start = if start == end && inserting {
+            aligned_end
+        } else {
+            start - usize::from(splits_pair(start))
+        };
+        if (aligned_start, aligned_end) != (start, end) {
+            SendMessageW(hwnd, EM_SETSEL, aligned_start, aligned_end as LPARAM);
         }
+        aligned_end.saturating_sub(aligned_start)
     }
 }
 
@@ -95,17 +97,9 @@ unsafe extern "system" fn local_edit(
             if pending_high == 0 || GetWindowLongW(hwnd, GWL_STYLE) & ES_READONLY != 0 {
                 return 0;
             }
-            let mut start = 0u32;
-            let mut end = 0u32;
-            SendMessageW(
-                hwnd,
-                EM_GETSEL,
-                (&mut start as *mut u32) as WPARAM,
-                (&mut end as *mut u32) as LPARAM,
-            );
-            let selected = end.saturating_sub(start);
-            let length = GetWindowTextLengthW(hwnd) as u32;
-            if length.saturating_sub(selected) + 2 <= MAX_PARAGRAPH_UTF16 as u32 {
+            let selected = align_edit_selection(hwnd, true);
+            let length = GetWindowTextLengthW(hwnd) as usize;
+            if length.saturating_sub(selected) + 2 <= MAX_PARAGRAPH_UTF16 {
                 let pair = [pending_high as u16, w as u16, 0];
                 SendMessageW(hwnd, EM_REPLACESEL, 1, pair.as_ptr() as LPARAM);
             } else {
@@ -127,11 +121,11 @@ unsafe extern "system" fn local_edit(
         ) {
             return 0;
         }
-        if ((msg == WM_CHAR && w == usize::from(VK_BACK))
-            || (msg == WM_KEYDOWN && w == usize::from(VK_DELETE)))
-            && GetWindowLongW(hwnd, GWL_STYLE) & ES_READONLY == 0
-        {
-            expand_delete_selection(hwnd);
+        let inserting = msg == WM_CHAR && (0x20..=0xffff).contains(&w) && w != 0x7f;
+        let deleting = (msg == WM_CHAR && w == usize::from(VK_BACK))
+            || (msg == WM_KEYDOWN && w == usize::from(VK_DELETE));
+        if (inserting || deleting) && GetWindowLongW(hwnd, GWL_STYLE) & ES_READONLY == 0 {
+            align_edit_selection(hwnd, inserting);
         }
         windows_sys::Win32::UI::Shell::DefSubclassProc(hwnd, msg, w, l)
     }
