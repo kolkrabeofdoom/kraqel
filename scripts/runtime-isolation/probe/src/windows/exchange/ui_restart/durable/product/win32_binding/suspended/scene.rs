@@ -48,6 +48,7 @@ pub(in super::super) fn read_scene(
     window: &fs::File,
     service: &fs::File,
     mode: crate::window_receipt::SceneOperation,
+    revision: u32,
     snapshots: [Option<&fs::File>; 2],
 ) -> Result<Value> {
     use crate::window_receipt::SceneOperation;
@@ -86,11 +87,13 @@ pub(in super::super) fn read_scene(
                         install(data.hProcess, response_write, write)?,
                     ];
                     let mut snapshot_ends = Vec::new();
-                    for file in snapshots.into_iter().flatten() {
+                    for (index, file) in snapshots.into_iter().enumerate() {
+                        let Some(file) = file else { continue };
                         let rights = if matches!(
                             mode,
                             SceneOperation::KeyboardEdit | SceneOperation::SavePersistent
-                        ) {
+                        ) || mode == SceneOperation::Revise && index == 0
+                        {
                             write
                         } else {
                             read
@@ -106,7 +109,9 @@ pub(in super::super) fn read_scene(
                     let mut material = Zeroizing::new([0u8; 96]);
                     let mut context = Sha256::new();
                     match mode {
-                        SceneOperation::KeyboardEdit
+                        SceneOperation::Revise
+                        | SceneOperation::ReadRevision
+                        | SceneOperation::KeyboardEdit
                         | SceneOperation::SavePersistent
                         | SceneOperation::ReadPersistent => {
                             context.update(mode.argument().as_bytes())
@@ -121,6 +126,9 @@ pub(in super::super) fn read_scene(
                     if mode == SceneOperation::CheckDeniedSave {
                         context.update(mode.argument().as_bytes());
                     }
+                    if mode.revision_bound() {
+                        context.update(revision.to_le_bytes());
+                    }
                     context.update(ui_secret);
                     context.update(data_secret);
                     material[..32].copy_from_slice(&context.finalize());
@@ -133,22 +141,29 @@ pub(in super::super) fn read_scene(
                         for end in ends {
                             io("scene-channel-end", control.write_all(&end))?;
                         }
+                        if mode.revision_bound() {
+                            io(
+                                "scene-bound-revision",
+                                control.write_all(&revision.to_le_bytes()),
+                            )?;
+                        }
                         for handle in storage {
                             io("scene-snapshot-end", control.write_all(handle))?;
                         }
                     }
-                    let ended = if mode == SceneOperation::KeyboardEdit {
-                        unsafe {
-                            WaitForMultipleObjects(
-                                2,
-                                [data.hProcess, ui.hProcess].as_ptr(),
-                                0,
-                                INFINITE,
-                            )
-                        }
-                    } else {
-                        unsafe { WaitForSingleObject(data.hProcess, 5000) }
-                    };
+                    let ended =
+                        if matches!(mode, SceneOperation::KeyboardEdit | SceneOperation::Revise) {
+                            unsafe {
+                                WaitForMultipleObjects(
+                                    2,
+                                    [data.hProcess, ui.hProcess].as_ptr(),
+                                    0,
+                                    INFINITE,
+                                )
+                            }
+                        } else {
+                            unsafe { WaitForSingleObject(data.hProcess, 5000) }
+                        };
                     if ended != WAIT_OBJECT_0 {
                         return Err(invalid("scene-service-timeout"));
                     }
@@ -177,13 +192,21 @@ pub(in super::super) fn read_scene(
     }
     if matches!(
         mode,
-        SceneOperation::KeyboardEdit
+        SceneOperation::Revise
+            | SceneOperation::ReadRevision
+            | SceneOperation::KeyboardEdit
             | SceneOperation::SavePersistent
             | SceneOperation::ReadPersistent
     ) {
         result["revision"] = json!(1);
+        if mode.revision_bound() {
+            result["revision"] = json!(revision + u32::from(mode == SceneOperation::Revise));
+        }
         result["persistent"] = json!(true);
-        result["readOnly"] = json!(mode == SceneOperation::ReadPersistent);
+        result["readOnly"] = json!(matches!(
+            mode,
+            SceneOperation::ReadPersistent | SceneOperation::ReadRevision
+        ));
     }
     Ok(result)
 }

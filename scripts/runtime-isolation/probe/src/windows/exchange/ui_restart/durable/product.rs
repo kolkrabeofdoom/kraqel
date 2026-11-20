@@ -253,8 +253,16 @@ impl State {
                 return Err(invalid("win32-window-end-binding"));
             }
             if let Action::EndWin32SceneSave { snapshot, .. } = action {
-                if self.scene_snapshot.is_some() {
-                    return Err(invalid("scene-snapshot-already-bound"));
+                let valid = match self.scene_snapshot {
+                    None => snapshot.revision == 1,
+                    Some((owner, previous)) => {
+                        owner == actor
+                            && previous.revision.checked_add(1) == Some(snapshot.revision)
+                            && snapshot.revision <= MAX_RECORDS as u32
+                    }
+                };
+                if !valid {
+                    return Err(invalid("scene-snapshot-revision"));
                 }
                 self.scene_snapshot = Some((actor, *snapshot));
             }
@@ -728,6 +736,13 @@ impl Store {
                     package::verify_window_session(&mut source)?;
                     if self.state.scene_snapshot.is_some() {
                         package::verify_scene_snapshot(&mut source)?;
+                        if self
+                            .state
+                            .scene_snapshot
+                            .is_some_and(|(_, s)| s.revision > 1)
+                        {
+                            package::verify_scene_revisions(&mut source)?;
+                        }
                     }
                 }
             }
@@ -791,6 +806,13 @@ impl Store {
                     package::verify_window_session(&mut file)?;
                     if self.state.scene_snapshot.is_some() {
                         package::verify_scene_snapshot(&mut file)?;
+                        if self
+                            .state
+                            .scene_snapshot
+                            .is_some_and(|(_, s)| s.revision > 1)
+                        {
+                            package::verify_scene_revisions(&mut file)?;
+                        }
                     }
                 }
             }

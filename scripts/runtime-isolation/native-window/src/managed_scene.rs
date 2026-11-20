@@ -14,6 +14,8 @@ impl window_receipt::SceneOperation {
             Self::Once,
             Self::CheckDeniedSave,
             Self::CheckEditConflict,
+            Self::Revise,
+            Self::ReadRevision,
             Self::KeyboardEdit,
             Self::SavePersistent,
             Self::ReadPersistent,
@@ -158,6 +160,16 @@ impl Channel {
             .map_err(|_| io::Error::other("scene peer"))
     }
 }
+fn bound_revision(mode: window_receipt::SceneOperation, control: &mut File) -> io::Result<u32> {
+    if !mode.revision_bound() {
+        return Ok(0);
+    }
+    let mut bytes = [0; 4];
+    control.read_exact(&mut bytes)?;
+    let revision = u32::from_le_bytes(bytes);
+    require(revision > 0 && revision < i32::MAX as u32, "revision")?;
+    Ok(revision)
+}
 pub fn exchange(
     mut control: File,
     mode: window_receipt::SceneOperation,
@@ -166,10 +178,15 @@ pub fn exchange(
     let mut ch = Channel::open(&mut control)?;
     ch.send(Handshake::Hello)?;
     ch.receive(Handshake::Ready)?;
+    let revision = bound_revision(mode, &mut control)?;
     match mode {
-        window_receipt::SceneOperation::KeyboardEdit => ch
+        window_receipt::SceneOperation::ReadRevision => ch
             .binding
-            .keyboard_view(&mut ch.reader, &mut ch.writer, |v| {
+            .read_bound_view(1, &mut ch.reader, &mut ch.writer, revision)
+            .map(|v| (v.text, v.bold_second)),
+        window_receipt::SceneOperation::Revise | window_receipt::SceneOperation::KeyboardEdit => ch
+            .binding
+            .keyboard_view(revision, &mut ch.reader, &mut ch.writer, |v| {
                 edit(&v.text).ok_or(kraqel_native_scene_model::channel::Closed)
             })
             .map(|v| (v.text, v.bold_second)),
@@ -215,20 +232,38 @@ pub fn serve(profile: &str, mode: window_receipt::SceneOperation) -> io::Result<
     let mut ch = Channel::open(&mut input)?;
     ch.receive(Handshake::Hello)?;
     ch.send(Handshake::Ready)?;
+    let revision = bound_revision(mode, &mut input)?;
     match mode {
-        window_receipt::SceneOperation::KeyboardEdit
+        window_receipt::SceneOperation::ReadRevision
+        | window_receipt::SceneOperation::Revise
+        | window_receipt::SceneOperation::KeyboardEdit
         | window_receipt::SceneOperation::SavePersistent
         | window_receipt::SceneOperation::ReadPersistent => {
-            let reopening = mode == window_receipt::SceneOperation::ReadPersistent;
+            let reopening = matches!(
+                mode,
+                window_receipt::SceneOperation::ReadPersistent
+                    | window_receipt::SceneOperation::ReadRevision
+            );
             let mut file = snapshot_handle(&mut input)?;
             let mut store = if reopening {
                 crate::scene_store::Store::managed(&mut file, true)?
             } else {
                 let mut baseline = snapshot_handle(&mut input)?;
-                crate::scene_store::Store::managed(&mut baseline, false)?
+                if mode == window_receipt::SceneOperation::Revise {
+                    crate::scene_store::Store::from_snapshot(
+                        &mut baseline,
+                        kraqel_native_scene_model::Mode::Edit,
+                    )?
+                } else {
+                    crate::scene_store::Store::managed(&mut baseline, false)?
+                }
             };
-            ch.binding
-                .durable_service(reopening, &mut ch.reader, &mut ch.writer, |body| {
+            ch.binding.revision_service(
+                reopening,
+                revision,
+                &mut ch.reader,
+                &mut ch.writer,
+                |body| {
                     let reply = store
                         .dispatch(body, || unreachable!())
                         .map_err(|_| kraqel_native_scene_model::channel::Closed)?;
@@ -244,7 +279,8 @@ pub fn serve(profile: &str, mode: window_receipt::SceneOperation) -> io::Result<
                         }
                     }
                     Ok(reply)
-                })
+                },
+            )
         }
         window_receipt::SceneOperation::Once => {
             ch.binding.serve_scene_read(&mut ch.reader, &mut ch.writer)

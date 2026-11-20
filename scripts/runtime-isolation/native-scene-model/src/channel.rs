@@ -45,7 +45,7 @@ pub struct Binding {
 enum Expected {
     Read,
     Denied,
-    Saved,
+    Saved(u32),
     Conflict,
 }
 
@@ -128,7 +128,7 @@ impl Binding {
         }
         Ok(answer)
     }
-    fn read_bound_view(
+    pub fn read_bound_view(
         &self,
         sequence: u64,
         reader: &mut impl std::io::Read,
@@ -235,7 +235,7 @@ impl Binding {
         if serde_json::from_slice::<Saved>(&saved)
             .map_err(|_| Closed)?
             .revision
-            != 1
+            != revision.checked_add(1).ok_or(Closed)?
         {
             return Err(Closed);
         }
@@ -308,11 +308,15 @@ impl Binding {
     }
     pub fn keyboard_view(
         self,
+        revision: u32,
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
         edit: impl FnOnce(&SceneView) -> Result<String, Closed>,
     ) -> Result<SceneView, Closed> {
-        let original = self.read_view(1, reader, writer, 0, "Rabe\n42")?;
+        let original = self.read_bound_view(1, reader, writer, revision)?;
+        if revision == 0 && original.text != "Rabe\n42" {
+            return Err(Closed);
+        }
         if !original.bold_second {
             return Err(Closed);
         }
@@ -321,7 +325,13 @@ impl Binding {
             return Err(Closed);
         }
         self.save_text(reader, writer, original.revision, &text)?;
-        let saved = self.read_view(3, reader, writer, 1, &text)?;
+        let saved = self.read_view(
+            3,
+            reader,
+            writer,
+            revision.checked_add(1).ok_or(Closed)?,
+            &text,
+        )?;
         if !saved.bold_second {
             return Err(Closed);
         }
@@ -333,12 +343,26 @@ impl Binding {
         reopening: bool,
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
+        dispatch: impl FnMut(&[u8]) -> Result<super::Reply, Closed>,
+    ) -> Result<(), Closed> {
+        self.revision_service(reopening, 0, reader, writer, dispatch)
+    }
+    pub fn revision_service(
+        self,
+        reopening: bool,
+        revision: u32,
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
         mut dispatch: impl FnMut(&[u8]) -> Result<super::Reply, Closed>,
     ) -> Result<(), Closed> {
         let steps: &[Expected] = if reopening {
             &[Expected::Read]
         } else {
-            &[Expected::Read, Expected::Saved, Expected::Read]
+            &[
+                Expected::Read,
+                Expected::Saved(revision.checked_add(1).ok_or(Closed)?),
+                Expected::Read,
+            ]
         };
         for (index, expected) in steps.iter().enumerate() {
             let seq = index as u64 + 1;
@@ -357,7 +381,7 @@ impl Binding {
         let mut scene = catalog.bind(super::Scene::A, super::Mode::Edit);
         for (n, expected) in [
             (1, Expected::Read),
-            (2, Expected::Saved),
+            (2, Expected::Saved(1)),
             (3, Expected::Conflict),
             (4, Expected::Read),
         ] {
@@ -398,23 +422,25 @@ impl Binding {
         writer: &mut impl std::io::Write,
         expected: Expected,
     ) -> Result<(), Closed> {
-        if !matches!(
-            (&answer, expected),
-            (super::Reply::Read { .. }, Expected::Read)
-                | (super::Reply::Saved { revision: 1 }, Expected::Saved)
-                | (
-                    super::Reply::Failure {
-                        error: super::Failure::Conflict
-                    },
-                    Expected::Conflict
-                )
-                | (
-                    super::Reply::Failure {
-                        error: super::Failure::Denied
-                    },
-                    Expected::Denied
-                )
-        ) {
+        let saved = matches!((&answer,expected),(super::Reply::Saved{revision},Expected::Saved(n)) if *revision==n);
+        if !saved
+            && !matches!(
+                (&answer, expected),
+                (super::Reply::Read { .. }, Expected::Read)
+                    | (
+                        super::Reply::Failure {
+                            error: super::Failure::Conflict
+                        },
+                        Expected::Conflict
+                    )
+                    | (
+                        super::Reply::Failure {
+                            error: super::Failure::Denied
+                        },
+                        Expected::Denied
+                    )
+            )
+        {
             return Err(Closed);
         }
         let payload = serde_json::to_vec(&answer).map_err(|_| Closed)?;

@@ -215,26 +215,38 @@ impl Store {
     /// The managed service gets only this file handle; SQLite works in memory and
     /// never opens a caller-supplied path or a filesystem journal.
     pub fn managed(file: &mut File, reopening: bool) -> io::Result<Self> {
-        let size = file.metadata()?.len();
-        let mut db = Connection::open_in_memory().map_err(failure)?;
         if reopening {
-            require(
-                (1..=crate::window_receipt::MAX_SCENE_DB).contains(&size),
-                "snapshot size",
-            )?;
-            db.deserialize_read_exact("main", &mut *file, size as usize, true)
-                .map_err(failure)?;
-        } else {
-            require(size == 0, "new snapshot")?;
+            return Self::from_snapshot(file, Mode::Read);
         }
-        let mut store =
-            Self::configure(db, reopening, None, SyntheticCatalog::with_marked_scene_a)?;
+        require(file.metadata()?.len() == 0, "new snapshot")?;
+        let db = Connection::open_in_memory().map_err(failure)?;
+        let mut store = Self::configure(db, false, None, SyntheticCatalog::with_marked_scene_a)?;
         store.managed = true;
-        if !reopening {
-            // Preserve the initial committed scene even if the service dies before saving.
-            store.flush_managed(file, false)?;
-        }
+        store.flush_managed(file, false)?;
         Ok(store)
+    }
+
+    /// Always load through a read-only file handle. Edits affect only the in-memory copy.
+    pub fn from_snapshot(file: &mut File, mode: Mode) -> io::Result<Self> {
+        let size = file.metadata()?.len();
+        require(
+            (1..=crate::window_receipt::MAX_SCENE_DB).contains(&size),
+            "snapshot size",
+        )?;
+        let mut db = Connection::open_in_memory().map_err(failure)?;
+        db.deserialize_read_exact("main", file, size as usize, mode == Mode::Read)
+            .map_err(failure)?;
+        db.execute_batch("PRAGMA trusted_schema=OFF; PRAGMA temp_store=MEMORY;")
+            .map_err(failure)?;
+        if mode == Mode::Read {
+            db.execute_batch("PRAGMA query_only=ON").map_err(failure)?;
+        }
+        Ok(Self {
+            db,
+            mode,
+            phase: None,
+            managed: true,
+        })
     }
     pub fn flush_managed(&self, file: &mut File, saving: bool) -> io::Result<()> {
         use std::io::Write;

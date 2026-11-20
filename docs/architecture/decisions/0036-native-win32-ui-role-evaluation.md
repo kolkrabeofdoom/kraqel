@@ -296,6 +296,12 @@ Der lokale Windows-Lauf verwendete native Zeichen- und Tastennachrichten für �
 
 „Änderungen verwerfen“ setzt beide Eingabefelder auf die beim Öffnen authentisiert gelesenen Absätze zurück. Die Aktion ist per Tab und Enter erreichbar, setzt den Fokus in den ersten Absatz und löst keinen Speicherauftrag aus. Im gezielten Windows-Lauf wurden beide bearbeiteten Felder auf „Rabe“ und „42“ zurückgesetzt. Anschließend wurden im selben Fenster andere Texte eingegeben, gespeichert und unter frischer Lesebindung auf Revision 1 mit erhaltener Fettmarkierung geöffnet.
 
+### Gespeicherte markierte Szene weiterbearbeiten
+
+Ein erneuter Aufruf von `edit-win32-scene <aktueller Kontrollkopf>` öffnet die zuletzt bestätigte markierte Fassung mit einer frischen Edit-Bindung. Der Starter prüft unter der Kontrollsperre Eigentümergeneration, Dateiidentität und Hash. Er übergibt dem Datendienst ein Lesehandle für die bestätigte Fassung und ein Schreibhandle für die exklusiv neu angelegte Folgedatei. Die Fensterrolle erhält ausschließlich den Szenenkanal. Die erwartete Revision gehört zum Bootstrap des neuen Auftrags. Dienst und Fenster prüfen die Revision beim Speichern und Rücklesen. Nach regulärem Rollenende bindet der Abschlussrecord die neue Generation. Bei unklarem Sitzungsende bleibt die Sperre wirksam.
+
+Im Windows-Lauf wurde Revision 1 gespeichert und im Folgeauftrag per Tastaturnachrichten zu „Kolkrabe“ und „Stern 47“ geändert. Unter frischer Lesebindung öffnete sich Revision 2. Die unabhängige SQLite-Abfrage bestätigte die beiden Absätze mit Fettmarkierung am zweiten Textknoten; der SHA-256-Wert der vorherigen Datei blieb unverändert. Der Nachweis gilt für die isolierte synthetische Ablage.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

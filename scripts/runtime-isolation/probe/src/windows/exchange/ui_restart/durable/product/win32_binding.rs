@@ -6,9 +6,21 @@ mod suspended;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Snapshot {
+    #[serde(default = "first_revision", skip_serializing_if = "is_first_revision")]
+    pub(super) revision: u32,
     volume: u64,
     file_id: [u8; 16],
     sha256: [u8; 32],
+}
+
+fn first_revision() -> u32 {
+    1
+}
+fn is_first_revision(r: &u32) -> bool {
+    *r == 1
+}
+fn scene_file(revision: u32) -> String {
+    format!("scene-a-v{revision}.sqlite")
 }
 
 struct SnapshotFile {
@@ -16,7 +28,7 @@ struct SnapshotFile {
     _dirs: Vec<fs::File>,
 }
 impl SnapshotFile {
-    fn open(store: &Store, name: &'static str, create: bool) -> Result<Self> {
+    fn open(store: &Store, name: &str, create: bool) -> Result<Self> {
         let dir = store.root.join("data");
         let dirs = pin_directories(&dir)?;
         private_acl(&dir, true)?;
@@ -40,7 +52,7 @@ impl SnapshotFile {
         private_acl(&path, false)?;
         Ok(Self { file, _dirs: dirs })
     }
-    fn identity(&mut self) -> Result<Snapshot> {
+    fn identity(&mut self, revision: u32) -> Result<Snapshot> {
         use std::io::{Read, Seek};
         let size = io("scene-snapshot-size", self.file.metadata())?.len();
         if !(1..=crate::window_receipt::MAX_SCENE_DB).contains(&size) {
@@ -58,6 +70,7 @@ impl SnapshotFile {
         io("scene-snapshot-rewind", self.file.rewind())?;
         let (volume, file_id) = secure_fs::file_id(&self.file)?;
         Ok(Snapshot {
+            revision,
             volume,
             file_id,
             sha256: Sha256::digest(bytes).into(),
@@ -158,39 +171,53 @@ impl Store {
                 return Err(invalid("win32-window-record-budget"));
             }
             use crate::window_receipt::SceneOperation::{
-                KeyboardEdit, ReadPersistent, SavePersistent,
+                KeyboardEdit, ReadPersistent, ReadRevision, Revise, SavePersistent,
             };
-            let saving = matches!(mode, WindowMode::Scene(KeyboardEdit | SavePersistent));
+            let bound = self.state.scene_snapshot;
+            let revision = bound.map_or(0, |(_, snap)| snap.revision);
+            let mode = match (mode, revision) {
+                (WindowMode::Scene(KeyboardEdit), 1..) => WindowMode::Scene(Revise),
+                (WindowMode::Scene(ReadPersistent), 2..) => WindowMode::Scene(ReadRevision),
+                (other, _) => other,
+            };
+            let saving = matches!(
+                mode,
+                WindowMode::Scene(KeyboardEdit | Revise | SavePersistent)
+            );
             let mut snapshot = None;
-            if saving || mode == WindowMode::Scene(ReadPersistent) {
+            let mut baseline = None;
+            if saving || matches!(mode, WindowMode::Scene(ReadPersistent | ReadRevision)) {
                 package::verify_scene_snapshot(&mut managed)?;
-                if saving {
-                    if self.state.scene_snapshot.is_some() {
-                        return Err(invalid("scene-snapshot-already-bound"));
-                    }
-                } else {
-                    let (owner, bound) = self
-                        .state
-                        .scene_snapshot
-                        .ok_or(invalid("scene-snapshot-unbound"))?;
+                if matches!(mode, WindowMode::Scene(Revise | ReadRevision)) {
+                    package::verify_scene_revisions(&mut managed)?;
+                }
+                if mode == WindowMode::Scene(SavePersistent) && bound.is_some() {
+                    return Err(invalid("scene-snapshot-already-bound"));
+                }
+                if !saving || mode == WindowMode::Scene(Revise) {
+                    let (owner, expected) = bound.ok_or(invalid("scene-snapshot-unbound"))?;
                     if owner != actor {
                         return Err(invalid("scene-snapshot-owner"));
                     }
-                    let mut opened = SnapshotFile::open(self, "scene-a-v1.sqlite", false)?;
-                    if opened.identity()? != bound {
+                    let mut source = SnapshotFile::open(self, &scene_file(revision), false)?;
+                    if source.identity(revision)? != expected {
                         return Err(invalid("scene-snapshot-mismatch"));
                     }
-                    snapshot = Some(opened);
+                    if saving {
+                        baseline = Some(source);
+                    } else {
+                        snapshot = Some(source);
+                    }
                 }
             }
             self.append(actor, head, Action::BeginWin32Window { anchor: expected })?;
             let begin = self.state.head;
-            let baseline = if saving {
-                snapshot = Some(SnapshotFile::open(self, "scene-a-v1.sqlite", true)?);
-                Some(SnapshotFile::open(self, "scene-a-base-v2.sqlite", true)?)
-            } else {
-                None
-            };
+            if saving {
+                snapshot = Some(SnapshotFile::open(self, &scene_file(revision + 1), true)?);
+                if revision == 0 {
+                    baseline = Some(SnapshotFile::open(self, "scene-a-base-v2.sqlite", true)?);
+                }
+            }
             let mut result = if let WindowMode::Scene(scene_mode) = mode {
                 suspended::read_scene(
                     self,
@@ -199,6 +226,7 @@ impl Store {
                     pins.image("pipe-service.exe")
                         .ok_or(invalid("win32-service-not-pinned"))?,
                     scene_mode,
+                    revision,
                     [
                         snapshot.as_ref().map(|s| &s.file),
                         baseline.as_ref().map(|s| &s.file),
@@ -212,7 +240,7 @@ impl Store {
             let end = match snapshot.as_mut() {
                 Some(file) if saving => Action::EndWin32SceneSave {
                     begin,
-                    snapshot: file.identity()?,
+                    snapshot: file.identity(revision + 1)?,
                 },
                 _ => Action::EndWin32Window { begin },
             };

@@ -24,13 +24,20 @@ pub enum SceneOperation {
     Once,
     CheckDeniedSave,
     CheckEditConflict,
+    Revise,
+    ReadRevision,
     KeyboardEdit,
     SavePersistent,
     ReadPersistent,
 }
 impl SceneOperation {
+    pub fn revision_bound(self) -> bool {
+        matches!(self, Self::Revise | Self::ReadRevision)
+    }
     pub fn argument(self) -> &'static str {
         match self {
+            Self::Revise => "--managed-scene-a-revise-v1",
+            Self::ReadRevision => "--managed-scene-a-revision-read-v1",
             Self::KeyboardEdit => "--managed-scene-a-keyboard-v1",
             Self::SavePersistent => "--managed-scene-a-store-edit-v2",
             Self::ReadPersistent => "--managed-scene-a-store-read-v1",
