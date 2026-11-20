@@ -41,6 +41,33 @@ fn clipboard_command(msg: u32, key: WPARAM, ctrl: bool, shift: bool) -> bool {
     }
 }
 
+fn expand_delete_selection(hwnd: HWND) {
+    unsafe {
+        // Scene fields are bounded, so both UTF-16 offsets fit in EM_GETSEL's packed result.
+        let range = SendMessageW(hwnd, EM_GETSEL, 0, 0) as u32;
+        let start = (range & 0xffff) as usize;
+        let end = (range >> 16) as usize;
+        let mut buf = [0u16; MAX_PARAGRAPH_UTF16 + 1];
+        let len = GetWindowTextW(hwnd, buf.as_mut_ptr(), buf.len() as i32) as usize;
+        let splits_pair = |at: usize| {
+            at > 0
+                && at < len
+                && (0xd800..=0xdbff).contains(&buf[at - 1])
+                && (0xdc00..=0xdfff).contains(&buf[at])
+        };
+        let left = splits_pair(start);
+        let right = splits_pair(end);
+        if left || right {
+            SendMessageW(
+                hwnd,
+                EM_SETSEL,
+                start - usize::from(left),
+                (end + usize::from(right)) as LPARAM,
+            );
+        }
+    }
+}
+
 unsafe extern "system" fn local_edit(
     hwnd: HWND,
     msg: u32,
@@ -99,6 +126,12 @@ unsafe extern "system" fn local_edit(
             GetKeyState(i32::from(VK_SHIFT)) < 0,
         ) {
             return 0;
+        }
+        if ((msg == WM_CHAR && w == usize::from(VK_BACK))
+            || (msg == WM_KEYDOWN && w == usize::from(VK_DELETE)))
+            && GetWindowLongW(hwnd, GWL_STYLE) & ES_READONLY == 0
+        {
+            expand_delete_selection(hwnd);
         }
         windows_sys::Win32::UI::Shell::DefSubclassProc(hwnd, msg, w, l)
     }

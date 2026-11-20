@@ -16,6 +16,11 @@ alle 47 Buchstaben beim abgewiesenen Einfügen erhalten. Nach Markieren des letz
 passte das Emoji vollständig. Die wieder geöffnete Revision 1 enthielt den zweiten Absatz
 einschließlich Emoji und Fettmarkierung.
 
+Rücktaste und Entf entfernen im Szeneneditor auch bei einer Auswahlgrenze innerhalb eines
+UTF-16-Surrogatpaars das vollständige Zeichen. Im verwalteten Windows-Lauf wurde in beiden
+Absatzfeldern aus `A🐦B` jeweils `AB`. Geprüft wurden die reguläre Cursorposition für beide
+Löschrichtungen und die programmgesteuerte Auswahl jeweils einer einzelnen Surrogathälfte.
+
 Der Offline-Gastlauf vom 19. November ist bestanden. Bei erzwungener UMCI erreichte das
 Kontrollprogramm mit statisch importierter erlaubter DLL den erwarteten Exit 50. Beim statischen
 Import der fremden DLL beendete der Windows-Loader den Prozess mit `0xC0E90002`. Ereignis 3077 ist
