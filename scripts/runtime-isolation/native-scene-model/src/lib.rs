@@ -66,8 +66,10 @@ impl Scene {
 }
 
 /// Two short paragraphs are the whole synthetic editing surface.
+pub const MAX_PARAGRAPH_UTF16: usize = 48;
+
 pub fn valid_paragraph(text: &str) -> bool {
-    !text.is_empty() && text.encode_utf16().count() <= 48 && !text.chars().any(char::is_control)
+    !text.is_empty() && text.encode_utf16().count() <= MAX_PARAGRAPH_UTF16 && !text.chars().any(char::is_control)
 }
 
 pub fn valid_paragraphs(text: &str) -> bool {

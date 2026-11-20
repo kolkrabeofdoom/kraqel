@@ -1,4 +1,5 @@
 #![windows_subsystem = "windows"]
+use kraqel_native_scene_model::MAX_PARAGRAPH_UTF16;
 use kraqel_window_probe::*;
 use std::ptr::{null, null_mut};
 use windows_sys::Win32::{
@@ -69,7 +70,7 @@ fn font_description(font: HFONT) -> Option<LOGFONTW> {
 }
 fn paragraph_text(hwnd: HWND, id: i32) -> Option<String> {
     // Read one extra UTF-16 unit so an overlong value cannot be saved as a valid prefix.
-    let mut buf = [0u16; 50];
+    let mut buf = [0u16; MAX_PARAGRAPH_UTF16 + 2];
     let n = unsafe { GetDlgItemTextW(hwnd, id, buf.as_mut_ptr(), buf.len() as i32) } as usize;
     if n == buf.len() - 1 {
         return None;
@@ -363,11 +364,23 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 0
             }
             WM_COMMAND
-                if (w >> 16) as u32 == EN_CHANGE
+                if matches!((w >> 16) as u32, EN_CHANGE | EN_MAXTEXT)
                     && matches!((w & 0xffff) as i32, EDIT | SECOND) =>
             {
                 if !GetDlgItem(hwnd, SAVE).is_null() {
-                    SetDlgItemTextW(hwnd, LABEL, wide(draft_label()).as_ptr());
+                    let id = (w & 0xffff) as i32;
+                    let full =
+                        GetWindowTextLengthW(GetDlgItem(hwnd, id)) == MAX_PARAGRAPH_UTF16 as i32;
+                    let label = if full || (w >> 16) as u32 == EN_MAXTEXT {
+                        if id == EDIT {
+                            "Erster Absatz · Eingabegrenze erreicht"
+                        } else {
+                            "Zweiter Absatz · Eingabegrenze erreicht"
+                        }
+                    } else {
+                        draft_label()
+                    };
+                    SetDlgItemTextW(hwnd, LABEL, wide(label).as_ptr());
                 }
                 update_draft_status(hwnd);
                 0
@@ -577,7 +590,7 @@ fn show(
         if !protect_editor_field(GetDlgItem(hwnd, EDIT)) {
             return 24;
         }
-        SendDlgItemMessageW(hwnd, EDIT, EM_SETLIMITTEXT, 48, 0);
+        SendDlgItemMessageW(hwnd, EDIT, EM_SETLIMITTEXT, MAX_PARAGRAPH_UTF16, 0);
         if let Some((_, text, marked)) = &surface {
             let edit = GetDlgItem(hwnd, EDIT);
             let mut visible = text.as_str();
@@ -610,7 +623,7 @@ fn show(
                     return 24;
                 }
                 if draft.is_some() {
-                    SendMessageW(second, EM_SETLIMITTEXT, 48, 0);
+                    SendMessageW(second, EM_SETLIMITTEXT, MAX_PARAGRAPH_UTF16, 0);
                     if !protect_editor_field(second) {
                         return 24;
                     }

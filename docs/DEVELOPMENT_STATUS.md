@@ -5,6 +5,12 @@ Absatz. Im synthetischen Windows-Lauf wurden ein leerer zweiter Absatz und ein p
 gesetzter erster Absatz mit 49 UTF-16-Einheiten abgewiesen. Nach der Korrektur per Tastatur ließ
 sich Szene A als Revision 1 mit beiden Texten und der Fettmarkierung wieder öffnen.
 
+Bei Tastatureingabe zeigt das Fenster für jeden Absatz an, sobald dessen Grenze von 48
+UTF-16-Einheiten erreicht ist. Im verwalteten Windows-Lauf blieb der Text bei einer weiteren
+Eingabe unverändert. Nach Entfernen eines Zeichens verschwand der Hinweis. Ein zweiter Absatz
+mit 46 Buchstaben und einem Vogel-Emoji ließ sich an der Grenze vollständig und mit erhaltener
+Fettmarkierung speichern und wieder öffnen.
+
 Der Offline-Gastlauf vom 19. November ist bestanden. Bei erzwungener UMCI erreichte das
 Kontrollprogramm mit statisch importierter erlaubter DLL den erwarteten Exit 50. Beim statischen
 Import der fremden DLL beendete der Windows-Loader den Prozess mit `0xC0E90002`. Ereignis 3077 ist
