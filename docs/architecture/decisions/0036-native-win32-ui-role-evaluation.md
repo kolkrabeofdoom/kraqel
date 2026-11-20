@@ -308,6 +308,18 @@ Unter den Schaltflächen zählt der Tastatureditor die Wörter beider Absätze d
 
 Editor und Vorschau berechnen die Feldgrößen aus der aktuellen Clientfläche. Im Windows-Lauf wuchsen beide Absatzfelder beim Vergrößern des Editors von 460 × 250 auf 980 × 420 Pixel von 414 auf 934 Pixel Breite. Bei beiden Größen lagen Beschriftung, Absätze, Aktionen und Wortzahl innerhalb der Clientfläche und überdeckten einander nicht. Zwei Absätze mit jeweils 48 Zeichen ließen sich nach dem Größenwechsel speichern und mit erhaltener Fettmarkierung wieder öffnen.
 
+### Anzeigeskalierung der Szenenoberfläche
+
+Die Fensterrolle verwendet Per-Monitor-DPI-Awareness V2. Startgröße, Mindestgröße und
+Abstände richten sich nach der DPI des Fensters. Bei einem DPI-Wechsel übernimmt das Fenster
+das von Windows vorgeschlagene Rechteck und erneuert die Schriften anhand der Systemschrift
+für die Ziel-DPI. Der zweite Absatz behält sein gespeichertes Schriftgewicht.
+
+Im verwalteten Prüflauf bei 96 DPI passten Szenenbeschriftung, beide Schaltflächentexte und
+Wortzähler bei Mindestgröße in ihre Steuerelemente. Nach Tastatureingabe und Wiederöffnen
+enthielt Revision 1 beide Absätze und die Fettmarkierung. Der Wechsel zwischen Monitoren
+mit unterschiedlicher Skalierung bleibt praktisch ungeprüft.
+
 ### Gespeicherte markierte Szene weiterbearbeiten
 
 Ein erneuter Aufruf von `edit-win32-scene <aktueller Kontrollkopf>` öffnet die zuletzt bestätigte markierte Fassung mit einer frischen Edit-Bindung. Der Starter prüft unter der Kontrollsperre Eigentümergeneration, Dateiidentität und Hash. Er übergibt dem Datendienst ein Lesehandle für die bestätigte Fassung und ein Schreibhandle für die exklusiv neu angelegte Folgedatei. Die Fensterrolle erhält ausschließlich den Szenenkanal. Die erwartete Revision gehört zum Bootstrap des neuen Auftrags. Dienst und Fenster prüfen die Revision beim Speichern und Rücklesen. Nach regulärem Rollenende bindet der Abschlussrecord die neue Generation. Bei unklarem Sitzungsende bleibt die Sperre wirksam.

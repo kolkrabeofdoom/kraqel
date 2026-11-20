@@ -5,7 +5,7 @@ use windows_sys::Win32::{
     Foundation::*,
     Graphics::Gdi::*,
     System::LibraryLoader::GetModuleHandleW,
-    UI::{Input::KeyboardAndMouse::*, WindowsAndMessaging::*},
+    UI::{HiDpi::*, Input::KeyboardAndMouse::*, WindowsAndMessaging::*},
 };
 use windows_sys::Win32::{System::SystemServices::SS_LEFT, UI::Controls::EM_SETLIMITTEXT};
 
@@ -161,16 +161,61 @@ fn draft_changed(hwnd: HWND) -> bool {
 
 fn destroy_surface(hwnd: HWND) {
     unsafe {
-        let second = GetDlgItem(hwnd, SECOND);
-        let font = if second.is_null() {
-            null_mut()
-        } else {
-            SendMessageW(second, WM_GETFONT, 0, 0) as HFONT
-        };
+        let normal = SendDlgItemMessageW(hwnd, EDIT, WM_GETFONT, 0, 0) as HFONT;
+        let marked = SendDlgItemMessageW(hwnd, SECOND, WM_GETFONT, 0, 0) as HFONT;
         DestroyWindow(hwnd);
-        if !font.is_null() {
-            DeleteObject(font);
+        for font in [normal, marked] {
+            if !font.is_null() {
+                DeleteObject(font);
+            }
         }
+    }
+}
+
+fn scale(value: i32, dpi: u32) -> i32 {
+    (value * dpi as i32 + 48) / 96
+}
+
+fn apply_fonts(hwnd: HWND, dpi: u32) -> bool {
+    unsafe {
+        let mut metrics = NONCLIENTMETRICSW::default();
+        metrics.cbSize = size_of::<NONCLIENTMETRICSW>() as u32;
+        if SystemParametersInfoForDpi(
+            SPI_GETNONCLIENTMETRICS,
+            metrics.cbSize,
+            (&mut metrics as *mut NONCLIENTMETRICSW).cast(),
+            0,
+            dpi,
+        ) == 0
+        {
+            return false;
+        }
+        let normal = CreateFontIndirectW(&metrics.lfMessageFont);
+        if normal.is_null() {
+            return false;
+        }
+        let second = GetDlgItem(hwnd, SECOND);
+        if !second.is_null() {
+            metrics.lfMessageFont.lfWeight = SECOND_WEIGHT.get();
+            let marked = CreateFontIndirectW(&metrics.lfMessageFont);
+            if marked.is_null() {
+                DeleteObject(normal);
+                return false;
+            }
+            let old = SendMessageW(second, WM_GETFONT, 0, 0) as HFONT;
+            SendMessageW(second, WM_SETFONT, marked as usize, 1);
+            if !old.is_null() {
+                DeleteObject(old);
+            }
+        }
+        let old = SendDlgItemMessageW(hwnd, EDIT, WM_GETFONT, 0, 0) as HFONT;
+        for id in [EDIT, LABEL, SAVE, DISCARD, CLOSE, WORD_COUNT] {
+            SendDlgItemMessageW(hwnd, id, WM_SETFONT, normal as usize, 1);
+        }
+        if !old.is_null() {
+            DeleteObject(old);
+        }
+        true
     }
 }
 
@@ -211,20 +256,21 @@ fn layout_surface(hwnd: HWND) -> bool {
         if GetClientRect(hwnd, &mut area) == 0 {
             return false;
         }
-        let margin = 15;
-        let gap = 8;
+        let px = |value| scale(value, GetDpiForWindow(hwnd));
+        let margin = px(15);
+        let gap = px(8);
         let width = (area.right - 2 * margin).max(1);
         let editing = !GetDlgItem(hwnd, SAVE).is_null();
-        let count_y = area.bottom - 30;
+        let count_y = area.bottom - px(30);
         let buttons_y = if editing {
-            count_y - 36
+            count_y - px(36)
         } else {
-            area.bottom - 44
+            area.bottom - px(44)
         };
-        let text_top = 38;
+        let text_top = px(38);
         let text_height = (buttons_y - gap - text_top).max(1);
         let place = |id, x, y, w, h| MoveWindow(GetDlgItem(hwnd, id), x, y, w, h, 1) != 0;
-        if !place(LABEL, margin, 10, width, 24) {
+        if !place(LABEL, margin, px(10), width, px(24)) {
             return false;
         }
         if GetDlgItem(hwnd, SECOND).is_null() {
@@ -247,17 +293,17 @@ fn layout_surface(hwnd: HWND) -> bool {
         }
         if editing {
             let half = (width - gap) / 2;
-            place(SAVE, margin, buttons_y, half, 30)
+            place(SAVE, margin, buttons_y, half, px(30))
                 && place(
                     DISCARD,
                     margin + half + gap,
                     buttons_y,
                     width - half - gap,
-                    30,
+                    px(30),
                 )
-                && place(WORD_COUNT, margin, count_y, width, 22)
+                && place(WORD_COUNT, margin, count_y, width, px(22))
         } else {
-            place(CLOSE, margin, buttons_y, width, 30)
+            place(CLOSE, margin, buttons_y, width, px(30))
         }
     }
 }
@@ -265,10 +311,34 @@ fn layout_surface(hwnd: HWND) -> bool {
 unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> LRESULT {
     unsafe {
         match msg {
+            WM_DPICHANGED => {
+                let rect = &*(l as *const RECT);
+                SetWindowPos(
+                    hwnd,
+                    null_mut(),
+                    rect.left,
+                    rect.top,
+                    rect.right - rect.left,
+                    rect.bottom - rect.top,
+                    SWP_NOZORDER | SWP_NOACTIVATE,
+                );
+                if !GetDlgItem(hwnd, EDIT).is_null() {
+                    if !apply_fonts(hwnd, (w & 0xffff) as u32) || !layout_surface(hwnd) {
+                        PostQuitMessage(24);
+                    }
+                }
+                0
+            }
             WM_GETMINMAXINFO => {
                 let bounds = &mut *(l as *mut MINMAXINFO);
-                bounds.ptMinTrackSize.x = bounds.ptMinTrackSize.x.max(460);
-                bounds.ptMinTrackSize.y = bounds.ptMinTrackSize.y.max(250);
+                bounds.ptMinTrackSize.x = bounds
+                    .ptMinTrackSize
+                    .x
+                    .max(scale(460, GetDpiForWindow(hwnd)));
+                bounds.ptMinTrackSize.y = bounds
+                    .ptMinTrackSize
+                    .y
+                    .max(scale(250, GetDpiForWindow(hwnd)));
                 0
             }
             WM_SIZE if w != SIZE_MINIMIZED as usize && !GetDlgItem(hwnd, EDIT).is_null() => {
@@ -353,6 +423,9 @@ fn show(
     mut draft: Option<&mut String>,
 ) -> i32 {
     unsafe {
+        if SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2).is_null() {
+            return 24;
+        }
         let bold = surface.as_ref().and_then(|(_, _, style)| *style) == Some(true);
         let draft_label = if bold {
             "Szene A · Zwei Absätze, zweiter fett"
@@ -391,8 +464,8 @@ fn show(
                 | WS_CLIPCHILDREN,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
-            640,
-            280,
+            scale(640, GetDpiForSystem()),
+            scale(280, GetDpiForSystem()),
             null_mut(),
             null_mut(),
             instance,
@@ -400,6 +473,20 @@ fn show(
         );
         if hwnd.is_null() {
             return 23;
+        }
+        let dpi = GetDpiForWindow(hwnd);
+        if dpi != GetDpiForSystem()
+            && SetWindowPos(
+                hwnd,
+                null_mut(),
+                0,
+                0,
+                scale(640, dpi),
+                scale(280, dpi),
+                SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE,
+            ) == 0
+        {
+            return 24;
         }
         for (id, kind, title, style) in [
             (
@@ -484,12 +571,6 @@ fn show(
                     return 24;
                 };
                 visible = first;
-                let normal = GetStockObject(DEFAULT_GUI_FONT);
-                let Some(mut desc) = font_description(normal) else {
-                    return 24;
-                };
-                desc.lfWeight = SECOND_WEIGHT.get();
-                let paragraph_font = CreateFontIndirectW(&desc);
                 let second = CreateWindowExW(
                     0,
                     wide(if draft.is_some() { "EDIT" } else { "STATIC" }).as_ptr(),
@@ -510,7 +591,7 @@ fn show(
                     instance,
                     null(),
                 );
-                if paragraph_font.is_null() || second.is_null() {
+                if second.is_null() {
                     return 24;
                 }
                 if draft.is_some() {
@@ -519,8 +600,6 @@ fn show(
                         return 24;
                     }
                 }
-                SendMessageW(edit, WM_SETFONT, normal as usize, 1);
-                SendMessageW(second, WM_SETFONT, paragraph_font as usize, 1);
             }
             if SendMessageW(
                 edit,
@@ -536,7 +615,7 @@ fn show(
         if draft.is_some() {
             update_draft_status(hwnd);
         }
-        if !layout_surface(hwnd) {
+        if !apply_fonts(hwnd, GetDpiForWindow(hwnd)) || !layout_surface(hwnd) {
             return 24;
         }
         ShowWindow(hwnd, SW_SHOW);
@@ -591,7 +670,7 @@ fn show(
                 )
                 .unwrap_or(64);
             if IsWindow(hwnd) != 0 {
-                DestroyWindow(hwnd);
+                destroy_surface(hwnd);
             }
             return exit;
         }
