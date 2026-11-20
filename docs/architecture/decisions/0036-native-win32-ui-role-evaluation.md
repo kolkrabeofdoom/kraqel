@@ -306,6 +306,8 @@ Der gezielte Windows-Lauf verwendete native Zeichennachrichten für Änderungen 
 
 Unter den Schaltflächen zählt der Tastatureditor die Wörter beider Absätze direkt im Fensterprozess. Er verwendet dieselbe Leerraumregel wie `countWords` im Manuskripteditor. Im Windows-Lauf zeigte das Steuerelement „0 Wörter“, „1 Wort“ und die korrekten Mehrwortwerte auch bei aufeinanderfolgenden und geschützten Leerzeichen. Rückgängig und Verwerfen aktualisierten die Anzeige. Die Wortzahl wird beim Speichern nicht mitgeschrieben.
 
+Editor und Vorschau berechnen die Feldgrößen aus der aktuellen Clientfläche. Im Windows-Lauf wuchsen beide Absatzfelder beim Vergrößern des Editors von 460 × 250 auf 980 × 420 Pixel von 414 auf 934 Pixel Breite. Bei beiden Größen lagen Beschriftung, Absätze, Aktionen und Wortzahl innerhalb der Clientfläche und überdeckten einander nicht. Zwei Absätze mit jeweils 48 Zeichen ließen sich nach dem Größenwechsel speichern und mit erhaltener Fettmarkierung wieder öffnen.
+
 ### Gespeicherte markierte Szene weiterbearbeiten
 
 Ein erneuter Aufruf von `edit-win32-scene <aktueller Kontrollkopf>` öffnet die zuletzt bestätigte markierte Fassung mit einer frischen Edit-Bindung. Der Starter prüft unter der Kontrollsperre Eigentümergeneration, Dateiidentität und Hash. Er übergibt dem Datendienst ein Lesehandle für die bestätigte Fassung und ein Schreibhandle für die exklusiv neu angelegte Folgedatei. Die Fensterrolle erhält ausschließlich den Szenenkanal. Die erwartete Revision gehört zum Bootstrap des neuen Auftrags. Dienst und Fenster prüfen die Revision beim Speichern und Rücklesen. Nach regulärem Rollenende bindet der Abschlussrecord die neue Generation. Bei unklarem Sitzungsende bleibt die Sperre wirksam.

@@ -205,9 +205,76 @@ fn update_draft_status(hwnd: HWND) {
         SetWindowTextW(hwnd, wide(title).as_ptr());
     }
 }
+fn layout_surface(hwnd: HWND) -> bool {
+    unsafe {
+        let mut area = RECT::default();
+        if GetClientRect(hwnd, &mut area) == 0 {
+            return false;
+        }
+        let margin = 15;
+        let gap = 8;
+        let width = (area.right - 2 * margin).max(1);
+        let editing = !GetDlgItem(hwnd, SAVE).is_null();
+        let count_y = area.bottom - 30;
+        let buttons_y = if editing {
+            count_y - 36
+        } else {
+            area.bottom - 44
+        };
+        let text_top = 38;
+        let text_height = (buttons_y - gap - text_top).max(1);
+        let place = |id, x, y, w, h| MoveWindow(GetDlgItem(hwnd, id), x, y, w, h, 1) != 0;
+        if !place(LABEL, margin, 10, width, 24) {
+            return false;
+        }
+        if GetDlgItem(hwnd, SECOND).is_null() {
+            if !place(EDIT, margin, text_top, width, text_height) {
+                return false;
+            }
+        } else {
+            let first_height = (text_height - gap) / 2;
+            if !place(EDIT, margin, text_top, width, first_height)
+                || !place(
+                    SECOND,
+                    margin,
+                    text_top + first_height + gap,
+                    width,
+                    text_height - first_height - gap,
+                )
+            {
+                return false;
+            }
+        }
+        if editing {
+            let half = (width - gap) / 2;
+            place(SAVE, margin, buttons_y, half, 30)
+                && place(
+                    DISCARD,
+                    margin + half + gap,
+                    buttons_y,
+                    width - half - gap,
+                    30,
+                )
+                && place(WORD_COUNT, margin, count_y, width, 22)
+        } else {
+            place(CLOSE, margin, buttons_y, width, 30)
+        }
+    }
+}
+
 unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> LRESULT {
     unsafe {
         match msg {
+            WM_GETMINMAXINFO => {
+                let bounds = &mut *(l as *mut MINMAXINFO);
+                bounds.ptMinTrackSize.x = bounds.ptMinTrackSize.x.max(460);
+                bounds.ptMinTrackSize.y = bounds.ptMinTrackSize.y.max(250);
+                0
+            }
+            WM_SIZE if w != SIZE_MINIMIZED as usize && !GetDlgItem(hwnd, EDIT).is_null() => {
+                layout_surface(hwnd);
+                0
+            }
             WM_COMMAND
                 if (w >> 16) as u32 == EN_CHANGE
                     && matches!((w & 0xffff) as i32, EDIT | SECOND) =>
@@ -316,11 +383,16 @@ fn show(
             WS_EX_CONTROLPARENT,
             name.as_ptr(),
             wide("KRAQEL – Offline-Fensterprobe").as_ptr(),
-            WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
+            WS_OVERLAPPED
+                | WS_CAPTION
+                | WS_SYSMENU
+                | WS_THICKFRAME
+                | WS_MAXIMIZEBOX
+                | WS_CLIPCHILDREN,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
-            460,
-            220,
+            640,
+            280,
             null_mut(),
             null_mut(),
             instance,
@@ -329,7 +401,7 @@ fn show(
         if hwnd.is_null() {
             return 23;
         }
-        for (id, kind, title, style, y, height) in [
+        for (id, kind, title, style) in [
             (
                 LABEL,
                 "STATIC",
@@ -339,16 +411,12 @@ fn show(
                     "&Prüftext"
                 },
                 SS_LEFT,
-                12,
-                22,
             ),
             (
                 EDIT,
                 "EDIT",
                 "",
                 WS_TABSTOP | WS_BORDER | ES_MULTILINE as u32 | ES_WANTRETURN as u32,
-                38,
-                70,
             ),
             (
                 action,
@@ -359,10 +427,8 @@ fn show(
                     "&Schließen"
                 },
                 WS_TABSTOP | BS_PUSHBUTTON as u32,
-                120,
-                30,
             ),
-            (WORD_COUNT, "STATIC", "", SS_LEFT, 155, 22),
+            (WORD_COUNT, "STATIC", "", SS_LEFT),
         ] {
             if id == WORD_COUNT && draft.is_none() {
                 continue;
@@ -372,10 +438,10 @@ fn show(
                 wide(kind).as_ptr(),
                 wide(title).as_ptr(),
                 WS_CHILD | WS_VISIBLE | style,
-                15,
-                y,
-                410,
-                height,
+                0,
+                0,
+                0,
+                0,
                 hwnd,
                 id as _,
                 instance,
@@ -387,22 +453,21 @@ fn show(
             }
         }
         if draft.is_some() {
-            if MoveWindow(GetDlgItem(hwnd, SAVE), 15, 120, 195, 30, 0) == 0
-                || CreateWindowExW(
-                    0,
-                    wide("BUTTON").as_ptr(),
-                    wide("Änderungen &verwerfen").as_ptr(),
-                    WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON as u32,
-                    219,
-                    120,
-                    206,
-                    30,
-                    hwnd,
-                    DISCARD as _,
-                    instance,
-                    null(),
-                )
-                .is_null()
+            if CreateWindowExW(
+                0,
+                wide("BUTTON").as_ptr(),
+                wide("Änderungen &verwerfen").as_ptr(),
+                WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON as u32,
+                0,
+                0,
+                0,
+                0,
+                hwnd,
+                DISCARD as _,
+                instance,
+                null(),
+            )
+            .is_null()
             {
                 return 24;
             }
@@ -436,19 +501,16 @@ fn show(
                         } else {
                             SS_LEFT | windows_sys::Win32::System::SystemServices::SS_NOPREFIX
                         },
-                    18,
-                    68,
-                    400,
-                    32,
+                    0,
+                    0,
+                    0,
+                    0,
                     hwnd,
                     SECOND as _,
                     instance,
                     null(),
                 );
-                if paragraph_font.is_null()
-                    || second.is_null()
-                    || MoveWindow(edit, 15, 38, 410, 26, 1) == 0
-                {
+                if paragraph_font.is_null() || second.is_null() {
                     return 24;
                 }
                 if draft.is_some() {
@@ -473,6 +535,9 @@ fn show(
         }
         if draft.is_some() {
             update_draft_status(hwnd);
+        }
+        if !layout_surface(hwnd) {
+            return 24;
         }
         ShowWindow(hwnd, SW_SHOW);
         if let Some((output, _, _)) = surface.as_mut().filter(|_| draft.is_none()) {
