@@ -15,6 +15,7 @@ const CLOSE: i32 = 102;
 const SECOND: i32 = 103;
 const SAVE: i32 = 104;
 const DISCARD: i32 = 105;
+const WORD_COUNT: i32 = 106;
 
 thread_local! {
     static SECOND_WEIGHT: std::cell::Cell<i32> = const { std::cell::Cell::new(0) };
@@ -153,7 +154,21 @@ fn update_draft_status(hwnd: HWND) {
         if save.is_null() || GetDlgItem(hwnd, SECOND).is_null() {
             return;
         }
-        let dirty = draft_changed(hwnd);
+        let current = draft_text(hwnd);
+        let dirty = EXPECTED.with_borrow(|initial| current.as_ref() != Some(initial));
+        if let Some(text) = current {
+            // Match countWords in packages/editor, including ECMAScript's whitespace exceptions.
+            let count = text
+                .split(|c: char| (c.is_whitespace() && c != '\u{85}') || c == '\u{feff}')
+                .filter(|word| !word.is_empty())
+                .count();
+            let label = if count == 1 {
+                "1 Wort".to_owned()
+            } else {
+                format!("{count} Wörter")
+            };
+            SetDlgItemTextW(hwnd, WORD_COUNT, wide(label).as_ptr());
+        }
         EnableWindow(save, i32::from(dirty));
         EnableWindow(GetDlgItem(hwnd, DISCARD), i32::from(dirty));
         let title = if dirty {
@@ -321,7 +336,11 @@ fn show(
                 120,
                 30,
             ),
+            (WORD_COUNT, "STATIC", "", SS_LEFT, 155, 22),
         ] {
+            if id == WORD_COUNT && draft.is_none() {
+                continue;
+            }
             if CreateWindowExW(
                 0,
                 wide(kind).as_ptr(),

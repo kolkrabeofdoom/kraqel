@@ -304,6 +304,8 @@ Der Tastatureditor hält bis zu 64 Änderungen der beiden Absätze in der Reihen
 
 Der gezielte Windows-Lauf verwendete native Zeichennachrichten für Änderungen in beiden Absätzen sowie für Rückgängig und Wiederholen. Das Zurückgehen bis zum geladenen Stand deaktivierte Speichern. Neue Eingabe und explizites Verwerfen begrenzten den Verlauf wie vorgesehen. Anschließendes Speichern und Wiederöffnen bestätigten Revision 1 mit Fettmarkierung am zweiten Absatz.
 
+Unter den Schaltflächen zählt der Tastatureditor die Wörter beider Absätze direkt im Fensterprozess. Er verwendet dieselbe Leerraumregel wie `countWords` im Manuskripteditor. Im Windows-Lauf zeigte das Steuerelement „0 Wörter“, „1 Wort“ und die korrekten Mehrwortwerte auch bei aufeinanderfolgenden und geschützten Leerzeichen. Rückgängig und Verwerfen aktualisierten die Anzeige. Die Wortzahl wird beim Speichern nicht mitgeschrieben.
+
 ### Gespeicherte markierte Szene weiterbearbeiten
 
 Ein erneuter Aufruf von `edit-win32-scene <aktueller Kontrollkopf>` öffnet die zuletzt bestätigte markierte Fassung mit einer frischen Edit-Bindung. Der Starter prüft unter der Kontrollsperre Eigentümergeneration, Dateiidentität und Hash. Er übergibt dem Datendienst ein Lesehandle für die bestätigte Fassung und ein Schreibhandle für die exklusiv neu angelegte Folgedatei. Die Fensterrolle erhält ausschließlich den Szenenkanal. Die erwartete Revision gehört zum Bootstrap des neuen Auftrags. Dienst und Fenster prüfen die Revision beim Speichern und Rücklesen. Nach regulärem Rollenende bindet der Abschlussrecord die neue Generation. Bei unklarem Sitzungsende bleibt die Sperre wirksam.
