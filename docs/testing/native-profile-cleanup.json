@@ -1,0 +1,43 @@
+{
+  "formatVersion": 1,
+  "nativePreviewOnly": true,
+  "productionAcceptance": false,
+  "sourceBaseCommit": "de26f50ac2b48affd2f23993bfbdb9132ae9e50b",
+  "controllerSha256": "b2c4f21f080337c231fcb54a71dae73777b71923f73c7961c37678da13cd7dbd",
+  "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+  "controlSchema": 4,
+  "independentAuditPassed": true,
+  "nativeCases": 2,
+  "childProcesses": 19,
+  "childExitCodes": {
+    "0": 13,
+    "1": 4,
+    "86": 2
+  },
+  "nativeGuiStarts": 2,
+  "cleanupImportGrants": 0,
+  "normalPreviewStoreUsed": false,
+  "networkMeasurement": false,
+  "cases": [
+    {
+      "case": "prepared-without-profile",
+      "records": 7,
+      "cleanupRecorded": true,
+      "repeatedCleanupHeadUnchanged": true,
+      "staleHeadRejected": true,
+      "retiredRecoveryRejected": true,
+      "guiStarts": 0,
+      "projectCopiesPreserved": 0
+    },
+    {
+      "case": "retired-with-existing-profile",
+      "records": 9,
+      "cleanupRecorded": true,
+      "repeatedCleanupHeadUnchanged": true,
+      "staleHeadRejected": true,
+      "retiredRecoveryRejected": true,
+      "guiStarts": 2,
+      "projectCopiesPreserved": 1
+    }
+  ]
+}

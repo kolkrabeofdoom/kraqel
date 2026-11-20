@@ -1,0 +1,89 @@
+{
+  "date": "2026-11-18",
+  "stage": "C4b-module-gate-fresh-etw",
+  "sourceCommit": "59d059e",
+  "rootSha256": "daf59d085588061b1daaabffe1ac24e76fb9c0303fd54e29b4f7231c5a72f5d5",
+  "testControllerSha256": "83679e5311988c78b5f37feaf651bf9cda8638a58e554d95f536052cc45caf0c",
+  "phases": [
+    {
+      "phase": "reference",
+      "hostCalls": 2,
+      "rootWorkerProcesses": 0,
+      "runtimeProcesses": 0,
+      "consoleHosts": 2,
+      "explicitProcessStops": 4,
+      "nativeHostGenerationsMatched": 2,
+      "nativeRootGenerationsMatched": 0,
+      "macRecordsVerified": 0,
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "unattributableNetworkEvents": 0,
+      "unknownDestinationEvents": 0,
+      "networkEvents": [],
+      "nonLoopbackEvents": 0,
+      "measurementValid": true,
+      "secondsAfterReady": 0.5
+    },
+    {
+      "phase": "gate",
+      "hostCalls": 1,
+      "rootWorkerProcesses": 2,
+      "runtimeProcesses": 0,
+      "consoleHosts": 1,
+      "explicitProcessStops": 4,
+      "nativeHostGenerationsMatched": 1,
+      "nativeRootGenerationsMatched": 2,
+      "macRecordsVerified": 13,
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "unattributableNetworkEvents": 0,
+      "unknownDestinationEvents": 0,
+      "networkEvents": [],
+      "nonLoopbackEvents": 0,
+      "measurementValid": true,
+      "secondsAfterReady": 35.5
+    }
+  ],
+  "hostCalls": 3,
+  "rootWorkerProcesses": 2,
+  "consoleHosts": 3,
+  "explicitProcessStops": 8,
+  "positiveControlsExpected": 8,
+  "positiveControlsObserved": 8,
+  "macRecordsVerified": 13,
+  "c4ProbeRecordsVerified": 9,
+  "consumedLaunches": 2,
+  "rootBindings": 2,
+  "accepted": 1,
+  "running": 0,
+  "drained": 2,
+  "finished": 2,
+  "nativeHostGenerationsMatched": 3,
+  "nativeRootGenerationsMatched": 2,
+  "runtimeProcesses": 0,
+  "continueSent": false,
+  "badMacRejected": true,
+  "authenticatedRootBlockedBeforeContinue": true,
+  "additionalModulePathsRejected": 2,
+  "profileAbsent": true,
+  "ownFixturesRemoved": true,
+  "nonLoopbackEvents": 0,
+  "loopbackEvents": 0,
+  "nativeUiAbi": 0,
+  "c4bComplete": false,
+  "productionAcceptance": false,
+  "realProjectDataUsed": false,
+  "helperRebuilt": false
+}

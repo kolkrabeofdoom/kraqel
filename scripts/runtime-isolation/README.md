@@ -1,5 +1,242 @@
 # AppContainer-Forschungshelfer für KQ-069
 
+[Frischer Workerbindungs-/Wiederanlauf-Netzbeleg](../../docs/testing/product-start-worker-lifetime-etw.md).
+Frisches Workerbindungs-v3-ETW, 17. November: unveränderter Build `37d7bec…`, normale Referenz und
+vier Wiederanlaufpfade. 52 Controller/acht Worker/52 Controller-Konsolenhosts, alle 112 Enden
+explizit; acht Kontrollen, Nullverluste/Zuordnungslücken, null beobachtete Netzereignisse in den
+ausgewählten Bäumen. Alle acht nativen Erzeugungszeiten zum Kernel abgeglichen, sieben dauerhafte
+Bindungen und drei Endrecords nach bestätigtem Kernelende zugeordnet. Exit 0 ersetzt keinen
+fachlichen Abschluss: vier Finish-Records, drei reconciliierte Starts, ein ungebundener Start weiter
+pending/gesperrt. Daten/MAC-/Paket-/Root-/Profilaudit und 42 Diagnose-Tests grün, echte Daten und
+Schlüssel unverändert. Kein neuer Build/App-/Transport-/Installerumbau oder pnpm check; Rohdaten nur
+lokal. Nächster Scope: P2c-Vertrag für persistente synthetische Arbeitsablage, Paketbindung und
+Mehrprozess-UI-Start konkretisieren. Ein-Prozess-Beleg nicht auf WebView2 übertragen, private
+Fixtures nicht promovieren; ungebundene Starts/unbestätigte Profile und P2
+insgesamt/P3–P5/Produkt-Q-01/Q-02 offen, striktes Ziel unverändert.
+
+Vorheriger Stand:
+
+[Dauerhafte Workerbindung und Wiederanlauf](../../docs/testing/product-start-worker-lifetime.md).
+Dauerhafte P2b-Workerbindung, 17. November: Execution v3/Bereinigungs-ABI 3, sechs Recordslots
+reserviert. WorkerBound bindet Launch, native PID/Erzeugungszeit und geprüfte Ein-Prozess-Jobpolicy
+vor Resume; enger nativer Lease-/Job-/Token-Wächter erlaubt nur diesen Record bei aktivem Worker,
+andere Storemutationen behalten Jobleerstand. Wiederanlauf vor Drained benötigt diesen MAC-Beleg und
+tatsächliches Ende derselben Prozessgeneration: signalisiertes Handle, andere Erzeugungszeit oder
+PID-Abwesenheit mit vollständigem Snapshot; keine fremde Terminierung, Fehler bleiben gesperrt.
+RecoveredDrain wird vor eigenem Profilcleanup gespeichert. Vier native Crashfälle: drei gebundene
+Starts sicher reconciliert und neue Generation erfolgreich; Start vor WorkerBound bleibt auch nach
+separatem eigenem Fixturecleanup pending/gesperrt. 47 Controller/sieben Worker, 63 Records, sieben
+verbrauchte Launches, 42 private Dateisperren; sieben Profile am Ende abwesend. 75 aktive
+Helfer-/Transporttests/Clippy und unabhängiger MAC-/PE-/Root-/Inventar-/Profilaudit grün, echte
+Daten und Schlüssel unverändert. Neuer gesicherter Runtimehash `37d7bec…`, kein
+App-/Transport-/Installer- umbau oder pnpm check. Nächster Scope: gezieltes frisches ETW dieses
+Controllers samt Worker-/ Lebenszeit-/Recoverypfaden. Voriger Netzbeleg bleibt an `9021872…`
+gebunden. Ein-Prozess-Prototyp ist keine mehrprozessige GUI; ungebundene Starts/unbestätigte
+Profile, persistente echte Arbeitsablagen-/UI-Bindung, P2 insgesamt/P3–P5 und Produkt-Q-01/Q-02
+offen; striktes Ziel unverändert.
+
+Vorheriger Stand:
+
+[Frischer Ressourcen-Reconciliation-Netzbeleg](../../docs/testing/product-start-resource-reconciliation-etw.md).
+Frisches Ressourcen-ABI-2-ETW, 17. November: unveränderter Runtimebuild `9021872…`, normaler
+Workerabschluss als Referenz gegenüber vier gezielten Ressourcenabbrüchen/Reconciliation. 54 direkte
+Controller, sechs Worker, 54 Controller-Konsolenhosts, alle 114 Enden/Eltern/Exitcodes explizit
+abgeglichen. Acht lokale TCP-/UDP-IPv4/IPv6-Kontrollen, Nullverluste/Zuordnungslücken, null
+beobachtete Netzereignisse in den ausgewählten Bäumen (auch null Loopback). Daten/MACs/
+Paket-/Rootbindung und Profile unabhängig geprüft: 67 Records, neun verbrauchte Launches, 36 private
+Dateisperren, acht Profile am Ende abwesend. Sieben Broker-Cleanups; die eine eigene mehrdeutige
+Fixture bleibt ausdrücklich separate Prüfablaufbereinigung, keine Produktfreigabe. 42 Diagnose-Tests
+grün, kein neuer Build/Runtime-/App-/Transport-/Installerumbau oder pnpm check. Rohdaten nur lokal,
+echte Vorschauablage unverändert. Nächster Scope: dauerhafter Workerstartbeleg und gesicherter
+Wiederanlauf bei Controller-Crash zwischen RunIntent und Drained; bis belegtem Lebenszeitende weiter
+gesperrt. P2 insgesamt/P3–P5 und Produkt-Q-01/Q-02 offen, striktes Ziel unverändert; Beleg gilt nur
+für diese Bytes/Lebenszeiten/Pfade.
+
+Vorheriger Stand:
+
+[Begrenzte P2b-Ressourcen-Reconciliation](../../docs/testing/product-start-resource-reconciliation.md).
+P2b-Ressourcen-Reconciliation, 17. November: Execution v2/Profilbereinigungs-ABI 2 mit neuen
+RunIntent-/Drained-Records, fünf Slots vor Ressourcenanlage reserviert. Unter derselben Lease werden
+fehlende unbestätigte Profile ohne Löschung abgeschlossen und bestätigte Profile nur ohne RunIntent
+oder nach dauerhaft belegtem Drain bereinigt. Exakte begrenzte HKCU-Mapping-/Moniker- Abfrage, keine
+Registryänderung; Fehler bleiben gesperrt. Bestehendes Profil ohne ProfileReady oder RunIntent ohne
+Drained wird nicht adoptiert/gelöscht. Vier native Abbruchfälle, 49 Controller, fünf erfolgreiche
+Worker, 30 private Dateisperren; sieben Profile erzeugt, sechs Broker-Cleanups, eine nachweislich
+eigene mehrdeutige Fixture ausschließlich durch den Prüfablauf separat entfernt. 73 aktive
+Helfer-/Transporttests/Clippy und unabhängiger MAC-/PE-/Root-/Inventar-/Profilaudit grün; acht
+verbrauchte Launches/56 Records, Daten/Schlüssel/echte Vorschauablage unverändert. Neuer Runtimehash
+`9021872…`, ein Helferbuild, keine App-/Transport-/Installeränderung oder pnpm check. Nächster
+Scope: gezielter frischer ETW-Vergleich dieses Builds mit Worker/Reconciliation. Voriger Netzbeleg
+bleibt ausschließlich an `590c3d4…` gebunden. Vollständige Live-Worker-Crashbereinigung, persistente
+echte Arbeitsablagen-/UI-Bindung, P2 insgesamt/P3–P5 und Produkt-Q-01/Q-02 offen; striktes
+Datenschutzziel unverändert.
+
+Vorheriger Stand:
+
+Aktuell: [Frischer P2b-ETW-Beleg](../../docs/testing/product-start-p2b-bootstrap-etw.md). Frisches
+P2b-ETW, 17. November: unveränderter gesicherter Runtimebuild `590c3d4…`, zwei kurze gültige
+Messungen – Kontrollablagenreferenz und drei gezielte Workerfälle. 31 Controller, sechs Worker, 31
+direkt zugeordnete Controller-Konsolenhosts, alle 68 Enden explizit. Acht lokale
+TCP-/UDP-IPv4/IPv6-Kontrollen, Nullverluste/Zuordnungslücken, null beobachtete Netzereignisse in den
+gemessenen Bäumen (auch null Loopback). Worker normal/MAC-Ablehnung/Sperre vor Resume und neue
+Generationen mit Replay/Kopfabwehr; native Daten/MACs, Token/Job/Lease und sechs entfernte Profile
+unabhängig bestätigt. Rohdaten nur lokal, echte Vorschauablage unverändert. 42 Diagnose-Tests;
+zusätzlich reinen Modelltest für Linux-Clippy korrigiert (Accessor statt privater Set-Zugriff), acht
+gezielte Kernprüfungen/Clippy grün. Keine Runtimeänderung/neuer Build,
+App-/Transport-/Installerumbau oder Workspace-Gesamtlauf. Nächster Scope: gesicherte
+Ressourcen-Crash-Reconciliation der P2b-Probeprofile, insbesondere
+Profilerzeugung/ProfileReady/Entfernung/Abschlussrecord. Keine Adoption unklarer Profile oder
+Bestandsdaten; P2 insgesamt, P3–P5 und Produkt-Q-01/Q-02 offen. Striktes Datenschutzziel
+unverändert, keine Übertragung auf normale App oder ungemessene Pfade.
+
+Vorheriger Stand:
+[P2b · synthetischer Workerbootstrap](../../docs/testing/product-start-p2b-bootstrap.md).
+Produktstart P2b, 17. November: authentisierter synthetischer Workerbootstrap unter derselben
+Kontrollsperre, ohne GUI oder Importtask. Separate frische Probeprofile/-daten, keine ACL-Promotion
+der privaten P2a-Fixture. Commit/ProfileReady/Receiptabschluss bzw. kontrollierte Reconciliation
+persistiert; exakte Token-/Job-/Leaseprüfung vor Resume, eigener Einmalschlüssel statt
+Kontrollschlüssel, begrenzte Pipes mit monotoner Receiptfrist. Jobleerstand am gehaltenen Objekt vor
+Profilentfernung, unklare Crashressourcen bleiben gesperrt; keine automatische Crashbereinigung.
+`.kqboot` Probe-ABI 1/UI-ABI 0, Legacy-/P2a-Marker unverändert. Vier neue Tests, 71 aktive
+Helfer-/Transporttests, gezielte Nachprüfung/Clippy grün. Drei finale native Fälle, 27
+Kontrollprozesse, sechs Worker (vier Erfolge, eine MAC-Ablehnung, eine Sperre vor Resume), 30
+private Zugriffssperren, sechs Probeprofile entfernt; unabhängiger
+MAC-/PE-/Root-/Prozess-/Profilaudit grün. Echte Daten und Vorschauablage unverändert. Finaler
+Broker/Worker `590c3d4…`, Sicherung `kraqel-product-start-p2b-build-20261117-05`, mehrere vorherige
+Entwicklungsbuilds nicht angenommen. Mittleres Prüfniveau ohne App-/Transport-/Installerumbau oder
+`pnpm check`. Nächster Scope: gezielter frischer ETW-Netzvergleich dieses Controllers samt separatem
+Workerpfad und beiden Ablehnungen. Alter ETW-Beleg nicht übertragbar. Danach
+Ressourcen-Crash-Reconciliation und echte persistente Arbeitsablagen-/UI-Bindung; P2 insgesamt/P3–P5
+und Produkt-Q-01/Q-02 offen, striktes Datenschutzziel unverändert.
+
+`check-workspace-bootstrap.ps1` nutzt nur frische synthetische Wurzeln; keine GUI und keine
+Netzdiagnose aufrufen. Kontrollschlüssel bleibt privat. Hashes/Reproduktion im Nachweis.
+
+Vorheriger Stand:
+[Produktstart P2a · authentisierte Record-only-Forschung](../../docs/testing/product-start-p2a-records.md).
+`check-workspace-records.ps1` prüft drei frische synthetische Wurzeln ohne UI/Profile/Importtask;
+P1-Kern nach nativen Kontrollprüfungen, Schema 5/MAC-Records und `.kqprod`-Record-ABI 1/UI-ABI 0.
+Vier neue Tests, 67 aktive Helfer-/Transporttests/Clippy und unabhängiger MAC-/PE-/Datenaudit grün.
+Keine App-/Transport-/Installeränderung, keine Vorschau-/Bestandsübernahme. Private Fixtures nicht
+per Container-ACL promovieren. Neuer Broker ohne frisches ETW; P2b Bootstrap/Token/Job bleibt offen.
+
+Vorheriger begrenzter Schritt:
+[Produktstart P1 · reines Testmodell](../../docs/testing/product-start-p1-model.md).
+`probe/src/product_start.rs` ist nur per `#[cfg(test)]` im Helfer-Testziel eingebunden. Keine neue
+CLI, I/O, Schlüssel-, MAC-, Transport- oder UI-Integration; Parserfolg bleibt unvertrauenswürdig.
+Sieben neue Modelltests, 63 aktive Helfer-/Transporttests und Clippy grün. Kein neuer EXE-Build/ETW;
+gesicherte Forschungsprogramme separat unverändert. P2a beginnt mit authentisierter persistenter
+Arbeitsablagenbindung/Launch-Records nur in frischen synthetischen Wurzeln, zunächst ohne GUI.
+
+Nächste Integrationsstufe:
+[Produktstart-/Bestandsdatenvertrag v1 · Entwurf](../../docs/data-format/product-start-integration-v1-draft.md).
+Statisch belegte Trennung zwischen normalem Tauri-Start und Forschungsoberfläche. P1 beginnt mit
+reinen versionierten Start-/Bindungstypen und Zustandsregeln ohne UI-/Datenfreigabe. Produktstart
+benötigt eigene Autorität, keine umgedeutete Importtask. Schema 5/Paketdeklaration/Bestandskopie
+noch nicht implementiert. Echte Vorschauablage nicht übernehmen/zurücksetzen, striktes Ziel
+unverändert.
+
+Neuester funktionaler Prüfstand:
+[Prepare-Übergangsabbrüche](../../docs/testing/native-prepare-transition-crashes.md).
+`check-update-reconciliation.ps1 -PrepareTransitions` prüft drei frische synthetische Fälle an
+`artifact-removed`, `package-created`, `prepare-recorded`; alternativ zu `-RetryAborted`. Frühe
+Abbrüche erzeugen kein Pending; gespeichertes leeres Pending ist vor Retry ausdrücklich abzubrechen.
+56 aktive Helfertests/Clippy, drei native Fälle und Daten-/MAC-Audit grün, keine Replaykopie.
+[Eigener frischer ETW-Beleg](../../docs/testing/native-prepare-transition-etw.md) derselben
+Programme mit regulärem Update-/verwaltetem Wiederanlauf und drei Übergängen: acht Kontrollen, 182
+explizite Enden, 0 Nicht-Loopback-/48 getrennte Loopback-Ereignisse, alle 59 direkten Aufrufe
+erfasst. Kein neuer Build/keine Auswerteränderung, 42 Diagnose-Tests grün. Prozesse/Erfassungen
+beendet, echte Vorschauablage unverändert.
+
+[Eigener frischer ETW-Beleg des Retry-Brokers](../../docs/testing/native-package-artifact-retry-etw.md):
+gesicherte Programme unverändert, Referenz und Teilkopie/Abort/Retry/Aktivierung/verwalteter
+Wiederanlauf bestanden. 21 direkte Aufrufe samt fünf hashbenannten EXEs, acht Kontrollen, 144
+explizite Enden, 0 Nicht-Loopback-/48 getrennte Loopback-Ereignisse. Unabhängiger Daten-/MAC-/
+Kernel-Abgleich und 42 Diagnose-Tests grün. Kein neuer Build, keine Runtime-/Auswerteränderung.
+Erfassungen/Prozesse beendet, echte Vorschauablage unverändert. Nächster begrenzter Scope:
+Prozessabbrüche zwischen Artefaktentfernung, Zielanlage und Prepare. Striktes Ziel unverändert.
+
+Neuester Stand: [Sichere Paketartefakte/Retry](../../docs/testing/native-package-artifact-retry.md).
+`check-update-reconciliation.ps1 -RetryAborted` mit explizit gesicherten neuen Programmhashes prüft
+drei frische synthetische Fälle: Teilkopie, Manipulation, vollständiger Abort. Gleiches Pending nach
+Abbruch sicher erneut vorbereiten; alte Köpfe/gesperrte Dateien verändern nichts. 56 aktive
+Helfertests/Clippy und unabhängiger Daten-/MAC-Audit grün. Eigener frischer ETW-Beleg inzwischen
+oben verlinkt; vorherige Netzbelege nicht übertragen. Unbekannte/aktivierte Pakete bleiben
+geschützt.
+
+Neuester gezielter Prüfstand:
+[Update-Abbruch-/Fehlerreconciliation](../../docs/testing/native-update-abort-reconciliation.md).
+`check-update-reconciliation.ps1` verwendet explizit hashgeprüfte gesicherte Programme und erzeugt
+drei frische synthetische TEMP-Cases: Teilkopie, manipuliertes Paket und Prozessende nach
+veröffentlichtem Abort. Gleiche Kontrollsperre, alter Actor und bestehende Importaufgabe bleiben
+gebunden; keine Kettenreparatur. 53 aktive Helfertests/Clippy und Daten-/MAC-Audit grün. Keine
+Runtimeänderung oder neuer Netzbeleg dieser zusätzlichen Fehlerläufe. Paketartefakt-Cleanup und
+transparenter Retry bleiben offen. Reproduktion/Hashes stehen im verlinkten Nachweis.
+
+Aktuell: [Startticket v3](../../docs/data-format/native-ui-restart-v3.md) und
+[Brokerkette v3](../../docs/data-format/native-broker-recovery-v3.md).
+`ui-combined-series <frische Controllerwurzel> <Forschungs-App>` prüft neun Live-/Wiederanlauf-/
+Folgeauftragsfälle, einschließlich Abbruch, ungültigem Archiv und Teiltransfer. Signierte private
+Abschlussbelege sind Voraussetzung für eine ausdrücklich neue native Beauftragung.
+`ui-broker-live-seed <frische Neustartwurzel> <App> prepared native` benötigt manuelle Auswahl von
+`input.kraqel`; `ui-broker-live-next <Wurzel>` erteilt ausdrücklich einen neuen Fixture-Auftrag.
+Kein automatischer Retry, keine Altdatenmigration oder neue Rendererbefehle.
+[Finaler Nachweis, Buildschalter und Hashgrenzen](../../docs/testing/native-combined-live-restart.md).
+[Eigener frischer ETW-Beleg](../../docs/testing/native-combined-live-restart-etw.md) für genau das
+gesicherte Paar mit Automatik und tatsächlicher nativer Auswahl bestanden. Keine Übertragung auf
+Folgeänderungen; normale Starts bleiben unisoliert. Historische Stufen folgen.
+
+Historischer [Broker-Vertrag v2](../../docs/data-format/native-broker-recovery-v2.md): lokaler
+HMAC-Beleg/privater Schlüssel ersetzen DPAPI. Neuer Seed in frischer Wurzel erforderlich; keine
+Altdatenmigration oder Schlüssel-/Journalneuanlage beim Wiederanlauf. Native Serie jetzt mit 78
+Ablehnungen und sechs tatsächlichen Dateiöffnungsverweigerungen pro Appstart.
+[Nachweis und gesicherte Hashes](../../docs/testing/native-hmac-broker.md).
+[Eigener gültiger ETW-Beleg](../../docs/testing/native-hmac-broker-etw.md) des gesamten Serienbaums
+einschließlich negativer Brokerstarts; keine Übertragung früherer Paarabnahmen oder auf
+Folgeänderungen.
+
+Neu: `ui-controller-crash-series <frische kraqel-isolation-controller-UUID-Wurzel> <Forschungs-EXE>`
+prüft sechs harte Controller-Kills, zwölf Wiederanläufe in neuen Brokerprozessen und 78
+Ablehnungsfälle. Nur dieser explizite Brokerpfad erlaubt dauerhafte Übernahme einer bestehenden
+synthetischen Ablage nach HMAC-/Hash-/Wurzelbindung, exklusiver Sperre und Jobleerstand.
+[Vertrag](../../docs/data-format/native-broker-recovery-v2.md),
+[Nachweis und exakte Buildgrenzen](../../docs/testing/native-hmac-broker.md).
+`ui-broker-seed <frische Neustartwurzel> <Forschungs-EXE> <Crashpunkt>` beendet sich absichtlich mit
+Code 86. `ui-broker-recover <bestehende Neustartwurzel> first|second|retire` verlangt den passenden
+gesicherten Broker und gibt niemals eine neue Importkennung frei. Separat gesichertes Paar mit
+eigenem begrenztem ETW-Beleg, kein fertiger Produktbroker; normale Starts bleiben unisoliert.
+
+Aktueller Startticketvertrag: [v3](../../docs/data-format/native-ui-restart-v3.md), ohne Downgrade.
+`ui-assistive-interrupted` beziehungsweise `ui-assistive-completed` mit frischer gebundener
+Neustartwurzel und passender Forschungs-EXE bereiten einen synthetischen Crash vor und lassen den
+Wiederanlauf offen. Tatsächliches Replay und reguläres Schließen erforderlich, höchstens 600
+Sekunden. [Assistiver Nachweis](../../docs/testing/native-assistive-restart.md) und
+[eigener frischer v2-Netzbeleg](../../docs/testing/native-assistive-restart-etw.md) mit beiden
+manuellen Pfaden. Gilt nur für die dokumentierten Hashes; v1-Belege bleiben separat gültig.
+
+`ui-crash-series <frische kraqel-isolation-ui-restart-UUID-Wurzel> <Forschungs-EXE>` führt autonom
+28 Generationen derselben isolierten GUI mit stabiler Identität/Ablage aus. Frische gebundene
+Starttickets, sechs harte Crashpunkte, je zwei Reconciliations, Altimportabwehr und vier negative
+Starts. Nur eingebettete synthetische Fixture, kein Dateidialog; Forschungsfenster nicht bedienen.
+[Kanal und Grenzen](../../docs/data-format/native-ui-restart-v1.md),
+[Reproduktion und Nachweis](../../docs/testing/native-ui-restart.md).
+[Frischer ETW-Beleg nur für das dokumentierte Hashpaar](../../docs/testing/native-ui-restart-etw.md).
+Kein Produktlauncher; dieser ältere Serienpfad darf keine vorhandene Wurzel übernehmen. Dafür ist
+ausschließlich der neue authentisierte Brokerpfad vorgesehen.
+
+`ui-live-transfer-hold <neue TEMP-Forschungswurzel> <Forschungs-EXE>` hält nach dem nativen
+Dateidialog und genau 1.024 übertragenen Archivbytes. Sender- und Empfängerzähler bleiben lokal.
+Innerhalb von 60 Sekunden das Hauptfenster schließen, ohne eine Veröffentlichung auszulösen. Der
+normale `ui-live`-Modus enthält diesen Transferhaltepunkt nicht.
+[Fensterende-Nachweise und Buildgrenzen](../../docs/testing/native-live-window-close.md).
+
+`ui-live <neue kraqel-isolation-ui-Wurzel> <Forschungs-EXE>` startet zuerst das Forschungsfenster.
+Erst der Importknopf fordert die native Auswahl der synthetischen `input.kraqel` an. Zwei anonyme
+Pipes, ein festes Auswahlsignal und ein Versuch pro Sitzung.
+[Vertrag](../../docs/data-format/native-live-file-channel-v2.md) und
+[Nachweise/offene Abnahme](../../docs/testing/native-live-file-selection.md). Kein neuer
+Netzwerkbeleg oder produktiver Broker.
+
 **Nur synthetische Daten. Kein produktiver Launcher und keine Sicherheitsfreigabe.** Der normale
 KRAQEL-Start wird nicht verändert. Ergebnis und Grenzen stehen im
 [Versuchsprotokoll](../../docs/testing/native-runtime-isolation.md).
@@ -217,6 +454,87 @@ Root-PID aus `launch.json` und den Executable-SHA festhalten; alle App-/WebView2
 Trace-Ende schließen. Roh-ETL/XML bleiben außerhalb Git. Ein expliziter unisolierter Vergleich ist
 ein eigener Diagnosefall, niemals ein Fallback. Unterschiedliche Umgebungen, Profilzustände und
 Laufzeiten im Protokoll benennen; keine automatische kausale Gleichsetzung von Zählwerten.
+
+## Kontrollgebundener synthetischer Startpfad
+
+Der begrenzte native Vorschaupfad
+`broker-store start-check <Forschungs-App> <erwartete App-SHA> <aktueller Kopfhash>` hält die
+authentisierte private Kontrollsperre über die gesamte GUI-Laufzeit und verwendet denselben
+benannten Produktjob wie Updates. Containerrechte erhalten ausschließlich neue getrennte
+synthetische TEMP-Appdaten; keine vorhandenen Projekte/Journale werden übernommen. Keine normale
+Produktintegration oder Wiederaufnahme bestehender Sitzungen. Die echte Vorschauablage niemals
+zurücksetzen oder kopieren, um einen neuen Prüfbuild dort zu autorisieren.
+
+Reproduktion ohne Zugriff auf diese echte Vorschauablage:
+
+```powershell
+$starterRoot = Join-Path $env:TEMP ('kraqel-isolation-controller-' + [guid]::NewGuid().ToString('N'))
+# Gesicherte Forschungs-App und erwartete SHA explizit angeben; kein normaler Appbuild.
+cargo run --locked --manifest-path scripts/runtime-isolation/probe/Cargo.toml -- product-start-series $starterRoot <Forschungs-App> <erwartete-App-SHA>
+```
+
+[Nachweis, Hashes und Grenzen](../../docs/testing/native-product-starter.md),
+[Kontrollvertrag](../../docs/data-format/native-product-control-v1.md). Der geänderte Broker
+benötigt einen eigenen frischen ETW-Nachweis; ältere Messungen werden nicht übertragen.
+
+## Dauerhafte synthetische Sitzungsbindung
+
+Kontrollschema 3 erlaubt explizite Apppaket-/Sitzungsbindung und authentisierten Wiederanlauf unter
+derselben Kontrollsperre/demselben Produktjob. Es erzeugt ausschließlich neue synthetische Daten,
+keine Migration bestehender Projekte/Journale. Ein fehlendes Journal, geänderte Appbytes oder
+Stilllegung sperren den Wiederanlauf; kein neuer Importgrant und keine automatische Reparatur.
+
+```powershell
+$sessionRoot = Join-Path $env:TEMP ('kraqel-isolation-controller-' + [guid]::NewGuid().ToString('N'))
+cargo run --locked --manifest-path scripts/runtime-isolation/probe/Cargo.toml -- product-session-series $sessionRoot <Forschungs-App> <erwartete-App-SHA>
+```
+
+Die native Serie beendet zwei Controller am echten GUI-Haltepunkt hart und prüft je zwei
+authentisierte Wiederanläufe sowie alte Köpfe, fehlendes Journal/geänderte App und Stilllegung.
+Interner `product-session-child` nur im begrenzten synthetischen Controller-/Case-/Store-Layout;
+normale Vorschau-Commands aktivieren keinen Controllerabbruch. Kontrollschema 3 erlaubt vorerst
+keine Brokerupdates und genau eine gebundene Sitzung je Installation.
+[Nachweis und gesicherte Hashes](../../docs/testing/native-product-session-recovery.md). Keine neuen
+Programmbytes an der echten Vorschauablage durch Kopieren/Reset autorisieren. Der neue Broker
+benötigt frisches ETW; ältere Messungen werden nicht übertragen.
+
+## Zusätzliche Sitzungsübergangs-Crashpunkte
+
+```powershell
+$transitionRoot = Join-Path $env:TEMP ('kraqel-isolation-controller-' + [guid]::NewGuid().ToString('N'))
+cargo run --locked --manifest-path scripts/runtime-isolation/probe/Cargo.toml -- product-transition-series $transitionRoot <Forschungs-App> <erwartete-App-SHA>
+```
+
+20 zusätzliche Fault-Punkte für Bindung, Recovery-Startrecord und Stilllegung, ausschließlich in
+neuen privaten synthetischen Installationen. Der interne `product-transition-child` akzeptiert nur
+passende typisierte Aktions-/Punktpaare im begrenzten TEMP-Controller-/Case-/Store-Layout. Normale
+Vorschau-Commands aktivieren keine Faults. Testprofil-Cleanup repariert keine gesperrte Ablage und
+verleiht keine Importautorität.
+[Matrix, gesicherte Hashes und eigener frischer ETW-Beleg](../../docs/testing/native-session-transition-crash-etw.md).
+Produktprofil-Cleanup-Reconciliation/Schema-3-Updates und normale Produktintegration bleiben offen.
+
+## Authentisierte Profilbereinigung
+
+Kontrollschema 4 signiert Sitzungsvorbereitung vor Profilerzeugung und Cleanupabschluss nach
+Stilllegung. Native Vorschau: `broker-store migrate-v4 <aktueller Kopf>` und nach authentisierter
+Stilllegung `broker-store cleanup-session <aktueller Kopf>`. Actor/Kopf/Jobleerstand und dieselbe
+Kontrollsperre bleiben verpflichtend. Die Profilidentität stammt ausschließlich aus der
+Kontrollkette; kein Verzeichnis- oder Diagnoseimport. Wiederholung ist idempotent, Daten und
+Schlüssel bleiben erhalten. Ungebundene Alt-Orphans/defekte Kontrollketten bleiben gesperrt.
+[Nachweis und Prüftiefe](../../docs/testing/native-profile-cleanup.md): zwei native Fälle und
+gezielte Helferprüfung auf ausdrücklichen Wunsch statt großer neuer Testmatrix. Neuer Broker noch
+ohne eigenen ETW-Nachweis; keine automatische Autorisierung in der echten Vorschauablage.
+
+## Lokale Brokerpaket-Updates unter Kontrollschema 4
+
+Die vorhandenen nativen `broker-store prepare <EXE> <SHA> <Kopf>`, `activate <Kopf>` und
+`abort <Kopf>` sind für Schema 4 freigegeben. Zusätzlich verlangt Schema 4 einen begrenzten
+read-only `.kqmeta`-Paketvertrag, geprüft vor Pending und erneut vor Aktivierung. Keine Ausführung
+des Kandidaten vor Aktivierung, keine Downloads oder Apppaket-/Datenmigration. Hashfreigabe,
+Actor/Kopf/Jobleerstand, dieselbe Kontrollsperre und Rollbackabwehr bleiben verpflichtend.
+[Vertrag, native Prüfung und Grenzen](../../docs/testing/native-schema4-package-update.md). Der neue
+Broker/Kandidat benötigt eigene frische ETW-Belege; die hashbenannte verwaltete EXE bei einer
+Messung ebenfalls vollständig erfassen. Echte Vorschauablage nicht übernehmen/zurücksetzen.
 
 Primärquellen:
 [AppContainer für klassische Apps](https://learn.microsoft.com/en-us/windows/win32/secauthz/appcontainer-for-legacy-applications-),

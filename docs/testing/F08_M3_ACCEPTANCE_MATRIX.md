@@ -1,5 +1,73 @@
 # F08-/M3-Abnahmematrix
 
+Kombiniertes ETW, 16. November: Zwei frische gültige Messphasen exakt des gesicherten v3-Paars,
+einschließlich manueller Dateiauswahl, Wiederanlauf und neuem Folgeauftrag. 80 Apps/480 WebViews,
+alle 868 Prozessenden explizit; acht Kontrollen, Nullverluste, 0 Nicht-Loopback- und 480 getrennte
+Loopback-Ereignisse. Native Daten/MACs unabhängig bestätigt.
+[Nachweis und Scope](native-combined-live-restart-etw.md). Kein neuer Hör-/vollständiger
+Fensterende- oder Produktbeleg; Q-01/Q-02 bleiben für das Produkt nicht bestanden.
+
+Kombiniert v3, 16. November: Neun native Forschungsfälle mit Live-Kanal, Wiederanlauf und neuem
+signiertem Folgeauftrag bestanden: 72 App-Starts, 18 Controllerenden, 54 abgewiesene Folgeaktionen.
+Zusätzlicher tatsächlicher manueller Dateidialog nach Shell-Pfadkorrektur bestätigt; MACs,
+Root-/Programmhashbindung, Journal/SQLite/Unicode/Kopien unabhängig geprüft.
+[Nachweis](native-combined-live-restart.md). Eigener ETW-Beleg oben ergänzt; neuer
+Hör-/vollständiger Fensterendebeleg fehlt, Q-01/Q-02 für das Produkt weiterhin nicht bestanden.
+
+HMAC 16. November: DPAPI im Forschungsbroker durch lokale HMAC-Authority ersetzt. Neue native Serie
+mit sechs Controllerenden, zwölf Wiederanlaufprozessen, 30 App-Generationen und 78 Ablehnungen
+bestanden; Daten/MACs unabhängig geprüft. [Nachweis](native-hmac-broker.md). Eigener gültiger
+[ETW-Beleg](native-hmac-broker-etw.md): 103 Broker/30 Apps/180 WebViews, 446 explizite Enden, vier
+Kontrollen, Nullverluste, 0 Nicht-Loopback- und 180 getrennte Loopback-Ereignisse. Keine
+Produkt-/Hörabnahme, Q-01/Q-02 bleiben nicht bestanden.
+
+Controller-Crash 16. November: Getrennter Forschungsbroker mit dauerhafter nativer Autorität,
+exklusiver Sperre und Jobzuweisung bei Prozesserzeugung geprüft. Sechs harte Controllerenden, zwölf
+neue Wiederanlaufprozesse, 30 App-Generationen, 60 Ablehnungen; Journal/Kopien/SQLite/Unicode
+unabhängig bestätigt. [Nachweis und Grenzen](native-controller-crash.md). Kein produktiver Broker,
+kein eigener neuer ETW-/Hörbeleg; Produkt-Q-01/Q-02 weiterhin nicht bestanden.
+
+ETW v2 am 16. November: Eigener gültiger Netzbeleg des gesicherten v2-Paars mit automatischer Serie
+und beiden manuellen Pfaden. 32 Apps/168 WebViews vollständig erfasst, vier Kontrollen,
+Nullverluste, 0 Nicht-Loopback- und 176 getrennte Loopback-Ereignisse; native Daten/Cleanup geprüft.
+[Nachweis](native-assistive-restart-etw.md), [Aggregate](native-assistive-restart-etw.json). Keine
+externe Broker-, Inhalts- oder Produktabnahme; Q-01/Q-02 unverändert nicht bestanden.
+
+Assistiver Wiederanlauf 16. November: Unterbrechungs-/Abschluss-/Replay-Ansagen mit
+Windows-Sprachausgabe bestätigt; native Aufrufe, Daten und Cleanup gegengeprüft. Tastaturnutzung
+menschlich bestätigt, aus dem Log allein nicht beweisbar. Erster Versuch ohne Replay nicht als
+bestanden gewertet. [Nachweis](native-assistive-restart.md). Neues v2-Paar ohne eigenen ETW-Beleg;
+keine assistive Voll- oder Produktabnahme, Q-01/Q-02 bleiben nicht bestanden.
+
+ETW-Fortschreibung 16. November: Das gesicherte Neustart-Paar ist mit neuer gültiger Messung belegt:
+28 vollständige App-Generationen, 144 WebViews, vier Kontrollen, Nullverluste, 0 Ereignisse
+außerhalb Loopback und 144 getrennte Loopback-Ereignisse. Native Crash-Serie und Daten/Cleanup im
+Messlauf unabhängig bestätigt. [Nachweis](native-ui-restart-etw.md),
+[Aggregate](native-ui-restart-etw.json). Keine externe Broker-, assistive Voll- oder Produktabnahme;
+Q-01/Q-02 unverändert nicht bestanden.
+
+Neustart-Fortschreibung 16. November: Integrierter isolierter GUI-Neustart innerhalb desselben
+Controllers nativ bestanden. 28 Generationen mit sechs Crashpunkten, zweifachem Wiederanlauf,
+Altimportabwehr und vier negativen Starts; unabhängige Journal-/SQLite-/Unicode-/Cleanup-Prüfung
+bestanden. [Nachweis](native-ui-restart.md), [Aggregate](native-ui-restart.json). Kein neuer
+ETW-Beleg, Controller-Crash-, assistiver Voll- oder Produktnachweis. Q-01/Q-02 unverändert offen.
+
+Auftrags-Fortschreibung 16. November: Dauerhafter Verbrauch und konservative Reconciliation im
+Forschungsadapter implementiert. Sieben echte Windows-Testprozess-Kills, erneutes Öffnen,
+Replay-Sperre und bytegleicher Bestand geprüft. Native Erfolg-/Abbruchrückprüfung bestätigt Journal,
+Kopienzahl und Cleanup. [Nachweis und Buildgrenzen](native-task-reconciliation.md). Integrierter
+isolierter GUI-Neustart und neuer ETW-Beleg fehlen; keine Produkt- oder assistive Vollabnahme.
+Q-01/Q-02 für das Produkt unverändert nicht bestanden.
+
+Neueste Fortschreibung 16. November: Live-Auswahl mit Replay sowie Fensterende bei offenem Dialog
+und nach echtem Teiltransfer funktional belegt. Frischer ETW-Vergleich am unveränderten finalen
+App-/Controllerpaar: drei vollständige Bäume, 19 WebView2-Lebenszeiten, vier Kontrollen,
+Nullverluste, 0 Ereignisse außerhalb Loopback. SQLite/Unicode, Kopienzahl, Teil-Empfang und Cleanup
+unabhängig bestätigt. [Nachweis](native-live-window-close.md),
+[Aggregate](native-live-window-close-etw.json). Keine externe Brokerattestierung, assistive
+Vollabnahme oder Produktintegration. Q-01/Q-02 für das Produkt weiter **nicht bestanden**, #134
+offen.
+
 Fortschreibung [UI-/Tauri-Testanbindung](native-tauri-file-channel.md): separates echtes
 Forschungsfenster, einmaliger vorab delegierter Einweg-Dateikanal, keine Rendererpfade/Handles,
 Origin-/Fensterprüfung. Finaler Build nativ dreimal mit Import/Wiederholung, Abbruch und Fensterende

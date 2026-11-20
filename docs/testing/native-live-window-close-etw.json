@@ -1,0 +1,87 @@
+{
+  "formatVersion": 1,
+  "diagnosticOnly": true,
+  "productionAcceptance": false,
+  "sourceCommit": "eb52ee1c58bf72286350cae36b36d92d7763cced",
+  "appSha256": "3b99bae5e3ff9b1cf0f47b1f377dceea4f558cf3b2805ca2a2ea8ea2d0112385",
+  "controllerSha256": "3c5a9e27c0e516d84a10576e109da2f773e1681bfdca9c47fec69bcafa0a86be",
+  "startedUtc": "2026-11-16T06:54:42.8694694Z",
+  "stoppedUtc": "2026-11-16T07:02:26.5745349Z",
+  "etlBytes": 3866624,
+  "measurementMode": "isolation-ui",
+  "measurementValid": true,
+  "measurementProblems": [],
+  "result": "no-non-loopback-traffic-observed",
+  "rootStarts": 3,
+  "processLifetimes": {
+    "kraqel-isolation-probe.exe": 3,
+    "kraqel-desktop.exe": 3,
+    "conhost.exe": 3,
+    "msedgewebview2.exe": 19
+  },
+  "loss": { "EventsLost": 0, "BuffersLost": 0 },
+  "positiveControls": { "expected": 4, "observed": 4 },
+  "unattributableNetworkEvents": 0,
+  "unknownDestinationEvents": 0,
+  "nonLoopbackEvents": 0,
+  "loopbackEvents": [
+    { "image": "msedgewebview2.exe", "eventId": 13, "count": 11 },
+    { "image": "msedgewebview2.exe", "eventId": 29, "count": 11 }
+  ],
+  "nativeRuns": [
+    {
+      "scenario": "import-replay-reference",
+      "verificationPassed": true,
+      "appExitCode": 0,
+      "controllerExitCode": 0,
+      "projectCopies": 1,
+      "replayRejected": true,
+      "sqliteUnicodeIntegrityForeignKeys": true,
+      "noStagingResidue": true,
+      "selectionThreadJoined": true,
+      "activeJobProcessesAtEnd": 0,
+      "profileRemoved": true
+    },
+    {
+      "scenario": "close-with-native-dialog-open",
+      "verificationPassed": true,
+      "appExitCode": 0,
+      "controllerExitCode": 0,
+      "error": "CANCELLED",
+      "projectCopies": 0,
+      "dialogCloseMessages": 6,
+      "noStagingResidue": true,
+      "selectionThreadJoined": true,
+      "activeJobProcessesAtEnd": 0,
+      "profileRemoved": true
+    },
+    {
+      "scenario": "close-during-partial-transfer",
+      "verificationPassed": true,
+      "appExitCode": 0,
+      "controllerExitCode": 0,
+      "error": "CANCELLED",
+      "bytesSent": 1024,
+      "payloadBytesReceived": 1024,
+      "expectedBytes": 11915,
+      "projectCopies": 0,
+      "noStagingResidue": true,
+      "selectionThreadJoined": true,
+      "activeJobProcessesAtEnd": 0,
+      "profileRemoved": true
+    }
+  ],
+  "comparison": {
+    "previousEvidence": "native-live-file-selection-etw.json",
+    "previousMeasurementValid": true,
+    "previousNonLoopbackEvents": 0,
+    "currentNonLoopbackEvents": 0,
+    "causalOrRateComparison": false
+  },
+  "limits": [
+    "Only the recorded synthetic research builds, process lifetimes and exercised paths.",
+    "No causal attribution of out-of-tree COM/Shell services, DNS/broker routes or compromised runtime processes.",
+    "Transport metadata, not an HTTP, upload or payload audit. No physical network disconnection.",
+    "No product Q-01/Q-02 acceptance; ordinary product startup remains unisolated."
+  ]
+}

@@ -6,6 +6,7 @@
 //! suspended root enters the kill-on-close job before ResumeThread. Only the fresh validated
 //! TEMP root/data receive additional ACL entries. No firewall or loopback-exemption policy is set.
 #![deny(unsafe_op_in_unsafe_fn)]
+mod debug_guardian;
 mod exchange;
 use serde_json::{Value, json};
 use std::{
@@ -279,7 +280,25 @@ impl Attributes {
         Self::with_handles(caps, &[])
     }
     fn with_handles(caps: &SECURITY_CAPABILITIES, handles: &[HANDLE]) -> Result<Self> {
-        let count = if handles.is_empty() { 1 } else { 2 };
+        Self::with_handles_and_jobs(caps, handles, &[])
+    }
+    fn with_handles_and_jobs(
+        caps: &SECURITY_CAPABILITIES,
+        handles: &[HANDLE],
+        jobs: &[HANDLE],
+    ) -> Result<Self> {
+        Self::with_creation_policy(caps, handles, jobs, None)
+    }
+    fn with_creation_policy(
+        caps: &SECURITY_CAPABILITIES,
+        handles: &[HANDLE],
+        jobs: &[HANDLE],
+        early: Option<(&u64, &u32)>,
+    ) -> Result<Self> {
+        let count = 1
+            + u32::from(!handles.is_empty())
+            + u32::from(!jobs.is_empty())
+            + if early.is_some() { 2 } else { 0 };
         let mut bytes = 0;
         unsafe {
             InitializeProcThreadAttributeList(null_mut(), count, 0, &mut bytes);
@@ -325,6 +344,52 @@ impl Attributes {
                     )
                 },
                 "set-handle-list",
+            )?;
+        }
+        if !jobs.is_empty() {
+            check(
+                unsafe {
+                    UpdateProcThreadAttribute(
+                        ptr,
+                        0,
+                        PROC_THREAD_ATTRIBUTE_JOB_LIST as usize,
+                        jobs.as_ptr().cast(),
+                        std::mem::size_of_val(jobs),
+                        null_mut(),
+                        null(),
+                    )
+                },
+                "set-creation-job-list",
+            )?;
+        }
+        if let Some((mitigations, child_policy)) = early {
+            check(
+                unsafe {
+                    UpdateProcThreadAttribute(
+                        ptr,
+                        0,
+                        PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY as usize,
+                        (mitigations as *const u64).cast(),
+                        size_of::<u64>(),
+                        null_mut(),
+                        null(),
+                    )
+                },
+                "bp2-creation-mitigation",
+            )?;
+            check(
+                unsafe {
+                    UpdateProcThreadAttribute(
+                        ptr,
+                        0,
+                        PROC_THREAD_ATTRIBUTE_CHILD_PROCESS_POLICY as usize,
+                        (child_policy as *const u32).cast(),
+                        size_of::<u32>(),
+                        null_mut(),
+                        null(),
+                    )
+                },
+                "bp2-creation-child-policy",
             )?;
         }
         Ok(value)
@@ -736,7 +801,101 @@ fn launch(root: &Path, app: Option<&Path>, resume: bool) -> Result<Value> {
 }
 pub fn main() {
     let args = std::env::args_os().skip(1).collect::<Vec<_>>();
+    if args.first().is_some_and(|a| a == "bp3-debug-worker") {
+        let result = debug_guardian::worker(&args[1..]);
+        std::process::exit(if result.is_ok() { 0 } else { 2 });
+    }
+    if args.first().is_some_and(|a| a == "bp2-leaf-worker") {
+        let result = exchange::bp2_worker(&args[1..]);
+        std::process::exit(if result.is_ok() { 0 } else { 2 });
+    }
+    if args.first().is_some_and(|a| a == "bp2-must-not-start") {
+        std::process::exit(2);
+    }
+    if args.first().is_some_and(|a| a == "c4-root-probe-worker") {
+        let result = exchange::c4_root_worker(&args[1..]);
+        std::process::exit(if result.is_ok() { 0 } else { 2 });
+    }
+    if args.first().is_some_and(|a| a == "c3-synthetic-worker") {
+        let code = if exchange::group_worker(&args[1..]).is_ok() {
+            0
+        } else {
+            2
+        };
+        std::process::exit(code);
+    }
+    // Never enter generic diagnostics/network-probe dispatch from this worker role.
+    if args.first().is_some_and(|a| a == "workspace-probe-worker") {
+        let code = if exchange::product_workspace_probe_worker(&args[1..]).is_ok() {
+            0
+        } else {
+            2
+        };
+        std::process::exit(code);
+    }
     let result = (|| {
+        if args.first().is_some_and(|a| a == "product-c3-group-child") {
+            return exchange::group_child(&args[1..]);
+        }
+        if args.first().is_some_and(|a| a == "product-p2c-data-child") {
+            return exchange::product_workspace_persistent_child(&args[1..]);
+        }
+        if args.len() == 3 && args[0] == "product-control-series" {
+            return exchange::product_crash_series(Path::new(&args[1]), Path::new(&args[2]));
+        }
+        if args.len() == 4 && args[0] == "product-transition-series" {
+            return exchange::product_transition_series(
+                Path::new(&args[1]),
+                Path::new(&args[2]),
+                &args[3],
+            );
+        }
+        if args.len() == 7 && args[0] == "product-transition-child" {
+            return exchange::product_transition_child(&args[1..]);
+        }
+        if args.len() == 4 && args[0] == "product-session-series" {
+            return exchange::product_session_series(
+                Path::new(&args[1]),
+                Path::new(&args[2]),
+                &args[3],
+            );
+        }
+        if args.len() == 6 && args[0] == "product-session-child" {
+            return exchange::product_session_child(&args[1..]);
+        }
+        if args.len() == 6 && args[0] == "product-workspace-child" {
+            return exchange::product_workspace_child(&args[1..]);
+        }
+        if args.len() == 4 && args[0] == "product-workspace-probe-child" {
+            return exchange::product_workspace_probe_child(&args[1..]);
+        }
+        if args.len() == 4 && args[0] == "product-start-series" {
+            return exchange::product_start_series(
+                Path::new(&args[1]),
+                Path::new(&args[2]),
+                &args[3],
+            );
+        }
+        if args.len() == 6 && args[0] == "product-control-child" {
+            return exchange::product_crash_child(&args[1..]);
+        }
+        if args.first().is_some_and(|arg| arg == "broker-store") {
+            return exchange::product_storage(&args[1..]);
+        }
+        if args.len() == 5 && args[0] == "ui-broker-live-seed" {
+            return exchange::seed_live(
+                Path::new(&args[1]),
+                Path::new(&args[2]),
+                &args[3].to_string_lossy(),
+                &args[4].to_string_lossy(),
+            );
+        }
+        if args.len() == 2 && args[0] == "ui-broker-live-next" {
+            return exchange::next_live(Path::new(&args[1]));
+        }
+        if args.len() == 3 && args[0] == "ui-combined-series" {
+            return exchange::combined_series(Path::new(&args[1]), Path::new(&args[2]));
+        }
         if args.len() == 5 && args[0] == "exchange-child" {
             return exchange::child(&args[1..]);
         }
@@ -745,6 +904,38 @@ pub fn main() {
         }
         if args.len() == 3 && args[0] == "app-import-fixture" {
             return exchange::launch_import(Path::new(&args[1]), &args[2].to_string_lossy());
+        }
+        if args.len() == 3 && args[0] == "ui-crash-series" {
+            return exchange::launch_restart_series(Path::new(&args[1]), Path::new(&args[2]));
+        }
+        if args.len() == 3 && args[0] == "ui-controller-crash-series" {
+            return exchange::controller_crash_series(Path::new(&args[1]), Path::new(&args[2]));
+        }
+        if args.len() == 4 && args[0] == "ui-broker-seed" {
+            return exchange::seed_broker(
+                Path::new(&args[1]),
+                Path::new(&args[2]),
+                &args[3].to_string_lossy(),
+            );
+        }
+        if args.len() == 3 && args[0] == "ui-broker-recover" {
+            return exchange::recover_broker(Path::new(&args[1]), &args[2].to_string_lossy());
+        }
+        if args.len() == 3
+            && (args[0] == "ui-assistive-interrupted" || args[0] == "ui-assistive-completed")
+        {
+            return exchange::launch_assistive(
+                Path::new(&args[1]),
+                Path::new(&args[2]),
+                args[0] == "ui-assistive-completed",
+            );
+        }
+        if args.len() == 3 && (args[0] == "ui-live" || args[0] == "ui-live-transfer-hold") {
+            return exchange::launch_live_ui(
+                Path::new(&args[1]),
+                Path::new(&args[2]),
+                args[0] == "ui-live-transfer-hold",
+            );
         }
         if args.len() == 3 && (args[0] == "ui-fixture" || args[0] == "ui-select") {
             return exchange::launch_ui(

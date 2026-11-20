@@ -1,0 +1,44 @@
+{
+  "formatVersion": 1,
+  "diagnosticOnly": true,
+  "productionAcceptance": false,
+  "appSha256": "3b99bae5e3ff9b1cf0f47b1f377dceea4f558cf3b2805ca2a2ea8ea2d0112385",
+  "dialogControllerSha256": "3c5a9e27c0e516d84a10576e109da2f773e1681bfdca9c47fec69bcafa0a86be",
+  "runs": [
+    {
+      "scenario": "close-with-native-dialog-open",
+      "passed": true,
+      "appExitCode": 0,
+      "controllerExitCode": 0,
+      "error": "CANCELLED",
+      "selectionThreadJoined": true,
+      "dialogCloseMessages": 4,
+      "projectCopies": 0,
+      "noStagingResidue": true,
+      "activeJobProcessesAtEnd": 0,
+      "profileRemoved": true
+    },
+    {
+      "scenario": "close-during-partial-transfer",
+      "passed": true,
+      "appExitCode": 0,
+      "controllerExitCode": 0,
+      "error": "CANCELLED",
+      "bytesSent": 1024,
+      "payloadBytesReceived": 1024,
+      "expectedBytes": 11915,
+      "selectionThreadJoined": true,
+      "projectCopies": 0,
+      "noStagingResidue": true,
+      "activeJobProcessesAtEnd": 0,
+      "profileRemoved": true,
+      "controllerSha256": null
+    }
+  ],
+  "etwMeasured": false,
+  "limits": [
+    "Synthetic research paths only; no product privacy acceptance.",
+    "Transfer case preceded the final controller correction for dialog-cancellation responses; its controller hash was not separately retained.",
+    "No new network measurement for these changed binaries. Previous ETW evidence remains bound to its recorded hashes."
+  ]
+}

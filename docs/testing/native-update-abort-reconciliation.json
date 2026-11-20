@@ -1,0 +1,69 @@
+{
+  "formatVersion": 1,
+  "nativePreviewOnly": true,
+  "productionAcceptance": false,
+  "programSourceCommit": "ef815ea8314bb23db4b502948e5b1bc63151c6f8",
+  "controllerSha256": "45542384ce42b73450453dce2f5a40b635b7b8552055de25d60c147fc21dd360",
+  "candidateSha256": "6748900defbbdb8df5e8e5ec0e611091cd1e6656880381a18e43e8755510bf90",
+  "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+  "independentAuditPassed": true,
+  "controlSchema": 4,
+  "nativeCases": 3,
+  "childProcesses": 45,
+  "childExitCodes": {
+    "0": 24,
+    "86": 2,
+    "1": 19
+  },
+  "syntheticForeignActorNegativeStarts": 3,
+  "controllerCrashes": 2,
+  "guiStarts": 6,
+  "actualContainerDenials": 36,
+  "profilesRemoved": 3,
+  "persistedTasks": 3,
+  "legitimateProjectCopies": 3,
+  "helperActiveTestsPassed": 53,
+  "helperClippyPassed": true,
+  "fullWorkspaceCheck": false,
+  "normalPreviewStoreUsed": false,
+  "networkMeasurement": false,
+  "cases": [
+    {
+      "fault": "partial-copy",
+      "authenticatedAbortRecorded": true,
+      "originalActorPreserved": true,
+      "keyAndBindingPreserved": true,
+      "controlRecords": 11,
+      "guiStarts": 2,
+      "persistedTasks": 1,
+      "legitimateProjectCopies": 1,
+      "replayBlocked": true,
+      "profileRemoved": true
+    },
+    {
+      "fault": "tampered-package",
+      "authenticatedAbortRecorded": true,
+      "originalActorPreserved": true,
+      "keyAndBindingPreserved": true,
+      "controlRecords": 11,
+      "guiStarts": 2,
+      "persistedTasks": 1,
+      "legitimateProjectCopies": 1,
+      "replayBlocked": true,
+      "profileRemoved": true
+    },
+    {
+      "fault": "abort-published",
+      "authenticatedAbortRecorded": true,
+      "originalActorPreserved": true,
+      "keyAndBindingPreserved": true,
+      "controlRecords": 11,
+      "guiStarts": 2,
+      "persistedTasks": 1,
+      "legitimateProjectCopies": 1,
+      "replayBlocked": true,
+      "profileRemoved": true
+    }
+  ],
+  "limits": "Explicit abort of authentic pending state only; no repair of incomplete chains, no package deletion or automatic retry. Three intentional rejected foreign-actor calls run identical synthetic candidate code; updater does not launch candidate before activation. Earlier ETW covers only its own exercised paths."
+}

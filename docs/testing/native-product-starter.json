@@ -1,0 +1,305 @@
+{
+  "formatVersion": 1,
+  "nativePreviewOnly": true,
+  "productionAcceptance": false,
+  "sourceBaseCommit": "506e69b1cf0586158fd51a936bbefc1593e64535",
+  "controllerSha256": "53b4fe70848e16fc49e10e03cd4c1abed5c941ae0ac57f52fa78bfc07e9e2754",
+  "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+  "independentAuditPassed": true,
+  "nativeStarts": 2,
+  "explicitSyntheticImportTasks": 2,
+  "legitimateProjectCopies": 2,
+  "negativeGuards": 5,
+  "actualContainerDenials": 12,
+  "controlMacAndRootVerified": true,
+  "controlHeadAndKeyUnchanged": true,
+  "leaseCheckedBeforeResume": true,
+  "namedProductJobCheckedBeforeResume": true,
+  "profilesRemoved": 2,
+  "activeJobProcessesAtEnd": 0,
+  "existingDataAdopted": false,
+  "normalPreviewStoreUsed": false,
+  "reservedPrivateDataEmpty": true,
+  "networkMeasurement": false,
+  "functionalCrashRegression": {
+    "formatVersion": 1,
+    "nativePreviewOnly": true,
+    "productionAcceptance": false,
+    "independentAuditPassed": true,
+    "baseBinarySha256": "53b4fe70848e16fc49e10e03cd4c1abed5c941ae0ac57f52fa78bfc07e9e2754",
+    "candidateBinarySha256": "0adb5ab66c3e4931361939c397d8378b99b55c8eb01b9f546a56ea3e2901993e",
+    "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+    "crashCases": 28,
+    "controllerCrashes": 28,
+    "blockedCases": 17,
+    "readyCases": 11,
+    "explicitlyReconciledCases": 8,
+    "childProcesses": 162,
+    "childExitCodes": {
+      "0": 76,
+      "1": 58,
+      "86": 28
+    },
+    "macChainsAndHeadStatesVerified": true,
+    "canonicalRootBindingsVerified": true,
+    "keyResets": 0,
+    "actualContainerDenials": 12,
+    "allGuiTestProfilesRemoved": true,
+    "normalPreviewStoreUsed": false,
+    "cases": [
+      {
+        "action": "init",
+        "point": "before-key",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "init",
+        "point": "key-synced",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "init",
+        "point": "record-created",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "init",
+        "point": "record-synced",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "init",
+        "point": "head-staged",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "init",
+        "point": "head-published",
+        "readyAfterCrash": true,
+        "explicitlyReconciled": true,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "migrate",
+        "point": "before-record",
+        "readyAfterCrash": true,
+        "explicitlyReconciled": true,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "migrate",
+        "point": "record-created",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "migrate",
+        "point": "record-synced",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "migrate",
+        "point": "head-staged",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "migrate",
+        "point": "head-published",
+        "readyAfterCrash": true,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "prepare",
+        "point": "before-record",
+        "readyAfterCrash": true,
+        "explicitlyReconciled": true,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "prepare",
+        "point": "record-created",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "prepare",
+        "point": "record-synced",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "prepare",
+        "point": "head-staged",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "prepare",
+        "point": "head-published",
+        "readyAfterCrash": true,
+        "explicitlyReconciled": true,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "prepare",
+        "point": "package-partial",
+        "readyAfterCrash": true,
+        "explicitlyReconciled": true,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "prepare",
+        "point": "package-synced",
+        "readyAfterCrash": true,
+        "explicitlyReconciled": true,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "activate",
+        "point": "before-record",
+        "readyAfterCrash": true,
+        "explicitlyReconciled": true,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "activate",
+        "point": "record-created",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "activate",
+        "point": "record-synced",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "activate",
+        "point": "head-staged",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "activate",
+        "point": "head-published",
+        "readyAfterCrash": true,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "abort",
+        "point": "before-record",
+        "readyAfterCrash": true,
+        "explicitlyReconciled": true,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "abort",
+        "point": "record-created",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "abort",
+        "point": "record-synced",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "abort",
+        "point": "head-staged",
+        "readyAfterCrash": false,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      },
+      {
+        "action": "abort",
+        "point": "head-published",
+        "readyAfterCrash": true,
+        "explicitlyReconciled": false,
+        "restartReadOnly": true,
+        "noKeyReset": true,
+        "dataSentinelPreserved": true
+      }
+    ],
+    "networkMeasurement": false
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "measurementMode": "broker-ui",
+  "measurementValid": true,
+  "measurementProblems": [],
+  "result": "no-non-loopback-traffic-observed",
+  "rootStarts": 1,
+  "processLifetimes": {
+    "kraqel-isolation-probe.exe": 103,
+    "conhost.exe": 133,
+    "kraqel-desktop.exe": 30,
+    "msedgewebview2.exe": 180
+  },
+  "loss": {
+    "EventsLost": 0,
+    "BuffersLost": 0
+  },
+  "positiveControls": {
+    "expected": 4,
+    "observed": 4
+  },
+  "unattributableNetworkEvents": 0,
+  "unknownDestinationEvents": 0,
+  "nonLoopbackEvents": 0,
+  "formatVersion": 1,
+  "researchOnly": true,
+  "productionAcceptance": false,
+  "brokerSourceCommit": "b2e181134a9919f961188be1712bca9cae26c187",
+  "appSourceCommit": "9d87e20d4a2526885c213bd186e4c22573d80744",
+  "appSha256": "4db1e731e6aee50fe01e9e368d1ded61ac61f3f9dc3e2238d509cee600098e1b",
+  "controllerSha256": "28fde769f00be412dcc755331f1a9424a39dac59e9a2f2de44dbc724e84825dd",
+  "durableAuthorityVersion": 2,
+  "restartTicketVersion": 2,
+  "dpapiUsedForBrokerAuthority": false,
+  "captureReadyUtc": "2026-11-16T09:56:39.1748257Z",
+  "stoppedUtc": "2026-11-16T09:58:21.2972761Z",
+  "convertedUtc": "2026-11-16T09:58:21.6878871Z",
+  "etlBytes": 2555904,
+  "loopbackEvents": [
+    {
+      "image": "msedgewebview2.exe",
+      "eventId": 13,
+      "count": 90
+    },
+    {
+      "image": "msedgewebview2.exe",
+      "eventId": 29,
+      "count": 90
+    }
+  ],
+  "generationCoverage": {
+    "independentLifecycleAuditPassed": true,
+    "orderedAppGenerationsMatched": 30,
+    "explicitProcessStops": 446,
+    "processLifetimes": {
+      "kraqel-isolation-probe.exe": 103,
+      "conhost.exe": 133,
+      "kraqel-desktop.exe": 30,
+      "msedgewebview2.exe": 180
+    },
+    "brokerExitCodes": {
+      "0": 19,
+      "86": 6,
+      "1": 78
+    },
+    "appExitCodes": {
+      "0": 6,
+      "77": 24
+    },
+    "seedAppExitCodes": {
+      "0": 6
+    },
+    "webViewsPerAppDistribution": {
+      "6": 30
+    }
+  },
+  "nativeSeries": {
+    "controllerCrashes": 6,
+    "recoveryProcesses": 12,
+    "appGenerations": 30,
+    "negativeChecks": 78,
+    "privateBrokerFileAccessChecks": 180,
+    "passed": true
+  },
+  "independentHmacAndDataAuditPassed": true,
+  "stagingEntries": 0,
+  "allProfilesRemoved": true,
+  "activeResearchProcessesAtEnd": 0,
+  "captureStoppedAndConverted": true,
+  "rawDiagnosticsAndKeysRemainLocal": true,
+  "runtimeChangedAfterMeasurement": false,
+  "newHearingAcceptance": false,
+  "limits": [
+    "Exact saved binary pair and synthetic paths only; no automatic transfer to changed binaries.",
+    "No DPAPI authority path; local HMAC key custody relies on private Windows DACL, not encryption at rest or hardware binding.",
+    "Local TCP/UDP IPv4/IPv6 controls do not calibrate every public route or out-of-tree COM/Shell/DNS service.",
+    "Transport metadata only, no HTTP/upload/payload audit or physical network disconnection.",
+    "No product acceptance: ordinary product startup remains unisolated."
+  ]
+}

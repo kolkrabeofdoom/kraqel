@@ -1,0 +1,55 @@
+{
+  "formatVersion": 1,
+  "date": "2026-11-16",
+  "researchOnly": true,
+  "productionAcceptance": false,
+  "restartTicketVersion": 2,
+  "appSha256": "4db1e731e6aee50fe01e9e368d1ded61ac61f3f9dc3e2238d509cee600098e1b",
+  "controllerSha256": "64ddbcb277c38db75b6e324687d0122a62dcc4b4690e0fefe9249a027436007e",
+  "assistiveToolUserReported": "Windows-Sprachausgabe",
+  "interruptedRecovery": {
+    "initialAnnouncementUserConfirmed": true,
+    "focusUserConfirmed": true,
+    "replayAnnouncementUserConfirmedAfterRetry": true,
+    "nativeReplayRejected": true,
+    "journalState": "interrupted",
+    "projectCopies": 0,
+    "stagingEntries": 0
+  },
+  "completedRecovery": {
+    "initialAnnouncementUserConfirmed": true,
+    "focusUserConfirmed": true,
+    "replayAnnouncementUserConfirmed": true,
+    "nativeReplayRejected": true,
+    "journalState": "succeeded",
+    "projectCopies": 1,
+    "stagingEntries": 0
+  },
+  "keyboardRecovery": {
+    "keyboardActivationAndAnnouncementUserConfirmed": true,
+    "navigationAndNativeReplayObserved": true,
+    "pointerEventAlsoObserved": true,
+    "inputMethodIndependentlyProven": false,
+    "nativeRunPassed": true
+  },
+  "initialIncompleteAttempt": {
+    "accepted": false,
+    "reason": "no-native-replay-observed",
+    "eventLossRaceConfirmed": false,
+    "retryPassed": true,
+    "profileMappingRemaining": false
+  },
+  "acceptedManualRuns": 3,
+  "manualGenerationExitCodes": { "77": 3, "0": 3 },
+  "acceptedRunProfilesRemoved": true,
+  "activeJobProcessesAtEnd": 0,
+  "journalSqliteUnicodeForeignKeysValid": true,
+  "automaticV2RegressionGenerationsPassed": 28,
+  "browserTestsPassed": 35,
+  "helperAndTransportTestsPassed": 24,
+  "newEtwMeasurement": false,
+  "subsequentEtwEvidence": "native-assistive-restart-etw.json",
+  "previousEtwEvidenceOtherHashPair": "native-ui-restart-etw.json",
+  "audioOrKeycodesRecorded": false,
+  "fullAssistiveProductAcceptance": false
+}

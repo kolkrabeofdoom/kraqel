@@ -1,0 +1,156 @@
+{
+  "formatVersion": 1,
+  "measuredRuntimeSourceCommit": "03e4ed1cd3065bec5f369e89c29682737af59d36",
+  "nativePreviewOnly": true,
+  "productionAcceptance": false,
+  "controllerAndWorkerSha256": "37d7beccd2c8368a9e34f27d6b29d668f25a2816fbd43893bc6abddf885ca081",
+  "uiFixtureSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+  "executionVersion": 3,
+  "probeResourceCleanupAbi": 3,
+  "singleProcessJobLimit": 1,
+  "networkMeasurement": true,
+  "unchangedCaptureAndAnalyzer": true,
+  "newRuntimeBuild": false,
+  "diagnosticTestsPassed": 42,
+  "fullWorkspaceCheck": false,
+  "normalPreviewStoreUsed": false,
+  "normalPreviewLastWriteUnchanged": true,
+  "rawEvidencePublished": false,
+  "allOwnedTracesStopped": true,
+  "controllerProcesses": 52,
+  "workerProcesses": 8,
+  "consoleHosts": 52,
+  "explicitProcessStops": 112,
+  "positiveControlsObserved": 8,
+  "lostEvents": 0,
+  "lostBuffers": 0,
+  "unattributableNetworkEvents": 0,
+  "nonLoopbackEvents": 0,
+  "loopbackEvents": 0,
+  "workerNativeCreationTimesMatched": 8,
+  "durableWorkerBindingsMatched": 7,
+  "recoveredDrainAfterKernelEndMatched": 3,
+  "kernelExitZeroIsNotFormalSuccess": true,
+  "formalFinishRecords": 4,
+  "expectedBlockedPendingStores": 1,
+  "independentLifecycleAndDataAuditPassed": true,
+  "osProfilesCreated": 8,
+  "brokerProfilesRemoved": 7,
+  "harnessOwnFixtureCleanup": 1,
+  "profilesAbsentAtEnd": true,
+  "actualPrivateDenials": 48,
+  "boundWorkspaces": 5,
+  "controlRecords": 75,
+  "consumedLaunches": 8,
+  "uiStarts": 0,
+  "importTasksCreated": 0,
+  "phases": [
+    {
+      "phase": "reference",
+      "analysis": {
+        "formatVersion": 1,
+        "measurementMode": "native-control",
+        "measurementValid": true,
+        "measurementProblems": [],
+        "result": "no-non-loopback-traffic-observed",
+        "rootStarts": 5,
+        "explicitRootImageBindings": 5,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 5,
+          "conhost.exe": 5,
+          "worker.exe": 1
+        },
+        "loss": {
+          "EventsLost": 0,
+          "BuffersLost": 0
+        },
+        "positiveControls": {
+          "expected": 4,
+          "observed": 4
+        },
+        "unattributableNetworkEvents": 0,
+        "unknownDestinationEvents": 0,
+        "networkEvents": [],
+        "nonLoopbackEvents": 0,
+        "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths. Out-of-tree COM/Shell services are not attributed by this process-tree measurement."
+      },
+      "lifecycle": {
+        "independentLifecycleAuditPassed": true,
+        "rootStarts": 5,
+        "nativeCallsMatched": 5,
+        "workersMatchedByPidAndCreationTime": 1,
+        "durableWorkerBindingsMatched": 1,
+        "recoveredDrainAfterKernelEndMatched": 0,
+        "explicitProcessStops": 11,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 5,
+          "conhost.exe": 5,
+          "worker.exe": 1
+        },
+        "controllerExitCodes": {
+          "0": 5
+        },
+        "workerExitCodes": {
+          "0": 1
+        },
+        "nativeDataAuditPassed": true,
+        "profilesAbsentAtEnd": true
+      }
+    },
+    {
+      "phase": "recovery",
+      "analysis": {
+        "formatVersion": 1,
+        "measurementMode": "native-control",
+        "measurementValid": true,
+        "measurementProblems": [],
+        "result": "no-non-loopback-traffic-observed",
+        "rootStarts": 47,
+        "explicitRootImageBindings": 47,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 47,
+          "conhost.exe": 47,
+          "worker.exe": 7
+        },
+        "loss": {
+          "EventsLost": 0,
+          "BuffersLost": 0
+        },
+        "positiveControls": {
+          "expected": 4,
+          "observed": 4
+        },
+        "unattributableNetworkEvents": 0,
+        "unknownDestinationEvents": 0,
+        "networkEvents": [],
+        "nonLoopbackEvents": 0,
+        "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths. Out-of-tree COM/Shell services are not attributed by this process-tree measurement."
+      },
+      "lifecycle": {
+        "independentLifecycleAuditPassed": true,
+        "rootStarts": 47,
+        "nativeCallsMatched": 47,
+        "workersMatchedByPidAndCreationTime": 7,
+        "durableWorkerBindingsMatched": 6,
+        "recoveredDrainAfterKernelEndMatched": 3,
+        "explicitProcessStops": 101,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 47,
+          "conhost.exe": 47,
+          "worker.exe": 7
+        },
+        "controllerExitCodes": {
+          "0": 26,
+          "86": 4,
+          "1": 17
+        },
+        "workerExitCodes": {
+          "0": 7
+        },
+        "nativeDataAuditPassed": true,
+        "profilesAbsentAtEnd": true
+      }
+    }
+  ],
+  "limits": "Only these single-process synthetic worker/controller bytes, lifetimes and exercised paths. Unbound launch remains pending despite separate harness fixture cleanup. Kernel exit zero is not success authority. No normal GUI/product/data grant, multiprocess GUI lifecycle or external COM/Shell/DNS/HTTP/upload/content attestation; no physical network disconnection. Strict product Q-01/Q-02 remain open."
+}

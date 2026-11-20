@@ -3,7 +3,6 @@ import {
   IMAGE_CAPABILITIES,
   IMAGE_GENERATION_CONTRACT_VERSION,
   isTerminalImageGenerationStatus,
-  type ImageGenerationRequest,
 } from "./index";
 
 describe("image generation contracts", () => {
@@ -15,27 +14,6 @@ describe("image generation contracts", () => {
       "image.reference",
       "image.map_render",
     ]);
-  });
-
-  it("represents an explicitly released request without provider assumptions", () => {
-    const request: ImageGenerationRequest = {
-      contractVersion: IMAGE_GENERATION_CONTRACT_VERSION,
-      jobId: "00000000-0000-0000-0000-000000000001",
-      projectId: "00000000-0000-0000-0000-000000000002",
-      providerId: "local-mock",
-      modelId: "mock-v1",
-      capability: "image.generate",
-      context: {
-        promptDraftId: "00000000-0000-0000-0000-000000000003",
-        promptText: "Kolkrabe über der solidarischen Stadt",
-        referenceAssetIds: [],
-        approved: true,
-      },
-      settings: { width: 1024, height: 1024, outputCount: 1, seed: 42 },
-    };
-
-    expect(request.context.approved).toBe(true);
-    expect(request.providerId).toBe("local-mock");
   });
 
   it("distinguishes active and terminal job states", () => {

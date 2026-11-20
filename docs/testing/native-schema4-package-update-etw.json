@@ -1,0 +1,256 @@
+{
+  "formatVersion": 1,
+  "nativePreviewOnly": true,
+  "productionAcceptance": false,
+  "programSourceCommit": "ef815ea8314bb23db4b502948e5b1bc63151c6f8",
+  "controllerSha256": "45542384ce42b73450453dce2f5a40b635b7b8552055de25d60c147fc21dd360",
+  "candidateSha256": "6748900defbbdb8df5e8e5ec0e611091cd1e6656880381a18e43e8755510bf90",
+  "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+  "analyzerSha256": "7bb898082066f9f1c7efced0383a26e13106b71acdcc0490012b72993150f57c",
+  "measurementValid": true,
+  "positiveControls": {
+    "expected": 8,
+    "observed": 8
+  },
+  "explicitProcessStops": 132,
+  "processLifetimes": {
+    "kraqel-isolation-probe.exe": 29,
+    "conhost.exe": 42,
+    "kraqel-desktop.exe": 8,
+    "msedgewebview2.exe": 48,
+    "6748900defbbdb8df5e8e5ec0e611091cd1e6656880381a18e43e8755510bf90.exe": 5
+  },
+  "nonLoopbackEvents": 0,
+  "separateLoopbackEvents": 48,
+  "measuredPersistedImportTasks": 3,
+  "measuredLegitimateProjectCopies": 2,
+  "nativeControlRoots": 15,
+  "hashNamedManagedRoots": 5,
+  "actualContainerDenials": 48,
+  "profilesRemoved": 3,
+  "diagnosticTestsPassed": 42,
+  "testLevel": "moderate, explicitly requested",
+  "normalPreviewStoreUsed": false,
+  "phases": [
+    {
+      "formatVersion": 1,
+      "measurementMode": "broker-ui",
+      "measurementValid": true,
+      "measurementProblems": [],
+      "result": "no-non-loopback-traffic-observed",
+      "rootStarts": 1,
+      "explicitRootImageBindings": 0,
+      "processLifetimes": {
+        "kraqel-isolation-probe.exe": 19,
+        "conhost.exe": 25,
+        "kraqel-desktop.exe": 6,
+        "msedgewebview2.exe": 36
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "unattributableNetworkEvents": 0,
+      "unknownDestinationEvents": 0,
+      "networkEvents": [
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 13,
+          "destinationScope": "loopback",
+          "count": 18
+        },
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 29,
+          "destinationScope": "loopback",
+          "count": 18
+        }
+      ],
+      "nonLoopbackEvents": 0,
+      "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths. Out-of-tree COM/Shell services are not attributed by this process-tree measurement.",
+      "phase": "baseline",
+      "captureReadyUtc": "2026-11-17T07:38:37.6334179Z",
+      "traceStoppedUtc": "2026-11-17T07:38:58.9445129Z",
+      "convertedUtc": "2026-11-17T07:38:59.1410653Z",
+      "etlBytes": 1245184,
+      "lifecycleAudit": {
+        "independentLifecycleAuditPassed": true,
+        "rootStarts": 1,
+        "nativeControllersMatched": 18,
+        "appGenerationsMatched": 6,
+        "explicitProcessStops": 86,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 19,
+          "conhost.exe": 25,
+          "kraqel-desktop.exe": 6,
+          "msedgewebview2.exe": 36
+        },
+        "controllerExitCodes": {
+          "0": 11,
+          "86": 2,
+          "1": 6
+        },
+        "appExitCodes": {
+          "0": 2,
+          "77": 4
+        },
+        "webViewsPerApp": 6
+      },
+      "dataAudit": {
+        "formatVersion": 1,
+        "nativePreviewOnly": true,
+        "productionAcceptance": false,
+        "controllerSha256": "45542384ce42b73450453dce2f5a40b635b7b8552055de25d60c147fc21dd360",
+        "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+        "independentAuditPassed": true,
+        "controlSchema": 3,
+        "controlRecordsPerInstallation": 7,
+        "controllerProcesses": 18,
+        "controllerExitCodes": {
+          "0": 10,
+          "1": 6,
+          "86": 2
+        },
+        "nativeGuiStarts": 6,
+        "controllerCrashes": 2,
+        "authenticatedRecoveries": 4,
+        "explicitReplayEvents": 8,
+        "negativeRecoveries": 6,
+        "actualContainerDenials": 36,
+        "distinctTasks": 2,
+        "distinctLaunches": 6,
+        "legitimateProjectCopies": 1,
+        "profilesRemoved": 2,
+        "normalPreviewStoreUsed": false,
+        "reservedPrivateDataEmpty": true,
+        "networkMeasurement": false,
+        "cases": [
+          {
+            "point": "prepared",
+            "controllerExitCode": 86,
+            "recoveries": 2,
+            "replayEvents": 4,
+            "projectCopies": 0,
+            "profileRemoved": true,
+            "negativeStateUnchanged": true,
+            "keyUnchanged": true
+          },
+          {
+            "point": "completed",
+            "controllerExitCode": 86,
+            "recoveries": 2,
+            "replayEvents": 4,
+            "projectCopies": 1,
+            "profileRemoved": true,
+            "negativeStateUnchanged": true,
+            "keyUnchanged": true
+          }
+        ],
+        "programSourceCommit": "ef815ea8314bb23db4b502948e5b1bc63151c6f8"
+      }
+    },
+    {
+      "formatVersion": 1,
+      "measurementMode": "native-control",
+      "measurementValid": true,
+      "measurementProblems": [],
+      "result": "no-non-loopback-traffic-observed",
+      "rootStarts": 15,
+      "explicitRootImageBindings": 15,
+      "processLifetimes": {
+        "kraqel-isolation-probe.exe": 10,
+        "conhost.exe": 17,
+        "kraqel-desktop.exe": 2,
+        "msedgewebview2.exe": 12,
+        "6748900defbbdb8df5e8e5ec0e611091cd1e6656880381a18e43e8755510bf90.exe": 5
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "unattributableNetworkEvents": 0,
+      "unknownDestinationEvents": 0,
+      "networkEvents": [
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 13,
+          "destinationScope": "loopback",
+          "count": 6
+        },
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 29,
+          "destinationScope": "loopback",
+          "count": 6
+        }
+      ],
+      "nonLoopbackEvents": 0,
+      "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths. Out-of-tree COM/Shell services are not attributed by this process-tree measurement.",
+      "phase": "update",
+      "captureReadyUtc": "2026-11-17T07:38:59.1795381Z",
+      "traceStoppedUtc": "2026-11-17T07:39:09.8542803Z",
+      "convertedUtc": "2026-11-17T07:39:10.0636158Z",
+      "etlBytes": 1507328,
+      "lifecycleAudit": {
+        "independentLifecycleAuditPassed": true,
+        "rootStarts": 15,
+        "nativeControllersMatched": 15,
+        "appGenerationsMatched": 2,
+        "explicitProcessStops": 46,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 10,
+          "conhost.exe": 17,
+          "kraqel-desktop.exe": 2,
+          "msedgewebview2.exe": 12,
+          "6748900defbbdb8df5e8e5ec0e611091cd1e6656880381a18e43e8755510bf90.exe": 5
+        },
+        "controllerExitCodes": {
+          "0": 10,
+          "1": 5
+        },
+        "appExitCodes": {
+          "77": 2
+        },
+        "webViewsPerApp": 6
+      },
+      "dataAudit": {
+        "formatVersion": 1,
+        "nativePreviewOnly": true,
+        "productionAcceptance": false,
+        "controllerSha256": "45542384ce42b73450453dce2f5a40b635b7b8552055de25d60c147fc21dd360",
+        "candidateSha256": "6748900defbbdb8df5e8e5ec0e611091cd1e6656880381a18e43e8755510bf90",
+        "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+        "independentAuditPassed": true,
+        "controlSchema": 4,
+        "packageContractVersion": 1,
+        "childProcesses": 15,
+        "childExitCodes": {
+          "0": 10,
+          "1": 5
+        },
+        "guiStarts": 2,
+        "recoveriesAfterActivation": 1,
+        "actualContainerDenials": 12,
+        "controlRecords": 11,
+        "installationAndKeyPreserved": true,
+        "sessionAndAppBindingPreserved": true,
+        "persistedTasks": 1,
+        "legitimateProjectCopies": 1,
+        "profileRemoved": true,
+        "normalPreviewStoreUsed": false,
+        "networkMeasurement": false,
+        "limits": "Synthetic candidate has identical code plus an overlay, different hash. Metadata compatibility and explicitly approved hash are not publisher authentication or arbitrary release-behavior attestation. Bound App package unchanged.",
+        "programSourceCommit": "ef815ea8314bb23db4b502948e5b1bc63151c6f8"
+      }
+    }
+  ],
+  "limits": "Unchanged saved native research binaries; synthetic candidate has identical code plus overlay. No normal product integration, arbitrary package/data migration, HTTP/content/upload or complete external service attribution."
+}

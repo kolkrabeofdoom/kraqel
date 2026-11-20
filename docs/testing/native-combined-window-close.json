@@ -1,0 +1,57 @@
+{
+  "formatVersion": 1,
+  "researchOnly": true,
+  "productionAcceptance": false,
+  "independentAuditPassed": true,
+  "authorityAndSettlementMacsVerified": true,
+  "rootAndProgramBindingsVerified": true,
+  "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+  "controllerSha256": "1b5c0efa771f58a7e1274369d391b92a2c788aa1d64756e6ef4530b2f2555b4f",
+  "cases": [
+    {
+      "case": "closeDialog",
+      "humanReportedMainWindowClose": true,
+      "initialAppExitCode": 0,
+      "initialBrokerExitCode": 0,
+      "selectionThreadJoined": true,
+      "dialogCloseMessages": 8,
+      "distinctTasks": 2,
+      "taskStates": ["failed:CANCELLED", "succeeded"],
+      "legitimateCopies": 1,
+      "appGenerations": 8,
+      "recoveryProcesses": 3,
+      "earlyNextGrantRejected": true,
+      "profileRemoved": true
+    },
+    {
+      "case": "closePartial",
+      "humanReportedMainWindowClose": true,
+      "initialAppExitCode": 0,
+      "initialBrokerExitCode": 0,
+      "selectionThreadJoined": true,
+      "dialogCloseMessages": 0,
+      "distinctTasks": 2,
+      "taskStates": ["failed:CANCELLED", "succeeded"],
+      "legitimateCopies": 1,
+      "appGenerations": 8,
+      "recoveryProcesses": 3,
+      "earlyNextGrantRejected": true,
+      "profileRemoved": true,
+      "partialTransfer": {
+        "bytesSent": 1024,
+        "payloadBytesReceived": 1024,
+        "expectedBytes": 11915
+      }
+    }
+  ],
+  "appGenerations": 16,
+  "distinctTasks": 4,
+  "legitimateCopies": 2,
+  "failedPreliminaryRun": {
+    "failure": "broker-authority-binding",
+    "accepted": false,
+    "profileRemovedByScopedWindowsApi": true,
+    "authorityReused": false
+  },
+  "networkMeasurement": false
+}

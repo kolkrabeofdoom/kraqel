@@ -1,0 +1,75 @@
+{
+  "formatVersion": 1,
+  "diagnosticOnly": true,
+  "productionAcceptance": false,
+  "runtimeSourceCommit": "f1bd30cd7821c55e2d28af51b8780dc183c22b22",
+  "appSha256": "ca4e70a39a96ec6c642863494be616c47a7e9243afc4ba20726606ddf7c54324",
+  "controllerSha256": "12cee20170c7672f959703d592d370f57b7cb90311fed524330f2dd05208508f",
+  "captureReadyUtc": "2026-11-16T08:39:47.3777352Z",
+  "stoppedUtc": "2026-11-16T08:42:04.2088845Z",
+  "etlBytes": 3538944,
+  "measurementMode": "isolation-ui",
+  "measurementValid": true,
+  "measurementProblems": [],
+  "result": "no-non-loopback-traffic-observed",
+  "rootStarts": 1,
+  "processLifetimes": {
+    "kraqel-isolation-probe.exe": 1,
+    "conhost.exe": 29,
+    "kraqel-desktop.exe": 28,
+    "msedgewebview2.exe": 144
+  },
+  "generationCoverage": {
+    "orderedAppGenerationsMatched": 28,
+    "explicitProcessStops": 202,
+    "guiGenerationsWithWebView": 24,
+    "negativeStartsWithoutWebView": 4,
+    "webViewPerGuiMin": 6,
+    "webViewPerGuiMax": 6,
+    "controllerExitCode": 0,
+    "appExitCodes": { "77": 24, "2": 4 }
+  },
+  "loss": { "EventsLost": 0, "BuffersLost": 0 },
+  "positiveControls": { "expected": 4, "observed": 4 },
+  "unattributableNetworkEvents": 0,
+  "unknownDestinationEvents": 0,
+  "nonLoopbackEvents": 0,
+  "loopbackEvents": [
+    { "image": "msedgewebview2.exe", "eventId": 13, "count": 72 },
+    { "image": "msedgewebview2.exe", "eventId": 29, "count": 72 }
+  ],
+  "nativeVerification": {
+    "crashPoints": 6,
+    "recoveryGenerationsPerPoint": 2,
+    "oldIdImportAttemptsRejected": 6,
+    "rejectedStartupBindings": 4,
+    "verifiedSuspendedRootTokens": 28,
+    "journalIntegrity": "ok",
+    "interruptedTasks": 4,
+    "succeededTasks": 2,
+    "distinctPublishedProjects": 2,
+    "documentsPerPublishedProject": 2,
+    "sqliteUnicodeReceiptHashesAndForeignKeys": true,
+    "stagingEntries": 0,
+    "activeJobProcessesAtEnd": 0,
+    "profileRemoved": true
+  },
+  "comparison": {
+    "previousEvidence": "native-live-window-close-etw.json",
+    "previousMeasurementValid": true,
+    "previousNonLoopbackEvents": 0,
+    "currentNonLoopbackEvents": 0,
+    "measurementPopulationsDiffer": true,
+    "causalOrRateComparison": false
+  },
+  "captureStoppedAndConverted": true,
+  "rawDiagnosticsRemainLocal": true,
+  "runtimeChangedAfterMeasurement": false,
+  "limits": [
+    "Only these exact research binaries, captured lifetimes and synthetic restart paths.",
+    "Localhost TCP/UDP IPv4/IPv6 controls do not calibrate all public, DNS or out-of-tree broker routes.",
+    "No causal attribution of out-of-tree COM/Shell services or compromised runtime processes.",
+    "Transport metadata, not an HTTP, upload or payload audit; no physical network disconnection.",
+    "No product Q-01/Q-02 acceptance; ordinary product startup remains unisolated."
+  ]
+}

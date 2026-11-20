@@ -2206,6 +2206,8 @@ dependencies = [
 name = "kraqel-isolation-probe"
 version = "0.1.0"
 dependencies = [
+ "getrandom 0.4.3",
+ "hmac",
  "kraqel-domain",
  "kraqel-isolation-test-adapter",
  "kraqel-storage",
@@ -2215,6 +2217,7 @@ dependencies = [
  "uuid",
  "windows",
  "windows-sys 0.61.2",
+ "zeroize",
 ]
 
 [[package]]
@@ -2224,6 +2227,7 @@ dependencies = [
  "kraqel-domain",
  "kraqel-git-service",
  "kraqel-storage",
+ "rusqlite",
  "serde",
  "serde_json",
  "sha2",

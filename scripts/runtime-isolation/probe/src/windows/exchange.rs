@@ -17,7 +17,24 @@ use windows_sys::Win32::Storage::FileSystem::*;
 mod app_import;
 pub(super) use app_import::{child as import_child, launch as launch_import};
 mod ui_grant;
+mod ui_live;
+mod ui_restart;
 pub(super) use ui_grant::launch as launch_ui;
+pub(super) use ui_live::launch as launch_live_ui;
+pub(super) use ui_restart::launch as launch_restart_series;
+pub(super) use ui_restart::launch_assistive;
+pub(super) use ui_restart::product_storage;
+pub(super) use ui_restart::product_workspace_child;
+pub(super) use ui_restart::product_workspace_persistent_child;
+pub(super) use ui_restart::{bp2_worker, c4_root_worker};
+pub(super) use ui_restart::{combined_series, next_live, seed_live};
+pub(super) use ui_restart::{controller_crash_series, recover_broker, seed_broker};
+pub(super) use ui_restart::{group_child, group_worker};
+pub(super) use ui_restart::{
+    product_crash_child, product_crash_series, product_session_child, product_session_series,
+    product_start_series, product_transition_child, product_transition_series,
+};
+pub(super) use ui_restart::{product_workspace_probe_child, product_workspace_probe_worker};
 
 fn invalid(stage: &'static str) -> Failure {
     Failure { stage, code: -1 }
@@ -69,8 +86,9 @@ fn choose_named(
             CoCreateInstance(&FileOpenDialog, None, CLSCTX_INPROC_SERVER)
         })?
     };
+    let shell_host = shell_folder_path(host)?;
     let folder: IShellItem = com("shell-folder", unsafe {
-        SHCreateItemFromParsingName(PCWSTR(wide(host).as_ptr()), None)
+        SHCreateItemFromParsingName(PCWSTR(wide(&shell_host).as_ptr()), None)
     })?;
     let second: IFileDialog2 = com("shell-navigation-interface", dialog.cast())?;
     unsafe {
@@ -107,7 +125,8 @@ fn choose_named(
             "shell-filename",
             dialog.SetFileName(PCWSTR(wide(suggested).as_ptr())),
         )?;
-        if let Err(error) = dialog.Show(None) {
+        let shown = dialog.Show(None);
+        if let Err(error) = shown {
             if error.code().0 as u32 == 0x800704c7 {
                 return Ok(None);
             }
@@ -123,16 +142,54 @@ fn choose_named(
         )?);
         let path = PathBuf::from(text.0.to_string().map_err(|_| invalid("shell-path-text"))?);
         // Shell navigation is guidance; this independent allowlist is the security check.
-        if path.parent() != Some(host)
-            || !path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .is_some_and(|n| transfer::flat_name(n) || (snapshot && n == "input.kraqel"))
-        {
-            return Err(invalid("selection-outside-synthetic-root"));
-        }
-        Ok(Some(path))
+        scoped_selection(&path, host, snapshot).map(Some)
     }
+}
+
+// Shell parsing does not accept every canonical Win32 file namespace. Re-express only a local
+// disk path and prove the same directory before using it; selection validation stays canonical.
+fn shell_folder_path(host: &Path) -> Result<PathBuf> {
+    use std::path::{Component, Prefix};
+    let canonical = io("shell-host-canonical", host.canonicalize())?;
+    let mut components = canonical.components();
+    let Some(Component::Prefix(prefix)) = components.next() else {
+        return Err(invalid("shell-host-namespace"));
+    };
+    let Prefix::VerbatimDisk(drive) = prefix.kind() else {
+        return Err(invalid("shell-host-local-disk-only"));
+    };
+    if components.next() != Some(Component::RootDir) {
+        return Err(invalid("shell-host-root"));
+    }
+    let mut plain = PathBuf::from(format!("{}:\\", char::from(drive)));
+    for component in components {
+        let Component::Normal(name) = component else {
+            return Err(invalid("shell-host-component"));
+        };
+        plain.push(name);
+    }
+    if wide(&plain).len() > 260 || io("shell-host-identity", plain.canonicalize())? != canonical {
+        return Err(invalid("shell-host-identity-or-length"));
+    }
+    Ok(plain)
+}
+
+fn scoped_selection(path: &Path, host: &Path, snapshot: bool) -> Result<PathBuf> {
+    let parent = path
+        .parent()
+        .ok_or(invalid("selection-outside-synthetic-root"))?;
+    let name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .filter(|n| transfer::flat_name(n) || (snapshot && *n == "input.kraqel"))
+        .ok_or(invalid("selection-outside-synthetic-root"))?;
+    // Shell returns long paths even when TEMP used an 8.3 alias. Reconstruct the result
+    // from the controller-owned root; file handle metadata checks remain mandatory.
+    let expected = io("selection-host-directory", host.canonicalize())?;
+    if io("selection-parent-directory", parent.canonicalize())? != expected {
+        return Err(invalid("selection-outside-synthetic-root"));
+    }
+    Ok(host.join(name))
 }
 
 fn host_for(root: &Path) -> Result<PathBuf> {
@@ -396,6 +453,10 @@ enum Program<'a> {
         executable: &'a Path,
         id: uuid::Uuid,
     },
+    UiLive {
+        executable: &'a Path,
+        id: uuid::Uuid,
+    },
 }
 fn run_program(
     root: &Path,
@@ -403,6 +464,16 @@ fn run_program(
     output: &fs::File,
     program: Program<'_>,
     prepare: impl FnOnce(&Path) -> Result<()>,
+) -> Result<Value> {
+    run_program_serviced(root, input, output, program, prepare, || Ok(()))
+}
+fn run_program_serviced(
+    root: &Path,
+    input: &fs::File,
+    output: &fs::File,
+    program: Program<'_>,
+    prepare: impl FnOnce(&Path) -> Result<()>,
+    mut service: impl FnMut() -> Result<()>,
 ) -> Result<Value> {
     io("create-exchange-root", fs::create_dir(root))?;
     let suffix = root
@@ -425,13 +496,17 @@ fn run_program(
     )?;
     low_label(&data)?;
     prepare(&data)?;
-    let executable = bin.join(if matches!(program, Program::Ui { .. }) {
-        "kraqel-desktop.exe"
-    } else {
-        "kraqel-isolation-probe.exe"
-    });
+    let executable = bin.join(
+        if matches!(program, Program::Ui { .. } | Program::UiLive { .. }) {
+            "kraqel-desktop.exe"
+        } else {
+            "kraqel-isolation-probe.exe"
+        },
+    );
     let source = match &program {
-        Program::Ui { executable, .. } => executable.to_path_buf(),
+        Program::Ui { executable, .. } | Program::UiLive { executable, .. } => {
+            executable.to_path_buf()
+        }
         _ => io("current-exe", std::env::current_exe())?,
     };
     io("stage-exchange-worker", fs::copy(source, &executable))?;
@@ -465,6 +540,12 @@ fn run_program(
         ),
         Program::Ui { id, .. } => format!(
             "\"{}\" ui-grant {} {} {id}",
+            executable.display(),
+            handles[0] as usize,
+            handles[1] as usize
+        ),
+        Program::UiLive { id, .. } => format!(
+            "\"{}\" ui-live {} {} {id}",
             executable.display(),
             handles[0] as usize,
             handles[1] as usize
@@ -558,12 +639,13 @@ fn run_program(
     if unsafe { ResumeThread(thread_handle.0) } == u32::MAX {
         return Err(fail("exchange-resume"));
     }
-    let finished = if matches!(program, Program::Ui { .. }) {
+    let finished = if matches!(program, Program::Ui { .. } | Program::UiLive { .. }) {
         let start = Instant::now();
         loop {
             if unsafe { WaitForSingleObject(process.0, 100) } == WAIT_OBJECT_0 {
                 break true;
             }
+            service()?;
             if root.join("STOP").exists()
                 || start.elapsed() > Duration::from_secs(600)
                 || (start.elapsed() > Duration::from_secs(20)
@@ -631,12 +713,8 @@ mod tests {
     impl Fixture {
         fn new() -> Self {
             let path = std::env::temp_dir().join(format!(
-                "kraqel-isolation-files-{}-{}",
-                std::process::id(),
-                std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_nanos()
+                "kraqel-isolation-files-{}",
+                uuid::Uuid::new_v4().simple()
             ));
             fs::create_dir(&path).unwrap();
             Self(path)
@@ -650,6 +728,73 @@ mod tests {
             }
             fs::remove_dir(&self.0).unwrap();
         }
+    }
+    #[test]
+    fn selection_accepts_resolved_temp_alias_but_rejects_a_sibling() {
+        let root = Fixture::new();
+        let sibling = Fixture::new();
+        let canonical = root.0.canonicalize().unwrap();
+        assert_eq!(
+            scoped_selection(&canonical.join("input.kraqel"), &root.0, true).unwrap(),
+            root.0.join("input.kraqel")
+        );
+        assert!(scoped_selection(&sibling.0.join("input.kraqel"), &root.0, true).is_err());
+        assert!(scoped_selection(&canonical.join("input.kraqel:stream"), &root.0, true).is_err());
+    }
+    #[test]
+    #[ignore = "opens and automatically cancels a native synthetic Shell dialog; not for CI"]
+    fn native_owned_dialog_can_be_closed_and_joins() {
+        let root = Fixture::new();
+        let owner = unsafe { GetCurrentThreadId() };
+        let closer = std::thread::spawn(move || {
+            let deadline = Instant::now() + Duration::from_secs(5);
+            loop {
+                let posted = super::ui_live::close_owned_dialog(owner);
+                if posted > 0 {
+                    return posted;
+                }
+                if Instant::now() >= deadline {
+                    return 0;
+                }
+                std::thread::sleep(Duration::from_millis(50));
+            }
+        });
+        assert!(
+            choose_named(&root.0, false, "input.kraqel", true)
+                .unwrap()
+                .is_none()
+        );
+        assert!(closer.join().unwrap() > 0);
+    }
+    #[test]
+    #[ignore = "opens and automatically cancels native Shell dialogs; explicit local namespace comparison only"]
+    fn native_dialog_canonical_namespace_comparison() {
+        let root = Fixture::new();
+        let canonical = root.0.canonicalize().unwrap();
+        let owner = unsafe { GetCurrentThreadId() };
+        let closer = std::thread::spawn(move || {
+            let deadline = Instant::now() + Duration::from_secs(3);
+            while Instant::now() < deadline {
+                let posted = super::ui_live::close_owned_dialog(owner);
+                if posted > 0 {
+                    return posted;
+                }
+                std::thread::sleep(Duration::from_millis(20));
+            }
+            0
+        });
+        let result = choose_named(&canonical, false, "input.kraqel", true);
+        let posted = closer.join().unwrap();
+        assert!(result.unwrap().is_none());
+        assert!(posted > 0);
+    }
+    #[test]
+    fn shell_folder_representation_preserves_canonical_identity_without_verbatim_prefix() {
+        let root = Fixture::new();
+        let canonical = root.0.canonicalize().unwrap();
+        let plain = shell_folder_path(&canonical).unwrap();
+        assert_eq!(plain.canonicalize().unwrap(), canonical);
+        assert!(!plain.as_os_str().to_string_lossy().starts_with("\\\\?\\"));
     }
     #[test]
     fn pending_creation_never_owns_an_existing_file() {

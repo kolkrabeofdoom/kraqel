@@ -9,6 +9,9 @@ use sha2::{Digest as _, Sha256};
 use std::io::Read;
 use uuid::Uuid;
 
+mod durable;
+pub use durable::{DurableStore, TaskMilestone};
+
 /// Narrow research transport budget; the product archive parser separately enforces 128 `MiB`.
 pub const MAX_TASK_BYTES: u64 = 8 * 1024 * 1024;
 /// Maximum authorization lifetime, independently checked in the isolated adapter.
@@ -50,6 +53,8 @@ pub enum TaskError {
     ReadFailed,
     LengthMismatch,
     ImportFailed,
+    Interrupted,
+    StateUnavailable,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

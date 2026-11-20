@@ -113,6 +113,14 @@ pub(in super::super) fn launch(root: &Path, app: &Path, picker: bool) -> Result<
     report["inheritedHandles"] = json!(2);
     report["channelDirection"] = json!("controller-to-container-only");
     report["hostDirectoryAclGranted"] = json!(false);
+    if let Some(outcome) = read_outcome(root)? {
+        report["uiOutcome"] = outcome;
+    }
+    write_json(&root.join("result.json"), &report)?;
+    Ok(report)
+}
+
+pub(super) fn read_outcome(root: &Path) -> Result<Option<Value>> {
     let result_path = root.join("data/ui-result.json");
     if result_path.exists() {
         let mut bytes = Vec::new();
@@ -138,11 +146,11 @@ pub(in super::super) fn launch(root: &Path, app: &Path, picker: bool) -> Result<
         if !consistent {
             return Err(invalid("ui-outcome-inconsistent"));
         }
-        report["uiOutcome"] =
-            serde_json::to_value(outcome).map_err(|_| invalid("ui-outcome-encoding"))?;
+        return serde_json::to_value(outcome)
+            .map(Some)
+            .map_err(|_| invalid("ui-outcome-encoding"));
     }
-    write_json(&root.join("result.json"), &report)?;
-    Ok(report)
+    Ok(None)
 }
 
 #[cfg(test)]

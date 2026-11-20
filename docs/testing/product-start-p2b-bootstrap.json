@@ -1,0 +1,69 @@
+{
+  "formatVersion": 1,
+  "sourceBaseCommit": "c050642379326ec4825807382900399b816453b9",
+  "nativePreviewOnly": true,
+  "productionAcceptance": false,
+  "controllerAndWorkerSha256": "590c3d4261bfc5f261a38e63d0b974972b9f8e8e7fb7c671e7065eb8ce75364b",
+  "uiFixtureSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+  "controlSchema": 5,
+  "workspaceRecordAbi": 1,
+  "probeBootstrapAbi": 1,
+  "uiBootstrapAbi": 0,
+  "cleanupAbi": 1,
+  "independentAuditPassed": true,
+  "nativeCases": 3,
+  "controllerProcesses": 27,
+  "controllerExitCodes": {
+    "0": 19,
+    "1": 8
+  },
+  "workerProcesses": 6,
+  "workerResumes": 5,
+  "workerSuccesses": 4,
+  "workerMacRejections": 1,
+  "workersRejectedBeforeResume": 1,
+  "actualPrivateDenials": 30,
+  "profilesCreatedAndRemoved": 6,
+  "boundWorkspaces": 3,
+  "helperActiveTestsPassed": 71,
+  "helperIgnoredTests": 4,
+  "helperClippyPassed": true,
+  "newTests": 4,
+  "uiStarts": 0,
+  "importTasksCreated": 0,
+  "fullWorkspaceCheck": false,
+  "networkMeasurement": false,
+  "normalPreviewStoreUsed": false,
+  "normalPreviewLastWriteUnchanged": true,
+  "processesEnded": true,
+  "cases": [
+    {
+      "mode": "start",
+      "controlRecords": 12,
+      "publishedHeadSequence": 11,
+      "launches": 2,
+      "pending": false,
+      "keyAndWorkspacePreserved": true,
+      "replayAndStaleBlocked": true
+    },
+    {
+      "mode": "start-unassigned",
+      "controlRecords": 12,
+      "publishedHeadSequence": 11,
+      "launches": 2,
+      "pending": false,
+      "keyAndWorkspacePreserved": true,
+      "replayAndStaleBlocked": true
+    },
+    {
+      "mode": "start-bad-mac",
+      "controlRecords": 12,
+      "publishedHeadSequence": 11,
+      "launches": 2,
+      "pending": false,
+      "keyAndWorkspacePreserved": true,
+      "replayAndStaleBlocked": true
+    }
+  ],
+  "limits": "Synthetic no-GUI/no-import worker only. No product UI/data grant, crash-resource adoption or automatic cleanup of uncertain pending profiles, checkpointing, power-loss guarantee or fresh ETW. Prior network evidence does not cover this build."
+}

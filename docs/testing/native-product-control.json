@@ -1,0 +1,36 @@
+{
+  "formatVersion": 1,
+  "nativePreviewOnly": true,
+  "productionAcceptance": false,
+  "independentAuditPassed": true,
+  "macChainAndHeadVerified": true,
+  "canonicalRootBindingVerified": true,
+  "initialRecordUnchangedAcrossUpdates": true,
+  "controlSchema": 2,
+  "sequence": 7,
+  "authenticatedRecords": 8,
+  "activatedProgramHashes": [
+    "27ce59bf8b2bc887a31f544286f7515558f08cb6a16d719d2e435273074593de",
+    "7696b109db70ab2b19dd6fe4a4f7f2ef16e3e90d1e4c46fd0631f67e8e0f1c60",
+    "64b1aab13cf8db75611b3b0b102c1ab93dab0bfc1229d08206cb7350d135fde3",
+    "cfe51760acc79112a5bff612326fa5cf1f6ef94d97cd897f7b09cc14850ae51c"
+  ],
+  "firstCandidateWasSyntheticOverlay": true,
+  "secondCandidateWasUpdatedCode": true,
+  "nativeProcessRuns": 30,
+  "expectedRefusals": 10,
+  "actualAppContainerFileDenials": 18,
+  "containerProbeGuiRuns": 3,
+  "durableGuiRegressionAppStarts": 5,
+  "allTestProfilesRemoved": true,
+  "normalAppDataMigrated": false,
+  "previewDataDirectoryEmpty": true,
+  "networkMeasurement": false,
+  "knownLimits": [
+    "Native control-store preview only, no normal product launcher integration.",
+    "Local explicit approval authenticates the transition, not the upstream publisher.",
+    "Control-schema migration only, no existing project database or research-root migration.",
+    "Whole-store rollback, account compromise and arbitrary power loss are not attested.",
+    "New code and program hashes require fresh ETW evidence."
+  ]
+}
