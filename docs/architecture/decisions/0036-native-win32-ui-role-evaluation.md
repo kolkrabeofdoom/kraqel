@@ -302,6 +302,8 @@ Ein erneuter Aufruf von `edit-win32-scene <aktueller Kontrollkopf>` öffnet die 
 
 Im Windows-Lauf wurde Revision 1 gespeichert und im Folgeauftrag per Tastaturnachrichten zu „Kolkrabe“ und „Stern 47“ geändert. Unter frischer Lesebindung öffnete sich Revision 2. Die unabhängige SQLite-Abfrage bestätigte die beiden Absätze mit Fettmarkierung am zweiten Textknoten; der SHA-256-Wert der vorherigen Datei blieb unverändert. Der Nachweis gilt für die isolierte synthetische Ablage.
 
+Ein zweiter Aufruf von `edit-win32-scene` mit dem Kontrollkopf vor der Bearbeitung von Revision 1 wurde nach Abschluss von Revision 2 mit `product-stale-head-or-budget` abgewiesen. Vor und nach dem abgewiesenen Aufruf waren Sequenz, Kontrollkopf, geschlossener Sitzungszustand sowie Dateinamen und SHA-256-Werte der Szenenablage identisch. Revision 3 wurde nicht angelegt. Die Kopfprüfung liegt im Starter vor Sitzungsbeginn und Rollenstart. Mit dem aktuellen Kontrollkopf ließ sich Revision 2 anschließend schreibgeschützt öffnen; der SQLite-Gegencheck bestätigte beide Texte und die Fettmarkierung.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche
