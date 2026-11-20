@@ -6,6 +6,11 @@ publish = false
 
 [workspace]
 
+[features]
+# Dedicated synthetic service binaries for the two durable commit boundaries.
+probe-stop-before-snapshot = []
+probe-stop-after-snapshot = []
+
 [dependencies]
 rusqlite = {version = "=0.39.0", features=["bundled","serialize"]}
 kraqel-native-scene-model = { path = "../native-scene-model" }

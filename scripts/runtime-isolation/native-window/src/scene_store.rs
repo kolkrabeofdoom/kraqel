@@ -221,20 +221,33 @@ impl Store {
                 (1..=crate::window_receipt::MAX_SCENE_DB).contains(&size),
                 "snapshot size",
             )?;
-            db.deserialize_read_exact("main", file, size as usize, true)
+            db.deserialize_read_exact("main", &mut *file, size as usize, true)
                 .map_err(failure)?;
         } else {
             require(size == 0, "new snapshot")?;
         }
-        Self::configure(db, reopening, None)
+        let store = Self::configure(db, reopening, None)?;
+        if !reopening {
+            // Preserve the initial committed scene even if the service dies before saving.
+            store.flush_managed(file)?;
+        }
+        Ok(store)
     }
     pub fn flush_managed(&self, file: &mut File) -> io::Result<()> {
-        use std::io::Write;
+        use std::io::{Seek, Write};
         let image = self.db.serialize("main").map_err(failure)?;
         require(
             !image.is_empty() && image.len() as u64 <= crate::window_receipt::MAX_SCENE_DB,
             "snapshot size",
         )?;
+        // This fixture only replaces the fixed-size A image. Refuse a size change
+        // before writing so a shorter image cannot leave an old suffix.
+        let previous = file.metadata()?.len();
+        require(
+            previous == 0 || previous == image.len() as u64,
+            "snapshot extent",
+        )?;
+        file.rewind()?;
         file.write_all(&image)?;
         file.sync_all()
     }

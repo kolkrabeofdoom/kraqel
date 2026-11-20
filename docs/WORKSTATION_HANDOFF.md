@@ -1,5 +1,7 @@
 # Rechnerwechsel und Arbeitsübergabe
 
+Beim verwalteten Speichern von Szene A sind die beiden [Datendienstabbrüche an der dauerhaften Speichergrenze](architecture/decisions/0036-native-win32-ui-role-evaluation.md#datendienstabbruch-an-der-dauerhaften-speichergrenze) geprüft. Auf der Platte blieben Revision 0 bzw. 1 erhalten; der offene Sitzungsbeleg sperrte beide Neustarts.
+
 Diese Anleitung trennt den öffentlichen Quellcode vom privaten Schreibprojekt. GitHub transportiert
 Code und Projektdokumentation; ein `.kraqel`-Archiv transportiert Manuskript, Struktur und lokale
 Medien. Wer beides verwechselt, erhält entweder fehlende Kapitel oder einen sehr literarischen

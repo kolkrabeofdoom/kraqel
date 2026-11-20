@@ -207,9 +207,15 @@ pub fn serve(profile: &str, mode: window_receipt::SceneOperation) -> io::Result<
                         .dispatch(body, || unreachable!())
                         .map_err(|_| kraqel_native_scene_model::channel::Closed)?;
                     if matches!(reply, kraqel_native_scene_model::Reply::Saved { .. }) {
+                        if cfg!(feature = "probe-stop-before-snapshot") {
+                            std::process::exit(80);
+                        }
                         store
                             .flush_managed(&mut file)
                             .map_err(|_| kraqel_native_scene_model::channel::Closed)?;
+                        if cfg!(feature = "probe-stop-after-snapshot") {
+                            std::process::exit(81);
+                        }
                     }
                     Ok(reply)
                 })

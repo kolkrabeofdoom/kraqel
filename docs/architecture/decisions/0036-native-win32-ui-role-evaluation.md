@@ -239,6 +239,19 @@ Im verwalteten Windows-Lauf las die Fensterrolle Szene A auf Revision 0 und spei
 
 **Windows-Nachweis.** Nach vollständigem Ende des Speicherlaufs wurden Starter, Datendienst und Fensterrolle neu erzeugt. Die neue Lesesitzung bestätigte den gespeicherten Zweizeiler und Revision 1. Der Prüfaufbau verglich die Datenbankbytes vor und nach dem Lesen; sie waren identisch. Beide Sitzungen wurden regulär abgeschlossen. Eine nachträgliche Byteänderung an der isolierten Testdatei wurde vor einem weiteren Rollenstart mit `scene-snapshot-mismatch` abgewiesen; Kontrollkopf und Sitzungszustand blieben dabei unverändert. Der Nachweis betrifft einen Prozessneustart. Produktdaten bleiben gesperrt.
 
+### Datendienstabbruch an der dauerhaften Speichergrenze
+
+Der verwaltete Dienst synchronisiert beim Anlegen zuerst den Anfangszustand von Szene A. Das SQLite-Commit im Arbeitsspeicher allein macht eine Änderung noch nicht dauerhaft. Erst nach dem Schreiben und Synchronisieren des neuen Abbilds darf der Dienst die Speicherantwort senden.
+
+Für den Windows-Lauf vom 20. November 2026 erhielt jeder der beiden frischen privaten Teststores sein eigenes gebundenes Rollenpaket. Nur die Dienst-Binärdatei wurde mit dem jeweiligen Cargo-Prüffeature gebaut. Beide Läufe verwendeten den regulären Auftrag `save-win32-scene`. Nach dem Dienstabbruch prüfte der Prüfaufbau die geschlossene Datei unabhängig mit SQLite im unveränderlichen Lesemodus.
+
+| Abbruchpunkt | Szene A auf der Platte | Neuer verwalteter Leseauftrag |
+| --- | --- | --- |
+| `probe-stop-before-snapshot`, unmittelbar vor dem Schreiben der Änderung | „Rabe“ / „42“, Revision 0 | gesperrt |
+| `probe-stop-after-snapshot`, nach erfolgreicher Synchronisierung und vor der Antwort | „Rabe“ / „43“, Revision 1 | gesperrt |
+
+Beide Dateien bestanden die SQLite-Integritätsprüfung. Beide Speicheraufträge endeten mit `scene-service-denied`. Der Sitzungsbeleg blieb offen. Der erneute Brokeraufruf verweigerte das Lesen mit `win32-window-session-open`; der authentisierte Kontrollkopf blieb dabei unverändert. Die beiden Befunde betreffen Prozessabbrüche an den angegebenen Grenzen. Ein Abbruch mitten im Überschreiben des Abbilds oder ein Stromausfall ist damit nicht geprüft.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche
