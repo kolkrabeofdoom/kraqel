@@ -1,5 +1,30 @@
 # Rechnerwechsel und Arbeitsübergabe
 
+## Wiedereinstieg nach dem Wochenende · 20. November 2026
+
+Der letzte Funktionsstand liegt auf `feat/kq-069-live-file-selection` bei `8df0aad`.
+Im vorhandenen sauberen Checkout auf einem beliebigen Laufwerk:
+
+```powershell
+git switch feat/kq-069-live-file-selection
+git pull --ff-only
+git status -sb
+```
+
+Der verwaltete Win32-Editor bearbeitet ausschließlich die synthetische Szene A. Text,
+Fettmarkierung des zweiten Absatzes, Rückgängig/Wiederholen und lokales Suchen/Ersetzen sind
+bis zum Speichern und Wiederöffnen geprüft. Der [Entwicklungsstatus](DEVELOPMENT_STATUS.md#verwalteter-win32-szeneneditor)
+beschreibt die Bedienung und die geprüften Grenzen.
+
+**Vorgeschlagenes nächstes Arbeitspaket:** Den zusammengeführten Editorstand einmal gezielt
+auf Netzwerkaktivität prüfen. Die vorhandene ETW-Auswertung aus
+[ADR 0036](architecture/decisions/0036-native-win32-ui-role-evaluation.md#etw-beim-bestätigten-verwerfen-und-wiederöffnen)
+als Vorlage verwenden. Starter, Fensterrolle und Datendienst anhand ihrer aktuellen Binärhashes
+zuordnen. Gegen den Referenzlauf einen zusammenhängenden Ablauf mit synthetischem Text messen:
+ersetzen, Formatierung ändern, speichern und unter frischer Lesebindung wieder öffnen.
+Für eine belastbare Aussage Prozessenden, Positivkontrollen, Ereignisverluste und zugeordnete
+Netzwerkereignisse prüfen. Rohspuren bleiben lokal. Dieser Vergleich ist offen.
+
 Der Win32-Editor übernimmt beim Weiterbearbeiten auch die [unformatierte Fassung einer älteren synthetischen Szene](architecture/decisions/0036-native-win32-ui-role-evaluation.md#weiterbearbeiten-unformatierter-altbestände).
 
 
@@ -26,7 +51,7 @@ Code und Projektdokumentation; ein `.kraqel`-Archiv transportiert Manuskript, St
 Medien. Wer beides verwechselt, erhält entweder fehlende Kapitel oder einen sehr literarischen
 Commitverlauf.
 
-## Aktuelle Entwicklungsübergabe · 19. November 2026
+## Entwicklungsübergabe vom 19. November 2026
 
 ### Aktueller Einstieg und gesicherter Stand
 
