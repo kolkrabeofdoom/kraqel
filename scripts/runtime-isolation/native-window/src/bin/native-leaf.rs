@@ -67,13 +67,30 @@ fn font_description(font: HFONT) -> Option<LOGFONTW> {
     let size = size_of::<LOGFONTW>() as i32;
     (unsafe { GetObjectW(font, size, (&mut desc as *mut LOGFONTW).cast()) } == size).then_some(desc)
 }
+fn paragraph_text(hwnd: HWND, id: i32) -> Option<String> {
+    // Read one extra UTF-16 unit so an overlong value cannot be saved as a valid prefix.
+    let mut buf = [0u16; 50];
+    let n = unsafe { GetDlgItemTextW(hwnd, id, buf.as_mut_ptr(), buf.len() as i32) } as usize;
+    if n == buf.len() - 1 {
+        return None;
+    }
+    String::from_utf16(&buf[..n]).ok()
+}
+
 fn draft_text(hwnd: HWND) -> Option<String> {
-    let paragraph = |id| {
-        let mut buf = [0u16; 49];
-        let n = unsafe { GetDlgItemTextW(hwnd, id, buf.as_mut_ptr(), buf.len() as i32) };
-        String::from_utf16(&buf[..n as usize]).ok()
-    };
-    Some(format!("{}\n{}", paragraph(EDIT)?, paragraph(SECOND)?))
+    Some(format!(
+        "{}\n{}",
+        paragraph_text(hwnd, EDIT)?,
+        paragraph_text(hwnd, SECOND)?
+    ))
+}
+
+fn draft_label() -> &'static str {
+    if SECOND_WEIGHT.get() == FW_BOLD as i32 {
+        "Szene A · Zwei Absätze, zweiter fett"
+    } else {
+        "Szene A · Zwei Absätze"
+    }
 }
 
 /// Bounded to this window's message loop. A new edit removes the redo branch.
@@ -349,6 +366,9 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 if (w >> 16) as u32 == EN_CHANGE
                     && matches!((w & 0xffff) as i32, EDIT | SECOND) =>
             {
+                if !GetDlgItem(hwnd, SAVE).is_null() {
+                    SetDlgItemTextW(hwnd, LABEL, wide(draft_label()).as_ptr());
+                }
                 update_draft_status(hwnd);
                 0
             }
@@ -427,11 +447,6 @@ fn show(
             return 24;
         }
         let bold = surface.as_ref().and_then(|(_, _, style)| *style) == Some(true);
-        let draft_label = if bold {
-            "Szene A · Zwei Absätze, zweiter fett"
-        } else {
-            "Szene A · Zwei Absätze"
-        };
         SECOND_WEIGHT.set(if bold { FW_BOLD } else { FW_NORMAL } as i32);
         EXPECTED.with_borrow_mut(|value| {
             *value = surface
@@ -493,7 +508,7 @@ fn show(
                 LABEL,
                 "STATIC",
                 if draft.is_some() {
-                    draft_label
+                    draft_label()
                 } else {
                     "&Prüftext"
                 },
@@ -719,7 +734,7 @@ fn show(
                     let Some((first, second)) = initial.split_once('\n') else {
                         return 24;
                     };
-                    for (id, text) in [(EDIT, first), (SECOND, second), (LABEL, draft_label)] {
+                    for (id, text) in [(EDIT, first), (SECOND, second), (LABEL, draft_label())] {
                         if SetWindowTextW(GetDlgItem(hwnd, id), wide(text).as_ptr()) == 0 {
                             return 24;
                         }
@@ -746,10 +761,24 @@ fn show(
                             return 40;
                         }
                     }
-                    SetWindowTextW(
-                        GetDlgItem(hwnd, LABEL),
-                        wide("Bitte beide Absätze einzeilig ausfüllen.").as_ptr(),
-                    );
+                    for (id, message) in [
+                        (
+                            EDIT,
+                            "Ersten Absatz einzeilig ausfüllen (max. 48 UTF-16-Einheiten).",
+                        ),
+                        (
+                            SECOND,
+                            "Zweiten Absatz einzeilig ausfüllen (max. 48 UTF-16-Einheiten).",
+                        ),
+                    ] {
+                        if !paragraph_text(hwnd, id)
+                            .is_some_and(|p| kraqel_native_scene_model::valid_paragraph(&p))
+                        {
+                            SetDlgItemTextW(hwnd, LABEL, wide(message).as_ptr());
+                            SetFocus(GetDlgItem(hwnd, id));
+                            break;
+                        }
+                    }
                     continue;
                 }
                 if msg.message == WM_KEYDOWN

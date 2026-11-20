@@ -1,5 +1,10 @@
 # Entwicklungsstatus
 
+Im verwalteten Win32-Szeneneditor führt ein ungültiger Speicherversuch zurück zum betroffenen
+Absatz. Im synthetischen Windows-Lauf wurden ein leerer zweiter Absatz und ein programmgesteuert
+gesetzter erster Absatz mit 49 UTF-16-Einheiten abgewiesen. Nach der Korrektur per Tastatur ließ
+sich Szene A als Revision 1 mit beiden Texten und der Fettmarkierung wieder öffnen.
+
 Der Offline-Gastlauf vom 19. November ist bestanden. Bei erzwungener UMCI erreichte das
 Kontrollprogramm mit statisch importierter erlaubter DLL den erwarteten Exit 50. Beim statischen
 Import der fremden DLL beendete der Windows-Loader den Prozess mit `0xC0E90002`. Ereignis 3077 ist

@@ -66,12 +66,13 @@ impl Scene {
 }
 
 /// Two short paragraphs are the whole synthetic editing surface.
+pub fn valid_paragraph(text: &str) -> bool {
+    !text.is_empty() && text.encode_utf16().count() <= 48 && !text.chars().any(char::is_control)
+}
+
 pub fn valid_paragraphs(text: &str) -> bool {
-    text.split_once('\n').is_some_and(|(a, b)| {
-        [a, b].iter().all(|p| {
-            !p.is_empty() && p.encode_utf16().count() <= 48 && !p.chars().any(char::is_control)
-        })
-    })
+    text.split_once('\n')
+        .is_some_and(|(first, second)| valid_paragraph(first) && valid_paragraph(second))
 }
 
 fn managed_text(doc: &EditorDocument, revision: u32) -> Option<String> {
