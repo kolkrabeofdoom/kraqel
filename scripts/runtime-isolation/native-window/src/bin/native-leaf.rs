@@ -27,6 +27,78 @@ thread_local! {
 }
 const SAVE_DRAFT: u32 = WM_APP + 1;
 const DISCARD_DRAFT: u32 = WM_APP + 2;
+const UNDO: usize = 201;
+const REDO: usize = 202;
+const SELECT_PARAGRAPH: usize = 203;
+const HISTORY_UNDO: u32 = WM_APP + 3;
+const HISTORY_REDO: u32 = WM_APP + 4;
+
+fn install_editor_menu(hwnd: HWND) -> bool {
+    unsafe {
+        let bar = CreateMenu();
+        if bar.is_null() {
+            return false;
+        }
+        for (title, items) in [
+            (
+                "&Datei",
+                &[
+                    (SAVE as usize, "&Speichern\tStrg+S"),
+                    (CLOSE as usize, "S&chließen\tAlt+F4"),
+                ][..],
+            ),
+            (
+                "&Bearbeiten",
+                &[
+                    (UNDO, "&Rückgängig\tStrg+Z"),
+                    (REDO, "&Wiederholen\tStrg+Y"),
+                    (SELECT_PARAGRAPH, "&Absatz auswählen\tStrg+A"),
+                ][..],
+            ),
+        ] {
+            let popup = CreatePopupMenu();
+            if popup.is_null()
+                || AppendMenuW(bar, MF_POPUP, popup as usize, wide(title).as_ptr()) == 0
+            {
+                if !popup.is_null() {
+                    DestroyMenu(popup);
+                }
+                DestroyMenu(bar);
+                return false;
+            }
+            for &(id, label) in items {
+                if AppendMenuW(popup, MF_STRING, id, wide(label).as_ptr()) == 0 {
+                    DestroyMenu(bar);
+                    return false;
+                }
+            }
+        }
+        if SetMenu(hwnd, bar) == 0 {
+            DestroyMenu(bar);
+            return false;
+        }
+        true
+    }
+}
+
+fn enable_menu_command(hwnd: HWND, id: usize, enabled: bool) {
+    unsafe {
+        EnableMenuItem(
+            GetMenu(hwnd),
+            id as u32,
+            MF_BYCOMMAND | if enabled { MF_ENABLED } else { MF_GRAYED },
+        );
+    }
+}
+
+fn select_paragraph(hwnd: HWND) {
+    unsafe {
+        let field = GetFocus();
+        if field == GetDlgItem(hwnd, EDIT) || field == GetDlgItem(hwnd, SECOND) {
+            SendMessageW(field, EM_SETSEL, 0, -1);
+        }
+    }
+}
 fn clipboard_command(msg: u32, key: WPARAM, ctrl: bool, shift: bool) -> bool {
     match msg {
         WM_COPY | WM_CUT | WM_PASTE | WM_CONTEXTMENU => true,
@@ -330,6 +402,7 @@ fn update_draft_status(hwnd: HWND) {
             };
             SetDlgItemTextW(hwnd, WORD_COUNT, wide(label).as_ptr());
         }
+        enable_menu_command(hwnd, SAVE as usize, dirty);
         EnableWindow(save, i32::from(dirty));
         EnableWindow(GetDlgItem(hwnd, DISCARD), i32::from(dirty));
         let title = if dirty {
@@ -457,6 +530,32 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 update_draft_status(hwnd);
                 0
             }
+            WM_COMMAND if w == UNDO || w == REDO => {
+                PostMessageW(
+                    hwnd,
+                    if w == UNDO {
+                        HISTORY_UNDO
+                    } else {
+                        HISTORY_REDO
+                    },
+                    0,
+                    0,
+                );
+                0
+            }
+            WM_INITMENU if !GetMenu(hwnd).is_null() => {
+                let focus = GetFocus();
+                enable_menu_command(
+                    hwnd,
+                    SELECT_PARAGRAPH,
+                    focus == GetDlgItem(hwnd, EDIT) || focus == GetDlgItem(hwnd, SECOND),
+                );
+                0
+            }
+            WM_COMMAND if w == SELECT_PARAGRAPH => {
+                select_paragraph(hwnd);
+                0
+            }
             WM_COMMAND if w & 0xffff == DISCARD as usize => {
                 PostMessageW(hwnd, DISCARD_DRAFT, 0, 0);
                 0
@@ -477,11 +576,15 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                     let previous_focus = GetFocus();
                     let answer = MessageBoxW(
                         hwnd,
-                        wide("Änderungen an Szene A verwerfen und das Fenster schließen?").as_ptr(),
+                        wide("Änderungen an Szene A speichern?\n\nJa: Speichern.\nNein: Änderungen verwerfen.\nAbbrechen: Weiterarbeiten.").as_ptr(),
                         wide("Ungespeicherte Änderungen").as_ptr(),
-                        MB_YESNO | MB_DEFBUTTON2 | MB_ICONWARNING,
+                        MB_YESNOCANCEL | MB_DEFBUTTON3 | MB_ICONWARNING,
                     );
-                    if answer != IDYES {
+                    if answer == IDYES {
+                        PostMessageW(hwnd, SAVE_DRAFT, 0, 0);
+                        return 0;
+                    }
+                    if answer != IDNO {
                         if IsChild(hwnd, previous_focus) != 0 {
                             SetFocus(previous_focus);
                         }
@@ -573,6 +676,9 @@ fn show(
         );
         if hwnd.is_null() {
             return 23;
+        }
+        if draft.is_some() && !install_editor_menu(hwnd) {
+            return 24;
         }
         let dpi = GetDpiForWindow(hwnd);
         if dpi != GetDpiForSystem()
@@ -794,13 +900,23 @@ fn show(
                 if let Some(text) = draft_text(hwnd) {
                     history.record(text);
                 }
+                enable_menu_command(hwnd, UNDO, history.current > 0);
+                enable_menu_command(hwnd, REDO, history.current + 1 < history.states.len());
                 let ctrl = msg.message == WM_KEYDOWN
                     && GetKeyState(i32::from(VK_CONTROL)) < 0
                     && GetKeyState(i32::from(VK_MENU)) >= 0;
-                let undo = (ctrl && key == 0x5a) || (msg.message == WM_CHAR && key == 26);
-                let redo = (ctrl && key == 0x59) || (msg.message == WM_CHAR && key == 25);
+                if (ctrl && key == 0x41) || (msg.message == WM_CHAR && key == 1) {
+                    select_paragraph(hwnd);
+                    continue;
+                }
+                let undo = msg.message == HISTORY_UNDO
+                    || (ctrl && key == 0x5a)
+                    || (msg.message == WM_CHAR && key == 26);
+                let redo = msg.message == HISTORY_REDO
+                    || (ctrl && key == 0x59)
+                    || (msg.message == WM_CHAR && key == 25);
                 if undo || redo {
-                    let forward = redo || GetKeyState(i32::from(VK_SHIFT)) < 0;
+                    let forward = redo || (ctrl && GetKeyState(i32::from(VK_SHIFT)) < 0);
                     if let Some(text) = history.step(forward) {
                         if !restore_draft(hwnd, text) {
                             return 24;

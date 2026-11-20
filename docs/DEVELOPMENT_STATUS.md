@@ -1,30 +1,23 @@
 # Entwicklungsstatus
 
-Im verwalteten Win32-Szeneneditor führt ein ungültiger Speicherversuch zurück zum betroffenen
-Absatz. Im synthetischen Windows-Lauf wurden ein leerer zweiter Absatz und ein programmgesteuert
-gesetzter erster Absatz mit 49 UTF-16-Einheiten abgewiesen. Nach der Korrektur per Tastatur ließ
-sich Szene A als Revision 1 mit beiden Texten und der Fettmarkierung wieder öffnen.
+### Verwalteter Win32-Szeneneditor
 
-Bei Tastatureingabe zeigt das Fenster für jeden Absatz an, sobald dessen Grenze von 48
-UTF-16-Einheiten erreicht ist. Im verwalteten Windows-Lauf blieb der Text bei einer weiteren
-Eingabe unverändert. Nach Entfernen eines Zeichens verschwand der Hinweis. Ein zweiter Absatz
-mit 46 Buchstaben und einem Vogel-Emoji ließ sich an der Grenze vollständig und mit erhaltener
-Fettmarkierung speichern und wieder öffnen. Bei nur einer freien Einheit blieb vor der
-Korrektur eine einzelne Surrogathälfte im Feld stehen. Jetzt fügt die Fensterrolle ein per
-`WM_CHAR` eingegebenes Surrogatpaar gemeinsam ein. Im Windows-Lauf blieben in beiden Feldern
-alle 47 Buchstaben beim abgewiesenen Einfügen erhalten. Nach Markieren des letzten Buchstabens
-passte das Emoji vollständig. Die wieder geöffnete Revision 1 enthielt den zweiten Absatz
-einschließlich Emoji und Fettmarkierung.
+Die synthetische Szene A lässt sich per Tastatur bearbeiten, speichern und unter frischer
+Lesebindung wieder öffnen. Das Menü **Datei** enthält Speichern und Schließen. **Bearbeiten**
+bietet Rückgängig, Wiederholen und die Auswahl des fokussierten Absatzes (Strg+A).
+Bei ungespeicherten Änderungen fragt das Fenster beim Schließen nach. Abbrechen ist
+vorausgewählt und führt zum Entwurf zurück. Speichern verwendet die reguläre Absatzprüfung.
+Verwerfen schließt die Sitzung über den authentisierten Verwerfpfad ab.
 
-Rücktaste und Entf entfernen im Szeneneditor auch bei einer Auswahlgrenze innerhalb eines
-UTF-16-Surrogatpaars das vollständige Zeichen. Im verwalteten Windows-Lauf wurde in beiden
-Absatzfeldern aus `A🐦B` jeweils `AB`. Geprüft wurden die reguläre Cursorposition für beide
-Löschrichtungen und die programmgesteuerte Auswahl jeweils einer einzelnen Surrogathälfte.
-Beim Überschreiben ersetzt die Tastatureingabe das ganze angeschnittene Zeichen. Liegt nur die
-Einfügemarke zwischen seinen UTF-16-Einheiten, wird der neue Text dahinter eingefügt.
-Im verwalteten Windows-Lauf ließ sich in beiden Feldern auch bei voller Absatzlänge ein Vogel-Emoji
-durch ein Katzen-Emoji ersetzen. Revision 1 enthielt nach dem Wiederöffnen beide vollständigen
-Texte und die Fettmarkierung des zweiten Absatzes.
+Im verwalteten Windows-Lauf wurden Menübefehle, Rückgängig/Wiederholen, Abbrechen,
+die Korrektur eines leeren Absatzes beim Schließen und das anschließende Speichern gemeinsam
+geprüft. Die wieder geöffnete Revision 1 enthielt beide Texte und die Fettmarkierung. Beim
+Verwerfen einer Folgeänderung blieb die gespeicherte Datei bytegleich und erneut lesbar.
+
+Die beiden einzeiligen Absätze sind auf je 48 UTF-16-Einheiten begrenzt. Das Fenster zeigt die
+Eingabegrenze an und fokussiert beim Speicherversuch einen ungültigen Absatz. Die bisherigen
+Windows-Läufe belegen die Abweisung überlanger Inhalte und das vollständige Einfügen,
+Überschreiben und Löschen von Surrogatpaaren, auch bei einer Auswahlgrenze innerhalb des Paars.
 
 Der Offline-Gastlauf vom 19. November ist bestanden. Bei erzwungener UMCI erreichte das
 Kontrollprogramm mit statisch importierter erlaubter DLL den erwarteten Exit 50. Beim statischen
