@@ -48,14 +48,33 @@ fn draft_text(hwnd: HWND) -> Option<String> {
     Some(format!("{}\n{}", paragraph(EDIT)?, paragraph(SECOND)?))
 }
 
+fn draft_changed(hwnd: HWND) -> bool {
+    let current = draft_text(hwnd);
+    EXPECTED.with_borrow(|initial| current.as_ref() != Some(initial))
+}
+
+fn destroy_surface(hwnd: HWND) {
+    unsafe {
+        let second = GetDlgItem(hwnd, SECOND);
+        let font = if second.is_null() {
+            null_mut()
+        } else {
+            SendMessageW(second, WM_GETFONT, 0, 0) as HFONT
+        };
+        DestroyWindow(hwnd);
+        if !font.is_null() {
+            DeleteObject(font);
+        }
+    }
+}
+
 fn update_draft_status(hwnd: HWND) {
     unsafe {
         let save = GetDlgItem(hwnd, SAVE);
         if save.is_null() || GetDlgItem(hwnd, SECOND).is_null() {
             return;
         }
-        let current = draft_text(hwnd);
-        let dirty = EXPECTED.with_borrow(|initial| current.as_ref() != Some(initial));
+        let dirty = draft_changed(hwnd);
         EnableWindow(save, i32::from(dirty));
         EnableWindow(GetDlgItem(hwnd, DISCARD), i32::from(dirty));
         let title = if dirty {
@@ -89,6 +108,24 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 0
             }
             WM_CLOSE => {
+                if !GetDlgItem(hwnd, SAVE).is_null() && draft_changed(hwnd) {
+                    if IsWindowEnabled(hwnd) == 0 {
+                        return 0;
+                    }
+                    let previous_focus = GetFocus();
+                    let answer = MessageBoxW(
+                        hwnd,
+                        wide("Änderungen an Szene A verwerfen und das Fenster schließen?").as_ptr(),
+                        wide("Ungespeicherte Änderungen").as_ptr(),
+                        MB_YESNO | MB_DEFBUTTON2 | MB_ICONWARNING,
+                    );
+                    if answer != IDYES {
+                        if IsChild(hwnd, previous_focus) != 0 {
+                            SetFocus(previous_focus);
+                        }
+                        return 0;
+                    }
+                }
                 let mut value = [0u16; 64];
                 let n = GetDlgItemTextW(hwnd, EDIT, value.as_mut_ptr(), 64);
                 let expected = EXPECTED.with_borrow(Clone::clone);
@@ -108,10 +145,7 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                         && font_description(font)
                             .is_some_and(|desc| desc.lfWeight == FW_BOLD as i32)
                 };
-                DestroyWindow(hwnd);
-                if !font.is_null() {
-                    DeleteObject(font);
-                }
+                destroy_surface(hwnd);
                 PostQuitMessage(if ok { 40 } else { 41 });
                 0
             }
@@ -403,10 +437,7 @@ fn show(
                         }
                         if kraqel_native_scene_model::valid_paragraphs(&value) {
                             *result = value;
-                            SendMessageW(hwnd, WM_CLOSE, 0, 0);
-                            // Consume the close notification before opening the saved preview.
-                            let mut quit = MSG::default();
-                            PeekMessageW(&mut quit, null_mut(), WM_QUIT, WM_QUIT, PM_REMOVE);
+                            destroy_surface(hwnd);
                             return 40;
                         }
                     }
