@@ -21,6 +21,14 @@ gemeinsam. Im verwalteten Windows-Lauf öffnete sich Revision 1 mit geändertem 
 Fettmarkierung. Im frischen Edit-Auftrag wurde ausschließlich die Markierung geändert. Revision 2
 enthielt nach erneutem Öffnen denselben Text mit fett markiertem zweitem Absatz.
 
+Mit **Strg+F** lässt sich im geöffneten Bearbeitungsfenster nach einer exakten Zeichenfolge
+suchen. Enter im Suchfeld oder F3 markiert den nächsten Treffer, Umschalt+F3 den vorherigen.
+Die Suche berücksichtigt Groß-/Kleinschreibung und läuft zyklisch über beide Absätze. Der
+Suchbegriff bleibt im Fenster und gehört weder zur Revision noch zum Änderungsverlauf.
+Im verwalteten Windows-Lauf wurden drei Treffer über beide Absätze gefunden. Nach einem Emoji
+stimmten die Markierungsgrenzen. Beim Überschreiben des ausgewählten Treffers, Speichern und
+erneuten Öffnen blieben der übrige Text und die Fettmarkierung erhalten.
+
 Die beiden einzeiligen Absätze sind auf je 48 UTF-16-Einheiten begrenzt. Das Fenster zeigt die
 Eingabegrenze an und fokussiert beim Speicherversuch einen ungültigen Absatz. Die bisherigen
 Windows-Läufe belegen die Abweisung überlanger Inhalte und das vollständige Einfügen,

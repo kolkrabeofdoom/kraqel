@@ -20,6 +20,11 @@ const SECOND: i32 = 103;
 const SAVE: i32 = 104;
 const DISCARD: i32 = 105;
 const WORD_COUNT: i32 = 106;
+const SEARCH: i32 = 107;
+const SEARCH_LABEL: i32 = 108;
+const FIND: usize = 205;
+const FIND_NEXT: usize = 206;
+const FIND_PREVIOUS: usize = 207;
 
 thread_local! {
     static SECOND_WEIGHT: std::cell::Cell<i32> = const { std::cell::Cell::new(0) };
@@ -35,6 +40,73 @@ const TOGGLE_BOLD: u32 = WM_APP + 5;
 const SELECT_PARAGRAPH: usize = 203;
 const HISTORY_UNDO: u32 = WM_APP + 3;
 const HISTORY_REDO: u32 = WM_APP + 4;
+
+fn open_search(hwnd: HWND) {
+    unsafe {
+        let field = GetDlgItem(hwnd, SEARCH);
+        SetFocus(field);
+        SendMessageW(field, EM_SETSEL, 0, -1);
+    }
+}
+
+fn find_in_scene(hwnd: HWND, backwards: bool) {
+    unsafe {
+        let Some(query) = paragraph_text(hwnd, SEARCH).filter(|q| !q.is_empty()) else {
+            open_search(hwnd);
+            return;
+        };
+        let mut hits = Vec::new();
+        let mut anchor = None;
+        for id in [EDIT, SECOND] {
+            let Some(text) = paragraph_text(hwnd, id) else {
+                continue;
+            };
+            let field = GetDlgItem(hwnd, id);
+            if field == GetFocus() {
+                let selection = SendMessageW(field, EM_GETSEL, 0, 0) as u32;
+                let pos = if backwards {
+                    selection & 0xffff
+                } else {
+                    selection >> 16
+                };
+                anchor = Some((id, pos as usize));
+            }
+            for (offset, matched) in text.match_indices(&query) {
+                let start = text[..offset].encode_utf16().count();
+                hits.push((id, start, start + matched.encode_utf16().count()));
+            }
+        }
+        if hits.is_empty() {
+            SetDlgItemTextW(hwnd, LABEL, wide("Kein Treffer in Szene A").as_ptr());
+            open_search(hwnd);
+            return;
+        }
+        let index = if backwards {
+            anchor
+                .and_then(|pos| hits.iter().rposition(|&(id, _, end)| (id, end) <= pos))
+                .unwrap_or(hits.len() - 1)
+        } else {
+            anchor
+                .and_then(|pos| hits.iter().position(|&(id, start, _)| (id, start) >= pos))
+                .unwrap_or(0)
+        };
+        let (id, start, end) = hits[index];
+        let field = GetDlgItem(hwnd, id);
+        SetFocus(field);
+        SendMessageW(field, EM_SETSEL, start, end as LPARAM);
+        SendMessageW(
+            field,
+            windows_sys::Win32::UI::Controls::EM_SCROLLCARET,
+            0,
+            0,
+        );
+        SetDlgItemTextW(
+            hwnd,
+            LABEL,
+            wide(format!("Treffer {} von {}", index + 1, hits.len())).as_ptr(),
+        );
+    }
+}
 
 fn install_editor_menu(hwnd: HWND) -> bool {
     unsafe {
@@ -56,6 +128,9 @@ fn install_editor_menu(hwnd: HWND) -> bool {
                     (UNDO, "&Rückgängig\tStrg+Z"),
                     (REDO, "&Wiederholen\tStrg+Y"),
                     (BOLD_SECOND, "Zweiter Absatz &fett\tStrg+B"),
+                    (FIND, "&Suchen…\tStrg+F"),
+                    (FIND_NEXT, "&Nächster Treffer\tF3"),
+                    (FIND_PREVIOUS, "&Vorheriger Treffer\tUmschalt+F3"),
                     (SELECT_PARAGRAPH, "&Absatz auswählen\tStrg+A"),
                 ][..],
             ),
@@ -400,7 +475,16 @@ fn apply_fonts(hwnd: HWND, dpi: u32) -> bool {
             }
         }
         let old = SendDlgItemMessageW(hwnd, EDIT, WM_GETFONT, 0, 0) as HFONT;
-        for id in [EDIT, LABEL, SAVE, DISCARD, CLOSE, WORD_COUNT] {
+        for id in [
+            EDIT,
+            LABEL,
+            SAVE,
+            DISCARD,
+            CLOSE,
+            WORD_COUNT,
+            SEARCH_LABEL,
+            SEARCH,
+        ] {
             SendDlgItemMessageW(hwnd, id, WM_SETFONT, normal as usize, 1);
         }
         if !old.is_null() {
@@ -454,7 +538,8 @@ fn layout_surface(hwnd: HWND) -> bool {
         let gap = px(8);
         let width = (area.right - 2 * margin).max(1);
         let editing = !GetDlgItem(hwnd, SAVE).is_null();
-        let count_y = area.bottom - px(30);
+        let search_y = area.bottom - px(38);
+        let count_y = search_y - px(26);
         let buttons_y = if editing {
             count_y - px(36)
         } else {
@@ -495,6 +580,8 @@ fn layout_surface(hwnd: HWND) -> bool {
                     px(30),
                 )
                 && place(WORD_COUNT, margin, count_y, width, px(22))
+                && place(SEARCH_LABEL, margin, search_y + px(3), px(120), px(24))
+                && place(SEARCH, margin + px(120), search_y, width - px(120), px(26))
         } else {
             place(CLOSE, margin, buttons_y, width, px(30))
         }
@@ -528,10 +615,10 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                     .ptMinTrackSize
                     .x
                     .max(scale(460, GetDpiForWindow(hwnd)));
-                bounds.ptMinTrackSize.y = bounds
-                    .ptMinTrackSize
-                    .y
-                    .max(scale(250, GetDpiForWindow(hwnd)));
+                bounds.ptMinTrackSize.y = bounds.ptMinTrackSize.y.max(scale(
+                    if GetMenu(hwnd).is_null() { 250 } else { 290 },
+                    GetDpiForWindow(hwnd),
+                ));
                 0
             }
             WM_SIZE if w != SIZE_MINIMIZED as usize && !GetDlgItem(hwnd, EDIT).is_null() => {
@@ -558,6 +645,18 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                     SetDlgItemTextW(hwnd, LABEL, wide(label).as_ptr());
                 }
                 update_draft_status(hwnd);
+                0
+            }
+            WM_COMMAND if w == FIND => {
+                open_search(hwnd);
+                0
+            }
+            WM_COMMAND if w == FIND_NEXT || w == FIND_PREVIOUS => {
+                find_in_scene(hwnd, w == FIND_PREVIOUS);
+                0
+            }
+            WM_COMMAND if (w >> 16) as u32 == EN_CHANGE && (w & 0xffff) as i32 == SEARCH => {
+                SetDlgItemTextW(hwnd, LABEL, wide(draft_label()).as_ptr());
                 0
             }
             WM_COMMAND if w == UNDO || w == REDO => {
@@ -703,7 +802,7 @@ fn show(
             CW_USEDEFAULT,
             CW_USEDEFAULT,
             scale(640, GetDpiForSystem()),
-            scale(280, GetDpiForSystem()),
+            scale(if draft.is_some() { 320 } else { 280 }, GetDpiForSystem()),
             null_mut(),
             null_mut(),
             instance,
@@ -723,7 +822,7 @@ fn show(
                 0,
                 0,
                 scale(640, dpi),
-                scale(280, dpi),
+                scale(if draft.is_some() { 320 } else { 280 }, dpi),
                 SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE,
             ) == 0
         {
@@ -757,8 +856,15 @@ fn show(
                 WS_TABSTOP | BS_PUSHBUTTON as u32,
             ),
             (WORD_COUNT, "STATIC", "", SS_LEFT),
+            (SEARCH_LABEL, "STATIC", "&Suche (Enter)", SS_LEFT),
+            (
+                SEARCH,
+                "EDIT",
+                "",
+                WS_BORDER | WS_TABSTOP | ES_AUTOHSCROLL as u32,
+            ),
         ] {
-            if id == WORD_COUNT && draft.is_none() {
+            if matches!(id, WORD_COUNT | SEARCH_LABEL | SEARCH) && draft.is_none() {
                 continue;
             }
             if CreateWindowExW(
@@ -799,6 +905,13 @@ fn show(
             {
                 return 24;
             }
+        }
+        if draft.is_some() {
+            let query = GetDlgItem(hwnd, SEARCH);
+            if !protect_editor_field(query) {
+                return 24;
+            }
+            SendMessageW(query, EM_SETLIMITTEXT, MAX_PARAGRAPH_UTF16, 0);
         }
         if !protect_editor_field(GetDlgItem(hwnd, EDIT)) {
             return 24;
@@ -942,6 +1055,15 @@ fn show(
                 let ctrl = msg.message == WM_KEYDOWN
                     && GetKeyState(i32::from(VK_CONTROL)) < 0
                     && GetKeyState(i32::from(VK_MENU)) >= 0;
+                let in_search = GetFocus() == GetDlgItem(hwnd, SEARCH);
+                if (ctrl && key == 0x46) || (msg.message == WM_CHAR && key == 6) {
+                    open_search(hwnd);
+                    continue;
+                }
+                if msg.message == WM_KEYDOWN && (key == VK_F3 || (in_search && key == VK_RETURN)) {
+                    find_in_scene(hwnd, GetKeyState(i32::from(VK_SHIFT)) < 0);
+                    continue;
+                }
                 if msg.message == TOGGLE_BOLD
                     || (ctrl && key == 0x42)
                     || (msg.message == WM_CHAR && key == 2)
@@ -952,7 +1074,11 @@ fn show(
                     continue;
                 }
                 if (ctrl && key == 0x41) || (msg.message == WM_CHAR && key == 1) {
-                    select_paragraph(hwnd);
+                    if in_search {
+                        SendMessageW(GetFocus(), EM_SETSEL, 0, -1);
+                    } else {
+                        select_paragraph(hwnd);
+                    }
                     continue;
                 }
                 let undo = msg.message == HISTORY_UNDO
@@ -961,6 +1087,15 @@ fn show(
                 let redo = msg.message == HISTORY_REDO
                     || (ctrl && key == 0x59)
                     || (msg.message == WM_CHAR && key == 25);
+                if in_search
+                    && (undo || redo)
+                    && !matches!(msg.message, HISTORY_UNDO | HISTORY_REDO)
+                {
+                    if undo {
+                        SendMessageW(GetFocus(), WM_UNDO, 0, 0);
+                    }
+                    continue;
+                }
                 if undo || redo {
                     let forward = redo || (ctrl && GetKeyState(i32::from(VK_SHIFT)) < 0);
                     if let Some((text, bold)) = history.step(forward) {
@@ -1048,9 +1183,9 @@ fn show(
             {
                 let next = if draft.is_some() {
                     let ids: &[i32] = if IsWindowEnabled(GetDlgItem(hwnd, action)) != 0 {
-                        &[EDIT, SECOND, action, DISCARD]
+                        &[EDIT, SECOND, action, DISCARD, SEARCH]
                     } else {
-                        &[EDIT, SECOND]
+                        &[EDIT, SECOND, SEARCH]
                     };
                     let index = ids
                         .iter()
