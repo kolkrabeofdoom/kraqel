@@ -29,6 +29,18 @@ Im verwalteten Windows-Lauf wurden drei Treffer über beide Absätze gefunden. N
 stimmten die Markierungsgrenzen. Beim Überschreiben des ausgewählten Treffers, Speichern und
 erneuten Öffnen blieben der übrige Text und die Fettmarkierung erhalten.
 
+**Strg+H** fokussiert das Ersatzfeld. Enter dort oder **Bearbeiten → Treffer ersetzen**
+ersetzt den markierten Treffer oder den nächsten Treffer ab der letzten Absatzposition.
+**Alle Treffer ersetzen** verarbeitet beide Absätze gemeinsam. Eine leere Ersatzzeichenfolge
+löscht die Treffer, sofern beide Absätze gültig bleiben. Vor der Änderung prüft das Fenster
+die vollständigen Zieltexte. Die Ersetzung behält die Absatzformatierung und bildet einen
+gemeinsamen Schritt im lokalen Rückgängig-Verlauf. Erst Speichern schreibt eine Revision.
+
+Im verwalteten Windows-Lauf blieben beide Absätze nach einem zu langen Ergebnis und nach
+einem leeren Zielabsatz unverändert. Eine Sammelersetzung durch Emojis ließ sich mit einem
+Schritt zurücknehmen und wiederholen. Nach Ersetzen eines einzelnen ausgewählten Treffers
+und Wiederöffnen von Revision 1 stimmten beide Texte und die Fettmarkierung.
+
 Die beiden einzeiligen Absätze sind auf je 48 UTF-16-Einheiten begrenzt. Das Fenster zeigt die
 Eingabegrenze an und fokussiert beim Speicherversuch einen ungültigen Absatz. Die bisherigen
 Windows-Läufe belegen die Abweisung überlanger Inhalte und das vollständige Einfügen,
