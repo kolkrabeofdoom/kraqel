@@ -182,6 +182,7 @@ pub fn prepare(phase: Option<StorePhase>) -> io::Result<(File, File)> {
 }
 
 pub struct Store {
+    managed: bool,
     db: Connection,
     mode: Mode,
     phase: Option<StorePhase>,
@@ -226,7 +227,9 @@ impl Store {
         } else {
             require(size == 0, "new snapshot")?;
         }
-        let store = Self::configure(db, reopening, None, SyntheticCatalog::with_marked_scene_a)?;
+        let mut store =
+            Self::configure(db, reopening, None, SyntheticCatalog::with_marked_scene_a)?;
+        store.managed = true;
         if !reopening {
             // Preserve the initial committed scene even if the service dies before saving.
             store.flush_managed(file, false)?;
@@ -278,6 +281,7 @@ impl Store {
             tx.commit().map_err(failure)?;
         }
         Ok(Self {
+            managed: false,
             db,
             phase,
             mode: if read_only || phase == Some(StorePhase::Recover) {
@@ -300,13 +304,23 @@ impl Store {
                 |r| Ok((r.get(0)?, r.get(1)?)),
             )
             .map_err(failure)?;
-        let mut catalog = SyntheticCatalog::restore_a(rev, &content)
-            .ok_or(io::Error::other("invalid stored fixture"))?;
+        let mut catalog = (if self.managed {
+            SyntheticCatalog::restore_managed_a(rev, &content)
+        } else {
+            SyntheticCatalog::restore_a(rev, &content)
+        })
+        .ok_or(io::Error::other("invalid stored fixture"))?;
         let mut scene = catalog.bind(Scene::A, self.mode);
-        let reply = scene.handle(body);
+        let mut handle = |body: &[u8]| {
+            if self.managed {
+                scene.handle_managed(body)
+            } else {
+                scene.handle(body)
+            }
+        };
+        let reply = handle(body);
         if let Reply::Saved { revision } = reply {
-            let Reply::Read { text, .. } = scene.handle(br#"{"command":"c4_document_read_v1"}"#)
-            else {
+            let Reply::Read { text, .. } = handle(br#"{"command":"c4_document_read_v1"}"#) else {
                 return Err(io::Error::other("invalid saved fixture"));
             };
             let (encoded, _) = catalog.snapshot_a();
@@ -361,6 +375,7 @@ mod tests {
         )
         .unwrap();
         let mut store = Store {
+            managed: false,
             db,
             mode: Mode::Edit,
             phase: None,
@@ -378,10 +393,10 @@ mod tests {
                 .dispatch(br#"{"command":"c4_document_read_v1"}"#, || unreachable!())
                 .unwrap(),
             Reply::Read {
-                text: "Rabe\n42",
+                text,
                 bold_second: false,
                 revision: 0
-            }
+            } if text == "Rabe\n42"
         ));
     }
 }

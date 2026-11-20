@@ -122,6 +122,19 @@ impl Binding {
         revision: u32,
         text: &str,
     ) -> Result<SceneView, Closed> {
+        let answer = self.read_bound_view(sequence, reader, writer, revision)?;
+        if answer.text != text {
+            return Err(Closed);
+        }
+        Ok(answer)
+    }
+    fn read_bound_view(
+        &self,
+        sequence: u64,
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+        revision: u32,
+    ) -> Result<SceneView, Closed> {
         let body = self.exchange(
             sequence,
             br#"{"command":"c4_document_read_v1"}"#,
@@ -129,7 +142,7 @@ impl Binding {
             writer,
         )?;
         let answer: SceneView = serde_json::from_slice(&body).map_err(|_| Closed)?;
-        if answer.revision != revision || answer.text != text {
+        if answer.revision != revision || !super::valid_paragraphs(&answer.text) {
             return Err(Closed);
         }
         Ok(answer)
@@ -203,12 +216,17 @@ impl Binding {
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
     ) -> Result<(), Closed> {
-        let saved = self.exchange(
-            2,
-            br#"{"command":"c4_document_save_v1","expectedRevision":0,"text":"Rabe\n43"}"#,
-            reader,
-            writer,
-        )?;
+        self.save_text(reader, writer, 0, "Rabe\n43")
+    }
+    fn save_text(
+        &self,
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+        revision: u32,
+        text: &str,
+    ) -> Result<(), Closed> {
+        let body=serde_json::to_vec(&serde_json::json!({"command":"c4_document_save_v1","expectedRevision":revision,"text":text})).map_err(|_|Closed)?;
+        let saved = self.exchange(2, &body, reader, writer)?;
         #[derive(serde::Deserialize)]
         #[serde(deny_unknown_fields)]
         struct Saved {
@@ -270,6 +288,9 @@ impl Binding {
         writer: &mut impl std::io::Write,
     ) -> Result<String, Closed> {
         let view = self.durable_view(reopening, reader, writer)?;
+        if view.text != "Rabe\n43" {
+            return Err(Closed);
+        }
         Ok(view.text)
     }
     pub fn durable_view(
@@ -279,11 +300,32 @@ impl Binding {
         writer: &mut impl std::io::Write,
     ) -> Result<SceneView, Closed> {
         if reopening {
-            return self.read_view(1, reader, writer, 1, "Rabe\n43");
+            return self.read_bound_view(1, reader, writer, 1);
         }
         self.read_view(1, reader, writer, 0, "Rabe\n42")?;
         self.save_first(reader, writer)?;
         self.read_view(3, reader, writer, 1, "Rabe\n43")
+    }
+    pub fn keyboard_view(
+        self,
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+        edit: impl FnOnce(&SceneView) -> Result<String, Closed>,
+    ) -> Result<SceneView, Closed> {
+        let original = self.read_view(1, reader, writer, 0, "Rabe\n42")?;
+        if !original.bold_second {
+            return Err(Closed);
+        }
+        let text = edit(&original)?;
+        if !super::valid_paragraphs(&text) {
+            return Err(Closed);
+        }
+        self.save_text(reader, writer, original.revision, &text)?;
+        let saved = self.read_view(3, reader, writer, 1, &text)?;
+        if !saved.bold_second {
+            return Err(Closed);
+        }
+        Ok(saved)
     }
     /// Storage dispatch returns a Saved reply only after its disk transaction commits.
     pub fn durable_service(

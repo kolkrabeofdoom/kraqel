@@ -162,6 +162,8 @@ fn unsupported_stored_documents_cannot_be_read_or_replaced() {
     wrong_version.version = 2;
     for damaged in [marked, wrong_version, document("Mond\n7")] {
         let mut catalog = SyntheticCatalog::default();
+        let encoded = serde_json::to_string(&damaged).unwrap();
+        assert!(SyntheticCatalog::restore_managed_a(0, &encoded).is_none());
         catalog.a.content = damaged.clone();
         let mut binding = catalog.bind(Scene::A, Mode::Edit);
         assert_eq!(reply(&mut binding, READ), json!({"error":"INVALID"}));

@@ -977,6 +977,7 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
                 || args[0] == "open-win32-scene"
                 || args[0] == "check-win32-scene-denied-save"
                 || args[0] == "check-win32-scene-edit-conflict"
+                || args[0] == "edit-win32-scene"
                 || args[0] == "save-win32-scene"
                 || args[0] == "read-saved-win32-scene"))
     {
@@ -1002,10 +1003,15 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
             win32_binding::Operation::CheckWindow(win32_binding::WindowMode::Scene(
                 crate::window_receipt::SceneOperation::Once,
             ))
-        } else if args[0] == "save-win32-scene" || args[0] == "read-saved-win32-scene" {
+        } else if args[0] == "edit-win32-scene"
+            || args[0] == "save-win32-scene"
+            || args[0] == "read-saved-win32-scene"
+        {
             use crate::window_receipt::SceneOperation;
             win32_binding::Operation::CheckWindow(win32_binding::WindowMode::Scene(
-                if args[0] == "save-win32-scene" {
+                if args[0] == "edit-win32-scene" {
+                    SceneOperation::KeyboardEdit
+                } else if args[0] == "save-win32-scene" {
                     SceneOperation::SavePersistent
                 } else {
                     SceneOperation::ReadPersistent

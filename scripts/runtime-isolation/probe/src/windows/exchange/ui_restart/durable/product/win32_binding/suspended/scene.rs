@@ -87,7 +87,10 @@ pub(in super::super) fn read_scene(
                     ];
                     let mut snapshot_ends = Vec::new();
                     for file in snapshots.into_iter().flatten() {
-                        let rights = if mode == SceneOperation::SavePersistent {
+                        let rights = if matches!(
+                            mode,
+                            SceneOperation::KeyboardEdit | SceneOperation::SavePersistent
+                        ) {
                             write
                         } else {
                             read
@@ -103,7 +106,9 @@ pub(in super::super) fn read_scene(
                     let mut material = Zeroizing::new([0u8; 96]);
                     let mut context = Sha256::new();
                     match mode {
-                        SceneOperation::SavePersistent | SceneOperation::ReadPersistent => {
+                        SceneOperation::KeyboardEdit
+                        | SceneOperation::SavePersistent
+                        | SceneOperation::ReadPersistent => {
                             context.update(mode.argument().as_bytes())
                         }
                         SceneOperation::CheckEditConflict => {
@@ -132,7 +137,19 @@ pub(in super::super) fn read_scene(
                             io("scene-snapshot-end", control.write_all(handle))?;
                         }
                     }
-                    if unsafe { WaitForSingleObject(data.hProcess, 5000) } != WAIT_OBJECT_0 {
+                    let ended = if mode == SceneOperation::KeyboardEdit {
+                        unsafe {
+                            WaitForMultipleObjects(
+                                2,
+                                [data.hProcess, ui.hProcess].as_ptr(),
+                                0,
+                                INFINITE,
+                            )
+                        }
+                    } else {
+                        unsafe { WaitForSingleObject(data.hProcess, 5000) }
+                    };
+                    if ended != WAIT_OBJECT_0 {
                         return Err(invalid("scene-service-timeout"));
                     }
                     let mut exit = 0;
@@ -160,7 +177,9 @@ pub(in super::super) fn read_scene(
     }
     if matches!(
         mode,
-        SceneOperation::SavePersistent | SceneOperation::ReadPersistent
+        SceneOperation::KeyboardEdit
+            | SceneOperation::SavePersistent
+            | SceneOperation::ReadPersistent
     ) {
         result["revision"] = json!(1);
         result["persistent"] = json!(true);

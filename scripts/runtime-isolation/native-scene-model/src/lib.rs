@@ -65,6 +65,25 @@ impl Scene {
     }
 }
 
+/// Two short paragraphs are the whole synthetic editing surface.
+pub fn valid_paragraphs(text: &str) -> bool {
+    text.split_once('\n').is_some_and(|(a, b)| {
+        [a, b].iter().all(|p| {
+            !p.is_empty() && p.encode_utf16().count() <= 48 && !p.chars().any(char::is_control)
+        })
+    })
+}
+
+fn marked_text(doc: &EditorDocument) -> Option<String> {
+    let paragraphs = &doc.document["content"];
+    let text = format!(
+        "{}\n{}",
+        paragraphs[0]["content"][0]["text"].as_str()?,
+        paragraphs[1]["content"][0]["text"].as_str()?
+    );
+    (valid_paragraphs(&text) && marked_document(&text) == *doc).then_some(text)
+}
+
 struct Record {
     content: EditorDocument,
     revision: u32,
@@ -111,6 +130,17 @@ impl SyntheticCatalog {
             .map(|(_, doc)| doc)
             .find(|d| serde_json::to_string(d).is_ok_and(|json| json == encoded))?;
         Some(Self {
+            a: Record { content, revision },
+            ..Self::default()
+        })
+    }
+    pub fn restore_managed_a(revision: u32, encoded: &str) -> Option<Self> {
+        if let Some(old) = Self::restore_a(revision, encoded) {
+            return Some(old);
+        }
+        let content = serde_json::from_str(encoded).ok()?;
+        marked_text(&content)?;
+        (revision <= MAX_REVISION).then(|| Self {
             a: Record { content, revision },
             ..Self::default()
         })
@@ -175,7 +205,7 @@ pub enum Reply {
         revision: u32,
     },
     Read {
-        text: &'static str,
+        text: String,
         revision: u32,
         #[serde(skip_serializing_if = "std::ops::Not::not")]
         bold_second: bool,
@@ -200,11 +230,16 @@ pub enum Failure {
 impl BoundScene<'_> {
     /// One complete v1 message body. Authentication and framing belong to BP4b.
     pub fn handle(&mut self, body: &[u8]) -> Reply {
-        self.apply(body)
+        self.apply(body, false)
             .unwrap_or_else(|error| Reply::Failure { error })
     }
 
-    fn apply(&mut self, body: &[u8]) -> Result<Reply, Failure> {
+    pub fn handle_managed(&mut self, body: &[u8]) -> Reply {
+        self.apply(body, true)
+            .unwrap_or_else(|error| Reply::Failure { error })
+    }
+
+    fn apply(&mut self, body: &[u8], managed: bool) -> Result<Reply, Failure> {
         if body.len() > MAX_FRAME_BYTES {
             return Err(Failure::Limit);
         }
@@ -218,6 +253,11 @@ impl BoundScene<'_> {
         }
 
         let revision = self.record.revision;
+        let marked = managed
+            && self.scene == Scene::A
+            && self.record.content.document["content"][1]["content"][0]
+                .get("marks")
+                .is_some();
         match request {
             Request::Status {} => Ok(Reply::Status {
                 scene: self.scene,
@@ -225,7 +265,7 @@ impl BoundScene<'_> {
                 revision,
             }),
             Request::Read {} => Ok(Reply::Read {
-                text: self.current_text()?,
+                text: self.current_text(marked)?,
                 revision,
                 bold_second: self.record.content.document["content"][1]["content"][0]
                     .get("marks")
@@ -241,8 +281,10 @@ impl BoundScene<'_> {
                 if text.len() > MAX_TEXT_BYTES || expected_revision > MAX_REVISION {
                     return Err(Failure::Limit);
                 }
-                self.current_text()?;
-                if !self.scene.versions().contains(&text.as_str()) {
+                self.current_text(marked)?;
+                if !(self.scene.versions().contains(&text.as_str())
+                    || marked && valid_paragraphs(&text))
+                {
                     return Err(Failure::Invalid);
                 }
                 if revision != expected_revision {
@@ -252,11 +294,10 @@ impl BoundScene<'_> {
                     return Err(Failure::Limit);
                 }
                 let revision = revision + 1;
-                // Both accepted versions share the first paragraph. Change only the
-                // second text leaf after validating the entire stored tree above.
-                let (_, replacement) = text.split_once('\n').ok_or(Failure::Invalid)?;
-                self.record.content.document["content"][1]["content"][0]["text"] =
-                    json!(replacement);
+                let (first, second) = text.split_once('\n').ok_or(Failure::Invalid)?;
+                let paragraphs = &mut self.record.content.document["content"];
+                paragraphs[0]["content"][0]["text"] = json!(first);
+                paragraphs[1]["content"][0]["text"] = json!(second);
                 self.record.revision = revision;
                 Ok(Reply::Saved { revision })
             }
@@ -265,11 +306,14 @@ impl BoundScene<'_> {
 
     // Match the entire stored tree, including the envelope version. A plain-text
     // projection could hide marks, attributes, or content belonging to another scene.
-    fn current_text(&self) -> Result<&'static str, Failure> {
+    fn current_text(&self, marked: bool) -> Result<String, Failure> {
+        if marked {
+            return marked_text(&self.record.content).ok_or(Failure::Invalid);
+        }
         self.scene
             .documents()
             .find(|(_, doc)| *doc == self.record.content)
-            .map(|(text, _)| text)
+            .map(|(text, _)| text.to_owned())
             .ok_or(Failure::Invalid)
     }
 }

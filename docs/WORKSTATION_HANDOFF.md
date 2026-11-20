@@ -1,5 +1,8 @@
 # Rechnerwechsel und Arbeitsübergabe
 
+Der verwaltete Auftrag [edit-win32-scene](architecture/decisions/0036-native-win32-ui-role-evaluation.md#tastatureingabe-in-szene-a) erlaubt eine Tastaturänderung beider Absätze in der frischen synthetischen Ablage. Speichern und schreibgeschütztes Wiederöffnen mit erhaltener Fettmarkierung sind geprüft.
+
+
 Beim verwalteten Szenenzugriff ist der [Erhalt einer Fettmarkierung beim Ändern des markierten Textes](architecture/decisions/0036-native-win32-ui-role-evaluation.md#textänderung-in-einem-markierten-absatz) bis zum Wiederöffnen verifiziert. Die [native Vorschau](architecture/decisions/0036-native-win32-ui-role-evaluation.md#formatierte-vorschau) zeigt die gespeicherte Fettmarkierung am zweiten Absatz an.
 
 

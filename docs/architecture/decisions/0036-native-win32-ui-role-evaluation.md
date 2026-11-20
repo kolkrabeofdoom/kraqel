@@ -288,6 +288,12 @@ Der Datendienst überträgt bei einer validierten Fettmarkierung ein zusätzlich
 
 Im verwalteten Windows-Lauf endeten Speichern und erneutes Lesen von Revision 1 regulär. Beim Schließen prüft die Fensterrolle die beiden angezeigten Absatztexte und das am zweiten Steuerelement abgerufene Schriftgewicht. Der vorhandene Modelltest umfasst die Leseantworten für die markierte und die unmarkierte Szene.
 
+### Tastatureingabe in Szene A
+
+`broker-store edit-win32-scene <Kontrollkopf>` startet in einer frischen synthetischen Ablage die eigene Edit-Bindung. Nach authentisiertem Bootstrap und Erhalt der markierten Fassung auf Revision 0 öffnet das Fenster zwei einzeilige Eingabefelder. Tab und Umschalt+Tab wechseln zwischen beiden Absätzen und „Speichern“. Strg+S oder Enter auf „Speichern“ sendet den eingegebenen Text. Jeder Absatz enthält 1 bis 48 UTF-16-Codeeinheiten. Der Dienst prüft den vollständigen Dokumentbaum, die Edit-Bindung und die erwartete Revision. Er ersetzt die beiden Textwerte und bewahrt die Markierung des zweiten Absatzes. Vor dem dauerhaften Abschluss prüft die Fensterrolle den authentisierten Rücklesewert. Schließen ohne Speichern erzeugt keinen Abschlussbeleg. Die bestehende Neustartsperre greift.
+
+Der lokale Windows-Lauf verwendete native Zeichen- und Tastennachrichten für „Kolkrabe“ und „Stern 47“, Tab und Enter. Ein neuer `read-saved-win32-scene`-Auftrag öffnete Revision 1 schreibgeschützt. Die unabhängige SQLite-Abfrage bestätigte beide Textwerte und die Fettmarkierung ausschließlich am zweiten Absatz. Die Edit-Bindung gilt für einen einzelnen Speichervorgang an synthetischen Testdaten.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

@@ -14,6 +14,7 @@ impl window_receipt::SceneOperation {
             Self::Once,
             Self::CheckDeniedSave,
             Self::CheckEditConflict,
+            Self::KeyboardEdit,
             Self::SavePersistent,
             Self::ReadPersistent,
         ]
@@ -160,11 +161,18 @@ impl Channel {
 pub fn exchange(
     mut control: File,
     mode: window_receipt::SceneOperation,
+    edit: impl FnOnce(&str) -> Option<String>,
 ) -> io::Result<(String, bool)> {
     let mut ch = Channel::open(&mut control)?;
     ch.send(Handshake::Hello)?;
     ch.receive(Handshake::Ready)?;
     match mode {
+        window_receipt::SceneOperation::KeyboardEdit => ch
+            .binding
+            .keyboard_view(&mut ch.reader, &mut ch.writer, |v| {
+                edit(&v.text).ok_or(kraqel_native_scene_model::channel::Closed)
+            })
+            .map(|v| (v.text, v.bold_second)),
         window_receipt::SceneOperation::SavePersistent
         | window_receipt::SceneOperation::ReadPersistent => ch
             .binding
@@ -208,7 +216,8 @@ pub fn serve(profile: &str, mode: window_receipt::SceneOperation) -> io::Result<
     ch.receive(Handshake::Hello)?;
     ch.send(Handshake::Ready)?;
     match mode {
-        window_receipt::SceneOperation::SavePersistent
+        window_receipt::SceneOperation::KeyboardEdit
+        | window_receipt::SceneOperation::SavePersistent
         | window_receipt::SceneOperation::ReadPersistent => {
             let reopening = mode == window_receipt::SceneOperation::ReadPersistent;
             let mut file = snapshot_handle(&mut input)?;

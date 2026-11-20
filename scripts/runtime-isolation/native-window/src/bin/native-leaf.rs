@@ -13,6 +13,24 @@ const LABEL: i32 = 100;
 const EDIT: i32 = 101;
 const CLOSE: i32 = 102;
 const SECOND: i32 = 103;
+const SAVE: i32 = 104;
+thread_local! {
+    static EXPECTED: std::cell::RefCell<String> = std::cell::RefCell::new(String::new());
+}
+const SAVE_DRAFT: u32 = WM_APP + 1;
+unsafe extern "system" fn local_edit(
+    hwnd: HWND,
+    msg: u32,
+    w: WPARAM,
+    l: LPARAM,
+    _id: usize,
+    _data: usize,
+) -> LRESULT {
+    match msg {
+        WM_COPY | WM_CUT | WM_PASTE | WM_CONTEXTMENU => 0,
+        _ => unsafe { windows_sys::Win32::UI::Shell::DefSubclassProc(hwnd, msg, w, l) },
+    }
+}
 fn font_description(font: HFONT) -> Option<LOGFONTW> {
     let mut desc = LOGFONTW::default();
     let size = size_of::<LOGFONTW>() as i32;
@@ -21,6 +39,10 @@ fn font_description(font: HFONT) -> Option<LOGFONTW> {
 unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> LRESULT {
     unsafe {
         match msg {
+            WM_COMMAND if w & 0xffff == SAVE as usize => {
+                PostMessageW(hwnd, SAVE_DRAFT, 0, 0);
+                0
+            }
             WM_COMMAND if w & 0xffff == CLOSE as usize => {
                 PostMessageW(hwnd, WM_CLOSE, 0, 0);
                 0
@@ -28,12 +50,7 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
             WM_CLOSE => {
                 let mut value = [0u16; 64];
                 let n = GetDlgItemTextW(hwnd, EDIT, value.as_mut_ptr(), 64);
-                // Report only whether the public two-line fixture matched, never the input.
-                let expected = if GetWindowLongPtrW(hwnd, GWLP_USERDATA) == 1 {
-                    "Rabe\r\n43"
-                } else {
-                    "Rabe\r\n42"
-                };
+                let expected = EXPECTED.with_borrow(Clone::clone);
                 let first = String::from_utf16_lossy(&value[..n as usize]);
                 let second = GetDlgItem(hwnd, SECOND);
                 let font = if second.is_null() {
@@ -42,11 +59,11 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                     SendMessageW(second, WM_GETFONT, 0, 0) as HFONT
                 };
                 let ok = if second.is_null() {
-                    first == expected
+                    first.replace("\r\n", "\n") == expected
                 } else {
                     let n = GetWindowTextW(second, value.as_mut_ptr(), 64);
                     let number = String::from_utf16_lossy(&value[..n as usize]);
-                    format!("{first}\r\n{number}") == expected
+                    format!("{first}\n{number}") == expected
                         && font_description(font)
                             .is_some_and(|desc| desc.lfWeight == FW_BOLD as i32)
                 };
@@ -64,8 +81,16 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
 fn show(
     endpoint: Option<bootstrap::Endpoint>,
     mut surface: Option<(std::fs::File, String, bool)>,
+    mut draft: Option<&mut String>,
 ) -> i32 {
     unsafe {
+        EXPECTED.with_borrow_mut(|value| {
+            *value = surface
+                .as_ref()
+                .map(|(_, text, _)| text.clone())
+                .unwrap_or_else(|| "Rabe\n42".into())
+        });
+        let action = if draft.is_some() { SAVE } else { CLOSE };
         let instance = GetModuleHandleW(null());
         let name = wide("KRAQEL.Synthetic.Edit");
         let class = WNDCLASSW {
@@ -75,7 +100,7 @@ fn show(
             hbrBackground: 6usize as _,
             ..Default::default()
         };
-        if RegisterClassW(&class) == 0 {
+        if RegisterClassW(&class) == 0 && GetLastError() != ERROR_CLASS_ALREADY_EXISTS {
             return 22;
         }
         let hwnd = CreateWindowExW(
@@ -96,7 +121,18 @@ fn show(
             return 23;
         }
         for (id, kind, title, style, y, height) in [
-            (LABEL, "STATIC", "&Prüftext", SS_LEFT, 12, 22),
+            (
+                LABEL,
+                "STATIC",
+                if draft.is_some() {
+                    "Szene A · Zwei Absätze, zweiter fett"
+                } else {
+                    "&Prüftext"
+                },
+                SS_LEFT,
+                12,
+                22,
+            ),
             (
                 EDIT,
                 "EDIT",
@@ -106,9 +142,13 @@ fn show(
                 70,
             ),
             (
-                CLOSE,
+                action,
                 "BUTTON",
-                "&Schließen",
+                if draft.is_some() {
+                    "&Speichern (Strg+S)"
+                } else {
+                    "&Schließen"
+                },
                 WS_TABSTOP | BS_PUSHBUTTON as u32,
                 120,
                 30,
@@ -135,9 +175,6 @@ fn show(
         }
         SendDlgItemMessageW(hwnd, EDIT, EM_SETLIMITTEXT, 48, 0);
         if let Some((_, text, marked)) = &surface {
-            if text == "Rabe\n43" {
-                SetWindowLongPtrW(hwnd, GWLP_USERDATA, 1);
-            }
             let edit = GetDlgItem(hwnd, EDIT);
             let mut visible = text.as_str();
             if *marked {
@@ -153,9 +190,15 @@ fn show(
                 let bold = CreateFontIndirectW(&desc);
                 let second = CreateWindowExW(
                     0,
-                    wide("STATIC").as_ptr(),
+                    wide(if draft.is_some() { "EDIT" } else { "STATIC" }).as_ptr(),
                     wide(number).as_ptr(),
-                    WS_CHILD | WS_VISIBLE | SS_LEFT,
+                    WS_CHILD
+                        | WS_VISIBLE
+                        | if draft.is_some() {
+                            WS_BORDER | WS_TABSTOP | ES_AUTOHSCROLL as u32
+                        } else {
+                            SS_LEFT | windows_sys::Win32::System::SystemServices::SS_NOPREFIX
+                        },
                     18,
                     68,
                     400,
@@ -168,17 +211,36 @@ fn show(
                 if bold.is_null() || second.is_null() || MoveWindow(edit, 15, 38, 410, 26, 1) == 0 {
                     return 24;
                 }
+                if draft.is_some() {
+                    for field in [edit, second] {
+                        SendMessageW(field, EM_SETLIMITTEXT, 48, 0);
+                        if windows_sys::Win32::UI::Shell::SetWindowSubclass(
+                            field,
+                            Some(local_edit),
+                            1,
+                            0,
+                        ) == 0
+                        {
+                            return 24;
+                        }
+                    }
+                }
                 SendMessageW(edit, WM_SETFONT, normal as usize, 1);
                 SendMessageW(second, WM_SETFONT, bold as usize, 1);
             }
-            if SendMessageW(edit, windows_sys::Win32::UI::Controls::EM_SETREADONLY, 1, 0) == 0
+            if SendMessageW(
+                edit,
+                windows_sys::Win32::UI::Controls::EM_SETREADONLY,
+                usize::from(draft.is_none()),
+                0,
+            ) == 0
                 || SetWindowTextW(edit, wide(visible.replace('\n', "\r\n")).as_ptr()) == 0
             {
                 return 24;
             }
         }
         ShowWindow(hwnd, SW_SHOW);
-        if let Some((output, _, _)) = surface.as_mut() {
+        if let Some((output, _, _)) = surface.as_mut().filter(|_| draft.is_none()) {
             use std::io::Write;
             if output
                 .write_all(&(hwnd as usize as u64).to_le_bytes())
@@ -241,13 +303,64 @@ fn show(
                 0 => return msg.wParam as i32,
                 _ => {}
             }
+            if let Some(result) = draft.as_deref_mut() {
+                let key = msg.wParam as u16;
+                let ctrl_save = msg.message == WM_KEYDOWN
+                    && key == 0x53
+                    && GetKeyState(i32::from(VK_CONTROL)) < 0;
+                let enter_save = msg.message == WM_KEYDOWN
+                    && key == VK_RETURN
+                    && GetFocus() == GetDlgItem(hwnd, action);
+                if msg.message == SAVE_DRAFT || ctrl_save || enter_save {
+                    let paragraph = |id| {
+                        let mut buf = [0u16; 49];
+                        let n = GetDlgItemTextW(hwnd, id, buf.as_mut_ptr(), 49);
+                        String::from_utf16(&buf[..n as usize]).ok()
+                    };
+                    if let (Some(a), Some(b)) = (paragraph(EDIT), paragraph(SECOND)) {
+                        let value = format!("{a}\n{b}");
+                        if kraqel_native_scene_model::valid_paragraphs(&value) {
+                            *result = value;
+                            SendMessageW(hwnd, WM_CLOSE, 0, 0);
+                            // Consume the close notification before opening the saved preview.
+                            let mut quit = MSG::default();
+                            PeekMessageW(&mut quit, null_mut(), WM_QUIT, WM_QUIT, PM_REMOVE);
+                            return 40;
+                        }
+                    }
+                    SetWindowTextW(
+                        GetDlgItem(hwnd, LABEL),
+                        wide("Bitte beide Absätze einzeilig ausfüllen.").as_ptr(),
+                    );
+                    continue;
+                }
+                if msg.message == WM_KEYDOWN
+                    && key == VK_RETURN
+                    && GetFocus() != GetDlgItem(hwnd, action)
+                {
+                    continue;
+                }
+            }
             // A multiline EDIT can claim Tab. This two-control form reserves it for navigation.
             if msg.message == WM_KEYDOWN
                 && msg.wParam == usize::from(VK_TAB)
                 && GetKeyState(i32::from(VK_CONTROL)) >= 0
                 && GetKeyState(i32::from(VK_MENU)) >= 0
             {
-                let next = if GetFocus() == GetDlgItem(hwnd, EDIT) {
+                let next = if draft.is_some() {
+                    let ids = [EDIT, SECOND, action];
+                    let index = ids
+                        .iter()
+                        .position(|id| GetDlgItem(hwnd, *id) == GetFocus())
+                        .unwrap_or(0);
+                    ids[(index
+                        + if GetKeyState(i32::from(VK_SHIFT)) < 0 {
+                            2
+                        } else {
+                            1
+                        })
+                        % 3]
+                } else if GetFocus() == GetDlgItem(hwnd, EDIT) {
                     CLOSE
                 } else {
                     EDIT
@@ -259,7 +372,7 @@ fn show(
                 && msg.message == WM_KEYDOWN
                 && (msg.wParam == usize::from(VK_ESCAPE)
                     || (msg.wParam == usize::from(VK_RETURN)
-                        && GetFocus() == GetDlgItem(hwnd, CLOSE)))
+                        && GetFocus() == GetDlgItem(hwnd, action)))
             {
                 PostMessageW(hwnd, WM_CLOSE, 0, 0);
                 continue;
@@ -282,11 +395,16 @@ fn main() {
             let (input, output) =
                 managed_scene::confirm_bootstrap(Some(&profile), bootstrap::Role::Window)?;
             let (text, marked) = if let Some(mode) = scene {
-                managed_scene::exchange(input, mode)?
+                managed_scene::exchange(input, mode, |initial| {
+                    let mut draft = String::new();
+                    let surface = (output.try_clone().ok()?, initial.to_owned(), true);
+                    let code = show(None, Some(surface), Some(&mut draft));
+                    (code == 40 && !draft.is_empty()).then_some(draft)
+                })?
             } else {
                 ("Rabe\n42".to_owned(), false)
             };
-            Ok(show(None, Some((output, text, marked))))
+            Ok(show(None, Some((output, text, marked)), None))
         })();
         std::process::exit(result.unwrap_or(20));
     }
@@ -301,12 +419,12 @@ fn main() {
     }
     if bootstrap::Role::Window.receipt().exists() {
         let exit = bootstrap::Endpoint::open(bootstrap::Role::Window)
-            .map(|endpoint| show(Some(endpoint), None))
+            .map(|endpoint| show(Some(endpoint), None, None))
             .unwrap_or(20);
         std::process::exit(exit);
     }
     if verify_leaf().is_err() {
         std::process::exit(20);
     }
-    std::process::exit(show(None, None));
+    std::process::exit(show(None, None, None));
 }

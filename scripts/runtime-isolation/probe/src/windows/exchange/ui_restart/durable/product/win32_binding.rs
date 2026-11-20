@@ -157,8 +157,10 @@ impl Store {
             if self.state.sequence + 2 >= MAX_RECORDS {
                 return Err(invalid("win32-window-record-budget"));
             }
-            use crate::window_receipt::SceneOperation::{ReadPersistent, SavePersistent};
-            let saving = mode == WindowMode::Scene(SavePersistent);
+            use crate::window_receipt::SceneOperation::{
+                KeyboardEdit, ReadPersistent, SavePersistent,
+            };
+            let saving = matches!(mode, WindowMode::Scene(KeyboardEdit | SavePersistent));
             let mut snapshot = None;
             if saving || mode == WindowMode::Scene(ReadPersistent) {
                 package::verify_scene_snapshot(&mut managed)?;
