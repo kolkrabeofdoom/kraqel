@@ -39,9 +39,43 @@ fn font_description(font: HFONT) -> Option<LOGFONTW> {
     let size = size_of::<LOGFONTW>() as i32;
     (unsafe { GetObjectW(font, size, (&mut desc as *mut LOGFONTW).cast()) } == size).then_some(desc)
 }
+fn draft_text(hwnd: HWND) -> Option<String> {
+    let paragraph = |id| {
+        let mut buf = [0u16; 49];
+        let n = unsafe { GetDlgItemTextW(hwnd, id, buf.as_mut_ptr(), buf.len() as i32) };
+        String::from_utf16(&buf[..n as usize]).ok()
+    };
+    Some(format!("{}\n{}", paragraph(EDIT)?, paragraph(SECOND)?))
+}
+
+fn update_draft_status(hwnd: HWND) {
+    unsafe {
+        let save = GetDlgItem(hwnd, SAVE);
+        if save.is_null() || GetDlgItem(hwnd, SECOND).is_null() {
+            return;
+        }
+        let current = draft_text(hwnd);
+        let dirty = EXPECTED.with_borrow(|initial| current.as_ref() != Some(initial));
+        EnableWindow(save, i32::from(dirty));
+        EnableWindow(GetDlgItem(hwnd, DISCARD), i32::from(dirty));
+        let title = if dirty {
+            "Szene A – Ungespeicherte Änderungen"
+        } else {
+            "Szene A – Keine Änderungen"
+        };
+        SetWindowTextW(hwnd, wide(title).as_ptr());
+    }
+}
 unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> LRESULT {
     unsafe {
         match msg {
+            WM_COMMAND
+                if (w >> 16) as u32 == EN_CHANGE
+                    && matches!((w & 0xffff) as i32, EDIT | SECOND) =>
+            {
+                update_draft_status(hwnd);
+                0
+            }
             WM_COMMAND if w & 0xffff == DISCARD as usize => {
                 PostMessageW(hwnd, DISCARD_DRAFT, 0, 0);
                 0
@@ -267,6 +301,9 @@ fn show(
                 return 24;
             }
         }
+        if draft.is_some() {
+            update_draft_status(hwnd);
+        }
         ShowWindow(hwnd, SW_SHOW);
         if let Some((output, _, _)) = surface.as_mut().filter(|_| draft.is_none()) {
             use std::io::Write;
@@ -349,6 +386,7 @@ fn show(
                             return 24;
                         }
                     }
+                    update_draft_status(hwnd);
                     SetFocus(GetDlgItem(hwnd, EDIT));
                     continue;
                 }
@@ -359,13 +397,10 @@ fn show(
                     && key == VK_RETURN
                     && GetFocus() == GetDlgItem(hwnd, action);
                 if msg.message == SAVE_DRAFT || ctrl_save || enter_save {
-                    let paragraph = |id| {
-                        let mut buf = [0u16; 49];
-                        let n = GetDlgItemTextW(hwnd, id, buf.as_mut_ptr(), 49);
-                        String::from_utf16(&buf[..n as usize]).ok()
-                    };
-                    if let (Some(a), Some(b)) = (paragraph(EDIT), paragraph(SECOND)) {
-                        let value = format!("{a}\n{b}");
+                    if let Some(value) = draft_text(hwnd) {
+                        if EXPECTED.with_borrow(|initial| initial == &value) {
+                            continue;
+                        }
                         if kraqel_native_scene_model::valid_paragraphs(&value) {
                             *result = value;
                             SendMessageW(hwnd, WM_CLOSE, 0, 0);
@@ -395,7 +430,11 @@ fn show(
                 && GetKeyState(i32::from(VK_MENU)) >= 0
             {
                 let next = if draft.is_some() {
-                    let ids = [EDIT, SECOND, action, DISCARD];
+                    let ids: &[i32] = if IsWindowEnabled(GetDlgItem(hwnd, action)) != 0 {
+                        &[EDIT, SECOND, action, DISCARD]
+                    } else {
+                        &[EDIT, SECOND]
+                    };
                     let index = ids
                         .iter()
                         .position(|id| GetDlgItem(hwnd, *id) == GetFocus())
