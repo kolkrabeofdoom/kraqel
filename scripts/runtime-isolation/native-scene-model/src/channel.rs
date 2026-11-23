@@ -11,6 +11,7 @@ pub enum ReviewedWrite {
     Once,
     Repeat,
 }
+const PREPARE_PLAIN: &[u8] = b"prepare-plain-snapshot-v1";
 const PREPARE_COMPARISON: &[u8] = b"prepare-compared-snapshot-v1";
 pub const COMPARE_READ: &[u8] = br#"{"command":"c4_document_read_v1"}"#;
 const DISCARD: &[u8] = br#"{"command":"discard_draft_v1"}"#;
@@ -102,6 +103,7 @@ pub enum EditorEvent<'a> {
     Preview(&'a TextPreview),
     RevisionConflict(Option<&'a SceneView>),
     RefreshedComparison(&'a SceneView),
+    PlainConflict(&'a SceneView),
     TextConflict(&'a TextPreview),
 }
 
@@ -429,6 +431,7 @@ impl Binding {
         &self,
         basis: u32,
         short_merge: bool,
+        plain_merge: bool,
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
     ) -> Result<OpenedScene, Closed> {
@@ -438,7 +441,9 @@ impl Binding {
             OpenedScene::Editable(v)
                 if v.revision > basis && super::valid_scene_edit(&v.text, v.bold_second) =>
             {
-                if short_merge && super::valid_paragraphs(&v.text) {
+                if (short_merge && super::valid_paragraphs(&v.text))
+                    || (plain_merge && !v.bold_second)
+                {
                     Ok(OpenedScene::Editable(v))
                 } else {
                     Ok(OpenedScene::Preview(TextPreview {
@@ -497,7 +502,15 @@ impl Binding {
             let short_merge =
                 super::valid_paragraphs(&original.text) && super::valid_paragraphs(&text);
             let latest = compare
-                .then(|| self.read_comparison(revision, short_merge, reader, writer))
+                .then(|| {
+                    self.read_comparison(
+                        revision,
+                        short_merge,
+                        !original.bold_second && !bold,
+                        reader,
+                        writer,
+                    )
+                })
                 .transpose();
             let compared = match latest {
                 Ok(Some(OpenedScene::Editable(v))) => Some(v),
@@ -518,7 +531,13 @@ impl Binding {
                     return Err(error);
                 }
             };
-            let selected = edit(EditorEvent::RevisionConflict(compared.as_ref()))?;
+            let plain = compared
+                .as_ref()
+                .is_some_and(|v| !short_merge || !super::valid_paragraphs(&v.text));
+            let selected = match compared.as_ref() {
+                Some(v) if plain => edit(EditorEvent::PlainConflict(v))?,
+                view => edit(EditorEvent::RevisionConflict(view))?,
+            };
             if selected.is_some() {
                 let view = compared.ok_or(Closed)?;
                 if Some(view.revision) != revision.checked_add(1) {
@@ -526,13 +545,22 @@ impl Binding {
                 }
                 let prepare =
                     self.conflict_binding(view.revision, b"KRAQEL-conflict-A/prepare-v1")?;
-                let body = prepare.exchange(1, PREPARE_COMPARISON, reader, writer)?;
+                let body = prepare.exchange(
+                    1,
+                    if plain {
+                        PREPARE_PLAIN
+                    } else {
+                        PREPARE_COMPARISON
+                    },
+                    reader,
+                    writer,
+                )?;
                 if Self::expect_error(&body, "CONFLICT").is_ok() {
                     let mut basis = view.revision;
                     let mut can_refresh = refresh;
                     loop {
                         let updated = can_refresh
-                            .then(|| self.read_comparison(basis, true, reader, writer))
+                            .then(|| self.read_comparison(basis, true, false, reader, writer))
                             .transpose();
                         let event = match updated.as_ref() {
                             Ok(Some(OpenedScene::Editable(current))) => {
@@ -645,6 +673,7 @@ impl Binding {
             ]
         };
         let mut short_source = false;
+        let mut plain_source = false;
         for (index, expected) in steps.iter().enumerate() {
             let seq = index as u64 + 1;
             let frame = read_frame(reader)?;
@@ -657,6 +686,7 @@ impl Binding {
             }
             let answer = dispatch(body)?;
             if seq == 1 {
+                plain_source = matches!(&answer, super::Reply::Read {text,bold_second:false,..} if super::valid_scene_edit(text,false));
                 short_source = matches!(&answer, super::Reply::Read {text,..} if super::valid_paragraphs(text));
             }
             if let super::Reply::Preview { .. } = &answer {
@@ -702,11 +732,23 @@ impl Binding {
                     let next = read_frame(reader)?;
                     let short_draft = matches!(serde_json::from_slice::<super::Request>(body),
                         Ok(super::Request::Save {text,..} | super::Request::SaveFormatted {text,..}) if super::valid_paragraphs(&text));
-                    if allow_prepare && short_source && short_target && short_draft {
+                    let plain_target = matches!(&answer, super::Reply::Read {text, bold_second:false,..} if super::valid_scene_edit(text,false));
+                    let plain_draft = matches!(serde_json::from_slice::<super::Request>(body),
+                        Ok(super::Request::SaveFormatted { text, bold_second:false, expected_revision }) if expected_revision == revision && super::valid_scene_edit(&text,false));
+                    if allow_prepare {
                         let basis = revision.checked_add(1).ok_or(Closed)?;
                         let prepare =
                             self.conflict_binding(basis, b"KRAQEL-conflict-A/prepare-v1")?;
-                        if prepare.decode(&next, Kind::Request, 1) == Ok(PREPARE_COMPARISON) {
+                        let command = prepare.decode(&next, Kind::Request, 1);
+                        if (command == Ok(PREPARE_COMPARISON)
+                            && short_source
+                            && short_target
+                            && short_draft)
+                            || (command == Ok(PREPARE_PLAIN)
+                                && plain_source
+                                && plain_target
+                                && plain_draft)
+                        {
                             let current = dispatch(COMPARE_READ)?;
                             if matches!(&current,super::Reply::Read{revision,..} if *revision==basis)
                                 && serde_json::to_vec(&current).map_err(|_| Closed)? == compared
@@ -724,7 +766,11 @@ impl Binding {
                             )?;
                             return self.serve_reviewed_comparisons(
                                 basis,
-                                reviewed_write,
+                                if command == Ok(PREPARE_PLAIN) {
+                                    ReviewedWrite::Unavailable
+                                } else {
+                                    reviewed_write
+                                },
                                 reader,
                                 writer,
                                 &mut dispatch,

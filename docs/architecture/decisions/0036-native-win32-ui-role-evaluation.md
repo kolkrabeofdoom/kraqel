@@ -890,6 +890,15 @@ Dienstabsatz getrennt gefunden. Nach lokalem Textabgleich meldete das Fenster Gl
 Eine weitere Änderung setzte den Sprung zurück. Die Speicheraktionen blieben gesperrt,
 und Verwerfen beendete die Sitzung auf ihrer Ausgangsrevision.
 
+### Bestätigter Klartextentwurf
+
+F9 bietet bei einem langen, unformatierten Konfliktentwurf eine ausdrückliche Bestätigung
+für Speichern und Schließen. Ein Nein lässt den Entwurf offen. Der separate Prepare-Befehl
+prüft unformatierte Quelle, Schreibversuch und Dienststand sowie die Ausgangsrevision.
+Der Dienst liest vor der Vorbereitung erneut und verlangt dieselbe vollständige Antwort
+auf der unmittelbar folgenden Revision. Erst der nächste gebundene Auftrag speichert den
+bestätigten Entwurf. Eine Textprojektion bleibt auf den lesenden Vergleich beschränkt.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

@@ -91,14 +91,16 @@ fn comparison_rejects_a_write_and_a_repeated_read() {
 }
 
 #[test]
-fn inspection_of_long_or_projection_only_text_never_prepares_a_write() {
+fn comparison_prepare_requires_compatible_text_and_command() {
     const LONG_SAVE: &[u8] =
         br#"{"command":"c4_document_save_v1","expectedRevision":1,"text":"A\nB\nC"}"#;
-    for (source, draft, target, preview) in [
-        ("A\nB\nC", SAVE, "D\nE", false),
-        ("A\nB", LONG_SAVE, "D\nE", false),
-        ("A\nB", SAVE, "D\nE\nF", false),
-        ("A\nB", SAVE, "D\nE", true),
+    const PLAIN_SAVE: &[u8] = br#"{"command":"c4_document_save_v2","expectedRevision":1,"boldSecond":false,"text":"A\nB\nC"}"#;
+    for (source, draft, target, preview, command) in [
+        ("A\nB\nC", SAVE, "D\nE", false, PREPARE_COMPARISON),
+        ("A\nB", LONG_SAVE, "D\nE", false, PREPARE_COMPARISON),
+        ("A\nB", SAVE, "D\nE\nF", false, PREPARE_COMPARISON),
+        ("A\nB", SAVE, "D\nE", true, PREPARE_COMPARISON),
+        ("A\nB", PLAIN_SAVE, "D\nE", true, PREPARE_PLAIN),
     ] {
         let binding = Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
         let read = binding.comparison_binding(1).unwrap();
@@ -108,11 +110,7 @@ fn inspection_of_long_or_projection_only_text_never_prepares_a_write() {
         let mut input = binding.encode(Kind::Request, 1, READ).unwrap();
         input.extend(binding.encode(Kind::Request, 2, draft).unwrap());
         input.extend(read.encode(Kind::Request, 1, COMPARE_READ).unwrap());
-        input.extend(
-            prepare
-                .encode(Kind::Request, 1, PREPARE_COMPARISON)
-                .unwrap(),
-        );
+        input.extend(prepare.encode(Kind::Request, 1, command).unwrap());
         let mut calls = 0;
         let end = binding.revision_service(
             false,
@@ -153,53 +151,55 @@ fn inspection_of_long_or_projection_only_text_never_prepares_a_write() {
 
 #[test]
 fn stale_prepare_cannot_replay_the_first_comparison() {
-    let binding = Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
-    let read = binding
-        .comparison_binding(0)
-        .unwrap()
-        .encode(Kind::Request, 1, COMPARE_READ)
-        .unwrap();
-    let prepare = binding
-        .conflict_binding(1, b"KRAQEL-conflict-A/prepare-v1")
-        .unwrap();
-    let mut input = binding.encode(Kind::Request, 1, READ).unwrap();
-    input.extend(binding.encode(Kind::Request, 2, SAVE).unwrap());
-    input.extend(&read);
-    input.extend(
-        prepare
-            .encode(Kind::Request, 1, PREPARE_COMPARISON)
-            .unwrap(),
-    );
-    input.extend(read);
-    let mut reads = 0;
-    assert_eq!(
-        binding.revision_service(
-            false,
-            0,
-            true,
-            true,
-            ReviewedWrite::Repeat,
-            &mut input.as_slice(),
-            &mut Vec::new(),
-            |body| {
-                if body == SAVE {
-                    return Ok(crate::Reply::Failure {
-                        error: crate::Failure::Conflict,
-                    });
+    let plain: &[u8] = br#"{"command":"c4_document_save_v2","expectedRevision":0,"boldSecond":false,"text":"A\nB\nC"}"#;
+    for (draft, command, text) in [
+        (SAVE, PREPARE_COMPARISON, "Rabe\n42"),
+        (plain, PREPARE_PLAIN, "A\nB\nC"),
+    ] {
+        let binding = Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
+        let read = binding
+            .comparison_binding(0)
+            .unwrap()
+            .encode(Kind::Request, 1, COMPARE_READ)
+            .unwrap();
+        let prepare = binding
+            .conflict_binding(1, b"KRAQEL-conflict-A/prepare-v1")
+            .unwrap();
+        let mut input = binding.encode(Kind::Request, 1, READ).unwrap();
+        input.extend(binding.encode(Kind::Request, 2, draft).unwrap());
+        input.extend(&read);
+        input.extend(prepare.encode(Kind::Request, 1, command).unwrap());
+        input.extend(read);
+        let mut reads = 0;
+        assert_eq!(
+            binding.revision_service(
+                false,
+                0,
+                true,
+                true,
+                ReviewedWrite::Repeat,
+                &mut input.as_slice(),
+                &mut Vec::new(),
+                |body| {
+                    if body == draft {
+                        return Ok(crate::Reply::Failure {
+                            error: crate::Failure::Conflict,
+                        });
+                    }
+                    assert_eq!(body, READ);
+                    let revision = reads;
+                    reads += 1;
+                    Ok(crate::Reply::Read {
+                        text: text.to_owned(),
+                        revision,
+                        bold_second: false,
+                    })
                 }
-                assert_eq!(body, READ);
-                let revision = reads;
-                reads += 1;
-                Ok(crate::Reply::Read {
-                    text: "Rabe\n42".to_owned(),
-                    revision,
-                    bold_second: false,
-                })
-            }
-        ),
-        Err(Closed)
-    );
-    assert_eq!(reads, 3);
+            ),
+            Err(Closed)
+        );
+        assert_eq!(reads, 3);
+    }
 }
 
 #[test]

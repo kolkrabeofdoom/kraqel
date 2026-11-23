@@ -70,6 +70,7 @@ const SAVE_AND_STAY: i32 = 112;
 const CONTINUE_PLAIN_DRAFT: u32 = WM_APP + 8;
 const OPEN_PLAIN: usize = 230;
 thread_local! {
+    static PLAIN_REVIEW: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static PARAGRAPH_COMPARE: std::cell::RefCell<Option<paragraph_comparison::Comparison>> = const {std::cell::RefCell::new(None)};
     static LONG_EDIT: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static AUTOSAVE_TURN: std::cell::Cell<Option<(u8, u8)>> = const { std::cell::Cell::new(None) };
@@ -847,7 +848,11 @@ fn update_draft_status(hwnd: HWND) {
                 if GetDlgItem(hwnd, COMPARISON).is_null() {
                     "Revisionskonflikt · Entwurf offen, Speichern gesperrt"
                 } else {
-                    "Konflikt · F6 Seitenwechsel · F7 Unterschiede · Speichern gesperrt"
+                    if PLAIN_REVIEW.get() {
+                        "F7 Unterschiede · F8 übernehmen · F9 Entwurf prüfen und speichern"
+                    } else {
+                        "Konflikt · F6 Seitenwechsel · F7 Unterschiede · Speichern gesperrt"
+                    }
                 }
             } else if !valid {
                 "Text oder Absatzstruktur zu groß · bitte kürzen"
@@ -1362,7 +1367,9 @@ fn navigate_paragraph_difference(hwnd: HWND, backwards: bool) {
                     0,
                 );
             }
-            format!("Unterschied {index} von {count} · F7 weiter · Umschalt+F7 zurück · F8 in Entwurf übernehmen")
+            format!(
+                "Unterschied {index} von {count} · F7 weiter · Umschalt+F7 zurück · F8 in Entwurf übernehmen"
+            )
         } else {
             String::from("Beide Texte stimmen überein · Speichern gesperrt")
         };
@@ -1388,14 +1395,22 @@ fn take_service_paragraphs(hwnd: HWND) {
                 let replacement = wide(text.replace('\n', "\r\n"));
                 SendMessageW(edit, EM_SETSEL, 0, -1);
                 SendMessageW(edit, EM_REPLACESEL, 1, replacement.as_ptr() as LPARAM);
-                "Dienstabsätze im lokalen Entwurf übernommen · F7 weiter · Speichern gesperrt"
+                if PLAIN_REVIEW.get() {
+                    "Dienstabsätze übernommen · F7 weiter · F9 Entwurf prüfen und speichern"
+                } else {
+                    "Dienstabsätze im lokalen Entwurf übernommen · F7 weiter · Speichern gesperrt"
+                }
             }
         };
         SetDlgItemTextW(hwnd, LABEL, wide(message).as_ptr());
     }
 }
 
-fn inspect_conflict(held: &mut HeldEditor, view: Option<(u32, &str)>) -> std::io::Result<()> {
+fn inspect_conflict(
+    held: &mut HeldEditor,
+    view: Option<(u32, &str)>,
+    allow_review: bool,
+) -> std::io::Result<Option<(String, bool)>> {
     require(!held.hwnd.is_null(), "plain conflict editor")?;
     AWAITING_REBIND.set(false);
     REVISION_CONFLICT.set(true);
@@ -1421,6 +1436,7 @@ fn inspect_conflict(held: &mut HeldEditor, view: Option<(u32, &str)>) -> std::io
                     .replace(Some(paragraph_comparison::Comparison::new(text, &header)));
             }
         }
+        PLAIN_REVIEW.set(allow_review);
         EnableWindow(held.hwnd, 1);
         update_draft_status(held.hwnd);
         if !LONG_EDIT.get() {
@@ -1437,11 +1453,39 @@ fn inspect_conflict(held: &mut HeldEditor, view: Option<(u32, &str)>) -> std::io
         }
         SetFocus(GetDlgItem(held.hwnd, EDIT));
         let mut draft = (String::new(), false);
-        require(
-            run_editor_loop(held.hwnd, true, Some(&mut draft), Some(held))
-                == window_receipt::DISCARDED_EXIT as i32,
-            "plain conflict decision",
-        )
+        loop {
+            let code = run_editor_loop(held.hwnd, true, Some(&mut draft), Some(held));
+            if code == window_receipt::DISCARDED_EXIT as i32 {
+                PLAIN_REVIEW.set(false);
+                return Ok(None);
+            }
+            require(
+                allow_review && code == MERGE_EXIT,
+                "plain conflict decision",
+            )?;
+            let (revision, base) = view.ok_or(std::io::Error::other("missing plain comparison"))?;
+            let Some(text) = draft_text(held.hwnd)
+                .filter(|t| t != base && kraqel_native_scene_model::valid_scene_edit(t, false))
+            else {
+                SetDlgItemTextW(
+                    held.hwnd,
+                    LABEL,
+                    wide("Zum Speichern ist ein gültiger, abweichender Entwurf erforderlich")
+                        .as_ptr(),
+                );
+                continue;
+            };
+            if MessageBoxW(held.hwnd, wide(format!("Den gesamten lokalen Entwurf auf Basis von Revision {revision} speichern und schließen?")).as_ptr(),
+                wide("Entwurf speichern").as_ptr(), MB_YESNO | MB_DEFBUTTON2 | MB_ICONQUESTION) != IDYES {
+                continue;
+            }
+            PLAIN_REVIEW.set(false);
+            held.submitted = Some((base.to_owned(), false));
+            held.closing = false;
+            held.resume_after_merge = false;
+            EnableWindow(held.hwnd, 0);
+            return Ok(Some((text, false)));
+        }
     }
 }
 
@@ -2410,6 +2454,14 @@ unsafe fn run_editor_loop(
                     navigate_paragraph_difference(hwnd, GetKeyState(i32::from(VK_SHIFT)) < 0);
                     continue;
                 }
+                if msg.message == WM_KEYDOWN
+                    && key == VK_F9
+                    && PLAIN_REVIEW.get()
+                    && REVISION_CONFLICT.get()
+                    && msg.lParam & (1 << 30) == 0
+                {
+                    return MERGE_EXIT;
+                }
                 if msg.message == WM_KEYDOWN && key == VK_F8 && REVISION_CONFLICT.get() {
                     if GetFocus() == GetDlgItem(hwnd, COMPARISON)
                         && !GetFocus().is_null()
@@ -2936,6 +2988,28 @@ fn main() {
                                     require(code == 40, "preview close")?;
                                     return Ok(None);
                                 }
+                                EditorEvent::PlainConflict(view) => {
+                                    let allowed = LONG_EDIT.get()
+                                        && merge
+                                        && turn < limit
+                                        && view.revision
+                                            == LOADED_REVISION.get().unwrap_or(0).saturating_add(1)
+                                        && view.revision < window_receipt::SCENE_REVISION_LIMIT;
+                                    selection = inspect_conflict(
+                                        &mut held,
+                                        Some((view.revision, &view.text)),
+                                        allowed,
+                                    )?;
+                                    return Ok(selection.clone());
+                                }
+                                EditorEvent::RefreshedComparison(view) if LONG_EDIT.get() => {
+                                    inspect_conflict(
+                                        &mut held,
+                                        Some((view.revision, &view.text)),
+                                        false,
+                                    )?;
+                                    return Ok(None);
+                                }
                                 EditorEvent::RefreshedComparison(view) => {
                                     selection = resolve_conflict(
                                         &mut held,
@@ -2951,6 +3025,7 @@ fn main() {
                                     inspect_conflict(
                                         &mut held,
                                         Some((view.revision, view.preview_text.as_str())),
+                                        false,
                                     )?;
                                     return Ok(None);
                                 }
@@ -2958,6 +3033,7 @@ fn main() {
                                     inspect_conflict(
                                         &mut held,
                                         view.map(|v| (v.revision, v.text.as_str())),
+                                        false,
                                     )?;
                                     return Ok(None);
                                 }
