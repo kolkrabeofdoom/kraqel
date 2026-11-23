@@ -22,6 +22,11 @@ static AUTOSAVE_ABI: [u8; 32] = window_receipt::AUTOSAVE_ABI;
 #[unsafe(link_section = ".kqcmp")]
 static COMPARE_ABI: [u8; 32] = kraqel_window_probe::window_receipt::COMPARE_ABI;
 
+const PICK_FIRST: usize = 220;
+const PICK_SECOND: usize = 221;
+const PICK_BOLD: usize = 222;
+const COMMIT_SELECTION: usize = 223;
+const MERGE_SELECTED: u32 = WM_APP + 7;
 const COMPARISON: i32 = 111;
 const LABEL: i32 = 100;
 const EDIT: i32 = 101;
@@ -822,6 +827,134 @@ fn update_draft_status(hwnd: HWND) {
         }
     }
 }
+unsafe fn install_selection_menu(hwnd: HWND) -> std::io::Result<()> {
+    unsafe {
+        let bar = GetMenu(hwnd);
+        let menu = CreatePopupMenu();
+        require(!menu.is_null(), "selection menu")?;
+        for (id, label) in [
+            (PICK_FIRST, "Ersten Absatz aus Entwurf"),
+            (PICK_SECOND, "Zweiten Absatz aus Entwurf"),
+            (PICK_BOLD, "Fettmarkierung aus Entwurf"),
+            (COMMIT_SELECTION, "Auswahl speichern und schließen"),
+        ] {
+            if AppendMenuW(menu, MF_STRING, id, wide(label).as_ptr()) == 0 {
+                DestroyMenu(menu);
+                return Err(std::io::Error::last_os_error());
+            }
+        }
+        if AppendMenuW(bar, MF_POPUP, menu as usize, wide("&Übernahme").as_ptr()) == 0 {
+            DestroyMenu(menu);
+            return Err(std::io::Error::last_os_error());
+        }
+        check(DrawMenuBar(hwnd))
+    }
+}
+
+const MERGE_EXIT: i32 = 43;
+
+fn selected_draft(
+    hwnd: HWND,
+    view: &kraqel_native_scene_model::channel::SceneView,
+) -> Option<(String, bool)> {
+    let picked = |id: usize| unsafe {
+        GetMenuState(GetMenu(hwnd), id as u32, MF_BYCOMMAND) & MF_CHECKED != 0
+    };
+    let (first, second) = view.text.split_once('\n')?;
+    let first = if picked(PICK_FIRST) {
+        paragraph_text(hwnd, EDIT)?
+    } else {
+        first.to_owned()
+    };
+    let second = if picked(PICK_SECOND) {
+        paragraph_text(hwnd, SECOND)?
+    } else {
+        second.to_owned()
+    };
+    let bold = if picked(PICK_BOLD) {
+        is_bold()
+    } else {
+        view.bold_second
+    };
+    let text = format!("{first}\n{second}");
+    (kraqel_native_scene_model::valid_paragraphs(&text)
+        && (text != view.text || bold != view.bold_second))
+        .then_some((text, bold))
+}
+
+fn resolve_conflict(
+    held: &mut HeldEditor,
+    comparison: Option<&kraqel_native_scene_model::channel::SceneView>,
+    can_continue: bool,
+) -> std::io::Result<Option<(String, bool)>> {
+    let hwnd = held.hwnd;
+    require(!hwnd.is_null(), "missing conflict editor")?;
+    REVISION_CONFLICT.set(true);
+    AWAITING_REBIND.set(false);
+    held.autosave_turn = None;
+    let selectable = comparison.filter(|v| {
+        can_continue && LOADED_REVISION.get().and_then(|r| r.checked_add(1)) == Some(v.revision)
+    });
+    unsafe {
+        // A second conflict invalidates both the previous display and its selections.
+        let menu = GetMenu(hwnd);
+        if GetMenuState(menu, COMMIT_SELECTION as u32, MF_BYCOMMAND) != u32::MAX {
+            check(DeleteMenu(
+                menu,
+                (GetMenuItemCount(menu) - 1) as u32,
+                MF_BYPOSITION,
+            ))?;
+            check(DrawMenuBar(hwnd))?;
+        }
+        let old = GetDlgItem(hwnd, COMPARISON);
+        if !old.is_null() {
+            check(DestroyWindow(old))?;
+            require(layout_surface(hwnd), "scene comparison layout")?;
+        }
+        if let Some(view) = comparison {
+            show_comparison(hwnd, view)?;
+        }
+        if comparison.is_none() {
+            SetDlgItemTextW(
+                hwnd,
+                LABEL,
+                wide("Keine bestätigte Vergleichsbasis. Der Entwurf bleibt lokal.").as_ptr(),
+            );
+        }
+        if selectable.is_some() {
+            install_selection_menu(hwnd)?;
+            SetDlgItemTextW(
+                hwnd,
+                LABEL,
+                wide("Unter Übernahme die gewünschten lokalen Änderungen auswählen.").as_ptr(),
+            );
+        }
+        EnableWindow(hwnd, 1);
+        update_draft_status(hwnd);
+        SetFocus(GetDlgItem(hwnd, ACTIVE_PARAGRAPH.get()));
+        let mut local = (String::new(), false);
+        loop {
+            let code = run_editor_loop(hwnd, true, Some(&mut local), Some(held));
+            if code == window_receipt::DISCARDED_EXIT as i32 {
+                return Ok(None);
+            }
+            require(code == MERGE_EXIT, "conflict decision")?;
+            let view = selectable.ok_or(std::io::Error::other("missing merge basis"))?;
+            if let Some(chosen) = selected_draft(hwnd, view) {
+                held.submitted = Some((view.text.clone(), view.bold_second));
+                held.closing = false;
+                EnableWindow(hwnd, 0);
+                return Ok(Some(chosen));
+            }
+            SetDlgItemTextW(
+                hwnd,
+                LABEL,
+                wide("Gültige lokale Änderung unter Übernahme auswählen.").as_ptr(),
+            );
+        }
+    }
+}
+
 fn show_comparison(
     hwnd: HWND,
     view: &kraqel_native_scene_model::channel::SceneView,
@@ -1030,6 +1163,29 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                     && matches!((w & 0xffff) as i32, EDIT | SECOND) =>
             {
                 ACTIVE_PARAGRAPH.set((w & 0xffff) as i32);
+                0
+            }
+            WM_COMMAND
+                if (PICK_FIRST..=COMMIT_SELECTION).contains(&w) && REVISION_CONFLICT.get() =>
+            {
+                let menu = GetMenu(hwnd);
+                let state = GetMenuState(menu, w as u32, MF_BYCOMMAND);
+                if state != u32::MAX {
+                    if w == COMMIT_SELECTION {
+                        PostMessageW(hwnd, MERGE_SELECTED, 0, 0);
+                    } else {
+                        CheckMenuItem(
+                            menu,
+                            w as u32,
+                            MF_BYCOMMAND
+                                | if state & MF_CHECKED == 0 {
+                                    MF_CHECKED
+                                } else {
+                                    MF_UNCHECKED
+                                },
+                        );
+                    }
+                }
                 0
             }
             WM_COMMAND if w == REPLACE_ONE || w == REPLACE_ALL => {
@@ -1507,6 +1663,15 @@ unsafe fn run_editor_loop(
                 0 => return msg.wParam as i32,
                 _ => {}
             }
+            if msg.message == MERGE_SELECTED
+                && REVISION_CONFLICT.get()
+                && GetMenuState(GetMenu(hwnd), COMMIT_SELECTION as u32, MF_BYCOMMAND) != u32::MAX
+            {
+                if let Some(held) = keep_editor.as_deref_mut() {
+                    held.history = history.take();
+                }
+                return MERGE_EXIT;
+            }
             if let Some(result) = draft.as_deref_mut() {
                 let key = msg.wParam as u16;
                 let comparison = GetDlgItem(hwnd, COMPARISON);
@@ -1758,9 +1923,22 @@ unsafe fn run_editor_loop(
         }
     }
 }
+#[used]
+#[unsafe(link_section = ".kqmerge")]
+static MERGE_ABI: [u8; 32] = kraqel_window_probe::window_receipt::MERGE_ABI;
 fn main() {
+    std::hint::black_box(&MERGE_ABI);
     std::hint::black_box(&COMPARE_ABI);
     let mut arg = std::env::args_os().nth(1);
+    let merged = arg
+        .as_deref()
+        .and_then(|v| v.to_str())
+        .and_then(|v| v.strip_suffix("-merge"))
+        .map(std::ffi::OsString::from);
+    let merge = merged.is_some();
+    if merge {
+        arg = merged;
+    }
     let base = arg
         .as_ref()
         .and_then(|v| v.to_str())
@@ -1823,6 +2001,7 @@ fn main() {
                     1
                 };
                 let mut turn = 1;
+                let mut selection = None;
                 loop {
                     held.autosave_turn = continued.map(|_| (turn, limit));
                     let mut dialog_output = Some(output.try_clone()?);
@@ -1836,30 +2015,12 @@ fn main() {
                             let loaded = match event {
                                 EditorEvent::Loaded(view) => view,
                                 EditorEvent::RevisionConflict(comparison) => {
-                                    require(!held.hwnd.is_null(), "missing conflict editor")?;
-                                    REVISION_CONFLICT.set(true);
-                                    AWAITING_REBIND.set(false);
-                                    held.autosave_turn = None;
-                                    let mut local = (String::new(), false);
-                                    unsafe {
-                                        if let Some(view) = comparison {
-                                            show_comparison(held.hwnd, view)?;
-                                        }
-                                        EnableWindow(held.hwnd, 1);
-                                        update_draft_status(held.hwnd);
-                                        SetFocus(GetDlgItem(held.hwnd, ACTIVE_PARAGRAPH.get()));
-                                        let code = run_editor_loop(
-                                            held.hwnd,
-                                            true,
-                                            Some(&mut local),
-                                            Some(&mut held),
-                                        );
-                                        require(
-                                            code == window_receipt::DISCARDED_EXIT as i32,
-                                            "conflict decision",
-                                        )?;
-                                    }
-                                    return Ok(None);
+                                    selection = resolve_conflict(
+                                        &mut held,
+                                        comparison,
+                                        merge && turn < limit,
+                                    )?;
+                                    return Ok(selection.clone());
                                 }
                             };
                             LOADED_REVISION.set(Some(loaded.revision));
@@ -1884,6 +2045,11 @@ fn main() {
                                             == Some((loaded.text.clone(), loaded.bold_second)),
                                     "scene continuation basis",
                                 )?;
+                                if let Some(chosen) = selection.take() {
+                                    held.submitted = Some(chosen.clone());
+                                    held.closing = true;
+                                    return Ok(Some(chosen));
+                                }
                                 EXPECTED.with_borrow_mut(|v| v.clone_from(&loaded.text));
                                 INITIAL_BOLD.set(loaded.bold_second);
                                 unsafe {

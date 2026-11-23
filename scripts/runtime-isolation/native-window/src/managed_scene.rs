@@ -240,7 +240,11 @@ fn snapshot_handle(input: &mut File) -> io::Result<File> {
     )?;
     Ok(unsafe { File::from_raw_handle(raw) })
 }
-pub fn serve(profile: &str, mode: window_receipt::SceneOperation) -> io::Result<u32> {
+pub fn serve(
+    profile: &str,
+    mode: window_receipt::SceneOperation,
+    allow_prepare: bool,
+) -> io::Result<u32> {
     let (mut input, mut output) = confirm_bootstrap(Some(profile), Role::Data)?;
     let mut ch = Channel::open(&mut input, false)?;
     ch.receive(Handshake::Hello)?;
@@ -271,7 +275,7 @@ pub fn serve(profile: &str, mode: window_receipt::SceneOperation) -> io::Result<
                     crate::scene_store::Store::managed(&mut baseline, false)?
                 }
             };
-            let discarded = ch
+            let outcome = ch
                 .binding
                 .revision_service(
                     reopening,
@@ -281,6 +285,7 @@ pub fn serve(profile: &str, mode: window_receipt::SceneOperation) -> io::Result<
                         window_receipt::SceneOperation::Revise
                             | window_receipt::SceneOperation::KeyboardEdit
                     ),
+                    allow_prepare,
                     &mut ch.reader,
                     &mut ch.writer,
                     |body| {
@@ -302,7 +307,11 @@ pub fn serve(profile: &str, mode: window_receipt::SceneOperation) -> io::Result<
                     },
                 )
                 .map_err(|_| io::Error::other("scene service"))?;
-            if discarded {
+            use kraqel_native_scene_model::channel::ServiceEnd;
+            if outcome == ServiceEnd::PrepareComparison {
+                store.flush_managed(&mut file, true)?;
+            }
+            if outcome == ServiceEnd::Discarded {
                 output.write_all(&ch.discard_receipt)?;
                 return Ok(window_receipt::DISCARDED_EXIT);
             }

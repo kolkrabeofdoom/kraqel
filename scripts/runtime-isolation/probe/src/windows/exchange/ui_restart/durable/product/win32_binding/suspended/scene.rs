@@ -70,7 +70,11 @@ pub(in super::super) fn read_scene(
     let compare = matches!(mode, SceneOperation::Revise | SceneOperation::KeyboardEdit)
         && package::comparison_image(window)?
         && package::comparison_image(service)?;
-    let argument = if compare {
+    let merge =
+        compare && continued && package::merge_image(window)? && package::merge_image(service)?;
+    let argument = if merge {
+        format!("{argument}-compare-merge")
+    } else if compare {
         format!("{argument}-compare")
     } else {
         argument.to_owned()
@@ -94,12 +98,17 @@ pub(in super::super) fn read_scene(
                 } else {
                     SceneOperation::Revise
                 };
+                let data_argument = if merge && can_continue {
+                    format!("{}-merge", mode.argument())
+                } else {
+                    mode.argument().to_owned()
+                };
                 with_role(
                     store,
                     root,
                     service,
                     "pipe-service.exe",
-                    mode.argument(),
+                    &data_argument,
                     true,
                     |store, data, endpoint, mut to_data, reply| {
                         let mut data_reply = reply.ok_or(invalid("scene-data-reply"))?;

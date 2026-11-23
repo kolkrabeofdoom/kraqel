@@ -10,7 +10,7 @@ den letzten verfügbaren Schreibzug. Geprüft mit synthetischer Szene A auf Wind
 [Journalbudget und Nachweise](architecture/decisions/0036-native-win32-ui-role-evaluation.md#fortlaufendes-autosave-unter-journalbudget).
 
 Bei einem authentisierten Revisionskonflikt bleibt der Entwurf im selben Fenster lokal
-bearbeitbar. Speichern ist gesperrt. Schließen oder Verwerfen verlangt eine ausdrückliche
+bearbeitbar. Speichern unter der alten Bindung ist gesperrt. Schließen oder Verwerfen verlangt eine ausdrückliche
 Entscheidung. Der verwaltete Windows-Lauf und die Kanalprüfung sind im
 [Konfliktvertrag](architecture/decisions/0036-native-win32-ui-role-evaluation.md#revisionskonflikt-bei-einem-schreibzug) dokumentiert.
 
@@ -18,6 +18,12 @@ Bei einem Konflikt lädt das verwaltete Rollenpaar den aktuellen Stand des Daten
 einer einmaligen Lesebindung. Der Entwurf bleibt links bearbeitbar, die Dienstrevision steht
 rechts schreibgeschützt zum Vergleich. F6 wechselt zwischen beiden.
 [Bindung, Bedienung und Prüfungen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#lesender-revisionsvergleich-im-konfliktfenster).
+
+Im fortlaufenden Konfliktfenster lassen sich beide Absätze und die Fettmarkierung einzeln
+aus dem lokalen Entwurf übernehmen. Die ausdrückliche Bestätigung speichert auf der erneut
+geprüften Vergleichsbasis unter frischer Schreibbindung und schließt das Fenster. Eine
+zwischenzeitlich geänderte Basis lässt den Entwurf offen.
+[Bedienung, Grenzen und Windows-Prüfungen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#gezielte-übernahme-unter-frischer-schreibbindung).
 
 Die Titelleiste unterscheidet einen zu korrigierenden Absatz, die laufende Schreibpause,
 das Speichern mit ausstehender Starterbestätigung und die gespeicherte Revision.

@@ -20,6 +20,7 @@ fn conflict_closes_the_service_to_further_writes() {
             false,
             0,
             true,
+            true,
             &mut requests.as_slice(),
             &mut replies,
             |body| {
@@ -63,6 +64,7 @@ fn comparison_rejects_a_write_and_a_repeated_read() {
             binding.revision_service(
                 false,
                 0,
+                true,
                 true,
                 &mut input.as_slice(),
                 &mut Vec::new(),

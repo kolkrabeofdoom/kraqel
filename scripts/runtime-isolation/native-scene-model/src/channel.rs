@@ -4,6 +4,7 @@ use hmac::{Hmac, Mac};
 use sha2::Sha256;
 use zeroize::Zeroizing;
 
+const PREPARE_COMPARISON: &[u8] = b"prepare-compared-snapshot-v1";
 pub const COMPARE_READ: &[u8] = br#"{"command":"c4_document_read_v1"}"#;
 const DISCARD: &[u8] = br#"{"command":"discard_draft_v1"}"#;
 const DISCARDED: &[u8] = br#"{"discarded":true}"#;
@@ -64,6 +65,13 @@ pub struct SceneView {
 pub enum EditorEvent<'a> {
     Loaded(&'a SceneView),
     RevisionConflict(Option<&'a SceneView>),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum ServiceEnd {
+    Complete,
+    Discarded,
+    PrepareComparison,
 }
 
 enum SaveReply {
@@ -337,9 +345,12 @@ impl Binding {
     // Each edit turn already has unique launcher keys. This one-shot child grant
     // has its own identifier, direction keys, sequence space and read-only grammar.
     fn comparison_binding(&self, basis: u32) -> Result<Self, Closed> {
+        self.conflict_binding(basis, b"KRAQEL-conflict-A/read-v1")
+    }
+    fn conflict_binding(&self, basis: u32, domain: &[u8]) -> Result<Self, Closed> {
         let derive = |kind, purpose: &[u8]| {
             let mut mac = self.mac(kind);
-            mac.update(b"KRAQEL-conflict-A/read-v1");
+            mac.update(domain);
             mac.update(&self.id);
             mac.update(&basis.to_le_bytes());
             mac.update(purpose);
@@ -399,14 +410,34 @@ impl Binding {
             let comparison = compare
                 .then(|| self.read_comparison(revision, reader, writer))
                 .transpose();
-            if edit(EditorEvent::RevisionConflict(
+            let selected = edit(EditorEvent::RevisionConflict(
                 comparison.as_ref().ok().and_then(Option::as_ref),
-            ))?
-            .is_some()
-            {
-                return Err(Closed);
+            ))?;
+            let compared = comparison?;
+            if selected.is_some() {
+                let view = compared.ok_or(Closed)?;
+                if Some(view.revision) != revision.checked_add(1) {
+                    return Err(Closed);
+                }
+                let prepare =
+                    self.conflict_binding(view.revision, b"KRAQEL-conflict-A/prepare-v1")?;
+                let body = prepare.exchange(1, PREPARE_COMPARISON, reader, writer)?;
+                if Self::expect_error(&body, "CONFLICT").is_ok() {
+                    // The offered basis changed again. Keep the local draft open for discard.
+                    if edit(EditorEvent::RevisionConflict(None))?.is_some() {
+                        return Err(Closed);
+                    }
+                } else {
+                    let confirmed: SceneView = serde_json::from_slice(&body).map_err(|_| Closed)?;
+                    if confirmed.text != view.text
+                        || confirmed.bold_second != view.bold_second
+                        || confirmed.revision != view.revision
+                    {
+                        return Err(Closed);
+                    }
+                    return Ok(Some(view));
+                }
             }
-            comparison?;
             let ack = self.exchange(3, DISCARD, reader, writer)?;
             return if ack == DISCARDED {
                 Ok(None)
@@ -434,7 +465,7 @@ impl Binding {
         writer: &mut impl std::io::Write,
         dispatch: impl FnMut(&[u8]) -> Result<super::Reply, Closed>,
     ) -> Result<(), Closed> {
-        self.revision_service(reopening, 0, false, reader, writer, dispatch)
+        self.revision_service(reopening, 0, false, false, reader, writer, dispatch)
             .map(|_| ())
     }
     pub fn revision_service(
@@ -442,10 +473,11 @@ impl Binding {
         reopening: bool,
         revision: u32,
         allow_discard: bool,
+        allow_prepare: bool,
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
         mut dispatch: impl FnMut(&[u8]) -> Result<super::Reply, Closed>,
-    ) -> Result<bool, Closed> {
+    ) -> Result<ServiceEnd, Closed> {
         let steps: &[Expected] = if reopening {
             &[Expected::Read]
         } else {
@@ -463,7 +495,7 @@ impl Binding {
                 writer
                     .write_all(&self.encode(Kind::Response, seq, DISCARDED)?)
                     .map_err(|_| Closed)?;
-                return Ok(true);
+                return Ok(ServiceEnd::Discarded);
             }
             let answer = dispatch(body)?;
             if allow_discard
@@ -480,8 +512,36 @@ impl Binding {
                 let grant = self.comparison_binding(revision)?;
                 let final_frame = if grant.decode(&frame, Kind::Request, 1) == Ok(COMPARE_READ) {
                     let answer = dispatch(COMPARE_READ)?;
+                    let compared = serde_json::to_vec(&answer).map_err(|_| Closed)?;
                     grant.write_reply(1, answer, writer, Expected::Read)?;
-                    read_frame(reader)?
+                    let next = read_frame(reader)?;
+                    if allow_prepare {
+                        let basis = revision.checked_add(1).ok_or(Closed)?;
+                        let prepare =
+                            self.conflict_binding(basis, b"KRAQEL-conflict-A/prepare-v1")?;
+                        if prepare.decode(&next, Kind::Request, 1) == Ok(PREPARE_COMPARISON) {
+                            let current = dispatch(COMPARE_READ)?;
+                            if matches!(&current,super::Reply::Read{revision,..} if *revision==basis)
+                                && serde_json::to_vec(&current).map_err(|_| Closed)? == compared
+                            {
+                                prepare.write_reply(1, current, writer, Expected::Read)?;
+                                return Ok(ServiceEnd::PrepareComparison);
+                            }
+                            prepare.write_reply(
+                                1,
+                                super::Reply::Failure {
+                                    error: super::Failure::Conflict,
+                                },
+                                writer,
+                                Expected::Conflict,
+                            )?;
+                            read_frame(reader)?
+                        } else {
+                            next
+                        }
+                    } else {
+                        next
+                    }
                 } else {
                     frame
                 };
@@ -491,11 +551,11 @@ impl Binding {
                 writer
                     .write_all(&self.encode(Kind::Response, 3, DISCARDED)?)
                     .map_err(|_| Closed)?;
-                return Ok(true);
+                return Ok(ServiceEnd::Discarded);
             }
             self.write_reply(seq, answer, writer, *expected)?;
         }
-        Ok(false)
+        Ok(ServiceEnd::Complete)
     }
     pub fn serve_edit_conflict(
         self,

@@ -582,8 +582,7 @@ noch den expliziten Abschluss durch Verwerfen quittieren.
 Links bleibt der lokale Entwurf bearbeitbar. Rechts steht die einmal geladene Dienstrevision
 einschließlich beider Absätze und der Angabe zur Fettmarkierung. F6 wechselt den Fokus
 zwischen Vergleich und Entwurf. Das schreibgeschützte Feld nutzt den vorhandenen lokalen
-Zwischenablagefilter. Der Vergleich veröffentlicht keine Revision. Das Übernehmen ausgewählter
-Änderungen und ein neuer Schreibauftrag auf einer bestätigten Basis bleiben offen.
+Zwischenablagefilter. Der Vergleich veröffentlicht keine Revision. Die gezielte Übernahme im fortlaufenden Auftrag ist im folgenden Abschnitt beschrieben.
 
 Im verwalteten Windows-Lauf lieferte der synthetisch fortgeschriebene Datendienst Revision 2,
 während im ursprünglichen HWND der abweichende Entwurf erhalten blieb. F6 wechselte in
@@ -591,6 +590,37 @@ beide Richtungen. Eingabe im Vergleich änderte dessen Text nicht. Weitere lokal
 ließen den Vergleich unverändert. Nach explizitem Verwerfen öffnete der Starter die zuletzt
 veröffentlichte Revision 1. Die gezielte Kanalprüfung wies einen Schreibversuch und eine
 wiederholte Leseanfrage unter der Vergleichsbindung vor der Speicherausführung ab.
+
+### Gezielte Übernahme unter frischer Schreibbindung
+
+Im fortlaufenden Editor bietet das Menü **Übernahme** drei einzeln wählbare lokale Werte an:
+erster Absatz, zweiter Absatz und Fettmarkierung des zweiten Absatzes. Anfangs ist nichts
+ausgewählt. Nicht gewählte Werte stammen aus dem angezeigten Dienststand. Die Auswahl
+ändert den Entwurf nicht. **Auswahl speichern und schließen** verlangt ein gültiges Ergebnis
+mit mindestens einer tatsächlichen Änderung.
+
+Der Starter aktiviert die Funktion für ein passendes gepinntes Rollenpaar bei verfügbarem
+Folgeschreibzug. Der Dienststand muss die unmittelbare Folgerevision der bisherigen Basis sein.
+Ein eigener authentisierter Vorbereitungsauftrag prüft Revision, Text und Markierung nochmals
+gegen die angebotene Vergleichsansicht. Ändert sie sich vor dieser Prüfung, entfällt das
+Angebot; der lokale Entwurf bleibt offen. Der Datendienst kann unter dieser Bindung nur den
+geprüften Dienststand als Snapshot bereitstellen. Die Lese- und bisherigen Schreibrechte
+bleiben verbraucht.
+
+Der Starter veröffentlicht zunächst die Vergleichsbasis im Journal und bindet einen neuen
+Datendienst an diese Revision. Das Fenster prüft den zurückgelesenen Inhalt gegen die
+bestätigte Basis, bevor es die Auswahl einmalig mit dieser erwarteten Revision speichert.
+Die Auswahl schließt die Sitzung nach bestätigter Veröffentlichung. Zwischen beiden
+Veröffentlichungen kann die Vergleichsbasis bereits dauerhaft sein. Bei unklarem Abschluss
+gelten die bestehenden Sitzungs- und Neustartsperren.
+
+Zwei verwaltete Windows-Läufe mit synthetischer Szene A deckten die Auswahl und den erneuten
+Konflikt ab. Der erste behielt den ersten Absatz und die Markierung aus dem Entwurf und den
+zweiten Absatz aus dem Dienststand. Revision 2 enthielt den geprüften Dienststand. Revision 3
+enthielt die Mischung und ließ sich unter neuer Lesebindung öffnen. Im zweiten Lauf änderte
+der Prüfdatendienst den Vergleichsstand vor der Vorbereitung erneut. Die Auswahl veröffentlichte
+keinen Snapshot, der Entwurf blieb im Fenster. Nach ausdrücklichem Verwerfen war die zuvor
+bestätigte Revision 1 wieder lesbar.
 
 ## Kosten für den Editor
 
