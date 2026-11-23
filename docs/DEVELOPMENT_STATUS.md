@@ -14,6 +14,11 @@ Schreibzug lokal vorgemerkt. Sie erscheinen nach Bestätigung und frischer Revis
 Der Windows-Lauf mit verzögerter Bestätigung und der Abbruchfall mit wartender Eingabe
 sind im [Sitzungsvertrag](architecture/decisions/0036-native-win32-ui-role-evaluation.md#eingaben-während-der-autosave-bestätigung) dokumentiert.
 
+Beim Schließen während einer Autosave-Bestätigung bezieht die Abfrage wartende Eingaben
+in den Entwurf ein. Speichern, Verwerfen und Weiterarbeiten sind auf Windows bis zum
+Wiederöffnen der erwarteten Revision geprüft.
+[Schließverhalten und Prüfumfang](architecture/decisions/0036-native-win32-ui-role-evaluation.md#schließen-mit-wartender-eingabe).
+
 Der Starter kann eine Folgerevision unter Kontrollsperre veröffentlichen, während das ursprüngliche
 Editorfenster auf die Bestätigung wartet. Die optionale [Checkpoint-Probe](architecture/decisions/0036-native-win32-ui-role-evaluation.md#veröffentlichung-bei-offenem-editorfenster)
 bestätigte zwei Revisionen in zwei Aufträgen und die Neustartsperre nach Verlust der Fensterquittung.

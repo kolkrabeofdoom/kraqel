@@ -49,7 +49,7 @@ thread_local! {
     static AUTOSAVE_TURN: std::cell::Cell<Option<(u8, u8)>> = const { std::cell::Cell::new(None) };
     static PENDING_SAVE: std::cell::RefCell<Option<PendingSave>> = const { std::cell::RefCell::new(None) };
     static AWAITING_REBIND: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
-    static CLOSE_AFTER_REBIND: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static CLOSE_REQUESTED: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static ACTIVE_PARAGRAPH: std::cell::Cell<i32> = const { std::cell::Cell::new(EDIT) };
     static SECOND_WEIGHT: std::cell::Cell<i32> = const { std::cell::Cell::new(0) };
     static LOADED_REVISION: std::cell::Cell<Option<u32>> = const { std::cell::Cell::new(None) };
@@ -984,69 +984,74 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 PostMessageW(hwnd, WM_CLOSE, 0, 0);
                 0
             }
-            WM_CLOSE if AWAITING_REBIND.get() => {
-                CLOSE_AFTER_REBIND.set(true);
+            WM_CLOSE if AWAITING_REBIND.get() || AUTOSAVE_TURN.get().is_some() => {
+                if IsWindowEnabled(hwnd) != 0 && !CLOSE_REQUESTED.replace(true) {
+                    PostMessageW(hwnd, WM_NULL, 0, 0);
+                }
                 0
             }
-            WM_CLOSE => {
-                if !GetDlgItem(hwnd, SAVE).is_null() && draft_changed(hwnd) {
-                    if IsWindowEnabled(hwnd) == 0 {
-                        return 0;
-                    }
-                    cancel_pending_save(hwnd);
-                    let previous_focus = GetFocus();
-                    let answer = MessageBoxW(
+            WM_CLOSE => finish_close(hwnd),
+            _ => DefWindowProcW(hwnd, msg, w, l),
+        }
+    }
+}
+unsafe fn finish_close(hwnd: HWND) -> isize {
+    unsafe {
+        if !GetDlgItem(hwnd, SAVE).is_null() && draft_changed(hwnd) {
+            if IsWindowEnabled(hwnd) == 0 {
+                return 0;
+            }
+            cancel_pending_save(hwnd);
+            let previous_focus = GetFocus();
+            let answer = MessageBoxW(
                         hwnd,
                         wide("Änderungen an Szene A speichern?\n\nJa: Speichern.\nNein: Änderungen verwerfen.\nAbbrechen: Weiterarbeiten.").as_ptr(),
                         wide("Ungespeicherte Änderungen").as_ptr(),
                         MB_YESNOCANCEL | MB_DEFBUTTON3 | MB_ICONWARNING,
                     );
-                    if answer == IDYES {
-                        PostMessageW(hwnd, SAVE_DRAFT, 1, 0);
-                        return 0;
-                    }
-                    if answer != IDNO {
-                        update_draft_status(hwnd);
-                        if IsChild(hwnd, previous_focus) != 0 {
-                            SetFocus(previous_focus);
-                        }
-                        return 0;
-                    }
-                }
-                let mut value = [0u16; 64];
-                let n = GetDlgItemTextW(hwnd, EDIT, value.as_mut_ptr(), 64);
-                let expected = EXPECTED.with_borrow(Clone::clone);
-                let first = String::from_utf16_lossy(&value[..n as usize]);
-                let second = GetDlgItem(hwnd, SECOND);
-                let font = if second.is_null() {
-                    null_mut()
-                } else {
-                    SendMessageW(second, WM_GETFONT, 0, 0) as HFONT
-                };
-                let ok = if second.is_null() {
-                    first.replace("\r\n", "\n") == expected
-                } else {
-                    let n = GetWindowTextW(second, value.as_mut_ptr(), 64);
-                    let number = String::from_utf16_lossy(&value[..n as usize]);
-                    format!("{first}\n{number}") == expected
-                        && font_description(font)
-                            .is_some_and(|desc| desc.lfWeight == SECOND_WEIGHT.get())
-                };
-                let editing = !GetDlgItem(hwnd, SAVE).is_null();
-                destroy_surface(hwnd);
-                PostQuitMessage(if editing {
-                    window_receipt::DISCARDED_EXIT as i32
-                } else if ok {
-                    40
-                } else {
-                    41
-                });
-                0
+            if answer == IDYES {
+                PostMessageW(hwnd, SAVE_DRAFT, 1, 0);
+                return 0;
             }
-            _ => DefWindowProcW(hwnd, msg, w, l),
+            if answer != IDNO {
+                update_draft_status(hwnd);
+                if IsChild(hwnd, previous_focus) != 0 {
+                    SetFocus(previous_focus);
+                }
+                return 0;
+            }
         }
+        let mut value = [0u16; 64];
+        let n = GetDlgItemTextW(hwnd, EDIT, value.as_mut_ptr(), 64);
+        let expected = EXPECTED.with_borrow(Clone::clone);
+        let first = String::from_utf16_lossy(&value[..n as usize]);
+        let second = GetDlgItem(hwnd, SECOND);
+        let font = if second.is_null() {
+            null_mut()
+        } else {
+            SendMessageW(second, WM_GETFONT, 0, 0) as HFONT
+        };
+        let ok = if second.is_null() {
+            first.replace("\r\n", "\n") == expected
+        } else {
+            let n = GetWindowTextW(second, value.as_mut_ptr(), 64);
+            let number = String::from_utf16_lossy(&value[..n as usize]);
+            format!("{first}\n{number}") == expected
+                && font_description(font).is_some_and(|desc| desc.lfWeight == SECOND_WEIGHT.get())
+        };
+        let editing = !GetDlgItem(hwnd, SAVE).is_null();
+        destroy_surface(hwnd);
+        PostQuitMessage(if editing {
+            window_receipt::DISCARDED_EXIT as i32
+        } else if ok {
+            40
+        } else {
+            41
+        });
+        0
     }
 }
+
 fn show(
     endpoint: Option<bootstrap::Endpoint>,
     mut surface: Option<(std::fs::File, String, Option<bool>)>,
@@ -1373,6 +1378,12 @@ unsafe fn run_editor_loop(
             });
         let mut msg = MSG::default();
         loop {
+            // TranslateMessage can enqueue a character behind WM_CLOSE. Account for
+            // these edits against the confirmed basis before deciding whether to prompt.
+            if CLOSE_REQUESTED.get() && PeekMessageW(&mut msg, null_mut(), 0, 0, PM_NOREMOVE) == 0 {
+                CLOSE_REQUESTED.set(false);
+                finish_close(hwnd);
+            }
             match GetMessageW(&mut msg, null_mut(), 0, 0) {
                 -1 => return 25,
                 0 => return msg.wParam as i32,
@@ -1507,6 +1518,10 @@ unsafe fn run_editor_loop(
                     continue;
                 }
                 if timer || msg.message == SAVE_DRAFT || ctrl_save || enter_save {
+                    if CLOSE_REQUESTED.get() {
+                        cancel_pending_save(hwnd);
+                        continue;
+                    }
                     if let Some(value) = draft_text(hwnd) {
                         if is_bold() == INITIAL_BOLD.get()
                             && EXPECTED.with_borrow(|initial| initial == &value)
@@ -1702,9 +1717,6 @@ fn main() {
                                 unsafe {
                                     update_draft_status(held.hwnd);
                                     AWAITING_REBIND.set(false);
-                                    if CLOSE_AFTER_REBIND.replace(false) {
-                                        check(PostMessageW(held.hwnd, WM_CLOSE, 0, 0))?;
-                                    }
                                     run_editor_loop(
                                         held.hwnd,
                                         true,

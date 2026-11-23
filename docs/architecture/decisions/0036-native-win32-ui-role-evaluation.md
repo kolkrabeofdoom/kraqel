@@ -518,6 +518,22 @@ Folgezeichen. Die frische Lesebindung öffnete Revision 2. Im zweiten Lauf endet
 Starter bei wartender Eingabe. Das Fenster endete, die Sitzung blieb gesperrt und es
 entstand keine zweite Revisionsdatei.
 
+### Schließen mit wartender Eingabe
+
+Ein Schließwunsch im fortlaufenden Autosave bleibt lokal vorgemerkt. Mehrere
+Schließnachrichten ergeben eine Entscheidung. Nach der bestätigten Bindung arbeitet die
+Fensterschleife die vorhandenen Nachrichten einschließlich der aus Tastendrücken erzeugten
+Zeichen ab. Erst dann vergleicht sie den Entwurf mit der bestätigten Basis. Während der
+ausstehenden Entscheidung kann der Timer keinen Folgeschreibzug auslösen.
+
+Für jede Auswahl wurde der Starter beim ersten Autosave angehalten. Während der Bestätigung
+wurden ein Tastendruck und zwei Schließnachrichten eingereiht. Die Abfrage blieb länger als
+die Autosave-Frist offen. **Ja** speicherte das Folgezeichen in Revision 2 und schloss.
+**Nein** verwarf die Folgeänderung und ließ Revision 1 erhalten. **Abbrechen** hielt
+dasselbe Fenster offen. Nach einer weiteren Eingabe enthielt Revision 2 beide Folgezeichen.
+Jede Variante endete mit regulärem Sitzungsabschluss und frischem Lesen der erwarteten
+Revision der synthetischen Szene A.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche
