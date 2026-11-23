@@ -255,6 +255,12 @@ fn inline_bold_requires_a_bound_edit_and_complete_utf16_characters() {
         to_value(edit.handle_managed(&save(1, "Rabe\n43"))).unwrap(),
         json!({"error":"DENIED"})
     );
+    for (mode, expected, error) in [(Mode::Edit, 0, "CONFLICT"), (Mode::Read, 1, "DENIED")] {
+        let answer = reopened
+            .bind(Scene::A, mode)
+            .handle_managed(&request(expected, 3));
+        assert_eq!(to_value(answer).unwrap(), json!({"error":error}));
+    }
     assert_eq!(reopened.snapshot_a(), snapshot);
 }
 

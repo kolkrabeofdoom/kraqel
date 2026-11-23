@@ -11,6 +11,8 @@ git pull --ff-only
 git status -sb
 ```
 
+Zum Weiterbearbeiten einer gespeicherten Szene mit einer einzelnen Fettstelle den Auftrag `edit-win32-scene` öffnen. Nach Änderungen am markierten Absatz die gewünschte Fettstelle erneut auswählen und mit Strg+Umschalt+B speichern. Bei Änderungen nur am anderen Absatz genügt Strg+S.
+
 Der verwaltete Win32-Editor bearbeitet ausschließlich die synthetische Szene A. Text,
 Fettmarkierung des zweiten Absatzes, Rückgängig/Wiederholen und lokales Suchen/Ersetzen sind
 bis zum Speichern und Wiederöffnen geprüft. Der [Entwicklungsstatus](DEVELOPMENT_STATUS.md#verwalteter-win32-szeneneditor)

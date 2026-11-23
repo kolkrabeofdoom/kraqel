@@ -474,15 +474,39 @@ impl BoundScene<'_> {
         if editable_fixture && managed_text(&self.record.content, revision).is_none() {
             let (text, _) =
                 project_scene(&self.record.content, revision).ok_or(Failure::Invalid)?;
+            let inline = inline_style(&self.record.content, &text);
             return match request {
+                Request::SaveSpan {
+                    expected_revision,
+                    text,
+                    bold_second,
+                    span,
+                } if inline.is_some() && self.mode == Mode::Edit => {
+                    if expected_revision != revision {
+                        return Err(Failure::Conflict);
+                    }
+                    if revision == MAX_REVISION {
+                        return Err(Failure::Limit);
+                    }
+                    self.record.content =
+                        span.document(&text, bold_second).ok_or(Failure::Invalid)?;
+                    self.record.revision += 1;
+                    Ok(Reply::Saved {
+                        revision: self.record.revision,
+                    })
+                }
                 Request::Read {} => Ok(Reply::Preview {
-                    inline: inline_style(&self.record.content, &text),
+                    inline,
                     preview_text: text,
                     revision,
                 }),
                 Request::Status {} => Ok(Reply::Status {
                     scene: self.scene,
-                    mode: Mode::Read,
+                    mode: if inline.is_some() {
+                        self.mode
+                    } else {
+                        Mode::Read
+                    },
                     revision,
                 }),
                 _ => Err(Failure::Denied),

@@ -102,7 +102,7 @@ pub enum OpenedScene {
 }
 
 pub enum EditorEvent<'a> {
-    Loaded(&'a SceneView),
+    Loaded(&'a SceneView, Option<super::BoldRange>),
     Preview(&'a TextPreview),
     RevisionConflict(Option<&'a SceneView>),
     RefreshedComparison(&'a SceneView),
@@ -498,12 +498,26 @@ impl Binding {
         take_span: impl FnOnce() -> Option<super::BoldRange>,
         mut edit: impl FnMut(EditorEvent<'_>) -> Result<Option<(String, bool)>, Closed>,
     ) -> Result<Option<SceneView>, Closed> {
+        let mut inline_source = false;
         let selection = match self.open_bound_scene(1, reader, writer, revision)? {
             OpenedScene::Editable(original) => {
                 if revision == 0 && (original.text != "Rabe\n42" || !original.bold_second) {
                     return Err(Closed);
                 }
-                edit(EditorEvent::Loaded(&original))?.map(|choice| (original, choice))
+                edit(EditorEvent::Loaded(&original, None))?.map(|choice| (original, choice))
+            }
+            OpenedScene::Preview(TextPreview {
+                preview_text,
+                revision,
+                inline: Some((span, bold_second)),
+            }) => {
+                inline_source = true;
+                let original = SceneView {
+                    text: preview_text,
+                    revision,
+                    bold_second,
+                };
+                edit(EditorEvent::Loaded(&original, Some(span)))?.map(|choice| (original, choice))
             }
             OpenedScene::Preview(view) => {
                 if edit(EditorEvent::Preview(&view))?.is_some() {
@@ -549,6 +563,9 @@ impl Binding {
                 bold_second: bold,
                 revision: next,
             }));
+        }
+        if inline_source {
+            return Err(Closed);
         }
         if let SaveReply::Conflict =
             self.save_text(reader, writer, original.revision, &text, Some(bold))?
@@ -727,6 +744,7 @@ impl Binding {
                 Expected::Read,
             ]
         };
+        let mut inline_source = false;
         let mut saved_span = false;
         let mut short_source = false;
         let mut plain_source = false;
@@ -748,7 +766,7 @@ impl Binding {
             }) = serde_json::from_slice(body)
             {
                 if seq != 2
-                    || !short_source
+                    || !(short_source || inline_source)
                     || !allow_discard
                     || reopening
                     || expected_revision != revision
@@ -756,6 +774,9 @@ impl Binding {
                     return Err(Closed);
                 }
                 saved_span = true;
+            }
+            if seq == 2 && inline_source && !saved_span {
+                return Err(Closed);
             }
             let answer = dispatch(body)?;
             if seq == 1 {
@@ -785,6 +806,11 @@ impl Binding {
                     .map_err(|_| Closed)?;
                 if reopening {
                     return Ok(ServiceEnd::Complete);
+                }
+                if matches!(&answer,super::Reply::Preview{inline:Some(_),revision:r,..} if *r==revision)
+                {
+                    inline_source = true;
+                    continue;
                 }
                 let frame = read_frame(reader)?;
                 if self.decode(&frame, Kind::Request, 2)? != DISCARD {

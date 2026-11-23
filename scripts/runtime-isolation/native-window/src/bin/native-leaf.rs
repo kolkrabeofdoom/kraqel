@@ -94,7 +94,18 @@ fn selected_span(hwnd: HWND) -> Option<BoldRange> {
     Some(span)
 }
 
+// The native EDIT controls expose plain text. Keep offsets only while their
+// source paragraph is identical; otherwise the user must select the range again.
+fn preserved_span(text: &str) -> Option<BoldRange> {
+    let span = LOADED_SPAN.get()?;
+    let index = usize::from(span.paragraph);
+    EXPECTED.with_borrow(|source| {
+        (source.split('\n').nth(index) == text.split('\n').nth(index)).then_some(span)
+    })
+}
+
 thread_local! {
+    static LOADED_SPAN: std::cell::Cell<Option<BoldRange>> = const {std::cell::Cell::new(None)};
     static FORMAT_REQUEST: std::cell::Cell<Option<BoldRange>> = const {std::cell::Cell::new(None)};
     static PLAIN_REVIEW: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static PARAGRAPH_COMPARE: std::cell::RefCell<Option<paragraph_comparison::Comparison>> = const {std::cell::RefCell::new(None)};
@@ -392,7 +403,7 @@ fn install_editor_menu(hwnd: HWND) -> bool {
                     (REDO, "&Wiederholen\tStrg+Y"),
                     (
                         SAVE_SPAN,
-                        "Markierte &Textstelle fett speichern und schließen",
+                        "Markierte &Textstelle fett speichern und schließen\tStrg+Umschalt+B",
                     ),
                     (BOLD_SECOND, "Zweiter Absatz &fett\tStrg+B"),
                     (FIND, "&Suchen…\tStrg+F"),
@@ -942,6 +953,7 @@ fn update_draft_status(hwnd: HWND) {
             OPEN_PLAIN,
             !REVISION_CONFLICT.get()
                 && !AWAITING_REBIND.get()
+                && LOADED_SPAN.get().is_none()
                 && !INITIAL_BOLD.get()
                 && !is_bold()
                 && LOADED_REVISION.get().is_some_and(|r| r > 0),
@@ -950,6 +962,24 @@ fn update_draft_status(hwnd: HWND) {
         let dirty = is_bold() != INITIAL_BOLD.get()
             || EXPECTED.with_borrow(|initial| current.as_ref() != Some(initial));
         let autosave = AUTOSAVE_TURN.get();
+        if let Some(span) = LOADED_SPAN.get() {
+            let preserve = current.as_deref().and_then(preserved_span).is_some();
+            let label = if preserve {
+                EXPECTED.with_borrow(|base| {
+                    span.parts(base, INITIAL_BOLD.get())
+                        .map(|(_, word, _)| {
+                            format!(
+                                "Fett: „{}“ · Strg+S speichert und schließt",
+                                word.replace('&', "&&")
+                            )
+                        })
+                        .unwrap_or_default()
+                })
+            } else {
+                "Fettstelle erneut auswählen · Strg+Umschalt+B speichert und schließt".to_owned()
+            };
+            SetDlgItemTextW(hwnd, LABEL, wide(label).as_ptr());
+        }
         let valid = current
             .as_deref()
             .is_some_and(kraqel_native_scene_model::valid_paragraphs);
@@ -2011,6 +2041,7 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 if !LONG_EDIT.get()
                     && !REVISION_CONFLICT.get()
                     && !AWAITING_REBIND.get()
+                    && LOADED_SPAN.get().is_none()
                     && !INITIAL_BOLD.get()
                     && !is_bold()
                     && LOADED_REVISION.get().is_some_and(|r| r > 0)
@@ -2079,6 +2110,11 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
             }
             WM_INITMENU if !GetMenu(hwnd).is_null() => {
                 let focus = GetFocus();
+                enable_menu_command(
+                    hwnd,
+                    BOLD_SECOND,
+                    !LONG_EDIT.get() && !LOADED_SPAN.get().is_some_and(|s| s.paragraph == 1),
+                );
                 enable_menu_command(hwnd, SAVE_SPAN, selected_span(hwnd).is_some());
                 enable_menu_command(
                     hwnd,
@@ -2223,6 +2259,12 @@ fn show(
             return 24;
         }
         LONG_EDIT.set(false);
+        LOADED_SPAN.set(
+            surface
+                .as_ref()
+                .filter(|_| draft.is_some())
+                .and_then(|s| s.inline.map(|i| i.0)),
+        );
         let long = draft.is_some()
             && surface
                 .as_ref()
@@ -2466,8 +2508,10 @@ fn show(
                 return 24;
             }
         }
-        if let Some((surface, (span, bold))) =
-            surface.as_ref().and_then(|s| s.inline.map(|i| (s, i)))
+        if let Some((surface, (span, bold))) = surface
+            .as_ref()
+            .filter(|_| draft.is_none())
+            .and_then(|s| s.inline.map(|i| (s, i)))
         {
             let Some((_, word, _)) = span.parts(&surface.text, bold) else {
                 return 24;
@@ -2929,10 +2973,19 @@ unsafe fn run_editor_loop(
                     SendDlgItemMessageW(hwnd, REPLACEMENT, EM_SETSEL, 0, -1);
                     continue;
                 }
+                if ctrl && key == 0x42 && GetKeyState(i32::from(VK_SHIFT)) < 0 {
+                    if msg.lParam & (1 << 30) == 0 {
+                        PostMessageW(hwnd, REQUEST_SPAN, 0, 0);
+                    }
+                    continue;
+                }
                 if msg.message == TOGGLE_BOLD
                     || (ctrl && key == 0x42)
                     || (msg.message == WM_CHAR && key == 2)
                 {
+                    if LOADED_SPAN.get().is_some_and(|s| s.paragraph == 1) {
+                        continue;
+                    }
                     if !set_bold(hwnd, !is_bold()) {
                         return 24;
                     }
@@ -3032,6 +3085,15 @@ unsafe fn run_editor_loop(
                             continue;
                         }
                         if kraqel_native_scene_model::valid_paragraphs(&value) {
+                            let span = if LOADED_SPAN.get().is_some() {
+                                let Some(range) = span.or_else(|| preserved_span(&value)) else {
+                                    update_draft_status(hwnd);
+                                    continue;
+                                };
+                                Some(range)
+                            } else {
+                                span
+                            };
                             FORMAT_REQUEST.set(span);
                             *result = (value, is_bold());
                             if let Some(held) = keep_editor.as_deref_mut() {
@@ -3275,8 +3337,8 @@ fn main() {
                         || FORMAT_REQUEST.take(),
                         |event| {
                             use kraqel_native_scene_model::channel::EditorEvent;
-                            let loaded = match event {
-                                EditorEvent::Loaded(view) => view,
+                            let (loaded, inline) = match event {
+                                EditorEvent::Loaded(view, span) => (view, span),
                                 EditorEvent::Preview(view) => {
                                     require(held.hwnd.is_null(), "preview requires fresh session")?;
                                     LOADED_REVISION.set(Some(view.revision));
@@ -3371,6 +3433,9 @@ fn main() {
                                     return Ok(selection.clone());
                                 }
                             };
+                            if inline.is_some() {
+                                held.autosave_turn = None;
+                            }
                             LOADED_REVISION.set(Some(loaded.revision));
                             let mut draft = (String::new(), loaded.bold_second);
                             let code =
@@ -3384,7 +3449,7 @@ fn main() {
                                             text: loaded.text.clone(),
                                             second_bold: Some(loaded.bold_second),
                                             text_preview: false,
-                                            inline: None,
+                                            inline: inline.map(|s| (s, loaded.bold_second)),
                                         }),
                                         Some(&mut draft),
                                         Some(&mut held),
