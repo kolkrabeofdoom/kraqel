@@ -953,6 +953,22 @@ Die nächste gültige Eingabe startete die Entprellung erneut. Nach einer weiter
 Schreibpause und erneutem Öffnen lag genau Revision 1 vor. Sie enthielt den zuletzt
 eingegebenen Text sowie den unveränderten zweiten Absatz mit seiner Fettmarkierung.
 
+### Lokales Suchen und Ersetzen im langen Klartext
+
+Suche, Ersetzung und Änderungsverlauf arbeiten im Fenster auf dem aktuellen Entwurf.
+Auch bei geöffneter Vergleichsfassung bleibt der Entwurf das Suchziel. Die Felder für
+Such- und Ersatztext nehmen je bis zu 48 UTF-16-Einheiten auf. Die Navigation berücksichtigt
+CRLF und Zeichen mit zwei UTF-16-Einheiten. Die vollständige Ersatzfassung muss die
+bestehenden Szenengrenzen erfüllen. Ein leerer Ersatztext löscht passende Zeichenfolgen.
+Eine Sammelersetzung bildet einen Schritt im fensterlokalen Verlauf. Bei bestätigtem
+Autosave bleibt der Verlauf für den gebundenen Folgeauftrag im selben Fenster verfügbar.
+
+Lokale Windows-Läufe mit synthetischem Text prüften die Markierung nach einem Emoji
+und nach einer Leerzeile, die Rückwärtssuche, den Fall ohne Treffer, Einzel- und
+Sammelersetzung sowie die Abweisung einer zu langen Ersatzfassung. Nach Rückgängig und
+Wiederholen über bestätigte Autosaves enthielten die Revisionen 2, 3 und 4 jeweils den
+erwarteten Text. Auch der frische Leseauftrag und der Klartextindex wurden geprüft.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

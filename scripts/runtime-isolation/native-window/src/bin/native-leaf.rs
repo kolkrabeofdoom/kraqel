@@ -156,16 +156,20 @@ fn find_in_scene(hwnd: HWND, backwards: bool) {
         let preview = GetDlgItem(hwnd, SAVE).is_null();
         let prefix = if preview {
             "Schreibgeschützte Textvorschau · "
+        } else if LONG_EDIT.get() {
+            "Lokaler Entwurf · "
         } else {
             ""
         };
         for id in [EDIT, SECOND] {
-            if GetDlgItem(hwnd, id).is_null() {
+            if (LONG_EDIT.get() && id == SECOND) || GetDlgItem(hwnd, id).is_null() {
                 continue;
             }
             let content = if preview {
                 // Win32 selection offsets count both units of each CRLF.
                 Some(EXPECTED.with_borrow(|text| text.replace('\n', "\r\n")))
+            } else if LONG_EDIT.get() {
+                draft_text(hwnd).map(|text| text.replace('\n', "\r\n"))
             } else {
                 paragraph_text(hwnd, id)
             };
@@ -236,11 +240,16 @@ fn replace_in_scene(hwnd: HWND, all: bool) -> bool {
             open_search(hwnd);
             return true;
         };
-        let (Some(replacement), Some(first), Some(second)) = (
-            paragraph_text(hwnd, REPLACEMENT),
-            paragraph_text(hwnd, EDIT),
-            paragraph_text(hwnd, SECOND),
-        ) else {
+        let long = LONG_EDIT.get();
+        let fields = if long {
+            draft_text(hwnd).map(|text| vec![text.replace('\n', "\r\n")])
+        } else {
+            paragraph_text(hwnd, EDIT)
+                .zip(paragraph_text(hwnd, SECOND))
+                .map(|(first, second)| vec![first, second])
+        };
+        let (Some(replacement), Some(mut paragraphs)) = (paragraph_text(hwnd, REPLACEMENT), fields)
+        else {
             SetDlgItemTextW(
                 hwnd,
                 LABEL,
@@ -248,7 +257,6 @@ fn replace_in_scene(hwnd: HWND, all: bool) -> bool {
             );
             return true;
         };
-        let mut paragraphs = [first, second];
         let mut hits = Vec::new();
         for (index, text) in paragraphs.iter().enumerate() {
             for (byte, _) in text.match_indices(&query) {
@@ -260,7 +268,7 @@ fn replace_in_scene(hwnd: HWND, all: bool) -> bool {
             return true;
         }
         if !all {
-            let active = ACTIVE_PARAGRAPH.get();
+            let active = if long { EDIT } else { ACTIVE_PARAGRAPH.get() };
             let index = usize::from(active == SECOND);
             let range = SendDlgItemMessageW(hwnd, active, EM_GETSEL, 0, 0) as u32;
             let start = (range & 0xffff) as usize;
@@ -280,23 +288,45 @@ fn replace_in_scene(hwnd: HWND, all: bool) -> bool {
             hits.clear();
             hits.push(hit);
         }
-        for &(index, byte) in hits.iter().rev() {
+        if all {
+            for field in &mut paragraphs {
+                *field = field.replace(&query, &replacement);
+            }
+        } else {
+            let (index, byte) = hits[0];
             paragraphs[index].replace_range(byte..byte + query.len(), &replacement);
         }
-        let text = paragraphs.join("\n");
-        if !paragraphs
-            .iter()
-            .all(|p| kraqel_native_scene_model::valid_paragraph(p))
-        {
-            SetDlgItemTextW(
-                hwnd,
-                LABEL,
-                wide("Ersetzen würde einen ungültigen Absatz erzeugen.").as_ptr(),
-            );
-            return true;
+        if long {
+            let value = &paragraphs[0];
+            if !kraqel_native_scene_model::valid_scene_edit(&value.replace("\r\n", "\n"), false) {
+                SetDlgItemTextW(
+                    hwnd,
+                    LABEL,
+                    wide("Ersetzen würde die Text- oder Absatzgrenze überschreiten.").as_ptr(),
+                );
+                return true;
+            }
+            let field = GetDlgItem(hwnd, EDIT);
+            SendMessageW(field, EM_SETSEL, 0, -1);
+            SendMessageW(field, EM_REPLACESEL, 1, wide(value).as_ptr() as LPARAM);
+        } else {
+            if !paragraphs
+                .iter()
+                .all(|p| kraqel_native_scene_model::valid_paragraph(p))
+            {
+                SetDlgItemTextW(
+                    hwnd,
+                    LABEL,
+                    wide("Ersetzen würde einen ungültigen Absatz erzeugen.").as_ptr(),
+                );
+                return true;
+            }
+            if !restore_draft(hwnd, &paragraphs.join("\n")) {
+                return false;
+            }
         }
-        if !restore_draft(hwnd, &text) {
-            return false;
+        if all && long {
+            SetFocus(GetDlgItem(hwnd, EDIT));
         }
         if !all {
             let (index, byte) = hits[0];
@@ -1627,16 +1657,13 @@ fn enter_plain_editor(hwnd: HWND, text: &str) -> bool {
             1,
         );
         LONG_EDIT.set(true);
-        for id in [
-            SECOND,
-            DISCARD,
-            SEARCH,
-            SEARCH_LABEL,
-            WORD_COUNT,
-            REPLACEMENT,
-            REPLACEMENT_LABEL,
-        ] {
+        for id in [SECOND, DISCARD, WORD_COUNT] {
             ShowWindow(GetDlgItem(hwnd, id), SW_HIDE);
+        }
+        SetDlgItemTextW(hwnd, SEARCH_LABEL, wide("&Entwurf durchsuchen").as_ptr());
+        SetDlgItemTextW(hwnd, REPLACEMENT_LABEL, wide("Ersatz (Strg+H)").as_ptr());
+        for id in [SEARCH_LABEL, SEARCH, REPLACEMENT_LABEL, REPLACEMENT] {
+            ShowWindow(GetDlgItem(hwnd, id), SW_SHOWNA);
         }
         let field = GetDlgItem(hwnd, EDIT);
         SendMessageW(
@@ -1704,7 +1731,9 @@ fn layout_surface(hwnd: HWND) -> bool {
             let y = area.bottom - px(44);
             let compare = !GetDlgItem(hwnd, COMPARISON).is_null();
             let left = if compare { (width - gap) / 2 } else { width };
-            let height = (y - gap - text_top).max(1);
+            let replace_y = y - px(30);
+            let search_y = replace_y - px(30);
+            let height = (search_y - gap - text_top).max(1);
             return place(LABEL, margin, px(10), width, px(24))
                 && place(EDIT, margin, text_top, left, height)
                 && (!compare
@@ -1715,6 +1744,28 @@ fn layout_surface(hwnd: HWND) -> bool {
                         width - left - gap,
                         height,
                     ))
+                && place(SEARCH_LABEL, margin, search_y + px(2), px(150), px(24))
+                && place(
+                    SEARCH,
+                    margin + px(150),
+                    search_y,
+                    (width - px(150)).max(1),
+                    px(26),
+                )
+                && place(
+                    REPLACEMENT_LABEL,
+                    margin,
+                    replace_y + px(2),
+                    px(150),
+                    px(24),
+                )
+                && place(
+                    REPLACEMENT,
+                    margin + px(150),
+                    replace_y,
+                    (width - px(150)).max(1),
+                    px(26),
+                )
                 && place(SAVE_AND_STAY, margin, y, (width - gap) / 2, px(30))
                 && place(
                     SAVE,
@@ -1951,7 +2002,26 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 find_in_scene(hwnd, w == FIND_PREVIOUS);
                 0
             }
+            WM_COMMAND
+                if LONG_EDIT.get()
+                    && (w >> 16) as u32 == EN_SETFOCUS
+                    && (w & 0xffff) as i32 == REPLACEMENT =>
+            {
+                SetDlgItemTextW(
+                    hwnd,
+                    LABEL,
+                    wide(
+                        "Im lokalen Entwurf ersetzen: Enter für einen Treffer, Strg+Enter für alle",
+                    )
+                    .as_ptr(),
+                );
+                0
+            }
             WM_COMMAND if (w >> 16) as u32 == EN_CHANGE && (w & 0xffff) as i32 == SEARCH => {
+                if LONG_EDIT.get() {
+                    update_draft_status(hwnd);
+                    return 0;
+                }
                 SetDlgItemTextW(
                     hwnd,
                     LABEL,
@@ -2469,6 +2539,7 @@ unsafe fn run_editor_loop(
                     .and_then(|_| draft_text(hwnd))
                     .map(DraftHistory::new)
             });
+        let mut plain_history = LONG_EDIT.get();
         let mut msg = MSG::default();
         loop {
             // TranslateMessage can enqueue a character behind WM_CLOSE. Account for
@@ -2505,6 +2576,67 @@ unsafe fn run_editor_loop(
                 let ctrl = msg.message == WM_KEYDOWN && GetKeyState(i32::from(VK_CONTROL)) < 0;
                 let stay = GetDlgItem(hwnd, SAVE_AND_STAY);
                 let enter = msg.message == WM_KEYDOWN && key == VK_RETURN;
+                let search = GetDlgItem(hwnd, SEARCH);
+                let replacement = GetDlgItem(hwnd, REPLACEMENT);
+                if !plain_history {
+                    // A switch from the formatted editor starts a plain-text history.
+                    history = draft_text(hwnd).map(DraftHistory::new);
+                    plain_history = true;
+                }
+                if let (Some(current), Some(text)) = (history.as_mut(), draft_text(hwnd)) {
+                    current.record(text);
+                    let undo = msg.message == HISTORY_UNDO
+                        || (ctrl && key == 0x5a)
+                        || (msg.message == WM_CHAR && key == 26);
+                    let redo = msg.message == HISTORY_REDO
+                        || (ctrl && key == 0x59)
+                        || (msg.message == WM_CHAR && key == 25);
+                    if (undo || redo) && GetFocus() == field {
+                        let forward = redo || (ctrl && GetKeyState(i32::from(VK_SHIFT)) < 0);
+                        if let Some((value, _)) = current.step(forward) {
+                            let value = wide(value.replace('\n', "\r\n"));
+                            SendMessageW(field, EM_SETSEL, 0, -1);
+                            SendMessageW(field, EM_REPLACESEL, 0, value.as_ptr() as LPARAM);
+                        }
+                        continue;
+                    }
+                }
+                if ctrl && key == 0x48 && GetKeyState(i32::from(VK_MENU)) >= 0 {
+                    SetFocus(replacement);
+                    SendMessageW(replacement, EM_SETSEL, 0, -1);
+                    continue;
+                }
+                if msg.message == REPLACE_DRAFT || (enter && GetFocus() == replacement) {
+                    let all = if msg.message == REPLACE_DRAFT {
+                        msg.wParam == REPLACE_ALL
+                    } else {
+                        ctrl
+                    };
+                    if !replace_in_scene(hwnd, all) {
+                        return 24;
+                    }
+                    continue;
+                }
+                if (ctrl && key == 0x46 && GetKeyState(i32::from(VK_MENU)) >= 0)
+                    || (msg.message == WM_CHAR && key == 6)
+                {
+                    open_search(hwnd);
+                    continue;
+                }
+                if msg.message == WM_KEYDOWN
+                    && (key == VK_F3 || (GetFocus() == search && key == VK_RETURN))
+                {
+                    find_in_scene(hwnd, GetKeyState(i32::from(VK_SHIFT)) < 0);
+                    continue;
+                }
+                if msg.message == WM_KEYDOWN
+                    && key == VK_ESCAPE
+                    && [search, replacement].contains(&GetFocus())
+                {
+                    SetFocus(field);
+                    update_draft_status(hwnd);
+                    continue;
+                }
                 if msg.message == WM_KEYDOWN
                     && key == VK_F7
                     && LONG_EDIT.get()
@@ -2570,6 +2702,7 @@ unsafe fn run_editor_loop(
                                 *result = (value, false);
                                 held.submitted = Some(result.clone());
                                 held.hwnd = hwnd;
+                                held.history = history.take();
                                 held.closing = !continuing;
                                 AWAITING_REBIND.set(continuing);
                                 if continuing {
@@ -2598,7 +2731,14 @@ unsafe fn run_editor_loop(
                         comparison
                     });
                 } else if msg.message == WM_KEYDOWN && key == VK_TAB {
-                    let order = [field, GetDlgItem(hwnd, COMPARISON), stay, save];
+                    let order = [
+                        field,
+                        GetDlgItem(hwnd, COMPARISON),
+                        search,
+                        replacement,
+                        stay,
+                        save,
+                    ];
                     let index = order
                         .iter()
                         .position(|&item| item == GetFocus())
