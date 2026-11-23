@@ -524,7 +524,7 @@ fn paragraph_text(hwnd: HWND, id: i32) -> Option<String> {
     String::from_utf16(&buf[..n]).ok()
 }
 
-fn invalid_paragraph(hwnd: HWND) -> Option<(i32, &'static str)> {
+fn invalid_paragraph(hwnd: HWND, included: impl Fn(i32) -> bool) -> Option<(i32, &'static str)> {
     [
         (
             EDIT,
@@ -537,7 +537,9 @@ fn invalid_paragraph(hwnd: HWND) -> Option<(i32, &'static str)> {
     ]
     .into_iter()
     .find(|(id, _)| {
-        !paragraph_text(hwnd, *id).is_some_and(|p| kraqel_native_scene_model::valid_paragraph(&p))
+        included(*id)
+            && !paragraph_text(hwnd, *id)
+                .is_some_and(|p| kraqel_native_scene_model::valid_paragraph(&p))
     })
 }
 
@@ -938,7 +940,7 @@ fn update_draft_status(hwnd: HWND) {
         };
         if let Some(revision) = LOADED_REVISION.get() {
             let suffix = match autosave {
-                Some(_) if dirty && !valid => invalid_paragraph(hwnd)
+                Some(_) if dirty && !valid => invalid_paragraph(hwnd, |_| true)
                     .map(|(_, hint)| format!(" · {hint}"))
                     .unwrap_or_default(),
                 Some((turn, limit)) if !scheduled && turn == limit => {
@@ -1219,7 +1221,13 @@ fn update_review(hwnd: HWND) {
         let preview = match selected {
             Some((text, bold)) if changed => format_text(&text, bold),
             Some(_) => "Auswahl entspricht dem Dienststand.".to_owned(),
-            None => "Ausgewählte Absätze prüfen.".to_owned(),
+            None => invalid_paragraph(hwnd, |id| match id {
+                EDIT => picks[0],
+                SECOND => picks[1],
+                _ => false,
+            }).map_or_else(|| "Ausgewählte Absätze prüfen.".to_owned(), |(_, hint)| {
+                format!("{hint} Alternativ diesen Absatz aus dem Dienststand übernehmen.")
+            }),
         };
         let sources = match checked {
             0 => "Alle Felder aus dem Dienststand".to_owned(),
@@ -2803,7 +2811,7 @@ unsafe fn run_editor_loop(
                             return 40;
                         }
                     }
-                    if let Some((id, message)) = invalid_paragraph(hwnd) {
+                    if let Some((id, message)) = invalid_paragraph(hwnd, |_| true) {
                         SetDlgItemTextW(hwnd, LABEL, wide(message).as_ptr());
                         SetFocus(GetDlgItem(hwnd, id));
                     }
