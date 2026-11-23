@@ -1362,9 +1362,34 @@ fn navigate_paragraph_difference(hwnd: HWND, backwards: bool) {
                     0,
                 );
             }
-            format!("Unterschied {index} von {count} · F7 weiter · Umschalt+F7 zurück")
+            format!("Unterschied {index} von {count} · F7 weiter · Umschalt+F7 zurück · F8 in Entwurf übernehmen")
         } else {
             String::from("Beide Texte stimmen überein · Speichern gesperrt")
+        };
+        SetDlgItemTextW(hwnd, LABEL, wide(message).as_ptr());
+    }
+}
+
+fn take_service_paragraphs(hwnd: HWND) {
+    let Some(draft) = draft_text(hwnd) else {
+        return;
+    };
+    let merged =
+        PARAGRAPH_COMPARE.with_borrow(|state| state.as_ref()?.selected_service_block(&draft));
+    unsafe {
+        let message = match merged {
+            None => "Zuerst mit F7 einen Unterschied auswählen",
+            Some(text) if !kraqel_native_scene_model::valid_scene_edit(&text, false) => {
+                "Übernahme überschreitet die Textgrenzen · Entwurf unverändert"
+            }
+            Some(text) => {
+                let edit = GetDlgItem(hwnd, EDIT);
+                SetFocus(edit);
+                let replacement = wide(text.replace('\n', "\r\n"));
+                SendMessageW(edit, EM_SETSEL, 0, -1);
+                SendMessageW(edit, EM_REPLACESEL, 1, replacement.as_ptr() as LPARAM);
+                "Dienstabsätze im lokalen Entwurf übernommen · F7 weiter · Speichern gesperrt"
+            }
         };
         SetDlgItemTextW(hwnd, LABEL, wide(message).as_ptr());
     }
@@ -2383,6 +2408,15 @@ unsafe fn run_editor_loop(
                     && REVISION_CONFLICT.get()
                 {
                     navigate_paragraph_difference(hwnd, GetKeyState(i32::from(VK_SHIFT)) < 0);
+                    continue;
+                }
+                if msg.message == WM_KEYDOWN && key == VK_F8 && REVISION_CONFLICT.get() {
+                    if GetFocus() == GetDlgItem(hwnd, COMPARISON)
+                        && !GetFocus().is_null()
+                        && msg.lParam & (1 << 30) == 0
+                    {
+                        take_service_paragraphs(hwnd);
+                    }
                     continue;
                 }
                 let timer =

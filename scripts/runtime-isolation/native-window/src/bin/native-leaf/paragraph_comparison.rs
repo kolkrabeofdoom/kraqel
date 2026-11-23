@@ -77,6 +77,15 @@ impl Comparison {
         self.current = None;
     }
 
+    pub fn selected_service_block(&self, draft: &str) -> Option<String> {
+        let index = self.current?;
+        let mut left: Vec<_> = draft.split('\n').collect();
+        let right: Vec<_> = self.text.split('\n').collect();
+        let (local, remote) = gaps(&left, &right).into_iter().nth(index)?;
+        left.splice(local, right[remote].iter().copied());
+        Some(left.join("\n"))
+    }
+
     pub fn step(
         &mut self,
         draft: &str,
@@ -116,7 +125,15 @@ mod tests {
         let mut compare = Comparison::new("🐦\nB\nC\nNeu", "X\r\n");
         let draft = "🐦\nLokal\nB\nC";
         assert_eq!(compare.step(draft, false), Some((1, 2, 4..9, 7..7)));
+        assert_eq!(
+            compare.selected_service_block(draft).as_deref(),
+            Some("🐦\nB\nC")
+        );
         assert_eq!(compare.step(draft, false), Some((2, 2, 15..15, 13..16)));
+        assert_eq!(
+            compare.selected_service_block(draft).as_deref(),
+            Some("🐦\nLokal\nB\nC\nNeu")
+        );
         assert_eq!(compare.step(draft, true), Some((1, 2, 4..9, 7..7)));
         assert_eq!(compare.step("🐦\nB\nC\nNeu", false), None);
     }
