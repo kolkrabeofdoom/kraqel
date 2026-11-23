@@ -37,7 +37,7 @@ rechts schreibgeschützt zum Vergleich. Tab erreicht das Vergleichsfeld nach dem
 
 Im fortlaufenden Konfliktfenster lassen sich beide Absätze und die Fettmarkierung einzeln
 aus dem lokalen Entwurf übernehmen. Die Vorschau zeigt die Mischung ab der ersten Auswahl.
-Auch bei einer Revisionslücke im ersten Vergleich bleibt die Auswahl als lokale Vorschau nutzbar. Beide Speicherbefehle sind dann gesperrt.
+Bei einer Revisionslücke im ersten Zwei-Absatz-Vergleich können beide Absätze und die Fettmarkierung einzeln aus Entwurf oder Dienstfassung übernommen werden. Zum Speichern muss der revisionsübergreifende Schreibzug freigegeben und die Auswahl für die angezeigte Revision ausdrücklich bestätigt sein. Ohne Freigabe bleibt die Auswahl eine lokale Vorschau.
 Beim Bearbeiten bleibt die Scrollposition im Vergleichsfeld nach Möglichkeit erhalten. Eine Textmarkierung bleibt bestehen, solange der Text bis zu ihrem Ende gleich bleibt.
 Die ursprüngliche Bearbeitungsbasis lässt sich mit Revisionsnummer und Fettmarkierung einblenden.
 Für die Auswahl stehen der gesamte lokale Entwurf, der Dienststand und die eindeutig lokalen Änderungen zur Verfügung. Die letzte Änderung der Häkchen lässt sich innerhalb derselben Vergleichsrevision rückgängig machen. Die Vorschau nennt beidseitig

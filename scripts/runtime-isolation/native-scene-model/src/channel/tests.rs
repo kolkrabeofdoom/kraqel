@@ -150,51 +150,57 @@ fn comparison_prepare_requires_compatible_text_and_command() {
 }
 
 #[test]
-fn first_plain_revision_gap_requires_reviewed_write_permission() {
-    let binding = Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
-    let draft = br#"{"command":"c4_document_save_v2","expectedRevision":1,"boldSecond":false,"text":"A\nB\nC"}"#;
-    let mut frames = binding.encode(Kind::Request, 1, READ).unwrap();
-    frames.extend(binding.encode(Kind::Request, 2, draft).unwrap());
-    frames.extend(
-        binding
-            .comparison_binding(1)
-            .unwrap()
-            .encode(Kind::Request, 1, COMPARE_READ)
-            .unwrap(),
-    );
-    frames.extend(
-        binding
-            .conflict_binding(3, INITIAL_GAP_DOMAIN)
-            .unwrap()
-            .encode(Kind::Request, 1, PREPARE_PLAIN)
-            .unwrap(),
-    );
-    let mut calls = 0;
-    let outcome = binding.revision_service(
-        false,
-        1,
-        true,
-        true,
-        ReviewedWrite::Unavailable,
-        &mut frames.as_slice(),
-        &mut Vec::new(),
-        |_| {
-            calls += 1;
-            Ok(match calls {
-                1 | 3 => crate::Reply::Read {
-                    text: "A\nB\nC".into(),
-                    revision: calls,
-                    bold_second: false,
-                },
-                2 => crate::Reply::Failure {
-                    error: crate::Failure::Conflict,
-                },
-                _ => panic!("gap without permission reached preparation"),
-            })
-        },
-    );
-    assert_eq!(outcome, Err(Closed));
-    assert_eq!(calls, 3);
+fn first_revision_gap_requires_reviewed_write_permission() {
+    let plain: &[u8] = br#"{"command":"c4_document_save_v2","expectedRevision":1,"boldSecond":false,"text":"A\nB\nC"}"#;
+    let structured: &[u8] = br#"{"command":"c4_document_save_v2","expectedRevision":1,"boldSecond":true,"text":"A\nB"}"#;
+    for (draft, is_plain, command, text) in [
+        (plain, true, PREPARE_PLAIN, "A\nB\nC"),
+        (structured, false, PREPARE_COMPARISON, "A\nB"),
+    ] {
+        let binding = Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
+        let mut frames = binding.encode(Kind::Request, 1, READ).unwrap();
+        frames.extend(binding.encode(Kind::Request, 2, draft).unwrap());
+        frames.extend(
+            binding
+                .comparison_binding(1)
+                .unwrap()
+                .encode(Kind::Request, 1, COMPARE_READ)
+                .unwrap(),
+        );
+        frames.extend(
+            binding
+                .first_prepare_binding(3, true, is_plain)
+                .unwrap()
+                .encode(Kind::Request, 1, command)
+                .unwrap(),
+        );
+        let mut calls = 0;
+        let outcome = binding.revision_service(
+            false,
+            1,
+            true,
+            true,
+            ReviewedWrite::Unavailable,
+            &mut frames.as_slice(),
+            &mut Vec::new(),
+            |_| {
+                calls += 1;
+                Ok(match calls {
+                    1 | 3 => crate::Reply::Read {
+                        text: text.into(),
+                        revision: calls,
+                        bold_second: false,
+                    },
+                    2 => crate::Reply::Failure {
+                        error: crate::Failure::Conflict,
+                    },
+                    _ => panic!("gap without permission reached preparation"),
+                })
+            },
+        );
+        assert_eq!(outcome, Err(Closed));
+        assert_eq!(calls, 3);
+    }
 }
 
 #[test]

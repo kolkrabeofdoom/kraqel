@@ -412,6 +412,15 @@ impl Binding {
     fn comparison_binding(&self, basis: u32) -> Result<Self, Closed> {
         self.conflict_binding(basis, b"KRAQEL-conflict-A/read-v1")
     }
+    fn first_prepare_binding(&self, basis: u32, gap: bool, plain: bool) -> Result<Self, Closed> {
+        let purpose: &[u8] = match (gap, plain) {
+            (false, _) => b"KRAQEL-conflict-A/prepare-v1",
+            (true, true) => INITIAL_GAP_DOMAIN,
+            (true, false) => b"KRAQEL-structured-A/initial-gap-v1",
+        };
+        self.conflict_binding(basis, purpose)
+    }
+
     fn conflict_binding(&self, basis: u32, domain: &[u8]) -> Result<Self, Closed> {
         let derive = |kind, purpose: &[u8]| {
             let mut mac = self.mac(kind);
@@ -542,17 +551,10 @@ impl Binding {
             if selected.is_some() {
                 let view = compared.ok_or(Closed)?;
                 let gap = view.revision > revision.checked_add(1).ok_or(Closed)?;
-                if gap && (!plain || reviewed_write == ReviewedWrite::Unavailable) {
+                if gap && reviewed_write == ReviewedWrite::Unavailable {
                     return Err(Closed);
                 }
-                let prepare = self.conflict_binding(
-                    view.revision,
-                    if gap {
-                        INITIAL_GAP_DOMAIN
-                    } else {
-                        b"KRAQEL-conflict-A/prepare-v1"
-                    },
-                )?;
+                let prepare = self.first_prepare_binding(view.revision, gap, plain)?;
                 let body = prepare.exchange(
                     1,
                     if plain {
@@ -740,7 +742,7 @@ impl Binding {
                     let compared = grant.write_comparison(&answer, writer)?;
                     let next = read_frame(reader)?;
                     let short_draft = matches!(serde_json::from_slice::<super::Request>(body),
-                        Ok(super::Request::Save {text,..} | super::Request::SaveFormatted {text,..}) if super::valid_paragraphs(&text));
+                        Ok(super::Request::Save {text,expected_revision} | super::Request::SaveFormatted {text,expected_revision,..}) if expected_revision == revision && super::valid_paragraphs(&text));
                     let plain_target = matches!(&answer, super::Reply::Read {text, bold_second:false,..} if super::valid_scene_edit(text,false));
                     let plain_draft = matches!(serde_json::from_slice::<super::Request>(body),
                         Ok(super::Request::SaveFormatted { text, bold_second:false, expected_revision }) if expected_revision == revision && super::valid_scene_edit(&text,false));
@@ -753,21 +755,14 @@ impl Binding {
                             _ => adjacent,
                         };
                         let gap = basis > adjacent;
-                        let prepare = self.conflict_binding(
-                            basis,
-                            if gap {
-                                INITIAL_GAP_DOMAIN
-                            } else {
-                                b"KRAQEL-conflict-A/prepare-v1"
-                            },
-                        )?;
+                        let short = short_source && short_target && short_draft;
+                        let prepare = self.first_prepare_binding(basis, gap, !short)?;
                         let command = prepare.decode(&next, Kind::Request, 1);
                         if (command == Ok(PREPARE_COMPARISON)
-                            && !gap
-                            && short_source
-                            && short_target
-                            && short_draft)
-                            || (command == Ok(PREPARE_PLAIN)
+                            && (!gap || reviewed_write != ReviewedWrite::Unavailable)
+                            && short)
+                            || (!short
+                                && command == Ok(PREPARE_PLAIN)
                                 && (!gap || reviewed_write != ReviewedWrite::Unavailable)
                                 && plain_source
                                 && plain_target

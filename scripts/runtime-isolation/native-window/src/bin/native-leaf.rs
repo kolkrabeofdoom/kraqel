@@ -1255,10 +1255,12 @@ fn resolve_conflict(
     AWAITING_REBIND.set(false);
     held.autosave_turn = None;
     held.resume_after_merge = false;
-    let selectable = comparison.filter(|v| {
-        can_continue
-            && (review || LOADED_REVISION.get().and_then(|r| r.checked_add(1)) == Some(v.revision))
-    });
+    let selectable =
+        comparison.filter(|v| can_continue && v.revision < window_receipt::SCENE_REVISION_LIMIT);
+    let confirm = review
+        || comparison.is_some_and(|v| {
+            LOADED_REVISION.get().and_then(|r| r.checked_add(1)) != Some(v.revision)
+        });
     unsafe {
         // On refresh keep the checkmarks as a proposal; the old approval is spent.
         if !review {
@@ -1279,7 +1281,7 @@ fn resolve_conflict(
             "Keine bestätigte Vergleichsbasis. Der Entwurf bleibt lokal."
         } else if selectable.is_none() {
             "Auswahl als Vorschau prüfen · Speichern in dieser Sitzung gesperrt."
-        } else if review {
+        } else if confirm {
             "Neue Dienstrevision · Auswahl prüfen und unter Übernahme bestätigen."
         } else {
             "Unter Übernahme die gewünschten lokalen Änderungen auswählen."
@@ -1309,7 +1311,7 @@ fn resolve_conflict(
             if let Some(chosen) = combined_draft(hwnd, view)
                 .filter(|(t, b)| t != &view.text || *b != view.bold_second)
             {
-                if review {
+                if confirm {
                     let question = format!(
                         "Die geprüfte Auswahl auf Basis von Revision {} speichern und {}?",
                         view.revision,
@@ -3053,7 +3055,16 @@ fn main() {
                                     selection = resolve_conflict(
                                         &mut held,
                                         comparison,
-                                        merge && turn < limit,
+                                        merge
+                                            && turn < limit
+                                            && comparison.is_some_and(|v| {
+                                                LOADED_REVISION.get().is_some_and(|loaded| {
+                                                    v.revision > loaded
+                                                        && (gap
+                                                            || loaded.checked_add(1)
+                                                                == Some(v.revision))
+                                                })
+                                            }),
                                         limit - turn >= 2,
                                         false,
                                     )?;

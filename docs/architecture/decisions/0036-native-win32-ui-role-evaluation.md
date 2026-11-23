@@ -616,7 +616,7 @@ bleibt bearbeitbar. Im Windows-Lauf mit Szene A sperrte die Rückkehr zum Dienst
 Speicherbefehle. Erst die anschließende Einzelwahl mit ausdrücklichem Speichern erzeugte
 Revision 3. Das Wiederöffnen bestätigte die gewählte Mischung.
 
-Liegt bei der ersten Konfliktantwort bereits eine Revisionslücke vor, zeigt **Übernahme**
+Fehlt die Freigabe für revisionsübergreifendes Schreiben und liegt bei der ersten Konfliktantwort eine Revisionslücke vor, zeigt **Übernahme**
 die Auswahl als lokale Vorschau an. Im verwalteten Windows-Lauf lagen zwischen der
 Bearbeitungsbasis 1 und dem frisch gelesenen Dienststand 3 zwei synthetische Änderungen.
 Einblenden der Basis, Einzelwahl und Rücknahme funktionierten. Beide Speicherbefehle waren
@@ -908,6 +908,16 @@ Das Fenster behält den lokalen Text und zeigt die neue Revision. Der Klartextpf
 prüft dabei auch im Dienst erneut die Bearbeitbarkeit und das Fehlen der Fettmarkierung.
 Eine weitere F9-Bestätigung bindet den gesamten Entwurf an genau diesen Stand. Beide
 Rollen bestätigen denselben revisions- und inhaltsgebundenen Beleg vor dem Folgeauftrag.
+
+### Erste Revisionslücke im strukturierten Editor
+
+Bei freigegebenem revisionsübergreifendem Schreibzug bindet der Datendienst die
+strukturierte Auswahl an einen eigenen Protokollzweck und die angebotene Revision.
+Er liest den Dienststand vor der Freigabe erneut. Der Beleg umfasst Text und Fettmarkierung.
+Das Bestätigungsfenster nennt die Basisrevision und die gewählte Abschlussaktion.
+Im synthetischen Windows-Lauf blieben nach „Nein“ Entwurf und Auswahl offen. Nach „Ja“
+enthielt Revision 4 den lokalen ersten Absatz, den zweiten Dienstabsatz und die lokale
+Fettmarkierung. Beim Weiterschreiben im selben Fenster bestätigte Autosave Revision 5.
 
 ## Kosten für den Editor
 
