@@ -28,6 +28,7 @@ const PICK_BOLD: usize = 222;
 const COMMIT_SELECTION: usize = 223;
 const CONTINUE_SELECTION: usize = 224;
 const PICK_LOCAL_CHANGES: usize = 225;
+const SHOW_EDIT_BASE: usize = 226;
 const MERGE_SELECTED: u32 = WM_APP + 7;
 const COMPARISON: i32 = 111;
 const LABEL: i32 = 100;
@@ -67,6 +68,7 @@ thread_local! {
     static ACTIVE_PARAGRAPH: std::cell::Cell<i32> = const { std::cell::Cell::new(EDIT) };
     static SECOND_WEIGHT: std::cell::Cell<i32> = const { std::cell::Cell::new(0) };
     static LOADED_REVISION: std::cell::Cell<Option<u32>> = const { std::cell::Cell::new(None) };
+    static EDIT_BASE_REVISION: std::cell::Cell<Option<u32>> = const { std::cell::Cell::new(None) };
     static INITIAL_BOLD: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static EXPECTED: std::cell::RefCell<String> = std::cell::RefCell::new(String::new());
 }
@@ -845,6 +847,7 @@ unsafe fn install_selection_menu(hwnd: HWND) -> std::io::Result<()> {
                 PICK_LOCAL_CHANGES,
                 "Eindeutig lokale Änderungen zusätzlich auswählen",
             ),
+            (SHOW_EDIT_BASE, "Ursprüngliche Bearbeitungsbasis anzeigen"),
             (COMMIT_SELECTION, "Auswahl speichern und schließen"),
             (CONTINUE_SELECTION, "Auswahl speichern und weiterschreiben"),
         ] {
@@ -1021,8 +1024,19 @@ fn update_review(hwnd: HWND) {
                 hints.conflicting.join(", ")
             )
         };
+        let state = unsafe { GetMenuState(GetMenu(hwnd), SHOW_EDIT_BASE as u32, MF_BYCOMMAND) };
+        let base_section = if state != u32::MAX && state & MF_CHECKED != 0 {
+            EDIT_BASE_REVISION.get().map(|revision| {
+                EXPECTED.with_borrow(|base| format!(
+                    "Bearbeitungsbasis · Revision {revision}\r\n{}\r\n\r\n",
+                    format_text(base, INITIAL_BOLD.get())
+                ))
+            }).unwrap_or_default()
+        } else {
+            String::new()
+        };
         let contents = format!(
-            "Datendienst · Revision {}\r\n{}\r\n\r\nVorschau der Auswahl\r\n{}{conflict_note}",
+            "{base_section}Datendienst · Revision {}\r\n{}\r\n\r\nVorschau der Auswahl\r\n{}{conflict_note}",
             view.revision,
             format_text(&view.text, view.bold_second),
             preview
@@ -1373,7 +1387,8 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 0
             }
             WM_COMMAND
-                if (PICK_FIRST..=CONTINUE_SELECTION).contains(&w) && REVISION_CONFLICT.get() =>
+                if ((PICK_FIRST..=CONTINUE_SELECTION).contains(&w) || w == SHOW_EDIT_BASE)
+                    && REVISION_CONFLICT.get() =>
             {
                 let menu = GetMenu(hwnd);
                 let state = GetMenuState(menu, w as u32, MF_BYCOMMAND);
@@ -1545,6 +1560,7 @@ fn show(
             return 24;
         }
         let bold = surface.as_ref().and_then(|(_, _, style)| *style) == Some(true);
+        EDIT_BASE_REVISION.set(LOADED_REVISION.get());
         INITIAL_BOLD.set(bold);
         SECOND_WEIGHT.set(if bold { FW_BOLD } else { FW_NORMAL } as i32);
         EXPECTED.with_borrow_mut(|value| {
@@ -2334,6 +2350,7 @@ fn main() {
                                     return Ok(Some(chosen));
                                 }
                                 EXPECTED.with_borrow_mut(|v| v.clone_from(&loaded.text));
+                                EDIT_BASE_REVISION.set(Some(loaded.revision));
                                 INITIAL_BOLD.set(loaded.bold_second);
                                 if held.resume_after_merge {
                                     resume_merged_editor(&mut held, loaded)?;

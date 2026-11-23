@@ -610,6 +610,13 @@ leerer Auswahl, einen ungültigen gewählten Absatz und das manuelle Zurückänd
 Dienststand. Nach der Korrektur enthielt die wieder geöffnete Revision 3 den gewählten
 ersten Absatz und den zweiten Absatz der Dienstrevision 2.
 
+**Ursprüngliche Bearbeitungsbasis anzeigen** blendet im geschützten Vergleichsfeld die
+Revision ein, auf der der lokale Entwurf beruht, samt beiden Absätzen und Fettmarkierung.
+Das Fenster verwendet dafür die bereits gebundene Fassung im Arbeitsspeicher. Im
+Windows-Lauf ließ sich Revision 1 neben Dienstrevision 2 ein- und ausblenden. Entwurf,
+Auswahl und Vorschau blieben erhalten. Nach ausdrücklichem Speichern enthielt die frisch
+gelesene Revision 3 den gewählten lokalen ersten und den zweiten Absatz des Datendienstes.
+
 **Eindeutig lokale Änderungen zusätzlich auswählen** vergleicht jeden Absatz und die
 Fettmarkierung mit der Bearbeitungsbasis des lokalen Entwurfs und dem angezeigten
 Dienststand. Der Befehl ergänzt Häkchen für gültige lokale Änderungen an Feldern, die der

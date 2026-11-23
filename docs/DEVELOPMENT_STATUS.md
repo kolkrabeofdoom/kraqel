@@ -21,6 +21,7 @@ rechts schreibgeschützt zum Vergleich. F6 wechselt zwischen beiden.
 
 Im fortlaufenden Konfliktfenster lassen sich beide Absätze und die Fettmarkierung einzeln
 aus dem lokalen Entwurf übernehmen. Die Vorschau zeigt die Mischung ab der ersten Auswahl.
+Die ursprüngliche Bearbeitungsbasis lässt sich mit Revisionsnummer und Fettmarkierung einblenden.
 Eindeutig lokale Änderungen lassen sich gemeinsam auswählen. Die Vorschau nennt beidseitig
 unterschiedlich geänderte Absätze. Beide Speicherbefehle setzen eine gültige Änderung voraus. Die ausdrückliche Bestätigung speichert auf der erneut
 geprüften Vergleichsbasis unter frischer Schreibbindung und schließt das Fenster. Eine
