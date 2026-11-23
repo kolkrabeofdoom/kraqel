@@ -610,6 +610,21 @@ leerer Auswahl, einen ungültigen gewählten Absatz und das manuelle Zurückänd
 Dienststand. Nach der Korrektur enthielt die wieder geöffnete Revision 3 den gewählten
 ersten Absatz und den zweiten Absatz der Dienstrevision 2.
 
+**Eindeutig lokale Änderungen zusätzlich auswählen** vergleicht jeden Absatz und die
+Fettmarkierung mit der Bearbeitungsbasis des lokalen Entwurfs und dem angezeigten
+Dienststand. Der Befehl ergänzt Häkchen für gültige lokale Änderungen an Feldern, die der
+Dienst gegenüber der Basis beibehalten hat. Bereits manuell gesetzte Häkchen bleiben erhalten.
+Die Vorschau nennt Absätze, die beide Seiten unterschiedlich geändert haben. Bei weiterer
+Eingabe wird dieser Hinweis neu berechnet. Erst der separate Speicherbefehl veröffentlicht
+die gewählte Mischung.
+
+Im Windows-Lauf blieben zwei unterschiedlich geänderte Fassungen des ersten Absatzes zur
+Entscheidung offen. Die Vorauswahl setzte die Häkchen für den nur lokal geänderten zweiten
+Absatz und seine Fettmarkierung. Erneutes Anwenden erhielt ein manuell gesetztes Häkchen.
+Nach Rückkehr des ersten Absatzes zur Bearbeitungsbasis verschwand sein Konflikthinweis.
+Die frisch geöffnete Revision 3 enthielt den ersten Dienstabsatz und den lokalen zweiten
+Absatz mit der gewählten Markierung.
+
 Der Starter aktiviert die Funktion für ein passendes gepinntes Rollenpaar bei verfügbarem
 Folgeschreibzug. Der Dienststand muss die unmittelbare Folgerevision der bisherigen Basis sein.
 Ein eigener authentisierter Vorbereitungsauftrag prüft Revision, Text und Markierung nochmals

@@ -27,6 +27,7 @@ const PICK_SECOND: usize = 221;
 const PICK_BOLD: usize = 222;
 const COMMIT_SELECTION: usize = 223;
 const CONTINUE_SELECTION: usize = 224;
+const PICK_LOCAL_CHANGES: usize = 225;
 const MERGE_SELECTED: u32 = WM_APP + 7;
 const COMPARISON: i32 = 111;
 const LABEL: i32 = 100;
@@ -840,6 +841,10 @@ unsafe fn install_selection_menu(hwnd: HWND) -> std::io::Result<()> {
             (PICK_FIRST, "Ersten Absatz aus Entwurf"),
             (PICK_SECOND, "Zweiten Absatz aus Entwurf"),
             (PICK_BOLD, "Fettmarkierung aus Entwurf"),
+            (
+                PICK_LOCAL_CHANGES,
+                "Eindeutig lokale Änderungen zusätzlich auswählen",
+            ),
             (COMMIT_SELECTION, "Auswahl speichern und schließen"),
             (CONTINUE_SELECTION, "Auswahl speichern und weiterschreiben"),
         ] {
@@ -932,6 +937,52 @@ struct SelectionReview {
     may_resume: bool,
 }
 
+#[derive(Default)]
+struct SelectionHints {
+    local: Vec<usize>,
+    conflicting: Vec<&'static str>,
+}
+
+fn selection_hints(
+    hwnd: HWND,
+    view: &kraqel_native_scene_model::channel::SceneView,
+) -> SelectionHints {
+    let mut hints = SelectionHints::default();
+    EXPECTED.with_borrow(|base| {
+        let Some((base_first, base_second)) = base.split_once('\n') else {
+            return;
+        };
+        let Some((remote_first, remote_second)) = view.text.split_once('\n') else {
+            return;
+        };
+        for (field, item, label, base, remote) in [
+            (EDIT, PICK_FIRST, "erster Absatz", base_first, remote_first),
+            (
+                SECOND,
+                PICK_SECOND,
+                "zweiter Absatz",
+                base_second,
+                remote_second,
+            ),
+        ] {
+            let Some(local) = paragraph_text(hwnd, field) else {
+                continue;
+            };
+            if local != base && local != remote {
+                if remote != base {
+                    hints.conflicting.push(label);
+                } else if kraqel_native_scene_model::valid_paragraph(&local) {
+                    hints.local.push(item);
+                }
+            }
+        }
+    });
+    if is_bold() != INITIAL_BOLD.get() && view.bold_second == INITIAL_BOLD.get() {
+        hints.local.push(PICK_BOLD);
+    }
+    hints
+}
+
 fn update_review(hwnd: HWND) {
     SELECTION_REVIEW.with_borrow(|review| {
         let Some(review) = review else { return };
@@ -954,8 +1005,24 @@ fn update_review(hwnd: HWND) {
             Some(_) => "Auswahl entspricht dem Dienststand.".to_owned(),
             None => "Ausgewählte Absätze prüfen.".to_owned(),
         };
+        let hints = selection_hints(hwnd, view);
+        enable_menu_command(
+            hwnd,
+            PICK_LOCAL_CHANGES,
+            hints.local.iter().any(|&item| unsafe {
+                GetMenuState(GetMenu(hwnd), item as u32, MF_BYCOMMAND) & MF_CHECKED == 0
+            }),
+        );
+        let conflict_note = if hints.conflicting.is_empty() {
+            String::new()
+        } else {
+            format!(
+                "\r\n\r\nBeidseitig unterschiedlich geändert: {}.",
+                hints.conflicting.join(", ")
+            )
+        };
         let contents = format!(
-            "Datendienst · Revision {}\r\n{}\r\n\r\nVorschau der Auswahl\r\n{}",
+            "Datendienst · Revision {}\r\n{}\r\n\r\nVorschau der Auswahl\r\n{}{conflict_note}",
             view.revision,
             format_text(&view.text, view.bold_second),
             preview
@@ -1292,6 +1359,17 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                     && matches!((w & 0xffff) as i32, EDIT | SECOND) =>
             {
                 ACTIVE_PARAGRAPH.set((w & 0xffff) as i32);
+                0
+            }
+            WM_COMMAND if w == PICK_LOCAL_CHANGES && REVISION_CONFLICT.get() => {
+                SELECTION_REVIEW.with_borrow(|review| {
+                    if let Some(review) = review {
+                        for item in selection_hints(hwnd, &review.basis).local {
+                            CheckMenuItem(GetMenu(hwnd), item as u32, MF_BYCOMMAND | MF_CHECKED);
+                        }
+                    }
+                });
+                update_review(hwnd);
                 0
             }
             WM_COMMAND
