@@ -624,6 +624,12 @@ gesperrt und ließen auch bei direkter Befehlsauslösung den Entwurf offen. Nach
 bestätigtem Verwerfen meldete der Starter die zuletzt veröffentlichte Revision 1 und null
 verbleibende Jobprozesse.
 
+Beim Aktualisieren desselben Vergleichsfelds behält die Vorschau die erste sichtbare
+Zeile bei, soweit der neue Inhalt das zulässt. Im Windows-Lauf mit verkleinertem Feld
+blieben Scrollposition und Textmarkierung beim Weiterschreiben und beim Ändern der
+Übernahmeauswahl erhalten. Nach Ausblenden der markierten Bearbeitungsbasis erschien
+die alte Markierung nicht auf dem nachrückenden Diensttext.
+
 **Letzte Auswahl rückgängig machen** stellt die Häkchen vor der letzten Einzel- oder
 Sammelauswahl wieder her. Das Fenster merkt sich dafür drei Auswahlwerte bis zum nächsten
 Revisionsvergleich. Im Windows-Lauf wurde eine gemischte Auswahl auf den Dienststand

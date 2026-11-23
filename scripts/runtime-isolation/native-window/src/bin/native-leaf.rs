@@ -11,7 +11,9 @@ use windows_sys::Win32::{
 };
 use windows_sys::Win32::{
     System::SystemServices::SS_LEFT,
-    UI::Controls::{EM_GETSEL, EM_REPLACESEL, EM_SETLIMITTEXT, EM_SETSEL},
+    UI::Controls::{
+        EM_GETFIRSTVISIBLELINE, EM_GETSEL, EM_LINESCROLL, EM_REPLACESEL, EM_SETLIMITTEXT, EM_SETSEL,
+    },
 };
 
 #[used]
@@ -1036,6 +1038,31 @@ fn change_selection(hwnd: HWND, command: usize) {
     update_review(hwnd);
 }
 
+fn refresh_comparison_text(field: HWND, contents: &str) {
+    unsafe {
+        let next = wide(contents);
+        let mut previous = vec![0u16; GetWindowTextLengthW(field) as usize + 1];
+        let count = GetWindowTextW(field, previous.as_mut_ptr(), previous.len() as i32) as usize;
+        previous.truncate(count);
+        if previous == next[..next.len() - 1] {
+            return;
+        }
+
+        let first_line = SendMessageW(field, EM_GETFIRSTVISIBLELINE, 0, 0);
+        let range = SendMessageW(field, EM_GETSEL, 0, 0) as u32;
+        if SetWindowTextW(field, next.as_ptr()) == 0 {
+            return;
+        }
+        // Keep a selection only while the text through its end still matches.
+        let end = (range >> 16) as usize;
+        if end <= previous.len() && end < next.len() && previous[..end] == next[..end] {
+            SendMessageW(field, EM_SETSEL, (range & 0xffff) as usize, end as isize);
+        }
+        let current_line = SendMessageW(field, EM_GETFIRSTVISIBLELINE, 0, 0);
+        SendMessageW(field, EM_LINESCROLL, 0, first_line - current_line);
+    }
+}
+
 fn update_review(hwnd: HWND) {
     SELECTION_REVIEW.with_borrow(|review| {
         let Some(review) = review else { return };
@@ -1095,7 +1122,7 @@ fn update_review(hwnd: HWND) {
             preview
         );
         unsafe {
-            SetDlgItemTextW(hwnd, COMPARISON, wide(contents).as_ptr());
+            refresh_comparison_text(GetDlgItem(hwnd, COMPARISON), &contents);
         }
     });
 }

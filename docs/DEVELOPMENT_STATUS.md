@@ -22,6 +22,7 @@ rechts schreibgeschützt zum Vergleich. F6 wechselt zwischen beiden.
 Im fortlaufenden Konfliktfenster lassen sich beide Absätze und die Fettmarkierung einzeln
 aus dem lokalen Entwurf übernehmen. Die Vorschau zeigt die Mischung ab der ersten Auswahl.
 Auch bei einer Revisionslücke im ersten Vergleich bleibt die Auswahl als lokale Vorschau nutzbar. Beide Speicherbefehle sind dann gesperrt.
+Beim Bearbeiten bleibt die Scrollposition im Vergleichsfeld nach Möglichkeit erhalten. Eine Textmarkierung bleibt bestehen, solange der Text bis zu ihrem Ende gleich bleibt.
 Die ursprüngliche Bearbeitungsbasis lässt sich mit Revisionsnummer und Fettmarkierung einblenden.
 Für die Auswahl stehen der gesamte lokale Entwurf, der Dienststand und die eindeutig lokalen Änderungen zur Verfügung. Die letzte Änderung der Häkchen lässt sich innerhalb derselben Vergleichsrevision rückgängig machen. Die Vorschau nennt beidseitig
 unterschiedlich geänderte Absätze. Beide Speicherbefehle setzen eine gültige Änderung voraus. Die ausdrückliche Bestätigung speichert auf der erneut
