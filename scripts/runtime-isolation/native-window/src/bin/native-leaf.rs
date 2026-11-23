@@ -71,6 +71,8 @@ const SAVE_AND_STAY: i32 = 112;
 const CONTINUE_PLAIN_DRAFT: u32 = WM_APP + 8;
 const OPEN_PLAIN: usize = 230;
 const SAVE_SPAN: usize = 232;
+const REPLACE_BOLD: usize = 233;
+const REQUEST_BOLD_REPLACEMENT: u32 = WM_APP + 10;
 const REQUEST_SPAN: u32 = WM_APP + 9;
 use kraqel_native_scene_model::BoldRange;
 
@@ -97,6 +99,38 @@ fn selected_span(hwnd: HWND) -> Option<BoldRange> {
 fn preserved_span(text: &str) -> Option<BoldRange> {
     let span = LOADED_SPAN.get()?;
     EXPECTED.with_borrow(|base| span.preserved_in(base, text, is_bold()))
+}
+
+// Build the whole paragraph before modifying the control. The replacement
+// inherits the selected range even when its text also occurs elsewhere.
+fn bold_replacement(hwnd: HWND) -> Option<(i32, String, BoldRange)> {
+    if LOADED_SPAN.get().is_none()
+        || REVISION_CONFLICT.get()
+        || AWAITING_REBIND.get()
+        || CLOSE_REQUESTED.get()
+    {
+        return None;
+    }
+    let draft = draft_text(hwnd)?;
+    let span = preserved_span(&draft)?;
+    let replacement = paragraph_text(hwnd, REPLACEMENT)?;
+    let (before, marked, after) = span.parts(&draft, is_bold())?;
+    if replacement == marked || !kraqel_native_scene_model::valid_paragraph(&replacement) {
+        return None;
+    }
+    let paragraph = format!("{before}{replacement}{after}");
+    if !kraqel_native_scene_model::valid_paragraph(&paragraph) {
+        return None;
+    }
+    let range = BoldRange {
+        end: span.start + u16::try_from(replacement.encode_utf16().count()).ok()?,
+        ..span
+    };
+    Some((
+        [EDIT, SECOND][usize::from(span.paragraph)],
+        paragraph,
+        range,
+    ))
 }
 
 thread_local! {
@@ -399,6 +433,10 @@ fn install_editor_menu(hwnd: HWND) -> bool {
                     (
                         SAVE_SPAN,
                         "Markierte &Textstelle fett speichern und schließen\tStrg+Umschalt+B",
+                    ),
+                    (
+                        REPLACE_BOLD,
+                        "Fettstelle durch &Ersatztext ersetzen, speichern und schließen",
                     ),
                     (BOLD_SECOND, "Zweiter Absatz &fett\tStrg+B"),
                     (FIND, "&Suchen…\tStrg+F"),
@@ -2109,12 +2147,17 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                     BOLD_SECOND,
                     !LONG_EDIT.get() && !LOADED_SPAN.get().is_some_and(|s| s.paragraph == 1),
                 );
+                enable_menu_command(hwnd, REPLACE_BOLD, bold_replacement(hwnd).is_some());
                 enable_menu_command(hwnd, SAVE_SPAN, selected_span(hwnd).is_some());
                 enable_menu_command(
                     hwnd,
                     SELECT_PARAGRAPH,
                     focus == GetDlgItem(hwnd, EDIT) || focus == GetDlgItem(hwnd, SECOND),
                 );
+                0
+            }
+            WM_COMMAND if w == REPLACE_BOLD => {
+                PostMessageW(hwnd, REQUEST_BOLD_REPLACEMENT, 0, 0);
                 0
             }
             WM_COMMAND if w == SAVE_SPAN => {
@@ -2944,6 +2987,17 @@ unsafe fn run_editor_loop(
                     current_history.current + 1 < current_history.states.len(),
                 );
                 let in_replacement = GetFocus() == GetDlgItem(hwnd, REPLACEMENT);
+                if in_replacement
+                    && ctrl
+                    && key == VK_RETURN
+                    && GetKeyState(i32::from(VK_SHIFT)) < 0
+                    && LOADED_SPAN.get().is_some()
+                {
+                    if msg.lParam & (1 << 30) == 0 {
+                        PostMessageW(hwnd, REQUEST_BOLD_REPLACEMENT, 0, 0);
+                    }
+                    continue;
+                }
                 if msg.message == REPLACE_DRAFT
                     || (in_replacement && msg.message == WM_KEYDOWN && key == VK_RETURN)
                 {
@@ -3058,7 +3112,18 @@ unsafe fn run_editor_loop(
                 {
                     continue;
                 }
-                let span = if msg.message == REQUEST_SPAN {
+                let span = if msg.message == REQUEST_BOLD_REPLACEMENT {
+                    let Some((id, paragraph, span)) = bold_replacement(hwnd) else {
+                        SetDlgItemTextW(hwnd,LABEL,wide("Ersetzen nicht möglich · Fettstelle, Ersatztext und Absatzlänge prüfen").as_ptr());
+                        continue;
+                    };
+                    if SetDlgItemTextW(hwnd, id, wide(&paragraph).as_ptr()) == 0
+                        || paragraph_text(hwnd, id).as_ref() != Some(&paragraph)
+                    {
+                        return 24;
+                    }
+                    Some(span)
+                } else if msg.message == REQUEST_SPAN {
                     let Some(span) = selected_span(hwnd) else {
                         continue;
                     };
