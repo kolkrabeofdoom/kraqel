@@ -6,10 +6,10 @@ use crate::{
 };
 use fonts::Fonts;
 use printpdf::{
-    ColorBits, ColorSpace, Image, ImageTransform, ImageXObject, IndirectFontRef, Mm, PdfDocument,
-    PdfDocumentReference, PdfLayerReference, Px,
+    FontId, Mm, Op, ParsedFont, PdfDocument, PdfFontHandle, PdfPage, PdfParseErrorSeverity,
+    PdfSaveOptions, Point, Pt, RawImage, RawImageData, RawImageFormat, TextItem, XObjectTransform,
 };
-use std::{collections::BTreeMap, io::Cursor};
+use std::collections::BTreeMap;
 
 const LEFT: f32 = 56.7;
 const TOP: f32 = 785.0;
@@ -266,43 +266,61 @@ mod text_height {
 }
 
 struct Canvas {
-    document: PdfDocumentReference,
-    layer: PdfLayerReference,
-    fonts: Vec<IndirectFontRef>,
+    document: PdfDocument,
+    ops: Vec<Op>,
+    fonts: Vec<FontId>,
     y: f32,
-    pages: usize,
 }
 impl Canvas {
     fn new(title: &str) -> Result<Self> {
-        let (document, page, layer) = PdfDocument::new(title, Mm(210.0), Mm(297.0), "Manuskript");
-        let fonts = fonts::DATA
-            .iter()
-            .map(|data| {
-                document
-                    .add_external_font(Cursor::new(data))
-                    .map_err(|_| IllustratedError::Invalid)
-            })
-            .collect::<Result<_>>()?;
-        let layer = document.get_page(page).get_layer(layer);
+        let mut document = PdfDocument::new(title);
+        let mut fonts = Vec::new();
+        for data in fonts::DATA {
+            let font = ParsedFont::from_bytes(data, 0, &mut Vec::new())
+                .ok_or(IllustratedError::Invalid)?;
+            fonts.push(document.add_font(&font));
+        }
         Ok(Self {
             document,
-            layer,
+            ops: Vec::new(),
             fonts,
             y: TOP,
-            pages: 1,
         })
+    }
+
+    fn finish_page(&mut self) {
+        self.document.pages.push(PdfPage::new(
+            Mm(210.0),
+            Mm(297.0),
+            std::mem::take(&mut self.ops),
+        ));
+    }
+
+    fn write_run(&mut self, text: String, size: f32, x: f32, y: f32, style: usize) {
+        self.ops.extend([
+            Op::StartTextSection,
+            Op::SetTextCursor {
+                pos: Point { x: Pt(x), y: Pt(y) },
+            },
+            Op::SetFont {
+                font: PdfFontHandle::External(self.fonts[style].clone()),
+                size: Pt(size),
+            },
+            Op::ShowText {
+                items: vec![TextItem::Text(text)],
+            },
+            Op::EndTextSection,
+        ]);
     }
     fn room(&mut self, height: f32) -> Result<()> {
         if height > TOP - BOTTOM {
             return Err(IllustratedError::Invalid);
         }
         if self.y - height < BOTTOM {
-            self.pages += 1;
-            if self.pages > 2048 {
+            if self.document.pages.len() >= 2047 {
                 return Err(IllustratedError::Invalid);
             }
-            let (page, layer) = self.document.add_page(Mm(210.0), Mm(297.0), "Manuskript");
-            self.layer = self.document.get_page(page).get_layer(layer);
+            self.finish_page();
             self.y = TOP;
         }
         Ok(())
@@ -315,32 +333,20 @@ impl Canvas {
         let mut style = 0;
         for (c, s) in &line.chars {
             if *s != style && !current.is_empty() {
-                self.layer.use_text(
-                    &current,
-                    line.size,
-                    Mm(x * 25.4 / 72.0),
-                    Mm(baseline * 25.4 / 72.0),
-                    &self.fonts[style],
-                );
-                x += current
+                let advance = current
                     .chars()
                     .map(|c| metrics.advance(c, style, line.size))
                     .collect::<Result<Vec<_>>>()?
                     .iter()
                     .sum::<f32>();
-                current.clear();
+                self.write_run(std::mem::take(&mut current), line.size, x, baseline, style);
+                x += advance;
             }
             style = *s;
             current.push(*c);
         }
         if !current.is_empty() {
-            self.layer.use_text(
-                current,
-                line.size,
-                Mm(x * 25.4 / 72.0),
-                Mm(baseline * 25.4 / 72.0),
-                &self.fonts[style],
-            );
+            self.write_run(current, line.size, x, baseline, style);
         }
         self.y -= line.size * 1.4;
         Ok(())
@@ -349,33 +355,27 @@ impl Canvas {
         let pixels = image::load_from_memory(png)
             .map_err(|_| IllustratedError::Invalid)?
             .to_rgb8();
-        let image = ImageXObject {
-            width: Px(pixels.width() as usize),
-            height: Px(pixels.height() as usize),
-            color_space: ColorSpace::Rgb,
-            bits_per_component: ColorBits::Bit8,
-            interpolate: false,
-            image_data: pixels.into_raw(),
-            image_filter: None,
-            smask: None,
-            clipping_bbox: None,
-        };
-        let px_width =
-            f32::from(u16::try_from(image.width.0).map_err(|_| IllustratedError::Invalid)?);
-        let px_height =
-            f32::from(u16::try_from(image.height.0).map_err(|_| IllustratedError::Invalid)?);
+        let px_width = u16::try_from(pixels.width()).map_err(|_| IllustratedError::Invalid)?;
+        let px_height = u16::try_from(pixels.height()).map_err(|_| IllustratedError::Invalid)?;
+        let id = self.document.add_image(&RawImage {
+            width: usize::from(px_width),
+            height: usize::from(px_height),
+            pixels: RawImageData::U8(pixels.into_raw()),
+            data_format: RawImageFormat::RGB8,
+            tag: Vec::new(),
+        });
         self.y -= height;
-        Image::from(image).add_to_layer(
-            self.layer.clone(),
-            ImageTransform {
-                translate_x: Some(Mm(LEFT * 25.4 / 72.0)),
-                translate_y: Some(Mm(self.y * 25.4 / 72.0)),
-                scale_x: Some(width / px_width),
-                scale_y: Some(height / px_height),
+        self.ops.push(Op::UseXobject {
+            id,
+            transform: XObjectTransform {
+                translate_x: Some(Pt(LEFT)),
+                translate_y: Some(Pt(self.y)),
+                scale_x: Some(width / f32::from(px_width)),
+                scale_y: Some(height / f32::from(px_height)),
                 dpi: Some(72.0),
-                ..ImageTransform::default()
+                ..Default::default()
             },
-        );
+        });
         self.y -= 8.0;
         Ok(())
     }
@@ -433,11 +433,18 @@ fn render(
             }
         }
     }
-    let bytes = canvas
-        .document
-        .save_to_bytes()
-        .map_err(|_| IllustratedError::Invalid)?;
-    if bytes.len() > MAX_PACKAGE {
+    canvas.finish_page();
+    let options = PdfSaveOptions {
+        image_optimization: None,
+        ..Default::default()
+    };
+    let mut warnings = Vec::new();
+    let bytes = canvas.document.save(&options, &mut warnings);
+    if bytes.len() > MAX_PACKAGE
+        || warnings
+            .iter()
+            .any(|w| w.severity == PdfParseErrorSeverity::Error)
+    {
         return Err(IllustratedError::Invalid);
     }
     verify_images(&bytes, manifest, images)
@@ -578,7 +585,27 @@ mod tests {
         }
         let manuscript = Manuscript {
             title: "ÄÖÜ Ελληνικά Кириллица".to_owned(),
-            chapters: Vec::new(),
+            chapters: vec![crate::Chapter {
+                title: "Kapitel".into(),
+                scenes: vec![crate::Scene {
+                    title: "Szene".into(),
+                    blocks: vec![Block::Paragraph(
+                        [
+                            (false, false, "Normal"),
+                            (true, false, "Fett"),
+                            (false, true, "Kursiv"),
+                            (true, true, "Beides"),
+                        ]
+                        .into_iter()
+                        .map(|(bold, italic, text)| Inline::Text {
+                            bold,
+                            italic,
+                            text: text.into(),
+                        })
+                        .collect(),
+                    )],
+                }],
+            }],
         };
         let bytes = text(&manuscript).unwrap();
         let document = lopdf::Document::load_mem(&bytes).unwrap();
@@ -596,6 +623,19 @@ mod tests {
             .count();
         assert_eq!(descriptors, 4);
         assert_eq!(maps, 4);
+        let extracted = document.extract_text(&[1]).unwrap();
+        for expected in [
+            manuscript.title.as_str(),
+            "Normal",
+            "Fett",
+            "Kursiv",
+            "Beides",
+        ] {
+            assert!(
+                extracted.contains(expected),
+                "missing {expected:?} in {extracted:?}"
+            );
+        }
         let bad = Manuscript {
             title: "PRIVATE 🙂".to_owned(),
             ..manuscript

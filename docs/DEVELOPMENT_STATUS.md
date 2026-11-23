@@ -4,9 +4,11 @@
 
 Text- und Bildexport lesen das selbst erzeugte PDF zur Ausgabeprüfung mit `lopdf 0.47.0`.
 Der bestehende Exporttest prüft unter anderem die eingebetteten RGB-Daten, Abmessungen und
-Bildkennungen. Der PDF-Schreiber `printpdf 0.7.0` zieht weiterhin `lopdf 0.31.0` ein.
-Die Dependabot-Warnung [#8](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/8)
-bleibt bis zur Ablösung dieser transitiven Abhängigkeit offen.
+Bildkennungen. Der Schreiber `printpdf 0.12.14` verwendet ebenfalls `lopdf 0.47.0`.
+Diese ist die einzige im Workspace aufgelöste Version. Damit ist die von
+[Dependabot #8](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/8) gemeldete
+Version auf dem Entwicklungsbranch entfernt. Eine illustrierte synthetische Ausgabe wurde
+unabhängig mit Poppler auf allen drei A4-Seiten gerendert.
 
 ### Verwalteter Win32-Szeneneditor
 
