@@ -94,14 +94,9 @@ fn selected_span(hwnd: HWND) -> Option<BoldRange> {
     Some(span)
 }
 
-// The native EDIT controls expose plain text. Keep offsets only while their
-// source paragraph is identical; otherwise the user must select the range again.
 fn preserved_span(text: &str) -> Option<BoldRange> {
     let span = LOADED_SPAN.get()?;
-    let index = usize::from(span.paragraph);
-    EXPECTED.with_borrow(|source| {
-        (source.split('\n').nth(index) == text.split('\n').nth(index)).then_some(span)
-    })
+    EXPECTED.with_borrow(|base| span.preserved_in(base, text, is_bold()))
 }
 
 thread_local! {
@@ -962,21 +957,20 @@ fn update_draft_status(hwnd: HWND) {
         let dirty = is_bold() != INITIAL_BOLD.get()
             || EXPECTED.with_borrow(|initial| current.as_ref() != Some(initial));
         let autosave = AUTOSAVE_TURN.get();
-        if let Some(span) = LOADED_SPAN.get() {
-            let preserve = current.as_deref().and_then(preserved_span).is_some();
-            let label = if preserve {
-                EXPECTED.with_borrow(|base| {
-                    span.parts(base, INITIAL_BOLD.get())
-                        .map(|(_, word, _)| {
-                            format!(
-                                "Fett: „{}“ · Strg+S speichert und schließt",
-                                word.replace('&', "&&")
-                            )
-                        })
-                        .unwrap_or_default()
-                })
-            } else {
-                "Fettstelle erneut auswählen · Strg+Umschalt+B speichert und schließt".to_owned()
+        let mut can_save = dirty;
+        if LOADED_SPAN.get().is_some() {
+            let marked_word = current.as_deref().and_then(|text| {
+                let range = preserved_span(text)?;
+                range.parts(text, is_bold()).map(|(_, word, _)| word)
+            });
+            can_save &= marked_word.is_some();
+            let label = match marked_word {
+                Some(word) => format!(
+                    "Fett: „{}“ · Strg+S speichert und schließt",
+                    word.replace('&', "&&")
+                ),
+                None => "Fettstelle erneut auswählen · Strg+Umschalt+B speichert und schließt"
+                    .to_owned(),
             };
             SetDlgItemTextW(hwnd, LABEL, wide(label).as_ptr());
         }
@@ -1014,8 +1008,8 @@ fn update_draft_status(hwnd: HWND) {
             );
             return;
         }
-        enable_menu_command(hwnd, SAVE as usize, dirty);
-        EnableWindow(save, i32::from(dirty));
+        enable_menu_command(hwnd, SAVE as usize, can_save);
+        EnableWindow(save, i32::from(can_save));
         EnableWindow(GetDlgItem(hwnd, DISCARD), i32::from(dirty));
         let status = if dirty && !valid {
             "Ungespeichert · Absätze prüfen"

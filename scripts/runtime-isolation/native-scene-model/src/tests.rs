@@ -219,6 +219,28 @@ fn known_inline_marks_open_only_as_plain_text_preview() {
 }
 
 #[test]
+fn inline_selection_retains_only_an_unambiguous_paragraph_range() {
+    let span = BoldRange {
+        paragraph: 1,
+        start: 1,
+        end: 3,
+    };
+    let original = "42\nRabe";
+    let offsets = |base, draft| {
+        span.preserved_in(base, draft, false)
+            .map(|r| (r.start, r.end))
+    };
+    assert_eq!(offsets(original, "43\n🪶Rabe"), Some((3, 5)));
+    assert_eq!(offsets(original, "42\nRabenszene"), Some((1, 3)));
+    for draft in ["42\nRabe ab", "42\nRobe", "42\nXabY", "42\nab"] {
+        assert_eq!(offsets(original, draft), None);
+    }
+    assert_eq!(offsets("42\naaa", "42\nXaa"), None);
+    assert_eq!(offsets("42\nXaa", "42\nXaaa"), None);
+    assert_eq!(offsets("42\naaa", "43\naaa"), Some((1, 3)));
+}
+
+#[test]
 fn inline_bold_requires_a_bound_edit_and_complete_utf16_characters() {
     let mut catalog = SyntheticCatalog::with_marked_scene_a();
     let request = |revision, end| {

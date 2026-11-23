@@ -137,6 +137,39 @@ impl BoldRange {
         (a != 0 || b != line.len()).then(|| (&line[..a], &line[a..b], &line[b..]))
     }
 
+    /// Rebind the stored range only when the original paragraph is identical,
+    /// or the same unique text retains all context on at least one side.
+    pub fn preserved_in(self, original: &str, draft: &str, bold_second: bool) -> Option<Self> {
+        let (before, marked, after) = self.parts(original, bold_second)?;
+        if !valid_paragraphs(draft) {
+            return None;
+        }
+        let paragraph = usize::from(self.paragraph);
+        let old = original.split('\n').nth(paragraph)?;
+        let new = draft.split('\n').nth(paragraph)?;
+        if old == new {
+            return Some(self);
+        }
+        let index = new.find(marked)?;
+        // rfind also detects overlapping repetitions such as "aa" in "aaa".
+        if old.find(marked) != old.rfind(marked) || new.rfind(marked) != Some(index) {
+            return None;
+        }
+        let prefix = &new[..index];
+        let suffix = &new[index + marked.len()..];
+        if prefix != before && suffix != after {
+            return None;
+        }
+        let start = u16::try_from(prefix.encode_utf16().count()).ok()?;
+        let range = Self {
+            paragraph: self.paragraph,
+            start,
+            end: start + (self.end - self.start),
+        };
+        range.parts(draft, bold_second)?;
+        Some(range)
+    }
+
     fn document(self, text: &str, bold_second: bool) -> Option<EditorDocument> {
         let (before, selected, after) = self.parts(text, bold_second)?;
         let mut doc = if bold_second {
