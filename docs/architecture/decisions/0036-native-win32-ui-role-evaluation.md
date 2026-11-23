@@ -812,6 +812,13 @@ gesamten Text. Nach Scrollen bis zum Ende lag das letzte Zeichen im sichtbaren B
 Schließen erhielt Revision und Dateihash. Der Modelltest deckt exakt 4.096 Einheiten mit
 Supplementärzeichen und Leerabsatz sowie die Abweisung einer weiteren Einheit ab.
 
+Die Vorschau durchsucht den angezeigten Text lokal im Fenster. Strg+F fokussiert das
+Suchfeld, Enter sucht, F3 springt vorwärts und Umschalt+F3 rückwärts. Nach dem letzten
+Treffer geht es beim ersten weiter. Die Suche unterscheidet Groß- und Kleinschreibung.
+Ein Windows-Lauf mit 34 Absätzen prüfte Treffer am Anfang und Ende, den Umlauf und
+die Meldung bei ausbleibendem Treffer. Die Markierung nach einem Supplementärzeichen
+saß auf dem vollständigen Suchwort. Nach dem Schließen blieben Dateihash und Revision erhalten.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

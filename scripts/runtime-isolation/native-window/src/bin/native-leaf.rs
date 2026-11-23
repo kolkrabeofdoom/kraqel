@@ -144,8 +144,23 @@ fn find_in_scene(hwnd: HWND, backwards: bool) {
         };
         let mut hits = Vec::new();
         let mut anchor = None;
+        let preview = GetDlgItem(hwnd, SAVE).is_null();
+        let prefix = if preview {
+            "Schreibgeschützte Textvorschau · "
+        } else {
+            ""
+        };
         for id in [EDIT, SECOND] {
-            let Some(text) = paragraph_text(hwnd, id) else {
+            if GetDlgItem(hwnd, id).is_null() {
+                continue;
+            }
+            let content = if preview {
+                // Win32 selection offsets count both units of each CRLF.
+                Some(EXPECTED.with_borrow(|text| text.replace('\n', "\r\n")))
+            } else {
+                paragraph_text(hwnd, id)
+            };
+            let Some(text) = content else {
                 continue;
             };
             let field = GetDlgItem(hwnd, id);
@@ -158,13 +173,21 @@ fn find_in_scene(hwnd: HWND, backwards: bool) {
                 };
                 anchor = Some((id, pos as usize));
             }
+            let mut byte = 0;
+            let mut end = 0;
             for (offset, matched) in text.match_indices(&query) {
-                let start = text[..offset].encode_utf16().count();
-                hits.push((id, start, start + matched.encode_utf16().count()));
+                let start = end + text[byte..offset].encode_utf16().count();
+                end = start + matched.encode_utf16().count();
+                byte = offset + matched.len();
+                hits.push((id, start, end));
             }
         }
         if hits.is_empty() {
-            SetDlgItemTextW(hwnd, LABEL, wide("Kein Treffer in Szene A").as_ptr());
+            SetDlgItemTextW(
+                hwnd,
+                LABEL,
+                wide(format!("{prefix}Kein Treffer in Szene A")).as_ptr(),
+            );
             open_search(hwnd);
             return;
         }
@@ -190,7 +213,7 @@ fn find_in_scene(hwnd: HWND, backwards: bool) {
         SetDlgItemTextW(
             hwnd,
             LABEL,
-            wide(format!("Treffer {} von {}", index + 1, hits.len())).as_ptr(),
+            wide(format!("{prefix}Treffer {} von {}", index + 1, hits.len())).as_ptr(),
         );
     }
 }
@@ -1295,7 +1318,10 @@ fn layout_surface(hwnd: HWND) -> bool {
         };
         let text_top = px(38);
         let focused = editing && in_focus_mode(hwnd);
-        let text_bottom = if focused {
+        let searchable_preview = !editing && !GetDlgItem(hwnd, SEARCH).is_null();
+        let text_bottom = if searchable_preview {
+            buttons_y - px(32) - gap
+        } else if focused {
             area.bottom - margin
         } else {
             buttons_y - gap
@@ -1370,6 +1396,15 @@ fn layout_surface(hwnd: HWND) -> bool {
                 )
         } else {
             place(CLOSE, margin, buttons_y, width, px(30))
+                && (!searchable_preview
+                    || (place(SEARCH_LABEL, margin, buttons_y - px(29), px(120), px(24))
+                        && place(
+                            SEARCH,
+                            margin + px(120),
+                            buttons_y - px(32),
+                            width - px(120),
+                            px(26),
+                        )))
         }
     }
 }
@@ -1493,7 +1528,16 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 0
             }
             WM_COMMAND if (w >> 16) as u32 == EN_CHANGE && (w & 0xffff) as i32 == SEARCH => {
-                SetDlgItemTextW(hwnd, LABEL, wide(draft_label()).as_ptr());
+                SetDlgItemTextW(
+                    hwnd,
+                    LABEL,
+                    wide(if GetDlgItem(hwnd, SAVE).is_null() {
+                        "Schreibgeschützte Textvorschau · Formatierungen ausgeblendet"
+                    } else {
+                        draft_label()
+                    })
+                    .as_ptr(),
+                );
                 0
             }
             WM_COMMAND if w == UNDO || w == REDO => {
@@ -1759,6 +1803,7 @@ fn show(
                 id,
                 WORD_COUNT | SEARCH_LABEL | SEARCH | REPLACEMENT | REPLACEMENT_LABEL
             ) && draft.is_none()
+                && !(preview && matches!(id, SEARCH | SEARCH_LABEL))
             {
                 continue;
             }
@@ -1801,9 +1846,12 @@ fn show(
                 return 24;
             }
         }
-        if draft.is_some() {
+        {
             for id in [SEARCH, REPLACEMENT] {
                 let query = GetDlgItem(hwnd, id);
+                if query.is_null() {
+                    continue;
+                }
                 if !protect_editor_field(query) {
                     return 24;
                 }
@@ -2008,8 +2056,23 @@ unsafe fn run_editor_loop(
                     MERGE_EXIT
                 };
             }
+            let key = msg.wParam as u16;
+            let search = GetDlgItem(hwnd, SEARCH);
+            let ctrl = msg.message == WM_KEYDOWN
+                && GetKeyState(i32::from(VK_CONTROL)) < 0
+                && GetKeyState(i32::from(VK_MENU)) >= 0;
+            let in_search = GetFocus() == search;
+            if !search.is_null() && GetFocus() != GetDlgItem(hwnd, COMPARISON) {
+                if (ctrl && key == 0x46) || (msg.message == WM_CHAR && key == 6) {
+                    open_search(hwnd);
+                    continue;
+                }
+                if msg.message == WM_KEYDOWN && (key == VK_F3 || (in_search && key == VK_RETURN)) {
+                    find_in_scene(hwnd, GetKeyState(i32::from(VK_SHIFT)) < 0);
+                    continue;
+                }
+            }
             if let Some(result) = draft.as_deref_mut() {
-                let key = msg.wParam as u16;
                 let comparison = GetDlgItem(hwnd, COMPARISON);
                 if !comparison.is_null() && msg.message == WM_KEYDOWN && key == VK_F6 {
                     SetFocus(if GetFocus() == comparison {
@@ -2041,10 +2104,6 @@ unsafe fn run_editor_loop(
                     REDO,
                     current_history.current + 1 < current_history.states.len(),
                 );
-                let ctrl = msg.message == WM_KEYDOWN
-                    && GetKeyState(i32::from(VK_CONTROL)) < 0
-                    && GetKeyState(i32::from(VK_MENU)) >= 0;
-                let in_search = GetFocus() == GetDlgItem(hwnd, SEARCH);
                 let in_replacement = GetFocus() == GetDlgItem(hwnd, REPLACEMENT);
                 if msg.message == REPLACE_DRAFT
                     || (in_replacement && msg.message == WM_KEYDOWN && key == VK_RETURN)
@@ -2067,14 +2126,6 @@ unsafe fn run_editor_loop(
                     set_focus_mode(hwnd, false);
                     SetFocus(GetDlgItem(hwnd, REPLACEMENT));
                     SendDlgItemMessageW(hwnd, REPLACEMENT, EM_SETSEL, 0, -1);
-                    continue;
-                }
-                if (ctrl && key == 0x46) || (msg.message == WM_CHAR && key == 6) {
-                    open_search(hwnd);
-                    continue;
-                }
-                if msg.message == WM_KEYDOWN && (key == VK_F3 || (in_search && key == VK_RETURN)) {
-                    find_in_scene(hwnd, GetKeyState(i32::from(VK_SHIFT)) < 0);
                     continue;
                 }
                 if msg.message == TOGGLE_BOLD
@@ -2229,7 +2280,7 @@ unsafe fn run_editor_loop(
                         REPLACEMENT,
                     ]
                 } else {
-                    &[EDIT, CLOSE]
+                    &[EDIT, SEARCH, CLOSE]
                 };
                 let backwards = GetKeyState(i32::from(VK_SHIFT)) < 0;
                 let focus = GetFocus();
