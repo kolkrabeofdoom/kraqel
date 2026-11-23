@@ -827,7 +827,11 @@ eine bestätigte, unformatierte Basis voraus. Bekannte Formatierungen außerhalb
 Zwei-Absatz-Vertrags bleiben auf die Lesevorschau beschränkt.
 
 **Speichern und schließen** (Strg+S) veröffentlicht die Änderung auf der gebundenen Revision.
-Dieser Modus speichert ausdrücklich. Sein maximales Textbudget beträgt 4.096 UTF-16-Einheiten
+Bei verfügbarem Folgezug speichert **Speichern und weiterschreiben** (Strg+Enter)
+im selben Fenster. Der Starter bestätigt die Veröffentlichung. Die Fensterrolle prüft
+unter der nächsten Bindung Revision, Text und Markierung gegen die eingereichte Fassung,
+bevor sie weitere Eingaben verarbeitet. Beim letzten Schreibzug ist nur Speichern und
+Schließen verfügbar. Dieser Modus speichert ausdrücklich. Sein maximales Textbudget beträgt 4.096 UTF-16-Einheiten
 einschließlich LF. Das bestehende Speicherlimit von 64 KiB für das strukturierte Dokument
 gilt auch für absatzreiche Entwürfe. Leere und abschließende Absätze bleiben beim Speichern
 und Wiederlesen erhalten. Ein Revisionskonflikt hält den Entwurf im Fenster und sperrt die
@@ -839,6 +843,12 @@ nach Wiederöffnen und Weiterbearbeiten. Struktur, Klartext und Suchindex wurden
 Abbildern geprüft. Im Konfliktlauf blieb der Entwurf sichtbar. Nach bestätigtem Verwerfen
 blieb Revision 2 die zuletzt veröffentlichte Fassung. Der Modelltest prüft zusätzlich die
 Budgetgrenze mit Supplementärzeichen, die Lese- und Formatsperren und den veralteten Schreibzug.
+
+Im Windows-Lauf mit verzögerter Starterbestätigung wurden während der Bestätigung
+eingegebene Zeichen erst Teil von Revision 3. Revision 2 enthielt den zuvor eingereichten
+Text. Fensteridentität, Klartext, Absatzstruktur, Suchindex und frisches Lesen wurden
+geprüft. Beim letzten verfügbaren Schreibzug blieb Weiterschreiben auch bei direktem
+Aufruf gesperrt. Speichern und Schließen beendete die Sitzung regulär.
 
 ## Kosten für den Editor
 

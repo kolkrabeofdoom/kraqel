@@ -64,6 +64,8 @@ struct PendingSave {
     due: Instant,
 }
 
+const SAVE_AND_STAY: i32 = 112;
+const CONTINUE_PLAIN_DRAFT: u32 = WM_APP + 8;
 const OPEN_PLAIN: usize = 230;
 thread_local! {
     static LONG_EDIT: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
@@ -736,6 +738,7 @@ fn apply_fonts(hwnd: HWND, dpi: u32) -> bool {
             EDIT,
             LABEL,
             SAVE,
+            SAVE_AND_STAY,
             DISCARD,
             CLOSE,
             WORD_COUNT,
@@ -823,20 +826,31 @@ fn update_draft_status(hwnd: HWND) {
             let valid = text
                 .as_ref()
                 .is_some_and(|s| kraqel_native_scene_model::valid_scene_edit(s, false));
+            let changed = valid
+                && EXPECTED.with_borrow(|base| text.as_ref() != Some(base))
+                && !REVISION_CONFLICT.get()
+                && !AWAITING_REBIND.get();
+            EnableWindow(save, i32::from(changed));
             EnableWindow(
-                save,
+                GetDlgItem(hwnd, SAVE_AND_STAY),
                 i32::from(
-                    valid
-                        && EXPECTED.with_borrow(|base| text.as_ref() != Some(base))
-                        && !REVISION_CONFLICT.get(),
+                    changed
+                        && AUTOSAVE_TURN
+                            .get()
+                            .is_some_and(|(turn, limit)| turn < limit),
                 ),
             );
             let label = if REVISION_CONFLICT.get() {
                 "Revisionskonflikt · Entwurf offen, Speichern gesperrt"
-            } else if valid {
-                "Klartext · bis 4.096 UTF-16-Einheiten"
-            } else {
+            } else if !valid {
                 "Text oder Absatzstruktur zu groß · bitte kürzen"
+            } else if AUTOSAVE_TURN
+                .get()
+                .is_some_and(|(turn, limit)| turn == limit)
+            {
+                "Letzter Schreibzug · Speichern schließt das Fenster"
+            } else {
+                "Klartext · bis 4.096 UTF-16-Einheiten"
             };
             SetDlgItemTextW(hwnd, LABEL, wide(label).as_ptr());
             return;
@@ -1369,6 +1383,29 @@ fn enter_plain_editor(hwnd: HWND, text: &str) -> bool {
             DestroyMenu(menu);
             DrawMenuBar(hwnd);
         }
+        let stay = CreateWindowExW(
+            0,
+            wide("BUTTON").as_ptr(),
+            wide("Speichern und weiterschreiben").as_ptr(),
+            WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON as u32,
+            0,
+            0,
+            0,
+            0,
+            hwnd,
+            SAVE_AND_STAY as _,
+            GetModuleHandleW(null()),
+            null(),
+        );
+        if stay.is_null() {
+            return false;
+        }
+        SendMessageW(
+            stay,
+            WM_SETFONT,
+            SendDlgItemMessageW(hwnd, SAVE, WM_GETFONT, 0, 0) as usize,
+            1,
+        );
         LONG_EDIT.set(true);
         for id in [
             SECOND,
@@ -1447,7 +1484,14 @@ fn layout_surface(hwnd: HWND) -> bool {
             let y = area.bottom - px(44);
             return place(LABEL, margin, px(10), width, px(24))
                 && place(EDIT, margin, text_top, width, (y - gap - text_top).max(1))
-                && place(SAVE, margin, y, width, px(30));
+                && place(SAVE_AND_STAY, margin, y, (width - gap) / 2, px(30))
+                && place(
+                    SAVE,
+                    margin + (width + gap) / 2,
+                    y,
+                    width - (width + gap) / 2,
+                    px(30),
+                );
         }
         if !place(LABEL, margin, px(10), width, px(24)) {
             return false;
@@ -1710,6 +1754,10 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
             }
             WM_COMMAND if w & 0xffff == DISCARD as usize => {
                 PostMessageW(hwnd, DISCARD_DRAFT, 0, 0);
+                0
+            }
+            WM_COMMAND if w == SAVE_AND_STAY as usize && LONG_EDIT.get() => {
+                PostMessageW(hwnd, CONTINUE_PLAIN_DRAFT, 0, 0);
                 0
             }
             WM_COMMAND if w & 0xffff == SAVE as usize => {
@@ -2211,11 +2259,24 @@ unsafe fn run_editor_loop(
                 let field = GetDlgItem(hwnd, EDIT);
                 let save = GetDlgItem(hwnd, SAVE);
                 let ctrl = msg.message == WM_KEYDOWN && GetKeyState(i32::from(VK_CONTROL)) < 0;
-                if msg.message == SAVE_DRAFT
+                let stay = GetDlgItem(hwnd, SAVE_AND_STAY);
+                let enter = msg.message == WM_KEYDOWN && key == VK_RETURN;
+                let continuing =
+                    msg.message == CONTINUE_PLAIN_DRAFT || (enter && (GetFocus() == stay || ctrl));
+                if continuing
+                    || msg.message == SAVE_DRAFT
                     || (ctrl && key == 0x53)
                     || (msg.message == WM_KEYDOWN && key == VK_RETURN && GetFocus() == save)
                 {
-                    if !REVISION_CONFLICT.get() && IsWindowEnabled(save) != 0 {
+                    if !CLOSE_REQUESTED.get()
+                        && !REVISION_CONFLICT.get()
+                        && IsWindowEnabled(save) != 0
+                        && (!continuing
+                            || (IsWindowEnabled(stay) != 0
+                                && AUTOSAVE_TURN
+                                    .get()
+                                    .is_some_and(|(turn, limit)| turn < limit)))
+                    {
                         if let (Some(value), Some(held), Some(result)) = (
                             draft_text(hwnd),
                             keep_editor.as_deref_mut(),
@@ -2227,18 +2288,41 @@ unsafe fn run_editor_loop(
                                 *result = (value, false);
                                 held.submitted = Some(result.clone());
                                 held.hwnd = hwnd;
-                                held.closing = true;
-                                EnableWindow(hwnd, 0);
+                                held.closing = !continuing;
+                                AWAITING_REBIND.set(continuing);
+                                if continuing {
+                                    SetFocus(field);
+                                    SetWindowTextW(
+                                        hwnd,
+                                        wide("Szene A · Klartext · Bestätigung ausstehend")
+                                            .as_ptr(),
+                                    );
+                                } else {
+                                    EnableWindow(hwnd, 0);
+                                }
+
                                 return 40;
                             }
                         }
                     }
                 } else if msg.message == WM_KEYDOWN && key == VK_TAB {
-                    SetFocus(if GetFocus() == field && IsWindowEnabled(save) != 0 {
-                        save
+                    let order = [field, stay, save];
+                    let index = order
+                        .iter()
+                        .position(|&item| item == GetFocus())
+                        .unwrap_or(0);
+                    let step = if GetKeyState(i32::from(VK_SHIFT)) < 0 {
+                        2
                     } else {
-                        field
-                    });
+                        1
+                    };
+                    for n in 1..=3 {
+                        let next = order[(index + n * step) % 3];
+                        if IsWindowEnabled(next) != 0 {
+                            SetFocus(next);
+                            break;
+                        }
+                    }
                 } else if msg.message == WM_KEYDOWN && key == VK_ESCAPE {
                     PostMessageW(hwnd, WM_CLOSE, 0, 0);
                 } else {
@@ -2683,6 +2767,7 @@ fn main() {
                                     return Ok(selection.clone());
                                 }
                                 EditorEvent::RevisionConflict(_) if LONG_EDIT.get() => {
+                                    AWAITING_REBIND.set(false);
                                     REVISION_CONFLICT.set(true);
                                     unsafe {
                                         EnableWindow(held.hwnd, 1);
@@ -2748,8 +2833,18 @@ fn main() {
                                         resume_merged_editor(&mut held, loaded)?;
                                     }
                                     unsafe {
-                                        update_draft_status(held.hwnd);
                                         AWAITING_REBIND.set(false);
+                                        if LONG_EDIT.get() {
+                                            SetWindowTextW(
+                                                held.hwnd,
+                                                wide(format!(
+                                                    "Szene A · Klartext · Revision {} gespeichert",
+                                                    loaded.revision
+                                                ))
+                                                .as_ptr(),
+                                            );
+                                        }
+                                        update_draft_status(held.hwnd);
                                         run_editor_loop(
                                             held.hwnd,
                                             true,
