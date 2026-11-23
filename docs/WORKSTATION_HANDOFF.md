@@ -11,6 +11,10 @@ git pull --ff-only
 git status -sb
 ```
 
+**Stand zum Tagesabschluss am 23. November 2026.** F4 oder **Bearbeiten → Gespeicherte Fettstelle auswählen** springt im Bearbeitungsauftrag zur eindeutig zugeordneten Fettstelle und markiert sie im Absatz. Im lokalen Windows-Lauf markierte F4 nach dem Wechsel von „Rabe“ zu „Kolkrabe“ genau „ab“. Bei „Kolkrabe ab“ blieb die vorhandene Auswahl erhalten.
+
+**Vorgeschlagener Einstieg für morgen.** Die einzelne Fettmarkierung ausdrücklich entfernen und den Text beibehalten. Dafür den revisionsgebundenen Speicherpfad von Fenster und Datendienst gemeinsam erweitern. Die Fettmarkierung des anderen Absatzes muss erhalten bleiben. Der bestehende Schutz vor einem Überschreiben durch allgemeine Klartextbefehle gilt weiter. Dieser Schritt ist offen.
+
 Zum Weiterbearbeiten einer gespeicherten Szene mit einer einzelnen Fettstelle den Auftrag `edit-win32-scene` öffnen. Strg+S erhält die Fettstelle auch nach einer eindeutigen Änderung davor oder dahinter. Fordert das Fenster zur erneuten Auswahl auf, die gewünschte Stelle markieren und mit Strg+Umschalt+B speichern. Zum gezielten Ersetzen der gespeicherten Fettstelle Strg+H drücken, den Ersatztext eingeben und im Ersatzfeld mit Strg+Umschalt+Enter speichern und schließen.
 
 Der verwaltete Win32-Editor bearbeitet ausschließlich die synthetische Szene A. Text,

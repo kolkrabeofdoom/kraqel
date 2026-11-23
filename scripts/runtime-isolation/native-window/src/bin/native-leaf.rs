@@ -72,6 +72,7 @@ const CONTINUE_PLAIN_DRAFT: u32 = WM_APP + 8;
 const OPEN_PLAIN: usize = 230;
 const SAVE_SPAN: usize = 232;
 const REPLACE_BOLD: usize = 233;
+const SELECT_BOLD: usize = 234;
 const REQUEST_BOLD_REPLACEMENT: u32 = WM_APP + 10;
 const REQUEST_SPAN: u32 = WM_APP + 9;
 use kraqel_native_scene_model::BoldRange;
@@ -99,6 +100,33 @@ fn selected_span(hwnd: HWND) -> Option<BoldRange> {
 fn preserved_span(text: &str) -> Option<BoldRange> {
     let span = LOADED_SPAN.get()?;
     EXPECTED.with_borrow(|base| span.preserved_in(base, text, is_bold()))
+}
+
+fn current_bold_span(hwnd: HWND) -> Option<BoldRange> {
+    if LOADED_SPAN.get().is_none()
+        || REVISION_CONFLICT.get()
+        || AWAITING_REBIND.get()
+        || CLOSE_REQUESTED.get()
+    {
+        return None;
+    }
+    preserved_span(&draft_text(hwnd)?)
+}
+
+fn select_bold_span(hwnd: HWND) {
+    if let Some(span) = current_bold_span(hwnd) {
+        unsafe {
+            let field = GetDlgItem(hwnd, [EDIT, SECOND][usize::from(span.paragraph)]);
+            SetFocus(field);
+            SendMessageW(field, EM_SETSEL, usize::from(span.start), span.end as isize);
+            SendMessageW(
+                field,
+                windows_sys::Win32::UI::Controls::EM_SCROLLCARET,
+                0,
+                0,
+            );
+        }
+    }
 }
 
 // Build the whole paragraph before modifying the control. The replacement
@@ -427,6 +455,7 @@ fn install_editor_menu(hwnd: HWND) -> bool {
             (
                 "&Bearbeiten",
                 &[
+                    (SELECT_BOLD, "Gespeicherte Fettstelle aus&wählen\tF4"),
                     (OPEN_PLAIN, "Als längeren Klartext bearbeiten"),
                     (UNDO, "&Rückgängig\tStrg+Z"),
                     (REDO, "&Wiederholen\tStrg+Y"),
@@ -2147,6 +2176,7 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                     BOLD_SECOND,
                     !LONG_EDIT.get() && !LOADED_SPAN.get().is_some_and(|s| s.paragraph == 1),
                 );
+                enable_menu_command(hwnd, SELECT_BOLD, current_bold_span(hwnd).is_some());
                 enable_menu_command(hwnd, REPLACE_BOLD, bold_replacement(hwnd).is_some());
                 enable_menu_command(hwnd, SAVE_SPAN, selected_span(hwnd).is_some());
                 enable_menu_command(
@@ -2154,6 +2184,10 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                     SELECT_PARAGRAPH,
                     focus == GetDlgItem(hwnd, EDIT) || focus == GetDlgItem(hwnd, SECOND),
                 );
+                0
+            }
+            WM_COMMAND if w == SELECT_BOLD => {
+                select_bold_span(hwnd);
                 0
             }
             WM_COMMAND if w == REPLACE_BOLD => {
@@ -2986,6 +3020,14 @@ unsafe fn run_editor_loop(
                     REDO,
                     current_history.current + 1 < current_history.states.len(),
                 );
+                if msg.message == WM_KEYDOWN
+                    && key == VK_F4
+                    && !ctrl
+                    && GetKeyState(i32::from(VK_SHIFT)) >= 0
+                {
+                    select_bold_span(hwnd);
+                    continue;
+                }
                 let in_replacement = GetFocus() == GetDlgItem(hwnd, REPLACEMENT);
                 if in_replacement
                     && ctrl
