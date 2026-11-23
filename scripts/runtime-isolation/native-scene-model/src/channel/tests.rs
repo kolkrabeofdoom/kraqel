@@ -4,6 +4,45 @@ const SAVE: &[u8] = br#"{"command":"c4_document_save_v1","expectedRevision":0,"t
 const READ: &[u8] = br#"{"command":"c4_document_read_v1"}"#;
 
 #[test]
+fn conflict_closes_the_service_to_further_writes() {
+    let binding = Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
+    let stale = br#"{"command":"c4_document_save_v1","expectedRevision":1,"text":"Rabe\n43"}"#;
+    let mut requests = Vec::new();
+    for (seq, body) in [(1, READ), (2, stale.as_slice()), (3, SAVE)] {
+        requests.extend(binding.encode(Kind::Request, seq, body).unwrap());
+    }
+    let mut catalog = SyntheticCatalog::default();
+    let mut scene = catalog.bind(Scene::A, Mode::Edit);
+    let mut dispatched = 0;
+    let mut replies = Vec::new();
+    assert_eq!(
+        binding.revision_service(
+            false,
+            0,
+            true,
+            &mut requests.as_slice(),
+            &mut replies,
+            |body| {
+                dispatched += 1;
+                Ok(scene.handle(body))
+            }
+        ),
+        Err(Closed)
+    );
+    assert_eq!(dispatched, 2);
+    let mut frames = replies.as_slice();
+    let _ = read_frame(&mut frames).unwrap();
+    let conflict = read_frame(&mut frames).unwrap();
+    let verifier = Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
+    Binding::expect_error(
+        verifier.decode(&conflict, Kind::Response, 2).unwrap(),
+        "CONFLICT",
+    )
+    .unwrap();
+    assert!(frames.is_empty());
+}
+
+#[test]
 fn interrupted_save_requires_a_verified_initial_read_and_zero_response_bytes() {
     let binding = || Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
     let first = binding()

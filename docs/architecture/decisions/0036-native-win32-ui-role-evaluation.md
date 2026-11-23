@@ -546,8 +546,28 @@ und Revisions- oder Budgetzahlen.
 Der lokale Windows-Lauf ließ den zweiten Absatz länger als die Schreibpause leer.
 Nach der Korrektur blieb „Speichert“ bei angehaltenem Starter sichtbar. Nach dessen
 Fortsetzung erschien „Gespeichert“. Der frische Leseauftrag und die SQLite-Prüfung
-bestätigten Revision 1 mit dem korrigierten Text. Offen bleibt die differenzierte
-Behandlung eines vom Datendienst bestätigten Revisionskonflikts im Fenster.
+bestätigten Revision 1 mit dem korrigierten Text.
+
+### Revisionskonflikt bei einem Schreibzug
+
+Nur ein authentisiertes `CONFLICT` als Antwort auf den konkreten Schreibversuch öffnet
+die Konfliktansicht. Bei Protokollfehlern oder unklarem Commit gilt weiter der Fehlerpfad.
+Das ursprüngliche Fenster hält Text, Markierung und Verlauf lokal. Weitere Änderungen
+bleiben im Entwurf. Autosave und manuelles Speichern sind gesperrt. Beim Schließen oder
+Verwerfen ist das Behalten des Entwurfs vorausgewählt. Erst nach ausdrücklichem Verwerfen
+sendet das Fenster den authentisierten Verwerfbefehl mit Sequenz 3. Der Datendienst
+akzeptiert an dieser Stelle ausschließlich diesen Befehl. Der Starter schließt den Auftrag
+über die bestehenden Verwerfquittungen beider Rollen ab.
+
+Im Windows-Lauf wurde nach einer bestätigten Revision 1 die Arbeitskopie eines synthetischen
+Prüfdatendiensts vor der nächsten Speicherung intern um eine Revision weitergesetzt.
+Die reguläre Revisionsprüfung meldete den Konflikt. Das Fenster behielt den eingereichten
+Text, ließ nach abgelehntem Verwerfen lokale Änderungen zu und veröffentlichte auch nach
+Speicherbefehl und Schreibpause keine neue Revision. Nach bestätigtem Verwerfen öffnete
+der frische Leseauftrag den ursprünglichen Stand der Revision 1. Eine gezielte Kanalprüfung
+bestätigte zusätzlich die Zurückweisung eines authentisierten Folgeschreibversuchs vor
+dem Aufruf der Speicherlogik. Das Laden eines neueren Standes und ein Abgleich mit dem
+lokalen Entwurf benötigen eine frische Bindung und sind offen.
 
 ## Kosten für den Editor
 

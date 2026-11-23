@@ -60,6 +60,16 @@ pub struct SceneView {
     pub bold_second: bool,
 }
 
+pub enum EditorEvent<'a> {
+    Loaded(&'a SceneView),
+    RevisionConflict,
+}
+
+enum SaveReply {
+    Saved,
+    Conflict,
+}
+
 impl Binding {
     /// Bootstrap material supplied by the trusted launcher, or by a synthetic model driver.
     pub fn from_keys(id: [u8; 32], request: Key, response: Key) -> Result<Self, Closed> {
@@ -218,7 +228,10 @@ impl Binding {
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
     ) -> Result<(), Closed> {
-        self.save_text(reader, writer, 0, "Rabe\n43", None)
+        match self.save_text(reader, writer, 0, "Rabe\n43", None)? {
+            SaveReply::Saved => Ok(()),
+            SaveReply::Conflict => Err(Closed),
+        }
     }
     fn save_text(
         &self,
@@ -227,13 +240,20 @@ impl Binding {
         revision: u32,
         text: &str,
         bold: Option<bool>,
-    ) -> Result<(), Closed> {
+    ) -> Result<SaveReply, Closed> {
         let body = match bold {
-            Some(mark) => serde_json::json!({"command":"c4_document_save_v2","expectedRevision":revision,"text":text,"boldSecond":mark}),
-            None => serde_json::json!({"command":"c4_document_save_v1","expectedRevision":revision,"text":text}),
+            Some(mark) => {
+                serde_json::json!({"command":"c4_document_save_v2","expectedRevision":revision,"text":text,"boldSecond":mark})
+            }
+            None => {
+                serde_json::json!({"command":"c4_document_save_v1","expectedRevision":revision,"text":text})
+            }
         };
         let body = serde_json::to_vec(&body).map_err(|_| Closed)?;
         let saved = self.exchange(2, &body, reader, writer)?;
+        if Self::expect_error(&saved, "CONFLICT").is_ok() {
+            return Ok(SaveReply::Conflict);
+        }
         #[derive(serde::Deserialize)]
         #[serde(deny_unknown_fields)]
         struct Saved {
@@ -246,7 +266,7 @@ impl Binding {
         {
             return Err(Closed);
         }
-        Ok(())
+        Ok(SaveReply::Saved)
     }
     /// Send only the header and first body byte of an otherwise valid second request.
     pub fn partial_save(
@@ -318,7 +338,7 @@ impl Binding {
         revision: u32,
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
-        edit: impl FnOnce(&SceneView) -> Result<Option<(String, bool)>, Closed>,
+        mut edit: impl FnMut(EditorEvent<'_>) -> Result<Option<(String, bool)>, Closed>,
     ) -> Result<Option<SceneView>, Closed> {
         let original = self.read_bound_view(1, reader, writer, revision)?;
         if revision == 0 && original.text != "Rabe\n42" {
@@ -327,7 +347,7 @@ impl Binding {
         if revision == 0 && !original.bold_second {
             return Err(Closed);
         }
-        let Some((text, bold)) = edit(&original)? else {
+        let Some((text, bold)) = edit(EditorEvent::Loaded(&original))? else {
             let ack = self.exchange(2, DISCARD, reader, writer)?;
             return if ack == DISCARDED {
                 Ok(None)
@@ -338,7 +358,19 @@ impl Binding {
         if !super::valid_paragraphs(&text) {
             return Err(Closed);
         }
-        self.save_text(reader, writer, original.revision, &text, Some(bold))?;
+        if let SaveReply::Conflict =
+            self.save_text(reader, writer, original.revision, &text, Some(bold))?
+        {
+            if edit(EditorEvent::RevisionConflict)?.is_some() {
+                return Err(Closed);
+            }
+            let ack = self.exchange(3, DISCARD, reader, writer)?;
+            return if ack == DISCARDED {
+                Ok(None)
+            } else {
+                Err(Closed)
+            };
+        }
         let saved = self.read_view(
             3,
             reader,
@@ -391,6 +423,25 @@ impl Binding {
                 return Ok(true);
             }
             let answer = dispatch(body)?;
+            if allow_discard
+                && seq == 2
+                && matches!(
+                    answer,
+                    super::Reply::Failure {
+                        error: super::Failure::Conflict
+                    }
+                )
+            {
+                self.write_reply(seq, answer, writer, Expected::Conflict)?;
+                let frame = read_frame(reader)?;
+                if self.decode(&frame, Kind::Request, 3)? != DISCARD {
+                    return Err(Closed);
+                }
+                writer
+                    .write_all(&self.encode(Kind::Response, 3, DISCARDED)?)
+                    .map_err(|_| Closed)?;
+                return Ok(true);
+            }
             self.write_reply(seq, answer, writer, *expected)?;
         }
         Ok(false)

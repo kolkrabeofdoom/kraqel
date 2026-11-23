@@ -176,8 +176,8 @@ pub fn exchange(
     mut control: File,
     mode: window_receipt::SceneOperation,
     output: &mut File,
-    edit: impl FnOnce(
-        &kraqel_native_scene_model::channel::SceneView,
+    mut edit: impl FnMut(
+        kraqel_native_scene_model::channel::EditorEvent,
     ) -> io::Result<Option<(String, bool)>>,
 ) -> io::Result<Option<(String, bool, Option<u32>)>> {
     let mut ch = Channel::open(&mut control, true)?;

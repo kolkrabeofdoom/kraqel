@@ -48,6 +48,7 @@ struct PendingSave {
 thread_local! {
     static AUTOSAVE_TURN: std::cell::Cell<Option<(u8, u8)>> = const { std::cell::Cell::new(None) };
     static PENDING_SAVE: std::cell::RefCell<Option<PendingSave>> = const { std::cell::RefCell::new(None) };
+    static REVISION_CONFLICT: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static AWAITING_REBIND: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static CLOSE_REQUESTED: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static ACTIVE_PARAGRAPH: std::cell::Cell<i32> = const { std::cell::Cell::new(EDIT) };
@@ -767,6 +768,16 @@ fn update_draft_status(hwnd: HWND) {
             };
             SetDlgItemTextW(hwnd, WORD_COUNT, wide(label).as_ptr());
         }
+        if REVISION_CONFLICT.get() {
+            cancel_pending_save(hwnd);
+            EnableWindow(save, 0);
+            enable_menu_command(hwnd, SAVE as usize, false);
+            SetWindowTextW(
+                hwnd,
+                wide("Szene A – Revisionskonflikt · Lokaler Entwurf offen").as_ptr(),
+            );
+            return;
+        }
         enable_menu_command(hwnd, SAVE as usize, dirty);
         EnableWindow(save, i32::from(dirty));
         EnableWindow(GetDlgItem(hwnd, DISCARD), i32::from(dirty));
@@ -1013,7 +1024,11 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 PostMessageW(hwnd, WM_CLOSE, 0, 0);
                 0
             }
-            WM_CLOSE if AWAITING_REBIND.get() || AUTOSAVE_TURN.get().is_some() => {
+            WM_CLOSE
+                if REVISION_CONFLICT.get()
+                    || AWAITING_REBIND.get()
+                    || AUTOSAVE_TURN.get().is_some() =>
+            {
                 if IsWindowEnabled(hwnd) != 0 && !CLOSE_REQUESTED.replace(true) {
                     PostMessageW(hwnd, WM_NULL, 0, 0);
                 }
@@ -1026,7 +1041,11 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
 }
 unsafe fn finish_close(hwnd: HWND) -> isize {
     unsafe {
-        if !GetDlgItem(hwnd, SAVE).is_null() && draft_changed(hwnd) {
+        if REVISION_CONFLICT.get() {
+            if MessageBoxW(hwnd, wide("Der Datendienst hat die Speicherung wegen eines Revisionskonflikts abgelehnt. Lokalen Entwurf verwerfen und schließen?").as_ptr(), wide("Revisionskonflikt").as_ptr(), MB_YESNO | MB_DEFBUTTON2 | MB_ICONWARNING) != IDYES {
+                return 0;
+            }
+        } else if !GetDlgItem(hwnd, SAVE).is_null() && draft_changed(hwnd) {
             if IsWindowEnabled(hwnd) == 0 {
                 return 0;
             }
@@ -1514,6 +1533,10 @@ unsafe fn run_editor_loop(
                         && key == VK_RETURN
                         && GetFocus() == GetDlgItem(hwnd, DISCARD))
                 {
+                    if REVISION_CONFLICT.get() {
+                        PostMessageW(hwnd, WM_CLOSE, 0, 0);
+                        continue;
+                    }
                     let initial = EXPECTED.with_borrow(Clone::clone);
                     let Some((first, second)) = initial.split_once('\n') else {
                         return 24;
@@ -1547,7 +1570,7 @@ unsafe fn run_editor_loop(
                     continue;
                 }
                 if timer || msg.message == SAVE_DRAFT || ctrl_save || enter_save {
-                    if CLOSE_REQUESTED.get() {
+                    if CLOSE_REQUESTED.get() || REVISION_CONFLICT.get() {
                         cancel_pending_save(hwnd);
                         continue;
                     }
@@ -1704,24 +1727,50 @@ fn main() {
                 let mut turn = 1;
                 loop {
                     held.autosave_turn = continued.map(|_| (turn, limit));
-                    let dialog_output = output.try_clone()?;
+                    let mut dialog_output = Some(output.try_clone()?);
                     let view = managed_scene::exchange(
                         control.try_clone()?,
                         turn_mode,
                         &mut output,
-                        |loaded| {
+                        |event| {
+                            use kraqel_native_scene_model::channel::EditorEvent;
+                            let EditorEvent::Loaded(loaded) = event else {
+                                require(!held.hwnd.is_null(), "missing conflict editor")?;
+                                REVISION_CONFLICT.set(true);
+                                AWAITING_REBIND.set(false);
+                                held.autosave_turn = None;
+                                let mut local = (String::new(), false);
+                                unsafe {
+                                    EnableWindow(held.hwnd, 1);
+                                    update_draft_status(held.hwnd);
+                                    SetFocus(GetDlgItem(held.hwnd, ACTIVE_PARAGRAPH.get()));
+                                    let code = run_editor_loop(
+                                        held.hwnd,
+                                        true,
+                                        Some(&mut local),
+                                        Some(&mut held),
+                                    );
+                                    require(
+                                        code == window_receipt::DISCARDED_EXIT as i32,
+                                        "conflict decision",
+                                    )?;
+                                }
+                                return Ok(None);
+                            };
                             LOADED_REVISION.set(Some(loaded.revision));
                             let mut draft = (String::new(), loaded.bold_second);
                             let code = if held.hwnd.is_null() {
                                 show(
                                     None,
                                     Some((
-                                        dialog_output,
+                                        dialog_output
+                                            .take()
+                                            .ok_or(std::io::Error::other("duplicate editor"))?,
                                         loaded.text.clone(),
                                         Some(loaded.bold_second),
                                     )),
                                     Some(&mut draft),
-                                    checkpoint.map(|_| &mut held),
+                                    Some(&mut held),
                                 )
                             } else {
                                 require(
@@ -1796,6 +1845,9 @@ fn main() {
                         }
                         destroy_surface(held.hwnd);
                         return Ok(40);
+                    }
+                    if !held.hwnd.is_null() {
+                        destroy_surface(held.hwnd);
                     }
                     break view;
                 }

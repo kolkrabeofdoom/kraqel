@@ -9,6 +9,11 @@ weiteren Schreibzug und den Sitzungsabschluss aufnehmen kann. Der Fenstertitel k
 den letzten verfügbaren Schreibzug. Geprüft mit synthetischer Szene A auf Windows.
 [Journalbudget und Nachweise](architecture/decisions/0036-native-win32-ui-role-evaluation.md#fortlaufendes-autosave-unter-journalbudget).
 
+Bei einem authentisierten Revisionskonflikt bleibt der Entwurf im selben Fenster lokal
+bearbeitbar. Speichern ist gesperrt. Schließen oder Verwerfen verlangt eine ausdrückliche
+Entscheidung. Der verwaltete Windows-Lauf und die Kanalprüfung sind im
+[Konfliktvertrag](architecture/decisions/0036-native-win32-ui-role-evaluation.md#revisionskonflikt-bei-einem-schreibzug) dokumentiert.
+
 Die Titelleiste unterscheidet einen zu korrigierenden Absatz, die laufende Schreibpause,
 das Speichern mit ausstehender Starterbestätigung und die gespeicherte Revision.
 Ein Windows-Lauf mit leerem zweitem Absatz, Korrektur und verzögerter Bestätigung prüfte
