@@ -433,8 +433,33 @@ Im Windows-Lauf bestätigten zwei explizite Aufträge Revision 1 und 2 einschlie
 Leseprüfung. Eine separate synthetische Fensterrolle endete nach Empfang des Frames vor ihrer
 Quittung. Der Aufruf schlug fehl; die Folgedatei war vorhanden, das Journal zeigte eine offene
 Sitzung. Der nächste Schreibauftrag wurde mit `win32-window-session-open` abgewiesen und der
-Kontrollkopf blieb gleich. Fortlaufendes Tippen während des Schreibens und ein weiterer
-Schreibzug im selben offenen Editor sind als nächster Ausbau offen.
+Kontrollkopf blieb gleich. Der nachfolgende Fortsetzungspfad erweitert diesen Einmalauftrag um einen zweiten Schreibzug.
+
+### Zweiter Schreibzug im selben Fenster
+
+`broker-store continue-win32-scene <Kontrollkopf>` gestattet höchstens zwei manuell
+ausgelöste Schreibzüge für Szene A in einer Fenstersitzung. Während der Veröffentlichung ist
+die Eingabe gesperrt. Die Fensterrolle quittiert entweder Abschluss oder Fortsetzung, gebunden
+an die vom Starter bestätigte Revision und den Digest des Veröffentlichungsrecords. Bei
+Fortsetzung verlangt der Journalübergang `RebindWin32Scene` unter derselben Kontrollsperre
+den bisherigen Sitzungstoken, den aktuellen Veröffentlichungskopf und die zum Akteur gehörende
+Snapshotrevision. Der Digest des neuen Records wird zum Sitzungstoken für den Folgeschreibzug.
+
+Der Starter behält die bestätigte Basisdatei am geprüften Handle, legt eine neue Zieldatei
+exklusiv an und startet einen frischen Datendienst. Dieser erhält die Basis lesend und das
+Ziel schreibend. Die Fensterrolle erhält frische Pipe-Enden und Schlüssel. Vor der Freigabe
+der Eingabe vergleicht sie das authentisierte Rücklesen mit der bestätigten Revision und dem
+noch sichtbaren Text samt Formatierung. Das ursprüngliche HWND bleibt bestehen, ebenso der
+lokale Rückgängig-Verlauf. Beim zweiten Speichern prüft der Starter erneut die Identität des
+Fensters. Nach der zweiten Bestätigung endet der Auftrag.
+
+Im verwalteten Windows-Lauf änderte sich der erste Absatz von „Kolkrabe 7“ zu „Kolkrabe 8“.
+HWND und PID waren nach dem ersten Speichern identisch. Revision 1 enthielt den ersten Stand
+mit fett markiertem zweiten Absatz, Revision 2 den geänderten Text ohne Markierung. Revision 2
+öffnete sich auch unter frischer Lesebindung. Beim regulären Schließen direkt nach der ersten
+Bestätigung blieb Revision 1 lesbar; der leere zweite Kandidat wurde entfernt und die Sitzung
+geschlossen. Ein erzwungenes Prozessende während der erneut gebundenen Bearbeitung ließ die
+Sitzung offen. Der nächste Schreibauftrag wurde bei unverändertem Kontrollkopf abgewiesen.
 
 ## Kosten für den Editor
 

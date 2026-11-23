@@ -46,6 +46,11 @@ enum Action {
     BeginWin32Window {
         anchor: [u8; 32],
     },
+    RebindWin32Scene {
+        begin: [u8; 32],
+        publication: [u8; 32],
+        revision: u32,
+    },
     PublishWin32Scene {
         begin: [u8; 32],
         snapshot: win32_binding::Snapshot,
@@ -252,6 +257,26 @@ impl State {
         Ok(())
     }
     fn apply_record(&mut self, actor: [u8; 32], action: &Action, digest: [u8; 32]) -> Result<()> {
+        if let Action::RebindWin32Scene {
+            begin,
+            publication,
+            revision,
+        } = action
+        {
+            // Only PublishWin32Scene advances the head while retaining the same open token.
+            if actor != self.actor
+                || self.window_session != win32_binding::Session::Open(*begin)
+                || *publication == *begin
+                || self.head != *publication
+                || !self
+                    .scene_snapshot
+                    .is_some_and(|(owner, snap)| owner == actor && snap.revision == *revision)
+            {
+                return Err(invalid("scene-rebind-publication"));
+            }
+            self.window_session = win32_binding::Session::Open(digest);
+            return Ok(());
+        }
         if let Action::EndWin32Window { begin }
         | Action::PublishWin32Scene { begin, .. }
         | Action::EndWin32SceneSave { begin, .. } = action
@@ -1014,6 +1039,7 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
                 || args[0] == "open-win32-scene"
                 || args[0] == "check-win32-scene-denied-save"
                 || args[0] == "check-win32-scene-edit-conflict"
+                || args[0] == "continue-win32-scene"
                 || args[0] == "checkpoint-win32-scene"
                 || args[0] == "edit-win32-scene"
                 || args[0] == "save-win32-scene"
@@ -1041,6 +1067,8 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
             win32_binding::Operation::CheckWindow(win32_binding::WindowMode::Scene(
                 crate::window_receipt::SceneOperation::Once,
             ))
+        } else if args[0] == "continue-win32-scene" {
+            win32_binding::Operation::CheckWindow(win32_binding::WindowMode::Continue)
         } else if args[0] == "checkpoint-win32-scene" {
             win32_binding::Operation::CheckWindow(win32_binding::WindowMode::Checkpoint)
         } else if args[0] == "edit-win32-scene"

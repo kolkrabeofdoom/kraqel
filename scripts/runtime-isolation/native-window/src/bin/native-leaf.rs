@@ -479,6 +479,13 @@ fn draft_label() -> &'static str {
 }
 
 /// Bounded to this window's message loop. A new edit removes the redo branch.
+#[derive(Default)]
+struct HeldEditor {
+    hwnd: HWND,
+    history: Option<DraftHistory>,
+    closing: bool,
+}
+
 struct DraftHistory {
     states: std::collections::VecDeque<(String, bool)>,
     current: usize,
@@ -898,7 +905,7 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                         MB_YESNOCANCEL | MB_DEFBUTTON3 | MB_ICONWARNING,
                     );
                     if answer == IDYES {
-                        PostMessageW(hwnd, SAVE_DRAFT, 0, 0);
+                        PostMessageW(hwnd, SAVE_DRAFT, 1, 0);
                         return 0;
                     }
                     if answer != IDNO {
@@ -945,8 +952,8 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
 fn show(
     endpoint: Option<bootstrap::Endpoint>,
     mut surface: Option<(std::fs::File, String, Option<bool>)>,
-    mut draft: Option<&mut (String, bool)>,
-    mut keep_editor: Option<&mut HWND>,
+    draft: Option<&mut (String, bool)>,
+    keep_editor: Option<&mut HeldEditor>,
 ) -> i32 {
     unsafe {
         if SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2).is_null() {
@@ -1237,10 +1244,27 @@ fn show(
             return exit;
         }
         SetFocus(GetDlgItem(hwnd, EDIT));
-        let mut history = draft
-            .as_ref()
-            .and_then(|_| draft_text(hwnd))
-            .map(DraftHistory::new);
+        run_editor_loop(hwnd, surface.is_some(), draft, keep_editor)
+    }
+}
+
+unsafe fn run_editor_loop(
+    hwnd: HWND,
+    has_surface: bool,
+    mut draft: Option<&mut (String, bool)>,
+    mut keep_editor: Option<&mut HeldEditor>,
+) -> i32 {
+    unsafe {
+        let action = if draft.is_some() { SAVE } else { CLOSE };
+        let mut history = keep_editor
+            .as_deref_mut()
+            .and_then(|held| held.history.take())
+            .or_else(|| {
+                draft
+                    .as_ref()
+                    .and_then(|_| draft_text(hwnd))
+                    .map(DraftHistory::new)
+            });
         let mut msg = MSG::default();
         loop {
             match GetMessageW(&mut msg, null_mut(), 0, 0) {
@@ -1250,14 +1274,18 @@ fn show(
             }
             if let Some(result) = draft.as_deref_mut() {
                 let key = msg.wParam as u16;
-                let Some(history) = history.as_mut() else {
+                let Some(current_history) = history.as_mut() else {
                     return 24;
                 };
                 if let Some(text) = draft_text(hwnd) {
-                    history.record(text);
+                    current_history.record(text);
                 }
-                enable_menu_command(hwnd, UNDO, history.current > 0);
-                enable_menu_command(hwnd, REDO, history.current + 1 < history.states.len());
+                enable_menu_command(hwnd, UNDO, current_history.current > 0);
+                enable_menu_command(
+                    hwnd,
+                    REDO,
+                    current_history.current + 1 < current_history.states.len(),
+                );
                 let ctrl = msg.message == WM_KEYDOWN
                     && GetKeyState(i32::from(VK_CONTROL)) < 0
                     && GetKeyState(i32::from(VK_MENU)) >= 0;
@@ -1328,7 +1356,7 @@ fn show(
                 }
                 if undo || redo {
                     let forward = redo || (ctrl && GetKeyState(i32::from(VK_SHIFT)) < 0);
-                    if let Some((text, bold)) = history.step(forward) {
+                    if let Some((text, bold)) = current_history.step(forward) {
                         if !set_bold(hwnd, *bold) || !restore_draft(hwnd, text) {
                             return 24;
                         }
@@ -1340,9 +1368,7 @@ fn show(
                         && key == VK_RETURN
                         && GetFocus() == GetDlgItem(hwnd, DISCARD))
                 {
-                    let Some((_, initial, _)) = surface.as_ref() else {
-                        return 24;
-                    };
+                    let initial = EXPECTED.with_borrow(Clone::clone);
                     let Some((first, second)) = initial.split_once('\n') else {
                         return 24;
                     };
@@ -1354,7 +1380,7 @@ fn show(
                             return 24;
                         }
                     }
-                    *history = DraftHistory::new(initial.clone());
+                    *current_history = DraftHistory::new(initial.clone());
                     update_draft_status(hwnd);
                     SetFocus(GetDlgItem(hwnd, EDIT));
                     continue;
@@ -1375,7 +1401,9 @@ fn show(
                         if kraqel_native_scene_model::valid_paragraphs(&value) {
                             *result = (value, is_bold());
                             if let Some(held) = keep_editor.as_deref_mut() {
-                                *held = hwnd;
+                                held.hwnd = hwnd;
+                                held.closing = msg.message == SAVE_DRAFT && msg.wParam == 1;
+                                held.history = history.take();
                                 EnableWindow(hwnd, 0);
                                 SetWindowTextW(
                                     hwnd,
@@ -1447,7 +1475,7 @@ fn show(
                 SetFocus(GetDlgItem(hwnd, next));
                 continue;
             }
-            if surface.is_some()
+            if has_surface
                 && msg.message == WM_KEYDOWN
                 && (msg.wParam == usize::from(VK_ESCAPE)
                     || (msg.wParam == usize::from(VK_RETURN)
@@ -1474,6 +1502,15 @@ fn main() {
                     *mode,
                 )))
         });
+    let continued = [SceneOperation::KeyboardEdit, SceneOperation::Revise]
+        .into_iter()
+        .find(|mode| {
+            arg.as_deref()
+                == Some(std::ffi::OsStr::new(window_receipt::continue_argument(
+                    *mode,
+                )))
+        });
+    let checkpoint = checkpoint.or(continued);
     let scene = checkpoint.or_else(|| SceneOperation::from_argument(arg.as_deref()));
     if scene.is_some() || arg.as_deref() == Some(std::ffi::OsStr::new(window_receipt::UI_ARG)) {
         let result = (|| -> std::io::Result<i32> {
@@ -1483,62 +1520,106 @@ fn main() {
             let (input, mut output) =
                 managed_scene::confirm_bootstrap(Some(&profile), bootstrap::Role::Window)?;
             let (text, marked, revision) = if let Some(mode) = scene {
-                let dialog_output = output.try_clone()?;
-                let publication = if checkpoint.is_some() {
-                    Some(input.try_clone()?)
-                } else {
-                    None
-                };
-                let mut held: HWND = null_mut();
-                let view = managed_scene::exchange(input, mode, &mut output, |loaded| {
-                    LOADED_REVISION.set(Some(loaded.revision));
-                    let mut draft = (String::new(), loaded.bold_second);
-                    match show(
-                        None,
-                        Some((dialog_output, loaded.text.clone(), Some(loaded.bold_second))),
-                        Some(&mut draft),
-                        checkpoint.map(|_| &mut held),
-                    ) {
-                        40 if !draft.0.is_empty() => Ok(Some(draft)),
-                        code if code == window_receipt::DISCARDED_EXIT as i32 => Ok(None),
-                        _ => Err(std::io::Error::other("editor ended unexpectedly")),
-                    }
-                })?;
-                let Some(view) = view else {
-                    return Ok(window_receipt::DISCARDED_EXIT as i32);
-                };
-                if let Some(mut control) = publication {
-                    use std::io::{Read, Write};
-                    let (text, bold, revision) = view;
-                    require(
-                        !held.is_null()
-                            && draft_text(held).as_ref() == Some(&text)
-                            && is_bold() == bold,
-                        "scene publication view",
+                let mut held = HeldEditor::default();
+                let mut expected_next = None;
+                let mut turn_mode = mode;
+                let mut control = input;
+                loop {
+                    let dialog_output = output.try_clone()?;
+                    let view = managed_scene::exchange(
+                        control.try_clone()?,
+                        turn_mode,
+                        &mut output,
+                        |loaded| {
+                            LOADED_REVISION.set(Some(loaded.revision));
+                            let mut draft = (String::new(), loaded.bold_second);
+                            let code = if held.hwnd.is_null() {
+                                show(
+                                    None,
+                                    Some((
+                                        dialog_output,
+                                        loaded.text.clone(),
+                                        Some(loaded.bold_second),
+                                    )),
+                                    Some(&mut draft),
+                                    checkpoint.map(|_| &mut held),
+                                )
+                            } else {
+                                require(
+                                    expected_next == Some(loaded.revision)
+                                        && draft_text(held.hwnd).as_deref()
+                                            == Some(loaded.text.as_str())
+                                        && is_bold() == loaded.bold_second,
+                                    "scene continuation basis",
+                                )?;
+                                EXPECTED.with_borrow_mut(|v| v.clone_from(&loaded.text));
+                                INITIAL_BOLD.set(loaded.bold_second);
+                                unsafe {
+                                    update_draft_status(held.hwnd);
+                                    EnableWindow(held.hwnd, 1);
+                                    SetFocus(GetDlgItem(held.hwnd, ACTIVE_PARAGRAPH.get()));
+                                    run_editor_loop(
+                                        held.hwnd,
+                                        true,
+                                        Some(&mut draft),
+                                        Some(&mut held),
+                                    )
+                                }
+                            };
+                            match code {
+                                40 if !draft.0.is_empty() => Ok(Some(draft)),
+                                code if code == window_receipt::DISCARDED_EXIT as i32 => Ok(None),
+                                _ => Err(std::io::Error::other("editor ended unexpectedly")),
+                            }
+                        },
                     )?;
-                    output.write_all(&(held as usize as u64).to_le_bytes())?;
-                    let mut frame = [0u8; 36];
-                    control.read_exact(&mut frame)?;
-                    require(
-                        Some(u32::from_le_bytes(frame[..4].try_into().unwrap())) == revision
-                            && frame[4..] != [0u8; 32],
-                        "scene publication revision",
-                    )?;
-                    unsafe {
-                        check(SetWindowTextW(
-                            held,
-                            wide(format!(
-                                "Szene A · Revision {} – Vom Starter bestätigt",
-                                u32::from_le_bytes(frame[..4].try_into().unwrap())
-                            ))
-                            .as_ptr(),
-                        ))?;
+                    let Some(view) = view else {
+                        return Ok(window_receipt::DISCARDED_EXIT as i32);
+                    };
+                    if checkpoint.is_some() {
+                        use std::io::{Read, Write};
+                        let (text, bold, revision) = view;
+                        require(
+                            !held.hwnd.is_null()
+                                && draft_text(held.hwnd).as_ref() == Some(&text)
+                                && is_bold() == bold,
+                            "scene publication view",
+                        )?;
+                        output.write_all(&(held.hwnd as usize as u64).to_le_bytes())?;
+                        let mut frame = [0u8; 36];
+                        control.read_exact(&mut frame)?;
+                        require(
+                            Some(u32::from_le_bytes(frame[..4].try_into().unwrap())) == revision
+                                && frame[4..] != [0u8; 32],
+                            "scene publication revision",
+                        )?;
+                        unsafe {
+                            check(SetWindowTextW(
+                                held.hwnd,
+                                wide(format!(
+                                    "Szene A · Revision {} – Vom Starter bestätigt",
+                                    u32::from_le_bytes(frame[..4].try_into().unwrap())
+                                ))
+                                .as_ptr(),
+                            ))?;
+                        }
+                        if continued.is_some() && expected_next.is_none() && !held.closing {
+                            output.write_all(&window_receipt::continue_receipt(&frame))?;
+                            expected_next = revision;
+                            turn_mode = SceneOperation::Revise;
+                            continue;
+                        }
+                        output.write_all(&window_receipt::publication_receipt(&frame))?;
+                        if continued.is_some() && expected_next.is_none() {
+                            let mut end = [1u8];
+                            control.read_exact(&mut end)?;
+                            require(end == [0], "scene close confirmation")?;
+                        }
+                        destroy_surface(held.hwnd);
+                        return Ok(40);
                     }
-                    output.write_all(&window_receipt::publication_receipt(&frame))?;
-                    destroy_surface(held);
-                    return Ok(40);
+                    break view;
                 }
-                view
             } else {
                 ("Rabe\n42".to_owned(), false, None)
             };

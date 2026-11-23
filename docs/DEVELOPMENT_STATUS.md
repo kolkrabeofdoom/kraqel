@@ -2,6 +2,12 @@
 
 ### Verwalteter Win32-Szeneneditor
 
+Im Forschungsauftrag `continue-win32-scene` kann nach der ersten Bestätigung im selben
+Editorfenster weitergeschrieben werden. Der zweite manuelle Schreibzug hat eine frische
+Edit-Bindung an die bestätigte Revision. Zwei Veröffentlichungen, reguläres Schließen nach
+der ersten und die Sperre nach Prozessabbruch wurden auf Windows geprüft.
+[Protokoll und Nachweise](architecture/decisions/0036-native-win32-ui-role-evaluation.md#zweiter-schreibzug-im-selben-fenster).
+
 Der Starter kann eine Folgerevision unter Kontrollsperre veröffentlichen, während das ursprüngliche
 Editorfenster auf die Bestätigung wartet. Die optionale [Checkpoint-Probe](architecture/decisions/0036-native-win32-ui-role-evaluation.md#veröffentlichung-bei-offenem-editorfenster)
 bestätigte zwei Revisionen in zwei Aufträgen und die Neustartsperre nach Verlust der Fensterquittung.

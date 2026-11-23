@@ -73,3 +73,18 @@ pub fn publication_receipt(frame: &[u8; 36]) -> [u8; 32] {
     hash.update(frame);
     hash.finalize().into()
 }
+
+pub fn continue_argument(mode: SceneOperation) -> &'static str {
+    match mode {
+        SceneOperation::KeyboardEdit => "--managed-scene-a-continue-v1",
+        SceneOperation::Revise => "--managed-scene-a-continue-revise-v1",
+        _ => unreachable!("continuation requires a keyboard edit"),
+    }
+}
+
+pub fn continue_receipt(frame: &[u8; 36]) -> [u8; 32] {
+    let mut hash = Sha256::new();
+    hash.update(b"KRAQEL-SCENE-CONTINUE-V1");
+    hash.update(frame);
+    hash.finalize().into()
+}
