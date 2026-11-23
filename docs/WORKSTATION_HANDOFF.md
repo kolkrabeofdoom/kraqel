@@ -16,6 +16,8 @@ Fettmarkierung des zweiten Absatzes, Rückgängig/Wiederholen und lokales Suchen
 bis zum Speichern und Wiederöffnen geprüft. Der [Entwicklungsstatus](DEVELOPMENT_STATUS.md#verwalteter-win32-szeneneditor)
 beschreibt die Bedienung und die geprüften Grenzen.
 
+Für die Fortsetzung am nativen Editor ist der [Autosave-Sitzungsvertrag](architecture/decisions/0036-native-win32-ui-role-evaluation.md#revisionsanzeige-und-nächster-autosave-schritt) vorbereitet. Nächster Implementierungsschritt ist die vom Starter bestätigte Folgerevision unter derselben Szenenbindung. Die sichtbare Revisionsanzeige ist umgesetzt.
+
 Der geplante [ETW-Netzvergleich des Editorstands](architecture/decisions/0036-native-win32-ui-role-evaluation.md#etw-beim-ersetzen-formatieren-und-wiederöffnen) ist seit dem 23. November abgeschlossen. Referenz, Bearbeitung und frisches Lesen waren in den gemessenen Prozessbäumen ohne Netzwerkereignisse.
 
 Der Win32-Editor übernimmt beim Weiterbearbeiten auch die [unformatierte Fassung einer älteren synthetischen Szene](architecture/decisions/0036-native-win32-ui-role-evaluation.md#weiterbearbeiten-unformatierter-altbestände).

@@ -55,7 +55,7 @@ enum Expected {
 #[serde(deny_unknown_fields)]
 pub struct SceneView {
     pub text: String,
-    revision: u32,
+    pub revision: u32,
     #[serde(default)]
     pub bold_second: bool,
 }

@@ -176,8 +176,10 @@ pub fn exchange(
     mut control: File,
     mode: window_receipt::SceneOperation,
     output: &mut File,
-    edit: impl FnOnce(&str, bool) -> io::Result<Option<(String, bool)>>,
-) -> io::Result<Option<(String, bool)>> {
+    edit: impl FnOnce(
+        &kraqel_native_scene_model::channel::SceneView,
+    ) -> io::Result<Option<(String, bool)>>,
+) -> io::Result<Option<(String, bool, Option<u32>)>> {
     let mut ch = Channel::open(&mut control, true)?;
     ch.send(Handshake::Hello)?;
     ch.receive(Handshake::Ready)?;
@@ -186,19 +188,18 @@ pub fn exchange(
         window_receipt::SceneOperation::ReadRevision => ch
             .binding
             .read_bound_view(1, &mut ch.reader, &mut ch.writer, revision)
-            .map(|v| (v.text, v.bold_second)),
+            .map(|v| (v.text, v.bold_second, Some(v.revision))),
         window_receipt::SceneOperation::Revise | window_receipt::SceneOperation::KeyboardEdit => {
             let view = ch
                 .binding
                 .keyboard_view(revision, &mut ch.reader, &mut ch.writer, |v| {
-                    edit(&v.text, v.bold_second)
-                        .map_err(|_| kraqel_native_scene_model::channel::Closed)
+                    edit(v).map_err(|_| kraqel_native_scene_model::channel::Closed)
                 })
                 .map_err(|_| io::Error::other("scene edit"))?;
             if view.is_none() {
                 output.write_all(&ch.discard_receipt)?;
             }
-            return Ok(view.map(|v| (v.text, v.bold_second)));
+            return Ok(view.map(|v| (v.text, v.bold_second, Some(v.revision))));
         }
         window_receipt::SceneOperation::SavePersistent
         | window_receipt::SceneOperation::ReadPersistent => ch
@@ -208,19 +209,19 @@ pub fn exchange(
                 &mut ch.reader,
                 &mut ch.writer,
             )
-            .map(|v| (v.text, v.bold_second)),
+            .map(|v| (v.text, v.bold_second, Some(v.revision))),
         window_receipt::SceneOperation::Once => ch
             .binding
             .read_scene((&mut ch.reader, &mut ch.writer))
-            .map(|t| (t, false)),
+            .map(|t| (t, false, None)),
         window_receipt::SceneOperation::CheckEditConflict => ch
             .binding
             .check_edit_conflict(&mut ch.reader, &mut ch.writer)
-            .map(|t| (t, false)),
+            .map(|t| (t, false, None)),
         window_receipt::SceneOperation::CheckDeniedSave => ch
             .binding
             .check_denied_save(&mut ch.reader, &mut ch.writer)
-            .map(|t| (t, false)),
+            .map(|t| (t, false, None)),
     }
     .map(Some)
     .map_err(|_| io::Error::other("scene read"))

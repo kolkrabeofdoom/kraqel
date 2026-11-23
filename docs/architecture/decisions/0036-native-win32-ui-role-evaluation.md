@@ -383,6 +383,36 @@ Die Fensterrolle installiert den lokalen Nachrichtenfilter am ersten EDIT-Steuer
 
 Der Filter unterdrückt die Win32-Befehle für Kopieren, Ausschneiden, Einfügen und das Kontextmenü sowie die entsprechenden Strg-, Einfüge- und Umschalt-Tastenkombinationen. Der gezielte Filtertest deckt direkte Nachrichten, übersetzte Steuerzeichen und reguläre Eingabe ab. Der verwaltete Windows-Lauf bestätigte Bearbeiten, Speichern und erneutes Öffnen der fett markierten Szene. Für diese Prüfungen wurde der Inhalt der Systemzwischenablage weder gelesen noch ersetzt.
 
+### Revisionsanzeige und nächster Autosave-Schritt
+
+**Implementiert.** Beim Bearbeiten benennt die Titelleiste die Revision der authentisierten,
+gegen die Auftragsbindung geprüften Leseantwort. Änderungen an Text oder Formatierung sowie
+Rückgängig und Verwerfen aktualisieren den Änderungszustand. Die angezeigte Basisrevision
+bleibt während der Bearbeitung stabil. In der schreibgeschützten Ansicht stammt die angezeigte
+Revision ebenfalls aus dem geprüften Rücklesen. Der Titel enthält nur Szenenkennung, Zahl und
+Zustand. Eine Leseantwort des Datendienstes geht dem abschließenden Sitzungsbeleg des Starters
+voraus. Beide Bestätigungen haben unterschiedliche Bedeutung.
+
+**Entwurf für wiederholtes Autosave.** Der bestehende Schreibauftrag bindet genau eine
+Folgedatei; auf Speichern und Rücklesen folgt der Rollenabschluss. Für fortlaufendes Schreiben
+gemäß [ADR 0004](0004-editor-document-and-autosave.md) wird ein eigener Sitzungsvertrag benötigt:
+
+1. Der Editor hält den aktuellen Entwurf und genau einen laufenden Speicherstand im
+   Fensterspeicher. Nach 700 ms Schreibpause wird ein gültiger geänderter Stand fällig.
+   Weitere Eingaben während eines Schreibzugs bleiben im neueren Entwurf erhalten.
+2. Der Starter muss jeden Folgeschreibzug unter seiner Kontrollsperre an Szene, Prozessgeneration,
+   aktuellen Kontrollkopf und erwartete Revision binden und die nächste Zieldatei selbst anlegen.
+   Das Fenster erhält weiterhin ausschließlich den Szenenkanal. Der bisherige Einmalauftrag und
+   sein Replay-Schutz bleiben für bestehende Aufrufe maßgeblich.
+3. Erst die bestätigte Veröffentlichung der Folgerevision durch den Starter verschiebt die
+   Speicherbasis. Der Editor vergleicht danach den *aktuellen* Entwurf mit dem bestätigten Stand.
+   Bei Konflikt bleibt der Entwurf zur Entscheidung offen. Bei unklarem Commit oder fehlendem
+   Endebeleg darf weder automatisch erneut geschrieben noch eine Sperre gelöst werden.
+4. Für die nächste Implementierung genügen zwei integrierte Fälle: Schreiben während eines
+   laufenden Schreibzugs mit anschließendem Wiederöffnen der letzten bestätigten Revision sowie
+   Verlust der Bestätigung mit gesperrtem Folgeschreibzug. Ausstehende Änderungen beim Schließen
+   müssen explizit gespeichert oder verworfen werden.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

@@ -34,6 +34,7 @@ const FIND_PREVIOUS: usize = 207;
 thread_local! {
     static ACTIVE_PARAGRAPH: std::cell::Cell<i32> = const { std::cell::Cell::new(EDIT) };
     static SECOND_WEIGHT: std::cell::Cell<i32> = const { std::cell::Cell::new(0) };
+    static LOADED_REVISION: std::cell::Cell<Option<u32>> = const { std::cell::Cell::new(None) };
     static INITIAL_BOLD: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static EXPECTED: std::cell::RefCell<String> = std::cell::RefCell::new(String::new());
 }
@@ -658,12 +659,17 @@ fn update_draft_status(hwnd: HWND) {
         enable_menu_command(hwnd, SAVE as usize, dirty);
         EnableWindow(save, i32::from(dirty));
         EnableWindow(GetDlgItem(hwnd, DISCARD), i32::from(dirty));
-        let title = if dirty {
-            "Szene A – Ungespeicherte Änderungen"
+        let status = if dirty {
+            "Ungespeicherte Änderungen"
         } else {
-            "Szene A – Keine Änderungen"
+            "Keine Änderungen"
         };
-        SetWindowTextW(hwnd, wide(title).as_ptr());
+        if let Some(revision) = LOADED_REVISION.get() {
+            SetWindowTextW(
+                hwnd,
+                wide(format!("Szene A · Revision {revision} – {status}")).as_ptr(),
+            );
+        }
     }
 }
 fn layout_surface(hwnd: HWND) -> bool {
@@ -1165,6 +1171,14 @@ fn show(
         if !apply_fonts(hwnd, GetDpiForWindow(hwnd)) || !layout_surface(hwnd) {
             return 24;
         }
+        if draft.is_none() {
+            if let Some(revision) = LOADED_REVISION.get() {
+                SetWindowTextW(
+                    hwnd,
+                    wide(format!("Szene A · Revision {revision} – Schreibgeschützt")).as_ptr(),
+                );
+            }
+        }
         ShowWindow(hwnd, SW_SHOW);
         if let Some((output, _, _)) = surface.as_mut().filter(|_| draft.is_none()) {
             use std::io::Write;
@@ -1449,13 +1463,14 @@ fn main() {
                 .ok_or(std::io::Error::other("missing profile"))?;
             let (input, mut output) =
                 managed_scene::confirm_bootstrap(Some(&profile), bootstrap::Role::Window)?;
-            let (text, marked) = if let Some(mode) = scene {
+            let (text, marked, revision) = if let Some(mode) = scene {
                 let dialog_output = output.try_clone()?;
-                let view = managed_scene::exchange(input, mode, &mut output, |initial, bold| {
-                    let mut draft = (String::new(), bold);
+                let view = managed_scene::exchange(input, mode, &mut output, |loaded| {
+                    LOADED_REVISION.set(Some(loaded.revision));
+                    let mut draft = (String::new(), loaded.bold_second);
                     match show(
                         None,
-                        Some((dialog_output, initial.to_owned(), Some(bold))),
+                        Some((dialog_output, loaded.text.clone(), Some(loaded.bold_second))),
                         Some(&mut draft),
                     ) {
                         40 if !draft.0.is_empty() => Ok(Some(draft)),
@@ -1468,8 +1483,9 @@ fn main() {
                 };
                 view
             } else {
-                ("Rabe\n42".to_owned(), false)
+                ("Rabe\n42".to_owned(), false, None)
             };
+            LOADED_REVISION.set(revision);
             let split = marked
                 || matches!(
                     scene,

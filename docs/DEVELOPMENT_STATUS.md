@@ -2,6 +2,13 @@
 
 ### Verwalteter Win32-Szeneneditor
 
+Der Fenstertitel zeigt die authentisierte Basisrevision und den lokalen Änderungszustand.
+Im verwalteten Lauf blieb die Basis beim Bearbeiten von Revision 0 und 1 stabil. Die jeweils
+frisch geöffneten Leseansichten zeigten Revision 1 und 2; die SQLite-Gegenprüfung bestätigte
+Text und Formatierung. Fortlaufendes Autosave ist offen. Der
+[Entwurf für revisionsgebundene Folgeschreibzüge](architecture/decisions/0036-native-win32-ui-role-evaluation.md#revisionsanzeige-und-nächster-autosave-schritt)
+beschreibt die dafür nötige Starterbestätigung und das Verhalten bei unklarem Commit.
+
 Der M1-Fokusmodus ist für die synthetische Szene A über **Ansicht → Fokusmodus** oder F11
 verfügbar. Beide Absätze nutzen die frei werdende Fläche. Tab wechselt zwischen den Absätzen.
 Escape kehrt zur normalen Ansicht zurück, ein Suchbefehl öffnet die Suchwerkzeuge direkt.
