@@ -334,6 +334,28 @@ Beim regulären Schließen ohne Speichern sendet die Fensterrolle an Stelle der 
 
 Der Windows-Lauf prüfte drei Fälle. Nach bestätigtem Verwerfen einer Änderung an Revision 1 blieb deren Datei bytegleich und ließ sich schreibgeschützt neu öffnen. Nach Verwerfen des ersten Entwurfs blieben keine SQLite-Dateien zurück und ein neuer Auftrag konnte Revision 1 anlegen. Nach erzwungenem Abbruch der Fensterrolle blieb der nächste Edit-Auftrag mit `win32-window-session-open` gesperrt.
 
+### ETW beim Ersetzen, Formatieren und Wiederöffnen
+
+Am 23. November 2026 wurden für den Editorstand `8df0aad` zwei lokale ETW-Spuren
+auf dem Windows-Arbeitsplatz erfasst. Im Referenzfenster lief `check-win32-surface`
+mit verwaltetem Starter und Fensterrolle. Im zweiten Messfenster ersetzte der Editor
+„47“ durch „48“, entfernte die Fettmarkierung des zweiten Absatzes und speicherte.
+Ein frischer Leseauftrag öffnete Revision 1. Die SQLite-Gegenprüfung bestätigte
+„Kolkrabe“ und „Stern 48“ sowie den unmarkierten zweiten Textknoten.
+
+Für Edit- und Leseauftrag wurden jeweils die Lebenszeiten von Starter, Fensterrolle
+und Datendienst zugeordnet. Für jeden der drei Aufträge ergaben sich null Netzwerkereignisse
+im zugeordneten Prozessbaum und ein leerer Job am Ende. Beide Spuren enthielten alle vier
+lokalen TCP-/UDP-Positivkontrollen über IPv4 und IPv6. Die Auswertung meldete jeweils null
+nicht zuordenbare Netzwerkereignisse sowie null verlorene Ereignisse und Puffer. Der Nachweis
+gilt für die gemessenen Programmbytes und Abläufe. Die Rohspuren verbleiben lokal.
+
+| Binärdatei | SHA-256 |
+| --- | --- |
+| Verwalteter Starter | `13d448540a2a5c5d46a8be38777fd7603ddb6703c742a0cee3e4d5815e7a9da6` |
+| Fensterrolle | `cfbdd3386001ce40378799b13734c8ca7c0020487a82633b51672b859fc2574d` |
+| Datendienst | `5b0ff5f267098bbd908c65c8a0c58d23835219b1905334b8fe11d1ea95569428` |
+
 ### ETW beim bestätigten Verwerfen und Wiederöffnen
 
 Für den regulären Binärstand zu `f0cbb5d` enthielt die erste Messung den Referenzaufruf `check-win32-surface` (Starter und Fenster). In der zweiten Messung wurde die vorbereitete Revision 1 bearbeitet und das Verwerfen beim Schließen bestätigt. Der anschließende Leseauftrag unter frischer Bindung bestätigte Revision 1. Für beide Aufträge wurden Starter, Fenster und Datendienst jeweils anhand der erfassten Prozesslebenszeiten ausgewertet. Der Dateihash von Revision 1 blieb unverändert.

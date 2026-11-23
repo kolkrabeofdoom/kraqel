@@ -2,6 +2,8 @@
 
 ### Verwalteter Win32-Szeneneditor
 
+Der [ETW-Netzvergleich vom 23. November](architecture/decisions/0036-native-win32-ui-role-evaluation.md#etw-beim-ersetzen-formatieren-und-wiederöffnen) bestätigte für den gemessenen Editorstand null Netzwerkereignisse beim Ersetzen, Formatieren, Speichern und Wiederöffnen der synthetischen Szene.
+
 Die synthetische Szene A lässt sich per Tastatur bearbeiten, speichern und unter frischer
 Lesebindung wieder öffnen. Das Menü **Datei** enthält Speichern und Schließen. **Bearbeiten**
 bietet Rückgängig, Wiederholen und die Auswahl des fokussierten Absatzes (Strg+A).
