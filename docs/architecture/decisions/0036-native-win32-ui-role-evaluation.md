@@ -919,6 +919,14 @@ Im synthetischen Windows-Lauf blieben nach „Nein“ Entwurf und Auswahl offen.
 enthielt Revision 4 den lokalen ersten Absatz, den zweiten Dienstabsatz und die lokale
 Fettmarkierung. Beim Weiterschreiben im selben Fenster bestätigte Autosave Revision 5.
 
+Ein weiterer lokaler Windows-Lauf prüfte den Wechsel während der Bestätigung. Zunächst
+war Revision 3 sichtbar. Beim erneuten Lesen vor der Freigabe lag Revision 4 vor.
+Im selben Fenster blieben der lokale erste Absatz und die lokale Fettmarkierung
+ausgewählt. Der zweite Absatz kam aus der neuen Dienstfassung. Das Bestätigungsfenster
+nannte Revision 4. Nach „Nein“ blieben die drei Häkchen unverändert und Revision 5
+war noch nicht angelegt. Nach erneuter Bestätigung ergab das Wiederöffnen Revision 5
+mit der geprüften Mischung aus lokalem Text, neuem Dienstabsatz und lokaler Fettmarkierung.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche
