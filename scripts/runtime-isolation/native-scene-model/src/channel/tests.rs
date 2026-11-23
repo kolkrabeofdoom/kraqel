@@ -91,6 +91,67 @@ fn comparison_rejects_a_write_and_a_repeated_read() {
 }
 
 #[test]
+fn inspection_of_long_or_projection_only_text_never_prepares_a_write() {
+    const LONG_SAVE: &[u8] =
+        br#"{"command":"c4_document_save_v1","expectedRevision":1,"text":"A\nB\nC"}"#;
+    for (source, draft, target, preview) in [
+        ("A\nB\nC", SAVE, "D\nE", false),
+        ("A\nB", LONG_SAVE, "D\nE", false),
+        ("A\nB", SAVE, "D\nE\nF", false),
+        ("A\nB", SAVE, "D\nE", true),
+    ] {
+        let binding = Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
+        let read = binding.comparison_binding(1).unwrap();
+        let prepare = binding
+            .conflict_binding(2, b"KRAQEL-conflict-A/prepare-v1")
+            .unwrap();
+        let mut input = binding.encode(Kind::Request, 1, READ).unwrap();
+        input.extend(binding.encode(Kind::Request, 2, draft).unwrap());
+        input.extend(read.encode(Kind::Request, 1, COMPARE_READ).unwrap());
+        input.extend(
+            prepare
+                .encode(Kind::Request, 1, PREPARE_COMPARISON)
+                .unwrap(),
+        );
+        let mut calls = 0;
+        let end = binding.revision_service(
+            false,
+            1,
+            true,
+            true,
+            ReviewedWrite::Repeat,
+            &mut input.as_slice(),
+            &mut Vec::new(),
+            |_| {
+                calls += 1;
+                Ok(match calls {
+                    1 => crate::Reply::Read {
+                        text: source.into(),
+                        revision: 1,
+                        bold_second: false,
+                    },
+                    2 => crate::Reply::Failure {
+                        error: crate::Failure::Conflict,
+                    },
+                    3 if preview => crate::Reply::Preview {
+                        preview_text: target.into(),
+                        revision: 2,
+                    },
+                    3 => crate::Reply::Read {
+                        text: target.into(),
+                        revision: 2,
+                        bold_second: false,
+                    },
+                    _ => panic!("inspection reached prepare"),
+                })
+            },
+        );
+        assert_eq!(end, Err(Closed));
+        assert_eq!(calls, 3);
+    }
+}
+
+#[test]
 fn stale_prepare_cannot_replay_the_first_comparison() {
     let binding = Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
     let read = binding

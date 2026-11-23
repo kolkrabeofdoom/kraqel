@@ -841,7 +841,11 @@ fn update_draft_status(hwnd: HWND) {
                 i32::from(changed && can_continue),
             );
             let label = if REVISION_CONFLICT.get() {
-                "Revisionskonflikt · Entwurf offen, Speichern gesperrt"
+                if GetDlgItem(hwnd, COMPARISON).is_null() {
+                    "Revisionskonflikt · Entwurf offen, Speichern gesperrt"
+                } else {
+                    "Konflikt · Entwurf links, Dienststand rechts (F6) · Speichern gesperrt"
+                }
             } else if !valid {
                 "Text oder Absatzstruktur zu groß · bitte kürzen"
             } else if AUTOSAVE_TURN
@@ -1332,17 +1336,68 @@ fn resolve_conflict(
     }
 }
 
+fn inspect_conflict(held: &mut HeldEditor, view: Option<(u32, &str)>) -> std::io::Result<()> {
+    require(!held.hwnd.is_null(), "plain conflict editor")?;
+    AWAITING_REBIND.set(false);
+    REVISION_CONFLICT.set(true);
+    held.autosave_turn = None;
+    unsafe {
+        if !LONG_EDIT.get() {
+            SELECTION_REVIEW.replace(None);
+            remove_selection_menu(held.hwnd)?;
+        }
+        let old = GetDlgItem(held.hwnd, COMPARISON);
+        if !old.is_null() {
+            check(DestroyWindow(old))?;
+        }
+        if let Some((revision, text)) = view {
+            create_comparison_field(
+                held.hwnd,
+                &format!(
+                    "Datendienst · Revision {revision}\r\n\r\n{}",
+                    text.replace('\n', "\r\n")
+                ),
+            )?;
+        }
+        EnableWindow(held.hwnd, 1);
+        update_draft_status(held.hwnd);
+        if !LONG_EDIT.get() {
+            SetDlgItemTextW(
+                held.hwnd,
+                LABEL,
+                wide("Entwurf links, Textvorschau rechts (F6) · Speichern gesperrt").as_ptr(),
+            );
+        } else {
+            SetWindowTextW(
+                held.hwnd,
+                wide("Szene A · Klartext · Revisionskonflikt").as_ptr(),
+            );
+        }
+        SetFocus(GetDlgItem(held.hwnd, EDIT));
+        let mut draft = (String::new(), false);
+        require(
+            run_editor_loop(held.hwnd, true, Some(&mut draft), Some(held))
+                == window_receipt::DISCARDED_EXIT as i32,
+            "plain conflict decision",
+        )
+    }
+}
+
 fn show_comparison(
     hwnd: HWND,
     view: &kraqel_native_scene_model::channel::SceneView,
 ) -> std::io::Result<()> {
+    let weight = if view.bold_second { "fett" } else { "normal" };
+    let content = format!(
+        "Datendienst · Revision {}\r\nZweiter Absatz: {weight}\r\n\r\n{}",
+        view.revision,
+        view.text.replace('\n', "\r\n")
+    );
+    create_comparison_field(hwnd, &content)
+}
+
+fn create_comparison_field(hwnd: HWND, content: &str) -> std::io::Result<()> {
     unsafe {
-        let weight = if view.bold_second { "fett" } else { "normal" };
-        let content = format!(
-            "Datendienst · Revision {}\r\nZweiter Absatz: {weight}\r\n\r\n{}",
-            view.revision,
-            view.text.replace('\n', "\r\n")
-        );
         let field = CreateWindowExW(
             0,
             wide("EDIT").as_ptr(),
@@ -1486,8 +1541,19 @@ fn layout_surface(hwnd: HWND) -> bool {
         let place = |id, x, y, w, h| MoveWindow(GetDlgItem(hwnd, id), x, y, w, h, 1) != 0;
         if LONG_EDIT.get() {
             let y = area.bottom - px(44);
+            let compare = !GetDlgItem(hwnd, COMPARISON).is_null();
+            let left = if compare { (width - gap) / 2 } else { width };
+            let height = (y - gap - text_top).max(1);
             return place(LABEL, margin, px(10), width, px(24))
-                && place(EDIT, margin, text_top, width, (y - gap - text_top).max(1))
+                && place(EDIT, margin, text_top, left, height)
+                && (!compare
+                    || place(
+                        COMPARISON,
+                        margin + left + gap,
+                        text_top,
+                        width - left - gap,
+                        height,
+                    ))
                 && place(SAVE_AND_STAY, margin, y, (width - gap) / 2, px(30))
                 && place(
                     SAVE,
@@ -2323,20 +2389,30 @@ unsafe fn run_editor_loop(
                             }
                         }
                     }
+                } else if msg.message == WM_KEYDOWN
+                    && key == VK_F6
+                    && !GetDlgItem(hwnd, COMPARISON).is_null()
+                {
+                    let comparison = GetDlgItem(hwnd, COMPARISON);
+                    SetFocus(if GetFocus() == comparison {
+                        field
+                    } else {
+                        comparison
+                    });
                 } else if msg.message == WM_KEYDOWN && key == VK_TAB {
-                    let order = [field, stay, save];
+                    let order = [field, GetDlgItem(hwnd, COMPARISON), stay, save];
                     let index = order
                         .iter()
                         .position(|&item| item == GetFocus())
                         .unwrap_or(0);
                     let step = if GetKeyState(i32::from(VK_SHIFT)) < 0 {
-                        2
+                        order.len() - 1
                     } else {
                         1
                     };
-                    for n in 1..=3 {
-                        let next = order[(index + n * step) % 3];
-                        if IsWindowEnabled(next) != 0 {
+                    for n in 1..=order.len() {
+                        let next = order[(index + n * step) % order.len()];
+                        if !next.is_null() && IsWindowEnabled(next) != 0 {
                             SetFocus(next);
                             break;
                         }
@@ -2784,24 +2860,18 @@ fn main() {
                                     )?;
                                     return Ok(selection.clone());
                                 }
-                                EditorEvent::RevisionConflict(_) if LONG_EDIT.get() => {
-                                    AWAITING_REBIND.set(false);
-                                    REVISION_CONFLICT.set(true);
-                                    unsafe {
-                                        EnableWindow(held.hwnd, 1);
-                                        update_draft_status(held.hwnd);
-                                        SetFocus(GetDlgItem(held.hwnd, EDIT));
-                                        let mut draft = (String::new(), false);
-                                        require(
-                                            run_editor_loop(
-                                                held.hwnd,
-                                                true,
-                                                Some(&mut draft),
-                                                Some(&mut held),
-                                            ) == window_receipt::DISCARDED_EXIT as i32,
-                                            "plain conflict decision",
-                                        )?;
-                                    }
+                                EditorEvent::TextConflict(view) => {
+                                    inspect_conflict(
+                                        &mut held,
+                                        Some((view.revision, view.preview_text.as_str())),
+                                    )?;
+                                    return Ok(None);
+                                }
+                                EditorEvent::RevisionConflict(view) if LONG_EDIT.get() => {
+                                    inspect_conflict(
+                                        &mut held,
+                                        view.map(|v| (v.revision, v.text.as_str())),
+                                    )?;
                                     return Ok(None);
                                 }
                                 EditorEvent::RevisionConflict(comparison) => {

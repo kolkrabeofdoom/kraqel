@@ -860,6 +860,23 @@ Die Schließabfrage blieb über die Schreibpause hinaus offen. Verwerfen und ans
 Wiederöffnen bestätigten Revision 3 samt Absatzstruktur und Suchindex. Beim letzten
 Journalzug ließ eine Schreibpause das Fenster offen, bis ausdrücklich gespeichert wurde.
 
+### Lesender Konfliktvergleich im langen Klartext
+
+Nach einem fehlgeschlagenen Schreibzug liest die Fensterrolle die neuere Revision unter
+der einmaligen Vergleichsbindung. Links bleibt der lokale Entwurf bearbeitbar, rechts
+steht der vollständig geprüfte Text samt Revisionsnummer in einem geschützten Lesefeld.
+F6 und Tab wechseln zwischen den Fassungen. Bei einer formatierten Dienstfassung umfasst
+der Vergleich die zugelassene Klartextprojektion. Eine Übernahme mit der bisherigen
+Zwei-Absatz-Auswahl setzt passende kurze Fassungen und einen passenden kurzen Entwurf voraus.
+
+Im verwalteten Windows-Lauf löste der synthetische Datendienst vor dem Autosave einen
+Revisionskonflikt aus. Der Vergleich zeigte die abweichende Revision 2 samt Leerabsatz.
+Der lokale Entwurf blieb auch nach weiterer Eingabe erhalten. Beide Speicherbefehle
+blieben gesperrt. Nach bestätigtem Verwerfen meldete der Starter die zuletzt veröffentlichte
+Revision 1 und einen leeren Job. Der Kanaltest prüft zusätzlich, dass ein direkt versuchtes
+Prepare bei langem Ausgangstext, langem Entwurf, langem Dienststand oder reiner
+Textprojektion vor der Vorbereitung abgewiesen wird.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche
