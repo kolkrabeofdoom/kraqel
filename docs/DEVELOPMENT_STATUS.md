@@ -2,6 +2,10 @@
 
 ### Verwalteter Win32-Szeneneditor
 
+Der Starter kann eine Folgerevision unter Kontrollsperre veröffentlichen, während das ursprüngliche
+Editorfenster auf die Bestätigung wartet. Die optionale [Checkpoint-Probe](architecture/decisions/0036-native-win32-ui-role-evaluation.md#veröffentlichung-bei-offenem-editorfenster)
+bestätigte zwei Revisionen in zwei Aufträgen und die Neustartsperre nach Verlust der Fensterquittung.
+
 Der Fenstertitel zeigt die authentisierte Basisrevision und den lokalen Änderungszustand.
 Im verwalteten Lauf blieb die Basis beim Bearbeiten von Revision 0 und 1 stabil. Die jeweils
 frisch geöffneten Leseansichten zeigten Revision 1 und 2; die SQLite-Gegenprüfung bestätigte

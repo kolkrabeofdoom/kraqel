@@ -58,3 +58,18 @@ pub fn discard_receipt(material: &[u8; 96], window: bool) -> [u8; 32] {
     hash.update(material);
     hash.finalize().into()
 }
+
+pub fn checkpoint_argument(mode: SceneOperation) -> &'static str {
+    match mode {
+        SceneOperation::KeyboardEdit => "--managed-scene-a-checkpoint-v1",
+        SceneOperation::Revise => "--managed-scene-a-checkpoint-revise-v1",
+        _ => unreachable!("checkpoint requires a keyboard edit"),
+    }
+}
+
+pub fn publication_receipt(frame: &[u8; 36]) -> [u8; 32] {
+    let mut hash = Sha256::new();
+    hash.update(b"KRAQEL-SCENE-PUBLICATION-V1");
+    hash.update(frame);
+    hash.finalize().into()
+}

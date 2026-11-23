@@ -118,6 +118,7 @@ pub(super) enum WindowMode {
     Receipt,
     Surface,
     Interactive,
+    Checkpoint,
     Scene(crate::window_receipt::SceneOperation),
 }
 pub(super) enum Operation<'a> {
@@ -186,7 +187,8 @@ impl Store {
                 .image(suspended::WINDOW)
                 .ok_or(invalid("win32-window-not-pinned"))?;
             package::verify_window_session(&mut managed)?;
-            if self.state.sequence + 2 >= MAX_RECORDS {
+            let checkpoint = mode == WindowMode::Checkpoint;
+            if self.state.sequence + 2 + usize::from(checkpoint) >= MAX_RECORDS {
                 return Err(invalid("win32-window-record-budget"));
             }
             use crate::window_receipt::SceneOperation::{
@@ -195,7 +197,10 @@ impl Store {
             let bound = self.state.scene_snapshot;
             let revision = bound.map_or(0, |(_, snap)| snap.revision);
             let mode = match (mode, revision) {
-                (WindowMode::Scene(KeyboardEdit), 1..) => WindowMode::Scene(Revise),
+                (WindowMode::Checkpoint, 0) => WindowMode::Scene(KeyboardEdit),
+                (WindowMode::Checkpoint | WindowMode::Scene(KeyboardEdit), 1..) => {
+                    WindowMode::Scene(Revise)
+                }
                 (WindowMode::Scene(ReadPersistent), 2..) => WindowMode::Scene(ReadRevision),
                 (other, _) => other,
             };
@@ -246,10 +251,9 @@ impl Store {
                         .ok_or(invalid("win32-service-not-pinned"))?,
                     scene_mode,
                     revision,
-                    [
-                        snapshot.as_ref().map(|s| &s.file),
-                        baseline.as_ref().map(|s| &s.file),
-                    ],
+                    snapshot.as_mut(),
+                    baseline.as_ref(),
+                    checkpoint,
                 )?
             } else {
                 suspended::check_window(self, &root, image, mode)?
@@ -270,13 +274,13 @@ impl Store {
                 }
             }
             let end = match snapshot.as_mut() {
-                Some(file) if saving => Action::EndWin32SceneSave {
+                Some(file) if saving && !checkpoint => Action::EndWin32SceneSave {
                     begin,
                     snapshot: file.identity(revision + 1)?,
                 },
                 _ => Action::EndWin32Window { begin },
             };
-            self.append_with_checked_context(actor, begin, end)?;
+            self.append_with_checked_context(actor, self.state.head, end)?;
             result["headSha256"] = json!(hex(&self.state.head));
             return Ok(result);
         }

@@ -46,6 +46,10 @@ enum Action {
     BeginWin32Window {
         anchor: [u8; 32],
     },
+    PublishWin32Scene {
+        begin: [u8; 32],
+        snapshot: win32_binding::Snapshot,
+    },
     EndWin32SceneSave {
         begin: [u8; 32],
         snapshot: win32_binding::Snapshot,
@@ -248,11 +252,19 @@ impl State {
         Ok(())
     }
     fn apply_record(&mut self, actor: [u8; 32], action: &Action, digest: [u8; 32]) -> Result<()> {
-        if let Action::EndWin32Window { begin } | Action::EndWin32SceneSave { begin, .. } = action {
+        if let Action::EndWin32Window { begin }
+        | Action::PublishWin32Scene { begin, .. }
+        | Action::EndWin32SceneSave { begin, .. } = action
+        {
             if actor != self.actor || self.window_session != win32_binding::Session::Open(*begin) {
                 return Err(invalid("win32-window-end-binding"));
             }
-            if let Action::EndWin32SceneSave { snapshot, .. } = action {
+            if let Action::EndWin32SceneSave { snapshot, .. }
+            | Action::PublishWin32Scene { snapshot, .. } = action
+            {
+                if self.head != *begin {
+                    return Err(invalid("scene-publication-already-recorded"));
+                }
                 let valid = match self.scene_snapshot {
                     None => snapshot.revision == 1,
                     Some((owner, previous)) => {
@@ -265,6 +277,9 @@ impl State {
                     return Err(invalid("scene-snapshot-revision"));
                 }
                 self.scene_snapshot = Some((actor, *snapshot));
+            }
+            if matches!(action, Action::PublishWin32Scene { .. }) {
+                return Ok(());
             }
             self.window_session = win32_binding::Session::Closed;
             return Ok(());
@@ -999,6 +1014,7 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
                 || args[0] == "open-win32-scene"
                 || args[0] == "check-win32-scene-denied-save"
                 || args[0] == "check-win32-scene-edit-conflict"
+                || args[0] == "checkpoint-win32-scene"
                 || args[0] == "edit-win32-scene"
                 || args[0] == "save-win32-scene"
                 || args[0] == "read-saved-win32-scene"))
@@ -1025,6 +1041,8 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
             win32_binding::Operation::CheckWindow(win32_binding::WindowMode::Scene(
                 crate::window_receipt::SceneOperation::Once,
             ))
+        } else if args[0] == "checkpoint-win32-scene" {
+            win32_binding::Operation::CheckWindow(win32_binding::WindowMode::Checkpoint)
         } else if args[0] == "edit-win32-scene"
             || args[0] == "save-win32-scene"
             || args[0] == "read-saved-win32-scene"

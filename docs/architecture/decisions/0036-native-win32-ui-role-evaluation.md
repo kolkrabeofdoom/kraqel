@@ -413,6 +413,29 @@ gemäß [ADR 0004](0004-editor-document-and-autosave.md) wird ein eigener Sitzun
    Verlust der Bestätigung mit gesperrtem Folgeschreibzug. Ausstehende Änderungen beim Schließen
    müssen explizit gespeichert oder verworfen werden.
 
+### Veröffentlichung bei offenem Editorfenster
+
+Der Forschungsaufruf `broker-store checkpoint-win32-scene <Kontrollkopf>` bestätigt einen
+Schreibzug für die synthetische Szene A. Beim Speichern hält die Fensterrolle das ursprüngliche
+Editorfenster offen und sperrt dessen Eingabe. Nach dem authentisierten Rücklesen vergleicht sie
+Text und Markierung mit dem Entwurf und meldet das Fensterhandle auf der Bootstrap-Pipe.
+
+Unter der ursprünglichen Kontrollsperre prüft der Starter das Ende des Datendienstes, dessen
+leeren Job und Profilbereinigung sowie PID, Thread, Sichtbarkeit und Klasse des Fensters.
+Er bindet Dateiidentität, Hash und Folgerevision im authentisierten Journalrecord
+`PublishWin32Scene`. Dieser Übergang verlangt den unveränderten Beginn dieser Sitzung als
+Kontrollkopf und lässt die Sitzung offen. Der Starter übermittelt Revision und neuen
+Record-Digest über die bestehende rollenprivate Pipe. Die Fensterrolle prüft die Revision und
+quittiert den Empfang durch einen domänengetrennten Digest des Frames. Erst Quittung, erwarteter
+Prozessabschluss und Bereinigung erlauben den separaten Sitzungsabschluss.
+
+Im Windows-Lauf bestätigten zwei explizite Aufträge Revision 1 und 2 einschließlich frischer
+Leseprüfung. Eine separate synthetische Fensterrolle endete nach Empfang des Frames vor ihrer
+Quittung. Der Aufruf schlug fehl; die Folgedatei war vorhanden, das Journal zeigte eine offene
+Sitzung. Der nächste Schreibauftrag wurde mit `win32-window-session-open` abgewiesen und der
+Kontrollkopf blieb gleich. Fortlaufendes Tippen während des Schreibens und ein weiterer
+Schreibzug im selben offenen Editor sind als nächster Ausbau offen.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

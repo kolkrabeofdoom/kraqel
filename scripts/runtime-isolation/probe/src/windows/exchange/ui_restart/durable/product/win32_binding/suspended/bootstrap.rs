@@ -198,13 +198,9 @@ pub(super) fn confirm_grant(
     io("win32-window-open-grant", writer.write_all(secret))
 }
 
-pub(super) fn wait_surface(
-    pi: &PROCESS_INFORMATION,
-    reply: &mut fs::File,
-    interactive: bool,
-) -> Result<()> {
+pub(super) fn verified_surface(pi: &PROCESS_INFORMATION, reply: &mut fs::File) -> Result<HWND> {
     use windows_sys::Win32::UI::WindowsAndMessaging::{
-        GetClassNameW, GetWindowThreadProcessId, IsWindowVisible, PostMessageW, WM_CLOSE,
+        GetClassNameW, GetWindowThreadProcessId, IsWindowVisible,
     };
     let handle = u64::from_le_bytes(live_frame::<8>(reply, pi.hProcess)?);
     let hwnd = usize::try_from(handle).map_err(|_| invalid("win32-window-handle"))? as HWND;
@@ -222,6 +218,16 @@ pub(super) fn wait_surface(
     {
         return Err(invalid("win32-window-surface-identity"));
     }
+    Ok(hwnd)
+}
+
+pub(super) fn wait_surface(
+    pi: &PROCESS_INFORMATION,
+    reply: &mut fs::File,
+    interactive: bool,
+) -> Result<()> {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{PostMessageW, WM_CLOSE};
+    let hwnd = verified_surface(pi, reply)?;
     let wait_ms = if interactive {
         // The verified role owns the window until close; the broker retains the job and lock.
         INFINITE

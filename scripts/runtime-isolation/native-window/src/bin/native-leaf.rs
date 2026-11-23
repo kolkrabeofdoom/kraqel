@@ -946,6 +946,7 @@ fn show(
     endpoint: Option<bootstrap::Endpoint>,
     mut surface: Option<(std::fs::File, String, Option<bool>)>,
     mut draft: Option<&mut (String, bool)>,
+    mut keep_editor: Option<&mut HWND>,
 ) -> i32 {
     unsafe {
         if SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2).is_null() {
@@ -1373,7 +1374,16 @@ fn show(
                         }
                         if kraqel_native_scene_model::valid_paragraphs(&value) {
                             *result = (value, is_bold());
-                            destroy_surface(hwnd);
+                            if let Some(held) = keep_editor.as_deref_mut() {
+                                *held = hwnd;
+                                EnableWindow(hwnd, 0);
+                                SetWindowTextW(
+                                    hwnd,
+                                    wide("Szene A – Bestätigung des Starters ausstehend").as_ptr(),
+                                );
+                            } else {
+                                destroy_surface(hwnd);
+                            }
                             return 40;
                         }
                     }
@@ -1455,7 +1465,16 @@ fn show(
 }
 fn main() {
     let arg = std::env::args_os().nth(1);
-    let scene = window_receipt::SceneOperation::from_argument(arg.as_deref());
+    use window_receipt::SceneOperation;
+    let checkpoint = [SceneOperation::KeyboardEdit, SceneOperation::Revise]
+        .into_iter()
+        .find(|mode| {
+            arg.as_deref()
+                == Some(std::ffi::OsStr::new(window_receipt::checkpoint_argument(
+                    *mode,
+                )))
+        });
+    let scene = checkpoint.or_else(|| SceneOperation::from_argument(arg.as_deref()));
     if scene.is_some() || arg.as_deref() == Some(std::ffi::OsStr::new(window_receipt::UI_ARG)) {
         let result = (|| -> std::io::Result<i32> {
             let profile = std::env::args()
@@ -1465,6 +1484,12 @@ fn main() {
                 managed_scene::confirm_bootstrap(Some(&profile), bootstrap::Role::Window)?;
             let (text, marked, revision) = if let Some(mode) = scene {
                 let dialog_output = output.try_clone()?;
+                let publication = if checkpoint.is_some() {
+                    Some(input.try_clone()?)
+                } else {
+                    None
+                };
+                let mut held: HWND = null_mut();
                 let view = managed_scene::exchange(input, mode, &mut output, |loaded| {
                     LOADED_REVISION.set(Some(loaded.revision));
                     let mut draft = (String::new(), loaded.bold_second);
@@ -1472,6 +1497,7 @@ fn main() {
                         None,
                         Some((dialog_output, loaded.text.clone(), Some(loaded.bold_second))),
                         Some(&mut draft),
+                        checkpoint.map(|_| &mut held),
                     ) {
                         40 if !draft.0.is_empty() => Ok(Some(draft)),
                         code if code == window_receipt::DISCARDED_EXIT as i32 => Ok(None),
@@ -1481,6 +1507,37 @@ fn main() {
                 let Some(view) = view else {
                     return Ok(window_receipt::DISCARDED_EXIT as i32);
                 };
+                if let Some(mut control) = publication {
+                    use std::io::{Read, Write};
+                    let (text, bold, revision) = view;
+                    require(
+                        !held.is_null()
+                            && draft_text(held).as_ref() == Some(&text)
+                            && is_bold() == bold,
+                        "scene publication view",
+                    )?;
+                    output.write_all(&(held as usize as u64).to_le_bytes())?;
+                    let mut frame = [0u8; 36];
+                    control.read_exact(&mut frame)?;
+                    require(
+                        Some(u32::from_le_bytes(frame[..4].try_into().unwrap())) == revision
+                            && frame[4..] != [0u8; 32],
+                        "scene publication revision",
+                    )?;
+                    unsafe {
+                        check(SetWindowTextW(
+                            held,
+                            wide(format!(
+                                "Szene A · Revision {} – Vom Starter bestätigt",
+                                u32::from_le_bytes(frame[..4].try_into().unwrap())
+                            ))
+                            .as_ptr(),
+                        ))?;
+                    }
+                    output.write_all(&window_receipt::publication_receipt(&frame))?;
+                    destroy_surface(held);
+                    return Ok(40);
+                }
                 view
             } else {
                 ("Rabe\n42".to_owned(), false, None)
@@ -1501,6 +1558,7 @@ fn main() {
                 None,
                 Some((output, text, split.then_some(marked))),
                 None,
+                None,
             ))
         })();
         std::process::exit(result.unwrap_or(20));
@@ -1516,14 +1574,14 @@ fn main() {
     }
     if bootstrap::Role::Window.receipt().exists() {
         let exit = bootstrap::Endpoint::open(bootstrap::Role::Window)
-            .map(|endpoint| show(Some(endpoint), None, None))
+            .map(|endpoint| show(Some(endpoint), None, None, None))
             .unwrap_or(20);
         std::process::exit(exit);
     }
     if verify_leaf().is_err() {
         std::process::exit(20);
     }
-    std::process::exit(show(None, None, None));
+    std::process::exit(show(None, None, None, None));
 }
 
 #[cfg(test)]

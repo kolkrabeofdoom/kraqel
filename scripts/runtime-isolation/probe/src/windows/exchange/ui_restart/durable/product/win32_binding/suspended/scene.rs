@@ -43,13 +43,15 @@ fn install(process: HANDLE, file: fs::File, rights: u32) -> Result<[u8; 8]> {
 }
 
 pub(in super::super) fn read_scene(
-    store: &Store,
+    store: &mut Store,
     root: &Path,
     window: &fs::File,
     service: &fs::File,
     mode: crate::window_receipt::SceneOperation,
     revision: u32,
-    snapshots: [Option<&fs::File>; 2],
+    mut target: Option<&mut SnapshotFile>,
+    baseline: Option<&SnapshotFile>,
+    checkpoint: bool,
 ) -> Result<Value> {
     use crate::window_receipt::SceneOperation;
     use crate::windows::exchange::ui_restart::pipe;
@@ -59,9 +61,13 @@ pub(in super::super) fn read_scene(
         root,
         window,
         WINDOW,
-        mode.argument(),
+        if checkpoint {
+            crate::window_receipt::checkpoint_argument(mode)
+        } else {
+            mode.argument()
+        },
         true,
-        |ui, endpoint, mut to_ui, reply| {
+        |store, ui, endpoint, mut to_ui, reply| {
             let mut ui_reply = reply.ok_or(invalid("scene-ui-reply"))?;
             let ui_secret = bootstrap::stage(store, window, ui, endpoint, &mut to_ui, true)?;
             with_role(
@@ -71,7 +77,7 @@ pub(in super::super) fn read_scene(
                 "pipe-service.exe",
                 mode.argument(),
                 true,
-                |data, endpoint, mut to_data, reply| {
+                |store, data, endpoint, mut to_data, reply| {
                     let mut data_reply = reply.ok_or(invalid("scene-data-reply"))?;
                     let data_secret =
                         bootstrap::stage(store, service, data, endpoint, &mut to_data, true)?;
@@ -88,6 +94,7 @@ pub(in super::super) fn read_scene(
                         install(data.hProcess, response_write, write)?,
                     ];
                     let mut snapshot_ends = Vec::new();
+                    let snapshots = [target.as_ref().map(|s| &s.file), baseline.map(|s| &s.file)];
                     for (index, file) in snapshots.into_iter().enumerate() {
                         let Some(file) = file else { continue };
                         let rights = if matches!(
@@ -134,9 +141,9 @@ pub(in super::super) fn read_scene(
                     context.update(data_secret);
                     material[..32].copy_from_slice(&context.finalize());
                     getrandom::fill(&mut material[32..]).map_err(|_| invalid("scene-keys"))?;
-                    for (mut control, ends, storage) in [
-                        (to_data, data_ends, snapshot_ends.as_slice()),
-                        (to_ui, ui_ends, &[][..]),
+                    for (control, ends, storage) in [
+                        (&mut to_data, data_ends, snapshot_ends.as_slice()),
+                        (&mut to_ui, ui_ends, &[][..]),
                     ] {
                         io("scene-channel-keys", control.write_all(&material[..]))?;
                         for end in ends {
@@ -207,6 +214,43 @@ pub(in super::super) fn read_scene(
             if discarded {
                 return Ok(());
             }
+            if checkpoint {
+                // The service and its job have ended; only the starter still holds the candidate.
+                bootstrap::verified_surface(ui, &mut ui_reply)
+                    .map_err(|_| invalid("scene-checkpoint-live-surface"))?;
+                let snapshot = target
+                    .as_mut()
+                    .ok_or(invalid("scene-checkpoint-target"))?
+                    .identity(revision + 1)?;
+                let begin = store.state.head;
+                store.append_with_checked_context(
+                    store.state.actor,
+                    begin,
+                    Action::PublishWin32Scene { begin, snapshot },
+                )?;
+                let mut frame = [0u8; 36];
+                frame[..4].copy_from_slice(&snapshot.revision.to_le_bytes());
+                frame[4..].copy_from_slice(&store.state.head);
+                io("scene-checkpoint-confirm", to_ui.write_all(&frame))?;
+                if unsafe { WaitForSingleObject(ui.hProcess, 5000) } != WAIT_OBJECT_0 {
+                    return Err(invalid("scene-checkpoint-window-timeout"));
+                }
+                if bootstrap::live_frame::<32>(&mut ui_reply, ui.hProcess)?
+                    != crate::window_receipt::publication_receipt(&frame)
+                {
+                    return Err(invalid("scene-checkpoint-receipt"));
+                }
+                let mut exit = 0;
+                check(
+                    unsafe { GetExitCodeProcess(ui.hProcess, &mut exit) },
+                    "scene-checkpoint-window-exit",
+                )?;
+                return if exit == 40 {
+                    Ok(())
+                } else {
+                    Err(invalid("scene-checkpoint-window-failed"))
+                };
+            }
             bootstrap::wait_surface(ui, &mut ui_reply, mode == SceneOperation::Once)
         },
     )?;
@@ -241,6 +285,9 @@ pub(in super::super) fn read_scene(
             mode,
             SceneOperation::ReadPersistent | SceneOperation::ReadRevision
         ));
+    }
+    if checkpoint {
+        result["publicationAcknowledged"] = json!(true);
     }
     Ok(result)
 }

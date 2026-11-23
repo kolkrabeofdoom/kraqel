@@ -7,7 +7,7 @@ pub(super) use scene::read_scene;
 pub(super) const WINDOW: &str = "native-leaf.exe";
 
 pub(super) fn check_window(
-    store: &Store,
+    store: &mut Store,
     root: &Path,
     expected: &fs::File,
     mode: WindowMode,
@@ -26,7 +26,7 @@ pub(super) fn check_window(
             crate::window_receipt::ARG
         },
         resume,
-        |pi, endpoint, mut writer, reply| {
+        |store, pi, endpoint, mut writer, reply| {
             let bootstrap_value =
                 bootstrap::stage(store, expected, pi, endpoint, &mut writer, surface)?;
             if let Some(reply) = reply {
@@ -52,13 +52,13 @@ pub(super) fn check_window(
 }
 
 fn with_role(
-    store: &Store,
+    store: &mut Store,
     root: &Path,
     expected: &fs::File,
     name: &str,
     argument: &str,
     resume: bool,
-    run: impl FnOnce(&PROCESS_INFORMATION, HANDLE, fs::File, Option<fs::File>) -> Result<()>,
+    run: impl FnOnce(&mut Store, &PROCESS_INFORMATION, HANDLE, fs::File, Option<fs::File>) -> Result<()>,
 ) -> Result<()> {
     let image = root.join(name);
     let data = name == "pipe-service.exe";
@@ -219,7 +219,7 @@ fn with_role(
         if secure_fs::file_id(&actual)? != secure_fs::file_id(expected)? {
             return Err(invalid("win32-window-image-identity"));
         }
-        run(&pi, endpoints[0], writer, response_reader)
+        run(store, &pi, endpoints[0], writer, response_reader)
     })();
     // Release neither package pins nor owner lease while this generation is still live.
     check(unsafe { TerminateJobObject(job.0, 0) }, "win32-window-stop")?;
@@ -262,7 +262,7 @@ mod tests {
     fn equal_bytes_from_a_different_file_cannot_authorize_the_suspended_window() {
         let root =
             std::env::temp_dir().join(format!("kraqel-suspended-{}", Uuid::new_v4().simple()));
-        let store = Store::initialize(&root, [1; 32]).unwrap();
+        let mut store = Store::initialize(&root, [1; 32]).unwrap();
         let bin = root.join("bin");
         let role = bin.join(WINDOW);
         let other = bin.join("other.exe");
@@ -271,7 +271,7 @@ mod tests {
         fs::write(&other, &bytes).unwrap();
         let wrong_pin = protected_file(&other).unwrap();
         assert_eq!(
-            check_window(&store, &bin, &wrong_pin, WindowMode::Surface)
+            check_window(&mut store, &bin, &wrong_pin, WindowMode::Surface)
                 .unwrap_err()
                 .stage,
             "win32-window-image-identity"
