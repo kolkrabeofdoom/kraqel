@@ -927,6 +927,13 @@ nannte Revision 4. Nach „Nein“ blieben die drei Häkchen unverändert und Re
 war noch nicht angelegt. Nach erneuter Bestätigung ergab das Wiederöffnen Revision 5
 mit der geprüften Mischung aus lokalem Text, neuem Dienstabsatz und lokaler Fettmarkierung.
 
+Für „Auswahl speichern und weiterschreiben“ wurde derselbe Revisionswechsel mit
+synthetischen Daten geprüft. Nach der Bestätigung für Revision 4 zeigte dasselbe
+Win32-Fenster die gespeicherte Mischung als Revision 5. Die nächste Eingabe im ersten
+Absatz löste nach der Schreibpause Autosave aus. Beim Wiederöffnen enthielt Revision 6
+die neue Eingabe, den zweiten Absatz der Dienstfassung und die gewählte Fettmarkierung.
+Die gespeicherte Mischung war weiterhin als Revision 5 lesbar.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche
