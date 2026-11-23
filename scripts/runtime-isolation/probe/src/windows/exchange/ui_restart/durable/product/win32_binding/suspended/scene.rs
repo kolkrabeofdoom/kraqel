@@ -74,7 +74,10 @@ pub(in super::super) fn read_scene(
         compare && continued && package::merge_image(window)? && package::merge_image(service)?;
     let refresh = merge && package::refresh_image(window)? && package::refresh_image(service)?;
     let gap = refresh && package::gap_image(window)? && package::gap_image(service)?;
-    let argument = if gap {
+    let repeat = gap && package::repeat_image(window)? && package::repeat_image(service)?;
+    let argument = if repeat {
+        format!("{argument}-compare-merge-refresh-gap-repeat")
+    } else if gap {
         format!("{argument}-compare-merge-refresh-gap")
     } else if refresh {
         format!("{argument}-compare-merge-refresh")
@@ -105,7 +108,9 @@ pub(in super::super) fn read_scene(
                     SceneOperation::Revise
                 };
                 let mut reviewed = None;
-                let data_argument = if gap && can_continue {
+                let data_argument = if repeat && can_continue {
+                    format!("{}-merge-gap-repeat", mode.argument())
+                } else if gap && can_continue {
                     format!("{}-merge-gap", mode.argument())
                 } else if merge && can_continue {
                     format!("{}-merge", mode.argument())

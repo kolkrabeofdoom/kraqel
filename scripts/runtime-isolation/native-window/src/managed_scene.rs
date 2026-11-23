@@ -178,7 +178,7 @@ pub fn exchange(
     output: &mut File,
     compare: bool,
     refresh: bool,
-    gap: bool,
+    reviewed_write: kraqel_native_scene_model::channel::ReviewedWrite,
     mut edit: impl FnMut(
         kraqel_native_scene_model::channel::EditorEvent,
     ) -> io::Result<Option<(String, bool)>>,
@@ -199,14 +199,16 @@ pub fn exchange(
                     revision,
                     compare,
                     refresh,
-                    gap,
+                    reviewed_write,
                     &mut ch.reader,
                     &mut ch.writer,
                     |v| edit(v).map_err(|_| kraqel_native_scene_model::channel::Closed),
                 )
                 .map_err(|_| io::Error::other("scene edit"))?;
             if let Some(v) = &view {
-                if gap && v.revision > revision + 1 {
+                if reviewed_write != kraqel_native_scene_model::channel::ReviewedWrite::Unavailable
+                    && v.revision > revision + 1
+                {
                     output.write_all(&v.reviewed_receipt())?;
                     let mut ack = [0; 1];
                     control.read_exact(&mut ack)?;
@@ -260,7 +262,7 @@ pub fn serve(
     profile: &str,
     mode: window_receipt::SceneOperation,
     allow_prepare: bool,
-    allow_gap: bool,
+    reviewed_write: kraqel_native_scene_model::channel::ReviewedWrite,
 ) -> io::Result<u32> {
     let (mut input, mut output) = confirm_bootstrap(Some(profile), Role::Data)?;
     let mut ch = Channel::open(&mut input, false)?;
@@ -303,7 +305,7 @@ pub fn serve(
                             | window_receipt::SceneOperation::KeyboardEdit
                     ),
                     allow_prepare,
-                    allow_gap,
+                    reviewed_write,
                     &mut ch.reader,
                     &mut ch.writer,
                     |body| {

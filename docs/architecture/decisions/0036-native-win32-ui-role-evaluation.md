@@ -703,6 +703,23 @@ Autosave Revision 5; die frische Leseprüfung und die SQLite-Daten bestätigten 
 einem Grenzlauf wurde Dienstrevision 254 als Basis bestätigt. Nach Revision 255 zeigte das
 Fenster den letzten Autosave an. Revision 256 war nach regulärem Sitzungsende wieder lesbar.
 
+### Weitere Konflikte während der erneuten Bestätigung
+
+Für ein passendes gepinntes Rollenpaar aktiviert der Starter den wiederholten Abgleich
+auf beiden Seiten. Wird eine schon aktualisierte Basis vor dem Speichern erneut überholt,
+liest das Fenster den Dienststand über eine neue Einmalbindung an die zuletzt geprüfte
+Revision. Nur eine höhere Revision mit gültigem Szeneninhalt erscheint als neuer Vergleich.
+Die lokale Auswahl bleibt als Vorschlag erhalten. Jede Übernahme erfordert eine neue
+ausdrückliche Bestätigung. Verwerfen beendet den Auftrag weiterhin über den ursprünglichen
+Verwerfkanal. Für ältere Rollenpaare gilt der von beiden unterstützte Vergleichsumfang.
+
+Im verwalteten Windows-Lauf wechselte die bereits geprüfte Basis zweimal hintereinander
+auf Revision 4 und 5. Der lokale Text und die Häkchen blieben erhalten. Bis zur jeweiligen
+Bestätigung blieben die entsprechenden Revisionsdateien aus. Erst die stabile Basis 5
+und die ausgewählte Mischung 6 wurden veröffentlicht. Revision 6 ließ sich unter einer
+neuen Lesebindung öffnen. Die bestehende Kanalprüfung für eine wiederholte alte
+Leseanfrage bestand ebenfalls.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

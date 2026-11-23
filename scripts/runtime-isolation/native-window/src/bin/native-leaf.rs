@@ -2069,12 +2069,25 @@ static REFRESH_ABI: [u8; 32] = kraqel_window_probe::window_receipt::REFRESH_ABI;
 #[used]
 #[unsafe(link_section = ".kqgap")]
 static GAP_ABI: [u8; 32] = kraqel_window_probe::window_receipt::GAP_ABI;
+#[used]
+#[unsafe(link_section = ".kqagain")]
+static REPEAT_ABI: [u8; 32] = kraqel_window_probe::window_receipt::REPEAT_ABI;
 fn main() {
+    std::hint::black_box(&REPEAT_ABI);
     std::hint::black_box(&GAP_ABI);
     std::hint::black_box(&REFRESH_ABI);
     std::hint::black_box(&MERGE_ABI);
     std::hint::black_box(&COMPARE_ABI);
     let mut arg = std::env::args_os().nth(1);
+    let repeat_arg = arg
+        .as_deref()
+        .and_then(|a| a.to_str())
+        .and_then(|a| a.strip_suffix("-repeat"))
+        .map(std::ffi::OsString::from);
+    let repeat = repeat_arg.is_some();
+    if repeat {
+        arg = repeat_arg;
+    }
     let gap_arg = arg
         .as_deref()
         .and_then(|a| a.to_str())
@@ -2164,6 +2177,14 @@ fn main() {
                 } else {
                     1
                 };
+                use kraqel_native_scene_model::channel::ReviewedWrite;
+                let reviewed_write = if gap && repeat {
+                    ReviewedWrite::Repeat
+                } else if gap {
+                    ReviewedWrite::Once
+                } else {
+                    ReviewedWrite::Unavailable
+                };
                 let mut turn = 1u8;
                 let mut selection = None;
                 loop {
@@ -2180,7 +2201,7 @@ fn main() {
                         &mut output,
                         compare,
                         refresh,
-                        gap,
+                        reviewed_write,
                         |event| {
                             use kraqel_native_scene_model::channel::EditorEvent;
                             let loaded = match event {

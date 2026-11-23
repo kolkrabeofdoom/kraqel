@@ -36,6 +36,10 @@ Veröffentlichung und erneute Änderung unmittelbar vor dem Speichern.
 weiterbearbeitet werden. Der Befehl berücksichtigt Journalbudget und Revisionsgrenze.
 [Bedienung und Windows-Prüfungen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#weiterschreiben-nach-bestätigter-übernahme).
 
+Bei weiteren Konflikten während der Bestätigung bleibt die Auswahl im selben Fenster
+prüfbar. Jeder neuere Stand erhält eine eigene Lesebindung und verlangt eine neue Bestätigung.
+[Wiederholter Abgleich und Windows-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#weitere-konflikte-während-der-erneuten-bestätigung).
+
 Die Titelleiste unterscheidet einen zu korrigierenden Absatz, die laufende Schreibpause,
 das Speichern mit ausstehender Starterbestätigung und die gespeicherte Revision.
 Ein Windows-Lauf mit leerem zweitem Absatz, Korrektur und verzögerter Bestätigung prüfte

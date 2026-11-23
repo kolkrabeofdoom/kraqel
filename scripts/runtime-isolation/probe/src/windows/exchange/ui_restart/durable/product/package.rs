@@ -91,6 +91,16 @@ pub(super) fn gap_image(file: &fs::File) -> Result<bool> {
     )
     .is_ok())
 }
+pub(super) fn repeat_image(file: &fs::File) -> Result<bool> {
+    let size = io("scene-image-size", file.metadata())?.len();
+    Ok(verify_named(
+        &mut &*file,
+        size,
+        b".kqagain",
+        &crate::window_receipt::REPEAT_ABI,
+    )
+    .is_ok())
+}
 
 pub(super) fn budgeted_window(file: &fs::File) -> Result<bool> {
     let size = io("win32-window-size", file.metadata())?.len();

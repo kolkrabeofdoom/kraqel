@@ -4,6 +4,13 @@ use hmac::{Hmac, Mac};
 use sha2::Sha256;
 use zeroize::Zeroizing;
 
+const PREPARE_WITH_REFRESH: &[u8] = b"prepare-reviewed-with-refresh-v1";
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum ReviewedWrite {
+    Unavailable,
+    Once,
+    Repeat,
+}
 const PREPARE_COMPARISON: &[u8] = b"prepare-compared-snapshot-v1";
 pub const COMPARE_READ: &[u8] = br#"{"command":"c4_document_read_v1"}"#;
 const DISCARD: &[u8] = br#"{"command":"discard_draft_v1"}"#;
@@ -399,7 +406,7 @@ impl Binding {
         revision: u32,
         compare: bool,
         refresh: bool,
-        gap: bool,
+        reviewed_write: ReviewedWrite,
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
         mut edit: impl FnMut(EditorEvent<'_>) -> Result<Option<(String, bool)>, Closed>,
@@ -441,32 +448,43 @@ impl Binding {
                     self.conflict_binding(view.revision, b"KRAQEL-conflict-A/prepare-v1")?;
                 let body = prepare.exchange(1, PREPARE_COMPARISON, reader, writer)?;
                 if Self::expect_error(&body, "CONFLICT").is_ok() {
-                    let updated = refresh
-                        .then(|| self.read_comparison(view.revision, reader, writer))
-                        .transpose();
-                    let event = match updated.as_ref() {
-                        Ok(Some(current)) => EditorEvent::RefreshedComparison(current),
-                        _ => EditorEvent::RevisionConflict(None),
-                    };
-                    let approved = edit(event)?.is_some();
-                    let current = updated?;
-                    if approved {
-                        let current = current.filter(|_| gap).ok_or(Closed)?;
+                    let mut basis = view.revision;
+                    let mut can_refresh = refresh;
+                    loop {
+                        let updated = can_refresh
+                            .then(|| self.read_comparison(basis, reader, writer))
+                            .transpose();
+                        let event = match updated.as_ref() {
+                            Ok(Some(current)) => EditorEvent::RefreshedComparison(current),
+                            _ => EditorEvent::RevisionConflict(None),
+                        };
+                        let approved = edit(event)?.is_some();
+                        let current = updated?;
+                        if !approved {
+                            break;
+                        }
+                        let current = current
+                            .filter(|_| reviewed_write != ReviewedWrite::Unavailable)
+                            .ok_or(Closed)?;
                         let grant = self
                             .conflict_binding(current.revision, b"KRAQEL-reviewed-A/prepare-v1")?;
-                        let response = grant.exchange(1, PREPARE_COMPARISON, reader, writer)?;
-                        if Self::expect_error(&response, "CONFLICT").is_ok() {
-                            if edit(EditorEvent::RevisionConflict(None))?.is_some() {
-                                return Err(Closed);
-                            }
+                        can_refresh = reviewed_write == ReviewedWrite::Repeat;
+                        let command = if can_refresh {
+                            PREPARE_WITH_REFRESH
                         } else {
-                            let verified: SceneView =
-                                serde_json::from_slice(&response).map_err(|_| Closed)?;
-                            if verified.reviewed_receipt() != current.reviewed_receipt() {
-                                return Err(Closed);
-                            }
-                            return Ok(Some(current));
+                            PREPARE_COMPARISON
+                        };
+                        let response = grant.exchange(1, command, reader, writer)?;
+                        if Self::expect_error(&response, "CONFLICT").is_ok() {
+                            basis = current.revision;
+                            continue;
                         }
+                        let verified: SceneView =
+                            serde_json::from_slice(&response).map_err(|_| Closed)?;
+                        if verified.reviewed_receipt() != current.reviewed_receipt() {
+                            return Err(Closed);
+                        }
+                        return Ok(Some(current));
                     }
                 } else {
                     let confirmed: SceneView = serde_json::from_slice(&body).map_err(|_| Closed)?;
@@ -506,8 +524,17 @@ impl Binding {
         writer: &mut impl std::io::Write,
         dispatch: impl FnMut(&[u8]) -> Result<super::Reply, Closed>,
     ) -> Result<(), Closed> {
-        self.revision_service(reopening, 0, false, false, false, reader, writer, dispatch)
-            .map(|_| ())
+        self.revision_service(
+            reopening,
+            0,
+            false,
+            false,
+            ReviewedWrite::Unavailable,
+            reader,
+            writer,
+            dispatch,
+        )
+        .map(|_| ())
     }
     pub fn revision_service(
         self,
@@ -515,7 +542,7 @@ impl Binding {
         revision: u32,
         allow_discard: bool,
         allow_prepare: bool,
-        allow_gap: bool,
+        reviewed_write: ReviewedWrite,
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
         mut dispatch: impl FnMut(&[u8]) -> Result<super::Reply, Closed>,
@@ -577,46 +604,13 @@ impl Binding {
                                 writer,
                                 Expected::Conflict,
                             )?;
-                            let next = read_frame(reader)?;
-                            let refresh = self.comparison_binding(basis)?;
-                            if refresh.decode(&next, Kind::Request, 1) == Ok(COMPARE_READ) {
-                                let reply = dispatch(COMPARE_READ)?;
-                                let offered = serde_json::to_vec(&reply).map_err(|_| Closed)?;
-                                refresh.write_reply(1, reply, writer, Expected::Read)?;
-                                let next = read_frame(reader)?;
-                                let view: SceneView =
-                                    serde_json::from_slice(&offered).map_err(|_| Closed)?;
-                                let grant = self.conflict_binding(
-                                    view.revision,
-                                    b"KRAQEL-reviewed-A/prepare-v1",
-                                )?;
-                                if allow_gap
-                                    && view.revision > basis
-                                    && grant.decode(&next, Kind::Request, 1)
-                                        == Ok(PREPARE_COMPARISON)
-                                {
-                                    let latest = dispatch(COMPARE_READ)?;
-                                    if serde_json::to_vec(&latest).map_err(|_| Closed)? == offered {
-                                        grant.write_reply(1, latest, writer, Expected::Read)?;
-                                        return Ok(ServiceEnd::PrepareReviewed(
-                                            view.reviewed_receipt(),
-                                        ));
-                                    }
-                                    grant.write_reply(
-                                        1,
-                                        super::Reply::Failure {
-                                            error: super::Failure::Conflict,
-                                        },
-                                        writer,
-                                        Expected::Conflict,
-                                    )?;
-                                    read_frame(reader)?
-                                } else {
-                                    next
-                                }
-                            } else {
-                                next
-                            }
+                            return self.serve_reviewed_comparisons(
+                                basis,
+                                reviewed_write,
+                                reader,
+                                writer,
+                                &mut dispatch,
+                            );
                         } else {
                             next
                         }
@@ -638,6 +632,62 @@ impl Binding {
         }
         Ok(ServiceEnd::Complete)
     }
+    fn serve_reviewed_comparisons(
+        &self,
+        mut basis: u32,
+        reviewed_write: ReviewedWrite,
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+        dispatch: &mut impl FnMut(&[u8]) -> Result<super::Reply, Closed>,
+    ) -> Result<ServiceEnd, Closed> {
+        let mut frame = read_frame(reader)?;
+        loop {
+            let refresh = self.comparison_binding(basis)?;
+            if refresh.decode(&frame, Kind::Request, 1) != Ok(COMPARE_READ) {
+                break;
+            }
+            let reply = dispatch(COMPARE_READ)?;
+            let offered = serde_json::to_vec(&reply).map_err(|_| Closed)?;
+            refresh.write_reply(1, reply, writer, Expected::Read)?;
+            frame = read_frame(reader)?;
+            let view: SceneView = serde_json::from_slice(&offered).map_err(|_| Closed)?;
+            if reviewed_write == ReviewedWrite::Unavailable || view.revision <= basis {
+                break;
+            }
+            let grant = self.conflict_binding(view.revision, b"KRAQEL-reviewed-A/prepare-v1")?;
+            let repeat = match grant.decode(&frame, Kind::Request, 1) {
+                Ok(PREPARE_WITH_REFRESH) if reviewed_write == ReviewedWrite::Repeat => true,
+                Ok(PREPARE_COMPARISON) => false,
+                _ => break,
+            };
+            let latest = dispatch(COMPARE_READ)?;
+            if serde_json::to_vec(&latest).map_err(|_| Closed)? == offered {
+                grant.write_reply(1, latest, writer, Expected::Read)?;
+                return Ok(ServiceEnd::PrepareReviewed(view.reviewed_receipt()));
+            }
+            grant.write_reply(
+                1,
+                super::Reply::Failure {
+                    error: super::Failure::Conflict,
+                },
+                writer,
+                Expected::Conflict,
+            )?;
+            frame = read_frame(reader)?;
+            if !repeat {
+                break;
+            }
+            basis = view.revision;
+        }
+        if self.decode(&frame, Kind::Request, 3)? != DISCARD {
+            return Err(Closed);
+        }
+        writer
+            .write_all(&self.encode(Kind::Response, 3, DISCARDED)?)
+            .map_err(|_| Closed)?;
+        Ok(ServiceEnd::Discarded)
+    }
+
     pub fn serve_edit_conflict(
         self,
         reader: &mut impl std::io::Read,
