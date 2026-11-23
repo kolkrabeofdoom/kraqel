@@ -9,6 +9,12 @@ weiteren Schreibzug und den Sitzungsabschluss aufnehmen kann. Der Fenstertitel k
 den letzten verfügbaren Schreibzug. Geprüft mit synthetischer Szene A auf Windows.
 [Journalbudget und Nachweise](architecture/decisions/0036-native-win32-ui-role-evaluation.md#fortlaufendes-autosave-unter-journalbudget).
 
+Die Titelleiste unterscheidet einen zu korrigierenden Absatz, die laufende Schreibpause,
+das Speichern mit ausstehender Starterbestätigung und die gespeicherte Revision.
+Ein Windows-Lauf mit leerem zweitem Absatz, Korrektur und verzögerter Bestätigung prüfte
+alle Übergänge und das frische Lesen von Revision 1.
+[Speicheranzeige](architecture/decisions/0036-native-win32-ui-role-evaluation.md#speicheranzeige-im-fortlaufenden-editor).
+
 Während einer ausstehenden Autosave-Bestätigung bleiben Tastatureingaben für den nächsten
 Schreibzug lokal vorgemerkt. Sie erscheinen nach Bestätigung und frischer Revisionsbindung.
 Der Windows-Lauf mit verzögerter Bestätigung und der Abbruchfall mit wartender Eingabe

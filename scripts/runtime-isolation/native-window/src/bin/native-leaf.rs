@@ -457,6 +457,23 @@ fn paragraph_text(hwnd: HWND, id: i32) -> Option<String> {
     String::from_utf16(&buf[..n]).ok()
 }
 
+fn invalid_paragraph(hwnd: HWND) -> Option<(i32, &'static str)> {
+    [
+        (
+            EDIT,
+            "Ersten Absatz einzeilig ausfüllen (max. 48 UTF-16-Einheiten).",
+        ),
+        (
+            SECOND,
+            "Zweiten Absatz einzeilig ausfüllen (max. 48 UTF-16-Einheiten).",
+        ),
+    ]
+    .into_iter()
+    .find(|(id, _)| {
+        !paragraph_text(hwnd, *id).is_some_and(|p| kraqel_native_scene_model::valid_paragraph(&p))
+    })
+}
+
 fn draft_text(hwnd: HWND) -> Option<String> {
     Some(format!(
         "{}\n{}",
@@ -669,9 +686,8 @@ fn cancel_pending_save(hwnd: HWND) {
     }
 }
 
-fn schedule_autosave(hwnd: HWND, text: Option<&str>, dirty: bool) -> bool {
-    let Some(text) = text.filter(|t| dirty && kraqel_native_scene_model::valid_paragraphs(t))
-    else {
+fn schedule_autosave(hwnd: HWND, changed_valid_text: Option<&str>) -> bool {
+    let Some(text) = changed_valid_text else {
         cancel_pending_save(hwnd);
         return true;
     };
@@ -733,7 +749,11 @@ fn update_draft_status(hwnd: HWND) {
         let dirty = is_bold() != INITIAL_BOLD.get()
             || EXPECTED.with_borrow(|initial| current.as_ref() != Some(initial));
         let autosave = AUTOSAVE_TURN.get();
-        let scheduled = autosave.is_none() || schedule_autosave(hwnd, current.as_deref(), dirty);
+        let valid = current
+            .as_deref()
+            .is_some_and(kraqel_native_scene_model::valid_paragraphs);
+        let scheduled = autosave.is_none()
+            || schedule_autosave(hwnd, current.as_deref().filter(|_| dirty && valid));
         if let Some(text) = current {
             // Match countWords in packages/editor, including ECMAScript's whitespace exceptions.
             let count = text
@@ -750,13 +770,22 @@ fn update_draft_status(hwnd: HWND) {
         enable_menu_command(hwnd, SAVE as usize, dirty);
         EnableWindow(save, i32::from(dirty));
         EnableWindow(GetDlgItem(hwnd, DISCARD), i32::from(dirty));
-        let status = if dirty {
+        let status = if dirty && !valid {
+            "Ungespeichert · Absätze prüfen"
+        } else if dirty && autosave.is_some() && scheduled {
+            "Ungespeichert · Schreibpause abwarten"
+        } else if dirty {
             "Ungespeicherte Änderungen"
+        } else if LOADED_REVISION.get().is_some_and(|revision| revision > 0) {
+            "Gespeichert"
         } else {
             "Keine Änderungen"
         };
         if let Some(revision) = LOADED_REVISION.get() {
             let suffix = match autosave {
+                Some(_) if dirty && !valid => invalid_paragraph(hwnd)
+                    .map(|(_, hint)| format!(" · {hint}"))
+                    .unwrap_or_default(),
                 Some(_) if !scheduled => " · Bitte manuell speichern".to_owned(),
                 Some((turn, limit)) if turn == limit => {
                     format!(" · Letzter Autosave {turn}/{limit}")
@@ -1545,7 +1574,10 @@ unsafe fn run_editor_loop(
                                 }
                                 SetWindowTextW(
                                     hwnd,
-                                    wide("Szene A – Bestätigung des Starters ausstehend").as_ptr(),
+                                    wide(
+                                        "Szene A – Speichert · Bestätigung des Starters ausstehend",
+                                    )
+                                    .as_ptr(),
                                 );
                             } else {
                                 destroy_surface(hwnd);
@@ -1553,23 +1585,9 @@ unsafe fn run_editor_loop(
                             return 40;
                         }
                     }
-                    for (id, message) in [
-                        (
-                            EDIT,
-                            "Ersten Absatz einzeilig ausfüllen (max. 48 UTF-16-Einheiten).",
-                        ),
-                        (
-                            SECOND,
-                            "Zweiten Absatz einzeilig ausfüllen (max. 48 UTF-16-Einheiten).",
-                        ),
-                    ] {
-                        if !paragraph_text(hwnd, id)
-                            .is_some_and(|p| kraqel_native_scene_model::valid_paragraph(&p))
-                        {
-                            SetDlgItemTextW(hwnd, LABEL, wide(message).as_ptr());
-                            SetFocus(GetDlgItem(hwnd, id));
-                            break;
-                        }
+                    if let Some((id, message)) = invalid_paragraph(hwnd) {
+                        SetDlgItemTextW(hwnd, LABEL, wide(message).as_ptr());
+                        SetFocus(GetDlgItem(hwnd, id));
                     }
                     continue;
                 }

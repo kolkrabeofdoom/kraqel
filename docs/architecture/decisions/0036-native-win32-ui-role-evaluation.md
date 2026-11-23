@@ -534,6 +534,21 @@ dasselbe Fenster offen. Nach einer weiteren Eingabe enthielt Revision 2 beide Fo
 Jede Variante endete mit regulärem Sitzungsabschluss und frischem Lesen der erwarteten
 Revision der synthetischen Szene A.
 
+### Speicheranzeige im fortlaufenden Editor
+
+Ein ungültiger Entwurf bleibt im Fenster. Der Titel nennt den ersten zu korrigierenden
+Absatz mit derselben Meldung wie beim manuellen Speichern. Bei einem gültigen geänderten
+Entwurf zeigt der Editor die Schreibpause an. Während der Veröffentlichung steht dort
+„Speichert“. Nach der Starterbestätigung und der frischen Bindung zeigt ein unveränderter
+Entwurf ab Revision 1 „Gespeichert“. Die Anzeige enthält ausschließlich feste Meldungen
+und Revisions- oder Budgetzahlen.
+
+Der lokale Windows-Lauf ließ den zweiten Absatz länger als die Schreibpause leer.
+Nach der Korrektur blieb „Speichert“ bei angehaltenem Starter sichtbar. Nach dessen
+Fortsetzung erschien „Gespeichert“. Der frische Leseauftrag und die SQLite-Prüfung
+bestätigten Revision 1 mit dem korrigierten Text. Offen bleibt die differenzierte
+Behandlung eines vom Datendienst bestätigten Revisionskonflikts im Fenster.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche
