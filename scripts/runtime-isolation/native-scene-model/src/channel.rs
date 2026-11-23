@@ -560,7 +560,7 @@ impl Binding {
                     let mut can_refresh = refresh;
                     loop {
                         let updated = can_refresh
-                            .then(|| self.read_comparison(basis, true, false, reader, writer))
+                            .then(|| self.read_comparison(basis, !plain, plain, reader, writer))
                             .transpose();
                         let event = match updated.as_ref() {
                             Ok(Some(OpenedScene::Editable(current))) => {
@@ -766,11 +766,8 @@ impl Binding {
                             )?;
                             return self.serve_reviewed_comparisons(
                                 basis,
-                                if command == Ok(PREPARE_PLAIN) {
-                                    ReviewedWrite::Unavailable
-                                } else {
-                                    reviewed_write
-                                },
+                                reviewed_write,
+                                command == Ok(PREPARE_PLAIN),
                                 reader,
                                 writer,
                                 &mut dispatch,
@@ -817,6 +814,7 @@ impl Binding {
         &self,
         mut basis: u32,
         reviewed_write: ReviewedWrite,
+        plain: bool,
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
         dispatch: &mut impl FnMut(&[u8]) -> Result<super::Reply, Closed>,
@@ -831,15 +829,19 @@ impl Binding {
             let offered = refresh.write_comparison(&reply, writer)?;
             frame = read_frame(reader)?;
             let super::Reply::Read {
-                ref text, revision, ..
+                ref text,
+                revision,
+                bold_second,
             } = reply
             else {
                 break;
             };
-            if reviewed_write == ReviewedWrite::Unavailable
-                || revision <= basis
-                || !super::valid_paragraphs(text)
-            {
+            let compatible = if plain {
+                !bold_second && super::valid_scene_edit(text, false)
+            } else {
+                super::valid_paragraphs(text)
+            };
+            if reviewed_write == ReviewedWrite::Unavailable || revision <= basis || !compatible {
                 break;
             }
             let view: SceneView = serde_json::from_slice(&offered).map_err(|_| Closed)?;

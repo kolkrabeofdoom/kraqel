@@ -1413,7 +1413,7 @@ fn inspect_conflict(
 ) -> std::io::Result<Option<(String, bool)>> {
     require(!held.hwnd.is_null(), "plain conflict editor")?;
     AWAITING_REBIND.set(false);
-    REVISION_CONFLICT.set(true);
+    let refreshed = REVISION_CONFLICT.replace(true);
     held.autosave_turn = None;
     unsafe {
         PARAGRAPH_COMPARE.replace(None);
@@ -1448,7 +1448,12 @@ fn inspect_conflict(
         } else {
             SetWindowTextW(
                 held.hwnd,
-                wide("Szene A · Klartext · Revisionskonflikt").as_ptr(),
+                wide(if refreshed && view.is_some() {
+                    "Szene A · Vergleichsbasis geändert · Entwurf erneut prüfen"
+                } else {
+                    "Szene A · Klartext · Revisionskonflikt"
+                })
+                .as_ptr(),
             );
         }
         SetFocus(GetDlgItem(held.hwnd, EDIT));
@@ -3003,12 +3008,16 @@ fn main() {
                                     return Ok(selection.clone());
                                 }
                                 EditorEvent::RefreshedComparison(view) if LONG_EDIT.get() => {
-                                    inspect_conflict(
+                                    let allowed = gap
+                                        && turn < limit
+                                        && view.revision < window_receipt::SCENE_REVISION_LIMIT
+                                        && !view.bold_second;
+                                    selection = inspect_conflict(
                                         &mut held,
                                         Some((view.revision, &view.text)),
-                                        false,
+                                        allowed,
                                     )?;
-                                    return Ok(None);
+                                    return Ok(selection.clone());
                                 }
                                 EditorEvent::RefreshedComparison(view) => {
                                     selection = resolve_conflict(

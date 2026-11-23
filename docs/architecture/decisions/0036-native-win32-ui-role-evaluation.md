@@ -899,6 +899,13 @@ Der Dienst liest vor der Vorbereitung erneut und verlangt dieselbe vollständige
 auf der unmittelbar folgenden Revision. Erst der nächste gebundene Auftrag speichert den
 bestätigten Entwurf. Eine Textprojektion bleibt auf den lesenden Vergleich beschränkt.
 
+Ändert sich die Dienstrevision zwischen Anzeige und Bestätigung, verfällt die Auswahl
+für diesen Schreibzug. Der freigegebene Wiedervergleich liest unter frischer Bindung.
+Das Fenster behält den lokalen Text und zeigt die neue Revision. Der Klartextpfad
+prüft dabei auch im Dienst erneut die Bearbeitbarkeit und das Fehlen der Fettmarkierung.
+Eine weitere F9-Bestätigung bindet den gesamten Entwurf an genau diesen Stand. Beide
+Rollen bestätigen denselben revisions- und inhaltsgebundenen Beleg vor dem Folgeauftrag.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

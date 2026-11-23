@@ -203,6 +203,42 @@ fn stale_prepare_cannot_replay_the_first_comparison() {
 }
 
 #[test]
+fn refreshed_plain_review_cannot_prepare_a_formatted_scene() {
+    let binding = Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
+    let mut frames = binding
+        .comparison_binding(1)
+        .unwrap()
+        .encode(Kind::Request, 1, COMPARE_READ)
+        .unwrap();
+    frames.extend(
+        binding
+            .conflict_binding(2, b"KRAQEL-reviewed-A/prepare-v1")
+            .unwrap()
+            .encode(Kind::Request, 1, PREPARE_COMPARISON)
+            .unwrap(),
+    );
+    let mut reads = 0;
+    let end = binding.serve_reviewed_comparisons(
+        1,
+        ReviewedWrite::Once,
+        true,
+        &mut frames.as_slice(),
+        &mut Vec::new(),
+        &mut |body| {
+            assert_eq!(body, COMPARE_READ);
+            reads += 1;
+            Ok(crate::Reply::Read {
+                text: "A\nB".into(),
+                revision: 2,
+                bold_second: true,
+            })
+        },
+    );
+    assert_eq!(end, Err(Closed));
+    assert_eq!(reads, 1);
+}
+
+#[test]
 fn interrupted_save_requires_a_verified_initial_read_and_zero_response_bytes() {
     let binding = || Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
     let first = binding()
