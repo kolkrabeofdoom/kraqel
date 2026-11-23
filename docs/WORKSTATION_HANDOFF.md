@@ -906,12 +906,10 @@ ist kein Abnahmenachweis. Danach Auswahl aus einer laufenden App, assistive Abna
 Auftrags-/Replay-/Crash-Reconciliation. Weitere Formate, Git-/Credential-/Providergrenzen,
 öffentliche UDP-/IPv6-/DNS-/Broker-Gegenproben und Produkt-/Installerintegration folgen separat.
 
-GitHub zeigt außerdem drei bestehende, noch offene Dependabot-Meldungen:
-[`lopdf` · hoch · #8](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/8),
-[`glib` · mittel · #7](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/7) und
-[`minimatch` · mittel · #6](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/6). Auf dem
-Entwicklungsbranch ist die von #8 betroffene Version aus dem Cargo-Lockfile entfernt.
-Der GitHub-Status des Standardbranches hängt von der Übernahme ab.
+Abhängigkeiten auf dem Entwicklungsbranch (Stand 23. November 2026):
+
+- Die von [#8 (PDF)](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/8) und [#6 (Lint)](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/6) betroffenen Versionen sind aus den Lockfiles entfernt. TypeScript-ESLint 8.73.0 verwendet minimatch 11.0.9. Die separate ESLint-Abhängigkeit 3.1.5 liegt außerhalb des für #6 gemeldeten Bereichs.
+- [#7 (GLib)](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/7) bleibt für Linux offen. Der Cargo-Baum enthält dort glib 0.18.5 über GTK/WebKitGTK. Im Windows-MSVC-Zielbaum fehlt diese Abhängigkeit. Auch Tauri 2.12.7 verlangt GTK 0.18. Erneut prüfen, sobald der stabile Tauri-/GTK-Stack eine korrigierte GLib-Version zulässt oder ein rückportierter Fix erscheint.
 
 Für die Fortsetzung zuerst lesen:
 
