@@ -11,6 +11,7 @@ pub enum ReviewedWrite {
     Once,
     Repeat,
 }
+const INITIAL_GAP_DOMAIN: &[u8] = b"KRAQEL-plain-A/initial-gap-v1";
 const PREPARE_PLAIN: &[u8] = b"prepare-plain-snapshot-v1";
 const PREPARE_COMPARISON: &[u8] = b"prepare-compared-snapshot-v1";
 pub const COMPARE_READ: &[u8] = br#"{"command":"c4_document_read_v1"}"#;
@@ -540,11 +541,18 @@ impl Binding {
             };
             if selected.is_some() {
                 let view = compared.ok_or(Closed)?;
-                if Some(view.revision) != revision.checked_add(1) {
+                let gap = view.revision > revision.checked_add(1).ok_or(Closed)?;
+                if gap && (!plain || reviewed_write == ReviewedWrite::Unavailable) {
                     return Err(Closed);
                 }
-                let prepare =
-                    self.conflict_binding(view.revision, b"KRAQEL-conflict-A/prepare-v1")?;
+                let prepare = self.conflict_binding(
+                    view.revision,
+                    if gap {
+                        INITIAL_GAP_DOMAIN
+                    } else {
+                        b"KRAQEL-conflict-A/prepare-v1"
+                    },
+                )?;
                 let body = prepare.exchange(
                     1,
                     if plain {
@@ -557,7 +565,8 @@ impl Binding {
                 )?;
                 if Self::expect_error(&body, "CONFLICT").is_ok() {
                     let mut basis = view.revision;
-                    let mut can_refresh = refresh;
+                    let mut can_refresh =
+                        refresh && (!gap || reviewed_write == ReviewedWrite::Repeat);
                     loop {
                         let updated = can_refresh
                             .then(|| self.read_comparison(basis, !plain, plain, reader, writer))
@@ -736,15 +745,30 @@ impl Binding {
                     let plain_draft = matches!(serde_json::from_slice::<super::Request>(body),
                         Ok(super::Request::SaveFormatted { text, bold_second:false, expected_revision }) if expected_revision == revision && super::valid_scene_edit(&text,false));
                     if allow_prepare {
-                        let basis = revision.checked_add(1).ok_or(Closed)?;
-                        let prepare =
-                            self.conflict_binding(basis, b"KRAQEL-conflict-A/prepare-v1")?;
+                        let adjacent = revision.checked_add(1).ok_or(Closed)?;
+                        let basis = match &answer {
+                            super::Reply::Read { revision, .. } if *revision > adjacent => {
+                                *revision
+                            }
+                            _ => adjacent,
+                        };
+                        let gap = basis > adjacent;
+                        let prepare = self.conflict_binding(
+                            basis,
+                            if gap {
+                                INITIAL_GAP_DOMAIN
+                            } else {
+                                b"KRAQEL-conflict-A/prepare-v1"
+                            },
+                        )?;
                         let command = prepare.decode(&next, Kind::Request, 1);
                         if (command == Ok(PREPARE_COMPARISON)
+                            && !gap
                             && short_source
                             && short_target
                             && short_draft)
                             || (command == Ok(PREPARE_PLAIN)
+                                && (!gap || reviewed_write != ReviewedWrite::Unavailable)
                                 && plain_source
                                 && plain_target
                                 && plain_draft)
@@ -754,6 +778,13 @@ impl Binding {
                                 && serde_json::to_vec(&current).map_err(|_| Closed)? == compared
                             {
                                 prepare.write_reply(1, current, writer, Expected::Read)?;
+                                if gap {
+                                    let view: SceneView =
+                                        serde_json::from_slice(&compared).map_err(|_| Closed)?;
+                                    return Ok(ServiceEnd::PrepareReviewed(
+                                        view.reviewed_receipt(),
+                                    ));
+                                }
                                 return Ok(ServiceEnd::PrepareComparison);
                             }
                             prepare.write_reply(
@@ -766,7 +797,11 @@ impl Binding {
                             )?;
                             return self.serve_reviewed_comparisons(
                                 basis,
-                                reviewed_write,
+                                if gap && reviewed_write == ReviewedWrite::Once {
+                                    ReviewedWrite::Unavailable
+                                } else {
+                                    reviewed_write
+                                },
                                 command == Ok(PREPARE_PLAIN),
                                 reader,
                                 writer,

@@ -896,7 +896,10 @@ F9 bietet bei einem langen, unformatierten Konfliktentwurf eine ausdrückliche B
 für Speichern und Schließen. Ein Nein lässt den Entwurf offen. Der separate Prepare-Befehl
 prüft unformatierte Quelle, Schreibversuch und Dienststand sowie die Ausgangsrevision.
 Der Dienst liest vor der Vorbereitung erneut und verlangt dieselbe vollständige Antwort
-auf der unmittelbar folgenden Revision. Erst der nächste gebundene Auftrag speichert den
+auf der angezeigten Revision. Liegt diese schon beim ersten Vergleich mehr als eine Revision voraus,
+verlangt der Dienst die Freigabe für den revisionsübergreifenden Schreibzug. Die erste
+Bestätigung ist an die angebotene Revision und einen eigenen Protokollzweck gebunden.
+Fenster und Dienst liefern dem Starter den Beleg über Revision und Inhalt. Erst der nächste gebundene Auftrag speichert den
 bestätigten Entwurf. Eine Textprojektion bleibt auf den lesenden Vergleich beschränkt.
 
 Ändert sich die Dienstrevision zwischen Anzeige und Bestätigung, verfällt die Auswahl

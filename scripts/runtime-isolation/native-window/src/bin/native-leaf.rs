@@ -2997,8 +2997,11 @@ fn main() {
                                     let allowed = LONG_EDIT.get()
                                         && merge
                                         && turn < limit
-                                        && view.revision
-                                            == LOADED_REVISION.get().unwrap_or(0).saturating_add(1)
+                                        && LOADED_REVISION.get().is_some_and(|loaded| {
+                                            view.revision > loaded
+                                                && (view.revision == loaded.saturating_add(1)
+                                                    || gap)
+                                        })
                                         && view.revision < window_receipt::SCENE_REVISION_LIMIT;
                                     selection = inspect_conflict(
                                         &mut held,
