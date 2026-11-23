@@ -48,6 +48,8 @@ struct PendingSave {
 thread_local! {
     static AUTOSAVE_TURN: std::cell::Cell<Option<(u8, u8)>> = const { std::cell::Cell::new(None) };
     static PENDING_SAVE: std::cell::RefCell<Option<PendingSave>> = const { std::cell::RefCell::new(None) };
+    static AWAITING_REBIND: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static CLOSE_AFTER_REBIND: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static ACTIVE_PARAGRAPH: std::cell::Cell<i32> = const { std::cell::Cell::new(EDIT) };
     static SECOND_WEIGHT: std::cell::Cell<i32> = const { std::cell::Cell::new(0) };
     static LOADED_REVISION: std::cell::Cell<Option<u32>> = const { std::cell::Cell::new(None) };
@@ -498,6 +500,7 @@ fn draft_label() -> &'static str {
 #[derive(Default)]
 struct HeldEditor {
     hwnd: HWND,
+    submitted: Option<(String, bool)>,
     history: Option<DraftHistory>,
     closing: bool,
     autosave_turn: Option<(u8, u8)>,
@@ -979,6 +982,10 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
             }
             WM_COMMAND if w & 0xffff == CLOSE as usize => {
                 PostMessageW(hwnd, WM_CLOSE, 0, 0);
+                0
+            }
+            WM_CLOSE if AWAITING_REBIND.get() => {
+                CLOSE_AFTER_REBIND.set(true);
                 0
             }
             WM_CLOSE => {
@@ -1512,7 +1519,15 @@ unsafe fn run_editor_loop(
                                 held.hwnd = hwnd;
                                 held.closing = msg.message == SAVE_DRAFT && msg.wParam == 1;
                                 held.history = history.take();
-                                EnableWindow(hwnd, 0);
+                                held.submitted = Some(result.clone());
+                                // Keep keyboard focus and the thread input queue across publication.
+                                // Dispatch resumes only after the next authenticated read.
+                                let continuing = !held.closing
+                                    && held.autosave_turn.is_some_and(|(turn, limit)| turn < limit);
+                                AWAITING_REBIND.set(continuing);
+                                if !continuing {
+                                    EnableWindow(hwnd, 0);
+                                }
                                 SetWindowTextW(
                                     hwnd,
                                     wide("Szene A – Bestätigung des Starters ausstehend").as_ptr(),
@@ -1678,17 +1693,18 @@ fn main() {
                             } else {
                                 require(
                                     expected_next == Some(loaded.revision)
-                                        && draft_text(held.hwnd).as_deref()
-                                            == Some(loaded.text.as_str())
-                                        && is_bold() == loaded.bold_second,
+                                        && held.submitted.take()
+                                            == Some((loaded.text.clone(), loaded.bold_second)),
                                     "scene continuation basis",
                                 )?;
                                 EXPECTED.with_borrow_mut(|v| v.clone_from(&loaded.text));
                                 INITIAL_BOLD.set(loaded.bold_second);
                                 unsafe {
                                     update_draft_status(held.hwnd);
-                                    EnableWindow(held.hwnd, 1);
-                                    SetFocus(GetDlgItem(held.hwnd, ACTIVE_PARAGRAPH.get()));
+                                    AWAITING_REBIND.set(false);
+                                    if CLOSE_AFTER_REBIND.replace(false) {
+                                        check(PostMessageW(held.hwnd, WM_CLOSE, 0, 0))?;
+                                    }
                                     run_editor_loop(
                                         held.hwnd,
                                         true,
@@ -1712,8 +1728,9 @@ fn main() {
                         let (text, bold, revision) = view;
                         require(
                             !held.hwnd.is_null()
-                                && draft_text(held.hwnd).as_ref() == Some(&text)
-                                && is_bold() == bold,
+                                && held.submitted.as_ref().is_some_and(|(submitted, marked)| {
+                                    submitted == &text && *marked == bold
+                                }),
                             "scene publication view",
                         )?;
                         output.write_all(&(held.hwnd as usize as u64).to_le_bytes())?;

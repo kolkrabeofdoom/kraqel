@@ -9,6 +9,11 @@ weiteren Schreibzug und den Sitzungsabschluss aufnehmen kann. Der Fenstertitel k
 den letzten verfügbaren Schreibzug. Geprüft mit synthetischer Szene A auf Windows.
 [Journalbudget und Nachweise](architecture/decisions/0036-native-win32-ui-role-evaluation.md#fortlaufendes-autosave-unter-journalbudget).
 
+Während einer ausstehenden Autosave-Bestätigung bleiben Tastatureingaben für den nächsten
+Schreibzug lokal vorgemerkt. Sie erscheinen nach Bestätigung und frischer Revisionsbindung.
+Der Windows-Lauf mit verzögerter Bestätigung und der Abbruchfall mit wartender Eingabe
+sind im [Sitzungsvertrag](architecture/decisions/0036-native-win32-ui-role-evaluation.md#eingaben-während-der-autosave-bestätigung) dokumentiert.
+
 Der Starter kann eine Folgerevision unter Kontrollsperre veröffentlichen, während das ursprüngliche
 Editorfenster auf die Bestätigung wartet. Die optionale [Checkpoint-Probe](architecture/decisions/0036-native-win32-ui-role-evaluation.md#veröffentlichung-bei-offenem-editorfenster)
 bestätigte zwei Revisionen in zwei Aufträgen und die Neustartsperre nach Verlust der Fensterquittung.
@@ -16,7 +21,7 @@ bestätigte zwei Revisionen in zwei Aufträgen und die Neustartsperre nach Verlu
 Der Fenstertitel zeigt die authentisierte Basisrevision und den lokalen Änderungszustand.
 Im verwalteten Lauf blieb die Basis beim Bearbeiten von Revision 0 und 1 stabil. Die jeweils
 frisch geöffneten Leseansichten zeigten Revision 1 und 2; die SQLite-Gegenprüfung bestätigte
-Text und Formatierung. Autosave über das Budget von zwei Schreibzügen hinaus ist offen. Der
+Text und Formatierung. Der
 [Entwurf für revisionsgebundene Folgeschreibzüge](architecture/decisions/0036-native-win32-ui-role-evaluation.md#revisionsanzeige-und-nächster-autosave-schritt)
 beschreibt die dafür nötige Starterbestätigung und das Verhalten bei unklarem Commit.
 

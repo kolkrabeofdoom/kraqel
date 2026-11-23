@@ -500,6 +500,24 @@ um das Journal auszuschöpfen. Bei 124 verfügbaren Schreibzügen war Revision 1
 erwarteten Text dauerhaft gespeichert und die Sitzung geschlossen. Ein weiterer Start
 wurde bei unverändertem Journalstand abgewiesen.
 
+### Eingaben während der Autosave-Bestätigung
+
+Bei einem verfügbaren Folgeschreibzug bleiben Fenster und Eingabefokus während der
+Veröffentlichung erhalten. Die Fensterrolle hält den eingereichten Text samt Fettmarkierung
+fest. Sie vergleicht sowohl das Rücklesen als auch die frisch gebundene Basis mit diesem
+Stand. Reguläre Tastatureingaben warten in der lokalen Win32-Nachrichtenwarteschlange.
+Sie werden nach der frischen Bindung sichtbar und durchlaufen wieder die normale
+Entwurfsprüfung und Entprellung. Während eines langsamen Schreibzugs kann sich die Anzeige
+also verzögern. Beim letzten Schreibzug und beim ausdrücklich gewählten Speichern und
+Schließen wird die Eingabe für den Abschluss gesperrt.
+
+Zwei Windows-Läufe verwendeten ausschließlich die synthetische Szene A. Bei angehaltenem
+Starter wurde während der ausstehenden Bestätigung ein Zeichen in die Fensterwarteschlange
+gestellt. Nach Fortsetzung enthielt Revision 1 den eingereichten Text, Revision 2 auch das
+Folgezeichen. Die frische Lesebindung öffnete Revision 2. Im zweiten Lauf endete der
+Starter bei wartender Eingabe. Das Fenster endete, die Sitzung blieb gesperrt und es
+entstand keine zweite Revisionsdatei.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche
