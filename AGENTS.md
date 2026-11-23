@@ -28,7 +28,7 @@ Leitplanken:
 
 Sprachausgabe-Tests künftig auslassen. Das gilt für Narrator, Sprachsynthese und akustische Hörprüfungen. Die vorhandenen Nachweise bleiben dokumentiert.
 
-- Bündele zusammenhängende Bedien- und Speicheränderungen bis zu einem nutzbaren Zwischenstand. Prüfe den Ablauf möglichst zusammenhängend und arbeite bis dorthin ohne einzelne „Weiter“-Bestätigungen.
+- Bearbeite aufeinanderfolgende, freigegebene Roadmap-Schritte selbstständig über Zwischenstände hinweg. Bündele zusammenhängende Änderungen und Prüfungen. Frage nach, wenn eine fachliche Entscheidung, ein Wechsel des freigegebenen Umfangs oder eine notwendige Mitwirkung offen ist.
 - Prüfe für jeden Test, welches beobachtbare Verhalten er über welchen echten Codepfad absichert und welcher bestehende Test denselben Fehler bereits erkennen würde. Berücksichtige dabei auch andere Testebenen und den regulären Runner.
 - Behalte funktionale Tests, Unit-Tests und Regressionstests mit eigenständigem Fehlersignal. Führe doppelte Abläufe zusammen und erhalte ihre einzigartigen Assertions. Entwicklungsetappen, frühere Testzahlen und einmalige Messbelege gehören in die Projektdokumentation.
 - Eine Ergänzung ohne Verhaltensänderung braucht nur dann einen zusätzlichen Test, wenn eine konkrete Abdeckungslücke besteht. Erweitere bevorzugt einen vorhandenen Fall. Nutze für Änderungen den kleinsten aussagekräftigen Prüflauf.

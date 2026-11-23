@@ -166,6 +166,9 @@ fn rejects_invalid_frames_without_echo_or_mutation() {
 fn unsupported_stored_documents_cannot_be_read_or_replaced() {
     let mut marked = document("Rabe\n42");
     marked.document["content"][0]["content"][0]["marks"] = json!([{"type":"bold"}]);
+    let mut extended = to_value(document("Rabe\n42")).unwrap();
+    extended["annotations"] = json!(["synthetic"]);
+    assert!(SyntheticCatalog::restore_managed_a(1, &extended.to_string()).is_none());
     let mut wrong_version = document("Rabe\n42");
     wrong_version.version = 2;
     for damaged in [marked, wrong_version, document("Mond\n7")] {

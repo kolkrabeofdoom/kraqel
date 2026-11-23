@@ -2,6 +2,8 @@
 
 ### Verwalteter Win32-Szeneneditor
 
+Beim Wiederöffnen einer synthetischen Szene weist der Datendienst zusätzliche Felder in der äußeren Dokumenthülle ab. Damit können unbekannte Metadaten beim nächsten Speichern nicht stillschweigend entfallen. Der bestehende Modelltest für nicht unterstützte Dokumente deckt diesen Fall ab.
+
 Im Forschungsauftrag `continue-win32-scene` speichert das Win32-Fenster gültige Änderungen
 an Text und Fettmarkierung nach 700 ms Schreibpause. Nach jeder Bestätigung kann im selben
 Fenster auf der bestätigten Revision weitergeschrieben werden, solange das Journal einen

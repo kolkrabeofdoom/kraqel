@@ -147,7 +147,16 @@ impl SyntheticCatalog {
         if let Some(old) = Self::restore_a(revision, encoded) {
             return Some(old);
         }
-        let content = serde_json::from_str(encoded).ok()?;
+        // Reject extensions this editor would silently drop on its next save.
+        #[derive(Deserialize)]
+        #[serde(remote = "EditorDocument", deny_unknown_fields)]
+        struct StoredDocument {
+            version: u16,
+            document: serde_json::Value,
+        }
+        let mut reader = serde_json::Deserializer::from_str(encoded);
+        let content = StoredDocument::deserialize(&mut reader).ok()?;
+        reader.end().ok()?;
         managed_text(&content, revision)?;
         (revision <= MAX_REVISION).then(|| Self {
             a: Record { content, revision },
