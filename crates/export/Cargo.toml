@@ -12,6 +12,7 @@ workspace = true
 [dependencies]
 kraqel-domain = { path = "../domain" }
 kraqel-asset-service = { path = "../asset-service" }
+lopdf = { version = "0.47", default-features = false }
 printpdf = { version = "0.7.0", default-features = false }
 ttf-parser = "=0.19.2"
 unicode-normalization = "=0.1.25"

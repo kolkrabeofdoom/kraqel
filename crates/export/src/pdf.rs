@@ -454,8 +454,7 @@ fn verify_images(
 ) -> Result<Vec<u8>> {
     use sha2::{Digest, Sha256};
     use std::collections::BTreeSet;
-    let mut document =
-        printpdf::lopdf::Document::load_mem(bytes).map_err(|_| IllustratedError::Invalid)?;
+    let mut document = lopdf::Document::load_mem(bytes).map_err(|_| IllustratedError::Invalid)?;
     let mut expected = BTreeMap::new();
     if let Some(manifest) = manifest {
         for asset in &manifest.assets {
@@ -484,7 +483,7 @@ fn verify_images(
             if stream
                 .dict
                 .get(b"Subtype")
-                .and_then(printpdf::lopdf::Object::as_name)
+                .and_then(lopdf::Object::as_name)
                 .ok()
                 != Some(b"Image".as_slice())
             {
@@ -502,7 +501,7 @@ fn verify_images(
                     stream
                         .dict
                         .get(key)
-                        .and_then(printpdf::lopdf::Object::as_i64)
+                        .and_then(lopdf::Object::as_i64)
                         .map_err(|_| IllustratedError::Invalid)?,
                 )
                 .map_err(|_| IllustratedError::Invalid)
@@ -516,27 +515,26 @@ fn verify_images(
             if stream
                 .dict
                 .get(b"SMask")
-                .is_ok_and(|value| !matches!(value, printpdf::lopdf::Object::Null))
+                .is_ok_and(|value| !matches!(value, lopdf::Object::Null))
                 || stream
                     .dict
                     .get(b"BitsPerComponent")
-                    .and_then(printpdf::lopdf::Object::as_i64)
+                    .and_then(lopdf::Object::as_i64)
                     .ok()
                     != Some(8)
                 || stream
                     .dict
                     .get(b"ColorSpace")
-                    .and_then(printpdf::lopdf::Object::as_name)
+                    .and_then(lopdf::Object::as_name)
                     .ok()
                     != Some(b"DeviceRGB".as_slice())
             {
                 return Err(IllustratedError::Invalid);
             }
             stream.dict.remove(b"SMask");
-            stream.dict.set(
-                "KRAQELImageId",
-                printpdf::lopdf::Object::Name(id.as_bytes().to_vec()),
-            );
+            stream
+                .dict
+                .set("KRAQELImageId", lopdf::Object::Name(id.as_bytes().to_vec()));
             found.insert(key);
         }
     }
@@ -583,7 +581,7 @@ mod tests {
             chapters: Vec::new(),
         };
         let bytes = text(&manuscript).unwrap();
-        let document = printpdf::lopdf::Document::load_mem(&bytes).unwrap();
+        let document = lopdf::Document::load_mem(&bytes).unwrap();
         let descriptors = document
             .objects
             .values()

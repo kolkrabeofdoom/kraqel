@@ -1,5 +1,13 @@
 # Entwicklungsstatus
 
+### PDF-Export
+
+Text- und Bildexport lesen das selbst erzeugte PDF zur Ausgabeprüfung mit `lopdf 0.47.0`.
+Der bestehende Exporttest prüft unter anderem die eingebetteten RGB-Daten, Abmessungen und
+Bildkennungen. Der PDF-Schreiber `printpdf 0.7.0` zieht weiterhin `lopdf 0.31.0` ein.
+Die Dependabot-Warnung [#8](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/8)
+bleibt bis zur Ablösung dieser transitiven Abhängigkeit offen.
+
 ### Verwalteter Win32-Szeneneditor
 
 Beim Wiederöffnen einer synthetischen Szene weist der Datendienst zusätzliche Felder in der äußeren Dokumenthülle ab. Damit können unbekannte Metadaten beim nächsten Speichern nicht stillschweigend entfallen. Der bestehende Modelltest für nicht unterstützte Dokumente deckt diesen Fall ab.

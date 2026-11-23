@@ -369,7 +369,7 @@ fn pdf_has_fifty_white_proof_pngs_matching_embedded_rgb_and_atomic_failure() {
     assert_eq!(first.files.len(), 52);
     assert_eq!(first.files["medien.json"], second.files["medien.json"]);
     let manifest: serde_json::Value = serde_json::from_slice(&first.files["medien.json"]).unwrap();
-    let document = printpdf::lopdf::Document::load_mem(&first.files["manuskript.pdf"]).unwrap();
+    let document = lopdf::Document::load_mem(&first.files["manuskript.pdf"]).unwrap();
     let embedded: Vec<_> = document
         .objects
         .values()
@@ -451,7 +451,7 @@ fn pdf_distinguishes_equal_rgb_bytes_with_different_image_dimensions() {
     )
     .unwrap();
     assert_eq!(package.image_count, 2);
-    let document = printpdf::lopdf::Document::load_mem(&package.files["manuskript.pdf"]).unwrap();
+    let document = lopdf::Document::load_mem(&package.files["manuskript.pdf"]).unwrap();
     assert_eq!(
         document
             .objects
