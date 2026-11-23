@@ -947,6 +947,12 @@ synthetisch ausgelöst. Der Titel verwies auf manuelles Speichern und das anschl
 Schließen. Erst der manuelle Speicherbefehl veröffentlichte die letzte Revision. Die
 SQLite-Nachprüfung bestätigte den korrigierten Text und den unveränderten zweiten Absatz.
 
+Ein lokaler Lauf mit synthetischer Szene prüfte die Erholung beim Weitertippen.
+Bei simuliertem Timerfehler blieb Revision 0 über die Schreibpause hinaus offen.
+Die nächste gültige Eingabe startete die Entprellung erneut. Nach einer weiteren
+Schreibpause und erneutem Öffnen lag genau Revision 1 vor. Sie enthielt den zuletzt
+eingegebenen Text sowie den unveränderten zweiten Absatz mit seiner Fettmarkierung.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche
