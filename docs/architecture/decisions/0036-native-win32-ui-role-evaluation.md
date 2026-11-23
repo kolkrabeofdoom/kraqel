@@ -482,6 +482,24 @@ Der erste Schreibzug begann im beobachteten Lauf rund 718 ms nach der letzten Ei
 Eine reine Formatänderung löste den zweiten Schreibzug aus. Die frische Leseprüfung und beide
 SQLite-Stände bestätigten denselben Text mit der jeweils erwarteten Markierung.
 
+### Fortlaufendes Autosave unter Journalbudget
+
+Vor dem Sitzungsbeginn reserviert der Starter unter der Kontrollsperre Platz für einen
+Beginn, eine Veröffentlichung pro Schreibzug, je eine neue Edit-Bindung zwischen den Zügen
+und ein reguläres Ende. Für N Speicherungen müssen also 2N + 1 weitere Records Platz haben.
+Der Starter erkennt die Budget-Unterstützung an der gebundenen Fensterdatei und übergibt
+das Limit nach dem Bootstrap über den privaten Kontrollkanal. Ältere Fensterpakete
+verwenden weiterhin das Protokoll für zwei Schreibzüge. Jede neue Bindung nimmt die
+zuletzt bestätigte Revision als Basis. Nach dem letzten bestätigten Schreibzug schließt das
+Fenster. Der Ablauf verwendet ausschließlich die synthetische Szene A.
+
+Auf Windows wurden drei aufeinanderfolgende Speicherungen durch Schreibpause im selben
+Fenster ausgelöst. Nach regulärem Schließen ließ sich Revision 3 mit dem erwarteten Text
+öffnen. Ein gesonderter Grenzlauf nutzte den manuellen Speicherbefehl im selben Fenster,
+um das Journal auszuschöpfen. Bei 124 verfügbaren Schreibzügen war Revision 124 mit dem
+erwarteten Text dauerhaft gespeichert und die Sitzung geschlossen. Ein weiterer Start
+wurde bei unverändertem Journalstand abgewiesen.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

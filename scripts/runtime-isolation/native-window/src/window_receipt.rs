@@ -88,3 +88,14 @@ pub fn continue_receipt(frame: &[u8; 36]) -> [u8; 32] {
     hash.update(frame);
     hash.finalize().into()
 }
+
+// Exact read-only PE metadata for journal-budgeted continuation over the private bootstrap pipe.
+pub const AUTOSAVE_ABI: [u8; 32] = *b"KRAQEL-WIN32-AUTOSAVE-V2........";
+
+pub fn budgeted_argument(mode: SceneOperation) -> &'static str {
+    match mode {
+        SceneOperation::KeyboardEdit => "--managed-scene-a-continue-v2",
+        SceneOperation::Revise => "--managed-scene-a-continue-revise-v2",
+        _ => unreachable!("continuation requires a keyboard edit"),
+    }
+}

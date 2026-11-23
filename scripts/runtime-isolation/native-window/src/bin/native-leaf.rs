@@ -14,6 +14,10 @@ use windows_sys::Win32::{
     UI::Controls::{EM_GETSEL, EM_REPLACESEL, EM_SETLIMITTEXT, EM_SETSEL},
 };
 
+#[used]
+#[unsafe(link_section = ".kqauto")]
+static AUTOSAVE_ABI: [u8; 32] = window_receipt::AUTOSAVE_ABI;
+
 const LABEL: i32 = 100;
 const EDIT: i32 = 101;
 const CLOSE: i32 = 102;
@@ -42,7 +46,7 @@ struct PendingSave {
 }
 
 thread_local! {
-    static AUTOSAVE_TURN: std::cell::Cell<Option<u8>> = const { std::cell::Cell::new(None) };
+    static AUTOSAVE_TURN: std::cell::Cell<Option<(u8, u8)>> = const { std::cell::Cell::new(None) };
     static PENDING_SAVE: std::cell::RefCell<Option<PendingSave>> = const { std::cell::RefCell::new(None) };
     static ACTIVE_PARAGRAPH: std::cell::Cell<i32> = const { std::cell::Cell::new(EDIT) };
     static SECOND_WEIGHT: std::cell::Cell<i32> = const { std::cell::Cell::new(0) };
@@ -496,7 +500,7 @@ struct HeldEditor {
     hwnd: HWND,
     history: Option<DraftHistory>,
     closing: bool,
-    autosave_turn: Option<u8>,
+    autosave_turn: Option<(u8, u8)>,
 }
 
 struct DraftHistory {
@@ -750,10 +754,12 @@ fn update_draft_status(hwnd: HWND) {
         };
         if let Some(revision) = LOADED_REVISION.get() {
             let suffix = match autosave {
-                Some(_) if !scheduled => " · Bitte manuell speichern",
-                Some(1) => " · Autosave 1/2",
-                Some(_) => " · Autosave 2/2",
-                None => "",
+                Some(_) if !scheduled => " · Bitte manuell speichern".to_owned(),
+                Some((turn, limit)) if turn == limit => {
+                    format!(" · Letzter Autosave {turn}/{limit}")
+                }
+                Some((turn, limit)) => format!(" · Autosave {turn}/{limit}"),
+                None => String::new(),
             };
             SetWindowTextW(
                 hwnd,
@@ -1612,6 +1618,16 @@ fn main() {
                     *mode,
                 )))
         });
+    std::hint::black_box(&AUTOSAVE_ABI);
+    let budgeted = [SceneOperation::KeyboardEdit, SceneOperation::Revise]
+        .into_iter()
+        .find(|mode| {
+            arg.as_deref()
+                == Some(std::ffi::OsStr::new(window_receipt::budgeted_argument(
+                    *mode,
+                )))
+        });
+    let continued = continued.or(budgeted);
     let checkpoint = checkpoint.or(continued);
     let scene = checkpoint.or_else(|| SceneOperation::from_argument(arg.as_deref()));
     if scene.is_some() || arg.as_deref() == Some(std::ffi::OsStr::new(window_receipt::UI_ARG)) {
@@ -1626,9 +1642,20 @@ fn main() {
                 let mut expected_next = None;
                 let mut turn_mode = mode;
                 let mut control = input;
+                let limit = if budgeted.is_some() {
+                    use std::io::Read;
+                    let mut budget = [0u8];
+                    control.read_exact(&mut budget)?;
+                    require(budget[0] > 0, "scene autosave budget")?;
+                    budget[0]
+                } else if continued.is_some() {
+                    2
+                } else {
+                    1
+                };
+                let mut turn = 1;
                 loop {
-                    held.autosave_turn =
-                        continued.map(|_| if expected_next.is_none() { 1 } else { 2 });
+                    held.autosave_turn = continued.map(|_| (turn, limit));
                     let dialog_output = output.try_clone()?;
                     let view = managed_scene::exchange(
                         control.try_clone()?,
@@ -1707,14 +1734,15 @@ fn main() {
                                 .as_ptr(),
                             ))?;
                         }
-                        if continued.is_some() && expected_next.is_none() && !held.closing {
+                        if turn < limit && !held.closing {
                             output.write_all(&window_receipt::continue_receipt(&frame))?;
+                            turn += 1;
                             expected_next = revision;
                             turn_mode = SceneOperation::Revise;
                             continue;
                         }
                         output.write_all(&window_receipt::publication_receipt(&frame))?;
-                        if continued.is_some() && expected_next.is_none() {
+                        if turn < limit {
                             let mut end = [1u8];
                             control.read_exact(&mut end)?;
                             require(end == [0], "scene close confirmation")?;

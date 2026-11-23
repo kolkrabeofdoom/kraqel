@@ -128,6 +128,12 @@ pub(super) enum Operation<'a> {
     CheckWindow(WindowMode),
 }
 
+// Before Begin: one begin, one publication per save, a rebind between saves,
+// and one mandatory close. The highest valid journal sequence is MAX_RECORDS - 1.
+fn available_saves(sequence: usize) -> usize {
+    MAX_RECORDS.saturating_sub(sequence).saturating_sub(2) / 2
+}
+
 impl Store {
     pub(super) fn win32_binding(
         &mut self,
@@ -190,8 +196,17 @@ impl Store {
             package::verify_window_session(&mut managed)?;
             let continued = mode == WindowMode::Continue;
             let checkpoint = continued || mode == WindowMode::Checkpoint;
-            if self.state.sequence + 2 + usize::from(checkpoint) + 2 * usize::from(continued)
-                >= MAX_RECORDS
+            let budgeted = continued && package::budgeted_window(image)?;
+            let remaining = available_saves(self.state.sequence);
+            let limit = if budgeted {
+                remaining
+            } else if continued {
+                2
+            } else {
+                1
+            };
+            if (checkpoint && (limit == 0 || remaining < limit))
+                || (!checkpoint && self.state.sequence + 2 >= MAX_RECORDS)
             {
                 return Err(invalid("win32-window-record-budget"));
             }
@@ -262,6 +277,9 @@ impl Store {
                     &mut baseline,
                     checkpoint,
                     continued,
+                    budgeted.then_some(
+                        u8::try_from(limit).map_err(|_| invalid("win32-window-record-budget"))?,
+                    ),
                 )?
             } else {
                 suspended::check_window(self, &root, image, mode)?

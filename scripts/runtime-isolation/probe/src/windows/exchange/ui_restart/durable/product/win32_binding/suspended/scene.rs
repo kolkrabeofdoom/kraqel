@@ -53,6 +53,7 @@ pub(in super::super) fn read_scene(
     baseline: &mut Option<SnapshotFile>,
     checkpoint: bool,
     continued: bool,
+    budget: Option<u8>,
 ) -> Result<Value> {
     use crate::window_receipt::SceneOperation;
     use crate::windows::exchange::ui_restart::pipe;
@@ -62,7 +63,9 @@ pub(in super::super) fn read_scene(
         root,
         window,
         WINDOW,
-        if continued {
+        if budget.is_some() {
+            crate::window_receipt::budgeted_argument(mode)
+        } else if continued {
             crate::window_receipt::continue_argument(mode)
         } else if checkpoint {
             crate::window_receipt::checkpoint_argument(mode)
@@ -74,7 +77,9 @@ pub(in super::super) fn read_scene(
             let mut ui_reply = reply.ok_or(invalid("scene-ui-reply"))?;
             let ui_secret = bootstrap::stage(store, window, ui, endpoint, &mut to_ui, true)?;
             let mut first_window = None;
-            for turn in 0..=usize::from(continued) {
+            let limit = budget.unwrap_or(if continued { 2 } else { 1 });
+            for turn in 0..limit {
+                let can_continue = turn + 1 < limit;
                 let mode = if turn == 0 {
                     mode
                 } else {
@@ -127,6 +132,9 @@ pub(in super::super) fn read_scene(
                         }
                         if turn == 0 {
                             bootstrap::confirm_grant(ui, &mut to_ui, &mut ui_reply, &ui_secret)?;
+                            if let Some(limit) = budget {
+                                io("scene-autosave-budget", to_ui.write_all(&[limit]))?;
+                            }
                         }
                         bootstrap::confirm_grant(
                             data,
@@ -261,7 +269,7 @@ pub(in super::super) fn read_scene(
                     frame[..4].copy_from_slice(&snapshot.revision.to_le_bytes());
                     frame[4..].copy_from_slice(&store.state.head);
                     io("scene-checkpoint-confirm", to_ui.write_all(&frame))?;
-                    if continued && turn == 0 {
+                    if can_continue {
                         let receipt = bootstrap::live_frame::<32>(&mut ui_reply, ui.hProcess)?;
                         if receipt == crate::window_receipt::publication_receipt(&frame) {
                             io("scene-confirm-close", to_ui.write_all(&[0]))?;
@@ -290,7 +298,7 @@ pub(in super::super) fn read_scene(
                     if unsafe { WaitForSingleObject(ui.hProcess, 5000) } != WAIT_OBJECT_0 {
                         return Err(invalid("scene-checkpoint-window-timeout"));
                     }
-                    if !(continued && turn == 0)
+                    if !can_continue
                         && bootstrap::live_frame::<32>(&mut ui_reply, ui.hProcess)?
                             != crate::window_receipt::publication_receipt(&frame)
                     {

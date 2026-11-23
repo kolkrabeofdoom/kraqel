@@ -2,16 +2,12 @@
 
 ### Verwalteter Win32-Szeneneditor
 
-Der Forschungsauftrag `continue-win32-scene` speichert gültige, geänderte Entwürfe nach
-700 ms Schreibpause automatisch. Text und Fettmarkierung zählen als Änderung. Die Probe umfasst
-zwei bestätigte Veröffentlichungen, danach endet das Fenster.
-[Umfang und Windows-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#entprelltes-autosave-in-der-zwei-schreibzug-probe).
-
-Im Forschungsauftrag `continue-win32-scene` kann nach der ersten Bestätigung im selben
-Editorfenster weitergeschrieben werden. Der zweite Schreibzug hat eine frische
-Edit-Bindung an die bestätigte Revision. Zwei Veröffentlichungen, reguläres Schließen nach
-der ersten und die Sperre nach Prozessabbruch wurden auf Windows geprüft.
-[Protokoll und Nachweise](architecture/decisions/0036-native-win32-ui-role-evaluation.md#zweiter-schreibzug-im-selben-fenster).
+Im Forschungsauftrag `continue-win32-scene` speichert das Win32-Fenster gültige Änderungen
+an Text und Fettmarkierung nach 700 ms Schreibpause. Nach jeder Bestätigung kann im selben
+Fenster auf der bestätigten Revision weitergeschrieben werden, solange das Journal einen
+weiteren Schreibzug und den Sitzungsabschluss aufnehmen kann. Der Fenstertitel kennzeichnet
+den letzten verfügbaren Schreibzug. Geprüft mit synthetischer Szene A auf Windows.
+[Journalbudget und Nachweise](architecture/decisions/0036-native-win32-ui-role-evaluation.md#fortlaufendes-autosave-unter-journalbudget).
 
 Der Starter kann eine Folgerevision unter Kontrollsperre veröffentlichen, während das ursprüngliche
 Editorfenster auf die Bestätigung wartet. Die optionale [Checkpoint-Probe](architecture/decisions/0036-native-win32-ui-role-evaluation.md#veröffentlichung-bei-offenem-editorfenster)
