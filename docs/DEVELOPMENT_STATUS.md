@@ -16,7 +16,7 @@ Entscheidung. Der verwaltete Windows-Lauf und die Kanalprüfung sind im
 
 Bei einem Konflikt lädt das verwaltete Rollenpaar den aktuellen Stand des Datendienstes unter
 einer einmaligen Lesebindung. Der Entwurf bleibt links bearbeitbar, die Dienstrevision steht
-rechts schreibgeschützt zum Vergleich. F6 wechselt zwischen beiden.
+rechts schreibgeschützt zum Vergleich. Tab erreicht das Vergleichsfeld nach dem zweiten Absatz. F6 springt zum zuletzt bearbeiteten Absatz zurück.
 [Bindung, Bedienung und Prüfungen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#lesender-revisionsvergleich-im-konfliktfenster).
 
 Im fortlaufenden Konfliktfenster lassen sich beide Absätze und die Fettmarkierung einzeln

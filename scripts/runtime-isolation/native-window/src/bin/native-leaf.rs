@@ -2170,37 +2170,44 @@ unsafe fn run_editor_loop(
                     continue;
                 }
             }
-            // A multiline EDIT can claim Tab. This two-control form reserves it for navigation.
+            // Multiline EDIT controls can claim Tab. Use the visible, enabled controls
+            // in reading order, including the comparison pane when a conflict is open.
             if msg.message == WM_KEYDOWN
                 && msg.wParam == usize::from(VK_TAB)
                 && GetKeyState(i32::from(VK_CONTROL)) >= 0
                 && GetKeyState(i32::from(VK_MENU)) >= 0
             {
-                let next = if draft.is_some() {
-                    let ids: &[i32] = if in_focus_mode(hwnd) {
-                        &[EDIT, SECOND]
-                    } else if IsWindowEnabled(GetDlgItem(hwnd, action)) != 0 {
-                        &[EDIT, SECOND, action, DISCARD, SEARCH, REPLACEMENT]
-                    } else {
-                        &[EDIT, SECOND, SEARCH, REPLACEMENT]
-                    };
-                    let index = ids
-                        .iter()
-                        .position(|id| GetDlgItem(hwnd, *id) == GetFocus())
-                        .unwrap_or(0);
-                    ids[(index
-                        + if GetKeyState(i32::from(VK_SHIFT)) < 0 {
-                            ids.len() - 1
-                        } else {
-                            1
-                        })
-                        % ids.len()]
-                } else if GetFocus() == GetDlgItem(hwnd, EDIT) {
-                    CLOSE
+                let order: &[i32] = if draft.is_some() {
+                    &[
+                        EDIT,
+                        SECOND,
+                        COMPARISON,
+                        action,
+                        DISCARD,
+                        SEARCH,
+                        REPLACEMENT,
+                    ]
                 } else {
-                    EDIT
+                    &[EDIT, CLOSE]
                 };
-                SetFocus(GetDlgItem(hwnd, next));
+                let backwards = GetKeyState(i32::from(VK_SHIFT)) < 0;
+                let focus = GetFocus();
+                let mut index = order
+                    .iter()
+                    .position(|&id| !focus.is_null() && GetDlgItem(hwnd, id) == focus)
+                    .unwrap_or(if backwards { 0 } else { order.len() - 1 });
+                let step = if backwards { order.len() - 1 } else { 1 };
+                for _ in order {
+                    index = (index + step) % order.len();
+                    let target = GetDlgItem(hwnd, order[index]);
+                    if !target.is_null()
+                        && IsWindowVisible(target) != 0
+                        && IsWindowEnabled(target) != 0
+                    {
+                        SetFocus(target);
+                        break;
+                    }
+                }
                 continue;
             }
             if has_surface

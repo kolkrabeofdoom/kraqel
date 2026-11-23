@@ -624,6 +624,12 @@ gesperrt und ließen auch bei direkter Befehlsauslösung den Entwurf offen. Nach
 bestätigtem Verwerfen meldete der Starter die zuletzt veröffentlichte Revision 1 und null
 verbleibende Jobprozesse.
 
+Das Vergleichsfeld folgt in der Tab-Reihenfolge auf den zweiten Absatz. Die Navigation
+überspringt ausgeblendete und gesperrte Bedienelemente. Im verwalteten Windows-Lauf
+erreichte Tab das Vergleichsfeld vom zweiten Absatz aus. F6 führte mit erhaltener
+Textmarkierung in diesen Absatz zurück. Ein weiterer Wechsel ins Vergleichsfeld und Tab
+führten zur nächsten verfügbaren Schaltfläche. Die Navigation löste keinen Schreibzug aus.
+
 Beim Aktualisieren desselben Vergleichsfelds behält die Vorschau die erste sichtbare
 Zeile bei, soweit der neue Inhalt das zulässt. Im Windows-Lauf mit verkleinertem Feld
 blieben Scrollposition und Textmarkierung beim Weiterschreiben und beim Ändern der
