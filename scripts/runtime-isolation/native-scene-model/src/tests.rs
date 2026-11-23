@@ -219,6 +219,46 @@ fn known_inline_marks_open_only_as_plain_text_preview() {
 }
 
 #[test]
+fn inline_bold_requires_a_bound_edit_and_complete_utf16_characters() {
+    let mut catalog = SyntheticCatalog::with_marked_scene_a();
+    let request = |revision, end| {
+        serde_json::to_vec(&json!({
+            "command":"c4_document_save_span_v1","expectedRevision":revision,
+            "text":"A🪶B\n42","boldSecond":true,"span":{"paragraph":0,"start":1,"end":end}
+        }))
+        .unwrap()
+    };
+    for (mode, revision, end, error) in [
+        (Mode::Read, 0, 3, "DENIED"),
+        (Mode::Edit, 1, 3, "CONFLICT"),
+        (Mode::Edit, 0, 2, "INVALID"),
+    ] {
+        let answer = catalog
+            .bind(Scene::A, mode)
+            .handle_managed(&request(revision, end));
+        assert_eq!(to_value(answer).unwrap(), json!({"error":error}));
+        assert_eq!(catalog.a.revision, 0);
+    }
+    let mut scene = catalog.bind(Scene::A, Mode::Edit);
+    assert!(matches!(
+        scene.handle_managed(&request(0, 3)),
+        Reply::Saved { revision: 1 }
+    ));
+    let snapshot = catalog.snapshot_a();
+    let mut reopened = SyntheticCatalog::restore_managed_a(1, &snapshot.0).unwrap();
+    let mut edit = reopened.bind(Scene::A, Mode::Edit);
+    assert_eq!(
+        to_value(edit.handle_managed(READ)).unwrap(),
+        json!({"revision":1,"preview_text":"A🪶B\n42","inline":[{"paragraph":0,"start":1,"end":3},true]})
+    );
+    assert_eq!(
+        to_value(edit.handle_managed(&save(1, "Rabe\n43"))).unwrap(),
+        json!({"error":"DENIED"})
+    );
+    assert_eq!(reopened.snapshot_a(), snapshot);
+}
+
+#[test]
 fn plain_edit_budget_counts_breaks_and_utf16_and_preserves_revision_on_rejection() {
     let last = "🐦".repeat((MAX_PREVIEW_UTF16 - 4) / 2);
     let text = format!("AB\n\n{last}");

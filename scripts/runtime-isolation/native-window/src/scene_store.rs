@@ -337,8 +337,14 @@ impl Store {
         };
         let reply = handle(body);
         if let Reply::Saved { revision } = reply {
-            let Reply::Read { text, .. } = handle(br#"{"command":"c4_document_read_v1"}"#) else {
-                return Err(io::Error::other("invalid saved fixture"));
+            let text = match handle(br#"{"command":"c4_document_read_v1"}"#) {
+                Reply::Read { text, .. }
+                | Reply::Preview {
+                    preview_text: text,
+                    inline: Some(_),
+                    ..
+                } => text,
+                _ => return Err(io::Error::other("invalid saved fixture")),
             };
             let (encoded, _) = catalog.snapshot_a();
             require(tx.execute("UPDATE scene SET document=?1,plain_text=?2,revision=?3 WHERE id='A' AND revision=?4",params![encoded,text,revision,rev]).map_err(failure)?==1,"revision check")?;

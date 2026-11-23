@@ -89,6 +89,8 @@ impl SceneView {
 #[serde(deny_unknown_fields)]
 pub struct TextPreview {
     pub preview_text: String,
+    #[serde(default)]
+    pub inline: Option<(super::BoldRange, bool)>,
     pub revision: u32,
 }
 
@@ -226,6 +228,9 @@ impl Binding {
                 revision > 0
                     && view.revision == revision
                     && super::valid_preview_text(&view.preview_text)
+                    && view
+                        .inline
+                        .is_none_or(|(span, bold)| span.parts(&view.preview_text, bold).is_some())
             }
         };
         if !valid {
@@ -324,7 +329,17 @@ impl Binding {
             }
         };
         let body = serde_json::to_vec(&body).map_err(|_| Closed)?;
-        let saved = self.exchange(2, &body, reader, writer)?;
+        self.submit_save(revision, &body, reader, writer)
+    }
+
+    fn submit_save(
+        &self,
+        revision: u32,
+        body: &[u8],
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+    ) -> Result<SaveReply, Closed> {
+        let saved = self.exchange(2, body, reader, writer)?;
         if Self::expect_error(&saved, "CONFLICT").is_ok() {
             return Ok(SaveReply::Conflict);
         }
@@ -459,6 +474,7 @@ impl Binding {
                     Ok(OpenedScene::Preview(TextPreview {
                         revision: v.revision,
                         preview_text: v.text,
+                        inline: None,
                     }))
                 }
             }
@@ -479,6 +495,7 @@ impl Binding {
         reviewed_write: ReviewedWrite,
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
+        take_span: impl FnOnce() -> Option<super::BoldRange>,
         mut edit: impl FnMut(EditorEvent<'_>) -> Result<Option<(String, bool)>, Closed>,
     ) -> Result<Option<SceneView>, Closed> {
         let selection = match self.open_bound_scene(1, reader, writer, revision)? {
@@ -505,6 +522,33 @@ impl Binding {
         };
         if !super::valid_scene_edit(&text, bold) {
             return Err(Closed);
+        }
+        if let Some(span) = take_span() {
+            span.parts(&text, bold).ok_or(Closed)?;
+            let body =
+                serde_json::to_vec(&serde_json::json!({"command":"c4_document_save_span_v1",
+                "expectedRevision":revision,"text":text,"boldSecond":bold,"span":span}))
+                .map_err(|_| Closed)?;
+            if let SaveReply::Conflict = self.submit_save(revision, &body, reader, writer)? {
+                edit(EditorEvent::RevisionConflict(None))?;
+                return if self.exchange(3, DISCARD, reader, writer)? == DISCARDED {
+                    Ok(None)
+                } else {
+                    Err(Closed)
+                };
+            }
+            let next = revision.checked_add(1).ok_or(Closed)?;
+            let OpenedScene::Preview(view) = self.open_bound_scene(3, reader, writer, next)? else {
+                return Err(Closed);
+            };
+            if view.preview_text != text || view.inline != Some((span, bold)) {
+                return Err(Closed);
+            }
+            return Ok(Some(SceneView {
+                text,
+                bold_second: bold,
+                revision: next,
+            }));
         }
         if let SaveReply::Conflict =
             self.save_text(reader, writer, original.revision, &text, Some(bold))?
@@ -683,6 +727,7 @@ impl Binding {
                 Expected::Read,
             ]
         };
+        let mut saved_span = false;
         let mut short_source = false;
         let mut plain_source = false;
         for (index, expected) in steps.iter().enumerate() {
@@ -695,12 +740,39 @@ impl Binding {
                     .map_err(|_| Closed)?;
                 return Ok(ServiceEnd::Discarded);
             }
+            if seq != 2 && body != COMPARE_READ {
+                return Err(Closed);
+            }
+            if let Ok(super::Request::SaveSpan {
+                expected_revision, ..
+            }) = serde_json::from_slice(body)
+            {
+                if seq != 2
+                    || !short_source
+                    || !allow_discard
+                    || reopening
+                    || expected_revision != revision
+                {
+                    return Err(Closed);
+                }
+                saved_span = true;
+            }
             let answer = dispatch(body)?;
             if seq == 1 {
                 plain_source = matches!(&answer, super::Reply::Read {text,bold_second:false,..} if super::valid_scene_edit(text,false));
                 short_source = matches!(&answer, super::Reply::Read {text,..} if super::valid_paragraphs(text));
             }
             if let super::Reply::Preview { .. } = &answer {
+                if seq == 3
+                    && saved_span
+                    && matches!(&answer,super::Reply::Preview{inline:Some(_),revision:r,..} if Some(*r)==revision.checked_add(1))
+                {
+                    let payload = serde_json::to_vec(&answer).map_err(|_| Closed)?;
+                    writer
+                        .write_all(&self.encode(Kind::Response, seq, &payload)?)
+                        .map_err(|_| Closed)?;
+                    return Ok(ServiceEnd::Complete);
+                }
                 if seq != 1
                     || body != br#"{"command":"c4_document_read_v1"}"#
                     || !(reopening || allow_discard)

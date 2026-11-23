@@ -132,6 +132,7 @@ fn comparison_prepare_requires_compatible_text_and_command() {
                         error: crate::Failure::Conflict,
                     },
                     3 if preview => crate::Reply::Preview {
+                        inline: None,
                         preview_text: target.into(),
                         revision: 2,
                     },

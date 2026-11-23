@@ -70,7 +70,32 @@ struct PendingSave {
 const SAVE_AND_STAY: i32 = 112;
 const CONTINUE_PLAIN_DRAFT: u32 = WM_APP + 8;
 const OPEN_PLAIN: usize = 230;
+const SAVE_SPAN: usize = 232;
+const REQUEST_SPAN: u32 = WM_APP + 9;
+use kraqel_native_scene_model::BoldRange;
+
+fn selected_span(hwnd: HWND) -> Option<BoldRange> {
+    if LONG_EDIT.get() || REVISION_CONFLICT.get() || AWAITING_REBIND.get() || CLOSE_REQUESTED.get()
+    {
+        return None;
+    }
+    let id = ACTIVE_PARAGRAPH.get();
+    let field = unsafe { GetDlgItem(hwnd, id) };
+    if field.is_null() || unsafe { GetFocus() } != field {
+        return None;
+    }
+    let packed = unsafe { SendMessageW(field, EM_GETSEL, 0, 0) } as u32;
+    let span = BoldRange {
+        paragraph: u8::from(id == SECOND),
+        start: packed as u16,
+        end: (packed >> 16) as u16,
+    };
+    span.parts(&draft_text(hwnd)?, is_bold())?;
+    Some(span)
+}
+
 thread_local! {
+    static FORMAT_REQUEST: std::cell::Cell<Option<BoldRange>> = const {std::cell::Cell::new(None)};
     static PLAIN_REVIEW: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static PARAGRAPH_COMPARE: std::cell::RefCell<Option<paragraph_comparison::Comparison>> = const {std::cell::RefCell::new(None)};
     static LONG_EDIT: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
@@ -365,6 +390,10 @@ fn install_editor_menu(hwnd: HWND) -> bool {
                     (OPEN_PLAIN, "Als längeren Klartext bearbeiten"),
                     (UNDO, "&Rückgängig\tStrg+Z"),
                     (REDO, "&Wiederholen\tStrg+Y"),
+                    (
+                        SAVE_SPAN,
+                        "Markierte &Textstelle fett speichern und schließen",
+                    ),
                     (BOLD_SECOND, "Zweiter Absatz &fett\tStrg+B"),
                     (FIND, "&Suchen…\tStrg+F"),
                     (FIND_NEXT, "&Nächster Treffer\tF3"),
@@ -2050,11 +2079,16 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
             }
             WM_INITMENU if !GetMenu(hwnd).is_null() => {
                 let focus = GetFocus();
+                enable_menu_command(hwnd, SAVE_SPAN, selected_span(hwnd).is_some());
                 enable_menu_command(
                     hwnd,
                     SELECT_PARAGRAPH,
                     focus == GetDlgItem(hwnd, EDIT) || focus == GetDlgItem(hwnd, SECOND),
                 );
+                0
+            }
+            WM_COMMAND if w == SAVE_SPAN => {
+                PostMessageW(hwnd, REQUEST_SPAN, 0, 0);
                 0
             }
             WM_COMMAND if w == BOLD_SECOND => {
@@ -2175,6 +2209,7 @@ struct SceneSurface {
     text: String,
     second_bold: Option<bool>,
     text_preview: bool,
+    inline: Option<(BoldRange, bool)>,
 }
 
 fn show(
@@ -2430,6 +2465,47 @@ fn show(
             {
                 return 24;
             }
+        }
+        if let Some((surface, (span, bold))) =
+            surface.as_ref().and_then(|s| s.inline.map(|i| (s, i)))
+        {
+            let Some((_, word, _)) = span.parts(&surface.text, bold) else {
+                return 24;
+            };
+            let offset = if span.paragraph == 1 {
+                surface
+                    .text
+                    .split_once('\n')
+                    .unwrap()
+                    .0
+                    .encode_utf16()
+                    .count()
+                    + 2
+            } else {
+                0
+            };
+            SendDlgItemMessageW(
+                hwnd,
+                EDIT,
+                EM_SETSEL,
+                offset + usize::from(span.start),
+                (offset + usize::from(span.end)) as isize,
+            );
+            let other = if bold { " · Absatz 2 fett" } else { "" };
+            SetDlgItemTextW(
+                hwnd,
+                LABEL,
+                wide(
+                    format!(
+                        "Schreibgeschützt · Fett in Absatz {}: „{}“{}",
+                        span.paragraph + 1,
+                        word,
+                        other
+                    )
+                    .replace('&', "&&"),
+                )
+                .as_ptr(),
+            );
         }
         if draft.is_some() {
             if !set_bold(hwnd, bold) {
@@ -2935,22 +3011,33 @@ unsafe fn run_editor_loop(
                 {
                     continue;
                 }
-                if timer || msg.message == SAVE_DRAFT || ctrl_save || enter_save {
+                let span = if msg.message == REQUEST_SPAN {
+                    let Some(span) = selected_span(hwnd) else {
+                        continue;
+                    };
+                    Some(span)
+                } else {
+                    None
+                };
+                if span.is_some() || timer || msg.message == SAVE_DRAFT || ctrl_save || enter_save {
                     if CLOSE_REQUESTED.get() || REVISION_CONFLICT.get() {
                         cancel_pending_save(hwnd);
                         continue;
                     }
                     if let Some(value) = draft_text(hwnd) {
-                        if is_bold() == INITIAL_BOLD.get()
+                        if span.is_none()
+                            && is_bold() == INITIAL_BOLD.get()
                             && EXPECTED.with_borrow(|initial| initial == &value)
                         {
                             continue;
                         }
                         if kraqel_native_scene_model::valid_paragraphs(&value) {
+                            FORMAT_REQUEST.set(span);
                             *result = (value, is_bold());
                             if let Some(held) = keep_editor.as_deref_mut() {
                                 held.hwnd = hwnd;
-                                held.closing = msg.message == SAVE_DRAFT && msg.wParam == 1;
+                                held.closing =
+                                    span.is_some() || msg.message == SAVE_DRAFT && msg.wParam == 1;
                                 held.history = history.take();
                                 held.submitted = Some(result.clone());
                                 // Keep keyboard focus and the thread input queue across publication.
@@ -3144,7 +3231,7 @@ fn main() {
                 .ok_or(std::io::Error::other("missing profile"))?;
             let (input, mut output) =
                 managed_scene::confirm_bootstrap(Some(&profile), bootstrap::Role::Window)?;
-            let (text, marked, revision, text_preview) = if let Some(mode) = scene {
+            let (text, marked, revision, text_preview, inline) = if let Some(mode) = scene {
                 let mut held = HeldEditor::default();
                 let mut expected_next = None;
                 let mut turn_mode = mode;
@@ -3185,6 +3272,7 @@ fn main() {
                         compare,
                         refresh,
                         reviewed_write,
+                        || FORMAT_REQUEST.take(),
                         |event| {
                             use kraqel_native_scene_model::channel::EditorEvent;
                             let loaded = match event {
@@ -3199,6 +3287,7 @@ fn main() {
                                             text: view.preview_text.clone(),
                                             second_bold: Some(false),
                                             text_preview: true,
+                                            inline: view.inline,
                                         }),
                                         None,
                                         None,
@@ -3295,6 +3384,7 @@ fn main() {
                                             text: loaded.text.clone(),
                                             second_bold: Some(loaded.bold_second),
                                             text_preview: false,
+                                            inline: None,
                                         }),
                                         Some(&mut draft),
                                         Some(&mut held),
@@ -3350,7 +3440,7 @@ fn main() {
                     };
                     if checkpoint.is_some() {
                         use std::io::{Read, Write};
-                        let (text, bold, revision, _) = view;
+                        let (text, bold, revision, _, _) = view;
                         require(
                             !held.hwnd.is_null()
                                 && held.submitted.as_ref().is_some_and(|(submitted, marked)| {
@@ -3401,7 +3491,7 @@ fn main() {
                     break view;
                 }
             } else {
-                ("Rabe\n42".to_owned(), false, None, false)
+                ("Rabe\n42".to_owned(), false, None, false, None)
             };
             LOADED_REVISION.set(revision);
             let split = marked
@@ -3422,6 +3512,7 @@ fn main() {
                     text,
                     second_bold: split.then_some(marked),
                     text_preview,
+                    inline,
                 }),
                 None,
                 None,

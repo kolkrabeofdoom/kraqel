@@ -103,6 +103,91 @@ pub fn valid_paragraphs(text: &str) -> bool {
         .is_some_and(|(first, second)| valid_paragraph(first) && valid_paragraph(second))
 }
 
+/// Half-open UTF-16 offsets in one of the two native EDIT controls.
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BoldRange {
+    pub paragraph: u8,
+    pub start: u16,
+    pub end: u16,
+}
+
+impl BoldRange {
+    pub fn parts<'a>(
+        self,
+        text: &'a str,
+        bold_second: bool,
+    ) -> Option<(&'a str, &'a str, &'a str)> {
+        if !valid_paragraphs(text) || self.start >= self.end || self.paragraph == 1 && bold_second {
+            return None;
+        }
+        let line = text.split('\n').nth(usize::from(self.paragraph))?;
+        let offset = |units: u16| {
+            let mut pos = 0;
+            for (index, c) in line.char_indices() {
+                if pos == usize::from(units) {
+                    return Some(index);
+                }
+                pos += c.len_utf16();
+            }
+            (pos == usize::from(units)).then_some(line.len())
+        };
+        let (a, b) = (offset(self.start)?, offset(self.end)?);
+        // Whole-paragraph formatting uses its own editor contract.
+        (a != 0 || b != line.len()).then(|| (&line[..a], &line[a..b], &line[b..]))
+    }
+
+    fn document(self, text: &str, bold_second: bool) -> Option<EditorDocument> {
+        let (before, selected, after) = self.parts(text, bold_second)?;
+        let mut doc = if bold_second {
+            marked_document(text)
+        } else {
+            document(text)
+        };
+        let runs: Vec<_> = [(before, false), (selected, true), (after, false)]
+            .into_iter()
+            .filter(|(s, _)| !s.is_empty())
+            .map(|(s, bold)| {
+                let mut run = json!({"type":"text","text":s});
+                if bold {
+                    run["marks"] = json!([{"type":"bold"}]);
+                }
+                run
+            })
+            .collect();
+        doc.document["content"][usize::from(self.paragraph)]["content"] = json!(runs);
+        Some(doc)
+    }
+}
+
+fn inline_style(doc: &EditorDocument, text: &str) -> Option<(BoldRange, bool)> {
+    if !valid_paragraphs(text) {
+        return None;
+    }
+    for paragraph in 0..2u8 {
+        let runs = doc.document["content"][usize::from(paragraph)]["content"].as_array()?;
+        let mut start = 0;
+        for run in runs {
+            let end = start + u16::try_from(run["text"].as_str()?.encode_utf16().count()).ok()?;
+            if run.get("marks").is_some() && runs.len() > 1 {
+                let span = BoldRange {
+                    paragraph,
+                    start,
+                    end,
+                };
+                let second = paragraph == 0
+                    && doc.document["content"][1]["content"][0]
+                        .get("marks")
+                        .is_some();
+                return (span.document(text, second).as_ref() == Some(doc))
+                    .then_some((span, second));
+            }
+            start = end;
+        }
+    }
+    None
+}
+
 fn managed_text(doc: &EditorDocument, revision: u32) -> Option<String> {
     if let Some((text, false)) = project_scene(doc, revision) {
         return Some(text);
@@ -303,6 +388,15 @@ enum Request {
         expected_revision: u32,
         text: String,
     },
+    #[serde(rename = "c4_document_save_span_v1")]
+    SaveSpan {
+        #[serde(rename = "expectedRevision")]
+        expected_revision: u32,
+        text: String,
+        #[serde(rename = "boldSecond")]
+        bold_second: bool,
+        span: BoldRange,
+    },
     #[serde(rename = "c4_document_save_v2")]
     SaveFormatted {
         #[serde(rename = "expectedRevision")]
@@ -329,6 +423,8 @@ pub enum Reply {
     },
     Preview {
         preview_text: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        inline: Option<(BoldRange, bool)>,
         revision: u32,
     },
     Saved {
@@ -380,6 +476,7 @@ impl BoundScene<'_> {
                 project_scene(&self.record.content, revision).ok_or(Failure::Invalid)?;
             return match request {
                 Request::Read {} => Ok(Reply::Preview {
+                    inline: inline_style(&self.record.content, &text),
                     preview_text: text,
                     revision,
                 }),
@@ -413,7 +510,21 @@ impl BoundScene<'_> {
                 text,
                 bold_second,
             } if editable_fixture => self.save(expected_revision, text, Some(bold_second), true),
-            Request::SaveFormatted { .. } => Err(Failure::Denied),
+            Request::SaveSpan {
+                expected_revision,
+                text,
+                bold_second,
+                span,
+            } if editable_fixture => {
+                if self.mode != Mode::Edit || !valid_paragraphs(&self.current_text(true)?) {
+                    return Err(Failure::Denied);
+                }
+                let doc = span.document(&text, bold_second).ok_or(Failure::Invalid)?;
+                let saved = self.save(expected_revision, text, Some(bold_second), true)?;
+                self.record.content = doc;
+                Ok(saved)
+            }
+            Request::SaveSpan { .. } | Request::SaveFormatted { .. } => Err(Failure::Denied),
         }
     }
 
