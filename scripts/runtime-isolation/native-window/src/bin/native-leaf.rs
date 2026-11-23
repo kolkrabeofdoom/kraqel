@@ -26,6 +26,7 @@ const PICK_FIRST: usize = 220;
 const PICK_SECOND: usize = 221;
 const PICK_BOLD: usize = 222;
 const COMMIT_SELECTION: usize = 223;
+const CONTINUE_SELECTION: usize = 224;
 const MERGE_SELECTED: u32 = WM_APP + 7;
 const COMPARISON: i32 = 111;
 const LABEL: i32 = 100;
@@ -532,6 +533,7 @@ struct HeldEditor {
     submitted: Option<(String, bool)>,
     history: Option<DraftHistory>,
     closing: bool,
+    resume_after_merge: bool,
     autosave_turn: Option<(u8, u8)>,
 }
 
@@ -839,6 +841,7 @@ unsafe fn install_selection_menu(hwnd: HWND) -> std::io::Result<()> {
             (PICK_SECOND, "Zweiten Absatz aus Entwurf"),
             (PICK_BOLD, "Fettmarkierung aus Entwurf"),
             (COMMIT_SELECTION, "Auswahl speichern und schließen"),
+            (CONTINUE_SELECTION, "Auswahl speichern und weiterschreiben"),
         ] {
             if AppendMenuW(menu, MF_STRING, id, wide(label).as_ptr()) == 0 {
                 DestroyMenu(menu);
@@ -854,6 +857,47 @@ unsafe fn install_selection_menu(hwnd: HWND) -> std::io::Result<()> {
 }
 
 const MERGE_EXIT: i32 = 43;
+const MERGE_CONTINUE_EXIT: i32 = 44;
+
+fn remove_selection_menu(hwnd: HWND) -> std::io::Result<()> {
+    unsafe {
+        let menu = GetMenu(hwnd);
+        if GetMenuState(menu, COMMIT_SELECTION as u32, MF_BYCOMMAND) != u32::MAX {
+            check(DeleteMenu(
+                menu,
+                (GetMenuItemCount(menu) - 1) as u32,
+                MF_BYPOSITION,
+            ))?;
+            check(DrawMenuBar(hwnd))?;
+        }
+        Ok(())
+    }
+}
+
+fn resume_merged_editor(
+    held: &mut HeldEditor,
+    view: &kraqel_native_scene_model::channel::SceneView,
+) -> std::io::Result<()> {
+    let hwnd = held.hwnd;
+    unsafe {
+        remove_selection_menu(hwnd)?;
+        REVIEW_BASIS.replace(None);
+        check(DestroyWindow(GetDlgItem(hwnd, COMPARISON)))?;
+        REVISION_CONFLICT.set(false);
+        require(
+            restore_draft(hwnd, &view.text)
+                && set_bold(hwnd, view.bold_second)
+                && layout_surface(hwnd),
+            "resume merged draft",
+        )?;
+        // Start undo at the accepted mixture so discarded conflict values cannot reappear.
+        held.history = Some(DraftHistory::new(view.text.clone()));
+        held.resume_after_merge = false;
+        EnableWindow(hwnd, 1);
+        SetFocus(GetDlgItem(hwnd, ACTIVE_PARAGRAPH.get()));
+        Ok(())
+    }
+}
 
 fn combined_draft(
     hwnd: HWND,
@@ -911,6 +955,7 @@ fn resolve_conflict(
     held: &mut HeldEditor,
     comparison: Option<&kraqel_native_scene_model::channel::SceneView>,
     can_continue: bool,
+    room_to_resume: bool,
     review: bool,
 ) -> std::io::Result<Option<(String, bool)>> {
     let hwnd = held.hwnd;
@@ -919,6 +964,7 @@ fn resolve_conflict(
     REVISION_CONFLICT.set(true);
     AWAITING_REBIND.set(false);
     held.autosave_turn = None;
+    held.resume_after_merge = false;
     let selectable = comparison.filter(|v| {
         can_continue
             && (review || LOADED_REVISION.get().and_then(|r| r.checked_add(1)) == Some(v.revision))
@@ -926,13 +972,8 @@ fn resolve_conflict(
     unsafe {
         // On refresh keep the checkmarks as a proposal; the old approval is spent.
         let menu = GetMenu(hwnd);
-        if !review && GetMenuState(menu, COMMIT_SELECTION as u32, MF_BYCOMMAND) != u32::MAX {
-            check(DeleteMenu(
-                menu,
-                (GetMenuItemCount(menu) - 1) as u32,
-                MF_BYPOSITION,
-            ))?;
-            check(DrawMenuBar(hwnd))?;
+        if !review {
+            remove_selection_menu(hwnd)?;
         }
         let old = GetDlgItem(hwnd, COMPARISON);
         if !old.is_null() {
@@ -979,6 +1020,14 @@ fn resolve_conflict(
                 wide("Unter Übernahme die gewünschten lokalen Änderungen auswählen.").as_ptr(),
             );
         }
+        let allow_resume = room_to_resume
+            && selectable
+                .is_some_and(|view| view.revision < window_receipt::SCENE_REVISION_LIMIT - 1);
+        EnableMenuItem(
+            menu,
+            CONTINUE_SELECTION as u32,
+            MF_BYCOMMAND | if allow_resume { MF_ENABLED } else { MF_GRAYED },
+        );
         EnableWindow(hwnd, 1);
         update_draft_status(hwnd);
         SetFocus(GetDlgItem(hwnd, ACTIVE_PARAGRAPH.get()));
@@ -988,15 +1037,21 @@ fn resolve_conflict(
             if code == window_receipt::DISCARDED_EXIT as i32 {
                 return Ok(None);
             }
-            require(code == MERGE_EXIT, "conflict decision")?;
+            let resume = code == MERGE_CONTINUE_EXIT && allow_resume;
+            require(code == MERGE_EXIT || resume, "conflict decision")?;
             let view = selectable.ok_or(std::io::Error::other("missing merge basis"))?;
             if let Some(chosen) = combined_draft(hwnd, view)
                 .filter(|(t, b)| t != &view.text || *b != view.bold_second)
             {
                 if review {
                     let question = format!(
-                        "Die geprüfte Auswahl auf Basis von Revision {} speichern und das Fenster schließen?",
-                        view.revision
+                        "Die geprüfte Auswahl auf Basis von Revision {} speichern und {}?",
+                        view.revision,
+                        if resume {
+                            "weiterschreiben"
+                        } else {
+                            "das Fenster schließen"
+                        }
                     );
                     let decision = MessageBoxW(
                         hwnd,
@@ -1008,6 +1063,7 @@ fn resolve_conflict(
                         continue;
                     }
                 }
+                held.resume_after_merge = resume;
                 held.submitted = Some((view.text.clone(), view.bold_second));
                 held.closing = false;
                 EnableWindow(hwnd, 0);
@@ -1233,13 +1289,13 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 0
             }
             WM_COMMAND
-                if (PICK_FIRST..=COMMIT_SELECTION).contains(&w) && REVISION_CONFLICT.get() =>
+                if (PICK_FIRST..=CONTINUE_SELECTION).contains(&w) && REVISION_CONFLICT.get() =>
             {
                 let menu = GetMenu(hwnd);
                 let state = GetMenuState(menu, w as u32, MF_BYCOMMAND);
                 if state != u32::MAX && state & (MF_GRAYED | MF_DISABLED) == 0 {
-                    if w == COMMIT_SELECTION {
-                        PostMessageW(hwnd, MERGE_SELECTED, 0, 0);
+                    if matches!(w, COMMIT_SELECTION | CONTINUE_SELECTION) {
+                        PostMessageW(hwnd, MERGE_SELECTED, w, 0);
                     } else {
                         CheckMenuItem(
                             menu,
@@ -1733,14 +1789,19 @@ unsafe fn run_editor_loop(
             }
             if msg.message == MERGE_SELECTED
                 && REVISION_CONFLICT.get()
-                && GetMenuState(GetMenu(hwnd), COMMIT_SELECTION as u32, MF_BYCOMMAND)
+                && matches!(msg.wParam, COMMIT_SELECTION | CONTINUE_SELECTION)
+                && GetMenuState(GetMenu(hwnd), msg.wParam as u32, MF_BYCOMMAND)
                     & (MF_DISABLED | MF_GRAYED)
                     == 0
             {
                 if let Some(held) = keep_editor.as_deref_mut() {
                     held.history = history.take();
                 }
-                return MERGE_EXIT;
+                return if msg.wParam == CONTINUE_SELECTION {
+                    MERGE_CONTINUE_EXIT
+                } else {
+                    MERGE_EXIT
+                };
             }
             if let Some(result) = draft.as_deref_mut() {
                 let key = msg.wParam as u16;
@@ -2097,10 +2158,15 @@ fn main() {
                 } else {
                     1
                 };
-                let mut turn = 1;
+                let mut turn = 1u8;
                 let mut selection = None;
                 loop {
-                    held.autosave_turn = continued.map(|_| (turn, limit));
+                    let remaining = window_receipt::SCENE_REVISION_LIMIT
+                        .saturating_sub(expected_next.unwrap_or(0));
+                    let display_limit = limit.min(turn.saturating_add(
+                        u8::try_from(remaining.saturating_sub(1)).unwrap_or(u8::MAX),
+                    ));
+                    held.autosave_turn = continued.map(|_| (turn, display_limit));
                     let mut dialog_output = Some(output.try_clone()?);
                     let view = managed_scene::exchange(
                         control.try_clone()?,
@@ -2119,6 +2185,7 @@ fn main() {
                                         Some(view),
                                         gap && turn < limit
                                             && view.revision < window_receipt::SCENE_REVISION_LIMIT,
+                                        limit - turn >= 2,
                                         true,
                                     )?;
                                     return Ok(selection.clone());
@@ -2128,6 +2195,7 @@ fn main() {
                                         &mut held,
                                         comparison,
                                         merge && turn < limit,
+                                        limit - turn >= 2,
                                         false,
                                     )?;
                                     return Ok(selection.clone());
@@ -2157,11 +2225,14 @@ fn main() {
                                 )?;
                                 if let Some(chosen) = selection.take() {
                                     held.submitted = Some(chosen.clone());
-                                    held.closing = true;
+                                    held.closing = !held.resume_after_merge;
                                     return Ok(Some(chosen));
                                 }
                                 EXPECTED.with_borrow_mut(|v| v.clone_from(&loaded.text));
                                 INITIAL_BOLD.set(loaded.bold_second);
+                                if held.resume_after_merge {
+                                    resume_merged_editor(&mut held, loaded)?;
+                                }
                                 unsafe {
                                     update_draft_status(held.hwnd);
                                     AWAITING_REBIND.set(false);
@@ -2211,7 +2282,10 @@ fn main() {
                                 .as_ptr(),
                             ))?;
                         }
-                        if turn < limit && !held.closing {
+                        if turn < limit
+                            && !held.closing
+                            && revision != Some(window_receipt::SCENE_REVISION_LIMIT)
+                        {
                             output.write_all(&window_receipt::continue_receipt(&frame))?;
                             turn += 1;
                             expected_next = revision;

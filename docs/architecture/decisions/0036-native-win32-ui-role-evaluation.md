@@ -673,6 +673,25 @@ In einem zweiten Lauf änderte der Prüfdatendienst die Basis unmittelbar vor de
 nochmals. Der lokale Entwurf blieb offen. Nach explizitem Verwerfen war weiterhin nur
 Revision 1 veröffentlicht.
 
+### Weiterschreiben nach bestätigter Übernahme
+
+**Übernahme → Auswahl speichern und weiterschreiben** hält das Fenster offen. Der Befehl
+setzt zusätzlich zur Vorbereitung der Basis und zum Speichern der Auswahl noch Budget für
+einen weiteren Schreibzug voraus. Auch die zulässige Revisionsnummer muss diesen zulassen.
+Über eine Revisionslücke hinweg gilt die ausdrückliche Bestätigung mit **Nein** als Vorauswahl.
+
+Das Fenster übernimmt die Mischung erst nach Veröffentlichung und authentisiertem Rücklesen
+unter der nächsten Edit-Bindung in die Eingabefelder. Die Vergleichsansicht schließt, der
+Fokus kehrt in den Editor zurück und der Rückgängig-Verlauf beginnt bei der bestätigten
+Mischung. Folgeeingaben verwenden das reguläre Autosave. Das Fenster kennzeichnet den letzten
+zulässigen Schreibzug auch dann, wenn die Revisionsgrenze vor dem Journalbudget erreicht ist.
+
+Im verwalteten Windows-Lauf blieb dasselbe Fenster nach der bestätigten Revision 4 offen.
+Rückgängig holte den alten Konfliktentwurf nicht zurück. Nach einer weiteren Eingabe speicherte
+Autosave Revision 5; die frische Leseprüfung und die SQLite-Daten bestätigten den Text. In
+einem Grenzlauf wurde Dienstrevision 254 als Basis bestätigt. Nach Revision 255 zeigte das
+Fenster den letzten Autosave an. Revision 256 war nach regulärem Sitzungsende wieder lesbar.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

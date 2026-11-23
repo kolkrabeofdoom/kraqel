@@ -31,6 +31,10 @@ und vergibt für die Auswahl eine frische Schreibbindung. Zwei Windows-Läufe pr
 Veröffentlichung und erneute Änderung unmittelbar vor dem Speichern.
 [Vertrag und Nachweise](architecture/decisions/0036-native-win32-ui-role-evaluation.md#bestätigte-übernahme-über-eine-revisionslücke).
 
+Über **Auswahl speichern und weiterschreiben** kann die bestätigte Mischung im selben Fenster
+weiterbearbeitet werden. Der Befehl berücksichtigt Journalbudget und Revisionsgrenze.
+[Bedienung und Windows-Prüfungen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#weiterschreiben-nach-bestätigter-übernahme).
+
 Die Titelleiste unterscheidet einen zu korrigierenden Absatz, die laufende Schreibpause,
 das Speichern mit ausstehender Starterbestätigung und die gespeicherte Revision.
 Ein Windows-Lauf mit leerem zweitem Absatz, Korrektur und verzögerter Bestätigung prüfte
