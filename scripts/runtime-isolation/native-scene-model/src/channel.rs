@@ -62,6 +62,20 @@ pub struct SceneView {
     pub bold_second: bool,
 }
 
+impl SceneView {
+    pub fn reviewed_receipt(&self) -> [u8; 36] {
+        use sha2::Digest;
+        let mut hash = Sha256::new();
+        hash.update(b"KRAQEL-reviewed-scene-A-v1");
+        hash.update(self.revision.to_le_bytes());
+        hash.update([u8::from(self.bold_second)]);
+        hash.update(self.text.as_bytes());
+        let mut frame = [0; 36];
+        frame[..4].copy_from_slice(&self.revision.to_le_bytes());
+        frame[4..].copy_from_slice(&hash.finalize());
+        frame
+    }
+}
 pub enum EditorEvent<'a> {
     Loaded(&'a SceneView),
     RevisionConflict(Option<&'a SceneView>),
@@ -73,6 +87,7 @@ pub enum ServiceEnd {
     Complete,
     Discarded,
     PrepareComparison,
+    PrepareReviewed([u8; 36]),
 }
 
 enum SaveReply {
@@ -384,6 +399,7 @@ impl Binding {
         revision: u32,
         compare: bool,
         refresh: bool,
+        gap: bool,
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
         mut edit: impl FnMut(EditorEvent<'_>) -> Result<Option<(String, bool)>, Closed>,
@@ -432,10 +448,26 @@ impl Binding {
                         Ok(Some(current)) => EditorEvent::RefreshedComparison(current),
                         _ => EditorEvent::RevisionConflict(None),
                     };
-                    if edit(event)?.is_some() {
-                        return Err(Closed);
+                    let approved = edit(event)?.is_some();
+                    let current = updated?;
+                    if approved {
+                        let current = current.filter(|_| gap).ok_or(Closed)?;
+                        let grant = self
+                            .conflict_binding(current.revision, b"KRAQEL-reviewed-A/prepare-v1")?;
+                        let response = grant.exchange(1, PREPARE_COMPARISON, reader, writer)?;
+                        if Self::expect_error(&response, "CONFLICT").is_ok() {
+                            if edit(EditorEvent::RevisionConflict(None))?.is_some() {
+                                return Err(Closed);
+                            }
+                        } else {
+                            let verified: SceneView =
+                                serde_json::from_slice(&response).map_err(|_| Closed)?;
+                            if verified.reviewed_receipt() != current.reviewed_receipt() {
+                                return Err(Closed);
+                            }
+                            return Ok(Some(current));
+                        }
                     }
-                    updated?;
                 } else {
                     let confirmed: SceneView = serde_json::from_slice(&body).map_err(|_| Closed)?;
                     if confirmed.text != view.text
@@ -474,7 +506,7 @@ impl Binding {
         writer: &mut impl std::io::Write,
         dispatch: impl FnMut(&[u8]) -> Result<super::Reply, Closed>,
     ) -> Result<(), Closed> {
-        self.revision_service(reopening, 0, false, false, reader, writer, dispatch)
+        self.revision_service(reopening, 0, false, false, false, reader, writer, dispatch)
             .map(|_| ())
     }
     pub fn revision_service(
@@ -483,6 +515,7 @@ impl Binding {
         revision: u32,
         allow_discard: bool,
         allow_prepare: bool,
+        allow_gap: bool,
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
         mut dispatch: impl FnMut(&[u8]) -> Result<super::Reply, Closed>,
@@ -547,13 +580,40 @@ impl Binding {
                             let next = read_frame(reader)?;
                             let refresh = self.comparison_binding(basis)?;
                             if refresh.decode(&next, Kind::Request, 1) == Ok(COMPARE_READ) {
-                                refresh.write_reply(
-                                    1,
-                                    dispatch(COMPARE_READ)?,
-                                    writer,
-                                    Expected::Read,
+                                let reply = dispatch(COMPARE_READ)?;
+                                let offered = serde_json::to_vec(&reply).map_err(|_| Closed)?;
+                                refresh.write_reply(1, reply, writer, Expected::Read)?;
+                                let next = read_frame(reader)?;
+                                let view: SceneView =
+                                    serde_json::from_slice(&offered).map_err(|_| Closed)?;
+                                let grant = self.conflict_binding(
+                                    view.revision,
+                                    b"KRAQEL-reviewed-A/prepare-v1",
                                 )?;
-                                read_frame(reader)?
+                                if allow_gap
+                                    && view.revision > basis
+                                    && grant.decode(&next, Kind::Request, 1)
+                                        == Ok(PREPARE_COMPARISON)
+                                {
+                                    let latest = dispatch(COMPARE_READ)?;
+                                    if serde_json::to_vec(&latest).map_err(|_| Closed)? == offered {
+                                        grant.write_reply(1, latest, writer, Expected::Read)?;
+                                        return Ok(ServiceEnd::PrepareReviewed(
+                                            view.reviewed_receipt(),
+                                        ));
+                                    }
+                                    grant.write_reply(
+                                        1,
+                                        super::Reply::Failure {
+                                            error: super::Failure::Conflict,
+                                        },
+                                        writer,
+                                        Expected::Conflict,
+                                    )?;
+                                    read_frame(reader)?
+                                } else {
+                                    next
+                                }
                             } else {
                                 next
                             }

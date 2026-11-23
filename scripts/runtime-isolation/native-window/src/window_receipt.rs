@@ -105,3 +105,7 @@ pub const COMPARE_ABI: [u8; 32] = *b"KRAQEL-SCENE-COMPARE-V1.........";
 pub const MERGE_ABI: [u8; 32] = *b"KRAQEL-SCENE-MERGE-V1...........";
 
 pub const REFRESH_ABI: [u8; 32] = *b"KRAQEL-SCENE-REFRESH-V1.........";
+
+pub const GAP_ABI: [u8; 32] = *b"KRAQEL-SCENE-GAP-V1.............";
+pub const REVIEWED_EXIT: u32 = 47;
+pub const SCENE_REVISION_LIMIT: u32 = 256;

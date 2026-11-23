@@ -920,7 +920,8 @@ fn resolve_conflict(
     AWAITING_REBIND.set(false);
     held.autosave_turn = None;
     let selectable = comparison.filter(|v| {
-        can_continue && LOADED_REVISION.get().and_then(|r| r.checked_add(1)) == Some(v.revision)
+        can_continue
+            && (review || LOADED_REVISION.get().and_then(|r| r.checked_add(1)) == Some(v.revision))
     });
     unsafe {
         // On refresh keep the checkmarks as a proposal; the old approval is spent.
@@ -949,15 +950,28 @@ fn resolve_conflict(
             );
         }
         if review {
-            EnableMenuItem(menu, COMMIT_SELECTION as u32, MF_BYCOMMAND | MF_GRAYED);
+            EnableMenuItem(
+                menu,
+                COMMIT_SELECTION as u32,
+                MF_BYCOMMAND
+                    | if selectable.is_some() {
+                        MF_ENABLED
+                    } else {
+                        MF_GRAYED
+                    },
+            );
             SetDlgItemTextW(
                 hwnd,
                 LABEL,
-                wide("Neue Dienstrevision · Auswahl prüfen · Speichern in dieser Sitzung gesperrt")
-                    .as_ptr(),
+                wide(if selectable.is_some() {
+                    "Neue Dienstrevision · Auswahl prüfen und unter Übernahme bestätigen."
+                } else {
+                    "Neue Dienstrevision · Auswahl prüfen · Speichern in dieser Sitzung gesperrt"
+                })
+                .as_ptr(),
             );
         }
-        if selectable.is_some() {
+        if !review && selectable.is_some() {
             install_selection_menu(hwnd)?;
             SetDlgItemTextW(
                 hwnd,
@@ -979,6 +993,21 @@ fn resolve_conflict(
             if let Some(chosen) = combined_draft(hwnd, view)
                 .filter(|(t, b)| t != &view.text || *b != view.bold_second)
             {
+                if review {
+                    let question = format!(
+                        "Die geprüfte Auswahl auf Basis von Revision {} speichern und das Fenster schließen?",
+                        view.revision
+                    );
+                    let decision = MessageBoxW(
+                        hwnd,
+                        wide(question).as_ptr(),
+                        wide("Geprüfte Auswahl bestätigen").as_ptr(),
+                        MB_YESNO | MB_DEFBUTTON2 | MB_ICONQUESTION,
+                    );
+                    if decision != IDYES {
+                        continue;
+                    }
+                }
                 held.submitted = Some((view.text.clone(), view.bold_second));
                 held.closing = false;
                 EnableWindow(hwnd, 0);
@@ -1970,11 +1999,25 @@ static MERGE_ABI: [u8; 32] = kraqel_window_probe::window_receipt::MERGE_ABI;
 #[used]
 #[unsafe(link_section = ".kqfresh")]
 static REFRESH_ABI: [u8; 32] = kraqel_window_probe::window_receipt::REFRESH_ABI;
+#[used]
+#[unsafe(link_section = ".kqgap")]
+static GAP_ABI: [u8; 32] = kraqel_window_probe::window_receipt::GAP_ABI;
 fn main() {
+    std::hint::black_box(&GAP_ABI);
     std::hint::black_box(&REFRESH_ABI);
     std::hint::black_box(&MERGE_ABI);
     std::hint::black_box(&COMPARE_ABI);
     let mut arg = std::env::args_os().nth(1);
+    let gap_arg = arg
+        .as_deref()
+        .and_then(|a| a.to_str())
+        .and_then(|a| a.strip_suffix("-gap"))
+        .map(std::ffi::OsString::from);
+    let gap = gap_arg.is_some();
+    if gap {
+        arg = gap_arg;
+    }
+
     let refreshed = arg
         .as_deref()
         .and_then(|v| v.to_str())
@@ -2065,13 +2108,20 @@ fn main() {
                         &mut output,
                         compare,
                         refresh,
+                        gap,
                         |event| {
                             use kraqel_native_scene_model::channel::EditorEvent;
                             let loaded = match event {
                                 EditorEvent::Loaded(view) => view,
                                 EditorEvent::RefreshedComparison(view) => {
-                                    selection = None;
-                                    return resolve_conflict(&mut held, Some(view), false, true);
+                                    selection = resolve_conflict(
+                                        &mut held,
+                                        Some(view),
+                                        gap && turn < limit
+                                            && view.revision < window_receipt::SCENE_REVISION_LIMIT,
+                                        true,
+                                    )?;
+                                    return Ok(selection.clone());
                                 }
                                 EditorEvent::RevisionConflict(comparison) => {
                                     selection = resolve_conflict(

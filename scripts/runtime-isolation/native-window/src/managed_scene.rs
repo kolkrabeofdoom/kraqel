@@ -178,6 +178,7 @@ pub fn exchange(
     output: &mut File,
     compare: bool,
     refresh: bool,
+    gap: bool,
     mut edit: impl FnMut(
         kraqel_native_scene_model::channel::EditorEvent,
     ) -> io::Result<Option<(String, bool)>>,
@@ -198,11 +199,20 @@ pub fn exchange(
                     revision,
                     compare,
                     refresh,
+                    gap,
                     &mut ch.reader,
                     &mut ch.writer,
                     |v| edit(v).map_err(|_| kraqel_native_scene_model::channel::Closed),
                 )
                 .map_err(|_| io::Error::other("scene edit"))?;
+            if let Some(v) = &view {
+                if gap && v.revision > revision + 1 {
+                    output.write_all(&v.reviewed_receipt())?;
+                    let mut ack = [0; 1];
+                    control.read_exact(&mut ack)?;
+                    require(ack == [1], "reviewed receipt acknowledgment")?;
+                }
+            }
             if view.is_none() {
                 output.write_all(&ch.discard_receipt)?;
             }
@@ -250,6 +260,7 @@ pub fn serve(
     profile: &str,
     mode: window_receipt::SceneOperation,
     allow_prepare: bool,
+    allow_gap: bool,
 ) -> io::Result<u32> {
     let (mut input, mut output) = confirm_bootstrap(Some(profile), Role::Data)?;
     let mut ch = Channel::open(&mut input, false)?;
@@ -292,6 +303,7 @@ pub fn serve(
                             | window_receipt::SceneOperation::KeyboardEdit
                     ),
                     allow_prepare,
+                    allow_gap,
                     &mut ch.reader,
                     &mut ch.writer,
                     |body| {
@@ -314,6 +326,11 @@ pub fn serve(
                 )
                 .map_err(|_| io::Error::other("scene service"))?;
             use kraqel_native_scene_model::channel::ServiceEnd;
+            if let ServiceEnd::PrepareReviewed(receipt) = outcome {
+                store.flush_managed(&mut file, true)?;
+                output.write_all(&receipt)?;
+                return Ok(window_receipt::REVIEWED_EXIT);
+            }
             if outcome == ServiceEnd::PrepareComparison {
                 store.flush_managed(&mut file, true)?;
             }

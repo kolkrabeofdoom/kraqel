@@ -633,14 +633,45 @@ noch der reguläre Verwerfabschluss möglich.
 Der lokale Entwurf und die Häkchen im Menü **Übernahme** bleiben erhalten. Das rechte,
 schreibgeschützte Feld zeigt die neue Dienstrevision und darunter die Vorschau der Auswahl.
 Änderungen an den Häkchen oder am lokalen Entwurf aktualisieren die Vorschau im Fenster.
-Die vorausgegangene Speicherbestätigung ist verbraucht. Der Dienststand liegt jetzt mehr
-als eine Revision vor der Journalbasis; für diese Sitzung bleibt Speichern gesperrt.
+Die vorausgegangene Speicherbestätigung ist verbraucht. Für Rollenpaare mit reiner
+Vergleichsunterstützung bleibt die Vorschau lesend.
 
 Ein verwalteter Windows-Lauf prüfte Revision 2 → 3 vor der Speicherung: Der lokale erste
 Absatz blieb ausgewählt. Die Vorschau enthielt den neueren zweiten Dienstabsatz und folgte
 der geänderten Auswahl. Auch ein direkter Aufruf des gesperrten Speicherbefehls veröffentlichte
 keinen Snapshot. Nach explizitem Verwerfen öffnete die zuvor bestätigte Revision 1.
 Eine Kanalprüfung wies die Wiederholung der ersten Leseanfrage beim erneuten Vergleich ab.
+
+### Bestätigte Übernahme über eine Revisionslücke
+
+Unter **Übernahme → Auswahl speichern und schließen** nennt eine zweite Abfrage die
+erneut geprüfte Dienstrevision. **Nein** ist vorausgewählt und führt mit allen Häkchen und
+dem lokalen Entwurf zur Vorschau zurück. **Ja** gilt genau für die angezeigte Basis und
+die gewählten Absätze samt Markierung. Der Starter aktiviert diesen Pfad nur bei einem
+gepinnten Rollenpaar mit passender Protokollversion, Budget für den Folgeschreibzug und
+Platz für dessen Folgerevision.
+
+Vor der Vorbereitung liest der Datendienst die Szene erneut. Bei einer weiteren Änderung
+bleibt der Entwurf lokal offen. Bei Übereinstimmung bestätigen Fenster und Datendienst auf
+ihren privaten Kanälen unabhängig voneinander Revision und Digest von Text und Markierung.
+Nach Ende des Datendienstes prüft der Starter das weiterhin offene Fenster. Er legt den
+geprüften Basisstand exklusiv unter seiner tatsächlichen Revisionsnummer an, prüft den
+Dateihash und entfernt die vorläufige Datei. Der eigene Journalübergang
+`PublishReviewedWin32Scene` bindet diesen Sprung an Akteur, offenen Sitzungstoken, aktuellen
+Journalstand und bisherige Szenenrevision. Für gewöhnliche Speicherungen gilt weiter die
+unmittelbare Folgerevision. Überbrückte Nummern erhalten keine erfundenen Snapshots.
+
+Erst nach Veröffentlichung der geprüften Basis erhält ein neuer Datendienst die frische
+Edit-Bindung. Das Fenster prüft das Rücklesen und sendet dann die bereits bestätigte Auswahl.
+Die beiden Veröffentlichungen sind getrennt. Nach einer Unterbrechung kann die geprüfte
+Basis bereits dauerhaft sein; bei unbestätigtem Ende bleibt die Sitzung gesperrt.
+
+Im verwalteten Windows-Lauf blieb nach **Nein** die Vorschau auf Dienstrevision 3 offen.
+**Ja** veröffentlichte die Basis als Revision 3 und die Auswahl als Revision 4. Unter
+frischer Lesebindung stimmten Text und Revisionsnummer; Revision 2 hatte keine Datei.
+In einem zweiten Lauf änderte der Prüfdatendienst die Basis unmittelbar vor dem Speichern
+nochmals. Der lokale Entwurf blieb offen. Nach explizitem Verwerfen war weiterhin nur
+Revision 1 veröffentlicht.
 
 ## Kosten für den Editor
 

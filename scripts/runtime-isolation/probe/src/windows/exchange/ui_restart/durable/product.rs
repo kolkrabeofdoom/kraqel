@@ -33,7 +33,7 @@ pub(in crate::windows) use workspace_probe::{
 };
 
 const DOMAIN: &[u8] = b"KRAQEL-PRODUCT-CONTROL\0\x01";
-const MAX_RECORDS: usize = 256;
+const MAX_RECORDS: usize = crate::window_receipt::SCENE_REVISION_LIMIT as usize;
 const FIXED_DRIVE: u32 = 3;
 const BAD_ATTRIBUTES: u32 = FILE_ATTRIBUTE_REPARSE_POINT
     | FILE_ATTRIBUTE_OFFLINE
@@ -50,6 +50,11 @@ enum Action {
         begin: [u8; 32],
         publication: [u8; 32],
         revision: u32,
+    },
+    PublishReviewedWin32Scene {
+        begin: [u8; 32],
+        basis: u32,
+        snapshot: win32_binding::Snapshot,
     },
     PublishWin32Scene {
         begin: [u8; 32],
@@ -263,7 +268,7 @@ impl State {
             revision,
         } = action
         {
-            // Only PublishWin32Scene advances the head while retaining the same open token.
+            // A publication advances the head while retaining the same open session token.
             if actor != self.actor
                 || self.window_session != win32_binding::Session::Open(*begin)
                 || *publication == *begin
@@ -275,6 +280,27 @@ impl State {
                 return Err(invalid("scene-rebind-publication"));
             }
             self.window_session = win32_binding::Session::Open(digest);
+            return Ok(());
+        }
+        if let Action::PublishReviewedWin32Scene {
+            begin,
+            basis,
+            snapshot,
+        } = action
+        {
+            let previous = self
+                .scene_snapshot
+                .map_or((actor, 0), |(owner, s)| (owner, s.revision));
+            if actor != self.actor
+                || previous != (actor, *basis)
+                || self.head != *begin
+                || self.window_session != win32_binding::Session::Open(*begin)
+                || snapshot.revision.saturating_sub(*basis) < 2
+                || snapshot.revision >= MAX_RECORDS as u32
+            {
+                return Err(invalid("scene-reviewed-publication"));
+            }
+            self.scene_snapshot = Some((actor, *snapshot));
             return Ok(());
         }
         if let Action::EndWin32Window { begin }

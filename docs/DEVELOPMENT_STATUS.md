@@ -25,6 +25,12 @@ geprüften Vergleichsbasis unter frischer Schreibbindung und schließt das Fenst
 zwischenzeitlich geänderte Basis löst einen [erneuten Vergleich](architecture/decisions/0036-native-win32-ui-role-evaluation.md#erneuter-vergleich-vor-dem-speichern) aus. Der lokale Entwurf und die bisherige Auswahl bleiben zur Prüfung offen.
 [Bedienung, Grenzen und Windows-Prüfungen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#gezielte-übernahme-unter-frischer-schreibbindung).
 
+Bei einer Revisionslücke lässt sich die erneut geprüfte Auswahl mit ausdrücklichem **Ja**
+speichern. Die Vorschau bleibt bei **Nein** offen. Der Starter sichert die geprüfte Basis
+und vergibt für die Auswahl eine frische Schreibbindung. Zwei Windows-Läufe prüften
+Veröffentlichung und erneute Änderung unmittelbar vor dem Speichern.
+[Vertrag und Nachweise](architecture/decisions/0036-native-win32-ui-role-evaluation.md#bestätigte-übernahme-über-eine-revisionslücke).
+
 Die Titelleiste unterscheidet einen zu korrigierenden Absatz, die laufende Schreibpause,
 das Speichern mit ausstehender Starterbestätigung und die gespeicherte Revision.
 Ein Windows-Lauf mit leerem zweitem Absatz, Korrektur und verzögerter Bestätigung prüfte

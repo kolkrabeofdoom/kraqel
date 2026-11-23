@@ -73,7 +73,10 @@ pub(in super::super) fn read_scene(
     let merge =
         compare && continued && package::merge_image(window)? && package::merge_image(service)?;
     let refresh = merge && package::refresh_image(window)? && package::refresh_image(service)?;
-    let argument = if refresh {
+    let gap = refresh && package::gap_image(window)? && package::gap_image(service)?;
+    let argument = if gap {
+        format!("{argument}-compare-merge-refresh-gap")
+    } else if refresh {
         format!("{argument}-compare-merge-refresh")
     } else if merge {
         format!("{argument}-compare-merge")
@@ -101,7 +104,10 @@ pub(in super::super) fn read_scene(
                 } else {
                     SceneOperation::Revise
                 };
-                let data_argument = if merge && can_continue {
+                let mut reviewed = None;
+                let data_argument = if gap && can_continue {
+                    format!("{}-merge-gap", mode.argument())
+                } else if merge && can_continue {
                     format!("{}-merge", mode.argument())
                 } else {
                     mode.argument().to_owned()
@@ -260,6 +266,21 @@ pub(in super::super) fn read_scene(
                             discarded = true;
                             return Ok(());
                         }
+                        if gap && can_continue && exit == crate::window_receipt::REVIEWED_EXIT {
+                            let data_proof =
+                                bootstrap::live_frame::<36>(&mut data_reply, data.hProcess)?;
+                            let ui_proof = bootstrap::live_frame::<36>(&mut ui_reply, ui.hProcess)?;
+                            let next = u32::from_le_bytes(data_proof[..4].try_into().unwrap());
+                            if data_proof != ui_proof
+                                || next.saturating_sub(revision) < 2
+                                || next >= MAX_RECORDS as u32
+                            {
+                                return Err(invalid("scene-reviewed-receipt"));
+                            }
+                            io("scene-reviewed-ack", to_ui.write_all(&[1]))?;
+                            reviewed = Some(next);
+                            return Ok(());
+                        }
                         if exit != 0 {
                             return Err(invalid("scene-service-denied"));
                         }
@@ -276,16 +297,35 @@ pub(in super::super) fn read_scene(
                     if first_window.is_some_and(|first| first != hwnd) {
                         return Err(invalid("scene-rebind-window"));
                     }
-                    let snapshot = target
-                        .as_mut()
-                        .ok_or(invalid("scene-checkpoint-target"))?
-                        .identity(revision + 1)?;
                     let begin = store.state.head;
-                    store.append_with_checked_context(
-                        store.state.actor,
-                        begin,
-                        Action::PublishWin32Scene { begin, snapshot },
-                    )?;
+                    let candidate = target.as_mut().ok_or(invalid("scene-checkpoint-target"))?;
+                    let snapshot = if let Some(next) = reviewed {
+                        let source = candidate.identity(next)?;
+                        let mut canonical = SnapshotFile::open(store, &scene_file(next), true)?;
+                        io(
+                            "scene-reviewed-copy",
+                            std::io::copy(&mut candidate.file, &mut canonical.file),
+                        )?;
+                        io("scene-reviewed-flush", canonical.file.sync_all())?;
+                        let copied = canonical.identity(next)?;
+                        if copied.sha256 != source.sha256 {
+                            return Err(invalid("scene-reviewed-copy"));
+                        }
+                        target.replace(canonical).unwrap().remove_new()?;
+                        copied
+                    } else {
+                        candidate.identity(revision + 1)?
+                    };
+                    let action = if reviewed.is_some() {
+                        Action::PublishReviewedWin32Scene {
+                            begin,
+                            basis: revision,
+                            snapshot,
+                        }
+                    } else {
+                        Action::PublishWin32Scene { begin, snapshot }
+                    };
+                    store.append_with_checked_context(store.state.actor, begin, action)?;
                     let mut frame = [0u8; 36];
                     frame[..4].copy_from_slice(&snapshot.revision.to_le_bytes());
                     frame[4..].copy_from_slice(&store.state.head);
