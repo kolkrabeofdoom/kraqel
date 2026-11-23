@@ -599,6 +599,17 @@ ausgewählt. Nicht gewählte Werte stammen aus dem angezeigten Dienststand. Die 
 ändert den Entwurf nicht. **Auswahl speichern und schließen** verlangt ein gültiges Ergebnis
 mit mindestens einer tatsächlichen Änderung.
 
+Schon bei der ersten wählbaren Übernahme zeigt das schreibgeschützte Vergleichsfeld
+unter dem Dienststand die Vorschau. Häkchen, weitere Texteingaben und die Fettmarkierung
+aktualisieren die Mischung lokal. Entspricht sie dem Dienststand oder enthält sie einen
+ungültigen ausgewählten Absatz, nennt die Vorschau den Zustand und beide Speicherbefehle
+sind deaktiviert. Die Sitzungs- und Revisionsgrenzen gelten auch bei gültiger Auswahl.
+
+Ein zusammenhängender Windows-Lauf prüfte die erste Vorschau, die beiden Menübefehle bei
+leerer Auswahl, einen ungültigen gewählten Absatz und das manuelle Zurückändern auf den
+Dienststand. Nach der Korrektur enthielt die wieder geöffnete Revision 3 den gewählten
+ersten Absatz und den zweiten Absatz der Dienstrevision 2.
+
 Der Starter aktiviert die Funktion für ein passendes gepinntes Rollenpaar bei verfügbarem
 Folgeschreibzug. Der Dienststand muss die unmittelbare Folgerevision der bisherigen Basis sein.
 Ein eigener authentisierter Vorbereitungsauftrag prüft Revision, Text und Markierung nochmals

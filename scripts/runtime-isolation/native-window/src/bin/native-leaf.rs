@@ -59,7 +59,7 @@ struct PendingSave {
 thread_local! {
     static AUTOSAVE_TURN: std::cell::Cell<Option<(u8, u8)>> = const { std::cell::Cell::new(None) };
     static PENDING_SAVE: std::cell::RefCell<Option<PendingSave>> = const { std::cell::RefCell::new(None) };
-    static REVIEW_BASIS:std::cell::RefCell<Option<kraqel_native_scene_model::channel::SceneView>>=const {std::cell::RefCell::new(None)};
+    static SELECTION_REVIEW:std::cell::RefCell<Option<SelectionReview>>=const {std::cell::RefCell::new(None)};
     static REVISION_CONFLICT: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static AWAITING_REBIND: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static CLOSE_REQUESTED: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
@@ -881,7 +881,7 @@ fn resume_merged_editor(
     let hwnd = held.hwnd;
     unsafe {
         remove_selection_menu(hwnd)?;
-        REVIEW_BASIS.replace(None);
+        SELECTION_REVIEW.replace(None);
         check(DestroyWindow(GetDlgItem(hwnd, COMPARISON)))?;
         REVISION_CONFLICT.set(false);
         require(
@@ -926,9 +926,16 @@ fn combined_draft(
     kraqel_native_scene_model::valid_paragraphs(&text).then_some((text, bold))
 }
 
+struct SelectionReview {
+    basis: kraqel_native_scene_model::channel::SceneView,
+    may_save: bool,
+    may_resume: bool,
+}
+
 fn update_review(hwnd: HWND) {
-    REVIEW_BASIS.with_borrow(|basis| {
-        let Some(view) = basis else { return };
+    SELECTION_REVIEW.with_borrow(|review| {
+        let Some(review) = review else { return };
+        let view = &review.basis;
         let format_text = |text: &str, bold: bool| {
             format!(
                 "{}\r\nZweiter Absatz: {}",
@@ -936,9 +943,17 @@ fn update_review(hwnd: HWND) {
                 if bold { "fett" } else { "normal" }
             )
         };
-        let preview = combined_draft(hwnd, view)
-            .map(|(text, bold)| format_text(&text, bold))
-            .unwrap_or_else(|| "Ausgewählte Absätze prüfen.".to_owned());
+        let selected = combined_draft(hwnd, view);
+        let changed = selected
+            .as_ref()
+            .is_some_and(|(text, bold)| text != &view.text || *bold != view.bold_second);
+        enable_menu_command(hwnd, COMMIT_SELECTION, changed && review.may_save);
+        enable_menu_command(hwnd, CONTINUE_SELECTION, changed && review.may_resume);
+        let preview = match selected {
+            Some((text, bold)) if changed => format_text(&text, bold),
+            Some(_) => "Auswahl entspricht dem Dienststand.".to_owned(),
+            None => "Ausgewählte Absätze prüfen.".to_owned(),
+        };
         let contents = format!(
             "Datendienst · Revision {}\r\n{}\r\n\r\nVorschau der Auswahl\r\n{}",
             view.revision,
@@ -960,7 +975,7 @@ fn resolve_conflict(
 ) -> std::io::Result<Option<(String, bool)>> {
     let hwnd = held.hwnd;
     require(!hwnd.is_null(), "missing conflict editor")?;
-    REVIEW_BASIS.replace(if review { comparison.cloned() } else { None });
+    SELECTION_REVIEW.replace(None);
     REVISION_CONFLICT.set(true);
     AWAITING_REBIND.set(false);
     held.autosave_turn = None;
@@ -971,7 +986,6 @@ fn resolve_conflict(
     });
     unsafe {
         // On refresh keep the checkmarks as a proposal; the old approval is spent.
-        let menu = GetMenu(hwnd);
         if !review {
             remove_selection_menu(hwnd)?;
         }
@@ -991,16 +1005,6 @@ fn resolve_conflict(
             );
         }
         if review {
-            EnableMenuItem(
-                menu,
-                COMMIT_SELECTION as u32,
-                MF_BYCOMMAND
-                    | if selectable.is_some() {
-                        MF_ENABLED
-                    } else {
-                        MF_GRAYED
-                    },
-            );
             SetDlgItemTextW(
                 hwnd,
                 LABEL,
@@ -1023,11 +1027,13 @@ fn resolve_conflict(
         let allow_resume = room_to_resume
             && selectable
                 .is_some_and(|view| view.revision < window_receipt::SCENE_REVISION_LIMIT - 1);
-        EnableMenuItem(
-            menu,
-            CONTINUE_SELECTION as u32,
-            MF_BYCOMMAND | if allow_resume { MF_ENABLED } else { MF_GRAYED },
-        );
+        if review || selectable.is_some() {
+            SELECTION_REVIEW.replace(comparison.cloned().map(|basis| SelectionReview {
+                basis,
+                may_save: selectable.is_some(),
+                may_resume: allow_resume,
+            }));
+        }
         EnableWindow(hwnd, 1);
         update_draft_status(hwnd);
         SetFocus(GetDlgItem(hwnd, ACTIVE_PARAGRAPH.get()));

@@ -20,7 +20,8 @@ rechts schreibgeschützt zum Vergleich. F6 wechselt zwischen beiden.
 [Bindung, Bedienung und Prüfungen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#lesender-revisionsvergleich-im-konfliktfenster).
 
 Im fortlaufenden Konfliktfenster lassen sich beide Absätze und die Fettmarkierung einzeln
-aus dem lokalen Entwurf übernehmen. Die ausdrückliche Bestätigung speichert auf der erneut
+aus dem lokalen Entwurf übernehmen. Die Vorschau zeigt die Mischung ab der ersten Auswahl.
+Beide Speicherbefehle setzen eine gültige Änderung voraus. Die ausdrückliche Bestätigung speichert auf der erneut
 geprüften Vergleichsbasis unter frischer Schreibbindung und schließt das Fenster. Eine
 zwischenzeitlich geänderte Basis löst einen [erneuten Vergleich](architecture/decisions/0036-native-win32-ui-role-evaluation.md#erneuter-vergleich-vor-dem-speichern) aus. Der lokale Entwurf und die bisherige Auswahl bleiben zur Prüfung offen.
 [Bedienung, Grenzen und Windows-Prüfungen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#gezielte-übernahme-unter-frischer-schreibbindung).
