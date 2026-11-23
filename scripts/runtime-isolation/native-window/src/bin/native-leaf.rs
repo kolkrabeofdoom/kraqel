@@ -43,12 +43,51 @@ const UNDO: usize = 201;
 const REDO: usize = 202;
 const BOLD_SECOND: usize = 204;
 const TOGGLE_BOLD: u32 = WM_APP + 5;
+const FOCUS_MODE: usize = 210;
 const SELECT_PARAGRAPH: usize = 203;
 const HISTORY_UNDO: u32 = WM_APP + 3;
 const HISTORY_REDO: u32 = WM_APP + 4;
 
+fn in_focus_mode(hwnd: HWND) -> bool {
+    unsafe {
+        let state = GetMenuState(GetMenu(hwnd), FOCUS_MODE as u32, MF_BYCOMMAND);
+        state != u32::MAX && state & MF_CHECKED != 0
+    }
+}
+
+fn set_focus_mode(hwnd: HWND, enabled: bool) {
+    unsafe {
+        if in_focus_mode(hwnd) == enabled {
+            return;
+        }
+        let checked = if enabled { MF_CHECKED } else { MF_UNCHECKED };
+        if CheckMenuItem(GetMenu(hwnd), FOCUS_MODE as u32, MF_BYCOMMAND | checked) == u32::MAX {
+            return;
+        }
+        if enabled {
+            SetFocus(GetDlgItem(hwnd, ACTIVE_PARAGRAPH.get()));
+        }
+        for id in [
+            SAVE,
+            DISCARD,
+            WORD_COUNT,
+            SEARCH_LABEL,
+            SEARCH,
+            REPLACEMENT_LABEL,
+            REPLACEMENT,
+        ] {
+            ShowWindow(
+                GetDlgItem(hwnd, id),
+                if enabled { SW_HIDE } else { SW_SHOWNA },
+            );
+        }
+        layout_surface(hwnd);
+    }
+}
+
 fn open_search(hwnd: HWND) {
     unsafe {
+        set_focus_mode(hwnd, false);
         let field = GetDlgItem(hwnd, SEARCH);
         SetFocus(field);
         SendMessageW(field, EM_SETSEL, 0, -1);
@@ -57,6 +96,7 @@ fn open_search(hwnd: HWND) {
 
 fn find_in_scene(hwnd: HWND, backwards: bool) {
     unsafe {
+        set_focus_mode(hwnd, false);
         let Some(query) = paragraph_text(hwnd, SEARCH).filter(|q| !q.is_empty()) else {
             open_search(hwnd);
             return;
@@ -118,6 +158,7 @@ fn find_in_scene(hwnd: HWND, backwards: bool) {
 // the two paragraphs together in one undo state, like a normal scene edit.
 fn replace_in_scene(hwnd: HWND, all: bool) -> bool {
     unsafe {
+        set_focus_mode(hwnd, false);
         let Some(query) = paragraph_text(hwnd, SEARCH).filter(|q| !q.is_empty()) else {
             open_search(hwnd);
             return true;
@@ -229,6 +270,7 @@ fn install_editor_menu(hwnd: HWND) -> bool {
                     (SELECT_PARAGRAPH, "&Absatz auswählen\tStrg+A"),
                 ][..],
             ),
+            ("&Ansicht", &[(FOCUS_MODE, "&Fokusmodus\tF11")][..]),
         ] {
             let popup = CreatePopupMenu();
             if popup.is_null()
@@ -644,7 +686,13 @@ fn layout_surface(hwnd: HWND) -> bool {
             area.bottom - px(44)
         };
         let text_top = px(38);
-        let text_height = (buttons_y - gap - text_top).max(1);
+        let focused = editing && in_focus_mode(hwnd);
+        let text_bottom = if focused {
+            area.bottom - margin
+        } else {
+            buttons_y - gap
+        };
+        let text_height = (text_bottom - text_top).max(1);
         let place = |id, x, y, w, h| MoveWindow(GetDlgItem(hwnd, id), x, y, w, h, 1) != 0;
         if !place(LABEL, margin, px(10), width, px(24)) {
             return false;
@@ -666,6 +714,9 @@ fn layout_surface(hwnd: HWND) -> bool {
             {
                 return false;
             }
+        }
+        if focused {
+            return true;
         }
         if editing {
             let half = (width - gap) / 2;
@@ -768,6 +819,10 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
             }
             WM_COMMAND if w == REPLACE_ONE || w == REPLACE_ALL => {
                 PostMessageW(hwnd, REPLACE_DRAFT, w, 0);
+                0
+            }
+            WM_COMMAND if w == FOCUS_MODE && !GetMenu(hwnd).is_null() => {
+                set_focus_mode(hwnd, !in_focus_mode(hwnd));
                 0
             }
             WM_COMMAND if w == FIND => {
@@ -1204,7 +1259,14 @@ fn show(
                     }
                     continue;
                 }
+                if msg.message == WM_KEYDOWN
+                    && (key == VK_F11 || (key == VK_ESCAPE && in_focus_mode(hwnd)))
+                {
+                    set_focus_mode(hwnd, key == VK_F11 && !in_focus_mode(hwnd));
+                    continue;
+                }
                 if ctrl && key == 0x48 {
+                    set_focus_mode(hwnd, false);
                     SetFocus(GetDlgItem(hwnd, REPLACEMENT));
                     SendDlgItemMessageW(hwnd, REPLACEMENT, EM_SETSEL, 0, -1);
                     continue;
@@ -1335,7 +1397,9 @@ fn show(
                 && GetKeyState(i32::from(VK_MENU)) >= 0
             {
                 let next = if draft.is_some() {
-                    let ids: &[i32] = if IsWindowEnabled(GetDlgItem(hwnd, action)) != 0 {
+                    let ids: &[i32] = if in_focus_mode(hwnd) {
+                        &[EDIT, SECOND]
+                    } else if IsWindowEnabled(GetDlgItem(hwnd, action)) != 0 {
                         &[EDIT, SECOND, action, DISCARD, SEARCH, REPLACEMENT]
                     } else {
                         &[EDIT, SECOND, SEARCH, REPLACEMENT]

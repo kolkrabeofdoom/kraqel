@@ -2,6 +2,16 @@
 
 ### Verwalteter Win32-Szeneneditor
 
+Der M1-Fokusmodus ist für die synthetische Szene A über **Ansicht → Fokusmodus** oder F11
+verfügbar. Beide Absätze nutzen die frei werdende Fläche. Tab wechselt zwischen den Absätzen.
+Escape kehrt zur normalen Ansicht zurück, ein Suchbefehl öffnet die Suchwerkzeuge direkt.
+Der Ansichtswechsel bleibt im Fensterprozess. Er erzeugt weder eine Dokumentänderung noch
+eine gespeicherte Einstellung. Speichern und die Schließabfrage verwenden dieselbe Edit-Bindung.
+
+Ein zusammenhängender Windows-Lauf bestätigte den Flächengewinn, die Tab-Reihenfolge und die
+Rückkehr über Escape und Suche. Nach dem Speichern aus dem Fokusmodus enthielt die frisch
+geöffnete Revision 1 beide bearbeiteten Absätze und die Fettmarkierung.
+
 Der [ETW-Netzvergleich vom 23. November](architecture/decisions/0036-native-win32-ui-role-evaluation.md#etw-beim-ersetzen-formatieren-und-wiederöffnen) bestätigte für den gemessenen Editorstand null Netzwerkereignisse beim Ersetzen, Formatieren, Speichern und Wiederöffnen der synthetischen Szene.
 
 Die synthetische Szene A lässt sich per Tastatur bearbeiten, speichern und unter frischer

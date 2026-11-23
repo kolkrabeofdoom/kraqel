@@ -2,7 +2,7 @@
 
 ## Wiedereinstieg nach dem Wochenende · 20. November 2026
 
-Der letzte Funktionsstand liegt auf `feat/kq-069-live-file-selection` bei `8df0aad`.
+Arbeitsbranch ist `feat/kq-069-live-file-selection`. Der Fokusmodus ist im verwalteten Szeneneditor verfügbar; Bedienung und Prüfumfang stehen im Entwicklungsstatus.
 Im vorhandenen sauberen Checkout auf einem beliebigen Laufwerk:
 
 ```powershell
