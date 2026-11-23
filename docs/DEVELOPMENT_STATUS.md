@@ -36,7 +36,7 @@ rechts schreibgeschützt zum Vergleich. Tab erreicht das Vergleichsfeld nach dem
 [Bindung, Bedienung und Prüfungen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#lesender-revisionsvergleich-im-konfliktfenster).
 
 Im fortlaufenden Konfliktfenster lassen sich beide Absätze und die Fettmarkierung einzeln
-aus dem lokalen Entwurf übernehmen. Die Vorschau zeigt die Mischung ab der ersten Auswahl.
+aus dem lokalen Entwurf übernehmen. Die Vorschau zeigt die Mischung und nennt für beide Absätze und die Fettmarkierung die gewählte Herkunft. Rückgängig, Wiederholen und der Wechsel der Dienstrevision aktualisieren diese Anzeige im selben Fenster.
 Bei einer Revisionslücke im ersten Zwei-Absatz-Vergleich können beide Absätze und die Fettmarkierung einzeln aus Entwurf oder Dienstfassung übernommen werden. Zum Speichern muss der revisionsübergreifende Schreibzug freigegeben und die Auswahl für die angezeigte Revision ausdrücklich bestätigt sein. Ohne Freigabe bleibt die Auswahl eine lokale Vorschau.
 Beim Bearbeiten bleibt die Scrollposition im Vergleichsfeld nach Möglichkeit erhalten. Eine Textmarkierung bleibt bestehen, solange der Text bis zu ihrem Ende gleich bleibt.
 Die ursprüngliche Bearbeitungsbasis lässt sich mit Revisionsnummer und Fettmarkierung einblenden.

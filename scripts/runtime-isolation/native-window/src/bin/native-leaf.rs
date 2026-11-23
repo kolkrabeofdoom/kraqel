@@ -1204,7 +1204,8 @@ fn update_review(hwnd: HWND) {
                 if bold { "fett" } else { "normal" }
             )
         };
-        let checked = MERGE_FIELDS.iter().filter(|&&id| menu_checked(hwnd, id)).count();
+        let picks = MERGE_FIELDS.map(|id| menu_checked(hwnd, id));
+        let checked = picks.iter().filter(|&&picked| picked).count();
         enable_menu_command(hwnd, PICK_DRAFT, checked < MERGE_FIELDS.len());
         enable_menu_command(hwnd, PICK_SERVICE, checked > 0);
         enable_menu_command(hwnd, UNDO_SELECTION, review.previous_picks.is_some());
@@ -1219,6 +1220,14 @@ fn update_review(hwnd: HWND) {
             Some((text, bold)) if changed => format_text(&text, bold),
             Some(_) => "Auswahl entspricht dem Dienststand.".to_owned(),
             None => "Ausgewählte Absätze prüfen.".to_owned(),
+        };
+        let sources = match checked {
+            0 => "Alle Felder aus dem Dienststand".to_owned(),
+            3 => "Alle Felder aus dem lokalen Entwurf".to_owned(),
+            _ => {
+                let [first, second, bold] = picks.map(|local| if local { "Entwurf" } else { "Dienststand" });
+                format!("Absatz 1: {first} · Absatz 2: {second} · Fettmarkierung: {bold}")
+            }
         };
         let hints = selection_hints(hwnd, view);
         enable_menu_command(
@@ -1247,7 +1256,7 @@ fn update_review(hwnd: HWND) {
             String::new()
         };
         let contents = format!(
-            "{base_section}Datendienst · Revision {}\r\n{}\r\n\r\nVorschau der Auswahl\r\n{}{conflict_note}",
+            "{base_section}Datendienst · Revision {}\r\n{}\r\n\r\nVorschau der Auswahl\r\n{sources}\r\n{}{conflict_note}",
             view.revision,
             format_text(&view.text, view.bold_second),
             preview
