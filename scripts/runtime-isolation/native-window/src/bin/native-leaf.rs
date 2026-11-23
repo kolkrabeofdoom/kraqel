@@ -1556,7 +1556,17 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
 unsafe fn finish_close(hwnd: HWND) -> isize {
     unsafe {
         if REVISION_CONFLICT.get() {
-            if MessageBoxW(hwnd, wide("Der Datendienst hat die Speicherung wegen eines Revisionskonflikts abgelehnt. Lokalen Entwurf verwerfen und schließen?").as_ptr(), wide("Revisionskonflikt").as_ptr(), MB_YESNO | MB_DEFBUTTON2 | MB_ICONWARNING) != IDYES {
+            let previous_focus = GetFocus();
+            let answer = MessageBoxW(
+                hwnd,
+                wide("Lokalen Entwurf verwerfen und das Konfliktfenster schließen?").as_ptr(),
+                wide("Revisionskonflikt").as_ptr(),
+                MB_YESNO | MB_DEFBUTTON2 | MB_ICONWARNING,
+            );
+            if answer != IDYES {
+                if IsChild(hwnd, previous_focus) != 0 {
+                    SetFocus(previous_focus);
+                }
                 return 0;
             }
         } else if !GetDlgItem(hwnd, SAVE).is_null() && draft_changed(hwnd) {
@@ -1983,6 +1993,7 @@ unsafe fn run_editor_loop(
                     && GetFocus() == comparison
                     && matches!(msg.message, WM_KEYDOWN | WM_CHAR)
                     && key != VK_TAB
+                    && !(msg.message == WM_KEYDOWN && key == VK_ESCAPE)
                 {
                     TranslateMessage(&msg);
                     DispatchMessageW(&msg);

@@ -630,6 +630,12 @@ erreichte Tab das Vergleichsfeld vom zweiten Absatz aus. F6 führte mit erhalten
 Textmarkierung in diesen Absatz zurück. Ein weiterer Wechsel ins Vergleichsfeld und Tab
 führten zur nächsten verfügbaren Schaltfläche. Die Navigation löste keinen Schreibzug aus.
 
+Im normalen Vergleichsfenster öffnet Esc auch bei Fokus im schreibgeschützten Feld
+die Verwerfungsabfrage. Beim Windows-Lauf lag der Dialogfokus auf **Nein**. Nach
+dieser Entscheidung kehrte der Fokus zur markierten Textstelle im Vergleich zurück.
+Entwurf und Übernahmehäkchen blieben erhalten. Erst der anschließende Speicherbefehl
+veröffentlichte die geprüfte Mischung.
+
 Beim Aktualisieren desselben Vergleichsfelds behält die Vorschau die erste sichtbare
 Zeile bei, soweit der neue Inhalt das zulässt. Im Windows-Lauf mit verkleinertem Feld
 blieben Scrollposition und Textmarkierung beim Weiterschreiben und beim Ändern der

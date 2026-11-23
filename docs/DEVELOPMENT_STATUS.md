@@ -11,7 +11,7 @@ den letzten verfügbaren Schreibzug. Geprüft mit synthetischer Szene A auf Wind
 
 Bei einem authentisierten Revisionskonflikt bleibt der Entwurf im selben Fenster lokal
 bearbeitbar. Speichern unter der alten Bindung ist gesperrt. Schließen oder Verwerfen verlangt eine ausdrückliche
-Entscheidung. Der verwaltete Windows-Lauf und die Kanalprüfung sind im
+Entscheidung. Bei abgelehntem Verwerfen kehrt der Fokus ins zuvor genutzte Feld zurück. Der verwaltete Windows-Lauf und die Kanalprüfung sind im
 [Konfliktvertrag](architecture/decisions/0036-native-win32-ui-role-evaluation.md#revisionskonflikt-bei-einem-schreibzug) dokumentiert.
 
 Bei einem Konflikt lädt das verwaltete Rollenpaar den aktuellen Stand des Datendienstes unter
