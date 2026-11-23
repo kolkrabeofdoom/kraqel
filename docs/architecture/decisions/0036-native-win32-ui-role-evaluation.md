@@ -831,7 +831,10 @@ Bei verfügbarem Folgezug speichert **Speichern und weiterschreiben** (Strg+Ente
 im selben Fenster. Der Starter bestätigt die Veröffentlichung. Die Fensterrolle prüft
 unter der nächsten Bindung Revision, Text und Markierung gegen die eingereichte Fassung,
 bevor sie weitere Eingaben verarbeitet. Beim letzten Schreibzug ist nur Speichern und
-Schließen verfügbar. Dieser Modus speichert ausdrücklich. Sein maximales Textbudget beträgt 4.096 UTF-16-Einheiten
+Schließen verfügbar. Bei verfügbarem Folgezug nutzt der lange Klartexteditor denselben
+700-ms-Timer wie der kurze Editor. Der Timer ist an den gültigen geänderten Text gebunden.
+Eine Rückkehr zum bestätigten Stand, ungültiger Text oder das Öffnen der Schließabfrage
+verwirft den Timer. Das maximale Textbudget beträgt 4.096 UTF-16-Einheiten
 einschließlich LF. Das bestehende Speicherlimit von 64 KiB für das strukturierte Dokument
 gilt auch für absatzreiche Entwürfe. Leere und abschließende Absätze bleiben beim Speichern
 und Wiederlesen erhalten. Ein Revisionskonflikt hält den Entwurf im Fenster und sperrt die
@@ -849,6 +852,13 @@ eingegebene Zeichen erst Teil von Revision 3. Revision 2 enthielt den zuvor eing
 Text. Fensteridentität, Klartext, Absatzstruktur, Suchindex und frisches Lesen wurden
 geprüft. Beim letzten verfügbaren Schreibzug blieb Weiterschreiben auch bei direktem
 Aufruf gesperrt. Speichern und Schließen beendete die Sitzung regulär.
+
+Der Windows-Lauf zum Klartext-Autosave prüfte das erneute Starten der Schreibpause,
+das Zurückgehen zum bestätigten Text und den Wechsel zu einem ungültigen Entwurf.
+Während der verzögerten Bestätigung eingereihte Eingaben erschienen erst in Revision 3.
+Die Schließabfrage blieb über die Schreibpause hinaus offen. Verwerfen und anschließendes
+Wiederöffnen bestätigten Revision 3 samt Absatzstruktur und Suchindex. Beim letzten
+Journalzug ließ eine Schreibpause das Fenster offen, bis ausdrücklich gespeichert wurde.
 
 ## Kosten für den Editor
 

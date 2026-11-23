@@ -830,15 +830,15 @@ fn update_draft_status(hwnd: HWND) {
                 && EXPECTED.with_borrow(|base| text.as_ref() != Some(base))
                 && !REVISION_CONFLICT.get()
                 && !AWAITING_REBIND.get();
+            let can_continue = AUTOSAVE_TURN
+                .get()
+                .is_some_and(|(turn, limit)| turn < limit);
+            let autosave = changed && can_continue && !CLOSE_REQUESTED.get();
+            let scheduled = schedule_autosave(hwnd, text.as_deref().filter(|_| autosave));
             EnableWindow(save, i32::from(changed));
             EnableWindow(
                 GetDlgItem(hwnd, SAVE_AND_STAY),
-                i32::from(
-                    changed
-                        && AUTOSAVE_TURN
-                            .get()
-                            .is_some_and(|(turn, limit)| turn < limit),
-                ),
+                i32::from(changed && can_continue),
             );
             let label = if REVISION_CONFLICT.get() {
                 "Revisionskonflikt · Entwurf offen, Speichern gesperrt"
@@ -848,7 +848,11 @@ fn update_draft_status(hwnd: HWND) {
                 .get()
                 .is_some_and(|(turn, limit)| turn == limit)
             {
-                "Letzter Schreibzug · Speichern schließt das Fenster"
+                "Letzter Schreibzug · bitte ausdrücklich speichern und schließen"
+            } else if autosave && !scheduled {
+                "Autosave nicht verfügbar · bitte ausdrücklich speichern"
+            } else if autosave {
+                "Geändert · Autosave nach 700 ms Schreibpause"
             } else {
                 "Klartext · bis 4.096 UTF-16-Einheiten"
             };
@@ -1774,6 +1778,7 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                     || AUTOSAVE_TURN.get().is_some() =>
             {
                 if IsWindowEnabled(hwnd) != 0 && !CLOSE_REQUESTED.replace(true) {
+                    cancel_pending_save(hwnd);
                     PostMessageW(hwnd, WM_NULL, 0, 0);
                 }
                 0
@@ -2261,8 +2266,21 @@ unsafe fn run_editor_loop(
                 let ctrl = msg.message == WM_KEYDOWN && GetKeyState(i32::from(VK_CONTROL)) < 0;
                 let stay = GetDlgItem(hwnd, SAVE_AND_STAY);
                 let enter = msg.message == WM_KEYDOWN && key == VK_RETURN;
-                let continuing =
-                    msg.message == CONTINUE_PLAIN_DRAFT || (enter && (GetFocus() == stay || ctrl));
+                let timer =
+                    msg.message == WM_TIMER && msg.hwnd == hwnd && msg.wParam == AUTOSAVE_TIMER;
+                if timer
+                    && (CLOSE_REQUESTED.get()
+                        || REVISION_CONFLICT.get()
+                        || AWAITING_REBIND.get()
+                        || IsWindowEnabled(hwnd) == 0
+                        || IsWindowEnabled(stay) == 0
+                        || !autosave_due(hwnd))
+                {
+                    continue;
+                }
+                let continuing = timer
+                    || msg.message == CONTINUE_PLAIN_DRAFT
+                    || (enter && (GetFocus() == stay || ctrl));
                 if continuing
                     || msg.message == SAVE_DRAFT
                     || (ctrl && key == 0x53)
