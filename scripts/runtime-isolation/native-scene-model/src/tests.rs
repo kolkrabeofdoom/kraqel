@@ -219,21 +219,47 @@ fn known_inline_marks_open_only_as_plain_text_preview() {
 }
 
 #[test]
-fn preview_budget_counts_paragraph_breaks_and_utf16_without_enabling_writes() {
+fn plain_edit_budget_counts_breaks_and_utf16_and_preserves_revision_on_rejection() {
     let last = "🐦".repeat((MAX_PREVIEW_UTF16 - 4) / 2);
     let text = format!("AB\n\n{last}");
     let mut doc = document(&text);
-    doc.document["content"][1] = json!({"type":"paragraph"});
+    doc.document["content"][1] = json!({"type":"paragraph","content":[]});
     let mut catalog =
         SyntheticCatalog::restore_managed_a(1, &serde_json::to_string(&doc).unwrap()).unwrap();
+    assert_eq!(
+        to_value(
+            catalog
+                .bind(Scene::A, Mode::Read)
+                .handle_managed(&save(1, &text))
+        )
+        .unwrap(),
+        json!({"error":"DENIED"})
+    );
     let mut scene = catalog.bind(Scene::A, Mode::Edit);
+    let marked = br#"{"command":"c4_document_save_v2","expectedRevision":1,"text":"Rabe\n42","boldSecond":true}"#;
+    assert_eq!(
+        to_value(scene.handle_managed(marked)).unwrap(),
+        json!({"error":"DENIED"})
+    );
     assert_eq!(
         to_value(scene.handle_managed(READ)).unwrap(),
-        json!({"preview_text":text,"revision":1})
+        json!({"text":text,"revision":1})
+    );
+    assert_eq!(
+        to_value(scene.handle_managed(&save(1, &format!("{text}x")))).unwrap(),
+        json!({"error":"INVALID"})
+    );
+    assert_eq!(
+        to_value(scene.handle_managed(&save(1, &text))).unwrap(),
+        json!({"revision":2})
     );
     assert_eq!(
         to_value(scene.handle_managed(&save(1, "Rabe\n43"))).unwrap(),
-        json!({"error":"DENIED"})
+        json!({"error":"CONFLICT"})
+    );
+    assert_eq!(
+        to_value(scene.handle_managed(READ)).unwrap(),
+        json!({"text":text,"revision":2})
     );
     assert!(valid_preview_text(&text));
     let over = format!("{last}X");

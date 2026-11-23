@@ -35,8 +35,14 @@ pub enum Mode {
 
 fn document(text: &str) -> EditorDocument {
     let paragraphs: Vec<_> = text
-        .lines()
-        .map(|line| json!({"type": "paragraph", "content": [{"type": "text", "text": line}]}))
+        .split('\n')
+        .map(|line| {
+            if line.is_empty() {
+                json!({"type":"paragraph"})
+            } else {
+                json!({"type": "paragraph", "content": [{"type": "text", "text": line}]})
+            }
+        })
         .collect();
     EditorDocument {
         version: 1,
@@ -73,7 +79,17 @@ pub fn valid_preview_text(text: &str) -> bool {
         && !text.chars().any(|c| c.is_control() && c != '\n')
 }
 
-/// Two short paragraphs are the whole synthetic editing surface.
+pub fn valid_scene_edit(text: &str, bold: bool) -> bool {
+    if valid_paragraphs(text) {
+        return true;
+    }
+    !bold
+        && valid_preview_text(text)
+        && serde_json::to_vec(&document(text))
+            .is_ok_and(|bytes| bytes.len() <= MAX_STORED_DOCUMENT_BYTES)
+}
+
+/// Bound for each field of the two-paragraph formatting editor.
 pub const MAX_PARAGRAPH_UTF16: usize = 48;
 
 pub fn valid_paragraph(text: &str) -> bool {
@@ -88,6 +104,9 @@ pub fn valid_paragraphs(text: &str) -> bool {
 }
 
 fn managed_text(doc: &EditorDocument, revision: u32) -> Option<String> {
+    if let Some((text, false)) = project_scene(doc, revision) {
+        return Some(text);
+    }
     let paragraphs = &doc.document["content"];
     let text = format!(
         "{}\n{}",
@@ -101,9 +120,9 @@ fn managed_text(doc: &EditorDocument, revision: u32) -> Option<String> {
         .then_some(text)
 }
 
-// A projection can only leave this model in a distinct read-only reply. Keep the
-// complete original tree in the record, including run boundaries and mark order.
-fn formatted_preview(doc: &EditorDocument, revision: u32) -> Option<String> {
+// Validate the entire tree before projecting any text. Marked content outside the
+// formatting editor contract can leave the model only in a read-only preview.
+fn project_scene(doc: &EditorDocument, revision: u32) -> Option<(String, bool)> {
     let root = doc.document.as_object()?;
     if revision == 0 || doc.version != 1 || root.len() != 2 || root.get("type")? != "doc" {
         return None;
@@ -112,6 +131,7 @@ fn formatted_preview(doc: &EditorDocument, revision: u32) -> Option<String> {
     if paragraphs.is_empty() {
         return None;
     }
+    let mut has_marks = false;
     let mut projection = String::new();
     let mut units = 0;
     for (index, paragraph) in paragraphs.iter().enumerate() {
@@ -145,6 +165,7 @@ fn formatted_preview(doc: &EditorDocument, revision: u32) -> Option<String> {
             }
             projection.push_str(text);
             if let Some(marks) = marks {
+                has_marks = true;
                 for mark in marks.as_array()? {
                     let mark = mark.as_object()?;
                     if mark.len() != 1
@@ -156,7 +177,7 @@ fn formatted_preview(doc: &EditorDocument, revision: u32) -> Option<String> {
             }
         }
     }
-    Some(projection)
+    Some((projection, has_marks))
 }
 
 struct Record {
@@ -226,7 +247,8 @@ impl SyntheticCatalog {
         let mut reader = serde_json::Deserializer::from_str(encoded);
         let content = StoredDocument::deserialize(&mut reader).ok()?;
         reader.end().ok()?;
-        managed_text(&content, revision).or_else(|| formatted_preview(&content, revision))?;
+        managed_text(&content, revision)
+            .or_else(|| project_scene(&content, revision).map(|(text, _)| text))?;
         (revision <= MAX_REVISION).then(|| Self {
             a: Record { content, revision },
             ..Self::default()
@@ -354,7 +376,8 @@ impl BoundScene<'_> {
         let revision = self.record.revision;
         let editable_fixture = managed && self.scene == Scene::A;
         if editable_fixture && managed_text(&self.record.content, revision).is_none() {
-            let text = formatted_preview(&self.record.content, revision).ok_or(Failure::Invalid)?;
+            let (text, _) =
+                project_scene(&self.record.content, revision).ok_or(Failure::Invalid)?;
             return match request {
                 Request::Read {} => Ok(Reply::Preview {
                     preview_text: text,
@@ -408,10 +431,20 @@ impl BoundScene<'_> {
         if text.len() > MAX_TEXT_BYTES || expected_revision > MAX_REVISION {
             return Err(Failure::Limit);
         }
-        self.current_text(editable_fixture)?;
+        let current = self.current_text(editable_fixture)?;
+        if bold == Some(true) && !valid_paragraphs(&current) {
+            return Err(Failure::Denied);
+        }
+        let was_marked = self.record.content.document["content"][1]["content"][0]
+            .get("marks")
+            .is_some();
+        let marked = bold.unwrap_or(was_marked);
+        if !valid_paragraphs(&text) && (was_marked || revision == 0) {
+            return Err(Failure::Invalid);
+        }
         if !(self.scene.versions().contains(&text.as_str())
             || editable_fixture
-                && valid_paragraphs(&text)
+                && valid_scene_edit(&text, marked)
                 && (revision >= 1
                     || self.record.content.document["content"][1]["content"][0]
                         .get("marks")
@@ -425,11 +458,6 @@ impl BoundScene<'_> {
         if revision == MAX_REVISION {
             return Err(Failure::Limit);
         }
-        let marked = bold.unwrap_or_else(|| {
-            self.record.content.document["content"][1]["content"][0]
-                .get("marks")
-                .is_some()
-        });
         self.record.content = if marked {
             marked_document(&text)
         } else {

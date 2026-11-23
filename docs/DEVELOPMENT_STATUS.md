@@ -4,7 +4,9 @@
 
 Beim Wiederöffnen einer synthetischen Szene weist der Datendienst zusätzliche Felder in der äußeren Dokumenthülle ab. Damit können unbekannte Metadaten beim nächsten Speichern nicht stillschweigend entfallen. Der bestehende Modelltest für nicht unterstützte Dokumente deckt diesen Fall ab.
 
-Gespeicherte synthetische Fassungen mit zusätzlichen Absätzen, längeren Texten oder bekannten, im Win32-Editor nicht darstellbaren Textmarkierungen öffnen als ausdrücklich gekennzeichnete, scrollbare Textvorschau. Sie unterstützt 4.096 UTF-16-Codeeinheiten einschließlich Absatzgrenzen und eine lokale Suche mit Trefferzählung. Das gilt auch beim Start eines Bearbeitungsauftrags. Beide Speicherbefehle des Datendienstes verweigern Änderungen. [Formatumfang und Windows-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#schreibgeschützte-textvorschau-für-formatierte-szenen).
+Längere gespeicherte Klartextszenen sind im Bearbeitungsauftrag bis 4.096 UTF-16-Einheiten bearbeitbar. Strg+S speichert und schließt. Leerabsätze und Suchindex sind nach dem Wiederöffnen geprüft. [Klartextvertrag und Nachweise](architecture/decisions/0036-native-win32-ui-role-evaluation.md#längere-klartextszenen-bearbeiten).
+
+Gespeicherte synthetische Fassungen mit bekannten, im Win32-Editor nicht darstellbaren Textmarkierungen öffnen als ausdrücklich gekennzeichnete, scrollbare Textvorschau. Sie unterstützt 4.096 UTF-16-Codeeinheiten einschließlich Absatzgrenzen und eine lokale Suche mit Trefferzählung. Das gilt auch beim Start eines Bearbeitungsauftrags. Beide Speicherbefehle des Datendienstes verweigern Änderungen. [Formatumfang und Windows-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#schreibgeschützte-textvorschau-für-formatierte-szenen).
 
 Im Forschungsauftrag `continue-win32-scene` speichert das Win32-Fenster gültige Änderungen
 an Text und Fettmarkierung nach 700 ms Schreibpause. Nach jeder Bestätigung kann im selben

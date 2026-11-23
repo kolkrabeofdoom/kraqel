@@ -788,8 +788,7 @@ Für gespeicherte Revisionen ab 1 erkennt die Lesevorschau einen oder mehrere Ab
 einschließlich Leerabsätzen, mit Klartext und den attributlosen Markierungen `bold`,
 `italic` und `strike`. Insgesamt sind 4.096 UTF-16-Codeeinheiten einschließlich eines LF
 pro Absatzgrenze zugelassen. Die gespeicherte JSON-Hülle darf 64 KiB umfassen.
-Überlange Inhalte werden vollständig abgewiesen. Die Schreibbindung unterstützt weiterhin
-zwei nichtleere Absätze mit jeweils höchstens 48 UTF-16-Codeeinheiten. Unbekannte Versionen, Knoten, Markierungen und
+Überlange Inhalte werden vollständig abgewiesen. Der formatierbare Editor unterstützt zwei nichtleere Absätze mit jeweils höchstens 48 UTF-16-Codeeinheiten. Für unformatierten Text gilt zusätzlich der folgende Klartextvertrag. Unbekannte Versionen, Knoten, Markierungen und
 zusätzliche Felder sperren die Vorschau. Das strukturierte Original bleibt in der Ablage.
 
 Die authentisierte Erstantwort für die Vorschau enthält ausschließlich Klartext und Revision
@@ -818,6 +817,28 @@ Treffer geht es beim ersten weiter. Die Suche unterscheidet Groß- und Kleinschr
 Ein Windows-Lauf mit 34 Absätzen prüfte Treffer am Anfang und Ende, den Umlauf und
 die Meldung bei ausbleibendem Treffer. Die Markierung nach einem Supplementärzeichen
 saß auf dem vollständigen Suchwort. Nach dem Schließen blieben Dateihash und Revision erhalten.
+
+## Längere Klartextszenen bearbeiten
+
+Im verwalteten Bearbeitungsauftrag öffnet eine bereits gespeicherte längere Szene A ohne
+Markierungen in einem mehrzeiligen Klartextfeld. Bei einer kurzen gespeicherten Klartextfassung
+öffnet **Bearbeiten → Als längeren Klartext bearbeiten** dasselbe Feld. Der Wechsel setzt
+eine bestätigte, unformatierte Basis voraus. Bekannte Formatierungen außerhalb des
+Zwei-Absatz-Vertrags bleiben auf die Lesevorschau beschränkt.
+
+**Speichern und schließen** (Strg+S) veröffentlicht die Änderung auf der gebundenen Revision.
+Dieser Modus speichert ausdrücklich. Sein maximales Textbudget beträgt 4.096 UTF-16-Einheiten
+einschließlich LF. Das bestehende Speicherlimit von 64 KiB für das strukturierte Dokument
+gilt auch für absatzreiche Entwürfe. Leere und abschließende Absätze bleiben beim Speichern
+und Wiederlesen erhalten. Ein Revisionskonflikt hält den Entwurf im Fenster und sperrt die
+Veröffentlichung. Das Verwerfen verlangt eine Bestätigung.
+
+Der verwaltete Windows-Lauf prüfte den Wechsel aus der bestätigten kurzen Fassung, die
+Sperre bei 4.097 Einheiten, Revision 2 nach ausdrücklicher Speicherung und Revision 3
+nach Wiederöffnen und Weiterbearbeiten. Struktur, Klartext und Suchindex wurden in beiden
+Abbildern geprüft. Im Konfliktlauf blieb der Entwurf sichtbar. Nach bestätigtem Verwerfen
+blieb Revision 2 die zuletzt veröffentlichte Fassung. Der Modelltest prüft zusätzlich die
+Budgetgrenze mit Supplementärzeichen, die Lese- und Formatsperren und den veralteten Schreibzug.
 
 ## Kosten für den Editor
 

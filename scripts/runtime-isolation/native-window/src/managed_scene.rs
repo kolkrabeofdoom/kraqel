@@ -199,7 +199,10 @@ pub fn exchange(
             ch.binding
                 .open_bound_scene(1, &mut ch.reader, &mut ch.writer, revision)
                 .map(|view| match view {
-                    OpenedScene::Editable(v) => (v.text, v.bold_second, Some(v.revision), false),
+                    OpenedScene::Editable(v) => {
+                        let multiline = !kraqel_native_scene_model::valid_paragraphs(&v.text);
+                        (v.text, v.bold_second, Some(v.revision), multiline)
+                    }
                     OpenedScene::Preview(v) => (v.preview_text, false, Some(v.revision), true),
                 })
         }

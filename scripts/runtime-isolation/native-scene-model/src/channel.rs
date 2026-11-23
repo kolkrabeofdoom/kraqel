@@ -216,7 +216,7 @@ impl Binding {
         let answer: OpenedScene = serde_json::from_slice(&body).map_err(|_| Closed)?;
         let valid = match &answer {
             OpenedScene::Editable(view) => {
-                view.revision == revision && super::valid_paragraphs(&view.text)
+                view.revision == revision && super::valid_scene_edit(&view.text, view.bold_second)
             }
             OpenedScene::Preview(view) => {
                 revision > 0
@@ -471,15 +471,17 @@ impl Binding {
                 Err(Closed)
             };
         };
-        if !super::valid_paragraphs(&text) {
+        if !super::valid_scene_edit(&text, bold) {
             return Err(Closed);
         }
         if let SaveReply::Conflict =
             self.save_text(reader, writer, original.revision, &text, Some(bold))?
         {
-            let comparison = compare
-                .then(|| self.read_comparison(revision, reader, writer))
-                .transpose();
+            let comparison = (compare
+                && super::valid_paragraphs(&original.text)
+                && super::valid_paragraphs(&text))
+            .then(|| self.read_comparison(revision, reader, writer))
+            .transpose();
             let selected = edit(EditorEvent::RevisionConflict(
                 comparison.as_ref().ok().and_then(Option::as_ref),
             ))?;

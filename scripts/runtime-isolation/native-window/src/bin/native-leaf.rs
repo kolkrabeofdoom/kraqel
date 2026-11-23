@@ -64,7 +64,9 @@ struct PendingSave {
     due: Instant,
 }
 
+const OPEN_PLAIN: usize = 230;
 thread_local! {
+    static LONG_EDIT: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static AUTOSAVE_TURN: std::cell::Cell<Option<(u8, u8)>> = const { std::cell::Cell::new(None) };
     static PENDING_SAVE: std::cell::RefCell<Option<PendingSave>> = const { std::cell::RefCell::new(None) };
     static SELECTION_REVIEW:std::cell::RefCell<Option<SelectionReview>>=const {std::cell::RefCell::new(None)};
@@ -323,6 +325,7 @@ fn install_editor_menu(hwnd: HWND) -> bool {
             (
                 "&Bearbeiten",
                 &[
+                    (OPEN_PLAIN, "Als längeren Klartext bearbeiten"),
                     (UNDO, "&Rückgängig\tStrg+Z"),
                     (REDO, "&Wiederholen\tStrg+Y"),
                     (BOLD_SECOND, "Zweiter Absatz &fett\tStrg+B"),
@@ -399,7 +402,14 @@ fn align_edit_selection(hwnd: HWND, inserting: bool) -> usize {
         let range = SendMessageW(hwnd, EM_GETSEL, 0, 0) as u32;
         let start = (range & 0xffff) as usize;
         let end = (range >> 16) as usize;
-        let mut buf = [0u16; MAX_PARAGRAPH_UTF16 + 1];
+        let mut buf = vec![
+            0u16;
+            if LONG_EDIT.get() {
+                2 * kraqel_native_scene_model::MAX_PREVIEW_UTF16 + 1
+            } else {
+                MAX_PARAGRAPH_UTF16 + 1
+            }
+        ];
         let len = GetWindowTextW(hwnd, buf.as_mut_ptr(), buf.len() as i32) as usize;
         let splits_pair = |at: usize| {
             at > 0
@@ -451,7 +461,12 @@ unsafe extern "system" fn local_edit(
             }
             let selected = align_edit_selection(hwnd, true);
             let length = GetWindowTextLengthW(hwnd) as usize;
-            if length.saturating_sub(selected) + 2 <= MAX_PARAGRAPH_UTF16 {
+            let limit = if LONG_EDIT.get() {
+                2 * kraqel_native_scene_model::MAX_PREVIEW_UTF16
+            } else {
+                MAX_PARAGRAPH_UTF16
+            };
+            if length.saturating_sub(selected) + 2 <= limit {
                 let pair = [pending_high as u16, w as u16, 0];
                 SendMessageW(hwnd, EM_REPLACESEL, 1, pair.as_ptr() as LPARAM);
             } else {
@@ -520,6 +535,20 @@ fn invalid_paragraph(hwnd: HWND) -> Option<(i32, &'static str)> {
 }
 
 fn draft_text(hwnd: HWND) -> Option<String> {
+    if LONG_EDIT.get() {
+        unsafe {
+            let edit = GetDlgItem(hwnd, EDIT);
+            let length = GetWindowTextLengthW(edit) as usize;
+            if length > 2 * kraqel_native_scene_model::MAX_PREVIEW_UTF16 {
+                return None;
+            }
+            let mut buffer = vec![0; length + 1];
+            let got = GetWindowTextW(edit, buffer.as_mut_ptr(), buffer.len() as i32) as usize;
+            return String::from_utf16(&buffer[..got])
+                .ok()
+                .map(|s| s.replace("\r\n", "\n"));
+        }
+    }
     Some(format!(
         "{}\n{}",
         paragraph_text(hwnd, EDIT)?,
@@ -789,9 +818,41 @@ impl Drop for AutosaveTurn {
 fn update_draft_status(hwnd: HWND) {
     unsafe {
         let save = GetDlgItem(hwnd, SAVE);
+        if LONG_EDIT.get() {
+            let text = draft_text(hwnd);
+            let valid = text
+                .as_ref()
+                .is_some_and(|s| kraqel_native_scene_model::valid_scene_edit(s, false));
+            EnableWindow(
+                save,
+                i32::from(
+                    valid
+                        && EXPECTED.with_borrow(|base| text.as_ref() != Some(base))
+                        && !REVISION_CONFLICT.get(),
+                ),
+            );
+            let label = if REVISION_CONFLICT.get() {
+                "Revisionskonflikt · Entwurf offen, Speichern gesperrt"
+            } else if valid {
+                "Klartext · bis 4.096 UTF-16-Einheiten"
+            } else {
+                "Text oder Absatzstruktur zu groß · bitte kürzen"
+            };
+            SetDlgItemTextW(hwnd, LABEL, wide(label).as_ptr());
+            return;
+        }
         if save.is_null() || GetDlgItem(hwnd, SECOND).is_null() {
             return;
         }
+        enable_menu_command(
+            hwnd,
+            OPEN_PLAIN,
+            !REVISION_CONFLICT.get()
+                && !AWAITING_REBIND.get()
+                && !INITIAL_BOLD.get()
+                && !is_bold()
+                && LOADED_REVISION.get().is_some_and(|r| r > 0),
+        );
         let current = draft_text(hwnd);
         let dirty = is_bold() != INITIAL_BOLD.get()
             || EXPECTED.with_borrow(|initial| current.as_ref() != Some(initial));
@@ -1297,6 +1358,60 @@ fn show_comparison(
     }
 }
 
+fn enter_plain_editor(hwnd: HWND, text: &str) -> bool {
+    unsafe {
+        cancel_pending_save(hwnd);
+        let menu = GetMenu(hwnd);
+        if !menu.is_null() {
+            if SetMenu(hwnd, null_mut()) == 0 {
+                return false;
+            }
+            DestroyMenu(menu);
+            DrawMenuBar(hwnd);
+        }
+        LONG_EDIT.set(true);
+        for id in [
+            SECOND,
+            DISCARD,
+            SEARCH,
+            SEARCH_LABEL,
+            WORD_COUNT,
+            REPLACEMENT,
+            REPLACEMENT_LABEL,
+        ] {
+            ShowWindow(GetDlgItem(hwnd, id), SW_HIDE);
+        }
+        let field = GetDlgItem(hwnd, EDIT);
+        SendMessageW(
+            field,
+            EM_SETLIMITTEXT,
+            2 * kraqel_native_scene_model::MAX_PREVIEW_UTF16,
+            0,
+        );
+        SetDlgItemTextW(
+            hwnd,
+            SAVE,
+            wide("Speichern und schließen (Strg+S)").as_ptr(),
+        );
+        SetWindowTextW(
+            hwnd,
+            wide(format!(
+                "Szene A · Klartext · Revision {}",
+                LOADED_REVISION.get().unwrap_or(0)
+            ))
+            .as_ptr(),
+        );
+        if SetWindowTextW(field, wide(text.replace('\n', "\r\n")).as_ptr()) == 0
+            || !layout_surface(hwnd)
+        {
+            return false;
+        }
+        update_draft_status(hwnd);
+        SetFocus(field);
+        true
+    }
+}
+
 fn layout_surface(hwnd: HWND) -> bool {
     unsafe {
         let mut area = RECT::default();
@@ -1328,6 +1443,12 @@ fn layout_surface(hwnd: HWND) -> bool {
         };
         let text_height = (text_bottom - text_top).max(1);
         let place = |id, x, y, w, h| MoveWindow(GetDlgItem(hwnd, id), x, y, w, h, 1) != 0;
+        if LONG_EDIT.get() {
+            let y = area.bottom - px(44);
+            return place(LABEL, margin, px(10), width, px(24))
+                && place(EDIT, margin, text_top, width, (y - gap - text_top).max(1))
+                && place(SAVE, margin, y, width, px(30));
+        }
         if !place(LABEL, margin, px(10), width, px(24)) {
             return false;
         }
@@ -1519,6 +1640,23 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 set_focus_mode(hwnd, !in_focus_mode(hwnd));
                 0
             }
+            WM_COMMAND if w == OPEN_PLAIN => {
+                if !LONG_EDIT.get()
+                    && !REVISION_CONFLICT.get()
+                    && !AWAITING_REBIND.get()
+                    && !INITIAL_BOLD.get()
+                    && !is_bold()
+                    && LOADED_REVISION.get().is_some_and(|r| r > 0)
+                    && !GetDlgItem(hwnd, SAVE).is_null()
+                {
+                    if let Some(text) = draft_text(hwnd) {
+                        if !enter_plain_editor(hwnd, &text) {
+                            PostQuitMessage(24);
+                        }
+                    }
+                }
+                0
+            }
             WM_COMMAND if w == FIND => {
                 open_search(hwnd);
                 0
@@ -1687,6 +1825,11 @@ fn show(
         if SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2).is_null() {
             return 24;
         }
+        LONG_EDIT.set(false);
+        let long = draft.is_some()
+            && surface
+                .as_ref()
+                .is_some_and(|s| !kraqel_native_scene_model::valid_paragraphs(&s.text));
         let bold = surface.as_ref().and_then(|s| s.second_bold) == Some(true);
         EDIT_BASE_REVISION.set(LOADED_REVISION.get());
         INITIAL_BOLD.set(bold);
@@ -1771,7 +1914,11 @@ fn show(
                     | WS_BORDER
                     | ES_MULTILINE as u32
                     | ES_WANTRETURN as u32
-                    | if preview { WS_VSCROLL } else { 0 },
+                    | if preview || draft.is_some() {
+                        WS_VSCROLL
+                    } else {
+                        0
+                    },
             ),
             (
                 action,
@@ -1875,7 +2022,7 @@ fn show(
         {
             let edit = GetDlgItem(hwnd, EDIT);
             let mut visible = text.as_str();
-            if marked.is_some() && !preview {
+            if marked.is_some() && !preview && !long {
                 let Some((first, number)) = text.split_once('\n') else {
                     return 24;
                 };
@@ -1936,6 +2083,9 @@ fn show(
                     wide(format!("Szene A · Revision {revision} – Schreibgeschützt")).as_ptr(),
                 );
             }
+        }
+        if long && !enter_plain_editor(hwnd, &surface.as_ref().unwrap().text) {
+            return 24;
         }
         ShowWindow(hwnd, SW_SHOW);
         if let Some(output) = surface
@@ -2057,6 +2207,46 @@ unsafe fn run_editor_loop(
                 };
             }
             let key = msg.wParam as u16;
+            if LONG_EDIT.get() {
+                let field = GetDlgItem(hwnd, EDIT);
+                let save = GetDlgItem(hwnd, SAVE);
+                let ctrl = msg.message == WM_KEYDOWN && GetKeyState(i32::from(VK_CONTROL)) < 0;
+                if msg.message == SAVE_DRAFT
+                    || (ctrl && key == 0x53)
+                    || (msg.message == WM_KEYDOWN && key == VK_RETURN && GetFocus() == save)
+                {
+                    if !REVISION_CONFLICT.get() && IsWindowEnabled(save) != 0 {
+                        if let (Some(value), Some(held), Some(result)) = (
+                            draft_text(hwnd),
+                            keep_editor.as_deref_mut(),
+                            draft.as_deref_mut(),
+                        ) {
+                            if kraqel_native_scene_model::valid_scene_edit(&value, false)
+                                && draft_changed(hwnd)
+                            {
+                                *result = (value, false);
+                                held.submitted = Some(result.clone());
+                                held.hwnd = hwnd;
+                                held.closing = true;
+                                EnableWindow(hwnd, 0);
+                                return 40;
+                            }
+                        }
+                    }
+                } else if msg.message == WM_KEYDOWN && key == VK_TAB {
+                    SetFocus(if GetFocus() == field && IsWindowEnabled(save) != 0 {
+                        save
+                    } else {
+                        field
+                    });
+                } else if msg.message == WM_KEYDOWN && key == VK_ESCAPE {
+                    PostMessageW(hwnd, WM_CLOSE, 0, 0);
+                } else {
+                    TranslateMessage(&msg);
+                    DispatchMessageW(&msg);
+                }
+                continue;
+            }
             let search = GetDlgItem(hwnd, SEARCH);
             let ctrl = msg.message == WM_KEYDOWN
                 && GetKeyState(i32::from(VK_CONTROL)) < 0
@@ -2492,6 +2682,25 @@ fn main() {
                                     )?;
                                     return Ok(selection.clone());
                                 }
+                                EditorEvent::RevisionConflict(_) if LONG_EDIT.get() => {
+                                    REVISION_CONFLICT.set(true);
+                                    unsafe {
+                                        EnableWindow(held.hwnd, 1);
+                                        update_draft_status(held.hwnd);
+                                        SetFocus(GetDlgItem(held.hwnd, EDIT));
+                                        let mut draft = (String::new(), false);
+                                        require(
+                                            run_editor_loop(
+                                                held.hwnd,
+                                                true,
+                                                Some(&mut draft),
+                                                Some(&mut held),
+                                            ) == window_receipt::DISCARDED_EXIT as i32,
+                                            "plain conflict decision",
+                                        )?;
+                                    }
+                                    return Ok(None);
+                                }
                                 EditorEvent::RevisionConflict(comparison) => {
                                     selection = resolve_conflict(
                                         &mut held,
@@ -2550,7 +2759,7 @@ fn main() {
                                     }
                                 };
                             match code {
-                                40 if !draft.0.is_empty() => Ok(Some(draft)),
+                                40 if LONG_EDIT.get() || !draft.0.is_empty() => Ok(Some(draft)),
                                 code if code == window_receipt::DISCARDED_EXIT as i32 => Ok(None),
                                 _ => Err(std::io::Error::other("editor ended unexpectedly")),
                             }
