@@ -877,6 +877,19 @@ Revision 1 und einen leeren Job. Der Kanaltest prüft zusätzlich, dass ein dire
 Prepare bei langem Ausgangstext, langem Entwurf, langem Dienststand oder reiner
 Textprojektion vor der Vorbereitung abgewiesen wird.
 
+### Absatznavigation im langen Konfliktentwurf
+
+F7 und Umschalt+F7 durchlaufen die abweichenden Absatzblöcke zyklisch. Die Suche setzt
+am nächstgelegenen gemeinsamen Absatz wieder auf. Fehlt ein Block auf einer Seite,
+markiert die Einfügeposition dort sein Gegenstück. Die Revisionsüberschrift gehört
+nicht zum Vergleich. Jede lokale Änderung setzt die Navigation zurück.
+
+Der gezielte Modelltest deckt Vorwärts- und Rückwärtssprung sowie UTF-16-Positionen ab.
+Im verwalteten Win32-Fenster wurden ein nur lokal vorhandener Absatz und ein zusätzlicher
+Dienstabsatz getrennt gefunden. Nach lokalem Textabgleich meldete das Fenster Gleichstand.
+Eine weitere Änderung setzte den Sprung zurück. Die Speicheraktionen blieben gesperrt,
+und Verwerfen beendete die Sitzung auf ihrer Ausgangsrevision.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

@@ -1,4 +1,6 @@
 #![windows_subsystem = "windows"]
+#[path = "native-leaf/paragraph_comparison.rs"]
+mod paragraph_comparison;
 use kraqel_native_scene_model::MAX_PARAGRAPH_UTF16;
 use kraqel_window_probe::*;
 use std::ptr::{null, null_mut};
@@ -68,6 +70,7 @@ const SAVE_AND_STAY: i32 = 112;
 const CONTINUE_PLAIN_DRAFT: u32 = WM_APP + 8;
 const OPEN_PLAIN: usize = 230;
 thread_local! {
+    static PARAGRAPH_COMPARE: std::cell::RefCell<Option<paragraph_comparison::Comparison>> = const {std::cell::RefCell::new(None)};
     static LONG_EDIT: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static AUTOSAVE_TURN: std::cell::Cell<Option<(u8, u8)>> = const { std::cell::Cell::new(None) };
     static PENDING_SAVE: std::cell::RefCell<Option<PendingSave>> = const { std::cell::RefCell::new(None) };
@@ -844,7 +847,7 @@ fn update_draft_status(hwnd: HWND) {
                 if GetDlgItem(hwnd, COMPARISON).is_null() {
                     "Revisionskonflikt · Entwurf offen, Speichern gesperrt"
                 } else {
-                    "Konflikt · Entwurf links, Dienststand rechts (F6) · Speichern gesperrt"
+                    "Konflikt · F6 Seitenwechsel · F7 Unterschiede · Speichern gesperrt"
                 }
             } else if !valid {
                 "Text oder Absatzstruktur zu groß · bitte kürzen"
@@ -1336,12 +1339,44 @@ fn resolve_conflict(
     }
 }
 
+fn navigate_paragraph_difference(hwnd: HWND, backwards: bool) {
+    let Some(draft) = draft_text(hwnd) else {
+        return;
+    };
+    let result = PARAGRAPH_COMPARE.with_borrow_mut(|state| {
+        state
+            .as_mut()
+            .map(|comparison| comparison.step(&draft, backwards))
+    });
+    let Some(selection) = result else { return };
+    unsafe {
+        let message = if let Some((index, count, local, remote)) = selection {
+            let pane = GetDlgItem(hwnd, COMPARISON);
+            SetFocus(pane);
+            for (control, range) in [(GetDlgItem(hwnd, EDIT), local), (pane, remote)] {
+                SendMessageW(control, EM_SETSEL, range.start, range.end as isize);
+                SendMessageW(
+                    control,
+                    windows_sys::Win32::UI::Controls::EM_SCROLLCARET,
+                    0,
+                    0,
+                );
+            }
+            format!("Unterschied {index} von {count} · F7 weiter · Umschalt+F7 zurück")
+        } else {
+            String::from("Beide Texte stimmen überein · Speichern gesperrt")
+        };
+        SetDlgItemTextW(hwnd, LABEL, wide(message).as_ptr());
+    }
+}
+
 fn inspect_conflict(held: &mut HeldEditor, view: Option<(u32, &str)>) -> std::io::Result<()> {
     require(!held.hwnd.is_null(), "plain conflict editor")?;
     AWAITING_REBIND.set(false);
     REVISION_CONFLICT.set(true);
     held.autosave_turn = None;
     unsafe {
+        PARAGRAPH_COMPARE.replace(None);
         if !LONG_EDIT.get() {
             SELECTION_REVIEW.replace(None);
             remove_selection_menu(held.hwnd)?;
@@ -1351,13 +1386,15 @@ fn inspect_conflict(held: &mut HeldEditor, view: Option<(u32, &str)>) -> std::io
             check(DestroyWindow(old))?;
         }
         if let Some((revision, text)) = view {
+            let header = format!("Datendienst · Revision {revision}\r\n\r\n");
             create_comparison_field(
                 held.hwnd,
-                &format!(
-                    "Datendienst · Revision {revision}\r\n\r\n{}",
-                    text.replace('\n', "\r\n")
-                ),
+                &format!("{header}{}", text.replace('\n', "\r\n")),
             )?;
+            if LONG_EDIT.get() {
+                PARAGRAPH_COMPARE
+                    .replace(Some(paragraph_comparison::Comparison::new(text, &header)));
+            }
         }
         EnableWindow(held.hwnd, 1);
         update_draft_status(held.hwnd);
@@ -1687,6 +1724,13 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
             {
                 if !GetDlgItem(hwnd, SAVE).is_null() {
                     let id = (w & 0xffff) as i32;
+                    if LONG_EDIT.get() && id == EDIT && (w >> 16) as u32 == EN_CHANGE {
+                        PARAGRAPH_COMPARE.with_borrow_mut(|state| {
+                            if let Some(state) = state {
+                                state.reset();
+                            }
+                        });
+                    }
                     let full =
                         GetWindowTextLengthW(GetDlgItem(hwnd, id)) == MAX_PARAGRAPH_UTF16 as i32;
                     let label = if full || (w >> 16) as u32 == EN_MAXTEXT {
@@ -2031,6 +2075,7 @@ fn show(
                 "",
                 WS_TABSTOP
                     | WS_BORDER
+                    | ES_NOHIDESEL as u32
                     | ES_MULTILINE as u32
                     | ES_WANTRETURN as u32
                     | if preview || draft.is_some() {
@@ -2332,6 +2377,14 @@ unsafe fn run_editor_loop(
                 let ctrl = msg.message == WM_KEYDOWN && GetKeyState(i32::from(VK_CONTROL)) < 0;
                 let stay = GetDlgItem(hwnd, SAVE_AND_STAY);
                 let enter = msg.message == WM_KEYDOWN && key == VK_RETURN;
+                if msg.message == WM_KEYDOWN
+                    && key == VK_F7
+                    && LONG_EDIT.get()
+                    && REVISION_CONFLICT.get()
+                {
+                    navigate_paragraph_difference(hwnd, GetKeyState(i32::from(VK_SHIFT)) < 0);
+                    continue;
+                }
                 let timer =
                     msg.message == WM_TIMER && msg.hwnd == hwnd && msg.wParam == AUTOSAVE_TIMER;
                 if timer
