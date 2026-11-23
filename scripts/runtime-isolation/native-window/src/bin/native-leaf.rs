@@ -1044,6 +1044,14 @@ fn menu_checked(hwnd: HWND, id: usize) -> bool {
     state != u32::MAX && state & MF_CHECKED != 0
 }
 
+fn invalid_selected_paragraph(hwnd: HWND) -> Option<(i32, &'static str)> {
+    invalid_paragraph(hwnd, |id| match id {
+        EDIT => menu_checked(hwnd, PICK_FIRST),
+        SECOND => menu_checked(hwnd, PICK_SECOND),
+        _ => false,
+    })
+}
+
 fn combined_draft(
     hwnd: HWND,
     view: &kraqel_native_scene_model::channel::SceneView,
@@ -1221,12 +1229,8 @@ fn update_review(hwnd: HWND) {
         let preview = match selected {
             Some((text, bold)) if changed => format_text(&text, bold),
             Some(_) => "Auswahl entspricht dem Dienststand.".to_owned(),
-            None => invalid_paragraph(hwnd, |id| match id {
-                EDIT => picks[0],
-                SECOND => picks[1],
-                _ => false,
-            }).map_or_else(|| "Ausgewählte Absätze prüfen.".to_owned(), |(_, hint)| {
-                format!("{hint} Alternativ diesen Absatz aus dem Dienststand übernehmen.")
+            None => invalid_selected_paragraph(hwnd).map_or_else(|| "Ausgewählte Absätze prüfen.".to_owned(), |(_, hint)| {
+                format!("{hint} F6 führt von der Vorschau zum Absatz. Alternativ diesen Absatz aus dem Dienststand übernehmen.")
             }),
         };
         let sources = match checked {
@@ -2638,7 +2642,9 @@ unsafe fn run_editor_loop(
                 let comparison = GetDlgItem(hwnd, COMPARISON);
                 if !comparison.is_null() && msg.message == WM_KEYDOWN && key == VK_F6 {
                     SetFocus(if GetFocus() == comparison {
-                        GetDlgItem(hwnd, ACTIVE_PARAGRAPH.get())
+                        let target = invalid_selected_paragraph(hwnd)
+                            .map_or_else(|| ACTIVE_PARAGRAPH.get(), |(id, _)| id);
+                        GetDlgItem(hwnd, target)
                     } else {
                         comparison
                     });
