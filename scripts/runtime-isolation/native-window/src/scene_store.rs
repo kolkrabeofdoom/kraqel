@@ -311,8 +311,8 @@ impl Store {
         let tx = self.db.transaction().map_err(failure)?;
         let (content, rev): (String, u32) = tx
             .query_row(
-                "SELECT document,revision FROM scene WHERE id='A' AND length(document)<=1024",
-                [],
+                "SELECT document,revision FROM scene WHERE id='A' AND length(CAST(document AS BLOB))<=?1",
+                [if self.managed { kraqel_native_scene_model::MAX_STORED_DOCUMENT_BYTES as i64 } else { 1024 }],
                 |r| Ok((r.get(0)?, r.get(1)?)),
             )
             .map_err(failure)?;

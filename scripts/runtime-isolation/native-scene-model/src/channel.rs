@@ -214,12 +214,17 @@ impl Binding {
             writer,
         )?;
         let answer: OpenedScene = serde_json::from_slice(&body).map_err(|_| Closed)?;
-        let (actual, text) = match &answer {
-            OpenedScene::Editable(view) => (view.revision, &view.text),
-            OpenedScene::Preview(view) if revision > 0 => (view.revision, &view.preview_text),
-            _ => return Err(Closed),
+        let valid = match &answer {
+            OpenedScene::Editable(view) => {
+                view.revision == revision && super::valid_paragraphs(&view.text)
+            }
+            OpenedScene::Preview(view) => {
+                revision > 0
+                    && view.revision == revision
+                    && super::valid_preview_text(&view.preview_text)
+            }
         };
-        if actual != revision || !super::valid_paragraphs(text) {
+        if !valid {
             return Err(Closed);
         }
         Ok(answer)

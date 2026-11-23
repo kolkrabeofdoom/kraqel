@@ -1593,9 +1593,11 @@ unsafe fn finish_close(hwnd: HWND) -> isize {
                 return 0;
             }
         }
-        let mut value = [0u16; 64];
-        let n = GetDlgItemTextW(hwnd, EDIT, value.as_mut_ptr(), 64);
         let expected = EXPECTED.with_borrow(Clone::clone);
+        // A Win32 multiline EDIT exposes CRLF for each stored LF.
+        let mut value =
+            vec![0u16; expected.encode_utf16().count() + expected.matches('\n').count() + 2];
+        let n = GetDlgItemTextW(hwnd, EDIT, value.as_mut_ptr(), value.len() as i32);
         let first = String::from_utf16_lossy(&value[..n as usize]);
         let second = GetDlgItem(hwnd, SECOND);
         let font = if second.is_null() {
@@ -1606,7 +1608,7 @@ unsafe fn finish_close(hwnd: HWND) -> isize {
         let ok = if second.is_null() {
             first.replace("\r\n", "\n") == expected
         } else {
-            let n = GetWindowTextW(second, value.as_mut_ptr(), 64);
+            let n = GetWindowTextW(second, value.as_mut_ptr(), value.len() as i32);
             let number = String::from_utf16_lossy(&value[..n as usize]);
             format!("{first}\n{number}") == expected
                 && font_description(font).is_some_and(|desc| desc.lfWeight == SECOND_WEIGHT.get())
@@ -1651,6 +1653,7 @@ fn show(
                 .map(|s| s.text.clone())
                 .unwrap_or_else(|| "Rabe\n42".into())
         });
+        let preview = surface.as_ref().is_some_and(|s| s.text_preview);
         let action = if draft.is_some() { SAVE } else { CLOSE };
         let instance = GetModuleHandleW(null());
         let name = wide("KRAQEL.Synthetic.Edit");
@@ -1709,7 +1712,7 @@ fn show(
                 "STATIC",
                 if draft.is_some() {
                     draft_label()
-                } else if surface.as_ref().is_some_and(|s| s.text_preview) {
+                } else if preview {
                     "Schreibgeschützte Textvorschau · Formatierungen ausgeblendet"
                 } else {
                     "&Prüftext"
@@ -1720,7 +1723,11 @@ fn show(
                 EDIT,
                 "EDIT",
                 "",
-                WS_TABSTOP | WS_BORDER | ES_MULTILINE as u32 | ES_WANTRETURN as u32,
+                WS_TABSTOP
+                    | WS_BORDER
+                    | ES_MULTILINE as u32
+                    | ES_WANTRETURN as u32
+                    | if preview { WS_VSCROLL } else { 0 },
             ),
             (
                 action,
@@ -1806,7 +1813,12 @@ fn show(
         if !protect_editor_field(GetDlgItem(hwnd, EDIT)) {
             return 24;
         }
-        SendDlgItemMessageW(hwnd, EDIT, EM_SETLIMITTEXT, MAX_PARAGRAPH_UTF16, 0);
+        let limit = if preview {
+            2 * kraqel_native_scene_model::MAX_PREVIEW_UTF16
+        } else {
+            MAX_PARAGRAPH_UTF16
+        };
+        SendDlgItemMessageW(hwnd, EDIT, EM_SETLIMITTEXT, limit, 0);
         if let Some(SceneSurface {
             text,
             second_bold: marked,
@@ -1815,7 +1827,7 @@ fn show(
         {
             let edit = GetDlgItem(hwnd, EDIT);
             let mut visible = text.as_str();
-            if marked.is_some() {
+            if marked.is_some() && !preview {
                 let Some((first, number)) = text.split_once('\n') else {
                     return 24;
                 };

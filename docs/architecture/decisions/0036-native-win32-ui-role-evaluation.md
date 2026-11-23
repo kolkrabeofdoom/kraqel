@@ -784,9 +784,12 @@ Leseanfrage bestand ebenfalls.
 ## Schreibgeschützte Textvorschau für formatierte Szenen
 
 Der verwaltete Datendienst prüft beim Wiederöffnen zuerst den bestehenden Editiervertrag.
-Für gespeicherte Revisionen ab 1 erkennt er zusätzlich zwei Absätze mit Textknoten und
-den attributlosen Markierungen `bold`, `italic` und `strike`. Jeder Absatz bleibt auf
-48 UTF-16-Codeeinheiten begrenzt. Unbekannte Versionen, Knoten, Markierungen und
+Für gespeicherte Revisionen ab 1 erkennt die Lesevorschau einen oder mehrere Absätze,
+einschließlich Leerabsätzen, mit Klartext und den attributlosen Markierungen `bold`,
+`italic` und `strike`. Insgesamt sind 4.096 UTF-16-Codeeinheiten einschließlich eines LF
+pro Absatzgrenze zugelassen. Die gespeicherte JSON-Hülle darf 64 KiB umfassen.
+Überlange Inhalte werden vollständig abgewiesen. Die Schreibbindung unterstützt weiterhin
+zwei nichtleere Absätze mit jeweils höchstens 48 UTF-16-Codeeinheiten. Unbekannte Versionen, Knoten, Markierungen und
 zusätzliche Felder sperren die Vorschau. Das strukturierte Original bleibt in der Ablage.
 
 Die authentisierte Erstantwort für die Vorschau enthält ausschließlich Klartext und Revision
@@ -802,6 +805,12 @@ Lesender Wiederaufruf und Bearbeitungsauftrag öffneten die Szene. Im Bearbeitun
 waren Vorschauhinweis, schreibgeschütztes Eingabefeld und beide Texte sichtbar. Nach dem
 Schließen waren der Dateihash identisch, die Revision weiter 1 und der Job leer. Die
 Präparation gehört ausschließlich zum Prüflauf.
+
+Im Mehrabsatzlauf wurde eine synthetische Revision mit 37 Absätzen einschließlich
+Leerabsatz über beide Aufträge geöffnet. Das scrollbare Win32-Lesefeld enthielt den
+gesamten Text. Nach Scrollen bis zum Ende lag das letzte Zeichen im sichtbaren Bereich.
+Schließen erhielt Revision und Dateihash. Der Modelltest deckt exakt 4.096 Einheiten mit
+Supplementärzeichen und Leerabsatz sowie die Abweisung einer weiteren Einheit ab.
 
 ## Kosten für den Editor
 

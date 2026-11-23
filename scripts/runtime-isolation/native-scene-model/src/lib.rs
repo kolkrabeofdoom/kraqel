@@ -65,6 +65,14 @@ impl Scene {
     }
 }
 
+pub const MAX_PREVIEW_UTF16: usize = 4096;
+pub const MAX_STORED_DOCUMENT_BYTES: usize = 64 * 1024;
+
+pub fn valid_preview_text(text: &str) -> bool {
+    text.encode_utf16().count() <= MAX_PREVIEW_UTF16
+        && !text.chars().any(|c| c.is_control() && c != '\n')
+}
+
 /// Two short paragraphs are the whole synthetic editing surface.
 pub const MAX_PARAGRAPH_UTF16: usize = 48;
 
@@ -101,17 +109,29 @@ fn formatted_preview(doc: &EditorDocument, revision: u32) -> Option<String> {
         return None;
     }
     let paragraphs = root.get("content")?.as_array()?;
-    if paragraphs.len() != 2 {
+    if paragraphs.is_empty() {
         return None;
     }
-    let mut lines = Vec::new();
-    let mut formatted = false;
-    for paragraph in paragraphs {
+    let mut projection = String::new();
+    let mut units = 0;
+    for (index, paragraph) in paragraphs.iter().enumerate() {
+        if index > 0 {
+            units += 1;
+            if units > MAX_PREVIEW_UTF16 {
+                return None;
+            }
+            projection.push('\n');
+        }
         let node = paragraph.as_object()?;
-        if node.len() != 2 || node.get("type")? != "paragraph" {
+        if node.get("type")? != "paragraph" {
             return None;
         }
-        let mut line = String::new();
+        if node.len() == 1 {
+            continue;
+        } // Canonical empty paragraph without content.
+        if node.len() != 2 {
+            return None;
+        }
         for run in node.get("content")?.as_array()? {
             let run = run.as_object()?;
             let marks = run.get("marks");
@@ -119,10 +139,11 @@ fn formatted_preview(doc: &EditorDocument, revision: u32) -> Option<String> {
                 return None;
             }
             let text = run.get("text")?.as_str()?;
-            if !valid_paragraph(text) {
+            units += text.encode_utf16().count();
+            if units > MAX_PREVIEW_UTF16 || text.is_empty() || text.chars().any(char::is_control) {
                 return None;
             }
-            line.push_str(text);
+            projection.push_str(text);
             if let Some(marks) = marks {
                 for mark in marks.as_array()? {
                     let mark = mark.as_object()?;
@@ -131,16 +152,11 @@ fn formatted_preview(doc: &EditorDocument, revision: u32) -> Option<String> {
                     {
                         return None;
                     }
-                    formatted = true;
                 }
             }
         }
-        if !valid_paragraph(&line) {
-            return None;
-        }
-        lines.push(line);
     }
-    formatted.then(|| lines.join("\n"))
+    Some(projection)
 }
 
 struct Record {
@@ -194,6 +210,9 @@ impl SyntheticCatalog {
         })
     }
     pub fn restore_managed_a(revision: u32, encoded: &str) -> Option<Self> {
+        if encoded.len() > MAX_STORED_DOCUMENT_BYTES {
+            return None;
+        }
         if let Some(old) = Self::restore_a(revision, encoded) {
             return Some(old);
         }

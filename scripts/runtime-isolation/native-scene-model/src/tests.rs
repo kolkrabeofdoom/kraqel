@@ -219,6 +219,32 @@ fn known_inline_marks_open_only_as_plain_text_preview() {
 }
 
 #[test]
+fn preview_budget_counts_paragraph_breaks_and_utf16_without_enabling_writes() {
+    let last = "🐦".repeat((MAX_PREVIEW_UTF16 - 4) / 2);
+    let text = format!("AB\n\n{last}");
+    let mut doc = document(&text);
+    doc.document["content"][1] = json!({"type":"paragraph"});
+    let mut catalog =
+        SyntheticCatalog::restore_managed_a(1, &serde_json::to_string(&doc).unwrap()).unwrap();
+    let mut scene = catalog.bind(Scene::A, Mode::Edit);
+    assert_eq!(
+        to_value(scene.handle_managed(READ)).unwrap(),
+        json!({"preview_text":text,"revision":1})
+    );
+    assert_eq!(
+        to_value(scene.handle_managed(&save(1, "Rabe\n43"))).unwrap(),
+        json!({"error":"DENIED"})
+    );
+    assert!(valid_preview_text(&text));
+    let over = format!("{last}X");
+    doc.document["content"][2]["content"][0]["text"] = json!(over);
+    assert!(!valid_preview_text(&format!("AB\n\n{over}")));
+    assert!(
+        SyntheticCatalog::restore_managed_a(1, &serde_json::to_string(&doc).unwrap()).is_none()
+    );
+}
+
+#[test]
 fn revision_limit_is_readable_and_cannot_roll_over() {
     let mut catalog = SyntheticCatalog::default();
     catalog.a.revision = MAX_REVISION - 1;
