@@ -2,8 +2,13 @@
 
 ### Verwalteter Win32-Szeneneditor
 
+Der Forschungsauftrag `continue-win32-scene` speichert gültige, geänderte Entwürfe nach
+700 ms Schreibpause automatisch. Text und Fettmarkierung zählen als Änderung. Die Probe umfasst
+zwei bestätigte Veröffentlichungen, danach endet das Fenster.
+[Umfang und Windows-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#entprelltes-autosave-in-der-zwei-schreibzug-probe).
+
 Im Forschungsauftrag `continue-win32-scene` kann nach der ersten Bestätigung im selben
-Editorfenster weitergeschrieben werden. Der zweite manuelle Schreibzug hat eine frische
+Editorfenster weitergeschrieben werden. Der zweite Schreibzug hat eine frische
 Edit-Bindung an die bestätigte Revision. Zwei Veröffentlichungen, reguläres Schließen nach
 der ersten und die Sperre nach Prozessabbruch wurden auf Windows geprüft.
 [Protokoll und Nachweise](architecture/decisions/0036-native-win32-ui-role-evaluation.md#zweiter-schreibzug-im-selben-fenster).
@@ -15,7 +20,7 @@ bestätigte zwei Revisionen in zwei Aufträgen und die Neustartsperre nach Verlu
 Der Fenstertitel zeigt die authentisierte Basisrevision und den lokalen Änderungszustand.
 Im verwalteten Lauf blieb die Basis beim Bearbeiten von Revision 0 und 1 stabil. Die jeweils
 frisch geöffneten Leseansichten zeigten Revision 1 und 2; die SQLite-Gegenprüfung bestätigte
-Text und Formatierung. Fortlaufendes Autosave ist offen. Der
+Text und Formatierung. Autosave über das Budget von zwei Schreibzügen hinaus ist offen. Der
 [Entwurf für revisionsgebundene Folgeschreibzüge](architecture/decisions/0036-native-win32-ui-role-evaluation.md#revisionsanzeige-und-nächster-autosave-schritt)
 beschreibt die dafür nötige Starterbestätigung und das Verhalten bei unklarem Commit.
 

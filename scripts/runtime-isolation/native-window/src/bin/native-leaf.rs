@@ -2,6 +2,7 @@
 use kraqel_native_scene_model::MAX_PARAGRAPH_UTF16;
 use kraqel_window_probe::*;
 use std::ptr::{null, null_mut};
+use std::time::{Duration, Instant};
 use windows_sys::Win32::{
     Foundation::*,
     Graphics::Gdi::*,
@@ -31,7 +32,18 @@ const FIND: usize = 205;
 const FIND_NEXT: usize = 206;
 const FIND_PREVIOUS: usize = 207;
 
+const AUTOSAVE_TIMER: usize = 0x4b51;
+const WRITE_PAUSE: Duration = Duration::from_millis(700);
+
+struct PendingSave {
+    text: String,
+    bold: bool,
+    due: Instant,
+}
+
 thread_local! {
+    static AUTOSAVE_TURN: std::cell::Cell<Option<u8>> = const { std::cell::Cell::new(None) };
+    static PENDING_SAVE: std::cell::RefCell<Option<PendingSave>> = const { std::cell::RefCell::new(None) };
     static ACTIVE_PARAGRAPH: std::cell::Cell<i32> = const { std::cell::Cell::new(EDIT) };
     static SECOND_WEIGHT: std::cell::Cell<i32> = const { std::cell::Cell::new(0) };
     static LOADED_REVISION: std::cell::Cell<Option<u32>> = const { std::cell::Cell::new(None) };
@@ -484,6 +496,7 @@ struct HeldEditor {
     hwnd: HWND,
     history: Option<DraftHistory>,
     closing: bool,
+    autosave_turn: Option<u8>,
 }
 
 struct DraftHistory {
@@ -641,6 +654,68 @@ fn apply_fonts(hwnd: HWND, dpi: u32) -> bool {
     }
 }
 
+fn cancel_pending_save(hwnd: HWND) {
+    if PENDING_SAVE.take().is_some() {
+        unsafe {
+            KillTimer(hwnd, AUTOSAVE_TIMER);
+        }
+    }
+}
+
+fn schedule_autosave(hwnd: HWND, text: Option<&str>, dirty: bool) -> bool {
+    let Some(text) = text.filter(|t| dirty && kraqel_native_scene_model::valid_paragraphs(t))
+    else {
+        cancel_pending_save(hwnd);
+        return true;
+    };
+    let bold = is_bold();
+    if PENDING_SAVE.with_borrow(|p| p.as_ref().is_some_and(|p| p.text == text && p.bold == bold)) {
+        return true;
+    }
+    cancel_pending_save(hwnd);
+    if unsafe { SetTimer(hwnd, AUTOSAVE_TIMER, WRITE_PAUSE.as_millis() as u32, None) } == 0 {
+        return false;
+    }
+    PENDING_SAVE.replace(Some(PendingSave {
+        text: text.to_owned(),
+        bold,
+        due: Instant::now() + WRITE_PAUSE,
+    }));
+    true
+}
+
+// WM_TIMER may already be queued when the pending edit changes or the timer is killed.
+fn autosave_due(hwnd: HWND) -> bool {
+    let text = draft_text(hwnd);
+    let due = PENDING_SAVE.with_borrow(|p| {
+        p.as_ref()
+            .filter(|p| Some(&p.text) == text.as_ref() && p.bold == is_bold())
+            .map(|p| p.due)
+    });
+    if let Some(due) = due {
+        let remaining = due.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            return true;
+        }
+        // Windows timers can fire early; wait just the remainder of this edit's pause.
+        let ms = remaining.as_millis() as u32 + 1;
+        if unsafe { SetTimer(hwnd, AUTOSAVE_TIMER, ms, None) } != 0 {
+            return false;
+        }
+        cancel_pending_save(hwnd);
+    }
+    update_draft_status(hwnd);
+    false
+}
+
+struct AutosaveTurn(HWND);
+impl Drop for AutosaveTurn {
+    fn drop(&mut self) {
+        cancel_pending_save(self.0);
+        AUTOSAVE_TURN.set(None);
+    }
+}
+
 fn update_draft_status(hwnd: HWND) {
     unsafe {
         let save = GetDlgItem(hwnd, SAVE);
@@ -650,6 +725,8 @@ fn update_draft_status(hwnd: HWND) {
         let current = draft_text(hwnd);
         let dirty = is_bold() != INITIAL_BOLD.get()
             || EXPECTED.with_borrow(|initial| current.as_ref() != Some(initial));
+        let autosave = AUTOSAVE_TURN.get();
+        let scheduled = autosave.is_none() || schedule_autosave(hwnd, current.as_deref(), dirty);
         if let Some(text) = current {
             // Match countWords in packages/editor, including ECMAScript's whitespace exceptions.
             let count = text
@@ -672,9 +749,15 @@ fn update_draft_status(hwnd: HWND) {
             "Keine Änderungen"
         };
         if let Some(revision) = LOADED_REVISION.get() {
+            let suffix = match autosave {
+                Some(_) if !scheduled => " · Bitte manuell speichern",
+                Some(1) => " · Autosave 1/2",
+                Some(_) => " · Autosave 2/2",
+                None => "",
+            };
             SetWindowTextW(
                 hwnd,
-                wide(format!("Szene A · Revision {revision} – {status}")).as_ptr(),
+                wide(format!("Szene A · Revision {revision} – {status}{suffix}")).as_ptr(),
             );
         }
     }
@@ -897,6 +980,7 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                     if IsWindowEnabled(hwnd) == 0 {
                         return 0;
                     }
+                    cancel_pending_save(hwnd);
                     let previous_focus = GetFocus();
                     let answer = MessageBoxW(
                         hwnd,
@@ -909,6 +993,7 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                         return 0;
                     }
                     if answer != IDNO {
+                        update_draft_status(hwnd);
                         if IsChild(hwnd, previous_focus) != 0 {
                             SetFocus(previous_focus);
                         }
@@ -1256,6 +1341,14 @@ unsafe fn run_editor_loop(
 ) -> i32 {
     unsafe {
         let action = if draft.is_some() { SAVE } else { CLOSE };
+        let _autosave = keep_editor
+            .as_ref()
+            .and_then(|held| held.autosave_turn)
+            .map(|turn| {
+                AUTOSAVE_TURN.set(Some(turn));
+                update_draft_status(hwnd);
+                AutosaveTurn(hwnd)
+            });
         let mut history = keep_editor
             .as_deref_mut()
             .and_then(|held| held.history.take())
@@ -1391,7 +1484,16 @@ unsafe fn run_editor_loop(
                 let enter_save = msg.message == WM_KEYDOWN
                     && key == VK_RETURN
                     && GetFocus() == GetDlgItem(hwnd, action);
-                if msg.message == SAVE_DRAFT || ctrl_save || enter_save {
+                let timer =
+                    msg.message == WM_TIMER && msg.hwnd == hwnd && msg.wParam == AUTOSAVE_TIMER;
+                if timer
+                    && (AUTOSAVE_TURN.get().is_none()
+                        || IsWindowEnabled(hwnd) == 0
+                        || !autosave_due(hwnd))
+                {
+                    continue;
+                }
+                if timer || msg.message == SAVE_DRAFT || ctrl_save || enter_save {
                     if let Some(value) = draft_text(hwnd) {
                         if is_bold() == INITIAL_BOLD.get()
                             && EXPECTED.with_borrow(|initial| initial == &value)
@@ -1525,6 +1627,8 @@ fn main() {
                 let mut turn_mode = mode;
                 let mut control = input;
                 loop {
+                    held.autosave_turn =
+                        continued.map(|_| if expected_next.is_none() { 1 } else { 2 });
                     let dialog_output = output.try_clone()?;
                     let view = managed_scene::exchange(
                         control.try_clone()?,

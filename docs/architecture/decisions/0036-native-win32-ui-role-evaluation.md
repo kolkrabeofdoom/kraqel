@@ -437,8 +437,8 @@ Kontrollkopf blieb gleich. Der nachfolgende Fortsetzungspfad erweitert diesen Ei
 
 ### Zweiter Schreibzug im selben Fenster
 
-`broker-store continue-win32-scene <Kontrollkopf>` gestattet höchstens zwei manuell
-ausgelöste Schreibzüge für Szene A in einer Fenstersitzung. Während der Veröffentlichung ist
+`broker-store continue-win32-scene <Kontrollkopf>` gestattet höchstens zwei
+Schreibzüge für Szene A in einer Fenstersitzung. Während der Veröffentlichung ist
 die Eingabe gesperrt. Die Fensterrolle quittiert entweder Abschluss oder Fortsetzung, gebunden
 an die vom Starter bestätigte Revision und den Digest des Veröffentlichungsrecords. Bei
 Fortsetzung verlangt der Journalübergang `RebindWin32Scene` unter derselben Kontrollsperre
@@ -460,6 +460,27 @@ mit fett markiertem zweiten Absatz, Revision 2 den geänderten Text ohne Markier
 Bestätigung blieb Revision 1 lesbar; der leere zweite Kandidat wurde entfernt und die Sitzung
 geschlossen. Ein erzwungenes Prozessende während der erneut gebundenen Bearbeitung ließ die
 Sitzung offen. Der nächste Schreibauftrag wurde bei unverändertem Kontrollkopf abgewiesen.
+
+### Entprelltes Autosave in der Zwei-Schreibzug-Probe
+
+Im Auftrag `continue-win32-scene` startet jede tatsächliche Änderung von Text oder Fettmarkierung
+eines gültigen Entwurfs eine lokale Frist von 700 ms. Die Fensterrolle prüft bei Zustellung des
+Timers die monotone Frist, den aktuellen Entwurf und seine Basis erneut. Ein zurückgenommener
+oder ungültiger Entwurf verwirft den ausstehenden Timer. Suchtext und Ansichtswechsel sind keine
+Dokumentänderungen. Jeder Schreibzug hat seinen eigenen Timer. Beim Verlassen der Bearbeitung
+wird er aufgehoben. Während der Schließabfrage ruht er; beim Weiterarbeiten wird neu geplant.
+
+Autosave verwendet den regulären Speicherpfad. Während der Veröffentlichung ist die Eingabe
+gesperrt. Nach Bestätigung und frischer Bindung kann im selben Fenster weitergeschrieben werden.
+Der Titel kennzeichnet den ersten und zweiten Autosave-Schreibzug. Nach der zweiten Veröffentlichung
+schließt der Forschungsauftrag. Ein Timerfehler lässt das manuelle Speichern zu. Suchbegriffe,
+Timerzustand und der vorgemerkte Entwurf verlassen über den Timer keine Prozessgrenze.
+
+Im zusammenhängenden Windows-Lauf verbrauchten ein zurückgenommener und ein leerer Entwurf
+über die Schreibpause hinaus keinen Schreibzug. Eine Folgeeingabe setzte die Frist zurück:
+Der erste Schreibzug begann im beobachteten Lauf rund 718 ms nach der letzten Eingabe.
+Eine reine Formatänderung löste den zweiten Schreibzug aus. Die frische Leseprüfung und beide
+SQLite-Stände bestätigten denselben Text mit der jeweils erwarteten Markierung.
 
 ## Kosten für den Editor
 
