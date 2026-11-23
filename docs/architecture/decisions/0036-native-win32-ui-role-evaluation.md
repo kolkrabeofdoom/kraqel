@@ -616,6 +616,13 @@ bleibt bearbeitbar. Im Windows-Lauf mit Szene A sperrte die Rückkehr zum Dienst
 Speicherbefehle. Erst die anschließende Einzelwahl mit ausdrücklichem Speichern erzeugte
 Revision 3. Das Wiederöffnen bestätigte die gewählte Mischung.
 
+**Letzte Auswahl rückgängig machen** stellt die Häkchen vor der letzten Einzel- oder
+Sammelauswahl wieder her. Das Fenster merkt sich dafür drei Auswahlwerte bis zum nächsten
+Revisionsvergleich. Im Windows-Lauf wurde eine gemischte Auswahl auf den Dienststand
+zurückgesetzt und nach Einblenden der Bearbeitungsbasis wiederhergestellt. Entwurf und
+Basisansicht blieben erhalten. Erst der Speicherbefehl veröffentlichte die wiederhergestellte
+Mischung als Revision 3.
+
 **Ursprüngliche Bearbeitungsbasis anzeigen** blendet im geschützten Vergleichsfeld die
 Revision ein, auf der der lokale Entwurf beruht, samt beiden Absätzen und Fettmarkierung.
 Das Fenster verwendet dafür die bereits gebundene Fassung im Arbeitsspeicher. Im
