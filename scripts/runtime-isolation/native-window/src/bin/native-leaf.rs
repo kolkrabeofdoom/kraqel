@@ -940,7 +940,12 @@ fn update_draft_status(hwnd: HWND) {
                 Some(_) if dirty && !valid => invalid_paragraph(hwnd)
                     .map(|(_, hint)| format!(" · {hint}"))
                     .unwrap_or_default(),
-                Some(_) if !scheduled => " · Bitte manuell speichern".to_owned(),
+                Some((turn, limit)) if !scheduled && turn == limit => {
+                    " · Autosave nicht verfügbar · Strg+S speichert und schließt".to_owned()
+                }
+                Some(_) if !scheduled => {
+                    " · Autosave nicht verfügbar · Mit Strg+S speichern".to_owned()
+                }
                 Some((turn, limit)) if turn == limit => {
                     format!(" · Letzter Autosave {turn}/{limit} · Speichern schließt das Fenster")
                 }

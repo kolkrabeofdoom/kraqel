@@ -940,6 +940,13 @@ Der Bestätigungsdialog kündigte den letzten Autosave an. Nach der Übernahme a
 Eingabe speicherte der letzte Autosave Revision 256 und beendete die Sitzung. Der frische
 Leseauftrag bestätigte die Eingabe, den zweiten Dienstabsatz und die gewählte Fettmarkierung.
 
+Im letzten Schreibzug hat ein ungültiger Absatz Vorrang im Fenstertitel. Im lokalen
+Windows-Lauf blieb das Fenster nach dem Leeren des ersten Absatzes über die Schreibpause
+hinweg offen. Für die korrigierte Eingabe wurde ein Fehler beim Einrichten des Timers
+synthetisch ausgelöst. Der Titel verwies auf manuelles Speichern und das anschließende
+Schließen. Erst der manuelle Speicherbefehl veröffentlichte die letzte Revision. Die
+SQLite-Nachprüfung bestätigte den korrigierten Text und den unveränderten zweiten Absatz.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche
