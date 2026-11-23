@@ -83,8 +83,23 @@ impl SceneView {
         frame
     }
 }
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TextPreview {
+    pub preview_text: String,
+    pub revision: u32,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(untagged)]
+pub enum OpenedScene {
+    Editable(SceneView),
+    Preview(TextPreview),
+}
+
 pub enum EditorEvent<'a> {
     Loaded(&'a SceneView),
+    Preview(&'a TextPreview),
     RevisionConflict(Option<&'a SceneView>),
     RefreshedComparison(&'a SceneView),
 }
@@ -179,14 +194,32 @@ impl Binding {
         writer: &mut impl std::io::Write,
         revision: u32,
     ) -> Result<SceneView, Closed> {
+        match self.open_bound_scene(sequence, reader, writer, revision)? {
+            OpenedScene::Editable(view) => Ok(view),
+            OpenedScene::Preview(_) => Err(Closed),
+        }
+    }
+
+    pub fn open_bound_scene(
+        &self,
+        sequence: u64,
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+        revision: u32,
+    ) -> Result<OpenedScene, Closed> {
         let body = self.exchange(
             sequence,
             br#"{"command":"c4_document_read_v1"}"#,
             reader,
             writer,
         )?;
-        let answer: SceneView = serde_json::from_slice(&body).map_err(|_| Closed)?;
-        if answer.revision != revision || !super::valid_paragraphs(&answer.text) {
+        let answer: OpenedScene = serde_json::from_slice(&body).map_err(|_| Closed)?;
+        let (actual, text) = match &answer {
+            OpenedScene::Editable(view) => (view.revision, &view.text),
+            OpenedScene::Preview(view) if revision > 0 => (view.revision, &view.preview_text),
+            _ => return Err(Closed),
+        };
+        if actual != revision || !super::valid_paragraphs(text) {
             return Err(Closed);
         }
         Ok(answer)
@@ -411,14 +444,21 @@ impl Binding {
         writer: &mut impl std::io::Write,
         mut edit: impl FnMut(EditorEvent<'_>) -> Result<Option<(String, bool)>, Closed>,
     ) -> Result<Option<SceneView>, Closed> {
-        let original = self.read_bound_view(1, reader, writer, revision)?;
-        if revision == 0 && original.text != "Rabe\n42" {
-            return Err(Closed);
-        }
-        if revision == 0 && !original.bold_second {
-            return Err(Closed);
-        }
-        let Some((text, bold)) = edit(EditorEvent::Loaded(&original))? else {
+        let selection = match self.open_bound_scene(1, reader, writer, revision)? {
+            OpenedScene::Editable(original) => {
+                if revision == 0 && (original.text != "Rabe\n42" || !original.bold_second) {
+                    return Err(Closed);
+                }
+                edit(EditorEvent::Loaded(&original))?.map(|choice| (original, choice))
+            }
+            OpenedScene::Preview(view) => {
+                if edit(EditorEvent::Preview(&view))?.is_some() {
+                    return Err(Closed);
+                }
+                None
+            }
+        };
+        let Some((original, (text, bold))) = selection else {
             let ack = self.exchange(2, DISCARD, reader, writer)?;
             return if ack == DISCARDED {
                 Ok(None)
@@ -567,6 +607,30 @@ impl Binding {
                 return Ok(ServiceEnd::Discarded);
             }
             let answer = dispatch(body)?;
+            if let super::Reply::Preview { .. } = &answer {
+                if seq != 1
+                    || body != br#"{"command":"c4_document_read_v1"}"#
+                    || !(reopening || allow_discard)
+                {
+                    return Err(Closed);
+                }
+                let payload = serde_json::to_vec(&answer).map_err(|_| Closed)?;
+                writer
+                    .write_all(&self.encode(Kind::Response, seq, &payload)?)
+                    .map_err(|_| Closed)?;
+                if reopening {
+                    return Ok(ServiceEnd::Complete);
+                }
+                let frame = read_frame(reader)?;
+                if self.decode(&frame, Kind::Request, 2)? != DISCARD {
+                    return Err(Closed);
+                }
+                writer
+                    .write_all(&self.encode(Kind::Response, 2, DISCARDED)?)
+                    .map_err(|_| Closed)?;
+                return Ok(ServiceEnd::Discarded);
+            }
+
             if allow_discard
                 && seq == 2
                 && matches!(

@@ -188,6 +188,37 @@ fn unsupported_stored_documents_cannot_be_read_or_replaced() {
 }
 
 #[test]
+fn known_inline_marks_open_only_as_plain_text_preview() {
+    let mut doc = document("Kolkrabe\n42");
+    doc.document["content"][0]["content"] = json!([
+        {"type":"text","text":"Kolk","marks":[{"type":"italic"},{"type":"bold"}]},
+        {"type":"text","text":"rabe","marks":[{"type":"strike"}]}
+    ]);
+    let encoded = serde_json::to_string(&doc).unwrap();
+    let mut catalog = SyntheticCatalog::restore_managed_a(1, &encoded).unwrap();
+    for mode in [Mode::Read, Mode::Edit] {
+        let mut scene = catalog.bind(Scene::A, mode);
+        assert_eq!(
+            to_value(scene.handle_managed(READ)).unwrap(),
+            json!({"preview_text":"Kolkrabe\n42","revision":1})
+        );
+        for body in [save(1, "Rabe\n43"), br#"{"command":"c4_document_save_v2","expectedRevision":1,"text":"Rabe\n43","boldSecond":true}"#.to_vec()] {
+            assert_eq!(to_value(scene.handle_managed(&body)).unwrap(), json!({"error":"DENIED"}));
+        }
+        assert_eq!(catalog.snapshot_a(), (encoded.clone(), 1));
+    }
+    for unsupported in [
+        json!({"type":"italic","attrs":{}}),
+        json!({"type":"future"}),
+    ] {
+        doc.document["content"][0]["content"][0]["marks"] = json!([unsupported]);
+        assert!(
+            SyntheticCatalog::restore_managed_a(1, &serde_json::to_string(&doc).unwrap()).is_none()
+        );
+    }
+}
+
+#[test]
 fn revision_limit_is_readable_and_cannot_roll_over() {
     let mut catalog = SyntheticCatalog::default();
     catalog.a.revision = MAX_REVISION - 1;

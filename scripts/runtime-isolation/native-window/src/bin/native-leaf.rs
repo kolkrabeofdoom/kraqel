@@ -1624,9 +1624,16 @@ unsafe fn finish_close(hwnd: HWND) -> isize {
     }
 }
 
+struct SceneSurface {
+    output: Option<std::fs::File>,
+    text: String,
+    second_bold: Option<bool>,
+    text_preview: bool,
+}
+
 fn show(
     endpoint: Option<bootstrap::Endpoint>,
-    mut surface: Option<(std::fs::File, String, Option<bool>)>,
+    mut surface: Option<SceneSurface>,
     draft: Option<&mut (String, bool)>,
     keep_editor: Option<&mut HeldEditor>,
 ) -> i32 {
@@ -1634,14 +1641,14 @@ fn show(
         if SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2).is_null() {
             return 24;
         }
-        let bold = surface.as_ref().and_then(|(_, _, style)| *style) == Some(true);
+        let bold = surface.as_ref().and_then(|s| s.second_bold) == Some(true);
         EDIT_BASE_REVISION.set(LOADED_REVISION.get());
         INITIAL_BOLD.set(bold);
         SECOND_WEIGHT.set(if bold { FW_BOLD } else { FW_NORMAL } as i32);
         EXPECTED.with_borrow_mut(|value| {
             *value = surface
                 .as_ref()
-                .map(|(_, text, _)| text.clone())
+                .map(|s| s.text.clone())
                 .unwrap_or_else(|| "Rabe\n42".into())
         });
         let action = if draft.is_some() { SAVE } else { CLOSE };
@@ -1702,6 +1709,8 @@ fn show(
                 "STATIC",
                 if draft.is_some() {
                     draft_label()
+                } else if surface.as_ref().is_some_and(|s| s.text_preview) {
+                    "Schreibgeschützte Textvorschau · Formatierungen ausgeblendet"
                 } else {
                     "&Prüftext"
                 },
@@ -1798,7 +1807,12 @@ fn show(
             return 24;
         }
         SendDlgItemMessageW(hwnd, EDIT, EM_SETLIMITTEXT, MAX_PARAGRAPH_UTF16, 0);
-        if let Some((_, text, marked)) = &surface {
+        if let Some(SceneSurface {
+            text,
+            second_bold: marked,
+            ..
+        }) = &surface
+        {
             let edit = GetDlgItem(hwnd, EDIT);
             let mut visible = text.as_str();
             if marked.is_some() {
@@ -1864,7 +1878,11 @@ fn show(
             }
         }
         ShowWindow(hwnd, SW_SHOW);
-        if let Some((output, _, _)) = surface.as_mut().filter(|_| draft.is_none()) {
+        if let Some(output) = surface
+            .as_mut()
+            .filter(|_| draft.is_none())
+            .and_then(|s| s.output.as_mut())
+        {
             use std::io::Write;
             if output
                 .write_all(&(hwnd as usize as u64).to_le_bytes())
@@ -2338,7 +2356,7 @@ fn main() {
                 .ok_or(std::io::Error::other("missing profile"))?;
             let (input, mut output) =
                 managed_scene::confirm_bootstrap(Some(&profile), bootstrap::Role::Window)?;
-            let (text, marked, revision) = if let Some(mode) = scene {
+            let (text, marked, revision, text_preview) = if let Some(mode) = scene {
                 let mut held = HeldEditor::default();
                 let mut expected_next = None;
                 let mut turn_mode = mode;
@@ -2383,6 +2401,23 @@ fn main() {
                             use kraqel_native_scene_model::channel::EditorEvent;
                             let loaded = match event {
                                 EditorEvent::Loaded(view) => view,
+                                EditorEvent::Preview(view) => {
+                                    require(held.hwnd.is_null(), "preview requires fresh session")?;
+                                    LOADED_REVISION.set(Some(view.revision));
+                                    let code = show(
+                                        None,
+                                        Some(SceneSurface {
+                                            output: None,
+                                            text: view.preview_text.clone(),
+                                            second_bold: Some(false),
+                                            text_preview: true,
+                                        }),
+                                        None,
+                                        None,
+                                    );
+                                    require(code == 40, "preview close")?;
+                                    return Ok(None);
+                                }
                                 EditorEvent::RefreshedComparison(view) => {
                                     selection = resolve_conflict(
                                         &mut held,
@@ -2407,48 +2442,50 @@ fn main() {
                             };
                             LOADED_REVISION.set(Some(loaded.revision));
                             let mut draft = (String::new(), loaded.bold_second);
-                            let code = if held.hwnd.is_null() {
-                                show(
-                                    None,
-                                    Some((
-                                        dialog_output
-                                            .take()
-                                            .ok_or(std::io::Error::other("duplicate editor"))?,
-                                        loaded.text.clone(),
-                                        Some(loaded.bold_second),
-                                    )),
-                                    Some(&mut draft),
-                                    Some(&mut held),
-                                )
-                            } else {
-                                require(
-                                    expected_next == Some(loaded.revision)
-                                        && held.submitted.take()
-                                            == Some((loaded.text.clone(), loaded.bold_second)),
-                                    "scene continuation basis",
-                                )?;
-                                if let Some(chosen) = selection.take() {
-                                    held.submitted = Some(chosen.clone());
-                                    held.closing = !held.resume_after_merge;
-                                    return Ok(Some(chosen));
-                                }
-                                EXPECTED.with_borrow_mut(|v| v.clone_from(&loaded.text));
-                                EDIT_BASE_REVISION.set(Some(loaded.revision));
-                                INITIAL_BOLD.set(loaded.bold_second);
-                                if held.resume_after_merge {
-                                    resume_merged_editor(&mut held, loaded)?;
-                                }
-                                unsafe {
-                                    update_draft_status(held.hwnd);
-                                    AWAITING_REBIND.set(false);
-                                    run_editor_loop(
-                                        held.hwnd,
-                                        true,
+                            let code =
+                                if held.hwnd.is_null() {
+                                    show(
+                                        None,
+                                        Some(SceneSurface {
+                                            output: Some(dialog_output.take().ok_or(
+                                                std::io::Error::other("duplicate editor"),
+                                            )?),
+                                            text: loaded.text.clone(),
+                                            second_bold: Some(loaded.bold_second),
+                                            text_preview: false,
+                                        }),
                                         Some(&mut draft),
                                         Some(&mut held),
                                     )
-                                }
-                            };
+                                } else {
+                                    require(
+                                        expected_next == Some(loaded.revision)
+                                            && held.submitted.take()
+                                                == Some((loaded.text.clone(), loaded.bold_second)),
+                                        "scene continuation basis",
+                                    )?;
+                                    if let Some(chosen) = selection.take() {
+                                        held.submitted = Some(chosen.clone());
+                                        held.closing = !held.resume_after_merge;
+                                        return Ok(Some(chosen));
+                                    }
+                                    EXPECTED.with_borrow_mut(|v| v.clone_from(&loaded.text));
+                                    EDIT_BASE_REVISION.set(Some(loaded.revision));
+                                    INITIAL_BOLD.set(loaded.bold_second);
+                                    if held.resume_after_merge {
+                                        resume_merged_editor(&mut held, loaded)?;
+                                    }
+                                    unsafe {
+                                        update_draft_status(held.hwnd);
+                                        AWAITING_REBIND.set(false);
+                                        run_editor_loop(
+                                            held.hwnd,
+                                            true,
+                                            Some(&mut draft),
+                                            Some(&mut held),
+                                        )
+                                    }
+                                };
                             match code {
                                 40 if !draft.0.is_empty() => Ok(Some(draft)),
                                 code if code == window_receipt::DISCARDED_EXIT as i32 => Ok(None),
@@ -2461,7 +2498,7 @@ fn main() {
                     };
                     if checkpoint.is_some() {
                         use std::io::{Read, Write};
-                        let (text, bold, revision) = view;
+                        let (text, bold, revision, _) = view;
                         require(
                             !held.hwnd.is_null()
                                 && held.submitted.as_ref().is_some_and(|(submitted, marked)| {
@@ -2512,7 +2549,7 @@ fn main() {
                     break view;
                 }
             } else {
-                ("Rabe\n42".to_owned(), false, None)
+                ("Rabe\n42".to_owned(), false, None, false)
             };
             LOADED_REVISION.set(revision);
             let split = marked
@@ -2528,7 +2565,12 @@ fn main() {
                 );
             Ok(show(
                 None,
-                Some((output, text, split.then_some(marked))),
+                Some(SceneSurface {
+                    output: Some(output),
+                    text,
+                    second_bold: split.then_some(marked),
+                    text_preview,
+                }),
                 None,
                 None,
             ))

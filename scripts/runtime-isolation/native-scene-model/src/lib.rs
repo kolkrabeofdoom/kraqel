@@ -93,6 +93,56 @@ fn managed_text(doc: &EditorDocument, revision: u32) -> Option<String> {
         .then_some(text)
 }
 
+// A projection can only leave this model in a distinct read-only reply. Keep the
+// complete original tree in the record, including run boundaries and mark order.
+fn formatted_preview(doc: &EditorDocument, revision: u32) -> Option<String> {
+    let root = doc.document.as_object()?;
+    if revision == 0 || doc.version != 1 || root.len() != 2 || root.get("type")? != "doc" {
+        return None;
+    }
+    let paragraphs = root.get("content")?.as_array()?;
+    if paragraphs.len() != 2 {
+        return None;
+    }
+    let mut lines = Vec::new();
+    let mut formatted = false;
+    for paragraph in paragraphs {
+        let node = paragraph.as_object()?;
+        if node.len() != 2 || node.get("type")? != "paragraph" {
+            return None;
+        }
+        let mut line = String::new();
+        for run in node.get("content")?.as_array()? {
+            let run = run.as_object()?;
+            let marks = run.get("marks");
+            if run.len() != 2 + usize::from(marks.is_some()) || run.get("type")? != "text" {
+                return None;
+            }
+            let text = run.get("text")?.as_str()?;
+            if !valid_paragraph(text) {
+                return None;
+            }
+            line.push_str(text);
+            if let Some(marks) = marks {
+                for mark in marks.as_array()? {
+                    let mark = mark.as_object()?;
+                    if mark.len() != 1
+                        || !matches!(mark.get("type")?.as_str()?, "bold" | "italic" | "strike")
+                    {
+                        return None;
+                    }
+                    formatted = true;
+                }
+            }
+        }
+        if !valid_paragraph(&line) {
+            return None;
+        }
+        lines.push(line);
+    }
+    formatted.then(|| lines.join("\n"))
+}
+
 struct Record {
     content: EditorDocument,
     revision: u32,
@@ -157,7 +207,7 @@ impl SyntheticCatalog {
         let mut reader = serde_json::Deserializer::from_str(encoded);
         let content = StoredDocument::deserialize(&mut reader).ok()?;
         reader.end().ok()?;
-        managed_text(&content, revision)?;
+        managed_text(&content, revision).or_else(|| formatted_preview(&content, revision))?;
         (revision <= MAX_REVISION).then(|| Self {
             a: Record { content, revision },
             ..Self::default()
@@ -236,6 +286,10 @@ pub enum Reply {
         #[serde(skip_serializing_if = "std::ops::Not::not")]
         bold_second: bool,
     },
+    Preview {
+        preview_text: String,
+        revision: u32,
+    },
     Saved {
         revision: u32,
     },
@@ -280,6 +334,21 @@ impl BoundScene<'_> {
 
         let revision = self.record.revision;
         let editable_fixture = managed && self.scene == Scene::A;
+        if editable_fixture && managed_text(&self.record.content, revision).is_none() {
+            let text = formatted_preview(&self.record.content, revision).ok_or(Failure::Invalid)?;
+            return match request {
+                Request::Read {} => Ok(Reply::Preview {
+                    preview_text: text,
+                    revision,
+                }),
+                Request::Status {} => Ok(Reply::Status {
+                    scene: self.scene,
+                    mode: Mode::Read,
+                    revision,
+                }),
+                _ => Err(Failure::Denied),
+            };
+        }
         match request {
             Request::Status {} => Ok(Reply::Status {
                 scene: self.scene,

@@ -781,6 +781,28 @@ und die ausgewählte Mischung 6 wurden veröffentlicht. Revision 6 ließ sich un
 neuen Lesebindung öffnen. Die bestehende Kanalprüfung für eine wiederholte alte
 Leseanfrage bestand ebenfalls.
 
+## Schreibgeschützte Textvorschau für formatierte Szenen
+
+Der verwaltete Datendienst prüft beim Wiederöffnen zuerst den bestehenden Editiervertrag.
+Für gespeicherte Revisionen ab 1 erkennt er zusätzlich zwei Absätze mit Textknoten und
+den attributlosen Markierungen `bold`, `italic` und `strike`. Jeder Absatz bleibt auf
+48 UTF-16-Codeeinheiten begrenzt. Unbekannte Versionen, Knoten, Markierungen und
+zusätzliche Felder sperren die Vorschau. Das strukturierte Original bleibt in der Ablage.
+
+Die authentisierte Erstantwort für die Vorschau enthält ausschließlich Klartext und Revision
+und ist von einem bearbeitbaren Szenenstand unterscheidbar. Das Win32-Fenster kennzeichnet
+ausgeblendete Formatierungen. Bei einem Bearbeitungsauftrag erlaubt der Kanal auf diese
+Antwort nur noch den regulären Abschluss ohne Veröffentlichung. Für einen Konfliktvergleich
+oder eine Schreibbestätigung ist die Vorschauantwort unzulässig.
+
+Der Modelltest prüfte gemischte Textknoten, beide Speicherbefehle, den Erhalt des Dokuments
+und unbekannte Markierungen bzw. Attribute. Für den verwalteten Windows-Lauf erzeugte ein
+temporärer Prüfdatendienst ein synthetisches SQLite-Abbild mit kursivem Text auf Revision 1.
+Lesender Wiederaufruf und Bearbeitungsauftrag öffneten die Szene. Im Bearbeitungsauftrag
+waren Vorschauhinweis, schreibgeschütztes Eingabefeld und beide Texte sichtbar. Nach dem
+Schließen waren der Dateihash identisch, die Revision weiter 1 und der Job leer. Die
+Präparation gehört ausschließlich zum Prüflauf.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

@@ -182,16 +182,27 @@ pub fn exchange(
     mut edit: impl FnMut(
         kraqel_native_scene_model::channel::EditorEvent,
     ) -> io::Result<Option<(String, bool)>>,
-) -> io::Result<Option<(String, bool, Option<u32>)>> {
+) -> io::Result<Option<(String, bool, Option<u32>, bool)>> {
     let mut ch = Channel::open(&mut control, true)?;
     ch.send(Handshake::Hello)?;
     ch.receive(Handshake::Ready)?;
     let revision = bound_revision(mode, &mut control)?;
     match mode {
-        window_receipt::SceneOperation::ReadRevision => ch
-            .binding
-            .read_bound_view(1, &mut ch.reader, &mut ch.writer, revision)
-            .map(|v| (v.text, v.bold_second, Some(v.revision))),
+        window_receipt::SceneOperation::ReadRevision
+        | window_receipt::SceneOperation::ReadPersistent => {
+            use kraqel_native_scene_model::channel::OpenedScene;
+            let revision = if mode == window_receipt::SceneOperation::ReadPersistent {
+                1
+            } else {
+                revision
+            };
+            ch.binding
+                .open_bound_scene(1, &mut ch.reader, &mut ch.writer, revision)
+                .map(|view| match view {
+                    OpenedScene::Editable(v) => (v.text, v.bold_second, Some(v.revision), false),
+                    OpenedScene::Preview(v) => (v.preview_text, false, Some(v.revision), true),
+                })
+        }
         window_receipt::SceneOperation::Revise | window_receipt::SceneOperation::KeyboardEdit => {
             let view = ch
                 .binding
@@ -218,29 +229,24 @@ pub fn exchange(
             if view.is_none() {
                 output.write_all(&ch.discard_receipt)?;
             }
-            return Ok(view.map(|v| (v.text, v.bold_second, Some(v.revision))));
+            return Ok(view.map(|v| (v.text, v.bold_second, Some(v.revision), false)));
         }
-        window_receipt::SceneOperation::SavePersistent
-        | window_receipt::SceneOperation::ReadPersistent => ch
+        window_receipt::SceneOperation::SavePersistent => ch
             .binding
-            .durable_view(
-                mode == window_receipt::SceneOperation::ReadPersistent,
-                &mut ch.reader,
-                &mut ch.writer,
-            )
-            .map(|v| (v.text, v.bold_second, Some(v.revision))),
+            .durable_view(false, &mut ch.reader, &mut ch.writer)
+            .map(|v| (v.text, v.bold_second, Some(v.revision), false)),
         window_receipt::SceneOperation::Once => ch
             .binding
             .read_scene((&mut ch.reader, &mut ch.writer))
-            .map(|t| (t, false, None)),
+            .map(|t| (t, false, None, false)),
         window_receipt::SceneOperation::CheckEditConflict => ch
             .binding
             .check_edit_conflict(&mut ch.reader, &mut ch.writer)
-            .map(|t| (t, false, None)),
+            .map(|t| (t, false, None, false)),
         window_receipt::SceneOperation::CheckDeniedSave => ch
             .binding
             .check_denied_save(&mut ch.reader, &mut ch.writer)
-            .map(|t| (t, false, None)),
+            .map(|t| (t, false, None, false)),
     }
     .map(Some)
     .map_err(|_| io::Error::other("scene read"))
