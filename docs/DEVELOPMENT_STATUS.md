@@ -53,7 +53,7 @@ Veröffentlichung und erneute Änderung unmittelbar vor dem Speichern.
 [Vertrag und Nachweise](architecture/decisions/0036-native-win32-ui-role-evaluation.md#bestätigte-übernahme-über-eine-revisionslücke).
 
 Über **Auswahl speichern und weiterschreiben** kann die bestätigte Mischung im selben Fenster
-weiterbearbeitet werden. Der Befehl berücksichtigt Journalbudget und Revisionsgrenze.
+weiterbearbeitet werden. Der Befehl berücksichtigt Journalbudget und Revisionsgrenze. Bleibt nach der erneut bestätigten Übernahme genau ein Schreibzug, weisen Bestätigungsdialog und Fenstertitel darauf hin, dass der nächste Autosave speichert und das Fenster schließt.
 [Bedienung und Windows-Prüfungen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#weiterschreiben-nach-bestätigter-übernahme).
 
 Bei weiteren Konflikten während der Bestätigung bleibt die Auswahl im selben Fenster

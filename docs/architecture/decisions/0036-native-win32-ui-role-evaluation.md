@@ -934,6 +934,12 @@ Absatz löste nach der Schreibpause Autosave aus. Beim Wiederöffnen enthielt Re
 die neue Eingabe, den zweiten Absatz der Dienstfassung und die gewählte Fettmarkierung.
 Die gespeicherte Mischung war weiterhin als Revision 5 lesbar.
 
+Im Grenzlauf wechselte die Dienstbasis während der Bestätigung auf Revision 254.
+Der Bestätigungsdialog kündigte den letzten Autosave an. Nach der Übernahme als Revision
+255 zeigte dasselbe Fenster den Hinweis zum automatischen Schließen. Nach einer weiteren
+Eingabe speicherte der letzte Autosave Revision 256 und beendete die Sitzung. Der frische
+Leseauftrag bestätigte die Eingabe, den zweiten Dienstabsatz und die gewählte Fettmarkierung.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche

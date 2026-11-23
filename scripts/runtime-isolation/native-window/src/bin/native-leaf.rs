@@ -942,7 +942,7 @@ fn update_draft_status(hwnd: HWND) {
                     .unwrap_or_default(),
                 Some(_) if !scheduled => " · Bitte manuell speichern".to_owned(),
                 Some((turn, limit)) if turn == limit => {
-                    format!(" · Letzter Autosave {turn}/{limit}")
+                    format!(" · Letzter Autosave {turn}/{limit} · Speichern schließt das Fenster")
                 }
                 Some((turn, limit)) => format!(" · Autosave {turn}/{limit}"),
                 None => String::new(),
@@ -1245,7 +1245,7 @@ fn resolve_conflict(
     held: &mut HeldEditor,
     comparison: Option<&kraqel_native_scene_model::channel::SceneView>,
     can_continue: bool,
-    room_to_resume: bool,
+    remaining_turns: u8,
     review: bool,
 ) -> std::io::Result<Option<(String, bool)>> {
     let hwnd = held.hwnd;
@@ -1287,9 +1287,13 @@ fn resolve_conflict(
             "Unter Übernahme die gewünschten lokalen Änderungen auswählen."
         };
         SetDlgItemTextW(hwnd, LABEL, wide(instruction).as_ptr());
-        let allow_resume = room_to_resume
-            && selectable
-                .is_some_and(|view| view.revision < window_receipt::SCENE_REVISION_LIMIT - 1);
+        // One turn publishes the selected mix. Subsequent turns accept new edits.
+        let edit_turns = selectable.map_or(0, |view| {
+            u32::from(remaining_turns)
+                .min(window_receipt::SCENE_REVISION_LIMIT - view.revision)
+                .saturating_sub(1)
+        });
+        let allow_resume = edit_turns > 0;
         SELECTION_REVIEW.replace(comparison.cloned().map(|basis| SelectionReview {
             previous_picks: None,
             basis,
@@ -1313,12 +1317,17 @@ fn resolve_conflict(
             {
                 if confirm {
                     let question = format!(
-                        "Die geprüfte Auswahl auf Basis von Revision {} speichern und {}?",
+                        "Die geprüfte Auswahl auf Basis von Revision {} speichern und {}?{}",
                         view.revision,
                         if resume {
                             "weiterschreiben"
                         } else {
                             "das Fenster schließen"
+                        },
+                        if resume && edit_turns == 1 {
+                            "\r\n\r\nDer nächste Autosave speichert die Änderung und schließt das Fenster."
+                        } else {
+                            ""
                         }
                     );
                     let decision = MessageBoxW(
@@ -3030,7 +3039,7 @@ fn main() {
                                         Some(view),
                                         gap && turn < limit
                                             && view.revision < window_receipt::SCENE_REVISION_LIMIT,
-                                        limit - turn >= 2,
+                                        limit - turn,
                                         true,
                                     )?;
                                     return Ok(selection.clone());
@@ -3065,7 +3074,7 @@ fn main() {
                                                                 == Some(v.revision))
                                                 })
                                             }),
-                                        limit - turn >= 2,
+                                        limit - turn,
                                         false,
                                     )?;
                                     return Ok(selection.clone());
