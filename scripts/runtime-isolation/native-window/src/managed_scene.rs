@@ -176,6 +176,7 @@ pub fn exchange(
     mut control: File,
     mode: window_receipt::SceneOperation,
     output: &mut File,
+    compare: bool,
     mut edit: impl FnMut(
         kraqel_native_scene_model::channel::EditorEvent,
     ) -> io::Result<Option<(String, bool)>>,
@@ -192,7 +193,7 @@ pub fn exchange(
         window_receipt::SceneOperation::Revise | window_receipt::SceneOperation::KeyboardEdit => {
             let view = ch
                 .binding
-                .keyboard_view(revision, &mut ch.reader, &mut ch.writer, |v| {
+                .keyboard_view(revision, compare, &mut ch.reader, &mut ch.writer, |v| {
                     edit(v).map_err(|_| kraqel_native_scene_model::channel::Closed)
                 })
                 .map_err(|_| io::Error::other("scene edit"))?;

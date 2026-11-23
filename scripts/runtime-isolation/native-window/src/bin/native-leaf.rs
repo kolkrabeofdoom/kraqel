@@ -18,6 +18,11 @@ use windows_sys::Win32::{
 #[unsafe(link_section = ".kqauto")]
 static AUTOSAVE_ABI: [u8; 32] = window_receipt::AUTOSAVE_ABI;
 
+#[used]
+#[unsafe(link_section = ".kqcmp")]
+static COMPARE_ABI: [u8; 32] = kraqel_window_probe::window_receipt::COMPARE_ABI;
+
+const COMPARISON: i32 = 111;
 const LABEL: i32 = 100;
 const EDIT: i32 = 101;
 const CLOSE: i32 = 102;
@@ -665,6 +670,7 @@ fn apply_fonts(hwnd: HWND, dpi: u32) -> bool {
             DISCARD,
             CLOSE,
             WORD_COUNT,
+            COMPARISON,
             SEARCH_LABEL,
             SEARCH,
             REPLACEMENT,
@@ -774,7 +780,12 @@ fn update_draft_status(hwnd: HWND) {
             enable_menu_command(hwnd, SAVE as usize, false);
             SetWindowTextW(
                 hwnd,
-                wide("Szene A – Revisionskonflikt · Lokaler Entwurf offen").as_ptr(),
+                wide(if GetDlgItem(hwnd, COMPARISON).is_null() {
+                    "Szene A – Revisionskonflikt · Lokaler Entwurf offen"
+                } else {
+                    "Szene A – Revisionskonflikt · Entwurf links · Vergleich rechts (F6)"
+                })
+                .as_ptr(),
             );
             return;
         }
@@ -811,6 +822,50 @@ fn update_draft_status(hwnd: HWND) {
         }
     }
 }
+fn show_comparison(
+    hwnd: HWND,
+    view: &kraqel_native_scene_model::channel::SceneView,
+) -> std::io::Result<()> {
+    unsafe {
+        let weight = if view.bold_second { "fett" } else { "normal" };
+        let content = format!(
+            "Datendienst · Revision {}\r\nZweiter Absatz: {weight}\r\n\r\n{}",
+            view.revision,
+            view.text.replace('\n', "\r\n")
+        );
+        let field = CreateWindowExW(
+            0,
+            wide("EDIT").as_ptr(),
+            wide(content).as_ptr(),
+            WS_CHILD
+                | WS_VISIBLE
+                | WS_TABSTOP
+                | WS_BORDER
+                | WS_VSCROLL
+                | (ES_MULTILINE | ES_READONLY) as u32,
+            0,
+            0,
+            0,
+            0,
+            hwnd,
+            COMPARISON as _,
+            GetModuleHandleW(null()),
+            null(),
+        );
+        require(
+            !field.is_null() && protect_editor_field(field),
+            "scene comparison field",
+        )?;
+        SendMessageW(
+            field,
+            WM_SETFONT,
+            SendDlgItemMessageW(hwnd, EDIT, WM_GETFONT, 0, 0) as usize,
+            1,
+        );
+        require(layout_surface(hwnd), "scene comparison layout")
+    }
+}
+
 fn layout_surface(hwnd: HWND) -> bool {
     unsafe {
         let mut area = RECT::default();
@@ -847,6 +902,21 @@ fn layout_surface(hwnd: HWND) -> bool {
                 return false;
             }
         } else {
+            let width = if !GetDlgItem(hwnd, COMPARISON).is_null() {
+                let left = (width - gap) / 2;
+                if !place(
+                    COMPARISON,
+                    margin + left + gap,
+                    text_top,
+                    width - left - gap,
+                    text_height,
+                ) {
+                    return false;
+                }
+                left
+            } else {
+                width
+            };
             let first_height = (text_height - gap) / 2;
             if !place(EDIT, margin, text_top, width, first_height)
                 || !place(
@@ -1439,6 +1509,24 @@ unsafe fn run_editor_loop(
             }
             if let Some(result) = draft.as_deref_mut() {
                 let key = msg.wParam as u16;
+                let comparison = GetDlgItem(hwnd, COMPARISON);
+                if !comparison.is_null() && msg.message == WM_KEYDOWN && key == VK_F6 {
+                    SetFocus(if GetFocus() == comparison {
+                        GetDlgItem(hwnd, ACTIVE_PARAGRAPH.get())
+                    } else {
+                        comparison
+                    });
+                    continue;
+                }
+                if !comparison.is_null()
+                    && GetFocus() == comparison
+                    && matches!(msg.message, WM_KEYDOWN | WM_CHAR)
+                    && key != VK_TAB
+                {
+                    TranslateMessage(&msg);
+                    DispatchMessageW(&msg);
+                    continue;
+                }
                 let Some(current_history) = history.as_mut() else {
                     return 24;
                 };
@@ -1671,7 +1759,17 @@ unsafe fn run_editor_loop(
     }
 }
 fn main() {
-    let arg = std::env::args_os().nth(1);
+    std::hint::black_box(&COMPARE_ABI);
+    let mut arg = std::env::args_os().nth(1);
+    let base = arg
+        .as_ref()
+        .and_then(|v| v.to_str())
+        .and_then(|v| v.strip_suffix("-compare"))
+        .map(std::ffi::OsString::from);
+    let compare = base.is_some();
+    if compare {
+        arg = base;
+    }
     use window_receipt::SceneOperation;
     let checkpoint = [SceneOperation::KeyboardEdit, SceneOperation::Revise]
         .into_iter()
@@ -1732,30 +1830,37 @@ fn main() {
                         control.try_clone()?,
                         turn_mode,
                         &mut output,
+                        compare,
                         |event| {
                             use kraqel_native_scene_model::channel::EditorEvent;
-                            let EditorEvent::Loaded(loaded) = event else {
-                                require(!held.hwnd.is_null(), "missing conflict editor")?;
-                                REVISION_CONFLICT.set(true);
-                                AWAITING_REBIND.set(false);
-                                held.autosave_turn = None;
-                                let mut local = (String::new(), false);
-                                unsafe {
-                                    EnableWindow(held.hwnd, 1);
-                                    update_draft_status(held.hwnd);
-                                    SetFocus(GetDlgItem(held.hwnd, ACTIVE_PARAGRAPH.get()));
-                                    let code = run_editor_loop(
-                                        held.hwnd,
-                                        true,
-                                        Some(&mut local),
-                                        Some(&mut held),
-                                    );
-                                    require(
-                                        code == window_receipt::DISCARDED_EXIT as i32,
-                                        "conflict decision",
-                                    )?;
+                            let loaded = match event {
+                                EditorEvent::Loaded(view) => view,
+                                EditorEvent::RevisionConflict(comparison) => {
+                                    require(!held.hwnd.is_null(), "missing conflict editor")?;
+                                    REVISION_CONFLICT.set(true);
+                                    AWAITING_REBIND.set(false);
+                                    held.autosave_turn = None;
+                                    let mut local = (String::new(), false);
+                                    unsafe {
+                                        if let Some(view) = comparison {
+                                            show_comparison(held.hwnd, view)?;
+                                        }
+                                        EnableWindow(held.hwnd, 1);
+                                        update_draft_status(held.hwnd);
+                                        SetFocus(GetDlgItem(held.hwnd, ACTIVE_PARAGRAPH.get()));
+                                        let code = run_editor_loop(
+                                            held.hwnd,
+                                            true,
+                                            Some(&mut local),
+                                            Some(&mut held),
+                                        );
+                                        require(
+                                            code == window_receipt::DISCARDED_EXIT as i32,
+                                            "conflict decision",
+                                        )?;
+                                    }
+                                    return Ok(None);
                                 }
-                                return Ok(None);
                             };
                             LOADED_REVISION.set(Some(loaded.revision));
                             let mut draft = (String::new(), loaded.bold_second);

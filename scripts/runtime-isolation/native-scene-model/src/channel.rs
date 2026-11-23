@@ -4,6 +4,7 @@ use hmac::{Hmac, Mac};
 use sha2::Sha256;
 use zeroize::Zeroizing;
 
+pub const COMPARE_READ: &[u8] = br#"{"command":"c4_document_read_v1"}"#;
 const DISCARD: &[u8] = br#"{"command":"discard_draft_v1"}"#;
 const DISCARDED: &[u8] = br#"{"discarded":true}"#;
 const HEADER: usize = 50;
@@ -62,7 +63,7 @@ pub struct SceneView {
 
 pub enum EditorEvent<'a> {
     Loaded(&'a SceneView),
-    RevisionConflict,
+    RevisionConflict(Option<&'a SceneView>),
 }
 
 enum SaveReply {
@@ -333,9 +334,43 @@ impl Binding {
         self.save_first(reader, writer)?;
         self.read_view(3, reader, writer, 1, "Rabe\n43")
     }
+    // Each edit turn already has unique launcher keys. This one-shot child grant
+    // has its own identifier, direction keys, sequence space and read-only grammar.
+    fn comparison_binding(&self, basis: u32) -> Result<Self, Closed> {
+        let derive = |kind, purpose: &[u8]| {
+            let mut mac = self.mac(kind);
+            mac.update(b"KRAQEL-conflict-A/read-v1");
+            mac.update(&self.id);
+            mac.update(&basis.to_le_bytes());
+            mac.update(purpose);
+            mac.finalize().into_bytes().into()
+        };
+        Self::from_keys(
+            derive(Kind::Request, b"id"),
+            derive(Kind::Request, b"request"),
+            derive(Kind::Response, b"response"),
+        )
+    }
+
+    fn read_comparison(
+        &self,
+        basis: u32,
+        reader: &mut impl std::io::Read,
+        writer: &mut impl std::io::Write,
+    ) -> Result<SceneView, Closed> {
+        let grant = self.comparison_binding(basis)?;
+        let body = grant.exchange(1, COMPARE_READ, reader, writer)?;
+        let current: SceneView = serde_json::from_slice(&body).map_err(|_| Closed)?;
+        if current.revision <= basis || !super::valid_paragraphs(&current.text) {
+            return Err(Closed);
+        }
+        Ok(current)
+    }
+
     pub fn keyboard_view(
         self,
         revision: u32,
+        compare: bool,
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
         mut edit: impl FnMut(EditorEvent<'_>) -> Result<Option<(String, bool)>, Closed>,
@@ -361,9 +396,17 @@ impl Binding {
         if let SaveReply::Conflict =
             self.save_text(reader, writer, original.revision, &text, Some(bold))?
         {
-            if edit(EditorEvent::RevisionConflict)?.is_some() {
+            let comparison = compare
+                .then(|| self.read_comparison(revision, reader, writer))
+                .transpose();
+            if edit(EditorEvent::RevisionConflict(
+                comparison.as_ref().ok().and_then(Option::as_ref),
+            ))?
+            .is_some()
+            {
                 return Err(Closed);
             }
+            comparison?;
             let ack = self.exchange(3, DISCARD, reader, writer)?;
             return if ack == DISCARDED {
                 Ok(None)
@@ -434,7 +477,15 @@ impl Binding {
             {
                 self.write_reply(seq, answer, writer, Expected::Conflict)?;
                 let frame = read_frame(reader)?;
-                if self.decode(&frame, Kind::Request, 3)? != DISCARD {
+                let grant = self.comparison_binding(revision)?;
+                let final_frame = if grant.decode(&frame, Kind::Request, 1) == Ok(COMPARE_READ) {
+                    let answer = dispatch(COMPARE_READ)?;
+                    grant.write_reply(1, answer, writer, Expected::Read)?;
+                    read_frame(reader)?
+                } else {
+                    frame
+                };
+                if self.decode(&final_frame, Kind::Request, 3)? != DISCARD {
                     return Err(Closed);
                 }
                 writer

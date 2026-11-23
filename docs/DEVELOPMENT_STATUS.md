@@ -14,6 +14,11 @@ bearbeitbar. Speichern ist gesperrt. Schließen oder Verwerfen verlangt eine aus
 Entscheidung. Der verwaltete Windows-Lauf und die Kanalprüfung sind im
 [Konfliktvertrag](architecture/decisions/0036-native-win32-ui-role-evaluation.md#revisionskonflikt-bei-einem-schreibzug) dokumentiert.
 
+Bei einem Konflikt lädt das verwaltete Rollenpaar den aktuellen Stand des Datendienstes unter
+einer einmaligen Lesebindung. Der Entwurf bleibt links bearbeitbar, die Dienstrevision steht
+rechts schreibgeschützt zum Vergleich. F6 wechselt zwischen beiden.
+[Bindung, Bedienung und Prüfungen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#lesender-revisionsvergleich-im-konfliktfenster).
+
 Die Titelleiste unterscheidet einen zu korrigierenden Absatz, die laufende Schreibpause,
 das Speichern mit ausstehender Starterbestätigung und die gespeicherte Revision.
 Ein Windows-Lauf mit leerem zweitem Absatz, Korrektur und verzögerter Bestätigung prüfte

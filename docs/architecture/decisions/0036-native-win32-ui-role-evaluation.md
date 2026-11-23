@@ -566,8 +566,31 @@ Text, ließ nach abgelehntem Verwerfen lokale Änderungen zu und veröffentlicht
 Speicherbefehl und Schreibpause keine neue Revision. Nach bestätigtem Verwerfen öffnete
 der frische Leseauftrag den ursprünglichen Stand der Revision 1. Eine gezielte Kanalprüfung
 bestätigte zusätzlich die Zurückweisung eines authentisierten Folgeschreibversuchs vor
-dem Aufruf der Speicherlogik. Das Laden eines neueren Standes und ein Abgleich mit dem
-lokalen Entwurf benötigen eine frische Bindung und sind offen.
+dem Aufruf der Speicherlogik.
+
+### Lesender Revisionsvergleich im Konfliktfenster
+
+Wenn die beiden gepinnten Rollen die Vergleichsversion ausweisen, aktiviert der Starter
+den Vergleich. Nach einem authentisierten Konflikt leiten die Rollen aus dem einmaligen
+Schreibzug eine separate Lesebindung für Szene A ab. Kennung und Richtungsschlüssel
+sind an den Zweck, den ursprünglichen Kanal und dessen Basisrevision gebunden. Auf den
+bestehenden privaten Pipes nimmt diese Bindung genau einen Lesebefehl an. Der Datendienst
+liest Szene A dabei unter Leserechten aus seinem aktuellen Szenenstand. Das Fenster prüft
+die Antwort und die höhere Revision. Die ursprüngliche Schreibbindung kann weiterhin nur
+noch den expliziten Abschluss durch Verwerfen quittieren.
+
+Links bleibt der lokale Entwurf bearbeitbar. Rechts steht die einmal geladene Dienstrevision
+einschließlich beider Absätze und der Angabe zur Fettmarkierung. F6 wechselt den Fokus
+zwischen Vergleich und Entwurf. Das schreibgeschützte Feld nutzt den vorhandenen lokalen
+Zwischenablagefilter. Der Vergleich veröffentlicht keine Revision. Das Übernehmen ausgewählter
+Änderungen und ein neuer Schreibauftrag auf einer bestätigten Basis bleiben offen.
+
+Im verwalteten Windows-Lauf lieferte der synthetisch fortgeschriebene Datendienst Revision 2,
+während im ursprünglichen HWND der abweichende Entwurf erhalten blieb. F6 wechselte in
+beide Richtungen. Eingabe im Vergleich änderte dessen Text nicht. Weitere lokale Änderungen
+ließen den Vergleich unverändert. Nach explizitem Verwerfen öffnete der Starter die zuletzt
+veröffentlichte Revision 1. Die gezielte Kanalprüfung wies einen Schreibversuch und eine
+wiederholte Leseanfrage unter der Vergleichsbindung vor der Speicherausführung ab.
 
 ## Kosten für den Editor
 

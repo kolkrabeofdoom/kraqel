@@ -51,6 +51,17 @@ pub(super) fn verify_scene_snapshot(file: &mut fs::File) -> Result<()> {
 #[used]
 #[unsafe(link_section = ".kqsrev")]
 static SCENE_REVISIONS: [u8; 32] = *b"KRAQEL-SCENE-REVISIONS-V1.......";
+pub(super) fn comparison_image(file: &fs::File) -> Result<bool> {
+    let size = io("scene-image-size", file.metadata())?.len();
+    Ok(verify_named(
+        &mut &*file,
+        size,
+        b".kqcmp\0\0",
+        &crate::window_receipt::COMPARE_ABI,
+    )
+    .is_ok())
+}
+
 pub(super) fn budgeted_window(file: &fs::File) -> Result<bool> {
     let size = io("win32-window-size", file.metadata())?.len();
     Ok(verify_named(

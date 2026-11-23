@@ -322,7 +322,12 @@ impl Store {
             SyntheticCatalog::restore_a(rev, &content)
         })
         .ok_or(io::Error::other("invalid stored fixture"))?;
-        let mut scene = catalog.bind(Scene::A, self.mode);
+        let mode = if body == kraqel_native_scene_model::channel::COMPARE_READ {
+            Mode::Read
+        } else {
+            self.mode
+        };
+        let mut scene = catalog.bind(Scene::A, mode);
         let mut handle = |body: &[u8]| {
             if self.managed {
                 scene.handle_managed(body)

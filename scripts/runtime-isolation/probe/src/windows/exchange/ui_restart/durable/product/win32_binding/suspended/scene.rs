@@ -58,20 +58,29 @@ pub(in super::super) fn read_scene(
     use crate::window_receipt::SceneOperation;
     use crate::windows::exchange::ui_restart::pipe;
     let mut discarded = false;
+    let argument = if budget.is_some() {
+        crate::window_receipt::budgeted_argument(mode)
+    } else if continued {
+        crate::window_receipt::continue_argument(mode)
+    } else if checkpoint {
+        crate::window_receipt::checkpoint_argument(mode)
+    } else {
+        mode.argument()
+    };
+    let compare = matches!(mode, SceneOperation::Revise | SceneOperation::KeyboardEdit)
+        && package::comparison_image(window)?
+        && package::comparison_image(service)?;
+    let argument = if compare {
+        format!("{argument}-compare")
+    } else {
+        argument.to_owned()
+    };
     with_role(
         store,
         root,
         window,
         WINDOW,
-        if budget.is_some() {
-            crate::window_receipt::budgeted_argument(mode)
-        } else if continued {
-            crate::window_receipt::continue_argument(mode)
-        } else if checkpoint {
-            crate::window_receipt::checkpoint_argument(mode)
-        } else {
-            mode.argument()
-        },
+        &argument,
         true,
         |store, ui, endpoint, mut to_ui, reply| {
             let mut ui_reply = reply.ok_or(invalid("scene-ui-reply"))?;

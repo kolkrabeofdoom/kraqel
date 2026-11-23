@@ -43,6 +43,50 @@ fn conflict_closes_the_service_to_further_writes() {
 }
 
 #[test]
+fn comparison_rejects_a_write_and_a_repeated_read() {
+    for replay in [false, true] {
+        let binding = Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
+        let read = binding.comparison_binding(0).unwrap();
+        let mut input = binding.encode(Kind::Request, 1, READ).unwrap();
+        input.extend(binding.encode(Kind::Request, 2, SAVE).unwrap());
+        if replay {
+            input.extend(read.encode(Kind::Request, 1, COMPARE_READ).unwrap());
+        }
+        input.extend(
+            read.encode(Kind::Request, 1, if replay { COMPARE_READ } else { SAVE })
+                .unwrap(),
+        );
+        let mut commands = Vec::new();
+        let mut catalog = SyntheticCatalog::default();
+        let mut scene = catalog.bind(Scene::A, Mode::Read);
+        assert_eq!(
+            binding.revision_service(
+                false,
+                0,
+                true,
+                &mut input.as_slice(),
+                &mut Vec::new(),
+                |body| {
+                    commands.push(body.to_vec());
+                    if body == SAVE {
+                        return Ok(crate::Reply::Failure {
+                            error: crate::Failure::Conflict,
+                        });
+                    }
+                    Ok(scene.handle(body))
+                }
+            ),
+            Err(Closed)
+        );
+        let mut expected = vec![READ.to_vec(), SAVE.to_vec()];
+        if replay {
+            expected.push(COMPARE_READ.to_vec());
+        }
+        assert_eq!(commands, expected);
+    }
+}
+
+#[test]
 fn interrupted_save_requires_a_verified_initial_read_and_zero_response_bytes() {
     let binding = || Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
     let first = binding()
