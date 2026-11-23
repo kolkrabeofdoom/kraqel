@@ -1230,7 +1230,7 @@ fn update_review(hwnd: HWND) {
             Some((text, bold)) if changed => format_text(&text, bold),
             Some(_) => "Auswahl entspricht dem Dienststand.".to_owned(),
             None => invalid_selected_paragraph(hwnd).map_or_else(|| "Ausgewählte Absätze prüfen.".to_owned(), |(_, hint)| {
-                format!("{hint} F6 führt von der Vorschau zum Absatz. Alternativ diesen Absatz aus dem Dienststand übernehmen.")
+                format!("{hint} In der Vorschau: F6 zum Korrigieren, F8 für diesen Absatz aus dem Dienststand.")
             }),
         };
         let sources = match checked {
@@ -2640,6 +2640,22 @@ unsafe fn run_editor_loop(
             }
             if let Some(result) = draft.as_deref_mut() {
                 let comparison = GetDlgItem(hwnd, COMPARISON);
+                if !comparison.is_null()
+                    && GetFocus() == comparison
+                    && msg.message == WM_KEYDOWN
+                    && key == VK_F8
+                {
+                    // A held key must not accept another paragraph when the hint advances.
+                    if msg.lParam & (1 << 30) == 0 {
+                        if let Some((id, _)) = invalid_selected_paragraph(hwnd) {
+                            change_selection(
+                                hwnd,
+                                if id == EDIT { PICK_FIRST } else { PICK_SECOND },
+                            );
+                        }
+                    }
+                    continue;
+                }
                 if !comparison.is_null() && msg.message == WM_KEYDOWN && key == VK_F6 {
                     SetFocus(if GetFocus() == comparison {
                         let target = invalid_selected_paragraph(hwnd)
