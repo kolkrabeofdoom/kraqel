@@ -1131,44 +1131,28 @@ fn resolve_conflict(
         if let Some(view) = comparison {
             show_comparison(hwnd, view)?;
         }
-        if comparison.is_none() {
-            SetDlgItemTextW(
-                hwnd,
-                LABEL,
-                wide("Keine bestätigte Vergleichsbasis. Der Entwurf bleibt lokal.").as_ptr(),
-            );
-        }
-        if review {
-            SetDlgItemTextW(
-                hwnd,
-                LABEL,
-                wide(if selectable.is_some() {
-                    "Neue Dienstrevision · Auswahl prüfen und unter Übernahme bestätigen."
-                } else {
-                    "Neue Dienstrevision · Auswahl prüfen · Speichern in dieser Sitzung gesperrt"
-                })
-                .as_ptr(),
-            );
-        }
-        if !review && selectable.is_some() {
+        if !review && comparison.is_some() {
             install_selection_menu(hwnd)?;
-            SetDlgItemTextW(
-                hwnd,
-                LABEL,
-                wide("Unter Übernahme die gewünschten lokalen Änderungen auswählen.").as_ptr(),
-            );
         }
+        let instruction = if comparison.is_none() {
+            "Keine bestätigte Vergleichsbasis. Der Entwurf bleibt lokal."
+        } else if selectable.is_none() {
+            "Auswahl als Vorschau prüfen · Speichern in dieser Sitzung gesperrt."
+        } else if review {
+            "Neue Dienstrevision · Auswahl prüfen und unter Übernahme bestätigen."
+        } else {
+            "Unter Übernahme die gewünschten lokalen Änderungen auswählen."
+        };
+        SetDlgItemTextW(hwnd, LABEL, wide(instruction).as_ptr());
         let allow_resume = room_to_resume
             && selectable
                 .is_some_and(|view| view.revision < window_receipt::SCENE_REVISION_LIMIT - 1);
-        if review || selectable.is_some() {
-            SELECTION_REVIEW.replace(comparison.cloned().map(|basis| SelectionReview {
-                previous_picks: None,
-                basis,
-                may_save: selectable.is_some(),
-                may_resume: allow_resume,
-            }));
-        }
+        SELECTION_REVIEW.replace(comparison.cloned().map(|basis| SelectionReview {
+            previous_picks: None,
+            basis,
+            may_save: selectable.is_some(),
+            may_resume: allow_resume,
+        }));
         EnableWindow(hwnd, 1);
         update_draft_status(hwnd);
         SetFocus(GetDlgItem(hwnd, ACTIVE_PARAGRAPH.get()));

@@ -616,6 +616,14 @@ bleibt bearbeitbar. Im Windows-Lauf mit Szene A sperrte die Rückkehr zum Dienst
 Speicherbefehle. Erst die anschließende Einzelwahl mit ausdrücklichem Speichern erzeugte
 Revision 3. Das Wiederöffnen bestätigte die gewählte Mischung.
 
+Liegt bei der ersten Konfliktantwort bereits eine Revisionslücke vor, zeigt **Übernahme**
+die Auswahl als lokale Vorschau an. Im verwalteten Windows-Lauf lagen zwischen der
+Bearbeitungsbasis 1 und dem frisch gelesenen Dienststand 3 zwei synthetische Änderungen.
+Einblenden der Basis, Einzelwahl und Rücknahme funktionierten. Beide Speicherbefehle waren
+gesperrt und ließen auch bei direkter Befehlsauslösung den Entwurf offen. Nach ausdrücklich
+bestätigtem Verwerfen meldete der Starter die zuletzt veröffentlichte Revision 1 und null
+verbleibende Jobprozesse.
+
 **Letzte Auswahl rückgängig machen** stellt die Häkchen vor der letzten Einzel- oder
 Sammelauswahl wieder her. Das Fenster merkt sich dafür drei Auswahlwerte bis zum nächsten
 Revisionsvergleich. Im Windows-Lauf wurde eine gemischte Auswahl auf den Dienststand
