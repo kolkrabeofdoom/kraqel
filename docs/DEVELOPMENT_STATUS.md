@@ -22,7 +22,7 @@ rechts schreibgeschützt zum Vergleich. F6 wechselt zwischen beiden.
 Im fortlaufenden Konfliktfenster lassen sich beide Absätze und die Fettmarkierung einzeln
 aus dem lokalen Entwurf übernehmen. Die Vorschau zeigt die Mischung ab der ersten Auswahl.
 Die ursprüngliche Bearbeitungsbasis lässt sich mit Revisionsnummer und Fettmarkierung einblenden.
-Eindeutig lokale Änderungen lassen sich gemeinsam auswählen. Die Vorschau nennt beidseitig
+Für die Auswahl stehen der gesamte lokale Entwurf, der Dienststand und die eindeutig lokalen Änderungen zur Verfügung. Die Vorschau nennt beidseitig
 unterschiedlich geänderte Absätze. Beide Speicherbefehle setzen eine gültige Änderung voraus. Die ausdrückliche Bestätigung speichert auf der erneut
 geprüften Vergleichsbasis unter frischer Schreibbindung und schließt das Fenster. Eine
 zwischenzeitlich geänderte Basis löst einen [erneuten Vergleich](architecture/decisions/0036-native-win32-ui-role-evaluation.md#erneuter-vergleich-vor-dem-speichern) aus. Der lokale Entwurf und die bisherige Auswahl bleiben zur Prüfung offen.

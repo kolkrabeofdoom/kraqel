@@ -29,6 +29,9 @@ const COMMIT_SELECTION: usize = 223;
 const CONTINUE_SELECTION: usize = 224;
 const PICK_LOCAL_CHANGES: usize = 225;
 const SHOW_EDIT_BASE: usize = 226;
+const PICK_DRAFT: usize = 227;
+const PICK_SERVICE: usize = 228;
+const MERGE_FIELDS: [usize; 3] = [PICK_FIRST, PICK_SECOND, PICK_BOLD];
 const MERGE_SELECTED: u32 = WM_APP + 7;
 const COMPARISON: i32 = 111;
 const LABEL: i32 = 100;
@@ -847,6 +850,8 @@ unsafe fn install_selection_menu(hwnd: HWND) -> std::io::Result<()> {
                 PICK_LOCAL_CHANGES,
                 "Eindeutig lokale Änderungen zusätzlich auswählen",
             ),
+            (PICK_DRAFT, "Gesamten lokalen Entwurf auswählen"),
+            (PICK_SERVICE, "Auswahl auf Dienststand zurücksetzen"),
             (SHOW_EDIT_BASE, "Ursprüngliche Bearbeitungsbasis anzeigen"),
             (COMMIT_SELECTION, "Auswahl speichern und schließen"),
             (CONTINUE_SELECTION, "Auswahl speichern und weiterschreiben"),
@@ -907,25 +912,27 @@ fn resume_merged_editor(
     }
 }
 
+fn menu_checked(hwnd: HWND, id: usize) -> bool {
+    let state = unsafe { GetMenuState(GetMenu(hwnd), id as u32, MF_BYCOMMAND) };
+    state != u32::MAX && state & MF_CHECKED != 0
+}
+
 fn combined_draft(
     hwnd: HWND,
     view: &kraqel_native_scene_model::channel::SceneView,
 ) -> Option<(String, bool)> {
-    let picked = |id: usize| unsafe {
-        GetMenuState(GetMenu(hwnd), id as u32, MF_BYCOMMAND) & MF_CHECKED != 0
-    };
     let (first, second) = view.text.split_once('\n')?;
-    let first = if picked(PICK_FIRST) {
+    let first = if menu_checked(hwnd, PICK_FIRST) {
         paragraph_text(hwnd, EDIT)?
     } else {
         first.to_owned()
     };
-    let second = if picked(PICK_SECOND) {
+    let second = if menu_checked(hwnd, PICK_SECOND) {
         paragraph_text(hwnd, SECOND)?
     } else {
         second.to_owned()
     };
-    let bold = if picked(PICK_BOLD) {
+    let bold = if menu_checked(hwnd, PICK_BOLD) {
         is_bold()
     } else {
         view.bold_second
@@ -997,6 +1004,9 @@ fn update_review(hwnd: HWND) {
                 if bold { "fett" } else { "normal" }
             )
         };
+        let checked = MERGE_FIELDS.iter().filter(|&&id| menu_checked(hwnd, id)).count();
+        enable_menu_command(hwnd, PICK_DRAFT, checked < MERGE_FIELDS.len());
+        enable_menu_command(hwnd, PICK_SERVICE, checked > 0);
         let selected = combined_draft(hwnd, view);
         let changed = selected
             .as_ref()
@@ -1024,8 +1034,7 @@ fn update_review(hwnd: HWND) {
                 hints.conflicting.join(", ")
             )
         };
-        let state = unsafe { GetMenuState(GetMenu(hwnd), SHOW_EDIT_BASE as u32, MF_BYCOMMAND) };
-        let base_section = if state != u32::MAX && state & MF_CHECKED != 0 {
+        let base_section = if menu_checked(hwnd, SHOW_EDIT_BASE) {
             EDIT_BASE_REVISION.get().map(|revision| {
                 EXPECTED.with_borrow(|base| format!(
                     "Bearbeitungsbasis · Revision {revision}\r\n{}\r\n\r\n",
@@ -1373,6 +1382,18 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                     && matches!((w & 0xffff) as i32, EDIT | SECOND) =>
             {
                 ACTIVE_PARAGRAPH.set((w & 0xffff) as i32);
+                0
+            }
+            WM_COMMAND if matches!(w, PICK_DRAFT | PICK_SERVICE) && REVISION_CONFLICT.get() => {
+                let mark = if w == PICK_DRAFT {
+                    MF_CHECKED
+                } else {
+                    MF_UNCHECKED
+                };
+                for field in MERGE_FIELDS {
+                    CheckMenuItem(GetMenu(hwnd), field as u32, MF_BYCOMMAND | mark);
+                }
+                update_review(hwnd);
                 0
             }
             WM_COMMAND if w == PICK_LOCAL_CHANGES && REVISION_CONFLICT.get() => {

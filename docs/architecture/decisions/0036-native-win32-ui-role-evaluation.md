@@ -610,6 +610,12 @@ leerer Auswahl, einen ungültigen gewählten Absatz und das manuelle Zurückänd
 Dienststand. Nach der Korrektur enthielt die wieder geöffnete Revision 3 den gewählten
 ersten Absatz und den zweiten Absatz der Dienstrevision 2.
 
+**Gesamten lokalen Entwurf auswählen** setzt alle drei Häkchen. **Auswahl auf Dienststand
+zurücksetzen** entfernt sie. Beide Befehle aktualisieren die Vorschau. Der lokale Entwurf
+bleibt bearbeitbar. Im Windows-Lauf mit Szene A sperrte die Rückkehr zum Dienststand beide
+Speicherbefehle. Erst die anschließende Einzelwahl mit ausdrücklichem Speichern erzeugte
+Revision 3. Das Wiederöffnen bestätigte die gewählte Mischung.
+
 **Ursprüngliche Bearbeitungsbasis anzeigen** blendet im geschützten Vergleichsfeld die
 Revision ein, auf der der lokale Entwurf beruht, samt beiden Absätzen und Fettmarkierung.
 Das Fenster verwendet dafür die bereits gebundene Fassung im Arbeitsspeicher. Im
