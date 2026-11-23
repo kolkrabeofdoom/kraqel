@@ -498,11 +498,12 @@ unsafe extern "system" fn local_edit(
             }
             let selected = align_edit_selection(hwnd, true);
             let length = GetWindowTextLengthW(hwnd) as usize;
-            let limit = if LONG_EDIT.get() {
-                2 * kraqel_native_scene_model::MAX_PREVIEW_UTF16
-            } else {
-                MAX_PARAGRAPH_UTF16
-            };
+            let limit = SendMessageW(
+                hwnd,
+                windows_sys::Win32::UI::Controls::EM_GETLIMITTEXT,
+                0,
+                0,
+            ) as usize;
             if length.saturating_sub(selected) + 2 <= limit {
                 let pair = [pending_high as u16, w as u16, 0];
                 SendMessageW(hwnd, EM_REPLACESEL, 1, pair.as_ptr() as LPARAM);
