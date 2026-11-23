@@ -58,6 +58,7 @@ struct PendingSave {
 thread_local! {
     static AUTOSAVE_TURN: std::cell::Cell<Option<(u8, u8)>> = const { std::cell::Cell::new(None) };
     static PENDING_SAVE: std::cell::RefCell<Option<PendingSave>> = const { std::cell::RefCell::new(None) };
+    static REVIEW_BASIS:std::cell::RefCell<Option<kraqel_native_scene_model::channel::SceneView>>=const {std::cell::RefCell::new(None)};
     static REVISION_CONFLICT: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static AWAITING_REBIND: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static CLOSE_REQUESTED: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
@@ -780,6 +781,7 @@ fn update_draft_status(hwnd: HWND) {
             SetDlgItemTextW(hwnd, WORD_COUNT, wide(label).as_ptr());
         }
         if REVISION_CONFLICT.get() {
+            update_review(hwnd);
             cancel_pending_save(hwnd);
             EnableWindow(save, 0);
             enable_menu_command(hwnd, SAVE as usize, false);
@@ -853,7 +855,7 @@ unsafe fn install_selection_menu(hwnd: HWND) -> std::io::Result<()> {
 
 const MERGE_EXIT: i32 = 43;
 
-fn selected_draft(
+fn combined_draft(
     hwnd: HWND,
     view: &kraqel_native_scene_model::channel::SceneView,
 ) -> Option<(String, bool)> {
@@ -877,18 +879,43 @@ fn selected_draft(
         view.bold_second
     };
     let text = format!("{first}\n{second}");
-    (kraqel_native_scene_model::valid_paragraphs(&text)
-        && (text != view.text || bold != view.bold_second))
-        .then_some((text, bold))
+    kraqel_native_scene_model::valid_paragraphs(&text).then_some((text, bold))
+}
+
+fn update_review(hwnd: HWND) {
+    REVIEW_BASIS.with_borrow(|basis| {
+        let Some(view) = basis else { return };
+        let format_text = |text: &str, bold: bool| {
+            format!(
+                "{}\r\nZweiter Absatz: {}",
+                text.replace('\n', "\r\n"),
+                if bold { "fett" } else { "normal" }
+            )
+        };
+        let preview = combined_draft(hwnd, view)
+            .map(|(text, bold)| format_text(&text, bold))
+            .unwrap_or_else(|| "Ausgewählte Absätze prüfen.".to_owned());
+        let contents = format!(
+            "Datendienst · Revision {}\r\n{}\r\n\r\nVorschau der Auswahl\r\n{}",
+            view.revision,
+            format_text(&view.text, view.bold_second),
+            preview
+        );
+        unsafe {
+            SetDlgItemTextW(hwnd, COMPARISON, wide(contents).as_ptr());
+        }
+    });
 }
 
 fn resolve_conflict(
     held: &mut HeldEditor,
     comparison: Option<&kraqel_native_scene_model::channel::SceneView>,
     can_continue: bool,
+    review: bool,
 ) -> std::io::Result<Option<(String, bool)>> {
     let hwnd = held.hwnd;
     require(!hwnd.is_null(), "missing conflict editor")?;
+    REVIEW_BASIS.replace(if review { comparison.cloned() } else { None });
     REVISION_CONFLICT.set(true);
     AWAITING_REBIND.set(false);
     held.autosave_turn = None;
@@ -896,9 +923,9 @@ fn resolve_conflict(
         can_continue && LOADED_REVISION.get().and_then(|r| r.checked_add(1)) == Some(v.revision)
     });
     unsafe {
-        // A second conflict invalidates both the previous display and its selections.
+        // On refresh keep the checkmarks as a proposal; the old approval is spent.
         let menu = GetMenu(hwnd);
-        if GetMenuState(menu, COMMIT_SELECTION as u32, MF_BYCOMMAND) != u32::MAX {
+        if !review && GetMenuState(menu, COMMIT_SELECTION as u32, MF_BYCOMMAND) != u32::MAX {
             check(DeleteMenu(
                 menu,
                 (GetMenuItemCount(menu) - 1) as u32,
@@ -921,6 +948,15 @@ fn resolve_conflict(
                 wide("Keine bestätigte Vergleichsbasis. Der Entwurf bleibt lokal.").as_ptr(),
             );
         }
+        if review {
+            EnableMenuItem(menu, COMMIT_SELECTION as u32, MF_BYCOMMAND | MF_GRAYED);
+            SetDlgItemTextW(
+                hwnd,
+                LABEL,
+                wide("Neue Dienstrevision · Auswahl prüfen · Speichern in dieser Sitzung gesperrt")
+                    .as_ptr(),
+            );
+        }
         if selectable.is_some() {
             install_selection_menu(hwnd)?;
             SetDlgItemTextW(
@@ -940,7 +976,9 @@ fn resolve_conflict(
             }
             require(code == MERGE_EXIT, "conflict decision")?;
             let view = selectable.ok_or(std::io::Error::other("missing merge basis"))?;
-            if let Some(chosen) = selected_draft(hwnd, view) {
+            if let Some(chosen) = combined_draft(hwnd, view)
+                .filter(|(t, b)| t != &view.text || *b != view.bold_second)
+            {
                 held.submitted = Some((view.text.clone(), view.bold_second));
                 held.closing = false;
                 EnableWindow(hwnd, 0);
@@ -1170,7 +1208,7 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
             {
                 let menu = GetMenu(hwnd);
                 let state = GetMenuState(menu, w as u32, MF_BYCOMMAND);
-                if state != u32::MAX {
+                if state != u32::MAX && state & (MF_GRAYED | MF_DISABLED) == 0 {
                     if w == COMMIT_SELECTION {
                         PostMessageW(hwnd, MERGE_SELECTED, 0, 0);
                     } else {
@@ -1184,6 +1222,7 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                                     MF_UNCHECKED
                                 },
                         );
+                        update_review(hwnd);
                     }
                 }
                 0
@@ -1665,7 +1704,9 @@ unsafe fn run_editor_loop(
             }
             if msg.message == MERGE_SELECTED
                 && REVISION_CONFLICT.get()
-                && GetMenuState(GetMenu(hwnd), COMMIT_SELECTION as u32, MF_BYCOMMAND) != u32::MAX
+                && GetMenuState(GetMenu(hwnd), COMMIT_SELECTION as u32, MF_BYCOMMAND)
+                    & (MF_DISABLED | MF_GRAYED)
+                    == 0
             {
                 if let Some(held) = keep_editor.as_deref_mut() {
                     held.history = history.take();
@@ -1926,10 +1967,23 @@ unsafe fn run_editor_loop(
 #[used]
 #[unsafe(link_section = ".kqmerge")]
 static MERGE_ABI: [u8; 32] = kraqel_window_probe::window_receipt::MERGE_ABI;
+#[used]
+#[unsafe(link_section = ".kqfresh")]
+static REFRESH_ABI: [u8; 32] = kraqel_window_probe::window_receipt::REFRESH_ABI;
 fn main() {
+    std::hint::black_box(&REFRESH_ABI);
     std::hint::black_box(&MERGE_ABI);
     std::hint::black_box(&COMPARE_ABI);
     let mut arg = std::env::args_os().nth(1);
+    let refreshed = arg
+        .as_deref()
+        .and_then(|v| v.to_str())
+        .and_then(|v| v.strip_suffix("-refresh"))
+        .map(std::ffi::OsString::from);
+    let refresh = refreshed.is_some();
+    if refresh {
+        arg = refreshed;
+    }
     let merged = arg
         .as_deref()
         .and_then(|v| v.to_str())
@@ -2010,15 +2064,21 @@ fn main() {
                         turn_mode,
                         &mut output,
                         compare,
+                        refresh,
                         |event| {
                             use kraqel_native_scene_model::channel::EditorEvent;
                             let loaded = match event {
                                 EditorEvent::Loaded(view) => view,
+                                EditorEvent::RefreshedComparison(view) => {
+                                    selection = None;
+                                    return resolve_conflict(&mut held, Some(view), false, true);
+                                }
                                 EditorEvent::RevisionConflict(comparison) => {
                                     selection = resolve_conflict(
                                         &mut held,
                                         comparison,
                                         merge && turn < limit,
+                                        false,
                                     )?;
                                     return Ok(selection.clone());
                                 }

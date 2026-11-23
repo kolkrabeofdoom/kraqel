@@ -89,6 +89,56 @@ fn comparison_rejects_a_write_and_a_repeated_read() {
 }
 
 #[test]
+fn stale_prepare_cannot_replay_the_first_comparison() {
+    let binding = Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
+    let read = binding
+        .comparison_binding(0)
+        .unwrap()
+        .encode(Kind::Request, 1, COMPARE_READ)
+        .unwrap();
+    let prepare = binding
+        .conflict_binding(1, b"KRAQEL-conflict-A/prepare-v1")
+        .unwrap();
+    let mut input = binding.encode(Kind::Request, 1, READ).unwrap();
+    input.extend(binding.encode(Kind::Request, 2, SAVE).unwrap());
+    input.extend(&read);
+    input.extend(
+        prepare
+            .encode(Kind::Request, 1, PREPARE_COMPARISON)
+            .unwrap(),
+    );
+    input.extend(read);
+    let mut reads = 0;
+    assert_eq!(
+        binding.revision_service(
+            false,
+            0,
+            true,
+            true,
+            &mut input.as_slice(),
+            &mut Vec::new(),
+            |body| {
+                if body == SAVE {
+                    return Ok(crate::Reply::Failure {
+                        error: crate::Failure::Conflict,
+                    });
+                }
+                assert_eq!(body, READ);
+                let revision = reads;
+                reads += 1;
+                Ok(crate::Reply::Read {
+                    text: "Rabe\n42".to_owned(),
+                    revision,
+                    bold_second: false,
+                })
+            }
+        ),
+        Err(Closed)
+    );
+    assert_eq!(reads, 3);
+}
+
+#[test]
 fn interrupted_save_requires_a_verified_initial_read_and_zero_response_bytes() {
     let binding = || Binding::from_keys([1; 32], [2; 32], [3; 32]).unwrap();
     let first = binding()

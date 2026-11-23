@@ -6,7 +6,11 @@ static COMPARE_ABI: [u8; 32] = kraqel_window_probe::window_receipt::COMPARE_ABI;
 #[used]
 #[unsafe(link_section = ".kqmerge")]
 static MERGE_ABI: [u8; 32] = kraqel_window_probe::window_receipt::MERGE_ABI;
+#[used]
+#[unsafe(link_section = ".kqfresh")]
+static REFRESH_ABI: [u8; 32] = kraqel_window_probe::window_receipt::REFRESH_ABI;
 fn main() {
+    std::hint::black_box(&REFRESH_ABI);
     std::hint::black_box(&MERGE_ABI);
     let arg = std::env::args_os().nth(1);
     let stripped = arg

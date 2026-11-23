@@ -103,3 +103,5 @@ pub fn budgeted_argument(mode: SceneOperation) -> &'static str {
 pub const COMPARE_ABI: [u8; 32] = *b"KRAQEL-SCENE-COMPARE-V1.........";
 
 pub const MERGE_ABI: [u8; 32] = *b"KRAQEL-SCENE-MERGE-V1...........";
+
+pub const REFRESH_ABI: [u8; 32] = *b"KRAQEL-SCENE-REFRESH-V1.........";

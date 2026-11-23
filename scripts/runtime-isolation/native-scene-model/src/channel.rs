@@ -53,7 +53,7 @@ enum Expected {
     Conflict,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(Clone, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SceneView {
     pub text: String,
@@ -65,6 +65,7 @@ pub struct SceneView {
 pub enum EditorEvent<'a> {
     Loaded(&'a SceneView),
     RevisionConflict(Option<&'a SceneView>),
+    RefreshedComparison(&'a SceneView),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -382,6 +383,7 @@ impl Binding {
         self,
         revision: u32,
         compare: bool,
+        refresh: bool,
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
         mut edit: impl FnMut(EditorEvent<'_>) -> Result<Option<(String, bool)>, Closed>,
@@ -423,10 +425,17 @@ impl Binding {
                     self.conflict_binding(view.revision, b"KRAQEL-conflict-A/prepare-v1")?;
                 let body = prepare.exchange(1, PREPARE_COMPARISON, reader, writer)?;
                 if Self::expect_error(&body, "CONFLICT").is_ok() {
-                    // The offered basis changed again. Keep the local draft open for discard.
-                    if edit(EditorEvent::RevisionConflict(None))?.is_some() {
+                    let updated = refresh
+                        .then(|| self.read_comparison(view.revision, reader, writer))
+                        .transpose();
+                    let event = match updated.as_ref() {
+                        Ok(Some(current)) => EditorEvent::RefreshedComparison(current),
+                        _ => EditorEvent::RevisionConflict(None),
+                    };
+                    if edit(event)?.is_some() {
                         return Err(Closed);
                     }
+                    updated?;
                 } else {
                     let confirmed: SceneView = serde_json::from_slice(&body).map_err(|_| Closed)?;
                     if confirmed.text != view.text
@@ -535,7 +544,19 @@ impl Binding {
                                 writer,
                                 Expected::Conflict,
                             )?;
-                            read_frame(reader)?
+                            let next = read_frame(reader)?;
+                            let refresh = self.comparison_binding(basis)?;
+                            if refresh.decode(&next, Kind::Request, 1) == Ok(COMPARE_READ) {
+                                refresh.write_reply(
+                                    1,
+                                    dispatch(COMPARE_READ)?,
+                                    writer,
+                                    Expected::Read,
+                                )?;
+                                read_frame(reader)?
+                            } else {
+                                next
+                            }
                         } else {
                             next
                         }

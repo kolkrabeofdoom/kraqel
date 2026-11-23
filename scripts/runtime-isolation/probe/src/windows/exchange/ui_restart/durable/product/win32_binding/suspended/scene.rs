@@ -72,7 +72,10 @@ pub(in super::super) fn read_scene(
         && package::comparison_image(service)?;
     let merge =
         compare && continued && package::merge_image(window)? && package::merge_image(service)?;
-    let argument = if merge {
+    let refresh = merge && package::refresh_image(window)? && package::refresh_image(service)?;
+    let argument = if refresh {
+        format!("{argument}-compare-merge-refresh")
+    } else if merge {
         format!("{argument}-compare-merge")
     } else if compare {
         format!("{argument}-compare")

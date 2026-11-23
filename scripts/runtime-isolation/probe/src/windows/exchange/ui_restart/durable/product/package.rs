@@ -71,6 +71,16 @@ pub(super) fn merge_image(file: &fs::File) -> Result<bool> {
     )
     .is_ok())
 }
+pub(super) fn refresh_image(file: &fs::File) -> Result<bool> {
+    let size = io("scene-image-size", file.metadata())?.len();
+    Ok(verify_named(
+        &mut &*file,
+        size,
+        b".kqfresh",
+        &crate::window_receipt::REFRESH_ABI,
+    )
+    .is_ok())
+}
 
 pub(super) fn budgeted_window(file: &fs::File) -> Result<bool> {
     let size = io("win32-window-size", file.metadata())?.len();

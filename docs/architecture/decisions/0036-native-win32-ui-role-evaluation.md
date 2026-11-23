@@ -622,6 +622,26 @@ der Prüfdatendienst den Vergleichsstand vor der Vorbereitung erneut. Die Auswah
 keinen Snapshot, der Entwurf blieb im Fenster. Nach ausdrücklichem Verwerfen war die zuvor
 bestätigte Revision 1 wieder lesbar.
 
+### Erneuter Vergleich vor dem Speichern
+
+Meldet die Vorbereitung der Auswahl einen zweiten Konflikt, lädt das dafür freigegebene
+Rollenpaar den aktuellen Dienststand einmal über eine neue Lesebindung. Deren Schlüssel
+sind an die bisherige Vergleichsrevision gebunden. Nur eine authentisierte, gültige Szene A
+mit höherer Revision erscheint als neuer Vergleich. Nach dem Lesen ist auf dem Kanal nur
+noch der reguläre Verwerfabschluss möglich.
+
+Der lokale Entwurf und die Häkchen im Menü **Übernahme** bleiben erhalten. Das rechte,
+schreibgeschützte Feld zeigt die neue Dienstrevision und darunter die Vorschau der Auswahl.
+Änderungen an den Häkchen oder am lokalen Entwurf aktualisieren die Vorschau im Fenster.
+Die vorausgegangene Speicherbestätigung ist verbraucht. Der Dienststand liegt jetzt mehr
+als eine Revision vor der Journalbasis; für diese Sitzung bleibt Speichern gesperrt.
+
+Ein verwalteter Windows-Lauf prüfte Revision 2 → 3 vor der Speicherung: Der lokale erste
+Absatz blieb ausgewählt. Die Vorschau enthielt den neueren zweiten Dienstabsatz und folgte
+der geänderten Auswahl. Auch ein direkter Aufruf des gesperrten Speicherbefehls veröffentlichte
+keinen Snapshot. Nach explizitem Verwerfen öffnete die zuvor bestätigte Revision 1.
+Eine Kanalprüfung wies die Wiederholung der ersten Leseanfrage beim erneuten Vergleich ab.
+
 ## Kosten für den Editor
 
 Die Rust-Domäne, das versionierte Dokumentformat und die SQLite-Transaktionen sind mögliche
