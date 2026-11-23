@@ -36,6 +36,7 @@ const SHOW_EDIT_BASE: usize = 226;
 const PICK_DRAFT: usize = 227;
 const PICK_SERVICE: usize = 228;
 const UNDO_SELECTION: usize = 229;
+const REDO_SELECTION: usize = 231;
 const MERGE_FIELDS: [usize; 3] = [PICK_FIRST, PICK_SECOND, PICK_BOLD];
 const MERGE_SELECTED: u32 = WM_APP + 7;
 const COMPARISON: i32 = 111;
@@ -975,6 +976,7 @@ unsafe fn install_selection_menu(hwnd: HWND) -> std::io::Result<()> {
             (PICK_DRAFT, "Gesamten lokalen Entwurf auswählen"),
             (PICK_SERVICE, "Auswahl auf Dienststand zurücksetzen"),
             (UNDO_SELECTION, "Letzte Auswahl rückgängig machen"),
+            (REDO_SELECTION, "Auswahl wiederholen"),
             (SHOW_EDIT_BASE, "Ursprüngliche Bearbeitungsbasis anzeigen"),
             (COMMIT_SELECTION, "Auswahl speichern und schließen"),
             (CONTINUE_SELECTION, "Auswahl speichern und weiterschreiben"),
@@ -1066,6 +1068,7 @@ fn combined_draft(
 
 struct SelectionReview {
     previous_picks: Option<[bool; MERGE_FIELDS.len()]>,
+    next_picks: Option<[bool; MERGE_FIELDS.len()]>,
     basis: kraqel_native_scene_model::channel::SceneView,
     may_save: bool,
     may_resume: bool,
@@ -1135,7 +1138,14 @@ fn change_selection(hwnd: HWND, command: usize) {
                 let Some(previous) = review.previous_picks.take() else {
                     return;
                 };
+                review.next_picks = Some(before);
                 after = previous;
+            }
+            REDO_SELECTION => {
+                let Some(next) = review.next_picks.take() else {
+                    return;
+                };
+                after = next;
             }
             _ => {
                 let Some(index) = MERGE_FIELDS.iter().position(|&field| field == command) else {
@@ -1147,6 +1157,7 @@ fn change_selection(hwnd: HWND, command: usize) {
         if after != before {
             if command != UNDO_SELECTION {
                 review.previous_picks = Some(before);
+                review.next_picks = None;
             }
             for (field, picked) in MERGE_FIELDS.into_iter().zip(after) {
                 let mark = if picked { MF_CHECKED } else { MF_UNCHECKED };
@@ -1197,6 +1208,7 @@ fn update_review(hwnd: HWND) {
         enable_menu_command(hwnd, PICK_DRAFT, checked < MERGE_FIELDS.len());
         enable_menu_command(hwnd, PICK_SERVICE, checked > 0);
         enable_menu_command(hwnd, UNDO_SELECTION, review.previous_picks.is_some());
+        enable_menu_command(hwnd, REDO_SELECTION, review.next_picks.is_some());
         let selected = combined_draft(hwnd, view);
         let changed = selected
             .as_ref()
@@ -1301,6 +1313,7 @@ fn resolve_conflict(
         let allow_resume = edit_turns > 0;
         SELECTION_REVIEW.replace(comparison.cloned().map(|basis| SelectionReview {
             previous_picks: None,
+            next_picks: None,
             basis,
             may_save: selectable.is_some(),
             may_resume: allow_resume,
@@ -1849,7 +1862,11 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                     && (MERGE_FIELDS.contains(&w)
                         || matches!(
                             w,
-                            PICK_DRAFT | PICK_SERVICE | PICK_LOCAL_CHANGES | UNDO_SELECTION
+                            PICK_DRAFT
+                                | PICK_SERVICE
+                                | PICK_LOCAL_CHANGES
+                                | UNDO_SELECTION
+                                | REDO_SELECTION
                         )) =>
             {
                 change_selection(hwnd, w);
