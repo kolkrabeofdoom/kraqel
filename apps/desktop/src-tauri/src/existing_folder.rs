@@ -140,6 +140,8 @@ impl Receive {
 pub(super) enum ImportOutcome {
     Received,
     ArchiveFailed,
+    ArchiveTargetRejected,
+    PassphraseFailed,
     Cancel,
 }
 
@@ -189,14 +191,16 @@ fn archive_target(
 type ArchiveChoice = (ArchiveTarget, Option<kraqel_archiv::SecretString>);
 
 fn choose_archive(
-    app: &AppHandle,
+    window: &tauri::WebviewWindow,
     owner: isize,
     source: &Path,
     catalog: &Path,
-) -> Result<Option<ArchiveChoice>, ProjectError> {
-    let Some(file) = app
+) -> Result<Option<ArchiveChoice>, ImportOutcome> {
+    let Some(file) = window
+        .app_handle()
         .dialog()
         .file()
+        .set_parent(window)
         .set_title("Neues verschlüsseltes Zusatzarchiv")
         .set_file_name("KRAQEL-Zusatzarchiv.zip.age")
         .blocking_save_file()
@@ -205,10 +209,11 @@ fn choose_archive(
     };
     let destination = file
         .into_path()
-        .map_err(|_| ProjectError::InvalidRelativePath)?;
-    let target = archive_target(destination, source, catalog)?;
+        .map_err(|_| ImportOutcome::ArchiveTargetRejected)?;
+    let target = archive_target(destination, source, catalog)
+        .map_err(|_| ImportOutcome::ArchiveTargetRejected)?;
     let Some(mut passphrase) = kraqel_isolation_transport::prompt_archive_passphrase(owner)
-        .map_err(|_| ProjectError::InvalidImportedData)?
+        .map_err(|_| ImportOutcome::PassphraseFailed)?
     else {
         return Ok(None);
     };
@@ -222,7 +227,6 @@ fn choose_archive(
 
 #[tauri::command]
 pub(super) async fn receive_existing_folder(
-    app: AppHandle,
     window: tauri::WebviewWindow,
     state: State<'_, AppState>,
     session: State<'_, FolderState>,
@@ -258,21 +262,19 @@ pub(super) async fn receive_existing_folder(
                     .join(", "),
             );
         }
-        if !app
-            .dialog()
-            .message(message)
-            .title("Projektübernahme bestätigen")
-            .buttons(tauri_plugin_dialog::MessageDialogButtons::OkCancel)
-            .blocking_show()
+        if !kraqel_isolation_transport::confirm_project_folder_import(owner, &message)
+            .map_err(|_| ProjectError::InvalidImportedData)?
         {
             return Ok(ImportOutcome::Cancel);
         }
         let mut archive = if input.groups.is_empty() {
             None
-        } else if let Some(archive) = choose_archive(&app, owner, &pending.source, &catalog)? {
-            Some(archive)
         } else {
-            return Ok(ImportOutcome::Cancel);
+            match choose_archive(&window, owner, &pending.source, &catalog) {
+                Ok(Some(choice)) => Some(choice),
+                Ok(None) => return Ok(ImportOutcome::Cancel),
+                Err(outcome) => return Ok(outcome),
+            }
         };
         manager.receive_existing_folder(
             &pending.source,

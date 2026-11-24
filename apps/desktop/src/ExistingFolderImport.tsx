@@ -59,6 +59,14 @@ export function ExistingFolderImport({
     try {
       const result = await receiveExistingFolder(preview.token, selected);
       if (result === "cancel") setNotice("Übernahme abgebrochen.");
+      else if (result === "archiveTargetRejected")
+        setError(
+          "Archivziel gesperrt. Wähle eine neue .age-Datei auf einem lokalen Laufwerk außerhalb des Quellordners und des Projektkatalogs.",
+        );
+      else if (result === "passphraseFailed")
+        setError(
+          "Die Passphrase konnte nicht bestätigt werden. Öffne die Vorschau erneut und gib die Archiv-Passphrase zweimal im Windows-Dialog ein.",
+        );
       else {
         await refresh();
         if (result === "archiveFailed")

@@ -6,7 +6,9 @@ use windows_sys::Win32::{
         CREDUI_FLAGS_ALWAYS_SHOW_UI, CREDUI_FLAGS_DO_NOT_PERSIST, CREDUI_FLAGS_GENERIC_CREDENTIALS,
         CREDUI_FLAGS_KEEP_USERNAME, CREDUI_INFOW, CredUIPromptForCredentialsW,
     },
-    UI::WindowsAndMessaging::GetWindowThreadProcessId,
+    UI::WindowsAndMessaging::{
+        GetWindowThreadProcessId, IDYES, MB_DEFBUTTON2, MB_ICONQUESTION, MB_YESNO, MessageBoxW,
+    },
 };
 use zeroize::Zeroizing;
 
@@ -14,7 +16,7 @@ fn wide(text: &str) -> Vec<u16> {
     text.encode_utf16().chain(Some(0)).collect()
 }
 
-fn prompt(owner: HWND, message: &str) -> io::Result<Option<Zeroizing<String>>> {
+fn check_owner(owner: HWND) -> io::Result<()> {
     let mut pid = 0;
     // The HWND comes from the native desktop window, never from renderer IPC.
     if owner.is_null()
@@ -23,6 +25,32 @@ fn prompt(owner: HWND, message: &str) -> io::Result<Option<Zeroizing<String>>> {
     {
         return Err(io::Error::other("Das zugehörige KRAQEL-Fenster fehlt."));
     }
+    Ok(())
+}
+
+/// Authorizes a local import only for an explicit Yes in the owning desktop window.
+pub fn confirm_project_folder_import(owner: isize, description: &str) -> io::Result<bool> {
+    let owner = owner as HWND;
+    check_owner(owner)?;
+    let caption = wide("Projektübernahme bestätigen");
+    let text = wide(description);
+    // Both strings and the native HWND remain valid for the synchronous call.
+    let answer = unsafe {
+        MessageBoxW(
+            owner,
+            text.as_ptr(),
+            caption.as_ptr(),
+            MB_YESNO | MB_DEFBUTTON2 | MB_ICONQUESTION,
+        )
+    };
+    if answer == 0 {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(answer == IDYES)
+}
+
+fn prompt(owner: HWND, message: &str) -> io::Result<Option<Zeroizing<String>>> {
+    check_owner(owner)?;
     let caption = wide("KRAQEL · Portables Zusatzarchiv");
     let message = wide(message);
     let target = wide(&format!("KRAQEL-Archiv-{}", uuid::Uuid::new_v4()));

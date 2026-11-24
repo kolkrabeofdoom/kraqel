@@ -588,4 +588,4 @@ pub use windows::exchange::ui_restart::durable::product::manuscript::{open_item_
 #[cfg(all(windows, feature = "desktop-review"))]
 mod archive_passphrase;
 #[cfg(all(windows, feature = "desktop-review"))]
-pub use archive_passphrase::prompt_archive_passphrase;
+pub use archive_passphrase::{confirm_project_folder_import, prompt_archive_passphrase};

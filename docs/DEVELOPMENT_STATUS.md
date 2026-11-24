@@ -9,6 +9,8 @@ Dateihandles sichern die Erfassung. Der optionale Archivpfad verschlüsselt ausd
 Zusatzgruppen im portablen age-Format.
 [Bedienung und Grenzen](WORKSTATION_HANDOFF.md#einen-vorhandenen-windows-projektordner-übernehmen)
 
+Im gebauten Windows-Desktop zeigte die Vorschau des geschlossenen Demoprojekts 20 Dokumente und 21 Bilder. Vor der nativen Bestätigung und nach **Nein** war der frische Zielkatalog leer. Nach neuer Auswahl, **Ja** und zweifacher Passphrase ließen sich die Arbeitskopie und ein separates verschlüsseltes Archiv anlegen. Die Demo öffnete sich nach Neustart. Der Windows-Speichertest bestätigte die Sperre bei einem neu angelegten Eintrag im Quellbaum und die Übernahme eines ausschließlich im SQLite-WAL bestätigten Texts. Hauptdatei, WAL und SHM blieben bei dieser Prüfung bytegleich.
+
 ### P3 · synthetische Bestandskopie
 
 Das Speichermodul erkennt mögliche Bestandsprojekte anhand ihrer Verzeichniskennung und Datenbankdatei, ohne SQLite zu öffnen. Der native Prüfpfad verwendet diese Erkennung an einem synthetischen Projektkatalog.

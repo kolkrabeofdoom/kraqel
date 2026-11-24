@@ -1223,10 +1223,10 @@ export async function previewExistingFolder(): Promise<FolderPreview | null> {
 export async function receiveExistingFolder(token: string, groups: ExtraGroup[]) {
   const payload = { token, groups };
   return (
-    await callCommand<typeof payload, "cancel" | "received" | "archiveFailed">(
-      "receive_existing_folder",
-      payload,
-    )
+    await callCommand<
+      typeof payload,
+      "cancel" | "received" | "archiveFailed" | "archiveTargetRejected" | "passphraseFailed"
+    >("receive_existing_folder", payload)
   ).data;
 }
 
