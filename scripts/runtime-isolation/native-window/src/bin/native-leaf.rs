@@ -72,6 +72,9 @@ const CONTINUE_PLAIN_DRAFT: u32 = WM_APP + 8;
 const OPEN_PLAIN: usize = 230;
 const SAVE_SPAN: usize = 232;
 const REPLACE_BOLD: usize = 233;
+const REMOVE_BOLD: usize = 235;
+const REQUEST_REMOVE_BOLD: u32 = WM_APP + 11;
+use kraqel_native_scene_model::channel::SpanEdit;
 const SELECT_BOLD: usize = 234;
 const REQUEST_BOLD_REPLACEMENT: u32 = WM_APP + 10;
 const REQUEST_SPAN: u32 = WM_APP + 9;
@@ -163,7 +166,7 @@ fn bold_replacement(hwnd: HWND) -> Option<(i32, String, BoldRange)> {
 
 thread_local! {
     static LOADED_SPAN: std::cell::Cell<Option<BoldRange>> = const {std::cell::Cell::new(None)};
-    static FORMAT_REQUEST: std::cell::Cell<Option<BoldRange>> = const {std::cell::Cell::new(None)};
+    static FORMAT_REQUEST: std::cell::Cell<Option<SpanEdit>> = const {std::cell::Cell::new(None)};
     static PLAIN_REVIEW: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static PARAGRAPH_COMPARE: std::cell::RefCell<Option<paragraph_comparison::Comparison>> = const {std::cell::RefCell::new(None)};
     static LONG_EDIT: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
@@ -455,6 +458,10 @@ fn install_editor_menu(hwnd: HWND) -> bool {
             (
                 "&Bearbeiten",
                 &[
+                    (
+                        REMOVE_BOLD,
+                        "Fettmarkierung entfernen, speichern und schließen",
+                    ),
                     (SELECT_BOLD, "Gespeicherte Fettstelle aus&wählen\tF4"),
                     (OPEN_PLAIN, "Als längeren Klartext bearbeiten"),
                     (UNDO, "&Rückgängig\tStrg+Z"),
@@ -2176,6 +2183,11 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                     BOLD_SECOND,
                     !LONG_EDIT.get() && !LOADED_SPAN.get().is_some_and(|s| s.paragraph == 1),
                 );
+                enable_menu_command(
+                    hwnd,
+                    REMOVE_BOLD,
+                    current_bold_span(hwnd).is_some() && !draft_changed(hwnd),
+                );
                 enable_menu_command(hwnd, SELECT_BOLD, current_bold_span(hwnd).is_some());
                 enable_menu_command(hwnd, REPLACE_BOLD, bold_replacement(hwnd).is_some());
                 enable_menu_command(hwnd, SAVE_SPAN, selected_span(hwnd).is_some());
@@ -2184,6 +2196,10 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                     SELECT_PARAGRAPH,
                     focus == GetDlgItem(hwnd, EDIT) || focus == GetDlgItem(hwnd, SECOND),
                 );
+                0
+            }
+            WM_COMMAND if w == REMOVE_BOLD => {
+                PostMessageW(hwnd, REQUEST_REMOVE_BOLD, 0, 0);
                 0
             }
             WM_COMMAND if w == SELECT_BOLD => {
@@ -3154,6 +3170,10 @@ unsafe fn run_editor_loop(
                 {
                     continue;
                 }
+                let remove = msg.message == REQUEST_REMOVE_BOLD;
+                if remove && (current_bold_span(hwnd).is_none() || draft_changed(hwnd)) {
+                    continue;
+                }
                 let span = if msg.message == REQUEST_BOLD_REPLACEMENT {
                     let Some((id, paragraph, span)) = bold_replacement(hwnd) else {
                         SetDlgItemTextW(hwnd,LABEL,wide("Ersetzen nicht möglich · Fettstelle, Ersatztext und Absatzlänge prüfen").as_ptr());
@@ -3173,34 +3193,43 @@ unsafe fn run_editor_loop(
                 } else {
                     None
                 };
-                if span.is_some() || timer || msg.message == SAVE_DRAFT || ctrl_save || enter_save {
+                if remove
+                    || span.is_some()
+                    || timer
+                    || msg.message == SAVE_DRAFT
+                    || ctrl_save
+                    || enter_save
+                {
                     if CLOSE_REQUESTED.get() || REVISION_CONFLICT.get() {
                         cancel_pending_save(hwnd);
                         continue;
                     }
                     if let Some(value) = draft_text(hwnd) {
-                        if span.is_none()
+                        if !remove
+                            && span.is_none()
                             && is_bold() == INITIAL_BOLD.get()
                             && EXPECTED.with_borrow(|initial| initial == &value)
                         {
                             continue;
                         }
                         if kraqel_native_scene_model::valid_paragraphs(&value) {
-                            let span = if LOADED_SPAN.get().is_some() {
+                            let action = if remove {
+                                Some(SpanEdit::Remove)
+                            } else if LOADED_SPAN.get().is_some() {
                                 let Some(range) = span.or_else(|| preserved_span(&value)) else {
                                     update_draft_status(hwnd);
                                     continue;
                                 };
-                                Some(range)
+                                Some(SpanEdit::Set(range))
                             } else {
-                                span
+                                span.map(SpanEdit::Set)
                             };
-                            FORMAT_REQUEST.set(span);
+                            FORMAT_REQUEST.set(action);
                             *result = (value, is_bold());
                             if let Some(held) = keep_editor.as_deref_mut() {
                                 held.hwnd = hwnd;
-                                held.closing =
-                                    span.is_some() || msg.message == SAVE_DRAFT && msg.wParam == 1;
+                                held.closing = action.is_some()
+                                    || msg.message == SAVE_DRAFT && msg.wParam == 1;
                                 held.history = history.take();
                                 held.submitted = Some(result.clone());
                                 // Keep keyboard focus and the thread input queue across publication.

@@ -179,7 +179,7 @@ pub fn exchange(
     compare: bool,
     refresh: bool,
     reviewed_write: kraqel_native_scene_model::channel::ReviewedWrite,
-    take_span: impl FnOnce() -> Option<kraqel_native_scene_model::BoldRange>,
+    take_span: impl FnOnce() -> Option<kraqel_native_scene_model::channel::SpanEdit>,
     mut edit: impl FnMut(
         kraqel_native_scene_model::channel::EditorEvent,
     ) -> io::Result<Option<(String, bool)>>,

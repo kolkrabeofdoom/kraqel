@@ -421,6 +421,11 @@ enum Request {
         expected_revision: u32,
         text: String,
     },
+    #[serde(rename = "c4_document_remove_span_v1")]
+    RemoveSpan {
+        #[serde(rename = "expectedRevision")]
+        expected_revision: u32,
+    },
     #[serde(rename = "c4_document_save_span_v1")]
     SaveSpan {
         #[serde(rename = "expectedRevision")]
@@ -504,6 +509,29 @@ impl BoundScene<'_> {
 
         let revision = self.record.revision;
         let editable_fixture = managed && self.scene == Scene::A;
+        if let Request::RemoveSpan { expected_revision } = request {
+            if !editable_fixture || self.mode != Mode::Edit {
+                return Err(Failure::Denied);
+            }
+            if expected_revision != revision {
+                return Err(Failure::Conflict);
+            }
+            if revision == MAX_REVISION {
+                return Err(Failure::Limit);
+            }
+            let (text, _) = project_scene(&self.record.content, revision).ok_or(Failure::Denied)?;
+            let (_, bold_second) =
+                inline_style(&self.record.content, &text).ok_or(Failure::Denied)?;
+            self.record.content = if bold_second {
+                marked_document(&text)
+            } else {
+                document(&text)
+            };
+            self.record.revision += 1;
+            return Ok(Reply::Saved {
+                revision: self.record.revision,
+            });
+        }
         if editable_fixture && managed_text(&self.record.content, revision).is_none() {
             let (text, _) =
                 project_scene(&self.record.content, revision).ok_or(Failure::Invalid)?;
@@ -581,7 +609,9 @@ impl BoundScene<'_> {
                 self.record.content = doc;
                 Ok(saved)
             }
-            Request::SaveSpan { .. } | Request::SaveFormatted { .. } => Err(Failure::Denied),
+            Request::RemoveSpan { .. }
+            | Request::SaveSpan { .. }
+            | Request::SaveFormatted { .. } => Err(Failure::Denied),
         }
     }
 

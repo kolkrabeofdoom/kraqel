@@ -101,6 +101,12 @@ pub enum OpenedScene {
     Preview(TextPreview),
 }
 
+#[derive(Clone, Copy)]
+pub enum SpanEdit {
+    Set(super::BoldRange),
+    Remove,
+}
+
 pub enum EditorEvent<'a> {
     Loaded(&'a SceneView, Option<super::BoldRange>),
     Preview(&'a TextPreview),
@@ -495,7 +501,7 @@ impl Binding {
         reviewed_write: ReviewedWrite,
         reader: &mut impl std::io::Read,
         writer: &mut impl std::io::Write,
-        take_span: impl FnOnce() -> Option<super::BoldRange>,
+        take_span: impl FnOnce() -> Option<SpanEdit>,
         mut edit: impl FnMut(EditorEvent<'_>) -> Result<Option<(String, bool)>, Closed>,
     ) -> Result<Option<SceneView>, Closed> {
         let mut inline_source = false;
@@ -537,12 +543,20 @@ impl Binding {
         if !super::valid_scene_edit(&text, bold) {
             return Err(Closed);
         }
-        if let Some(span) = take_span() {
-            span.parts(&text, bold).ok_or(Closed)?;
-            let body =
-                serde_json::to_vec(&serde_json::json!({"command":"c4_document_save_span_v1",
-                "expectedRevision":revision,"text":text,"boldSecond":bold,"span":span}))
-                .map_err(|_| Closed)?;
+        if let Some(action) = take_span() {
+            let command = match action {
+                SpanEdit::Set(span) => {
+                    span.parts(&text, bold).ok_or(Closed)?;
+                    serde_json::json!({"command":"c4_document_save_span_v1","expectedRevision":revision,"text":text,"boldSecond":bold,"span":span})
+                }
+                SpanEdit::Remove
+                    if inline_source && original.text == text && original.bold_second == bold =>
+                {
+                    serde_json::json!({"command":"c4_document_remove_span_v1","expectedRevision":revision})
+                }
+                SpanEdit::Remove => return Err(Closed),
+            };
+            let body = serde_json::to_vec(&command).map_err(|_| Closed)?;
             if let SaveReply::Conflict = self.submit_save(revision, &body, reader, writer)? {
                 edit(EditorEvent::RevisionConflict(None))?;
                 return if self.exchange(3, DISCARD, reader, writer)? == DISCARDED {
@@ -552,6 +566,13 @@ impl Binding {
                 };
             }
             let next = revision.checked_add(1).ok_or(Closed)?;
+            let SpanEdit::Set(span) = action else {
+                let view = self.read_view(3, reader, writer, next, &text)?;
+                if view.bold_second != bold {
+                    return Err(Closed);
+                }
+                return Ok(Some(view));
+            };
             let OpenedScene::Preview(view) = self.open_bound_scene(3, reader, writer, next)? else {
                 return Err(Closed);
             };
@@ -761,22 +782,28 @@ impl Binding {
             if seq != 2 && body != COMPARE_READ {
                 return Err(Closed);
             }
-            if let Ok(super::Request::SaveSpan {
-                expected_revision, ..
-            }) = serde_json::from_slice(body)
-            {
-                if seq != 2
-                    || !(short_source || inline_source)
-                    || !allow_discard
-                    || reopening
-                    || expected_revision != revision
-                {
-                    return Err(Closed);
+            if seq == 2 {
+                match serde_json::from_slice(body) {
+                    Ok(super::Request::SaveSpan {
+                        expected_revision, ..
+                    }) if allow_discard
+                        && !reopening
+                        && (short_source || inline_source)
+                        && expected_revision == revision =>
+                    {
+                        saved_span = true
+                    }
+                    Ok(super::Request::RemoveSpan { expected_revision })
+                        if allow_discard
+                            && !reopening
+                            && inline_source
+                            && expected_revision == revision => {}
+                    Ok(super::Request::RemoveSpan { .. } | super::Request::SaveSpan { .. }) => {
+                        return Err(Closed);
+                    }
+                    _ if inline_source => return Err(Closed),
+                    _ => {}
                 }
-                saved_span = true;
-            }
-            if seq == 2 && inline_source && !saved_span {
-                return Err(Closed);
             }
             let answer = dispatch(body)?;
             if seq == 1 {

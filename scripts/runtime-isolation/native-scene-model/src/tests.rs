@@ -283,7 +283,34 @@ fn inline_bold_requires_a_bound_edit_and_complete_utf16_characters() {
             .handle_managed(&request(expected, 3));
         assert_eq!(to_value(answer).unwrap(), json!({"error":error}));
     }
+    let remove = |revision| {
+        serde_json::to_vec(
+            &json!({"command":"c4_document_remove_span_v1","expectedRevision":revision}),
+        )
+        .unwrap()
+    };
+    for (mode, revision, error) in [(Mode::Read, 1, "DENIED"), (Mode::Edit, 0, "CONFLICT")] {
+        let result = reopened
+            .bind(Scene::A, mode)
+            .handle_managed(&remove(revision));
+        assert_eq!(to_value(result).unwrap(), json!({"error":error}));
+    }
     assert_eq!(reopened.snapshot_a(), snapshot);
+    let mut edit = reopened.bind(Scene::A, Mode::Edit);
+    assert!(matches!(
+        edit.handle_managed(&remove(1)),
+        Reply::Saved { revision: 2 }
+    ));
+    assert_eq!(
+        to_value(edit.handle_managed(READ)).unwrap(),
+        json!({"revision":2,"text":"A🪶B\n42","bold_second":true})
+    );
+    assert!(matches!(
+        edit.handle_managed(&remove(2)),
+        Reply::Failure {
+            error: Failure::Denied
+        }
+    ));
 }
 
 #[test]
