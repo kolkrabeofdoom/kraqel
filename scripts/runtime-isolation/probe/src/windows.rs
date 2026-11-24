@@ -8,6 +8,7 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 mod debug_guardian;
 mod exchange;
+mod p3_picker;
 use serde_json::{Value, json};
 use std::{
     ffi::c_void,
@@ -878,6 +879,9 @@ pub fn main() {
         }
         if args.len() == 6 && args[0] == "product-control-child" {
             return exchange::product_crash_child(&args[1..]);
+        }
+        if args.len() == 1 && args[0] == "select-p3-fixture" {
+            return p3_picker::choose();
         }
         if args.first().is_some_and(|arg| arg == "broker-store") {
             return exchange::product_storage(&args[1..]);

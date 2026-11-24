@@ -2,7 +2,7 @@
 
 ### P3 · synthetische Bestandskopie
 
-Der lokale P3-Prüfdialog bietet zwei synthetische Projektordner zur Auswahl an. Für beide wurde geprüft, dass genau die ausgewählte Projekt- und Verzeichnisidentität samt Inventar übernommen wurde. Abbrechen hinterließ ein leeres Ziel.
+Der native P3-Prüfstarter bietet zwei synthetische Projektordner in einem eigenen Win32-Dialog zur Auswahl an. Der Auswahlschritt benötigt weder PowerShell noch den Windows-Explorer. Für beide wurde geprüft, dass genau die ausgewählte Projekt- und Verzeichnisidentität samt Inventar übernommen wurde. Abbrechen hinterließ ein leeres Ziel.
 
 Der native Prüfstarter bindet den synthetischen Quellordner an den erfassten Kandidaten und dessen Inventar. Ein Wiederanlauf mit anderer Quellidentität wurde abgewiesen, der ursprüngliche Kandidat bestätigt.
 

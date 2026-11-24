@@ -203,13 +203,15 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
             pins.enter_context(pinned_directory(root))
             choices[name] = (source_fixture, root, root.lstat())
         if interactive_selection:
-            shell = Path(os.environ["SystemRoot"]) / "System32/WindowsPowerShell/v1.0/powershell.exe"
-            result = subprocess.run([shell, "-NoProfile", "-NonInteractive", "-STA", "-File",
-                                     Path(__file__).with_name("select-p3-fixture.ps1")])
-            if result.returncode == 10:
+            picker = Path(__file__).parent / "probe/target/debug/kraqel-isolation-probe.exe"
+            result = subprocess.run([picker, "select-p3-fixture"], capture_output=True, check=True)
+            choices_by_reply = {b'{"selection":"north"}': "Projekt Nord",
+                                b'{"selection":"south"}': "Projekt Sued"}
+            reply = result.stdout.rstrip(b"\r\n")
+            if reply == b'{"selection":"cancel"}':
                 return False
-            require(result.returncode in (11, 12), "source selection unavailable")
-            name = {11: "Projekt Nord", 12: "Projekt Sued"}[result.returncode]
+            require(reply in choices_by_reply, "source selection unavailable")
+            name = choices_by_reply[reply]
         else:
             name = "project"
         source_fixture, root, selected_root = choices[name]
