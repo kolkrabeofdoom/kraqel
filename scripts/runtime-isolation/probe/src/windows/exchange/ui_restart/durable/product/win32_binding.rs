@@ -127,6 +127,7 @@ pub(super) enum Operation<'a> {
     Upgrade(&'a Path, [u8; 32]),
     Verify,
     Adopt(u32, [u8; 32]),
+    Recover(u32, [u8; 32], &'a AdoptionTail),
     CheckWindow(WindowMode),
 }
 
@@ -253,7 +254,8 @@ impl Store {
         for name in IMAGES.into_iter().chain(["anchor.json"]) {
             private_acl(&root.join(name), false)?;
         }
-        if let Operation::Adopt(revision, hash) = operation {
+        if let Operation::Adopt(revision, hash) | Operation::Recover(revision, hash, _) = operation
+        {
             let (previous_owner, snapshot) = self
                 .state
                 .scene_snapshot
@@ -266,12 +268,29 @@ impl Store {
                 snapshot,
                 anchor: expected,
             };
-            self.next_state(actor, head, &action)?;
+            let mut next = self.next_state(actor, head, &action)?;
             let mut source = SnapshotFile::open(self, &scene_file(revision), false)?;
             if source.identity(revision)? != snapshot {
                 return Err(invalid("scene-snapshot-mismatch"));
             }
-            self.append(actor, head, action)?;
+            if let Operation::Recover(_, _, tail) = operation {
+                if tail.actor != actor || tail.action != action {
+                    return Err(invalid("scene-adopt-record-mismatch"));
+                }
+                io("scene-adopt-record-sync", tail.record_file.sync_all())?;
+                next.sequence += 1;
+                next.head = tail.digest;
+                write_head(
+                    &self.root,
+                    &self.key,
+                    next.installation,
+                    next.sequence,
+                    next.head,
+                )?;
+                self.state = next;
+            } else {
+                self.append(actor, head, action)?;
+            }
             return Ok(
                 json!({"nativePreviewOnly":true,"roleStarted":false,"dataAllowed":false,"revision":revision,"snapshotSha256":hex(&snapshot.sha256),"headSha256":hex(&self.state.head)}),
             );

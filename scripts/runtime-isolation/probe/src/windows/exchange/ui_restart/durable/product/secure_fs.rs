@@ -179,7 +179,10 @@ pub(super) fn private_acl(path: &Path, directory: bool) -> Result<()> {
     Ok(())
 }
 pub(super) fn protected_file(path: &Path) -> Result<fs::File> {
-    let file = open_file(path, false, false)?;
+    protected_file_for_sync(path, false)
+}
+pub(super) fn protected_file_for_sync(path: &Path, sync: bool) -> Result<fs::File> {
+    let file = open_file(path, sync, false)?;
     if file_info(&file)?.dwFileAttributes & BAD_ATTRIBUTES != 0 {
         return Err(invalid("product-unsafe-file"));
     }

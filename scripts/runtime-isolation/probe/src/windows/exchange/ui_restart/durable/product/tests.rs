@@ -1343,8 +1343,39 @@ fn win32_package_binding_is_durable_and_cannot_cross_activation() {
     assert_eq!(store.state.head, head);
     fs::remove_file(&path).unwrap();
     fs::rename(&backup, &path).unwrap();
+    let head_path = f.root().join("control/head.mac");
+    let old_head = fs::read(&head_path).unwrap();
     store.win32_binding(next_actor, head, adopt()).unwrap();
+    let committed = store.state.head;
     drop(store);
+    // Recreate the durable RecordSynced boundary with the genuine sealed entry.
+    fs::write(&head_path, &old_head).unwrap();
+    assert!(Store::open(&f.root()).is_err());
+    let (mut pending, record) = Store::open_control(&f.root(), true).unwrap();
+    let tail = record.as_ref().unwrap();
+    for (revision, digest) in [(2, digest_a), (1, [0; 32])] {
+        assert!(
+            pending
+                .win32_binding(
+                    next_actor,
+                    head,
+                    win32_binding::Operation::Recover(revision, digest, tail)
+                )
+                .is_err()
+        );
+    }
+    assert_eq!(fs::read(&head_path).unwrap(), old_head);
+    pending
+        .win32_binding(
+            next_actor,
+            head,
+            win32_binding::Operation::Recover(1, digest_a, tail),
+        )
+        .unwrap();
+    assert_eq!(pending.state.head, committed);
+    drop(record);
+    drop(pending);
+    assert!(Store::open_control(&f.root(), true).is_err());
     let mut store = Store::open(&f.root()).unwrap();
     assert_eq!(store.state.scene_snapshot, Some((next_actor, snapshot)));
     let head = store.state.head;

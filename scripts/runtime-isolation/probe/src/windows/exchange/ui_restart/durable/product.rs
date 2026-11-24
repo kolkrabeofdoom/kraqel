@@ -488,6 +488,13 @@ struct Store {
     key: Zeroizing<[u8; 32]>,
     state: State,
 }
+struct AdoptionTail {
+    actor: [u8; 32],
+    action: Action,
+    digest: [u8; 32],
+    record_file: fs::File,
+}
+
 impl Store {
     fn initialize(root: &Path, actor: [u8; 32]) -> Result<Self> {
         Self::initialize_mode(root, actor, false)
@@ -556,6 +563,11 @@ impl Store {
         Self::open(root)
     }
     fn open(root: &Path) -> Result<Self> {
+        Self::open_control(root, false).map(|(store, _)| store)
+    }
+    // Only the explicit recovery command may inspect one unpublished adoption.
+    fn open_control(root: &Path, recover_adoption: bool) -> Result<(Self, Option<AdoptionTail>)> {
+        let mut tail = None;
         let mut pins = pin_directories(root)?;
         for suffix in ["", "control", "control/records", "bin", "data"] {
             let path = root.join(suffix);
@@ -606,7 +618,11 @@ impl Store {
             if name != &OsString::from(format!("{sequence:04}.mac")) {
                 return Err(invalid("product-record-gap"));
             }
-            let mut file = protected_file(&root.join("control/records").join(name))?;
+            let recovery_tail = recover_adoption && sequence + 1 == names.len();
+            let mut file = secure_fs::protected_file_for_sync(
+                &root.join("control/records").join(name),
+                recovery_tail,
+            )?;
             let mut wire = Vec::new();
             io(
                 "product-record-read",
@@ -670,6 +686,18 @@ impl Store {
                 if s.installation != record.installation {
                     return Err(invalid("product-installation-binding"));
                 }
+                if recovery_tail {
+                    if !matches!(record.action, Action::AdoptWin32Scene { .. }) {
+                        return Err(invalid("scene-adopt-no-pending-record"));
+                    }
+                    tail = Some(AdoptionTail {
+                        actor: record.actor,
+                        action: record.action,
+                        digest: Sha256::digest(&wire).into(),
+                        record_file: file,
+                    });
+                    break;
+                }
                 s.apply_record(record.actor, &record.action, Sha256::digest(&wire).into())?;
             }
             previous = Sha256::digest(&wire).into();
@@ -698,13 +726,16 @@ impl Store {
         {
             return Err(invalid("product-uncommitted-or-truncated-chain"));
         }
-        Ok(Self {
-            root,
-            _pins: pins,
-            _lock: lock,
-            key,
-            state,
-        })
+        Ok((
+            Self {
+                root,
+                _pins: pins,
+                _lock: lock,
+                key,
+                state,
+            },
+            tail,
+        ))
     }
     fn actor(&self, actor: [u8; 32]) -> Result<()> {
         if actor != self.state.actor {
@@ -1096,7 +1127,8 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
     if args.len() == 1 && args[0] == "init" {
         return Ok(Store::initialize(&root, actor)?.summary());
     }
-    let mut store = Store::open(&root)?;
+    let recovery = args.len() == 4 && args[0] == "recover-win32-scene-adoption";
+    let (mut store, tail) = Store::open_control(&root, recovery)?;
     store.actor(actor)?;
     if args.len() == 1 && args[0] == "status" {
         return Ok(store.summary());
@@ -1105,7 +1137,8 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
     if (args.len() == 4
         && (args[0] == "bind-win32-package"
             || args[0] == "upgrade-win32-package"
-            || args[0] == "adopt-win32-scene"))
+            || args[0] == "adopt-win32-scene"
+            || recovery))
         || (args.len() == 2
             && (args[0] == "verify-win32-package"
                 || args[0] == "check-win32-suspended"
@@ -1133,13 +1166,23 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
             return Err(invalid("win32-broker-not-managed-image"));
         }
         let head = parse_hash(args.last().unwrap())?;
-        let operation = if args.len() == 4 && args[0] == "adopt-win32-scene" {
+        let operation = if recovery || (args.len() == 4 && args[0] == "adopt-win32-scene") {
             let revision = args[1]
                 .to_str()
                 .and_then(|v| v.parse::<u32>().ok())
                 .filter(|v| *v > 0)
                 .ok_or(invalid("scene-adopt-revision"))?;
-            win32_binding::Operation::Adopt(revision, parse_hash(&args[2])?)
+            let digest = parse_hash(&args[2])?;
+            if recovery {
+                win32_binding::Operation::Recover(
+                    revision,
+                    digest,
+                    tail.as_ref()
+                        .ok_or(invalid("scene-adopt-no-pending-record"))?,
+                )
+            } else {
+                win32_binding::Operation::Adopt(revision, digest)
+            }
         } else if args.len() == 4 && args[0] == "upgrade-win32-package" {
             win32_binding::Operation::Upgrade(Path::new(&args[1]), parse_hash(&args[2])?)
         } else if args.len() == 4 {

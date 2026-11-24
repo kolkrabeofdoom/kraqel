@@ -408,6 +408,14 @@ Die Veröffentlichung von `control/head.mac` ist die Commitgrenze der Übernahme
 
 Der SHA-256 der SQLite-Datei blieb in allen drei Fällen identisch. Der Rückstand zwischen Eintrag und Kopf wurde in einer eigenen Testablage erzeugt. Die temporäre Prüffassung von `089659d` schaltete die vorhandenen Haltepunkte für den regulären Übernahmebefehl ausschließlich im isolierten Prüfverzeichnis frei (Starter-SHA-256 `fd256aaaf1dea26012e89a8a0463b3eb403093398f4aa47be775008440a97044`). Der Befund gilt für Prozessabbrüche auf diesem Windows-Prüfplatz.
 
+#### Ausdrücklicher Wiederanlauf mit dem ursprünglichen Kontrollkopf
+
+Aufruf: `recover-win32-scene-adoption <Revision> <Snapshot-SHA-256> <Kontrollkopf-vor-Übernahme>`. Der reguläre Start bleibt im Zwischenstand gesperrt. Der beim Abbruch aktive verwaltete Starter muss den Befehl bereits unterstützen. Eine andere EXE kann eine frühere gesperrte Testablage damit nicht freigeben.
+
+Unter der exklusiven Kontrollsperre muss der authentisierte Kopf die gesamte Vorgängerkette bestätigen. Genau ein weiterer authentisierter Eintrag muss unmittelbar anschließen und die Übernahme vom bisherigen zum laufenden Starter mit dessen Paketanker und demselben Snapshot ausweisen. Der Starter prüft die verwaltete EXE, das Rollenpaket, die geschlossene Sitzung, den leeren Job sowie Dateiidentität und Inhalt der synthetischen Szene erneut. Erst dann synchronisiert er den ausstehenden Eintrag und veröffentlicht dessen Hash als Kontrollkopf. Bei zusätzlichem Eintrag, fehlender Bindung oder vorhandenem `head.next` bleibt die Ablage gesperrt.
+
+Der erweiterte Windows-Paketbindungstest stellte den Zwischenstand mit dem authentisierten Vorgängerkopf und dem originalen Übernahmeeintrag her. Falsche Revision und falscher Hash ließen den Kopf bytegleich. Der gültige Wiederanlauf erreichte denselben Kopf wie die reguläre Übernahme. Reguläres Wiederöffnen bestätigte den neuen Eigentümer. Ein weiterer Wiederanlauf wurde abgewiesen.
+
 ### ETW beim bestätigten Verwerfen und Wiederöffnen
 
 Für den regulären Binärstand zu `f0cbb5d` enthielt die erste Messung den Referenzaufruf `check-win32-surface` (Starter und Fenster). In der zweiten Messung wurde die vorbereitete Revision 1 bearbeitet und das Verwerfen beim Schließen bestätigt. Der anschließende Leseauftrag unter frischer Bindung bestätigte Revision 1. Für beide Aufträge wurden Starter, Fenster und Datendienst jeweils anhand der erfassten Prozesslebenszeiten ausgewertet. Der Dateihash von Revision 1 blieb unverändert.
