@@ -115,7 +115,7 @@ pub const SCENE_REVISION_LIMIT: u32 = 256;
 pub const REPEAT_ABI: [u8; 32] = *b"KRAQEL-SCENE-REPEAT-V1..........";
 
 /// Fixed synthetic row: project UUID, scene UUID, revision LE, title NUL and text.
-pub const P3_READ: &str = "--managed-p3-read-v1";
+pub const P3_READ: &str = "--managed-p3-preview-v2";
 pub const P3_CONTENT: &[u8] = b"Szene A\0Text aus der Testkopie.";
 pub const P3_LEN: usize = 36 + P3_CONTENT.len();
 

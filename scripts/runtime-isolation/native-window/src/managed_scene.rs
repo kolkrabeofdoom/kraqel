@@ -110,6 +110,18 @@ pub fn confirm_bootstrap(profile: Option<&str>, role: Role) -> std::io::Result<(
     Ok((input, output))
 }
 
+/// The broker installs one non-inheritable, directional pipe end before resuming this role.
+pub fn p3_pipe(input: &mut File) -> io::Result<File> {
+    use windows_sys::Win32::Storage::FileSystem::{FILE_TYPE_PIPE, GetFileType};
+    let mut bytes = [0; 8];
+    input.read_exact(&mut bytes)?;
+    let raw = usize::try_from(u64::from_le_bytes(bytes))
+        .map_err(|_| io::Error::other("P3 handle"))?
+        as windows_sys::Win32::Foundation::HANDLE;
+    require(unsafe { GetFileType(raw) } == FILE_TYPE_PIPE, "P3 pipe")?;
+    Ok(unsafe { File::from_raw_handle(raw) })
+}
+
 struct Channel {
     binding: Binding,
     discard_receipt: [u8; 32],

@@ -26,6 +26,7 @@ def require(ok, message):
 
 
 P3_SERVICE = Path(__file__).resolve().parent / "native-window/target/release/pipe-service.exe"
+P3_WINDOW = P3_SERVICE.with_name("native-leaf.exe")
 P3_SCENE = ("Szene A", "Text aus der Testkopie.", 0)
 
 
@@ -520,7 +521,8 @@ def native_restart(root, fixture, metadata):
             target = Path(temp)
             with native_authority(home, True) as authority:
                 ticket = decision(authority, root, target, metadata, register=True)
-                shutil.copyfile(P3_SERVICE, home / "p3-control/bin/pipe-service.exe")
+                for image in (P3_SERVICE, P3_WINDOW):
+                    shutil.copyfile(image, home / "p3-control/bin" / image.name)
 
                 class ControllerStopped(Exception):
                     pass
@@ -570,6 +572,20 @@ def native_restart(root, fixture, metadata):
                     require('"stage":"p3-unbound-row"' in str(exc), "unexpected handoff refusal")
                 else:
                     raise RuntimeError("unbound scene delivered")
+            window = home / "p3-control/bin" / P3_WINDOW.name
+            original = window.with_suffix(".original")
+            window.rename(original)
+            try:
+                shutil.copyfile(P3_SERVICE, window)
+                try:
+                    read_published_scene(root, target, metadata, ticket, home)
+                except RuntimeError as exc:
+                    require('"stage":"p3-unbound-row"' in str(exc), "unexpected window image refusal")
+                else:
+                    raise RuntimeError("substituted window image accepted")
+            finally:
+                window.unlink(missing_ok=True)
+                original.rename(window)
             require(read_published_scene(root, target, metadata, ticket, home) == P3_SCENE,
                     "wrong published scene")
             with native_authority(home, False, read_only=True) as reader:
@@ -668,7 +684,8 @@ def tag(key, domain, fields, register=False):
         if domain == NativeAuthority.domains[0]:
             key.plan_digest = digest
             service = hashlib.sha256(P3_SERVICE.read_bytes()).digest()
-            digest = hashlib.sha256(b"KRAQEL-P3-HANDOFF-v1" + digest + service
+            window = hashlib.sha256(P3_WINDOW.read_bytes()).digest()
+            digest = hashlib.sha256(b"KRAQEL-P3-PREVIEW-v2" + digest + service + window
                                     + scene_frame(fields[-1], P3_SCENE)).digest()
         return key.attest(domain, digest, register)
     return hmac.digest(key, payload, "sha256").hex()
@@ -888,4 +905,4 @@ if __name__ == "__main__":
         with volume_guard(volume, mode == "capture"):
             (prepare if mode == "prepare" else capture)(root, fixture)
         if mode == "capture":
-            print("PASS: native controller restart resumed partial transfer and confirmed publication; foreign installation refused; cleanup recovered; bound scene delivered to isolated data role; substituted scene refused")
+            print("PASS: native controller restart resumed partial transfer and confirmed publication; foreign installation refused; cleanup recovered; bound scene shown read-only; substituted scene and window image refused")

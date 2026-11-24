@@ -55,32 +55,66 @@ pub(in super::super) fn deliver_p3(
     store: &mut Store,
     root: &Path,
     image: &fs::File,
+    window: &fs::File,
     binding: [u8; 32],
     row: &[u8; crate::window_receipt::P3_LEN],
 ) -> Result<()> {
     use crate::window_receipt as protocol;
+    use windows_sys::Win32::Storage::FileSystem::{FILE_READ_DATA, FILE_WRITE_DATA, SYNCHRONIZE};
     with_role(
         store,
         root,
-        image,
-        "pipe-service.exe",
+        window,
+        WINDOW,
         protocol::P3_READ,
         true,
-        |store, pi, endpoint, mut writer, reply| {
-            let mut reply = reply.ok_or(invalid("p3-service-pipe"))?;
-            let grant = bootstrap::stage_bound(
+        |store, ui, endpoint, mut to_ui, reply| {
+            let mut reply = reply.ok_or(invalid("p3-window-pipe"))?;
+            let ui_grant = bootstrap::stage_bound(
                 store,
-                image,
-                pi,
+                window,
+                ui,
                 endpoint,
-                &mut writer,
+                &mut to_ui,
                 true,
                 (store.state.actor, binding),
             )?;
-            bootstrap::confirm_grant(pi, &mut writer, &mut reply, &grant)?;
-            io("p3-service-send", writer.write_all(row))?;
-            drop(writer);
-            bootstrap::confirm_exit_receipt(pi, &reply, protocol::p3_receipt(row))
+            let (rx, tx) = crate::windows::exchange::ui_restart::pipe()?;
+            let read_end = scene::install(ui.hProcess, rx, FILE_READ_DATA | SYNCHRONIZE)?;
+            with_role(
+                store,
+                root,
+                image,
+                "pipe-service.exe",
+                protocol::P3_READ,
+                true,
+                |store, pi, endpoint, mut writer, reply| {
+                    let mut reply = reply.ok_or(invalid("p3-service-pipe"))?;
+                    let grant = bootstrap::stage_bound(
+                        store,
+                        image,
+                        pi,
+                        endpoint,
+                        &mut writer,
+                        true,
+                        (store.state.actor, binding),
+                    )?;
+                    let write_end = scene::install(pi.hProcess, tx, FILE_WRITE_DATA | SYNCHRONIZE)?;
+                    bootstrap::confirm_grant(pi, &mut writer, &mut reply, &grant)?;
+                    io("p3-service-end", writer.write_all(&write_end))?;
+                    io("p3-service-send", writer.write_all(row))?;
+                    drop(writer);
+                    bootstrap::confirm_exit_receipt(pi, &reply, protocol::p3_receipt(row))
+                },
+            )?;
+            bootstrap::confirm_grant(ui, &mut to_ui, &mut reply, &ui_grant)?;
+            io("p3-window-end", to_ui.write_all(&read_end))?;
+            io(
+                "p3-window-binding",
+                to_ui.write_all(&protocol::p3_receipt(row)),
+            )?;
+            drop(to_ui);
+            bootstrap::wait_surface(ui, &mut reply, false)
         },
     )
 }

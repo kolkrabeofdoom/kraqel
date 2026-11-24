@@ -2,7 +2,7 @@
 use super::*;
 use windows_sys::Win32::Storage::FileSystem::{FILE_READ_DATA, FILE_WRITE_DATA, SYNCHRONIZE};
 
-fn install(process: HANDLE, file: fs::File, rights: u32) -> Result<[u8; 8]> {
+pub(super) fn install(process: HANDLE, file: fs::File, rights: u32) -> Result<[u8; 8]> {
     let source = file.as_raw_handle();
     let mut remote = null_mut();
     check(

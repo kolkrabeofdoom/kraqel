@@ -94,10 +94,12 @@ pub(super) fn serve(
             let root = store.root.join("bin");
             let image_path = root.join("pipe-service.exe");
             let (_dirs, image, digest) = binary_pin(&image_path)?;
+            let (_window_dirs, window, window_digest) = binary_pin(&root.join("native-leaf.exe"))?;
             let binding: [u8; 32] = Sha256::new()
-                .chain_update(b"KRAQEL-P3-HANDOFF-v1")
+                .chain_update(b"KRAQEL-P3-PREVIEW-v2")
                 .chain_update(&frame[2..])
                 .chain_update(digest)
+                .chain_update(window_digest)
                 .chain_update(row)
                 .finalize()
                 .into();
@@ -116,7 +118,7 @@ pub(super) fn serve(
             if start != [1] {
                 return Err(invalid("p3-delivery-start"));
             }
-            win32_binding::deliver_p3(&mut store, &root, &image, binding, &row)?;
+            win32_binding::deliver_p3(&mut store, &root, &image, &window, binding, &row)?;
             store.append_with_checked_context(actor, begin, Action::EndWin32Window { begin })?;
             io("p3-service-confirmed", output.write_all(b"DELIVERED\n"))?;
             io("p3-service-confirmed", output.flush())?;

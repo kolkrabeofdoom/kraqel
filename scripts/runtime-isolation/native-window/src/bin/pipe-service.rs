@@ -37,9 +37,11 @@ fn main() {
         let ok = std::env::args().nth(2).is_some_and(|profile| {
             (|| -> std::io::Result<()> {
                 let (mut input, mut reply) = confirm_bootstrap(Some(&profile), Role::Data)?;
+                let mut to_window = kraqel_window_probe::managed_scene::p3_pipe(&mut input)?;
                 let mut row = [0; protocol::P3_LEN];
                 input.read_exact(&mut row)?;
                 kraqel_window_probe::require(protocol::valid_p3_row(&row), "P3 row")?;
+                to_window.write_all(&row)?;
                 reply.write_all(&protocol::p3_receipt(&row))
             })()
             .is_ok()

@@ -2506,6 +2506,7 @@ unsafe fn finish_close(hwnd: HWND) -> isize {
 }
 
 struct SceneSurface {
+    p3_title: Option<String>,
     output: Option<std::fs::File>,
     text: String,
     second_bold: Option<bool>,
@@ -2834,6 +2835,15 @@ fn show(
         }
         if long && !enter_plain_editor(hwnd, &surface.as_ref().unwrap().text) {
             return 24;
+        }
+        if let Some(view) = surface.as_ref().filter(|view| view.p3_title.is_some()) {
+            let edit = GetDlgItem(hwnd, EDIT);
+            if GetWindowLongW(edit, GWL_STYLE) & ES_READONLY == 0
+                || paragraph_text(hwnd, EDIT).as_deref() != Some(view.text.as_str())
+                || SetWindowTextW(hwnd, wide(view.p3_title.as_ref().unwrap()).as_ptr()) == 0
+            {
+                return 24;
+            }
         }
         ShowWindow(hwnd, SW_SHOW);
         if let Some(output) = surface
@@ -3546,6 +3556,44 @@ fn main() {
     std::hint::black_box(&MERGE_ABI);
     std::hint::black_box(&COMPARE_ABI);
     let mut arg = std::env::args_os().nth(1);
+    if arg.as_deref() == Some(std::ffi::OsStr::new(window_receipt::P3_READ)) {
+        use std::io::Read;
+        let result = (|| -> std::io::Result<i32> {
+            let profile = std::env::args()
+                .nth(2)
+                .ok_or(std::io::Error::other("missing profile"))?;
+            let (mut input, output) =
+                managed_scene::confirm_bootstrap(Some(&profile), bootstrap::Role::Window)?;
+            let mut from_service = managed_scene::p3_pipe(&mut input)?;
+            let mut expected = [0; 32];
+            input.read_exact(&mut expected)?;
+            let mut row = [0; window_receipt::P3_LEN];
+            from_service.read_exact(&mut row)?;
+            require(
+                window_receipt::valid_p3_row(&row) && window_receipt::p3_receipt(&row) == expected,
+                "P3 binding",
+            )?;
+            let (title, text) = std::str::from_utf8(&row[36..])
+                .ok()
+                .and_then(|s| s.split_once('\0'))
+                .ok_or(std::io::Error::other("P3 scene"))?;
+            let revision = u32::from_le_bytes(row[32..36].try_into().unwrap());
+            Ok(show(
+                None,
+                Some(SceneSurface {
+                    p3_title: Some(format!("{title} · Revision {revision} – Schreibgeschützt")),
+                    output: Some(output),
+                    text: text.to_owned(),
+                    second_bold: None,
+                    text_preview: true,
+                    inline: None,
+                }),
+                None,
+                None,
+            ))
+        })();
+        std::process::exit(result.unwrap_or(20));
+    }
     let repeat_arg = arg
         .as_deref()
         .and_then(|a| a.to_str())
@@ -3680,6 +3728,7 @@ fn main() {
                                     let code = show(
                                         None,
                                         Some(SceneSurface {
+                                            p3_title: None,
                                             output: None,
                                             text: view.preview_text.clone(),
                                             second_bold: Some(false),
@@ -3778,6 +3827,7 @@ fn main() {
                                     show(
                                         None,
                                         Some(SceneSurface {
+                                            p3_title: None,
                                             output: Some(dialog_output.take().ok_or(
                                                 std::io::Error::other("duplicate editor"),
                                             )?),
@@ -3908,6 +3958,7 @@ fn main() {
             Ok(show(
                 None,
                 Some(SceneSurface {
+                    p3_title: None,
                     output: Some(output),
                     text,
                     second_bold: split.then_some(marked),
