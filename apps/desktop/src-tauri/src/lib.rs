@@ -2077,6 +2077,46 @@ async fn prepare_scene_merge(
     Ok(CommandResponse::current(request_id, receipt))
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ReceiveHandoffRequest {
+    folder: String,
+    manifest_sha256: String,
+}
+
+#[tauri::command]
+async fn receive_project_handoff(
+    state: State<'_, AppState>,
+    request: CommandRequest<ReceiveHandoffRequest>,
+) -> Result<CommandResponse<()>, CommandError> {
+    require_current_contract(&request)?;
+    let request_id = request.request_id;
+    #[cfg(windows)]
+    {
+        let manager = manager(&state, request_id)?;
+        let payload = request.payload;
+        tauri::async_runtime::spawn_blocking(move || {
+            manager.receive_handoff(&payload.folder, &payload.manifest_sha256)
+        })
+        .await
+        .map_err(|_| CommandError::internal(request_id))?
+        .map_err(|e| map_project_error(request_id, &e))?;
+        Ok(CommandResponse::current(request_id, ()))
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (
+            state,
+            request.payload.folder,
+            request.payload.manifest_sha256,
+        );
+        Err(CommandError::invalid_request(
+            request_id,
+            "Dieser Empfang erfordert Windows.",
+        ))
+    }
+}
+
 #[tauri::command]
 async fn prepare_project_handoff(
     state: State<'_, AppState>,
@@ -3958,6 +3998,16 @@ fn map_credential_error(request_id: uuid::Uuid, error: CredentialError) -> Comma
     }
 }
 
+fn setup_local_state(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    let project_root = app.path().app_local_data_dir()?.join("projects");
+    fs::create_dir_all(&project_root)?;
+    app.manage(AppState {
+        project_root,
+        ai_releases: Mutex::new(HashMap::new()),
+    });
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 /// Startet die Desktop-Anwendung.
 ///
@@ -3967,15 +4017,7 @@ fn map_credential_error(request_id: uuid::Uuid, error: CredentialError) -> Comma
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .setup(|app| {
-            let project_root = app.path().app_local_data_dir()?.join("projects");
-            fs::create_dir_all(&project_root)?;
-            app.manage(AppState {
-                project_root,
-                ai_releases: Mutex::new(HashMap::new()),
-            });
-            Ok(())
-        })
+        .setup(setup_local_state)
         .invoke_handler(tauri::generate_handler![
             application_status,
             validate_project_name,
@@ -4051,6 +4093,7 @@ pub fn run() {
             link_timeline_event,
             create_project_snapshot,
             export_project_archive,
+            receive_project_handoff,
             prepare_project_handoff,
             save_scene_basis,
             compare_scene_bases,

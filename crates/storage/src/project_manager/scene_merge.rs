@@ -22,11 +22,11 @@ pub struct SceneMergeSelection {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct Manifest {
-    format: String,
-    project_id: ProjectId,
-    scene_basis_sha256: String,
-    files: BTreeMap<String, String>,
+pub(super) struct Manifest {
+    pub(super) format: String,
+    pub(super) project_id: ProjectId,
+    pub(super) scene_basis_sha256: String,
+    pub(super) files: BTreeMap<String, String>,
 }
 
 pub(super) fn confirmed_file(path: &Path, digest: &str, max: u64) -> Result<Vec<u8>, ProjectError> {
@@ -51,6 +51,16 @@ pub(super) fn confirmed_file(path: &Path, digest: &str, max: u64) -> Result<Vec<
     Ok(bytes)
 }
 
+pub(super) fn validate_package_folder(folder: &str) -> Result<(), ProjectError> {
+    let raw = folder
+        .strip_prefix("uebernahme-")
+        .ok_or(ProjectError::InvalidRelativePath)?;
+    if ProjectId::parse(raw).is_none_or(|v| v.to_string() != raw) {
+        return Err(ProjectError::InvalidRelativePath);
+    }
+    Ok(())
+}
+
 pub(super) fn package_database(
     id: ProjectId,
     backup: &Path,
@@ -58,12 +68,7 @@ pub(super) fn package_database(
     manifest_hash: &str,
     basis_hash: &str,
 ) -> Result<Connection, ProjectError> {
-    let raw = folder
-        .strip_prefix("uebernahme-")
-        .ok_or(ProjectError::InvalidRelativePath)?;
-    if ProjectId::parse(raw).is_none_or(|v| v.to_string() != raw) {
-        return Err(ProjectError::InvalidRelativePath);
-    }
+    validate_package_folder(folder)?;
     let dir = backup.join(folder);
     #[cfg(windows)]
     let _pin = pin_candidate_directory(&dir)?;
@@ -83,6 +88,10 @@ pub(super) fn package_database(
         .files
         .get(DATABASE_FILE_NAME)
         .ok_or(ProjectError::InvalidDatabase)?;
+    read_package_database(&dir, digest)
+}
+
+pub(super) fn read_package_database(dir: &Path, digest: &str) -> Result<Connection, ProjectError> {
     let image = confirmed_file(&dir.join(DATABASE_FILE_NAME), digest, 128 * 1024 * 1024)?;
     if !image.starts_with(b"SQLite format 3\0") || image.get(18..20) != Some(&[1, 1]) {
         return Err(ProjectError::InvalidDatabase);

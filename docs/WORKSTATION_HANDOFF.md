@@ -8,7 +8,14 @@ Bei einem Textkonflikt im Windows-Entwicklungsstand genau die gewünschte Szene 
 
 ## Desktop-Vorbereitung und isolierte Vorschau
 
-Der lokale Empfang ist vom Desktop-Speichermodul bis zum schreibgeschützten Win32-Fenster mit synthetischen Arbeitsdaten geprüft. Die Anleitung enthält den Build und den automatischen VHDX-Lauf. Für die Übernahme eines echten Projekts auf einen anderen Rechner ist der Empfangspfad noch offen. [Prüflauf und Grenzen](data-format/product-start-integration-v1-draft.md#vorbereitete-desktop-arbeitskopie-im-isolierten-vorschaufenster)
+Der lokale Empfang ist vom Desktop-Speichermodul bis zum schreibgeschützten Win32-Fenster mit synthetischen Arbeitsdaten geprüft. Die Anleitung enthält den Build und den automatischen VHDX-Lauf. Der Windows-Entwicklungsstand unterstützt jetzt den erstmaligen Empfang als lokales Projekt. Die physische Zweitrechnerprobe steht aus. [Prüflauf und Grenzen](data-format/product-start-integration-v1-draft.md#vorbereitete-desktop-arbeitskopie-im-isolierten-vorschaufenster)
+
+## Vorbereitete Arbeitskopie erstmals empfangen
+
+1. Auf dem Quellrechner im Versionsdialog **Übernahme vorbereiten** wählen. Den angezeigten Inventar-SHA-256 separat sichern.
+2. KRAQEL auf dem Windows-Zielrechner einmal öffnen. Unter `%LOCALAPPDATA%\org.kraqel.desktop\projects` den Ordner `empfang` anlegen und den vollständigen Ordner `uebernahme-<UUID>` hineinkopieren. Die Arbeitskopie enthält unverschlüsselte Manuskript- und Mediendaten. Für den Transport einen entsprechend geschützten Datenträger verwenden.
+3. Auf der Startseite unter **Windows-Arbeitskopie empfangen** den Ordnernamen und die separat bestätigte Inventarprüfsumme eingeben. **Als lokales Projekt übernehmen** wählen. Erst nach erfolgreicher Prüfung erscheint das Projekt in der Liste. Der Eingangsordner bleibt erhalten.
+4. Ist die Projektkennung am Ziel bereits belegt, den Versionsdialog im vorhandenen Projekt für den Szenenvergleich verwenden.
 
 ## Zusatzarchiv auf einem anderen Windows-PC öffnen
 

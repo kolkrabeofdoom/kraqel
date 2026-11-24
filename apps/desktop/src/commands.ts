@@ -1123,6 +1123,13 @@ export async function prepareSceneMerge(
   ).data;
 }
 
+export async function receiveProjectHandoff(folder: string, manifestSha256: string): Promise<void> {
+  await callCommand<{ folder: string; manifestSha256: string }, null>("receive_project_handoff", {
+    folder,
+    manifestSha256,
+  });
+}
+
 export async function prepareProjectHandoff(projectId: ProjectId): Promise<PreparedHandoff> {
   return (
     await callCommand<{ readonly projectId: ProjectId }, PreparedHandoff>(

@@ -1389,9 +1389,55 @@ mod tests {
             fs::read(published.join("assets/thumbnails/test.png")).unwrap(),
             b"Vorschau"
         );
+        drop(db);
+        #[cfg(windows)]
+        check_received_handoff(&published, &receipt, &id, &scene, &row);
         fs::write(dir.join("assets/test.png"), b"Fremd").unwrap();
         assert!(manager.prepare_handoff(project.id).is_err());
         assert_eq!(fs::read_dir(dir.join("backups")).unwrap().count(), 1);
+    }
+
+    #[cfg(windows)]
+    fn check_received_handoff(
+        published: &Path,
+        receipt: &super::PreparedHandoff,
+        id: &str,
+        scene: &str,
+        row: &(String, i64),
+    ) {
+        let target_root = tempdir().unwrap();
+        let target = ProjectManager::new(target_root.path()).unwrap();
+        let inbox = target_root.path().join("empfang");
+        fs::create_dir(&inbox).unwrap();
+        let incoming = inbox.join(&receipt.folder);
+        fs::rename(published, &incoming).unwrap();
+        let receive = || target.receive_handoff(&receipt.folder, &receipt.manifest_sha256);
+        let thumb = incoming.join("assets/thumbnails/test.png");
+        fs::write(&thumb, b"modified").unwrap();
+        assert!(receive().is_err());
+        assert_eq!(fs::read_dir(target_root.path()).unwrap().count(), 1);
+        fs::write(&thumb, b"Vorschau").unwrap();
+        fs::write(incoming.join("private.txt"), b"private").unwrap();
+        assert!(
+            target
+                .receive_handoff(&receipt.folder, &"0".repeat(64))
+                .is_err()
+        );
+        receive().unwrap();
+        let received = target.open_project(id).unwrap();
+        assert!(!received.directory().join("private.txt").exists());
+        let received_row: (String, i64) = received
+            .database()
+            .connection()
+            .query_row(
+                "SELECT plain_text,revision FROM document WHERE id=?1",
+                [scene],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(&received_row, row);
+        assert!(matches!(receive(), Err(ProjectError::ProjectAlreadyExists)));
+        fs::rename(incoming, published).unwrap();
     }
 
     #[test]

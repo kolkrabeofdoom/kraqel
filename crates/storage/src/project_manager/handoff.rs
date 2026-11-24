@@ -125,6 +125,15 @@ fn unavailable_file(metadata: &fs::Metadata) -> bool {
     metadata.file_type().is_symlink()
 }
 
+#[cfg(windows)]
+fn pin_local_directory(path: &Path) -> Result<fs::File, ProjectError> {
+    let handle = pin_candidate_directory(path)?;
+    if unavailable_file(&handle.metadata().map_err(io_error)?) {
+        return Err(ProjectError::InvalidDatabase);
+    }
+    Ok(handle)
+}
+
 pub(super) fn pinned_file(path: &Path, writable_source: bool) -> Result<fs::File, ProjectError> {
     let attributes = candidate_attributes(path)?;
     if !attributes.is_file() || unavailable_file(&attributes) {
@@ -202,7 +211,7 @@ fn transfer_asset(
     for part in &parts[..parts.len() - 1] {
         parent.push(part);
         #[cfg(windows)]
-        pins.push(pin_candidate_directory(&parent)?);
+        pins.push(pin_local_directory(&parent)?);
         validate_directory_metadata(&candidate_attributes(&parent)?)?;
     }
     let file = root.join(relative);
@@ -221,6 +230,42 @@ fn transfer_asset(
     }
     output.sync_all().map_err(io_error)?;
     Ok((digest_file(&dest)?, copied))
+}
+
+fn copy_referenced_media(
+    source: &Connection,
+    dir: &Path,
+    stage: &Path,
+    approved: Option<&BTreeMap<String, String>>,
+) -> Result<BTreeMap<String, String>, ProjectError> {
+    let mut files = BTreeMap::new();
+    let mut stmt = source
+        .prepare("SELECT relative_path,thumbnail_path,checksum,byte_count FROM media_asset")?;
+    let mut rows = stmt.query([])?;
+    while let Some(row) = rows.next()? {
+        let (original, thumb, expected, size): (String, String, String, u32) =
+            (row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?);
+        if original.starts_with("assets/thumbnails/") || !thumb.starts_with("assets/thumbnails/") {
+            return Err(ProjectError::InvalidDatabase);
+        }
+        if approved.is_some_and(|files| {
+            files.get(&original) != Some(&expected) || !files.contains_key(&thumb)
+        }) {
+            return Err(ProjectError::InvalidDatabase);
+        }
+        let (hash, len) = transfer_asset(dir, stage, &original, 25 * 1024 * 1024)?;
+        if hash != expected || len != u64::from(size) {
+            return Err(ProjectError::InvalidDatabase);
+        }
+        files.insert(original, hash);
+        files.insert(
+            thumb.clone(),
+            transfer_asset(dir, stage, &thumb, 25 * 1024 * 1024)?.0,
+        );
+    }
+    drop(rows);
+    drop(stmt);
+    Ok(files)
 }
 
 /// Öffentliche Metadaten einer vollständig veröffentlichten Arbeitskopie.
@@ -242,6 +287,67 @@ impl ProjectManager {
     /// Eine abweichende Kennung, unbekanntes Schema oder unvollständige Medien sperren die Veröffentlichung.
     pub fn prepare_handoff(&self, id: ProjectId) -> Result<PreparedHandoff, ProjectError> {
         self.prepare_selected_handoff(id, None)
+    }
+
+    /// Receives an explicitly selected v2 package from the local inbox.
+    ///
+    /// # Errors
+    /// An occupied destination or a mismatching receipt prevents publication.
+    #[cfg(windows)]
+    pub fn receive_handoff(
+        &self,
+        folder: &str,
+        inventory_sha256: &str,
+    ) -> Result<(), ProjectError> {
+        scene_merge::validate_package_folder(folder)?;
+        let inbox = self.root.join("empfang");
+        let dir = inbox.join(folder);
+        let _root = pin_local_directory(&self.root)?;
+        let _inbox = pin_local_directory(&inbox)?;
+        let _package = pin_local_directory(&dir)?;
+        let bytes = scene_merge::confirmed_file(
+            &dir.join("uebernahme.json"),
+            inventory_sha256,
+            128 * 1024,
+        )?;
+        let mut inventory: scene_merge::Manifest =
+            serde_json::from_slice(&bytes).map_err(|_| ProjectError::InvalidDatabase)?;
+        if inventory.format != "kraqel-logical-preparation-v2" {
+            return Err(ProjectError::InvalidDatabase);
+        }
+        let id = inventory.project_id;
+        let dest = self.root.join(id.to_string());
+        match fs::symlink_metadata(&dest) {
+            Ok(_) => return Err(ProjectError::ProjectAlreadyExists),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => (),
+            Err(e) => return Err(io_error(e)),
+        }
+        scene_basis::Basis::read(&dir, &inventory.scene_basis_sha256, id)?;
+        let db_hash = inventory
+            .files
+            .remove(DATABASE_FILE_NAME)
+            .ok_or(ProjectError::InvalidDatabase)?;
+        let source = scene_merge::read_package_database(&dir, &db_hash)?;
+        let fresh = rebuild(&source, id)?;
+        let mut stage = TemporaryDirectory::create(&self.root)?;
+        let backups = stage.path().join(BACKUP_DIRECTORY_NAME);
+        fs::create_dir(&backups).map_err(io_error)?;
+        if scene_basis::stage_basis(fresh.connection(), id, &backups)?
+            != inventory.scene_basis_sha256
+            || copy_referenced_media(
+                fresh.connection(),
+                &dir,
+                stage.path(),
+                Some(&inventory.files),
+            )? != inventory.files
+        {
+            return Err(ProjectError::InvalidDatabase);
+        }
+        write_database(&fresh, &stage.path().join(DATABASE_FILE_NAME))?;
+        // Windows refuses to rename a directory over another directory.
+        fs::rename(stage.path(), dest).map_err(io_error)?;
+        stage.keep();
+        Ok(())
     }
 
     pub(super) fn prepare_selected_handoff(
@@ -274,30 +380,8 @@ impl ProjectManager {
             fresh = rebuild(fresh.connection(), id)?;
         }
         write_database(&fresh, &main)?;
-        let mut files = BTreeMap::from([(DATABASE_FILE_NAME.to_owned(), digest_file(&main)?)]);
-        let mut stmt =
-            tx.prepare("SELECT relative_path,thumbnail_path,checksum,byte_count FROM media_asset")?;
-        let mut rows = stmt.query([])?;
-        while let Some(row) = rows.next()? {
-            let (original, thumb, expected, size): (String, String, String, u32) =
-                (row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?);
-            if original.starts_with("assets/thumbnails/")
-                || !thumb.starts_with("assets/thumbnails/")
-            {
-                return Err(ProjectError::InvalidDatabase);
-            }
-            let (hash, len) = transfer_asset(&dir, stage.path(), &original, 25 * 1024 * 1024)?;
-            if hash != expected || len != u64::from(size) {
-                return Err(ProjectError::InvalidDatabase);
-            }
-            files.insert(original, hash);
-            files.insert(
-                thumb.clone(),
-                transfer_asset(&dir, stage.path(), &thumb, 25 * 1024 * 1024)?.0,
-            );
-        }
-        drop(rows);
-        drop(stmt);
+        let mut files = copy_referenced_media(&tx, &dir, stage.path(), None)?;
+        files.insert(DATABASE_FILE_NAME.to_owned(), digest_file(&main)?);
         let scene_basis_sha256 = scene_basis::stage_basis(fresh.connection(), id, stage.path())?;
         let receipt = serde_json::json!({"format":"kraqel-logical-preparation-v2","projectId":id,"files":files,"sceneBasisSha256":scene_basis_sha256});
         let mut manifest =

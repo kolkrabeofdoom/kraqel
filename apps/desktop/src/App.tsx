@@ -5,6 +5,7 @@ import {
   deleteProject,
   importSnapshotProject,
   importDocxProject,
+  receiveProjectHandoff,
   listProjects,
   openWorkspace,
   type ProjectOverview,
@@ -19,6 +20,31 @@ export function App() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<ProjectOverview["id"] | null>(null);
+
+  const [handoffNotice, setHandoffNotice] = useState("");
+  const receive = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    setBusy(true);
+    setError(null);
+    setHandoffNotice("");
+    try {
+      await receiveProjectHandoff(
+        String(data.get("folder")).trim(),
+        String(data.get("digest")).trim().toLowerCase(),
+      );
+      form.reset();
+      setHandoffNotice("Die Arbeitskopie ist jetzt in der Projektliste verfügbar.");
+      await refreshProjects();
+    } catch {
+      setError(
+        "Empfang fehlgeschlagen. Prüfe den Eingangsordner, die Prüfsumme und ob die Projektkennung hier bereits belegt ist.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const refreshProjects = async () => {
     try {
@@ -207,6 +233,40 @@ export function App() {
             KRAQEL-Archive (.kraqel oder .zip), höchstens 128 MiB. Der Quellpfad bleibt außerhalb
             der Oberfläche.
           </p>
+        </section>
+
+        <section className="project-card" aria-labelledby="receive-heading">
+          <h2 id="receive-heading">Windows-Arbeitskopie empfangen</h2>
+          <p>
+            Lege den vorbereiteten Ordner in{" "}
+            <code>%LOCALAPPDATA%\org.kraqel.desktop\projects\empfang</code> ab. Erstelle den
+            Eingangsordner bei Bedarf.
+          </p>
+          <form onSubmit={(event) => void receive(event)}>
+            <label htmlFor="receive-folder">Ordnername aus der Vorbereitung</label>
+            <input
+              id="receive-folder"
+              name="folder"
+              placeholder="uebernahme-…"
+              required
+              maxLength={47}
+              autoComplete="off"
+            />
+            <label htmlFor="receive-digest">Separat bestätigter SHA-256 des Inventars</label>
+            <input
+              id="receive-digest"
+              name="digest"
+              required
+              pattern="[A-Fa-f0-9]{64}"
+              maxLength={64}
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <button type="submit" disabled={busy}>
+              Als lokales Projekt übernehmen
+            </button>
+          </form>
+          {handoffNotice && <p role="status">{handoffNotice}</p>}
         </section>
 
         <section className="project-card" aria-labelledby="import-manuscript-heading">

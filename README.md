@@ -428,6 +428,8 @@ festhalten. Mit PowerShell lässt sich dieser Wert im Zielordner mit `Get-FileHa
 vergleichen. Die Dateiprüfsummen im Inventar dienen dem Abgleich des Inhalts. Eine automatische
 Freigabe oder ein Import dieses Formats im isolierten Starter steht noch aus.
 
+Am Windows-Zielrechner lässt sich eine vorbereitete Arbeitskopie mit freier Projektkennung über die Startseite empfangen. [Eingangsordner und Bedienung](docs/WORKSTATION_HANDOFF.md#vorbereitete-arbeitskopie-erstmals-empfangen)
+
 ### Portabler Snapshot v3
 
 Ein Snapshot enthält deterministisch sortierte JSON-Daten, UUID-basierte Markdown-Manuskripte,
