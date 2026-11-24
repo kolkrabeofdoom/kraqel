@@ -189,6 +189,7 @@ pub(super) fn serve(
                 binding,
                 &row,
                 interactive,
+                false,
                 || {
                     io("p3-visible", output.write_all(b"VISIBLE\n"))?;
                     io("p3-visible", output.flush())
@@ -354,7 +355,7 @@ fn derived_profile(begin: [u8; 32], data: bool) -> Result<Profile> {
     })
 }
 
-fn packages_folder() -> Result<(PathBuf, (u64, [u8; 16]), Vec<fs::File>)> {
+pub(super) fn packages_folder() -> Result<(PathBuf, (u64, [u8; 16]), Vec<fs::File>)> {
     let path =
         PathBuf::from(std::env::var_os("LOCALAPPDATA").ok_or(invalid("p3-profile-local-data"))?)
             .join("Packages");

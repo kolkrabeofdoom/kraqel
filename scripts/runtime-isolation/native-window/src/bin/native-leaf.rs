@@ -173,6 +173,13 @@ fn bold_replacement(hwnd: HWND) -> Option<(i32, String, BoldRange)> {
     ))
 }
 
+#[cfg(feature = "manuscript-window")]
+thread_local! {
+    static FASSUNGEN: std::cell::RefCell<[String;2]> = Default::default();
+    static DISPLAYED: std::cell::Cell<usize> = const {std::cell::Cell::new(0)};
+}
+const SHOW_LOCAL_VERSION: usize = 243;
+const SHOW_INCOMING_VERSION: usize = 244;
 const CHOOSE_HERE: usize = 241;
 const CHOOSE_INCOMING: usize = 242;
 thread_local! {
@@ -2425,11 +2432,60 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 PostMessageW(hwnd, SAVE_DRAFT, 0, 0);
                 0
             }
+            #[cfg(feature = "manuscript-window")]
+            WM_COMMAND
+                if l == 0
+                    && REVIEWED_SIDE.get() == Some(0)
+                    && matches!(w, SHOW_LOCAL_VERSION | SHOW_INCOMING_VERSION) =>
+            {
+                let side = usize::from(w == SHOW_INCOMING_VERSION);
+                let ok = FASSUNGEN.with_borrow(|versions| {
+                    let text = &versions[side];
+                    let edit = GetDlgItem(hwnd, EDIT);
+                    if SetWindowTextW(edit, wide(text.replace('\n', "\r\n")).as_ptr()) == 0
+                        || !matches_preview_text(hwnd, text)
+                    {
+                        return false;
+                    }
+                    EXPECTED.with_borrow_mut(|v| v.clone_from(text));
+                    SetWindowTextW(
+                        hwnd,
+                        wide(if side == 0 {
+                            "Szenenvergleich · Lokale Fassung"
+                        } else {
+                            "Szenenvergleich · Externe Fassung"
+                        })
+                        .as_ptr(),
+                    ) != 0
+                });
+                if ok {
+                    let menu = GetMenu(hwnd);
+                    EnableMenuItem(
+                        menu,
+                        CHOOSE_HERE as u32,
+                        if side == 0 { MF_ENABLED } else { MF_GRAYED },
+                    );
+                    EnableMenuItem(
+                        menu,
+                        CHOOSE_INCOMING as u32,
+                        if side == 1 { MF_ENABLED } else { MF_GRAYED },
+                    );
+                    DrawMenuBar(hwnd);
+                    DISPLAYED.set(side);
+                } else {
+                    PostQuitMessage(24);
+                }
+                0
+            }
             WM_COMMAND
                 if l == 0
                     && matches!(w, CHOOSE_HERE | CHOOSE_INCOMING)
                     && REVIEWED_SIDE.get() == Some(0) =>
             {
+                #[cfg(feature = "manuscript-window")]
+                if (w == CHOOSE_INCOMING) != (DISPLAYED.get() == 1) {
+                    return 0;
+                }
                 let (side, message) = if w == CHOOSE_HERE {
                     (
                         1,
@@ -2883,6 +2939,23 @@ fn show(
                 if menu.is_null() {
                     return 24;
                 }
+                if cfg!(feature = "manuscript-window")
+                    && (AppendMenuW(
+                        menu,
+                        MF_STRING,
+                        SHOW_LOCAL_VERSION,
+                        wide("Lokal &anzeigen").as_ptr(),
+                    ) == 0
+                        || AppendMenuW(
+                            menu,
+                            MF_STRING,
+                            SHOW_INCOMING_VERSION,
+                            wide("&Extern anzeigen").as_ptr(),
+                        ) == 0)
+                {
+                    DestroyMenu(menu);
+                    return 24;
+                }
                 if AppendMenuW(
                     menu,
                     MF_STRING,
@@ -2891,7 +2964,12 @@ fn show(
                 ) == 0
                     || AppendMenuW(
                         menu,
-                        MF_STRING,
+                        MF_STRING
+                            | if cfg!(feature = "manuscript-window") {
+                                MF_GRAYED
+                            } else {
+                                0
+                            },
                         CHOOSE_INCOMING,
                         wide("&Externe Fassung wählen").as_ptr(),
                     ) == 0
@@ -3620,8 +3698,7 @@ fn main() {
     std::hint::black_box(&MERGE_ABI);
     std::hint::black_box(&COMPARE_ABI);
     let mut arg = std::env::args_os().nth(1);
-    if let Some(comparison) = window_receipt::p3_comparison(arg.as_deref().and_then(|a| a.to_str()))
-    {
+    if let Some(comparison) = role_comparison(arg.as_deref().and_then(|a| a.to_str())) {
         use std::io::Read;
         let result = (|| -> std::io::Result<i32> {
             let profile = std::env::args()
@@ -3634,7 +3711,7 @@ fn main() {
             input.read_exact(&mut expected)?;
             let row = window_receipt::read_p3(&mut from_service, comparison)?;
             require(
-                window_receipt::valid_p3_row(&row, comparison)
+                kraqel_window_probe::valid_role_row(&row, comparison)
                     && window_receipt::p3_receipt(&row) == expected,
                 "P3 binding",
             )?;
@@ -3651,6 +3728,13 @@ fn main() {
                     .ok_or(std::io::Error::other("comparison lengths"))?;
                 let (first, a) = scene(left)?;
                 let (second, b) = scene(right)?;
+                #[cfg(feature = "manuscript-window")]
+                {
+                    let local = format!("{first}\n{a}");
+                    FASSUNGEN.replace([local.clone(), format!("{second}\n{b}")]);
+                    ("Szenenvergleich · Lokale Fassung".to_owned(), local)
+                }
+                #[cfg(not(feature = "manuscript-window"))]
                 (
                     "Szenenvergleich".to_owned(),
                     format!("Lokal · {first}\n{a}\n\nAnderer Rechner · {second}\n{b}"),
@@ -3688,6 +3772,9 @@ fn main() {
             Ok(code)
         })();
         std::process::exit(result.unwrap_or(20));
+    }
+    if cfg!(feature = "manuscript-window") {
+        std::process::exit(20);
     }
     let repeat_arg = arg
         .as_deref()

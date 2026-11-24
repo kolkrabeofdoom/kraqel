@@ -99,6 +99,7 @@ impl SceneMergeSelection {
         target: &mut Database,
         id: ProjectId,
         backup: &Path,
+        reviewed: Option<[i64; 2]>,
     ) -> Result<(), ProjectError> {
         let selected: BTreeSet<_> = self.scenes.iter().copied().collect();
         if selected.is_empty() || selected.len() != self.scenes.len() {
@@ -127,7 +128,25 @@ impl SceneMergeSelection {
                 .scenes
                 .get(&scene)
                 .ok_or(ProjectError::InvalidDatabase)?;
-            if local.scenes.get(&scene) != Some(old) || next == old {
+            let here = local
+                .scenes
+                .get(&scene)
+                .ok_or(ProjectError::InvalidDatabase)?;
+            if let Some(expected) = reviewed {
+                if self.scenes.len() != 1
+                    || here == old
+                    || here == next
+                    || [
+                        review_revision(&tx, id, scene)?,
+                        review_revision(&source, id, scene)?,
+                    ] != expected
+                {
+                    return Err(ProjectError::InvalidDatabase);
+                }
+            } else if here != old {
+                return Err(ProjectError::InvalidDatabase);
+            }
+            if next == old {
                 return Err(ProjectError::InvalidDatabase);
             }
             let (parent, position, title, content, text): (
@@ -172,6 +191,199 @@ impl SceneMergeSelection {
     }
 }
 
+/// A native-only view. No serialization or debugging implementation may expose its contents.
+pub struct ReviewedScene {
+    pub title: String,
+    pub text: String,
+    pub revision: i64,
+}
+
+pub enum ReviewChoice {
+    Cancel,
+    Local,
+    Incoming,
+}
+
+#[derive(Serialize)]
+#[serde(tag = "choice", rename_all = "camelCase")]
+pub enum ReviewOutcome {
+    Cancel,
+    Local,
+    Incoming { candidate: PreparedHandoff },
+}
+
+pub(super) fn conflict_approval(
+    id: ProjectId,
+    selection: &SceneMergeSelection,
+    candidate: &PreparedHandoff,
+    local_revision: i64,
+) -> Result<String, ProjectError> {
+    Ok(hash(
+        &serde_json::to_vec(&(
+            "kraqel-native-conflict-v1",
+            id,
+            selection,
+            candidate,
+            local_revision,
+        ))
+        .map_err(|_| ProjectError::InvalidDatabase)?,
+    ))
+}
+
+fn review_revision(
+    db: &Connection,
+    project: ProjectId,
+    scene: EntityId,
+) -> Result<i64, ProjectError> {
+    Ok(db.query_row(
+        "SELECT revision FROM document WHERE project_id=?1 AND id=?2 AND kind='scene'",
+        params![project.to_string(), scene.to_string()],
+        |r| r.get(0),
+    )?)
+}
+
+// The search index collapses whitespace. Render inline text nodes consecutively and preserve
+// paragraph boundaries for the read-only comparison. Keep unfamiliar nodes inspectable in full.
+fn review_text(node: &serde_json::Value) -> Result<String, ProjectError> {
+    let kind = node
+        .get("type")
+        .and_then(|v| v.as_str())
+        .ok_or(ProjectError::InvalidDatabase)?;
+    match kind {
+        "text" => node
+            .get("text")
+            .and_then(|v| v.as_str())
+            .map(str::to_owned)
+            .ok_or(ProjectError::InvalidDatabase),
+        "hardBreak" => Ok("\n".to_owned()),
+        "doc" | "paragraph" | "heading" | "codeBlock" | "blockquote" | "listItem"
+        | "orderedList" | "bulletList" => {
+            let Some(children) = node.get("content") else {
+                return Ok(String::new());
+            };
+            let children = children.as_array().ok_or(ProjectError::InvalidDatabase)?;
+            let rendered = children
+                .iter()
+                .map(review_text)
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(
+                rendered.join(if matches!(kind, "paragraph" | "heading" | "codeBlock") {
+                    ""
+                } else {
+                    "\n"
+                }),
+            )
+        }
+        _ => Ok(node.to_string()),
+    }
+}
+
+fn review_view(
+    db: &Connection,
+    project: ProjectId,
+    scene: EntityId,
+) -> Result<(ReviewedScene, Option<String>, i64, String), ProjectError> {
+    let (title,text,content,revision,parent,position): (String,String,String,i64,Option<String>,i64) = db.query_row(
+        "SELECT title,plain_text,content_json,revision,parent_id,position FROM document WHERE project_id=?1 AND id=?2 AND kind='scene'",
+        params![project.to_string(),scene.to_string()], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?)))?;
+    if content.len() > MAX_EDITOR_DOCUMENT_BYTES || revision < 0 {
+        return Err(ProjectError::InvalidDatabase);
+    }
+    let doc = serde_json::from_str(&content).map_err(|_| ProjectError::InvalidDatabase)?;
+    validate_content(&doc).map_err(|_| ProjectError::InvalidDatabase)?;
+    if plain_text(&doc) != text {
+        return Err(ProjectError::InvalidDatabase);
+    }
+    let text = review_text(&doc.document)?;
+    Ok((
+        ReviewedScene {
+            title,
+            text,
+            revision,
+        },
+        parent,
+        position,
+        content,
+    ))
+}
+
+impl ProjectManager {
+    /// Provides exactly one divergent pair to a native selection window.
+    /// An external selection prepares a distinct copy after rechecking both versions.
+    ///
+    /// # Errors
+    /// Rejects missing, moved, stale or unverified scenes and unavailable isolation.
+    pub fn review_scene_conflict(
+        &self,
+        id: ProjectId,
+        selection: &SceneMergeSelection,
+        display: impl FnOnce(&ReviewedScene, &ReviewedScene) -> Result<ReviewChoice, ProjectError>,
+    ) -> Result<ReviewOutcome, ProjectError> {
+        let [scene] = selection.scenes.as_slice() else {
+            return Err(ProjectError::InvalidDatabase);
+        };
+        let (left, right) = self.with_scene_basis(id, |local, dir, db| {
+            let base = Basis::read(dir, &selection.base, id)?;
+            let incoming = Basis::read(dir, &selection.incoming, id)?;
+            let src = package_database(
+                id,
+                dir,
+                &selection.folder,
+                &selection.manifest,
+                &selection.incoming,
+            )?;
+            if hash(&local.bytes()?) != selection.local
+                || handoff::schema(&src)? != handoff::schema(db)?
+                || incoming.bytes()? != Basis::from_db(&src, id)?.bytes()?
+            {
+                return Err(ProjectError::InvalidDatabase);
+            }
+            let hashes = [&base, &local, &incoming].map(|b| b.scenes.get(scene));
+            if hashes.contains(&None)
+                || hashes[0] == hashes[1]
+                || hashes[1] == hashes[2]
+                || hashes[0] == hashes[2]
+            {
+                return Err(ProjectError::InvalidDatabase);
+            }
+            let (mut left, lp, li, local_doc) = review_view(db, id, *scene)?;
+            let (mut right, rp, ri, incoming_doc) = review_view(&src, id, *scene)?;
+            if lp != rp || li != ri {
+                return Err(ProjectError::InvalidDatabase);
+            }
+            if left.title == right.title && left.text == right.text {
+                // The plain view alone cannot distinguish formatting. Show the exact structured
+                // document in the isolated window alongside the text before a whole-version choice.
+                left.text
+                    .push_str("\n\nDokumentstruktur und Formatierung\n");
+                left.text.push_str(&local_doc);
+                right
+                    .text
+                    .push_str("\n\nDokumentstruktur und Formatierung\n");
+                right.text.push_str(&incoming_doc);
+            }
+            Ok((left, right))
+        })?;
+        match display(&left, &right)? {
+            ReviewChoice::Cancel => Ok(ReviewOutcome::Cancel),
+            ReviewChoice::Local => self.with_scene_basis(id, |local, _, db| {
+                if hash(&local.bytes()?) != selection.local
+                    || review_revision(db, id, *scene)? != left.revision
+                {
+                    return Err(ProjectError::InvalidDatabase);
+                }
+                Ok(ReviewOutcome::Local)
+            }),
+            ReviewChoice::Incoming => Ok(ReviewOutcome::Incoming {
+                candidate: self.prepare_selected_handoff(
+                    id,
+                    Some((selection, Some([left.revision, right.revision]))),
+                )?,
+            }),
+        }
+    }
+}
+
 impl ProjectManager {
     /// Baut eine neue Arbeitskopie mit ausdrücklich ausgewählten einseitigen Szenenänderungen.
     ///
@@ -182,7 +394,7 @@ impl ProjectManager {
         id: ProjectId,
         selection: &SceneMergeSelection,
     ) -> Result<PreparedHandoff, ProjectError> {
-        self.prepare_selected_handoff(id, Some(selection))
+        self.prepare_selected_handoff(id, Some((selection, None)))
     }
 }
 
@@ -395,5 +607,51 @@ mod tests {
         let before = count();
         assert!(local.prepare_scene_merge(id, &plan).is_err());
         assert_eq!(count(), before);
+        let outcome = local
+            .review_scene_conflict(id, &plan, |left, right| {
+                assert_eq!(left.text, "Früherer Entwurf des Hafens");
+                assert_eq!(right.text, "Das Boot legt an.");
+                Ok(ReviewChoice::Incoming)
+            })
+            .unwrap();
+        let ReviewOutcome::Incoming { candidate } = outcome else {
+            panic!("missing candidate")
+        };
+        let marker = here.directory().join(format!(
+            ".fassungswahl-{}",
+            conflict_approval(id, &plan, &candidate, read(live).2.into()).unwrap()
+        ));
+        let parked = local_home.path().join("parked-choice");
+        fs::rename(&marker, &parked).unwrap();
+        assert!(
+            local
+                .secure_scene_activation(id, &plan, &candidate)
+                .is_err()
+        );
+        fs::rename(parked, marker).unwrap();
+        let ticket = local
+            .secure_scene_activation(id, &plan, &candidate)
+            .unwrap();
+        local.switch_scene_activation(id, &ticket, false).unwrap();
+        assert_eq!(read(live).1, "Das Boot legt an.");
+        local.switch_scene_activation(id, &ticket, true).unwrap();
+        assert_eq!(read(live).1, "Früherer Entwurf des Hafens");
+        let candidate =
+            open_read_only(&backups.join(candidate.folder).join(DATABASE_FILE_NAME)).unwrap();
+        assert_eq!(read(&candidate).1, "Das Boot legt an.");
+        let original = read(live);
+        assert!(
+            local
+                .review_scene_conflict(id, &plan, |_, _| {
+                    live.execute(
+                        "UPDATE document SET revision=revision+1 WHERE id=?1",
+                        [selected.to_string()],
+                    )
+                    .unwrap();
+                    Ok(ReviewChoice::Incoming)
+                })
+                .is_err()
+        );
+        assert_eq!(read(live).1, original.1);
     }
 }

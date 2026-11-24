@@ -42,13 +42,13 @@ test("Versionen prüfen Snapshot, Diff und explizite lokale Commits", async ({ p
       .getByRole("region", { name: "Geänderte Snapshotdateien" })
       .getByText(/snapshot\/manuscript\/.+\.md/),
   ).toBeVisible();
-  const diff = page.getByRole("region", { name: "Unified Diff" }).locator("pre");
-  await expect(diff).toContainText("diff --git");
-  await expect(diff).toContainText(`+${changedText}`);
+  const diff = page.getByRole("region", { name: "Geänderte Zeilen je Datei" }).locator("pre");
+  await expect(diff).toContainText("snapshot/manuscript/");
+  await expect(diff).not.toContainText(changedText);
 
   await page.getByLabel("Commitnachricht").fill("Solidarische Fußnoten ergänzen");
   await page.getByRole("button", { name: "Commit erstellen" }).click();
   await expect(page.getByText("Snapshot ist unverändert", { exact: true })).toBeVisible();
   await expect(page.getByText("Keine freigegebenen Änderungen.", { exact: true })).toBeVisible();
-  await expect(diff).toHaveText("Noch kein Diff vorhanden.");
+  await expect(diff).toHaveText("Keine geänderten Zeilen.");
 });

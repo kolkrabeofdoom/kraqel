@@ -242,8 +242,9 @@ export function VersionControl({ projectId, documents, onActivated }: VersionCon
       </div>
 
       <section className="diff-panel" aria-labelledby="diff-title">
-        <h3 id="diff-title">Unified Diff</h3>
-        <pre tabIndex={0}>{diff || "Noch kein Diff vorhanden."}</pre>
+        <h3 id="diff-title">Geänderte Zeilen je Datei</h3>
+        {diff && <p>Hinzugefügt · entfernt · Dateipfad</p>}
+        <pre tabIndex={0}>{diff || "Keine geänderten Zeilen."}</pre>
       </section>
     </section>
   );

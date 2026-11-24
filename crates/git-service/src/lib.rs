@@ -358,12 +358,26 @@ impl<'project> GitService<'project> {
     /// # Errors
     /// Liefert einen Fehler bei fehlgeschlagenem Git-Aufruf.
     pub fn diff(&self) -> Result<String, GitServiceError> {
+        self.staged_diff("--patch")
+    }
+
+    /// Returns line counts and paths for the desktop versions panel.
+    ///
+    /// # Errors
+    /// Returns an error if the staged snapshot cannot be inspected.
+    pub fn diff_statistics(&self) -> Result<String, GitServiceError> {
+        self.staged_diff("--numstat")
+    }
+
+    fn staged_diff(&self, format: &str) -> Result<String, GitServiceError> {
         if !self.project_directory.join(".git").is_dir() {
             return Ok(String::new());
         }
         let output = self.run_git(&[
             "diff",
             "--cached",
+            format,
+            "--no-textconv",
             "--no-ext-diff",
             "--no-color",
             "--",
@@ -1602,6 +1616,9 @@ mod tests {
         assert_eq!(first_tree, read_tree(&opened.directory().join("snapshot")));
         assert!(!service.status().unwrap().clean);
         assert!(service.diff().unwrap().contains("kraqel-project-snapshot"));
+        let stats = service.diff_statistics().unwrap();
+        assert!(stats.contains("snapshot/"));
+        assert!(!stats.contains("kraqel-project-snapshot"));
         service.commit("Erster Snapshot").unwrap();
         assert!(service.status().unwrap().clean);
         opened

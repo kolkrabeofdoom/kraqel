@@ -6,7 +6,7 @@ mod scene_basis;
 mod scene_merge;
 pub use handoff::PreparedHandoff;
 pub use scene_basis::{SceneBasisComparison, SceneBasisReceipt};
-pub use scene_merge::SceneMergeSelection;
+pub use scene_merge::{ReviewChoice, ReviewOutcome, ReviewedScene, SceneMergeSelection};
 
 use std::{
     error::Error,

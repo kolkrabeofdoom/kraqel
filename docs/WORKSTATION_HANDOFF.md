@@ -4,6 +4,8 @@
 
 Vor dem Abzweigen im Versionsdialog die gemeinsame Szenenbasis sichern. Nach der Rückkehr lassen sich einseitige Änderungen und Konflikte anhand der Basisdateien lesend vergleichen. Für die Auswahl einseitiger Änderungen den vorbereiteten Quellordner und seinen getrennt bestätigten Inventarhash mitnehmen. Die Bestätigung erzeugt einen weiteren Vorbereitungsordner. Die vollständigen Arbeitskopien für die weitere Bearbeitung separat aufbewahren. Aktivierung und Rücknahme geschehen im geöffneten Zielprojekt. Seine lokale Freigabe und die unverschlüsselte Rücknahmedatei gehören zu diesem Arbeitsplatz. Für den Wiederanlauf die separat gesicherte Prüfsumme bereithalten. [Ablauf im Desktop-Entwicklungsstand](../README.md#szenenstände-auf-zwei-rechnern-vergleichen)
 
+Bei einem Textkonflikt im Windows-Entwicklungsstand genau die gewünschte Szene im Versionsdialog auswählen und die isolierte Volltextansicht ausdrücklich öffnen. Die bestätigte externe Fassung ergibt eine neue Arbeitskopie. Zur Aktivierung im geöffneten Zielprojekt zuerst die früheren Fassungen lokal sichern. Die eingebetteten Rollenprogramme werden beim Desktop-Build aus dem Repository erzeugt. [Bedienweg](../README.md#szenenstände-auf-zwei-rechnern-vergleichen)
+
 ## Desktop-Vorbereitung und isolierte Vorschau
 
 Der lokale Empfang ist vom Desktop-Speichermodul bis zum schreibgeschützten Win32-Fenster mit synthetischen Arbeitsdaten geprüft. Die Anleitung enthält den Build und den automatischen VHDX-Lauf. Für die Übernahme eines echten Projekts auf einen anderen Rechner ist der Empfangspfad noch offen. [Prüflauf und Grenzen](data-format/product-start-integration-v1-draft.md#vorbereitete-desktop-arbeitskopie-im-isolierten-vorschaufenster)

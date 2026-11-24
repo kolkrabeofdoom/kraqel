@@ -1,5 +1,7 @@
 //! Research-only receive boundary. No named endpoint, network socket or renderer handle input.
 #![deny(unsafe_op_in_unsafe_fn)]
+#[cfg(all(windows, feature = "desktop-review"))]
+extern crate self as kraqel_isolation_transport;
 use serde::{Serialize, de::DeserializeOwned};
 use std::io::{Read, Write};
 
@@ -549,3 +551,36 @@ mod tests {
         assert!(read_frame::<Envelope>(&mut &bytes[..]).is_err());
     }
 }
+
+#[cfg(all(windows, feature = "desktop-review"))]
+#[allow(dead_code, unused_imports)]
+#[path = "../../native-window/src/package.rs"]
+mod native_win32_package;
+
+#[cfg(all(windows, feature = "desktop-review"))]
+#[allow(dead_code, unused_imports)]
+mod policy;
+
+#[cfg(all(windows, feature = "desktop-review"))]
+#[allow(dead_code, unused_imports)]
+mod product_start;
+
+#[cfg(all(windows, feature = "desktop-review"))]
+#[allow(dead_code, unused_imports)]
+mod product_start_p2c;
+
+#[cfg(all(windows, feature = "desktop-review"))]
+#[allow(dead_code, unused_imports)]
+mod transfer;
+
+#[cfg(all(windows, feature = "desktop-review"))]
+#[allow(dead_code, unused_imports)]
+#[path = "../../native-window/src/window_receipt.rs"]
+mod window_receipt;
+
+#[cfg(all(windows, feature = "desktop-review"))]
+#[allow(dead_code, unused_imports)]
+mod windows;
+
+#[cfg(all(windows, feature = "desktop-review"))]
+pub use windows::exchange::ui_restart::durable::product::manuscript::open_review;

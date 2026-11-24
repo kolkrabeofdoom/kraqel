@@ -6,8 +6,11 @@ rust-version = "1.90"
 license = "GPL-3.0-or-later"
 publish = false
 
-# Research tool and transport boundary. Linked only by the explicit Tauri research feature.
+# The desktop-review library interface exposes only the isolated native comparison.
 [workspace]
+
+[features]
+desktop-review = []
 
 [lib]
 name = "kraqel_isolation_transport"

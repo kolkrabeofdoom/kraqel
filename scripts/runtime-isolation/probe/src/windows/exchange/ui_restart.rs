@@ -7,7 +7,7 @@ use kraqel_isolation_transport::{
 use sha2::{Digest as _, Sha256};
 use uuid::Uuid;
 use windows_sys::Win32::System::Pipes::{CreatePipe, PeekNamedPipe};
-mod durable;
+pub(crate) mod durable;
 pub(in super::super) use durable::product_workspace_child;
 pub(in crate::windows) use durable::product_workspace_persistent_child;
 pub(in crate::windows) use durable::{group_child, group_worker};

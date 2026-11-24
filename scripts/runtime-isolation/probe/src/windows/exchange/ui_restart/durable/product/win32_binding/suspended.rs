@@ -59,12 +59,15 @@ pub(in super::super) fn deliver_p3(
     binding: [u8; 32],
     row: &[u8],
     interactive: bool,
+    manuscript: bool,
     visible: impl FnOnce() -> Result<()>,
 ) -> Result<u8> {
     use crate::window_receipt as protocol;
     let mut choice = 0;
     use windows_sys::Win32::Storage::FileSystem::{FILE_READ_DATA, FILE_WRITE_DATA, SYNCHRONIZE};
-    let argument = if row.len() != protocol::P3_LEN {
+    let argument = if manuscript {
+        crate::window_receipt::MANUSCRIPT_COMPARE
+    } else if row.len() != protocol::P3_LEN {
         protocol::P3_COMPARE
     } else {
         protocol::P3_READ
@@ -119,7 +122,7 @@ pub(in super::super) fn deliver_p3(
                     io("p3-service-end", writer.write_all(&write_end))?;
                     io(
                         "p3-service-send",
-                        protocol::write_p3(&mut writer, argument == protocol::P3_COMPARE, row),
+                        protocol::write_p3(&mut writer, argument != protocol::P3_READ, row),
                     )?;
                     drop(writer);
                     bootstrap::confirm_exit_receipt(pi, &reply, protocol::p3_receipt(row))
@@ -130,7 +133,7 @@ pub(in super::super) fn deliver_p3(
                 visible()?;
             }
             bootstrap::wait_for_close(ui, hwnd, interactive)?;
-            if argument == protocol::P3_COMPARE {
+            if argument != protocol::P3_READ {
                 use std::io::Read;
                 let mut decision = [0u8];
                 io("p3-window-choice", reply.read_exact(&mut decision))?;
@@ -157,7 +160,9 @@ fn with_role(
     let image = root.join(name);
     let data = name == "pipe-service.exe";
     let role = if data { "data" } else { "ui" };
-    let begin = if crate::window_receipt::p3_comparison(Some(argument)).is_some() {
+    let begin = if crate::window_receipt::p3_comparison(Some(argument)).is_some()
+        || argument == crate::window_receipt::MANUSCRIPT_COMPARE
+    {
         let begin = store
             .state
             .p3_pipe_begin

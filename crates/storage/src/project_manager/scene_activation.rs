@@ -138,10 +138,26 @@ impl ProjectManager {
                     .scenes
                     .get(&scene)
                     .ok_or(ProjectError::InvalidDatabase)?;
-                if current.scenes.get(&scene) != Some(prior) || next == prior {
+                let old = Scene::load(tx, id, scene)?;
+                if next == prior || current.scenes.get(&scene) == Some(next) {
                     return Err(ProjectError::InvalidDatabase);
                 }
-                let old = Scene::load(tx, id, scene)?;
+                if current.scenes.get(&scene) != Some(prior) {
+                    if selection.scenes.len() != 1 {
+                        return Err(ProjectError::InvalidDatabase);
+                    }
+                    let proof = super::scene_merge::conflict_approval(
+                        id,
+                        selection,
+                        candidate,
+                        old.revision,
+                    )?;
+                    let marker = self
+                        .root
+                        .join(id.to_string())
+                        .join(format!(".fassungswahl-{proof}"));
+                    confirmed_file(&marker, &hash(proof.as_bytes()), 64)?;
+                }
                 let new = Scene::load(&result, id, scene)?;
                 old.validate()?;
                 new.validate()?;
@@ -298,7 +314,7 @@ impl Activation {
     }
 }
 
-fn publish_receipt(path: &Path, bytes: &[u8]) -> Result<(), ProjectError> {
+pub(super) fn publish_receipt(path: &Path, bytes: &[u8]) -> Result<(), ProjectError> {
     let parent = path.parent().ok_or(ProjectError::InvalidRelativePath)?;
     let mut temp = tempfile::NamedTempFile::new_in(parent).map_err(storage_io)?;
     temp.write_all(bytes).map_err(storage_io)?;

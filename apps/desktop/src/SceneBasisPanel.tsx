@@ -8,6 +8,7 @@ import {
   type PreparedHandoff,
   compareSceneBases,
   prepareSceneMerge,
+  reviewSceneConflict,
   saveSceneBasis,
   type SceneBasisComparison,
 } from "./commands";
@@ -47,6 +48,7 @@ export function SceneBasisPanel({
   const [result, setResult] = useState<SceneBasisComparison | null>(null);
 
   const [selected, setSelected] = useState<string[]>([]);
+  const [conflict, setConflict] = useState("");
   const [folder, setFolder] = useState("");
   const [manifest, setManifest] = useState("");
   const [prepared, setPrepared] = useState<{
@@ -94,8 +96,42 @@ export function SceneBasisPanel({
     setPrepared(null);
     setResult(null);
     setSelected([]);
+    setConflict("");
     setFolder("");
     setManifest("");
+  }
+
+  async function reviewConflict() {
+    if (!result || !conflict || busy) return;
+    setBusy(true);
+    try {
+      const selection = {
+        base,
+        local: result.localSha256,
+        incoming,
+        folder,
+        manifest,
+        scenes: [conflict],
+      };
+      const outcome = await reviewSceneConflict(projectId, selection);
+      if (outcome.choice === "incoming") {
+        resetReview();
+        setPrepared({ selection, candidate: outcome.candidate });
+      }
+      setNotice(
+        outcome.choice === "incoming"
+          ? `Externe Fassung in eigener Arbeitskopie vorbereitet: backups/${outcome.candidate.folder}. SHA-256 des Inventars: ${outcome.candidate.manifestSha256}.`
+          : outcome.choice === "local"
+            ? "Lokale Fassung beibehalten."
+            : "Vergleich ohne Auswahl geschlossen.",
+      );
+    } catch {
+      setNotice(
+        "Kein bestätigtes Ergebnis. Prüfe den Quellordner und seine Prüfsumme und vergleiche erneut. Die isolierte Textansicht benötigt Windows und zwei Fassungen an derselben Manuskriptposition.",
+      );
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function prepareSelection() {
@@ -228,6 +264,24 @@ export function SceneBasisPanel({
               {!change.baseExists && " · seit der Ausgangsbasis neu"}
               {!change.localExists && " · hier nicht vorhanden"}
               {!change.incomingExists && " · auf dem anderen Rechner nicht vorhanden"}
+              {change.difference === "conflict" &&
+                change.baseExists &&
+                change.localExists &&
+                change.incomingExists && (
+                  <label>
+                    <input
+                      type="radio"
+                      name="conflictScene"
+                      checked={conflict === change.sceneId}
+                      disabled={busy}
+                      onChange={() => {
+                        setConflict(change.sceneId);
+                        setSelected([]);
+                      }}
+                    />
+                    Diese Szene im isolierten Fenster vergleichen
+                  </label>
+                )}
               {change.difference === "incoming" &&
                 change.baseExists &&
                 change.localExists &&
@@ -237,13 +291,14 @@ export function SceneBasisPanel({
                       type="checkbox"
                       disabled={busy}
                       checked={selected.includes(change.sceneId)}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        setConflict("");
                         setSelected(
                           e.target.checked
                             ? [...selected, change.sceneId]
                             : selected.filter((id) => id !== change.sceneId),
-                        )
-                      }
+                        );
+                      }}
                     />
                     Titel und Inhalt dieser Szene für die neue Kopie auswählen
                   </label>
@@ -263,15 +318,17 @@ export function SceneBasisPanel({
           ))}
         </ul>
       )}
-      {result && selected.length > 0 && (
+      {result && (selected.length > 0 || conflict) && (
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            void prepareSelection();
+            void (conflict ? reviewConflict() : prepareSelection());
           }}
         >
           <fieldset disabled={busy}>
-            <legend>Auswahl als eigene Arbeitskopie vorbereiten</legend>
+            <legend>
+              {conflict ? "Manuelle Fassungswahl" : "Auswahl als eigene Arbeitskopie vorbereiten"}
+            </legend>
             <p>
               Kopiere den vorbereiteten Ordner des anderen Rechners nach <code>backups</code> dieses
               Projekts. Die neue Kopie enthält die ausgewählten Texte und Titel sowie den übrigen
@@ -298,7 +355,9 @@ export function SceneBasisPanel({
               />
             </label>
             <button type="submit">
-              Auswahl bestätigen und neue Kopie vorbereiten ({selected.length})
+              {conflict
+                ? "Beide Texte im isolierten Win32-Fenster anzeigen"
+                : `Auswahl bestätigen und neue Kopie vorbereiten (${selected.length})`}
             </button>
           </fieldset>
         </form>

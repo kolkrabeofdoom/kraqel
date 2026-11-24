@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::os::windows::fs::{MetadataExt, OpenOptionsExt};
 use windows_sys::Win32::System::SystemServices::JOB_OBJECT_QUERY;
 mod combined;
-mod product;
+pub(crate) mod product;
 pub(in super::super::super) use combined::{next_live, seed_live, series as combined_series};
 pub(in super::super::super) use product::command as product_storage;
 pub(super) use product::verify_denials as verify_product_denials;

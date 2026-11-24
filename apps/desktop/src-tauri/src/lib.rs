@@ -2000,6 +2000,64 @@ async fn switch_scene_activation(
     ))
 }
 
+#[cfg(windows)]
+fn show_conflicting_versions(
+    home: &std::path::Path,
+    id: kraqel_domain::ProjectId,
+    selection: &SceneMergeSelection,
+    left: &kraqel_storage::project_manager::ReviewedScene,
+    right: &kraqel_storage::project_manager::ReviewedScene,
+) -> std::io::Result<kraqel_storage::project_manager::ReviewChoice> {
+    kraqel_isolation_transport::open_review(
+        home,
+        id,
+        selection,
+        left,
+        right,
+        include_bytes!(concat!(env!("KRAQEL_REVIEW_IMAGES"), "/pipe-service.exe")),
+        include_bytes!(concat!(env!("KRAQEL_REVIEW_IMAGES"), "/native-leaf.exe")),
+    )
+}
+
+#[tauri::command]
+async fn review_scene_conflict(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    request: CommandRequest<PrepareSceneMergeRequest>,
+) -> Result<CommandResponse<kraqel_storage::project_manager::ReviewOutcome>, CommandError> {
+    require_current_contract(&request)?;
+    let request_id = request.request_id;
+    let payload = request.payload;
+    let id = parse_project_id(request_id, &payload.project_id)?;
+    let manager = manager(&state, request_id)?;
+    #[cfg(not(windows))]
+    {
+        let _ = (app, manager, id, payload);
+        Err(CommandError::internal(request_id))
+    }
+    #[cfg(windows)]
+    {
+        let home = state
+            .project_root
+            .parent()
+            .ok_or_else(|| CommandError::internal(request_id))?
+            .to_owned();
+        let outcome = tauri::async_runtime::spawn_blocking(move || {
+            let confirmed = app.dialog().message("Beide vollständigen Szenenfassungen im isolierten Windows-Fenster anzeigen? Bei Wahl der externen Fassung wird eine separate Arbeitskopie vorbereitet.")
+                .title("Szenenvergleich öffnen")
+                .buttons(tauri_plugin_dialog::MessageDialogButtons::OkCancel)
+                .blocking_show();
+            if !confirmed {
+                return Ok(kraqel_storage::project_manager::ReviewOutcome::Cancel);
+            }
+            manager.review_scene_conflict(id, &payload.selection, |left,right| {
+                show_conflicting_versions(&home,id,&payload.selection,left,right).map_err(|_|ProjectError::InvalidDatabase)
+            })
+        }).await.map_err(|_|CommandError::internal(request_id))?.map_err(|e|map_project_error(request_id,&e))?;
+        Ok(CommandResponse::current(request_id, outcome))
+    }
+}
+
 #[tauri::command]
 async fn prepare_scene_merge(
     state: State<'_, AppState>,
@@ -2126,7 +2184,7 @@ fn get_version_control_diff(
         &state,
         request.request_id,
         &request.payload.project_id,
-        |_, service, _| service.diff(),
+        |_, service, _| service.diff_statistics(),
     )?;
     Ok(CommandResponse::current(
         request.request_id,
@@ -3997,6 +4055,7 @@ pub fn run() {
             save_scene_basis,
             compare_scene_bases,
             prepare_scene_merge,
+            review_scene_conflict,
             secure_scene_activation,
             switch_scene_activation,
             validate_project_snapshot,
@@ -5059,4 +5118,39 @@ mod tests {
             .is_err()
         );
     }
+}
+
+#[cfg(all(windows, test))]
+#[test]
+#[ignore = "interactive Windows desktop; choose the external version"]
+fn isolated_manuscript_choice() {
+    use kraqel_storage::project_manager::{ReviewChoice, ReviewedScene};
+    let home = tempfile::tempdir().unwrap();
+    let id = kraqel_domain::ProjectId::new();
+    let selection = SceneMergeSelection {
+        base: "a".repeat(64),
+        local: "b".repeat(64),
+        incoming: "c".repeat(64),
+        manifest: "d".repeat(64),
+        folder: String::new(),
+        scenes: vec![kraqel_domain::EntityId::new()],
+    };
+    let left = ReviewedScene {
+        title: "Kapitel eins".into(),
+        text: "Am Wasser.\nZweite Zeile.".into(),
+        revision: 17,
+    };
+    let right = ReviewedScene {
+        title: "Kapitel zwei".into(),
+        text: "Andere Fassung mit Umlauten, 🪶 und Zeilenumbruch.\nEnde.".into(),
+        revision: 29,
+    };
+    let choice = show_conflicting_versions(home.path(), id, &selection, &left, &right).unwrap();
+    assert!(matches!(choice, ReviewChoice::Incoming));
+    assert!(
+        !home
+            .path()
+            .join("KRAQEL-Manuskriptvergleich/active")
+            .exists()
+    );
 }

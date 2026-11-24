@@ -91,7 +91,6 @@ const navigationGroups: readonly {
 
 export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspaceProps) {
   const [workspace, setWorkspace] = useState(initialWorkspace);
-  const [activationGeneration, setActivationGeneration] = useState(0);
   const [activeId, setActiveId] = useState<EntityId | null>(
     firstSceneId(initialWorkspace.documents),
   );
@@ -107,8 +106,10 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
   }, [docxChapter]);
   const tree = useMemo(() => buildDocumentTree(workspace.documents), [workspace.documents]);
 
+  const manuscriptOpen = view === "manuscript";
   useEffect(() => {
-    if (!activeId) {
+    if (!activeId || !manuscriptOpen) {
+      setLoading(false);
       setStored(null);
       return;
     }
@@ -128,7 +129,7 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
     return () => {
       active = false;
     };
-  }, [activeId, workspace.project.id, activationGeneration]);
+  }, [activeId, workspace.project.id, manuscriptOpen]);
 
   const addChapter = async () => {
     try {
@@ -473,7 +474,6 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
           onActivated={(next) => {
             setStored(null);
             setWorkspace(next);
-            setActivationGeneration((n) => n + 1);
           }}
         />
       ) : view === "exports" ? (

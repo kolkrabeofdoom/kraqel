@@ -120,6 +120,7 @@ pub const P3_CONTENT: &[u8] = b"Szene A\0Text aus der Testkopie.";
 pub const P3_LEN: usize = 36 + P3_CONTENT.len();
 
 pub const P3_COMPARE: &str = "--managed-p3-comparison-v2";
+pub const MANUSCRIPT_COMPARE: &str = "--managed-manuscript-comparison-v1";
 const MAX_PAIR: usize = 2 * 1024 * 1024;
 
 pub fn p3_comparison(argument: Option<&str>) -> Option<bool> {

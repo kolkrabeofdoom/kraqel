@@ -169,7 +169,7 @@ pub(super) fn stage_basis(
 }
 
 impl ProjectManager {
-    fn with_scene_basis<T>(
+    pub(super) fn with_scene_basis<T>(
         &self,
         id: ProjectId,
         run: impl FnOnce(Basis, &Path, &Connection) -> Result<T, ProjectError>,

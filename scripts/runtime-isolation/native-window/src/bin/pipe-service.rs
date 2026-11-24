@@ -28,7 +28,7 @@ fn main() {
     let mut arg = std::env::args_os().nth(1);
     use kraqel_native_scene_model::channel::ReviewedWrite;
     if let Some(comparison) =
-        kraqel_window_probe::window_receipt::p3_comparison(arg.as_deref().and_then(|a| a.to_str()))
+        kraqel_window_probe::role_comparison(arg.as_deref().and_then(|a| a.to_str()))
     {
         use kraqel_window_probe::{managed_scene::confirm_bootstrap, window_receipt as protocol};
         use std::io::Write;
@@ -37,13 +37,19 @@ fn main() {
                 let (mut input, mut reply) = confirm_bootstrap(Some(&profile), Role::Data)?;
                 let mut to_window = kraqel_window_probe::managed_scene::p3_pipe(&mut input)?;
                 let row = protocol::read_p3(&mut input, comparison)?;
-                kraqel_window_probe::require(protocol::valid_p3_row(&row, comparison), "P3 row")?;
+                kraqel_window_probe::require(
+                    kraqel_window_probe::valid_role_row(&row, comparison),
+                    "P3 row",
+                )?;
                 protocol::write_p3(&mut to_window, comparison, &row)?;
                 reply.write_all(&protocol::p3_receipt(&row))
             })()
             .is_ok()
         });
         std::process::exit(if ok { 0 } else { 65 });
+    }
+    if cfg!(feature = "manuscript-window") {
+        std::process::exit(20);
     }
     let repeat_arg = arg
         .as_deref()

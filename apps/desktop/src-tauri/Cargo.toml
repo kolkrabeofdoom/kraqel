@@ -14,10 +14,10 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [features]
-isolation-ui-test = ["dep:kraqel-isolation-probe", "dep:kraqel-isolation-test-adapter"]
+isolation-ui-test = ["dep:kraqel-isolation-test-adapter"]
 
 [target.'cfg(windows)'.dependencies]
-kraqel-isolation-probe = { path = "../../../scripts/runtime-isolation/probe", optional = true }
+kraqel-isolation-probe = { path = "../../../scripts/runtime-isolation/probe", features = ["desktop-review"] }
 kraqel-isolation-test-adapter = { path = "../isolation-test-adapter", optional = true }
 
 [dependencies]

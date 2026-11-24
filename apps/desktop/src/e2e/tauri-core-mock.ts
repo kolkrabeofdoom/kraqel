@@ -942,6 +942,13 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
         unchanged: 1,
         changes: [
           {
+            sceneId: "55555555-5555-4555-8555-555555555555",
+            difference: "conflict",
+            baseExists: true,
+            localExists: true,
+            incomingExists: true,
+          },
+          {
             sceneId: "11111111-1111-4111-8111-111111111111",
             difference: "conflict",
             baseExists: true,
@@ -964,6 +971,16 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
           },
         ],
       };
+    }
+    case "review_scene_conflict": {
+      const selection = payload.selection as { scenes: string[]; manifest: string; folder: string };
+      if (
+        selection.scenes.join() !== "55555555-5555-4555-8555-555555555555" ||
+        selection.manifest !== "d".repeat(64) ||
+        !selection.folder.startsWith("uebernahme-")
+      )
+        throw new Error("Auswahl ungültig");
+      return { choice: "local" };
     }
     case "secure_scene_activation":
       findProject(state, payload.projectId);
@@ -1466,28 +1483,7 @@ function renderVersionDiff(current: TestProject): string {
     .map((path) => {
       const before = committed[path];
       const after = snapshot[path];
-      const lines = [`diff --git a/${path} b/${path}`];
-      lines.push(before === undefined ? "--- /dev/null" : `--- a/${path}`);
-      lines.push(after === undefined ? "+++ /dev/null" : `+++ b/${path}`);
-      if (before !== undefined) {
-        lines.push(
-          "@@ -1 +1 @@",
-          ...before
-            .trimEnd()
-            .split("\n")
-            .map((line) => `-${line}`),
-        );
-      }
-      if (after !== undefined) {
-        lines.push(
-          "@@ -1 +1 @@",
-          ...after
-            .trimEnd()
-            .split("\n")
-            .map((line) => `+${line}`),
-        );
-      }
-      return lines.join("\n");
+      return `${after?.split("\n").length ?? 0}\t${before?.split("\n").length ?? 0}\t${path}`;
     })
     .join("\n");
 }

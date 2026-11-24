@@ -247,7 +247,7 @@ impl ProjectManager {
     pub(super) fn prepare_selected_handoff(
         &self,
         id: ProjectId,
-        selection: Option<&SceneMergeSelection>,
+        selection: Option<(&SceneMergeSelection, Option<[i64; 2]>)>,
     ) -> Result<PreparedHandoff, ProjectError> {
         #[cfg(windows)]
         let directory = self.root.join(id.to_string());
@@ -268,8 +268,8 @@ impl ProjectManager {
         let mut stage = TemporaryDirectory::create(&backup)?;
         let main = stage.path().join(DATABASE_FILE_NAME);
         let mut fresh = rebuild(&tx, id)?;
-        if let Some(selection) = selection {
-            selection.apply(&mut fresh, id, &backup)?;
+        if let Some((selection, reviewed)) = selection {
+            selection.apply(&mut fresh, id, &backup, reviewed)?;
             // Rematerialize logical rows. Edited SQLite and FTS pages can retain the old text.
             fresh = rebuild(fresh.connection(), id)?;
         }
@@ -310,12 +310,20 @@ impl ProjectManager {
         tx.commit()?;
         drop(pins);
         let name = format!("uebernahme-{}", ProjectId::new());
-        fs::rename(stage.path(), backup.join(&name)).map_err(io_error)?;
-        stage.keep();
-        Ok(PreparedHandoff {
+        let candidate = PreparedHandoff {
             folder: name,
             manifest_sha256,
             scene_basis_sha256,
-        })
+        };
+        if let Some((selection, Some([local_revision, _]))) = selection {
+            let digest = scene_merge::conflict_approval(id, selection, &candidate, local_revision)?;
+            scene_activation::publish_receipt(
+                &dir.join(format!(".fassungswahl-{digest}")),
+                digest.as_bytes(),
+            )?;
+        }
+        fs::rename(stage.path(), backup.join(&candidate.folder)).map_err(io_error)?;
+        stage.keep();
+        Ok(candidate)
     }
 }

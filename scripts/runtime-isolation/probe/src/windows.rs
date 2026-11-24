@@ -7,7 +7,7 @@
 //! TEMP root/data receive additional ACL entries. No firewall or loopback-exemption policy is set.
 #![deny(unsafe_op_in_unsafe_fn)]
 mod debug_guardian;
-mod exchange;
+pub(crate) mod exchange;
 mod p3_picker;
 use serde_json::{Value, json};
 use std::{

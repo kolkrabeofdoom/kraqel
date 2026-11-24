@@ -6,6 +6,8 @@ use windows_sys::Win32::Security::{
 };
 use zeroize::Zeroizing;
 mod crash;
+#[cfg(feature = "desktop-review")]
+pub(crate) mod manuscript;
 mod p3_fixture;
 mod package;
 mod secure_fs;

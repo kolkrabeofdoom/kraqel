@@ -39,6 +39,14 @@ test("Arbeitskopie wird im geöffneten Projekt ausdrücklich vorbereitet", async
     .getByLabel("Quellordner unter backups")
     .fill("uebernahme-44444444-4444-4444-8444-444444444444");
   await page.getByLabel("Separat bestätigter SHA-256 des Quellinventars").fill("d".repeat(64));
+  await page.getByRole("radio", { name: /im isolierten Fenster/ }).check();
+  await page
+    .getByRole("button", { name: "Beide Texte im isolierten Win32-Fenster anzeigen" })
+    .click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Lokale Fassung beibehalten." }),
+  ).toBeVisible();
+  await choice.check();
   await page.getByRole("button", { name: /Auswahl bestätigen/ }).click();
   await expect(page.getByRole("status").filter({ hasText: "uebernahme-ergebnis" })).toBeVisible();
   await expect(choice).toHaveCount(0);

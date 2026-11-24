@@ -7,6 +7,7 @@ publish = false
 [workspace]
 
 [features]
+manuscript-window = []
 # Dedicated synthetic service binaries for the two durable commit boundaries.
 probe-stop-before-snapshot = []
 probe-stop-after-snapshot = []

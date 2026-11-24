@@ -63,6 +63,7 @@ Aktuell im Repository und verifiziert:
   kopiert, Prompt-Quellen referenziell geprüft, SQLite und Nebenartefakte bleiben ausgeschlossen.
   Alle internen Git-Prozesse setzen `core.longpaths=true` ausschließlich pro Aufruf, damit
   SHA-256-Assets auch unter langen Windows-App-Datenpfaden stagebar bleiben.
+- **Manuelle Fassungswahl unter Windows:** Volltexte zweier Projektfassungen dürfen im Versionsdialog nur nach nativer Bestätigung über den isolierten Vergleich angezeigt werden. Die WebView erhält Status, Prüfsummen und Ordnerkennung der freigegebenen Kopie. Auch Git liefert dem Versionsdialog ausschließlich Änderungszahlen und Dateipfade. Die Produktrollen werden beim Windows-Build eingebettet. Eine externe Wahl wird unmittelbar vor Veröffentlichung der Kopie gegen die geprüften Revisionen und Inhalte abgeglichen. [Bedienung](README.md#szenenstände-auf-zwei-rechnern-vergleichen)
 - **Archivimport:** streng begrenzte Snapshot-v3-ZIP-Archive werden vollständig in Rust geprüft und
   erst danach als neues Projekt mit neuer UUID atomar veröffentlicht. Die Oberfläche bietet sowohl
   die offline eingebettete Beispielvorlage als auch eine native Auswahl für `.kraqel`- und

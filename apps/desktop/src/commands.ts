@@ -1102,6 +1102,15 @@ export async function switchSceneActivation(projectId: ProjectId, ticket: string
   ).data;
 }
 
+export async function reviewSceneConflict(projectId: ProjectId, selection: SceneSelection) {
+  return (
+    await callCommand<
+      { projectId: ProjectId; selection: SceneSelection },
+      { choice: "local" | "cancel" } | { choice: "incoming"; candidate: PreparedHandoff }
+    >("review_scene_conflict", { projectId, selection })
+  ).data;
+}
+
 export async function prepareSceneMerge(
   projectId: ProjectId,
   selection: SceneSelection,

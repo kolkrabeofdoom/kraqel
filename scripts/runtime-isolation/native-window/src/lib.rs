@@ -167,3 +167,35 @@ pub fn verify_leaf() -> io::Result<()> {
         require(actual == expected.as_bytes(), "generation grant")
     }
 }
+
+/// The product role accepts exactly one operation; the research role retains its fixture whitelist.
+pub fn role_comparison(argument: Option<&str>) -> Option<bool> {
+    if cfg!(feature = "manuscript-window") {
+        (argument == Some(window_receipt::MANUSCRIPT_COMPARE)).then_some(true)
+    } else {
+        window_receipt::p3_comparison(argument)
+    }
+}
+
+pub fn valid_role_row(row: &[u8], comparison: bool) -> bool {
+    if !cfg!(feature = "manuscript-window") {
+        return window_receipt::valid_p3_row(row, comparison);
+    }
+    let Some((left, right)) = window_receipt::pair_parts(row) else {
+        return false;
+    };
+    let valid = |part: &[u8]| {
+        part.get(4..)
+            .and_then(|s| std::str::from_utf8(s).ok())
+            .and_then(|s| s.split_once('\0'))
+            .is_some_and(|(title, text)| {
+                !title.is_empty() && !title.chars().any(char::is_control) && !text.contains('\0')
+            })
+    };
+    comparison
+        && row[..16] != [0; 16]
+        && row[16..32] != [0; 16]
+        && row[32..64] != row[64..96]
+        && valid(left)
+        && valid(right)
+}
