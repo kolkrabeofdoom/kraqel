@@ -1,5 +1,22 @@
 # Rechnerwechsel und Arbeitsübergabe
 
+## Wiedereinstieg nach dem 24. November 2026
+
+Auf dem Entwicklungszweig `feat/kq-069-live-file-selection` mit `git pull --ff-only` beginnen.
+Die öffentliche [Alpha 6](https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.6)
+trägt den Tag auf `a202aca3cd43`. Der neuere Windows-Prüfkandidat mit Ordnerimport stammt aus
+`a9a3a673ff14`. Auf dem Buildrechner liegen Installer und Prüfsummendatei unter
+`artifacts/release/0.1.0/windows-x64/a9a3a673ff14/`, Archivhelfer und Anleitung unter
+`Rechnerwechsel/` daneben. Die lokalen Installer-Prüfsummen beider Stände, die drei öffentlichen
+Release-Dateien und der portable Archivhelfer wurden zum Tagesabschluss abgeglichen.
+
+Der gebaute Desktop übernahm das geschlossene Demoprojekt mit 22 inhaltlich identischen
+SQLite-Tabellen und 42 bytegleichen Bild- und Vorschaudateien. Nach einem Neustart öffnete sich
+die Kopie. Die separate Archivwahl ließ sich mit der Passphrase wiederherstellen und enthielt
+genau die ausgewählte Zusatzdatei. Der nächste sinnvolle Abnahmeschritt ist ein Update der
+installierten Alpha 6 mit dem Ordnerimport-Installer. Dabei den Startmenüeintrag und ein bereits
+vorhandenes Projekt prüfen. Danach über die Veröffentlichung dieses Kandidaten entscheiden.
+
 ## Einen vorhandenen Windows-Projektordner übernehmen
 
 Im Entwicklungsstand nach Alpha 6 auf der Startseite **Projektordner auswählen** öffnen. Den
