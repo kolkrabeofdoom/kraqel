@@ -239,6 +239,12 @@ python -I scripts/runtime-isolation/p3-volume-fixture.py compare-prepared
 
 Der erneute lokale ETW-Vergleich erfasste die Erzeugung der reinen Hashbasis, die VHDX-Einzelvorschau für das v2-Inventar und den Konfliktlauf zweier unabhängiger synthetischer Arbeitsverzeichnisse. Für den Konfliktlauf wurden ein Python-Prozess, der Erzeugungshelfer, drei Starterläufe, ein Datendienst und eine Fensterrolle zugeordnet. In Referenz, Einzelvorschau und Konfliktlauf waren je vier von vier Positivkontrollen sichtbar. Die Auswertung meldete null verlorene Ereignisse und Puffer und null diesen Prozessbäumen zugeordnete Netzwerkereignisse. Das ist kein Netzwerknachweis für die gesamte Desktop-App.
 
+### Auswahl einseitiger Szenenänderungen
+
+Der Desktop-Befehl `prepare_scene_merge` akzeptiert Projektkennung, gemeinsame Basis, geprüften lokalen Stand, externe Szenenbasis, Quellordnerkennung, unabhängig bestätigten Inventarhash und eine eindeutige, nichtleere Szenenauswahl. Die native Speicherung baut unter einer SQLite-Transaktion ein eigenes Arbeitsergebnis auf. Der Quellordner muss innerhalb von `backups` liegen. Aus dem v2-Inventar werden die Basisdatei und das bestätigte SQLite-Abbild geprüft. Für die Szenenauswahl wird ausschließlich dieses Abbild im Arbeitsspeicher geöffnet. Das Inventar ist auf 128 KiB, das Quellabbild auf 128 MiB begrenzt. Als Medienbestand dient der lokale Arbeitsstand.
+
+Jede ausgewählte Szene muss in allen drei Ständen existieren und lokal noch der gemeinsamen Basis entsprechen. Elternkennung und Position müssen übereinstimmen. Titel, Editorinhalt und abgeleiteter Klartext werden geprüft, die Szenenrevision der Kopie wird vom lokalen Wert aus erhöht. Der Abgleich besitzt keine Löschoperation. Ein ungültiger Eintrag sperrt die gesamte Auswahl. Vor Veröffentlichung wird der resultierende Szenenbestand gegen die erwarteten Prüfsummen geprüft und aus den logischen Datensätzen eine frische Datenbank einschließlich Suchindex erzeugt. Die Ergebniskopie behält die Projektkennung. Sie wird als eigener Vorbereitungsordner veröffentlicht. Eine Aktivierung im Projektkatalog ist ein separater Schritt.
+
 ### Bedienbare P3-Übernahme mit separatem Zusatzarchiv
 
 Der zusammenhängende Windows-Prüflauf verbindet native Auswahl, inventarisierte Erfassung, Veröffentlichung, Wiederöffnen durch die Prüfinstallation und schreibgeschützte Szenenanzeige. Er benötigt PowerShell 7 mit administrativen Rechten zum Einhängen seiner temporären VHDX und die im Skript genannten drei lokalen Binärdateien.

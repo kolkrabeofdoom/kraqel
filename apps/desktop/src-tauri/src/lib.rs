@@ -34,6 +34,7 @@ use kraqel_storage::{
     media_repository::{MediaError, MediaRepository},
     project_manager::{
         PreparedHandoff, ProjectError, ProjectManager, SceneBasisComparison, SceneBasisReceipt,
+        SceneMergeSelection,
     },
     prompt_repository::{PromptError, PromptRepository},
     story_bible_repository::{StoryBibleError, StoryBibleRepository},
@@ -1933,6 +1934,32 @@ async fn compare_scene_bases(
     .map_err(|_| CommandError::internal(request_id))?
     .map_err(|e| map_project_error(request_id, &e))?;
     Ok(CommandResponse::current(request_id, result))
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct PrepareSceneMergeRequest {
+    project_id: String,
+    selection: SceneMergeSelection,
+}
+
+#[tauri::command]
+async fn prepare_scene_merge(
+    state: State<'_, AppState>,
+    request: CommandRequest<PrepareSceneMergeRequest>,
+) -> Result<CommandResponse<PreparedHandoff>, CommandError> {
+    require_current_contract(&request)?;
+    let request_id = request.request_id;
+    let payload = request.payload;
+    let id = parse_project_id(request_id, &payload.project_id)?;
+    let manager = manager(&state, request_id)?;
+    let receipt = tauri::async_runtime::spawn_blocking(move || {
+        manager.prepare_scene_merge(id, &payload.selection)
+    })
+    .await
+    .map_err(|_| CommandError::internal(request_id))?
+    .map_err(|e| map_project_error(request_id, &e))?;
+    Ok(CommandResponse::current(request_id, receipt))
 }
 
 #[tauri::command]
@@ -3912,6 +3939,7 @@ pub fn run() {
             prepare_project_handoff,
             save_scene_basis,
             compare_scene_bases,
+            prepare_scene_merge,
             validate_project_snapshot,
             get_version_control_status,
             get_version_control_diff,

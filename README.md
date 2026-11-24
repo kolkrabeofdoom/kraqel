@@ -394,6 +394,10 @@ Die Basisdatei enthält Format, Projektkennung sowie pro Szene deren Kennung und
 
 Eine neu vorbereitete Arbeitskopie enthält die passende Basisdatei aus derselben SQLite-Transaktion. Für den Vergleich genügt es, diese Datei in den Zielordner `backups` zu kopieren und die bei der Vorbereitung angezeigte Basisprüfsumme zu verwenden.
 
+**Eine Auswahl als neue Arbeitskopie vorbereiten.** Für eine bereits auf beiden Rechnern vorhandene Szene lassen sich Titel und formatierter Inhalt übernehmen, wenn nur der andere Rechner sie geändert hat und sie an derselben Stelle im Manuskript steht. Dazu den vollständigen vorbereiteten Quellordner `uebernahme-<UUID>` nach `backups` kopieren. Im Vergleich die gewünschten Szenen ankreuzen, Ordnername und separat bestätigten SHA-256 des **Quellinventars** eingeben und die Auswahl bestätigen. Im angezeigten neuen Ordner liegt der lokale Projektstand mit diesen Änderungen. Die lokalen Medien und Verknüpfungen bleiben Bestandteil der Kopie.
+
+Eine auf dem anderen Rechner gelöschte Szene bleibt lokal erhalten. Eine Löschung ist ausschließlich über die bewusste lokale Projektbearbeitung möglich. Bei beidseitig geänderten Szenen ist im Abgleich weiterhin nur die Prüfung verfügbar. Ändert sich der geprüfte lokale Szenenstand vor dem Bestätigen, ist ein neuer Vergleich erforderlich. Das Ergebnis ist eine vorbereitete Kopie mit derselben Projektkennung. Das aktive Projekt wechselt dadurch nicht.
+
 Die Basisdatei ist ein Vergleichsbeleg. Eine Wiederherstellung des Manuskripts oder eine zeilenweise Rekonstruktion früherer Texte ist daraus nicht möglich. Für die gemeinsame Herkunft ist die vor der Trennung gesicherte Basis maßgeblich. Die Projektkennung allein belegt diese Herkunft nicht.
 
 ### Übernahme eines geöffneten Projekts vorbereiten

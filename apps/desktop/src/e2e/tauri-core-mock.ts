@@ -948,7 +948,35 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
             localExists: false,
             incomingExists: true,
           },
+          {
+            sceneId: "22222222-2222-4222-8222-222222222222",
+            difference: "incoming",
+            baseExists: true,
+            localExists: true,
+            incomingExists: true,
+          },
+          {
+            sceneId: "33333333-3333-4333-8333-333333333333",
+            difference: "incoming",
+            baseExists: true,
+            localExists: true,
+            incomingExists: false,
+          },
         ],
+      };
+    }
+    case "prepare_scene_merge": {
+      findProject(state, payload.projectId);
+      const selection = payload.selection as { scenes: string[]; local: string };
+      if (
+        selection.local !== "c".repeat(64) ||
+        selection.scenes.join() !== "22222222-2222-4222-8222-222222222222"
+      )
+        throw new Error("Ungültige Auswahl");
+      return {
+        folder: "uebernahme-ergebnis",
+        manifestSha256: "e".repeat(64),
+        sceneBasisSha256: "f".repeat(64),
       };
     }
     case "prepare_project_handoff": {

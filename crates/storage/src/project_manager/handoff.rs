@@ -14,7 +14,7 @@ fn io_error(source: io::Error) -> ProjectError {
 
 type SchemaObject = (String, String, String, Option<String>);
 
-fn schema(db: &Connection) -> Result<Vec<SchemaObject>, ProjectError> {
+pub(super) fn schema(db: &Connection) -> Result<Vec<SchemaObject>, ProjectError> {
     let mut stmt =
         db.prepare("SELECT type,name,tbl_name,sql FROM sqlite_schema ORDER BY type,name")?;
     Ok(stmt
@@ -22,7 +22,7 @@ fn schema(db: &Connection) -> Result<Vec<SchemaObject>, ProjectError> {
         .collect::<Result<_, _>>()?)
 }
 
-fn rebuild(source: &Connection, id: ProjectId, path: &Path) -> Result<(), ProjectError> {
+fn rebuild(source: &Connection, id: ProjectId) -> Result<Database, ProjectError> {
     let mut fresh = Database::open_in_memory()?;
     fresh
         .connection()
@@ -94,6 +94,10 @@ fn rebuild(source: &Connection, id: ProjectId, path: &Path) -> Result<(), Projec
     target
         .execute_batch("INSERT INTO document_fts(document_fts,rank) VALUES('integrity-check',1)")?;
     target.commit()?;
+    Ok(fresh)
+}
+
+fn write_database(fresh: &Database, path: &Path) -> Result<(), ProjectError> {
     fresh.connection().backup(MAIN_DB, path, None)?;
     fs::OpenOptions::new()
         .write(true)
@@ -237,6 +241,14 @@ impl ProjectManager {
     /// # Errors
     /// Eine abweichende Kennung, unbekanntes Schema oder unvollständige Medien sperren die Veröffentlichung.
     pub fn prepare_handoff(&self, id: ProjectId) -> Result<PreparedHandoff, ProjectError> {
+        self.prepare_selected_handoff(id, None)
+    }
+
+    pub(super) fn prepare_selected_handoff(
+        &self,
+        id: ProjectId,
+        selection: Option<&SceneMergeSelection>,
+    ) -> Result<PreparedHandoff, ProjectError> {
         #[cfg(windows)]
         let directory = self.root.join(id.to_string());
         #[cfg(windows)]
@@ -255,7 +267,13 @@ impl ProjectManager {
         validate_directory_metadata(&candidate_attributes(&backup)?)?;
         let mut stage = TemporaryDirectory::create(&backup)?;
         let main = stage.path().join(DATABASE_FILE_NAME);
-        rebuild(&tx, id, &main)?;
+        let mut fresh = rebuild(&tx, id)?;
+        if let Some(selection) = selection {
+            selection.apply(&mut fresh, id, &backup)?;
+            // Rematerialize logical rows. Edited SQLite and FTS pages can retain the old text.
+            fresh = rebuild(fresh.connection(), id)?;
+        }
+        write_database(&fresh, &main)?;
         let mut files = BTreeMap::from([(DATABASE_FILE_NAME.to_owned(), digest_file(&main)?)]);
         let mut stmt =
             tx.prepare("SELECT relative_path,thumbnail_path,checksum,byte_count FROM media_asset")?;
@@ -280,7 +298,7 @@ impl ProjectManager {
         }
         drop(rows);
         drop(stmt);
-        let scene_basis_sha256 = scene_basis::stage_basis(&tx, id, stage.path())?;
+        let scene_basis_sha256 = scene_basis::stage_basis(fresh.connection(), id, stage.path())?;
         let receipt = serde_json::json!({"format":"kraqel-logical-preparation-v2","projectId":id,"files":files,"sceneBasisSha256":scene_basis_sha256});
         let mut manifest =
             fs::File::create_new(stage.path().join("uebernahme.json")).map_err(io_error)?;

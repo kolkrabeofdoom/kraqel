@@ -1071,6 +1071,25 @@ interface PreparedHandoff {
   readonly sceneBasisSha256: string;
 }
 
+export async function prepareSceneMerge(
+  projectId: ProjectId,
+  selection: {
+    base: string;
+    local: string;
+    incoming: string;
+    folder: string;
+    manifest: string;
+    scenes: readonly string[];
+  },
+): Promise<PreparedHandoff> {
+  return (
+    await callCommand<{ projectId: ProjectId; selection: typeof selection }, PreparedHandoff>(
+      "prepare_scene_merge",
+      { projectId, selection },
+    )
+  ).data;
+}
+
 export async function prepareProjectHandoff(projectId: ProjectId): Promise<PreparedHandoff> {
   return (
     await callCommand<{ readonly projectId: ProjectId }, PreparedHandoff>(

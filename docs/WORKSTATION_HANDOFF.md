@@ -2,7 +2,7 @@
 
 ## Getrennt auf zwei Rechnern schreiben
 
-Vor dem Abzweigen im Versionsdialog die gemeinsame Szenenbasis sichern. Nach der Rückkehr lassen sich einseitige Änderungen und Konflikte anhand der Basisdateien lesend vergleichen. Die vollständigen Arbeitskopien für die weitere Bearbeitung separat aufbewahren. [Ablauf im Desktop-Entwicklungsstand](../README.md#szenenstände-auf-zwei-rechnern-vergleichen)
+Vor dem Abzweigen im Versionsdialog die gemeinsame Szenenbasis sichern. Nach der Rückkehr lassen sich einseitige Änderungen und Konflikte anhand der Basisdateien lesend vergleichen. Für die Auswahl einseitiger Änderungen den vorbereiteten Quellordner und seinen getrennt bestätigten Inventarhash mitnehmen. Die Bestätigung erzeugt einen weiteren Vorbereitungsordner. Die vollständigen Arbeitskopien für die weitere Bearbeitung separat aufbewahren. [Ablauf im Desktop-Entwicklungsstand](../README.md#szenenstände-auf-zwei-rechnern-vergleichen)
 
 ## Desktop-Vorbereitung und isolierte Vorschau
 

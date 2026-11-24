@@ -15,7 +15,7 @@ use serde_json::{Value, json};
 
 use crate::{Database, StorageError};
 
-const MAX_EDITOR_DOCUMENT_BYTES: usize = 5 * 1024 * 1024;
+pub(crate) const MAX_EDITOR_DOCUMENT_BYTES: usize = 5 * 1024 * 1024;
 
 /// Vollständiger gespeicherter Dokumentstand.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -779,7 +779,7 @@ fn validate_imported_title(title: &str) -> Result<(), DocumentError> {
     }
 }
 
-fn validate_content(content: &EditorDocument) -> Result<(), DocumentError> {
+pub(crate) fn validate_content(content: &EditorDocument) -> Result<(), DocumentError> {
     if content.version != EDITOR_DOCUMENT_VERSION
         || content.document.get("type").and_then(Value::as_str) != Some("doc")
         || content
@@ -799,7 +799,7 @@ fn empty_editor_document() -> EditorDocument {
     }
 }
 
-fn plain_text(content: &EditorDocument) -> String {
+pub(crate) fn plain_text(content: &EditorDocument) -> String {
     let mut fragments = Vec::new();
     collect_text(&content.document, &mut fragments);
     fragments

@@ -30,8 +30,18 @@ test("Arbeitskopie wird im geöffneten Projekt ausdrücklich vorbereitet", async
   await page.getByLabel("SHA-256 des Stands vom anderen Rechner").fill("b".repeat(64));
   await page.getByRole("button", { name: "Szenen lesend vergleichen" }).click();
   await expect(page.getByText(/Auswahl erforderlich.*hier nicht vorhanden/)).toBeVisible();
-  await page.getByLabel("SHA-256 der gemeinsamen Ausgangsbasis").fill("d".repeat(64));
-  await expect(page.getByText(/Auswahl erforderlich/)).toHaveCount(0);
+  await expect(page.getByText(/Löschung im Abgleich gesperrt/)).toBeVisible();
+  const choice = page.getByRole("checkbox", { name: /Titel und Inhalt/ });
+  await expect(choice).toHaveCount(1);
+  await expect(choice).not.toBeChecked();
+  await choice.check();
+  await page
+    .getByLabel("Quellordner unter backups")
+    .fill("uebernahme-44444444-4444-4444-8444-444444444444");
+  await page.getByLabel("Separat bestätigter SHA-256 des Quellinventars").fill("d".repeat(64));
+  await page.getByRole("button", { name: /Auswahl bestätigen/ }).click();
+  await expect(page.getByRole("status").filter({ hasText: "uebernahme-ergebnis" })).toBeVisible();
+  await expect(choice).toHaveCount(0);
 });
 
 test("abgebrochener Projektarchivexport bleibt neutral", async ({ page }) => {

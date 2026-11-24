@@ -9,7 +9,7 @@ rust-version.workspace = true
 [dependencies]
 kraqel-continuity = { path = "../continuity" }
 kraqel-domain = { path = "../domain" }
-rusqlite = { version = "0.39.0", default-features = false, features = ["backup", "bundled"] }
+rusqlite = { version = "0.39.0", default-features = false, features = ["backup", "bundled", "serialize"] }
 serde = "1"
 serde_json = "1"
 sha2 = "0.10"

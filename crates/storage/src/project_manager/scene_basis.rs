@@ -12,10 +12,10 @@ const MAX_BYTES: u64 = 8 * 1024 * 1024;
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct Basis {
+pub(super) struct Basis {
     format: String,
     project_id: ProjectId,
-    scenes: BTreeMap<EntityId, String>,
+    pub(super) scenes: BTreeMap<EntityId, String>,
 }
 
 #[derive(Serialize)]
@@ -61,11 +61,11 @@ fn io_error(source: io::Error) -> ProjectError {
     }
 }
 
-fn hash(bytes: &[u8]) -> String {
+pub(super) fn hash(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
 }
 
-fn is_hash(s: &str) -> bool {
+pub(super) fn is_hash(s: &str) -> bool {
     s.len() == 64
         && s.bytes()
             .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
@@ -76,7 +76,7 @@ fn filename(digest: &str) -> String {
 }
 
 impl Basis {
-    fn from_db(db: &Connection, id: ProjectId) -> Result<Self, ProjectError> {
+    pub(super) fn from_db(db: &Connection, id: ProjectId) -> Result<Self, ProjectError> {
         if db.pragma_query_value(None, "user_version", |r| r.get::<_, u32>(0))?
             != CURRENT_DATABASE_VERSION.0
             || db
@@ -119,7 +119,7 @@ impl Basis {
         })
     }
 
-    fn bytes(&self) -> Result<Vec<u8>, ProjectError> {
+    pub(super) fn bytes(&self) -> Result<Vec<u8>, ProjectError> {
         let bytes = serde_json::to_vec(self).map_err(|_| ProjectError::InvalidDatabase)?;
         if bytes.len() as u64 > MAX_BYTES {
             return Err(ProjectError::InvalidDatabase);
@@ -127,7 +127,7 @@ impl Basis {
         Ok(bytes)
     }
 
-    fn read(dir: &Path, digest: &str, id: ProjectId) -> Result<Self, ProjectError> {
+    pub(super) fn read(dir: &Path, digest: &str, id: ProjectId) -> Result<Self, ProjectError> {
         if !is_hash(digest) {
             return Err(ProjectError::InvalidRelativePath);
         }
