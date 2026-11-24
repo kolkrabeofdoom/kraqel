@@ -215,6 +215,10 @@ Die Windows-Probe beendet den Kopierprozess direkt nach der ersten Entfernung. D
 
 **Schreibgeschützte P3-Fenstervorschau.** Beide Rollen laufen in eigenen AppContainern. Der Starter installiert im geprüften, suspendierten Fensterprozess ausschließlich das Leseende der Szenenpipe und im Datendienst das Schreibende. Der Dienst schreibt die gebundene Zeile in die Pipe und quittiert sie. Nach seinem regulären Ende erhält das Fenster die Startfreigabe und den erwarteten Inhaltsdigest. Es gleicht die empfangene Zeile ab und liest Text und Schreibschutzstatus am nativen Eingabefeld zurück. Der Starter prüft das sichtbare Fensterhandle gegen Prozess, Thread und Fensterklasse, schließt das Prüffenster und bestätigt das Sitzungsende nach der Bereinigung beider Rollen. Der Prüfpfad ist auf den festen synthetischen Datensatz beschränkt.
 
+**Bedienbare Vorschau.** In einer erhöhten PowerShell öffnet `./scripts/runtime-isolation/check-p3-readonly-volume.ps1 -InteractivePreview` aus dem Repository die veröffentlichte synthetische Szene. Der Schalter gilt ausschließlich für die erfolgreich gebundene Zeile. Das Fenster bleibt bis zum Schließen geöffnet. Ohne Schalter schließt die Prüfsteuerung das Fenster automatisch. Erforderlich sind die im Skript genannten lokalen Builds für Starter, Fenster und Datendienst.
+
+Der vollständige VHDX-Lauf bestätigte die automatische Vorschau und die Abweisung einer ausgetauschten Szenenkennung und Fenster-EXE. Ein gesonderter lokaler Rollenlauf prüfte die neue Warteoption am sichtbaren Fenster. Während der Anzeige blieb ein paralleler Leseaufruf gesperrt. Nach regulärem Schließen ließ sich die Vorschau erneut öffnen. Ein gezielt beendeter Starter riss die sichtbare Fensterrolle mit. Der folgende Leseaufruf blieb wegen des fehlenden Endebelegs gesperrt. Die Entfernung des AppContainer-Profils nach diesem harten Abbruch wurde nicht nachgewiesen.
+
 ## 5. Vor Fortsetzung des eingeschränkten Prozesses
 
 - Aktuellen Actor/Kopf/Paketvertrag, unveränderte Paketbytes/Ressourcen und gültige Datenbindung

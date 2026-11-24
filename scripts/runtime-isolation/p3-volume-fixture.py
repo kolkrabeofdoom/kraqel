@@ -313,9 +313,9 @@ class NativeAuthority:
         if self.pipe.stdout.readline(16) != b"BOUND\n":
             raise RuntimeError("scene binding failed: " + self.pipe.stderr.read(512).decode())
 
-    def deliver(self, row):
+    def deliver(self, row, interactive=False):
         self.bind_delivery(row)
-        self.pipe.stdin.write(b"\x01")
+        self.pipe.stdin.write(b"\x02" if interactive else b"\x01")
         self.pipe.stdin.flush()
         if self.pipe.stdout.readline(16) != b"DELIVERED\n":
             raise RuntimeError("scene delivery failed: " + self.pipe.stderr.read(512).decode())
@@ -470,7 +470,7 @@ def remove_confirmed(root, destination, metadata, approved, home, after_remove=N
 
 
 
-def read_published_scene(root, target, metadata, approved, home):
+def read_published_scene(root, target, metadata, approved, home, interactive=False):
     project_id, scene_id, _, expected = metadata
     with volume_guard(str(root.parent), True), pinned_directory(root), pinned_directory(target):
         with native_authority(home, False, read_only=True) as authority, target_lock(target, project_id):
@@ -504,11 +504,11 @@ def read_published_scene(root, target, metadata, approved, home):
                     require(len(rows) == 1, "bound scene missing")
                     row = scene_frame(metadata, rows[0])
                     require(len(row) == len(scene_frame(metadata, P3_SCENE)), "unsupported fixture row")
-                    authority.deliver(row)
+                    authority.deliver(row, interactive)
                     return rows[0]
 
 
-def native_restart(root, fixture, metadata):
+def native_restart(root, fixture, metadata, interactive):
     home = fixture / "install-a"
     foreign = fixture / "install-b"
     for directory in (home, foreign):
@@ -586,7 +586,7 @@ def native_restart(root, fixture, metadata):
             finally:
                 window.unlink(missing_ok=True)
                 original.rename(window)
-            require(read_published_scene(root, target, metadata, ticket, home) == P3_SCENE,
+            require(read_published_scene(root, target, metadata, ticket, home, interactive) == P3_SCENE,
                     "wrong published scene")
             with native_authority(home, False, read_only=True) as reader:
                 require(decision(reader, root, target, metadata) == ticket, "wrong restart decision")
@@ -787,10 +787,10 @@ def run_to_exit(operation, args, code):
         worker.close()
 
 
-def capture(root, fixture):
+def capture(root, fixture, interactive=False):
     metadata = json.loads((fixture / "expected.json").read_text())
     require(metadata[3] == inventory(root), "unexpected source")
-    native_restart(root, fixture, metadata)
+    native_restart(root, fixture, metadata, interactive)
     check_cleanup_decision(root, fixture, metadata)
     # The fixture controller supplies one explicit decision. Its key lasts
     # across worker processes but grants no authority after the controller exits.
@@ -901,8 +901,11 @@ if __name__ == "__main__":
         fixture = Path(arg)
         require(fixture.parent.resolve() == Path(tempfile.gettempdir()).resolve()
                 and re.fullmatch(r"kraqel-p3-[0-9a-f]{32}", fixture.name), "invalid fixture home")
-        require(mode in ("prepare", "capture"), "invalid fixture mode")
-        with volume_guard(volume, mode == "capture"):
-            (prepare if mode == "prepare" else capture)(root, fixture)
-        if mode == "capture":
+        require(mode in ("prepare", "capture", "preview"), "invalid fixture mode")
+        with volume_guard(volume, mode != "prepare"):
+            if mode == "prepare":
+                prepare(root, fixture)
+            else:
+                capture(root, fixture, interactive=mode == "preview")
+        if mode != "prepare":
             print("PASS: native controller restart resumed partial transfer and confirmed publication; foreign installation refused; cleanup recovered; bound scene shown read-only; substituted scene and window image refused")

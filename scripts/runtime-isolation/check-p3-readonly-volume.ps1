@@ -1,7 +1,7 @@
 # Windows-only P3 research fixture. Run with administrative rights for VHD attachment.
 # Creates its own source volume. Takes no source, destination or physical disk parameter.
 [CmdletBinding()]
-param()
+param([switch]$InteractivePreview)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $python = (Get-Command python.exe -CommandType Application | Select-Object -First 1).Source
@@ -55,7 +55,8 @@ try {
     if (!$disk.IsReadOnly -or $reopened.Count -ne 1 -or $reopened[0].Path -ne $volumePath) {
         throw 'Read-only source volume not confirmed'
     }
-    Invoke-Fixture 'capture' $volumePath
+    $mode = if ($InteractivePreview) { 'preview' } else { 'capture' }
+    Invoke-Fixture $mode $volumePath
 } finally {
     try { if ($attached) { Dismount-VHD -Path $image } } finally { if ($null -ne $imagePin) { $imagePin.Dispose() } }
     # The only removable items are this run's own image and fixed fixture outputs.

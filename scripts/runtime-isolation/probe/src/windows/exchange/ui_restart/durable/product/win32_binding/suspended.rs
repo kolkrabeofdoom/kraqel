@@ -58,6 +58,7 @@ pub(in super::super) fn deliver_p3(
     window: &fs::File,
     binding: [u8; 32],
     row: &[u8; crate::window_receipt::P3_LEN],
+    interactive: bool,
 ) -> Result<()> {
     use crate::window_receipt as protocol;
     use windows_sys::Win32::Storage::FileSystem::{FILE_READ_DATA, FILE_WRITE_DATA, SYNCHRONIZE};
@@ -114,7 +115,7 @@ pub(in super::super) fn deliver_p3(
                 to_ui.write_all(&protocol::p3_receipt(row)),
             )?;
             drop(to_ui);
-            bootstrap::wait_surface(ui, &mut reply, false)
+            bootstrap::wait_surface(ui, &mut reply, interactive)
         },
     )
 }
