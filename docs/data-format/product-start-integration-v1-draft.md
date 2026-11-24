@@ -193,6 +193,8 @@ Der Prüfstarter erhält außerdem ein Handle auf den Prozess der Prüfsteuerung
 
 Beim regulären Ende der interaktiven Prüfung entfernt die Steuerung ausschließlich einzeln geprüfte Testdateien und identitätsgeprüfte leere Quellverzeichnisse. Eine im ausgewählten Projekt hinzugekommene Fremddatei führte zur Ablehnung der Kopie und blieb erhalten. Im anderen Projekt blieb eine zusätzliche Datei sowohl nach erfolgreicher Auswahl als auch nach Abbruch erhalten. Ein unklarer Restbestand kann im temporären Prüfverzeichnis verbleiben.
 
+Zwischen Dialogbestätigung und Erfassung vergleicht die Prüfsteuerung jeden geöffneten Eintrag des gewählten Projektbaums mit seiner vor dem Dialog erfassten Datei- oder Verzeichnisidentität. Im Windows-Lauf wurde eine Bilddatei nach der Auswahl durch ein bytegleiches Exemplar mit anderer Datei-ID ersetzt. Die Erfassung brach vor Zielanlage und Journalregistrierung ab. Die Bereinigung ließ die Ersatzdatei stehen und entfernte die übrigen bestätigten Testdateien. In einem zweiten Lauf blieb eine Bilddatei samt nachträglich angelegtem benanntem NTFS-Datenstrom erhalten. Die Prüfung des Hauptdatenstroms und der Streamliste erfolgt beim Aufräumen am geöffneten Dateihandle.
+
 Für reguläre Projekte bleibt die freie Ordnerauswahl in der installierten Anwendung offen. Das synthetische Verfahren setzt die vertrauenswürdige Prüfsteuerung und die zugehörige Kontrollablage voraus.
 
 ### Einmalige Veröffentlichung am gebundenen synthetischen Ziel

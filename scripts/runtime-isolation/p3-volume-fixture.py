@@ -113,7 +113,7 @@ def inventory(root):
     return entries
 
 
-def capture_writable_fixture(root, selected_root, read_oplock, during_copy=None):
+def capture_writable_fixture(root, selected_root, read_oplock, during_copy=None, selected_entries=None):
     """Capture one bounded logical instant. Return bytes only after every outstanding lease passes."""
     checks, files, snapshot = [], [], {}
     remaining = 32 * 1024 * 1024
@@ -146,6 +146,9 @@ def capture_writable_fixture(root, selected_root, read_oplock, during_copy=None)
                     "changed capture identity")
             if depth == 0:
                 require(os.path.samestat(selected_root, info), "selected project directory changed")
+            elif selected_entries is not None:
+                require(path in selected_entries and os.path.samestat(selected_entries[path], info),
+                        "selected source entry changed")
             checks.append(pins.enter_context(read_oplock(raw)))
             check_entry(path)
             name = path.relative_to(root).as_posix()
@@ -188,6 +191,22 @@ def verify_selection(fixture, candidate, metadata, selected):
         authority.attest(NativeAuthority.domains[0], selection_digest(selected, candidate, metadata[:4]), False)
 
 
+class UnownedFixtureFile(RuntimeError):
+    """The file at this name no longer matches the generated fixture."""
+
+
+def only_default_stream(raw):
+    # FILE_STREAM_INFO contains a linked list; a generated file has just ::$DATA.
+    buffer = ctypes.create_string_buffer(512)
+    if not kernel.GetFileInformationByHandleEx(wintypes.HANDLE(raw), 7, buffer, len(buffer)):
+        return False
+    data = buffer.raw
+    name = "::$DATA".encode("utf-16-le")
+    return (int.from_bytes(data[:4], "little") == 0
+            and int.from_bytes(data[4:8], "little") == len(name)
+            and data[24:24 + len(name)] == name)
+
+
 @contextmanager
 def pending_fixture_deletion(files):
     """Windows closes these exact synthetic files if the controller dies in the picker."""
@@ -204,10 +223,10 @@ def pending_fixture_deletion(files):
                 raise
             file = pins.enter_context(os.fdopen(fd, "rb"))
             info = os.fstat(fd)
-            require(os.path.samestat(identity, info) and info.st_nlink == 1
-                    and not info.st_file_attributes & 0x410
-                    and hashlib.file_digest(file, "sha256").hexdigest() == digest,
-                    "source cleanup identity mismatch")
+            if (not os.path.samestat(identity, info) or info.st_nlink != 1
+                    or info.st_file_attributes & 0x410 or not only_default_stream(raw)
+                    or hashlib.file_digest(file, "sha256").hexdigest() != digest):
+                raise UnownedFixtureFile("source cleanup identity mismatch")
             handles.append(wintypes.HANDLE(raw))
 
         for handle in handles:
@@ -266,7 +285,7 @@ def selection_sources(interactive):
                 try:
                     with pending_fixture_deletion([entry]):
                         pass
-                except FileNotFoundError:
+                except (FileNotFoundError, UnownedFixtureFile):
                     pass
         for directory, identity in reversed(directories):
             remove_empty_fixture_directory(directory, identity)
@@ -334,10 +353,15 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
             name = "project"
         metadata, root, selected_root = choices[name]
 
+        selected_entries = None
+        if interactive_selection:
+            selected_entries = {path: identity for path, identity, _ in generated_files[name]}
+            selected_entries.update((path, identity) for path, identity in directories
+                                    if root in path.parents)
         planned = dict(metadata[3])
 
         def capture(after_first=None):
-            snapshot = capture_writable_fixture(root, selected_root, read_oplock, after_first)
+            snapshot = capture_writable_fixture(root, selected_root, read_oplock, after_first, selected_entries)
             expected = {name: None if data is None else hashlib.sha256(data).hexdigest()
                         for name, data in snapshot.items()}
             require(expected == planned, "incomplete writable capture")
