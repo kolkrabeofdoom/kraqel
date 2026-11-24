@@ -4165,6 +4165,8 @@ pub fn run() {
             #[cfg(windows)]
             item_review::list_handoff_items,
             #[cfg(windows)]
+            item_review::missing_handoff_parent,
+            #[cfg(windows)]
             item_review::review_handoff_item,
             #[cfg(windows)]
             item_review::secure_handoff_item,

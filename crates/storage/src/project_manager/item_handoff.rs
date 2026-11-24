@@ -12,6 +12,8 @@ use std::collections::BTreeMap;
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ItemKind {
+    Storyline,
+    Timeline,
     Entity,
     Relation,
     Link,
@@ -24,6 +26,8 @@ pub enum ItemKind {
 impl ItemKind {
     pub(super) fn table(self) -> &'static str {
         match self {
+            Self::Storyline => "storyline",
+            Self::Timeline => "timeline",
             Self::Entity => "entity",
             Self::Relation => "relation",
             Self::Link => "link",
@@ -239,7 +243,10 @@ pub(super) fn validate_fields(
             .filter(|id| id.to_string() == s)
             .ok_or_else(invalid)
     };
-    if matches!(key.kind, ItemKind::Event | ItemKind::PlotCard) {
+    if matches!(
+        key.kind,
+        ItemKind::Event | ItemKind::PlotCard | ItemKind::Storyline | ItemKind::Timeline
+    ) {
         let position = row
             .get("position")
             .and_then(Value::as_u64)
@@ -247,6 +254,28 @@ pub(super) fn validate_fields(
         u32::try_from(position).map_err(|_| invalid())?;
     }
     match key.kind {
+        ItemKind::Storyline => {
+            structure::validate_text(text("name")?, 120).map_err(|_| invalid())?;
+            if !structure::valid_color(text("color")?) {
+                return Err(invalid());
+            }
+        }
+        ItemKind::Timeline => {
+            structure::validate_text(text("name")?, 120).map_err(|_| invalid())?;
+            structure::parse_mode(text("mode")?).map_err(|_| invalid())?;
+            if let Some(old) = load_item(db, id, key)?
+                && old["mode"] != row["mode"]
+            {
+                let occupied: bool = db.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM event WHERE project_id=?1 AND timeline_id=?2)",
+                    params![id.to_string(), key.ids[0]],
+                    |r| r.get(0),
+                )?;
+                if occupied {
+                    return Err(invalid());
+                }
+            }
+        }
         ItemKind::Entity => {
             bible::parse_entity_kind(text("kind")?).map_err(|_| invalid())?;
             bible::validate_name(text("name")?).map_err(|_| invalid())?;
@@ -366,6 +395,58 @@ impl ProjectManager {
         })
     }
 
+    /// Reports only a missing storyline/timeline key for the incoming version of the selected child.
+    ///
+    /// # Errors
+    /// Stale selections or a parent missing from its bound source project reject the lookup.
+    pub fn missing_handoff_parent(
+        &self,
+        id: ProjectId,
+        s: &ItemSelection,
+    ) -> Result<Option<ItemKey>, ProjectError> {
+        self.with_reviewed_item(id, s, |local, src, _, after| {
+            let (kind, parent_id) = match s.change.key.kind {
+                ItemKind::PlotCard => match after["storyline_id"].as_str() {
+                    Some(parent) => (ItemKind::Storyline, parent),
+                    None => return Ok(None),
+                },
+                ItemKind::Event => (
+                    ItemKind::Timeline,
+                    after["timeline_id"].as_str().ok_or_else(invalid)?,
+                ),
+                _ => return Ok(None),
+            };
+            let key = ItemKey {
+                kind,
+                ids: vec![parent_id.to_owned()],
+            };
+            if load_item(src, id, &key)?.is_none() {
+                return Err(invalid());
+            }
+            Ok(load_item(local, id, &key)?.is_none().then_some(key))
+        })
+    }
+
+    fn with_reviewed_item<T>(
+        &self,
+        id: ProjectId,
+        s: &ItemSelection,
+        run: impl FnOnce(
+            &Connection,
+            &Connection,
+            Option<&ItemRow>,
+            &ItemRow,
+        ) -> Result<T, ProjectError>,
+    ) -> Result<T, ProjectError> {
+        self.with_item_source(id, &s.folder, &s.manifest, |src| {
+            self.with_read_snapshot(id, |_, local| {
+                handoff::validate_source(local, src, id)?;
+                let (before, after) = checked_rows(local, src, id, &s.change)?;
+                run(local, src, before.as_ref(), &after)
+            })
+        })
+    }
+
     /// Reads both native-only row presentations following an explicit review request.
     ///
     /// # Errors
@@ -375,14 +456,9 @@ impl ProjectManager {
         id: ProjectId,
         s: &ItemSelection,
     ) -> Result<(Option<String>, String), ProjectError> {
-        self.with_item_source(id, &s.folder, &s.manifest, |src| {
-            self.with_read_snapshot(id, |_, local| {
-                handoff::validate_source(local, src, id)?;
-                let (before, after) = checked_rows(local, src, id, &s.change)?;
-                let render =
-                    |row: &ItemRow| serde_json::to_string_pretty(row).map_err(|_| invalid());
-                Ok((before.as_ref().map(render).transpose()?, render(&after)?))
-            })
+        self.with_reviewed_item(id, s, |_, _, before, after| {
+            let render = |row: &ItemRow| serde_json::to_string_pretty(row).map_err(|_| invalid());
+            Ok((before.map(render).transpose()?, render(after)?))
         })
     }
 
@@ -607,6 +683,119 @@ mod structure_item_tests {
                 .unwrap();
                 assert!(write_item(db, id, &key, &row).is_err());
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod parent_tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    #[test]
+    fn missing_parent_requires_separate_activation_and_protects_dependent_children() {
+        let root = tempdir().unwrap();
+        let manager = ProjectManager::new(root.path()).unwrap();
+        let id = ProjectId::new();
+        let project = Project {
+            id,
+            name: "Elternauswahl".into(),
+            schema_version: CURRENT_SCHEMA_VERSION,
+        };
+        let opened = manager.create_project(id.to_string(), &project).unwrap();
+        let db = opened.database().connection();
+        let project = id.to_string();
+        let [story, timeline, scene, event] = std::array::from_fn(|_| EntityId::new().to_string());
+        db.execute(
+            "INSERT INTO storyline VALUES(?,?,'Pfad','#1177ee',0,'t','t')",
+            params![story, project],
+        )
+        .unwrap();
+        db.execute("INSERT INTO document(id,project_id,kind,title,position,created_at,updated_at) VALUES(?,?,'scene','Szene',0,'t','t')",params![scene,project]).unwrap();
+        db.execute("INSERT INTO plot_card(project_id,document_id,storyline_id,position,updated_at) VALUES(?,?,?,0,'t')",params![project,scene,story]).unwrap();
+        db.execute(
+            "INSERT INTO timeline VALUES(?,?,'Tage','relative',0,'t','t')",
+            params![timeline, project],
+        )
+        .unwrap();
+        db.execute("INSERT INTO event(id,project_id,timeline_id,title,position,created_at,updated_at) VALUES(?,?,?,'Ereignis',0,'t','t')",params![event,project,timeline]).unwrap();
+
+        let receipt = manager.prepare_handoff(id).unwrap();
+        let inbox = root.path().join("empfang");
+        fs::create_dir(&inbox).unwrap();
+        fs::rename(
+            opened
+                .directory()
+                .join(BACKUP_DIRECTORY_NAME)
+                .join(&receipt.folder),
+            inbox.join(&receipt.folder),
+        )
+        .unwrap();
+        db.execute("DELETE FROM storyline WHERE id=?", [&story])
+            .unwrap();
+        db.execute("DELETE FROM timeline WHERE id=?", [&timeline])
+            .unwrap();
+        let select = |kind| {
+            let changes = manager
+                .list_handoff_items(id, &receipt.folder, &receipt.manifest_sha256, kind)
+                .unwrap();
+            assert_eq!(changes.len(), 1);
+            ItemSelection {
+                folder: receipt.folder.clone(),
+                manifest: receipt.manifest_sha256.clone(),
+                change: changes.into_iter().next().unwrap(),
+            }
+        };
+        let activate = |selection: &ItemSelection| {
+            let candidate = manager.prepare_handoff_item(id, selection).unwrap();
+            let ticket = manager
+                .secure_handoff_item(id, selection, &candidate)
+                .unwrap();
+            manager.switch_handoff_item(id, &ticket, false).unwrap();
+            ticket
+        };
+        for (child_kind, parent_kind) in [
+            (ItemKind::PlotCard, ItemKind::Storyline),
+            (ItemKind::Event, ItemKind::Timeline),
+        ] {
+            let child = select(child_kind);
+            let parent = select(parent_kind);
+            assert_eq!(
+                manager.missing_handoff_parent(id, &child).unwrap(),
+                Some(parent.change.key.clone())
+            );
+            let mut stale = child.clone();
+            stale.change.incoming = Some("0".repeat(64));
+            assert!(manager.missing_handoff_parent(id, &stale).is_err());
+            assert!(manager.prepare_handoff_item(id, &child).is_err());
+            let parent_ticket = activate(&parent);
+            assert!(
+                manager
+                    .missing_handoff_parent(id, &child)
+                    .unwrap()
+                    .is_none()
+            );
+            let child_ticket = activate(&child);
+            assert!(
+                manager
+                    .switch_handoff_item(id, &parent_ticket, true)
+                    .is_err()
+            );
+            if parent_kind == ItemKind::Timeline {
+                let mut row = load_item(db, id, &parent.change.key).unwrap().unwrap();
+                row.insert("mode".into(), Value::from("absolute"));
+                assert!(write_item(db, id, &parent.change.key, &row).is_err());
+            }
+            manager
+                .switch_handoff_item(id, &child_ticket, true)
+                .unwrap();
+            manager
+                .switch_handoff_item(id, &parent_ticket, true)
+                .unwrap();
+            assert_eq!(
+                manager.missing_handoff_parent(id, &child).unwrap(),
+                Some(parent.change.key)
+            );
         }
     }
 }

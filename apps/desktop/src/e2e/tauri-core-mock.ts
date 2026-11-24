@@ -1004,19 +1004,30 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
     }
     case "list_handoff_items": {
       findProject(state, payload.projectId);
-      if (
-        payload.kind !== "entity" ||
-        payload.folder !== "uebernahme-beispiel" ||
-        payload.manifest !== "a".repeat(64)
-      )
+      if (payload.folder !== "uebernahme-beispiel" || payload.manifest !== "a".repeat(64))
         throw new Error("Unbekannter Stand");
+      const ids: Record<string, string> = {
+        entity: "66666666-6666-4666-8666-666666666666",
+        event: "77777777-7777-4777-8777-777777777777",
+        timeline: "88888888-8888-4888-8888-888888888888",
+      };
+      const kind = String(payload.kind);
+      if (!ids[kind]) return [];
       return [
         {
-          key: { kind: "entity", ids: ["66666666-6666-4666-8666-666666666666"] },
-          local: "c".repeat(64),
+          key: { kind, ids: [ids[kind]] },
+          local: kind === "timeline" ? null : "c".repeat(64),
           incoming: "d".repeat(64),
         },
       ];
+    }
+    case "missing_handoff_parent": {
+      findProject(state, payload.projectId);
+      const selection = payload.selection as { change: { key: { kind: string } } };
+      if (selection.change.key.kind !== "event") throw new Error("Ungültige Kindzuordnung");
+      return localStorage.getItem("kraqel-e2e-timeline-active")
+        ? null
+        : { kind: "timeline", ids: ["88888888-8888-4888-8888-888888888888"] };
     }
     case "review_handoff_item": {
       findProject(state, payload.projectId);
@@ -1024,7 +1035,11 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
         change: { key: { kind: string; ids: string[] }; incoming: string };
       };
       if (
-        selection.change.key.ids[0] !== "66666666-6666-4666-8666-666666666666" ||
+        ![
+          "66666666-6666-4666-8666-666666666666",
+          "77777777-7777-4777-8777-777777777777",
+          "88888888-8888-4888-8888-888888888888",
+        ].includes(selection.change.key.ids[0] ?? "") ||
         selection.change.incoming !== "d".repeat(64)
       )
         throw new Error("Auswahl ungültig");
@@ -1041,12 +1056,16 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
         },
       };
     }
-    case "secure_handoff_item":
+    case "secure_handoff_item": {
       findProject(state, payload.projectId);
-      return "2".repeat(64);
+      const selection = payload.selection as { change: { key: { kind: string } } };
+      return (selection.change.key.kind === "timeline" ? "3" : "2").repeat(64);
+    }
     case "switch_handoff_item":
       findProject(state, payload.projectId);
-      if (payload.ticket !== "2".repeat(64)) throw new Error("Ungültiger Beleg");
+      if (payload.ticket === "3".repeat(64) && !payload.undo)
+        localStorage.setItem("kraqel-e2e-timeline-active", "1");
+      else if (payload.ticket !== "2".repeat(64)) throw new Error("Ungültiger Beleg");
       return null;
     case "compare_project_handoff": {
       findProject(state, payload.projectId);

@@ -1124,7 +1124,15 @@ export async function prepareSceneMerge(
 }
 
 export type HandoffItemKind =
-  "entity" | "relation" | "link" | "plotCard" | "event" | "eventDocumentLink" | "eventEntityLink";
+  | "storyline"
+  | "timeline"
+  | "entity"
+  | "relation"
+  | "link"
+  | "plotCard"
+  | "event"
+  | "eventDocumentLink"
+  | "eventEntityLink";
 export interface HandoffItemChange {
   key: { kind: HandoffItemKind; ids: string[] };
   local: string | null;
@@ -1145,6 +1153,15 @@ export async function listHandoffItems(
   const payload = { projectId, ...source, kind };
   return (await callCommand<typeof payload, HandoffItemChange[]>("list_handoff_items", payload))
     .data;
+}
+export async function missingHandoffParent(projectId: ProjectId, selection: HandoffItemSelection) {
+  const payload = { projectId, selection };
+  return (
+    await callCommand<typeof payload, HandoffItemChange["key"] | null>(
+      "missing_handoff_parent",
+      payload,
+    )
+  ).data;
 }
 export async function reviewHandoffItem(projectId: ProjectId, selection: HandoffItemSelection) {
   const payload = { projectId, selection };

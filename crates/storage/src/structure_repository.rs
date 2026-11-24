@@ -768,7 +768,7 @@ const fn status_name(value: PlotStatus) -> &'static str {
         PlotStatus::Done => "done",
     }
 }
-fn parse_mode(value: &str) -> Result<TimelineMode, StructureError> {
+pub(crate) fn parse_mode(value: &str) -> Result<TimelineMode, StructureError> {
     match value {
         "relative" => Ok(TimelineMode::Relative),
         "absolute" => Ok(TimelineMode::Absolute),
@@ -790,7 +790,7 @@ pub(crate) fn validate_text(value: &str, maximum: usize) -> Result<(), Structure
         Ok(())
     }
 }
-fn valid_color(value: &str) -> bool {
+pub(crate) fn valid_color(value: &str) -> bool {
     value.len() == 7
         && value.starts_with('#')
         && value[1..]

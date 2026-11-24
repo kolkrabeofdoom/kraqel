@@ -48,6 +48,25 @@ pub(super) async fn list_handoff_items(
 }
 
 #[tauri::command]
+pub(super) async fn missing_handoff_parent(
+    state: State<'_, AppState>,
+    request: CommandRequest<ReviewRequest>,
+) -> Result<CommandResponse<Option<kraqel_storage::project_manager::ItemKey>>, CommandError> {
+    require_current_contract(&request)?;
+    let request_id = request.request_id;
+    let payload = request.payload;
+    let id = parse_project_id(request_id, &payload.project_id)?;
+    let manager = manager(&state, request_id)?;
+    let parent = tauri::async_runtime::spawn_blocking(move || {
+        manager.missing_handoff_parent(id, &payload.selection)
+    })
+    .await
+    .map_err(|_| CommandError::internal(request_id))?
+    .map_err(|e| map_project_error(request_id, &e))?;
+    Ok(CommandResponse::current(request_id, parent))
+}
+
+#[tauri::command]
 pub(super) async fn review_handoff_item(
     app: AppHandle,
     state: State<'_, AppState>,

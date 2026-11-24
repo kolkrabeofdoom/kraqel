@@ -58,6 +58,25 @@ test("Arbeitskopie wird im geöffneten Projekt ausdrücklich vorbereitet", async
   await expect(
     page.getByRole("status").filter({ hasText: "Der vorherige Eintragsstand ist wieder aktiv" }),
   ).toBeVisible();
+  const kind = page.getByRole("combobox", { name: /^Projektbereich/u });
+  await kind.selectOption("event");
+  await loadItems.click();
+  const eventId = "77777777-7777-4777-8777-777777777777";
+  await itemSelect.selectOption(eventId);
+  await reviewItem.click();
+  await page.getByRole("button", { name: "Fehlende Zeitachse auswählen" }).click();
+  await expect(kind).toHaveValue("timeline");
+  await expect(itemSelect).toHaveValue("88888888-8888-4888-8888-888888888888");
+  await reviewItem.click();
+  await page.getByRole("button", { name: "Rücknahme für diesen Eintrag sichern" }).click();
+  await page.getByRole("button", { name: "Eintrag aktivieren" }).click();
+  await expect(kind).toHaveValue("event");
+  await expect(itemSelect).toHaveValue(eventId);
+  await expect(page.getByLabel("Lokaler Beleg für Aktivierung oder Rücknahme")).toHaveValue("");
+  await reviewItem.click();
+  await expect(
+    page.getByRole("button", { name: "Rücknahme für diesen Eintrag sichern" }),
+  ).toBeVisible();
   await page.getByText("Szenenstände zwischen zwei Rechnern vergleichen", { exact: true }).click();
   await page.getByRole("button", { name: "Szenenbasis sichern" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Basis für 2 Szenen" })).toBeVisible();
