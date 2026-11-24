@@ -10,7 +10,7 @@ Für P3 wurde an einer synthetischen SQLite-Quelle geprüft, wie ein im WAL best
 
 Der [synthetische P3-Quelldatenträger](docs/data-format/product-start-integration-v1-draft.md#stabiler-dateibestand-auf-einem-synthetischen-quelldatenträger) sichert den gesamten Projektbaum während der Kopie. Die Anlage neuer Assets wurde auch im Unterverzeichnis verhindert. Für gewöhnliche Bestandsordner steht die sichere Erfassungsgrenze weiter aus.
 
-Die [zielgebundene synthetische Veröffentlichung](docs/data-format/product-start-integration-v1-draft.md#einmalige-veröffentlichung-am-gebundenen-synthetischen-ziel) erkennt eine bereits abgeschlossene Kopie nach Ausfall des Kopierprozesses wieder. Nach einem Abbruch während der Teilkopie bleibt die Veröffentlichung gesperrt. Dauerhafte Produktbindung und authentisierte Bereinigung unvollständiger Übernahmen sind offen.
+Die [zielgebundene synthetische Veröffentlichung](docs/data-format/product-start-integration-v1-draft.md#einmalige-veröffentlichung-am-gebundenen-synthetischen-ziel) erkennt eine bereits abgeschlossene Kopie nach Ausfall des Kopierprozesses wieder. Die synthetische Teilkopie kann auf ausdrücklichen Wiederanlauf mit derselben Autorität fortgesetzt werden. Ein bestätigtes Paket kann nach Prozessabbruch vor der Umbenennung veröffentlicht werden. Unklare Bestände bleiben gesperrt. Dauerhafte Produktbindung und authentisierte Bereinigung unvollständiger Übernahmen sind offen.
 
 ## Prüfstand für KQ-069 · 19. November 2026
 

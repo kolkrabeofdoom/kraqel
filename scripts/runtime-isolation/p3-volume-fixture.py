@@ -2,10 +2,11 @@
 import base64
 import ctypes
 from ctypes import wintypes
-from contextlib import closing, contextmanager
+from contextlib import ExitStack, closing, contextmanager
 import hashlib
 import hmac
 import multiprocessing
+import msvcrt
 import os
 import secrets
 import json
@@ -163,22 +164,90 @@ def prepare(root, fixture):
     (fixture / "expected.json").write_text(json.dumps([identity, document, asset, inventory(root)]))
 
 
-def copy_project(root, stage, metadata, interrupt=False):
-    identity, document, asset, expected = metadata
-    entries = inventory(root)
-    require(entries == expected, "source inventory mismatch")
-    for name, digest in sorted(entries.items()):
+def stage_tag(bundle, expected, approved, key):
+    stage = bundle / "project"
+    layout = []
+    for name, digest in sorted(expected.items()):
+        path = stage / name
+        info = check_entry(path)
+        require(info.st_ino and path.is_dir() == (digest is None), "invalid staging object")
+        if digest is not None:
+            require(path.is_file() and info.st_nlink == 1, "invalid staging file")
+        layout.append([name, info.st_dev, info.st_ino])
+    return layout_tag(bundle, approved, key, layout)
+
+
+def layout_tag(bundle, approved, key, layout):
+    return tag(key, b"KRAQEL-P3-FIXTURE-STAGING-v1",
+               [approved, object_id(bundle), object_id(bundle / "project"), layout]).encode("ascii")
+
+
+def create_stage(bundle, expected, approved, key):
+    bundle.mkdir()
+    stage = bundle / "project"
+    stage.mkdir()
+    for name, digest in sorted(expected.items()):
         if digest is None:
             (stage / name).mkdir()
         else:
-            with (root / name).open("rb") as src, (stage / name).open("xb") as dst:
-                dst.write(src.read(1))
-                if interrupt:
-                    dst.flush()
-                    os._exit(85)
-                if name == "kraqel.sqlite3":
-                    challenge(root, True)
-                shutil.copyfileobj(src, dst)
+            with (stage / name).open("xb"):
+                pass
+    with (bundle / "reservation").open("xb") as proof:
+        proof.write(stage_tag(bundle, expected, approved, key))
+
+
+@contextmanager
+def reserved_file(path):
+    raw = open_file(str(path), 0xc0000000, 0, None, 3, 0x00200000, None)
+    if raw == ctypes.c_void_p(-1).value:
+        raise ctypes.WinError(ctypes.get_last_error())
+    with os.fdopen(msvcrt.open_osfhandle(raw, os.O_RDWR | os.O_BINARY), "r+b") as file:
+        yield file
+
+
+def copy_project(root, bundle, metadata, approved, key, interrupt):
+    identity, document, asset, expected = metadata
+    stage = bundle / "project"
+    entries = inventory(root)
+    require(entries == expected, "source inventory mismatch")
+    check_entry(bundle)
+    require({p.name for p in bundle.iterdir()} == {"project", "reservation"}, "unexpected staging evidence")
+    reservation = bundle / "reservation"
+    require(check_entry(reservation).st_nlink == 1 and reservation.is_file()
+            and reservation.stat().st_size == 64, "invalid reservation")
+    attestation = reservation.read_bytes()
+    require(inventory(stage).keys() == entries.keys(), "unexpected staging contents")
+    with ExitStack() as pins:
+        pins.enter_context(pinned_directory(bundle))
+        pins.enter_context(pinned_directory(stage))
+        files = []
+        layout = []
+        for name, digest in sorted(entries.items()):
+            path = stage / name
+            if digest is None:
+                pins.enter_context(pinned_directory(path))
+                layout.append([name, *object_id(path)])
+                continue
+            info = check_entry(path)
+            require(path.is_file() and info.st_nlink == 1, "invalid staging file")
+            dst = pins.enter_context(reserved_file(path))
+            require(os.path.samestat(info, os.fstat(dst.fileno())), "replaced staging file")
+            layout.append([name, info.st_dev, info.st_ino])
+            src = pins.enter_context((root / name).open("rb"))
+            while prefix := dst.read(65536):
+                require(prefix == src.read(len(prefix)), "staging prefix mismatch")
+            files.append((name, src, dst))
+        require(hmac.compare_digest(layout_tag(bundle, approved, key, layout), attestation),
+                "unbound reservation")
+        # All prefixes must pass before any destination byte changes.
+        for name, src, dst in files:
+            dst.write(src.read(1))
+            if interrupt == "first-byte":
+                dst.flush()
+                os._exit(85)
+            if name == "kraqel.sqlite3":
+                challenge(root, True)
+            shutil.copyfileobj(src, dst)
     require(inventory(stage) == expected == inventory(root), "incomplete copy")
     with closing(sqlite3.connect((stage / "kraqel.sqlite3").as_uri() + "?mode=ro", uri=True)) as db:
         require(db.execute("pragma integrity_check").fetchall() == [("ok",)], "invalid copy")
@@ -216,44 +285,70 @@ def receipt(key, approved, bundle):
                [approved, object_id(bundle), object_id(bundle / "project")])
 
 
-def publish(root, destination, metadata, approved, key, interrupt=False):
+@contextmanager
+def target_lock(destination, project_id):
+    name = "Local\\KRAQEL-P3-fixture-" + project_id + "-" + "-".join(map(str, object_id(destination)))
+    kernel.CreateMutexW.restype = wintypes.HANDLE
+    handle = kernel.CreateMutexW(None, False, name)
+    if not handle:
+        raise ctypes.WinError(ctypes.get_last_error())
+    handle = wintypes.HANDLE(handle)
+    try:
+        # An abandoned mutex establishes exclusive access, never recovery authority.
+        require(kernel.WaitForSingleObject(handle, 0) in (0, 0x80), "copy in progress")
+        try:
+            yield
+        finally:
+            kernel.ReleaseMutex(handle)
+    finally:
+        kernel.CloseHandle(handle)
+
+
+def publish(root, destination, metadata, approved, key, interrupt=None, resume=False):
     with volume_guard(str(root.parent), True), pinned_directory(root), pinned_directory(destination):
-        return publish_pinned(root, destination, metadata, approved, key, interrupt)
+        require(hmac.compare_digest(decision(key, root, destination, metadata), approved),
+                "unbound decision")
+        project_id = str(uuid.UUID(metadata[0]))
+        with target_lock(destination, project_id):
+            return publish_locked(root, destination, project_id, metadata, approved, key, interrupt, resume)
 
 
-def publish_pinned(root, destination, metadata, approved, key, interrupt):
-    require(hmac.compare_digest(decision(key, root, destination, metadata), approved),
-            "unbound decision")
-    # One fixed slot for this project in this isolated destination. On Windows
-    # rename never replaces an existing slot, even if a second worker wins.
-    project_id = str(uuid.UUID(metadata[0]))
+def publish_locked(root, destination, project_id, metadata, approved, key, interrupt, resume):
     final = destination / project_id
     bundle = destination / (".pending-" + project_id)
-    require(not os.path.lexists(bundle), "unresolved staging")
-    if not os.path.lexists(final):
-        # Exclusive reservation. A crash leaves a closed gate. Unknown or
-        # incomplete work is never deleted or used as a new source of authority.
-        bundle.mkdir()
-        # Recheck after reservation: a competing publisher may just have finished.
-        if os.path.lexists(final):
-            bundle.rmdir()  # Only our freshly created empty reservation.
-            return verify_published(final, approved, metadata, key)
-        stage = bundle / "project"
-        stage.mkdir()
-        copy_project(root, stage, metadata, interrupt)
-        (bundle / "receipt").write_bytes(receipt(key, approved, bundle).encode("ascii"))
-        bundle.rename(final)
-    return verify_published(final, approved, metadata, key)
+    pending = os.path.lexists(bundle)
+    if pending:
+        require(resume and not os.path.lexists(final), "unresolved staging")
+    elif resume:
+        raise RuntimeError("no pending transfer")
+    elif os.path.lexists(final):
+        return verify_bundle(final, approved, metadata, key)
+    else:
+        create_stage(bundle, metadata[3], approved, key)
+    if pending and os.path.lexists(bundle / "receipt"):
+        verify_bundle(bundle, approved, metadata, key)
+    else:
+        copy_project(root, bundle, metadata, approved, key, interrupt)
+        with (bundle / "receipt").open("xb") as proof:
+            proof.write(receipt(key, approved, bundle).encode("ascii"))
+        if interrupt == "before-rename":
+            os._exit(87)
+    bundle.rename(final)
+    return verify_bundle(final, approved, metadata, key)
 
 
-def verify_published(final, approved, metadata, key):
+def verify_bundle(final, approved, metadata, key):
     check_entry(final)
-    require({p.name for p in final.iterdir()} == {"receipt", "project"}, "unexpected bundle")
+    require({p.name for p in final.iterdir()} == {"receipt", "reservation", "project"}, "unexpected bundle")
     proof = final / "receipt"
     require(check_entry(proof).st_nlink == 1 and proof.is_file() and proof.stat().st_size == 64,
             "invalid receipt")
     require(hmac.compare_digest(proof.read_bytes(), receipt(key, approved, final).encode("ascii")),
             "unbound receipt")
+    reservation = final / "reservation"
+    require(check_entry(reservation).st_nlink == 1 and reservation.is_file()
+            and reservation.stat().st_size == 64 and hmac.compare_digest(
+                reservation.read_bytes(), stage_tag(final, metadata[3], approved, key)), "unbound reservation")
     require(inventory(final / "project") == metadata[3], "changed destination")
     return final
 
@@ -297,7 +392,7 @@ def capture(root, fixture):
         with tempfile.TemporaryDirectory(dir=fixture) as partial:
             target = Path(partial)
             ticket = decision(key, root, target, metadata)
-            run_to_exit(publish, (root, target, metadata, ticket, key, True), 85)
+            run_to_exit(publish, (root, target, metadata, ticket, key, "first-byte"), 85)
             pending = target / (".pending-" + metadata[0])
             prefix = inventory(pending)
             require(any(value is not None for value in prefix.values()), "missing partial transfer")
@@ -308,6 +403,48 @@ def capture(root, fixture):
                         and list(target.iterdir()) == [pending], "partial transfer released")
             else:
                 raise RuntimeError("partial staging accepted")
+
+            unexpected = pending / "project" / "unknown.bin"
+            unexpected.write_bytes(b"foreign fixture")
+            try:
+                publish(root, target, metadata, ticket, key, resume=True)
+            except RuntimeError as exc:
+                require(str(exc) == "unexpected staging contents" and unexpected.read_bytes() == b"foreign fixture",
+                        "foreign staging modified")
+            else:
+                raise RuntimeError("foreign staging accepted")
+            unexpected.unlink()  # The fixture creator removes only its injected file.
+            require(inventory(pending) == prefix, "partial copy changed after refusal")
+            partial_file = pending / "project" / "assets" / "nested" / "cover.png"
+            first_byte = partial_file.read_bytes()
+            require(len(first_byte) == 1, "missing crash prefix")
+            partial_file.write_bytes(b"!")
+            changed = inventory(pending)
+            try:
+                publish(root, target, metadata, ticket, key, resume=True)
+            except RuntimeError as exc:
+                require(str(exc) == "staging prefix mismatch" and inventory(pending) == changed,
+                        "unverified prefix modified")
+            else:
+                raise RuntimeError("wrong prefix accepted")
+            partial_file.write_bytes(first_byte)
+            run_to_exit(publish, (root, target, metadata, ticket, key, "before-rename", True), 87)
+            completed_id = object_id(pending)
+            proof = pending / "receipt"
+            genuine = proof.read_bytes()
+            proof.write_bytes(b"0" * len(genuine))
+            try:
+                publish(root, target, metadata, ticket, key, resume=True)
+            except RuntimeError as exc:
+                require(str(exc) == "unbound receipt" and list(target.iterdir()) == [pending],
+                        "invalid receipt released")
+            else:
+                raise RuntimeError("wrong completion receipt accepted")
+            proof.write_bytes(genuine)
+            completed = publish(root, target, metadata, ticket, key, resume=True)
+            require(object_id(completed) == completed_id, "prepared bundle replaced")
+            require(list(target.iterdir()) == [completed] and inventory(completed / "project") == metadata[3],
+                    "resume did not finish the original transfer")
 
         run_to_exit(publish_without_reply, (root, destination, metadata, approved, key), 86)
 
@@ -350,4 +487,4 @@ if __name__ == "__main__":
         with volume_guard(volume, mode == "capture"):
             (prepare if mode == "prepare" else capture)(root, fixture)
         if mode == "capture":
-            print("PASS: target-bound publication; replay after worker exit; foreign target and changed copy refused")
+            print("PASS: authenticated partial transfer resumed; unknown entry and wrong prefix refused; publication replay verified")
