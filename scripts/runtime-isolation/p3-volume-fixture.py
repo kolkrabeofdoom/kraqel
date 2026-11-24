@@ -231,6 +231,41 @@ def check_working_schema(db):
             "unsupported project schema")
 
 
+def rebuild_working_database(source):
+    """Re-encode the live rows using only the schema created by our migrations."""
+    with closing(sqlite3.connect(":memory:")) as target:
+        target.execute("PRAGMA temp_store=MEMORY")
+        initialize_fixture_schema(target)
+        page_size = target.execute("PRAGMA page_size").fetchone()[0]
+        target.execute(f"PRAGMA max_page_count={8 * 1024 * 1024 // page_size}")
+        target.execute("PRAGMA foreign_keys=ON")
+        target.execute("BEGIN")
+        target.execute("PRAGMA defer_foreign_keys=ON")
+        # Schema creation order puts media and style rows before their validation triggers need them.
+        # The trusted target supplies every identifier. FTS shadow tables are derived data.
+        tables = target.execute("SELECT s.name FROM sqlite_schema s JOIN pragma_table_list p "
+                                "ON p.name=s.name AND p.schema='main' WHERE p.type='table' "
+                                "AND s.type='table' AND s.name NOT GLOB 'sqlite_*' ORDER BY s.rowid").fetchall()
+        for (table,) in tables:
+            query = f'SELECT rowid,* FROM "{table}" ORDER BY rowid'
+            rows = source.execute(query)
+            fields = target.execute(query + " LIMIT 0").description
+            parameters = ",".join("?" for _ in fields)
+            columns = ",".join(f'"{c[0]}"' for c in fields)
+            target.executemany(f'INSERT INTO "{table}" ({columns}) VALUES ({parameters})', rows)
+        target.commit()
+        for (table,) in tables:
+            query = f'SELECT rowid,* FROM "{table}" ORDER BY rowid'
+            require(all(a == b for a, b in zip(source.execute(query), target.execute(query), strict=True)),
+                    "logical row mismatch")
+        # Document insert triggers built the search index exclusively from current text.
+        target.execute("INSERT INTO document_fts(document_fts,rank) VALUES('integrity-check',1)")
+        target.commit()
+        require(target.execute("PRAGMA integrity_check").fetchall() == [("ok",)]
+                and target.execute("PRAGMA foreign_key_check").fetchone() is None, "invalid logical copy")
+        return target.serialize()
+
+
 def selected_working_files(root, directory_id, entries, read_oplock, metadata):
     # Resolve rows against already enumerated entries. Never use a database string to open a path.
     database_names = {"kraqel.sqlite3", "kraqel.sqlite3-wal", "kraqel.sqlite3-shm"}
@@ -244,33 +279,32 @@ def selected_working_files(root, directory_id, entries, read_oplock, metadata):
     database_hashes = {name: hashlib.sha256(data).hexdigest() for name, data in snapshot.items()}
     working = set(database_hashes)
     hashes = dict(database_hashes)
-    with tempfile.TemporaryDirectory(prefix="kraqel-p3-db-") as work:
-        staged = Path(work)
-        for name, data in snapshot.items():
-            (staged / name).write_bytes(data)
-        with fixture_database(staged, database_hashes) as db:
-            check_working_schema(db)
-            require(db.execute("SELECT id FROM project LIMIT 2").fetchall() == [(root.name,)],
-                    "unsupported media inventory")
-            rows = db.execute("SELECT project_id,relative_path,thumbnail_path,checksum,byte_count "
-                              "FROM media_asset LIMIT 257").fetchall()
-            require(len(rows) <= 256, "media inventory budget exceeded")
-            for project, image, thumb, digest, size in rows:
-                require(project == root.name and image in files and thumb in files
-                        and image.startswith("assets/") and not image.startswith("assets/thumbnails/")
-                        and thumb.startswith("assets/thumbnails/") and image not in hashes
-                        and files[image].st_size == size and re.fullmatch("[a-f0-9]{64}", digest),
-                        "invalid media reference")
-                working.update((image, thumb))
-                hashes[image] = digest
-            verify_scene_view(db, metadata, metadata[3])
+    # Read the hash-bound WAL view with write/delete denied on all SQLite files.
+    del snapshot
+    with fixture_database(root, database_hashes) as db:
+        check_working_schema(db)
+        require(db.execute("SELECT id FROM project LIMIT 2").fetchall() == [(root.name,)],
+                "unsupported media inventory")
+        rows = db.execute("SELECT project_id,relative_path,thumbnail_path,checksum,byte_count "
+                          "FROM media_asset LIMIT 257").fetchall()
+        require(len(rows) <= 256, "media inventory budget exceeded")
+        for project, image, thumb, digest, size in rows:
+            require(project == root.name and image in files and thumb in files
+                    and image.startswith("assets/") and not image.startswith("assets/thumbnails/")
+                    and thumb.startswith("assets/thumbnails/") and image not in hashes
+                    and files[image].st_size == size and re.fullmatch("[a-f0-9]{64}", digest),
+                    "invalid media reference")
+            working.update((image, thumb))
+            hashes[image] = digest
+        verify_scene_view(db, metadata, metadata[3])
+        rebuilt = rebuild_working_database(db)
     # The picker lists these exact supplemental names. A new unlisted file requires a new decision.
     require(set(files) - working == set(EXTRA_FILES), "unreviewed supplemental inventory")
     for name in tuple(working):
         working.update(parent.as_posix() for parent in Path(name).parents if parent != Path("."))
     if (root / "empty") in entries and entries[root / "empty"].st_file_attributes & 0x10:
         working.add("empty")
-    return working, hashes
+    return working, hashes, rebuilt
 
 
 def selection_digest(selected, candidate, metadata):
@@ -287,6 +321,15 @@ def verify_selection(fixture, candidate, metadata, selected):
 
     if len(metadata) == 7:
         approved_archive(candidate.parent, metadata)
+
+
+def require_logical_copy(metadata):
+    # A historical byte-copy receipt cannot authorize a new logical preview.
+    record = metadata[6].get("workingCopy", {}) if len(metadata) == 7 else {}
+    require(record.get("format") == "schema6-logical-v1"
+            and re.fullmatch("[0-9a-f]{64}", record.get("sourceInventorySha256", ""))
+            and not {"kraqel.sqlite3-wal", "kraqel.sqlite3-shm"} & metadata[3].keys(),
+            "new preview requires logical copy evidence")
 
 
 def approved_archive(parent, metadata):
@@ -526,7 +569,7 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
         selected = object_id(root)
         require(selected == [selected_root.st_dev, selected_root.st_ino], "selected root replaced")
         if interactive_selection:
-            working, required_hashes = selected_working_files(
+            working, required_hashes, rebuilt = selected_working_files(
                 root, selected_root, selected_entries, read_oplock, [*metadata, selected, *variant])
         else:
             working, required_hashes = set(planned), {}
@@ -543,6 +586,17 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
             if interactive_selection:
                 require(set(expected) == working and expected == planned and all(expected.get(n) == digest
                         for n, digest in required_hashes.items()), "working inventory changed")
+                # Bind the verified physical input and the distinct logical output to one selection.
+                variant[1]["workingCopy"] = {
+                    "format": "schema6-logical-v1",
+                    "sourceInventorySha256": hashlib.sha256(json.dumps(expected, sort_keys=True,
+                            separators=(",", ":")).encode("ascii")).hexdigest(),
+                }
+                for sidecar in ("kraqel.sqlite3-wal", "kraqel.sqlite3-shm"):
+                    snapshot.pop(sidecar, None)
+                    expected.pop(sidecar, None)
+                snapshot["kraqel.sqlite3"] = rebuilt
+                expected["kraqel.sqlite3"] = hashlib.sha256(rebuilt).hexdigest()
             else:
                 require(expected == planned, "incomplete writable capture")
             parent = target.parent.parent if interactive_selection else target.parent
@@ -624,10 +678,22 @@ def writable_fixture(interactive_selection=False, export_to=None):
         else:
             raise RuntimeError("substituted selection accepted")
         verify_selection(fixture, target, metadata, selected)
+        if interactive_selection:
+            require_logical_copy(metadata)
         with fixture_database(target, metadata[3]) as db:
             rows = db.execute("SELECT title, plain_text, revision FROM document WHERE project_id=? AND id=?",
                               metadata[:2]).fetchall()
             require(rows == [expected_scene(metadata)], "lost committed WAL scene")
+            if interactive_selection:
+                # The original database contains the overwritten paragraph; the new file and FTS must not.
+                require(not any((target / ("kraqel.sqlite3" + suffix)).exists() for suffix in ("-wal", "-shm"))
+                        and b"Vor dem WAL-Commit" not in (target / "kraqel.sqlite3").read_bytes(),
+                        "physical database history in logical copy")
+                search = "SELECT rowid FROM document_fts WHERE document_fts MATCH ?"
+                rowid, = db.execute("SELECT rowid FROM document WHERE id=?", (metadata[1],)).fetchone()
+                require(db.execute(search, ("Commit",)).fetchall() == []
+                        and db.execute(search, (rows[0][1].split()[-1].rstrip("."),)).fetchall() == [(rowid,)],
+                        "search index does not match current scene")
         if export_to is not None:
             data = approved_archive(target.parent, metadata)
             require(data is not None, "Keine Zusatzbestände zum Export ausgewählt.")
@@ -700,9 +766,15 @@ def seed_writable_project(root, identity, scene):
                    (asset, identity, "assets/thumbnails/" + thumbnail_name, hashlib.sha256(png).hexdigest(), len(png)))
         db.execute("INSERT INTO asset_link(project_id,asset_id,target_type,target_id,created_at) "
                    "VALUES(?,?,'document',?,'t')", (identity, asset, document))
+        if scene == P3_SOUTH:
+            db.execute("INSERT INTO image_prompt_draft(id,project_id,name,source_document_id,"
+                       "source_document_revision,prompt_text,created_at,updated_at) VALUES(?,?,?,?,0,?,'t','t')",
+                       (str(uuid.uuid4()), identity, "Hafenlicht", document, "Grün über der Südküste"))
         db.commit()
         require(db.execute("PRAGMA journal_mode=WAL").fetchone() == ("wal",), "WAL mode unavailable")
-    main_before = hashlib.sha256((root / "kraqel.sqlite3").read_bytes()).digest()
+    physical = (root / "kraqel.sqlite3").read_bytes()
+    require(b"Vor dem WAL-Commit" in physical, "missing physical history in synthetic source")
+    main_before = hashlib.sha256(physical).digest()
     run_to_exit(commit_fixture_wal, (root, document, scene[1]), 82)
     require(hashlib.sha256((root / "kraqel.sqlite3").read_bytes()).digest() == main_before,
             "scene was checkpointed into the main file")
@@ -1173,6 +1245,7 @@ def preview_selected_project(root, fixture):
     metadata = json.loads((fixture / "expected.json").read_text())
     require(metadata[3] == inventory(root), "unexpected source")
     verify_selection(fixture, root, metadata, metadata[4])
+    require_logical_copy(metadata)
     home = fixture / "install-a"
     home.mkdir()
     shutil.copyfile(Path(__file__).parent / "probe/target/debug/kraqel-isolation-probe.exe",
