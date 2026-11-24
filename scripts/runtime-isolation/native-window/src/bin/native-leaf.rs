@@ -173,6 +173,7 @@ thread_local! {
     static FORMAT_REQUEST: std::cell::Cell<Option<SpanEdit>> = const {std::cell::Cell::new(None)};
     static PLAIN_REVIEW: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static PARAGRAPH_COMPARE: std::cell::RefCell<Option<paragraph_comparison::Comparison>> = const {std::cell::RefCell::new(None)};
+    static LONG_FOCUS: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static LONG_EDIT: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static AUTOSAVE_TURN: std::cell::Cell<Option<(u8, u8)>> = const { std::cell::Cell::new(None) };
     static PENDING_SAVE: std::cell::RefCell<Option<PendingSave>> = const { std::cell::RefCell::new(None) };
@@ -199,6 +200,9 @@ const HISTORY_UNDO: u32 = WM_APP + 3;
 const HISTORY_REDO: u32 = WM_APP + 4;
 
 fn in_focus_mode(hwnd: HWND) -> bool {
+    if LONG_EDIT.get() {
+        return LONG_FOCUS.get();
+    }
     unsafe {
         let state = GetMenuState(GetMenu(hwnd), FOCUS_MODE as u32, MF_BYCOMMAND);
         state != u32::MAX && state & MF_CHECKED != 0
@@ -211,15 +215,30 @@ fn set_focus_mode(hwnd: HWND, enabled: bool) {
             return;
         }
         let checked = if enabled { MF_CHECKED } else { MF_UNCHECKED };
-        if CheckMenuItem(GetMenu(hwnd), FOCUS_MODE as u32, MF_BYCOMMAND | checked) == u32::MAX {
+        if LONG_EDIT.get() {
+            LONG_FOCUS.set(enabled);
+        } else if CheckMenuItem(GetMenu(hwnd), FOCUS_MODE as u32, MF_BYCOMMAND | checked)
+            == u32::MAX
+        {
             return;
         }
         if enabled {
-            SetFocus(GetDlgItem(hwnd, ACTIVE_PARAGRAPH.get()));
+            SetFocus(GetDlgItem(
+                hwnd,
+                if LONG_EDIT.get() {
+                    EDIT
+                } else {
+                    ACTIVE_PARAGRAPH.get()
+                },
+            ));
         }
         for id in [
             SAVE,
-            DISCARD,
+            if LONG_EDIT.get() {
+                SAVE_AND_STAY
+            } else {
+                DISCARD
+            },
             WORD_COUNT,
             SEARCH_LABEL,
             SEARCH,
@@ -969,11 +988,39 @@ impl Drop for AutosaveTurn {
     }
 }
 
+fn update_word_count(hwnd: HWND, text: Option<&str>, show_budget: bool) {
+    let label = text.map_or_else(String::new, |text| {
+        // Match countWords in packages/editor, including ECMAScript's whitespace exceptions.
+        let count = text
+            .split(|c: char| (c.is_whitespace() && c != '\u{85}') || c == '\u{feff}')
+            .filter(|word| !word.is_empty())
+            .count();
+        let words = if count == 1 {
+            "1 Wort".to_owned()
+        } else {
+            format!("{count} Wörter")
+        };
+        if show_budget {
+            format!(
+                "{words} · {} / {} UTF-16-Einheiten",
+                text.encode_utf16().count(),
+                kraqel_native_scene_model::MAX_PREVIEW_UTF16
+            )
+        } else {
+            words
+        }
+    });
+    unsafe {
+        SetDlgItemTextW(hwnd, WORD_COUNT, wide(label).as_ptr());
+    }
+}
+
 fn update_draft_status(hwnd: HWND) {
     unsafe {
         let save = GetDlgItem(hwnd, SAVE);
         if LONG_EDIT.get() {
             let text = draft_text(hwnd);
+            update_word_count(hwnd, text.as_deref(), true);
             let valid = text
                 .as_ref()
                 .is_some_and(|s| kraqel_native_scene_model::valid_scene_edit(s, false));
@@ -1013,7 +1060,7 @@ fn update_draft_status(hwnd: HWND) {
             } else if autosave {
                 "Geändert · Autosave nach 700 ms Schreibpause"
             } else {
-                "Klartext · bis 4.096 UTF-16-Einheiten"
+                "Klartext · F11 für Fokusmodus"
             };
             SetDlgItemTextW(hwnd, LABEL, wide(label).as_ptr());
             return;
@@ -1057,19 +1104,7 @@ fn update_draft_status(hwnd: HWND) {
             .is_some_and(kraqel_native_scene_model::valid_paragraphs);
         let scheduled = autosave.is_none()
             || schedule_autosave(hwnd, current.as_deref().filter(|_| dirty && valid));
-        if let Some(text) = current {
-            // Match countWords in packages/editor, including ECMAScript's whitespace exceptions.
-            let count = text
-                .split(|c: char| (c.is_whitespace() && c != '\u{85}') || c == '\u{feff}')
-                .filter(|word| !word.is_empty())
-                .count();
-            let label = if count == 1 {
-                "1 Wort".to_owned()
-            } else {
-                format!("{count} Wörter")
-            };
-            SetDlgItemTextW(hwnd, WORD_COUNT, wide(label).as_ptr());
-        }
+        update_word_count(hwnd, current.as_deref(), false);
         if REVISION_CONFLICT.get() {
             update_review(hwnd);
             cancel_pending_save(hwnd);
@@ -1756,6 +1791,7 @@ fn create_comparison_field(hwnd: HWND, content: &str) -> std::io::Result<()> {
 
 fn enter_plain_editor(hwnd: HWND, text: &str) -> bool {
     unsafe {
+        set_focus_mode(hwnd, false);
         cancel_pending_save(hwnd);
         let menu = GetMenu(hwnd);
         if !menu.is_null() {
@@ -1788,10 +1824,12 @@ fn enter_plain_editor(hwnd: HWND, text: &str) -> bool {
             SendDlgItemMessageW(hwnd, SAVE, WM_GETFONT, 0, 0) as usize,
             1,
         );
+        LONG_FOCUS.set(false);
         LONG_EDIT.set(true);
-        for id in [SECOND, DISCARD, WORD_COUNT] {
+        for id in [SECOND, DISCARD] {
             ShowWindow(GetDlgItem(hwnd, id), SW_HIDE);
         }
+        ShowWindow(GetDlgItem(hwnd, WORD_COUNT), SW_SHOWNA);
         SetDlgItemTextW(hwnd, SEARCH_LABEL, wide("&Entwurf durchsuchen").as_ptr());
         SetDlgItemTextW(hwnd, REPLACEMENT_LABEL, wide("Ersatz (Strg+H)").as_ptr());
         for id in [SEARCH_LABEL, SEARCH, REPLACEMENT_LABEL, REPLACEMENT] {
@@ -1865,7 +1903,13 @@ fn layout_surface(hwnd: HWND) -> bool {
             let left = if compare { (width - gap) / 2 } else { width };
             let replace_y = y - px(30);
             let search_y = replace_y - px(30);
-            let height = (search_y - gap - text_top).max(1);
+            let count_y = search_y - px(26);
+            let bottom = if in_focus_mode(hwnd) {
+                area.bottom - margin
+            } else {
+                count_y - gap
+            };
+            let height = (bottom - text_top).max(1);
             return place(LABEL, margin, px(10), width, px(24))
                 && place(EDIT, margin, text_top, left, height)
                 && (!compare
@@ -1876,36 +1920,38 @@ fn layout_surface(hwnd: HWND) -> bool {
                         width - left - gap,
                         height,
                     ))
-                && place(SEARCH_LABEL, margin, search_y + px(2), px(150), px(24))
-                && place(
-                    SEARCH,
-                    margin + px(150),
-                    search_y,
-                    (width - px(150)).max(1),
-                    px(26),
-                )
-                && place(
-                    REPLACEMENT_LABEL,
-                    margin,
-                    replace_y + px(2),
-                    px(150),
-                    px(24),
-                )
-                && place(
-                    REPLACEMENT,
-                    margin + px(150),
-                    replace_y,
-                    (width - px(150)).max(1),
-                    px(26),
-                )
-                && place(SAVE_AND_STAY, margin, y, (width - gap) / 2, px(30))
-                && place(
-                    SAVE,
-                    margin + (width + gap) / 2,
-                    y,
-                    width - (width + gap) / 2,
-                    px(30),
-                );
+                && (in_focus_mode(hwnd)
+                    || (place(WORD_COUNT, margin, count_y, width, px(22))
+                        && place(SEARCH_LABEL, margin, search_y + px(2), px(150), px(24))
+                        && place(
+                            SEARCH,
+                            margin + px(150),
+                            search_y,
+                            (width - px(150)).max(1),
+                            px(26),
+                        )
+                        && place(
+                            REPLACEMENT_LABEL,
+                            margin,
+                            replace_y + px(2),
+                            px(150),
+                            px(24),
+                        )
+                        && place(
+                            REPLACEMENT,
+                            margin + px(150),
+                            replace_y,
+                            (width - px(150)).max(1),
+                            px(26),
+                        )
+                        && place(SAVE_AND_STAY, margin, y, (width - gap) / 2, px(30))
+                        && place(
+                            SAVE,
+                            margin + (width + gap) / 2,
+                            y,
+                            width - (width + gap) / 2,
+                            px(30),
+                        )));
         }
         if !place(LABEL, margin, px(10), width, px(24)) {
             return false;
@@ -2790,6 +2836,14 @@ unsafe fn run_editor_loop(
                 let enter = msg.message == WM_KEYDOWN && key == VK_RETURN;
                 let search = GetDlgItem(hwnd, SEARCH);
                 let replacement = GetDlgItem(hwnd, REPLACEMENT);
+                if msg.message == WM_KEYDOWN
+                    && (key == VK_F11 || (key == VK_ESCAPE && in_focus_mode(hwnd)))
+                {
+                    if msg.lParam & (1 << 30) == 0 {
+                        set_focus_mode(hwnd, key == VK_F11 && !in_focus_mode(hwnd));
+                    }
+                    continue;
+                }
                 if !plain_history {
                     // A switch from the formatted editor starts a plain-text history.
                     history = draft_text(hwnd).map(DraftHistory::new);
@@ -2814,6 +2868,7 @@ unsafe fn run_editor_loop(
                     }
                 }
                 if ctrl && key == 0x48 && GetKeyState(i32::from(VK_MENU)) >= 0 {
+                    set_focus_mode(hwnd, false);
                     SetFocus(replacement);
                     SendMessageW(replacement, EM_SETSEL, 0, -1);
                     continue;
@@ -2968,7 +3023,9 @@ unsafe fn run_editor_loop(
                         }
                     }
                 } else if msg.message == WM_KEYDOWN && key == VK_ESCAPE {
-                    PostMessageW(hwnd, WM_CLOSE, 0, 0);
+                    if msg.lParam & (1 << 30) == 0 {
+                        PostMessageW(hwnd, WM_CLOSE, 0, 0);
+                    }
                 } else {
                     TranslateMessage(&msg);
                     DispatchMessageW(&msg);
