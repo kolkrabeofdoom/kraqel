@@ -2,7 +2,7 @@
 
 ### P3 · synthetische Bestandskopie
 
-Im nativen Prüfdialog kann die vorbereitete Quelle ausdrücklich bestätigt oder verworfen werden. Beim Abbruch blieb das Ziel leer. Nach Bestätigung wurde die WAL-Szene aus dem gebundenen Kandidaten gelesen. Beide Dialogpfade wurden automatisiert unter Windows geprüft.
+Der lokale P3-Prüfdialog bietet zwei synthetische Projektordner zur Auswahl an. Für beide wurde geprüft, dass genau die ausgewählte Projekt- und Verzeichnisidentität samt Inventar übernommen wurde. Abbrechen hinterließ ein leeres Ziel.
 
 Der native Prüfstarter bindet den synthetischen Quellordner an den erfassten Kandidaten und dessen Inventar. Ein Wiederanlauf mit anderer Quellidentität wurde abgewiesen, der ursprüngliche Kandidat bestätigt.
 

@@ -188,29 +188,33 @@ def verify_selection(fixture, candidate, metadata, selected):
         authority.attest(NativeAuthority.domains[0], selection_digest(selected, candidate, metadata[:4]), False)
 
 
-def confirm_fixture_source():
-    dialog = ctypes.WinDLL("user32", use_last_error=True).MessageBoxW
-    dialog.argtypes = [wintypes.HWND, wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.UINT]
-    dialog.restype = ctypes.c_int
-    result = dialog(None,
-                    "Den vorbereiteten synthetischen Projektordner „Szene A“ für diese lokale "
-                    "Testkopie auswählen?",
-                    "KRAQEL – P3-Quellauswahl", 0x1 | 0x100)  # OK/Cancel, default Cancel
-    if result == 0:
-        raise ctypes.WinError(ctypes.get_last_error())
-    return result == 1
-
-
 def prepare_captured_project(target, fixture, interactive_selection=False):
     import runpy
     read_oplock = runpy.run_path(str(Path(__file__).with_name("p3_directory_oplock.py")))["read_oplock"]
-    with tempfile.TemporaryDirectory(prefix="kraqel-p3-writable-") as temp:
-        source_fixture = Path(temp)
-        root = source_fixture / "project"
-        seed_writable_project(root, source_fixture)
+    with tempfile.TemporaryDirectory(prefix="kraqel-p3-writable-") as temp, ExitStack() as pins:
+        pins.enter_context(pinned_directory(Path(temp)))
+        choices = {}
+        for name in (("Projekt Nord", "Projekt Sued") if interactive_selection else ("project",)):
+            source_fixture = Path(temp) / name
+            source_fixture.mkdir()
+            root = source_fixture / "project"
+            seed_writable_project(root, source_fixture)
+            pins.enter_context(pinned_directory(source_fixture))
+            pins.enter_context(pinned_directory(root))
+            choices[name] = (source_fixture, root, root.lstat())
+        if interactive_selection:
+            shell = Path(os.environ["SystemRoot"]) / "System32/WindowsPowerShell/v1.0/powershell.exe"
+            result = subprocess.run([shell, "-NoProfile", "-NonInteractive", "-STA", "-File",
+                                     Path(__file__).with_name("select-p3-fixture.ps1")])
+            if result.returncode == 10:
+                return False
+            require(result.returncode in (11, 12), "source selection unavailable")
+            name = {11: "Projekt Nord", 12: "Projekt Sued"}[result.returncode]
+        else:
+            name = "project"
+        source_fixture, root, selected_root = choices[name]
         metadata = json.loads((source_fixture / "expected.json").read_text())
 
-        selected_root = root.lstat()
         planned = dict(metadata[3])
 
         def capture(after_first=None):
@@ -244,22 +248,18 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
             subprocess.run([sys.executable, "-I", "-c",
                             "import sys; open(sys.argv[1], 'xb').write(b'late asset')",
                             str(root / "assets/nested/late.png")], check=True, timeout=10)
-        with pinned_directory(root):
-            selected = object_id(root)
-            require(selected == [selected_root.st_dev, selected_root.st_ino], "selected root replaced")
-            if interactive_selection:
-                if not confirm_fixture_source():
-                    return False
+        selected = object_id(root)
+        require(selected == [selected_root.st_dev, selected_root.st_ino], "selected root replaced")
+        if not interactive_selection:
+            planned["assets/nested/late.png"] = hashlib.sha256(b"late asset").hexdigest()
+            try:
+                capture(add_asset)
+            except RuntimeError as exc:
+                require(str(exc) == "project changed during capture" and not target.exists(),
+                        "uncertain capture released")
             else:
-                planned["assets/nested/late.png"] = hashlib.sha256(b"late asset").hexdigest()
-                try:
-                    capture(add_asset)
-                except RuntimeError as exc:
-                    require(str(exc) == "project changed during capture" and not target.exists(),
-                            "uncertain capture released")
-                else:
-                    raise RuntimeError("concurrent asset omitted")
-            metadata[3] = capture()
+                raise RuntimeError("concurrent asset omitted")
+        metadata[3] = capture()
         metadata.append(selected)
         (fixture / "expected.json").write_text(json.dumps(metadata))
         return True
