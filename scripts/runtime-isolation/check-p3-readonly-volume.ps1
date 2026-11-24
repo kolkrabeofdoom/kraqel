@@ -16,6 +16,7 @@ foreach ($role in @('pipe-service', 'native-leaf')) {
 $fixture = Join-Path ([IO.Path]::GetTempPath()) ("kraqel-p3-" + [guid]::NewGuid().ToString("N"))
 $image = Join-Path $fixture 'source.vhdx'
 $attached = $false
+$completed = $false
 $imagePin = $null
 function Get-FixtureDisk {
     $disks = @(Get-DiskImage -ImagePath $image | Get-Disk)
@@ -57,6 +58,7 @@ try {
     }
     $mode = if ($InteractivePreview) { 'preview' } else { 'capture' }
     Invoke-Fixture $mode $volumePath
+    $completed = $true
 } finally {
     try { if ($attached) { Dismount-VHD -Path $image } } finally { if ($null -ne $imagePin) { $imagePin.Dispose() } }
     # The only removable items are this run's own image and fixed fixture outputs.
@@ -64,5 +66,11 @@ try {
         $file = Join-Path $fixture $name
         if ([IO.File]::Exists($file)) { [IO.File]::Delete($file) }
     }
-    if ([IO.Directory]::Exists($fixture)) { [IO.Directory]::Delete($fixture) }
+    if ([IO.Directory]::Exists($fixture)) {
+        if ($completed -or ([IO.Directory]::GetFileSystemEntries($fixture).Length -eq 0)) {
+            [IO.Directory]::Delete($fixture)
+        } else {
+            Write-Warning ("P3 evidence retained under TEMP in " + [IO.Path]::GetFileName($fixture))
+        }
+    }
 }

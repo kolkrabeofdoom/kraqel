@@ -17,6 +17,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+import time
 import uuid
 
 
@@ -132,6 +133,15 @@ def challenge(root, readonly):
                     "ro" if readonly else "rw"], check=True, timeout=15)
 
 
+def commit_fixture_wal(root, document):
+    db = sqlite3.connect(root / "kraqel.sqlite3")
+    db.execute("PRAGMA wal_autocheckpoint=0")
+    updated = db.execute("UPDATE document SET plain_text=? WHERE id=?", (P3_SCENE[1], document))
+    require(updated.rowcount == 1, "missing WAL scene")
+    db.commit()
+    os._exit(82)  # Keep the committed WAL and its matching shared-memory index.
+
+
 def prepare(root, fixture):
     root.mkdir()
     nested = root / "assets" / "nested"
@@ -152,7 +162,7 @@ def prepare(root, fixture):
         db.execute("PRAGMA user_version=6")
         db.execute("INSERT INTO project(id,name,schema_version,created_at,updated_at) VALUES(?, 'P3',1,'t','t')", (identity,))
         db.execute("INSERT INTO document(id,project_id,kind,title,plain_text,position,created_at,updated_at) "
-                   "VALUES(?,?,'scene',?,?,0,'t','t')", (document, identity, *P3_SCENE[:2]))
+                   "VALUES(?,?,'scene',?,?,0,'t','t')", (document, identity, P3_SCENE[0], "Vor dem WAL-Commit"))
         db.execute("INSERT INTO media_asset(id,project_id,kind,relative_path,thumbnail_path,original_name,"
                    "title,mime_type,checksum,byte_count,width,height,provenance,created_at,updated_at) "
                    "VALUES(?,?,'image','assets/nested/cover.png','assets/thumbnails/cover.png','cover.png',"
@@ -161,6 +171,11 @@ def prepare(root, fixture):
         db.execute("INSERT INTO asset_link(project_id,asset_id,target_type,target_id,created_at) "
                    "VALUES(?,?,'document',?,'t')", (identity, asset, document))
         db.commit()
+        require(db.execute("PRAGMA journal_mode=WAL").fetchone() == ("wal",), "WAL mode unavailable")
+    main_before = hashlib.sha256((root / "kraqel.sqlite3").read_bytes()).digest()
+    run_to_exit(commit_fixture_wal, (root, document), 82)
+    require(hashlib.sha256((root / "kraqel.sqlite3").read_bytes()).digest() == main_before,
+            "scene was checkpointed into the main file")
     challenge(root, False)
     # The normal stream stays identical, so a hash-only probe would miss this.
     alternate = Path(str(nested / "cover.png") + ":fixture")
@@ -254,6 +269,64 @@ def checked_staging(root, bundle, expected, approved, key):
         yield files, os.fstat(reservation_file.fileno())
 
 
+@contextmanager
+def fixture_database(project, expected, verify=None):
+    main = "kraqel.sqlite3"
+    wal, shm = main + "-wal", main + "-shm"
+    sidecars = {wal, shm}
+    names = {p.name for p in project.iterdir()}
+    present = names & sidecars
+    require(main + "-journal" not in names and present == expected.keys() & sidecars
+            and (not present or present == sidecars), "unsupported SQLite sidecars")
+    budget = 8 * 1024 * 1024
+    with ExitStack() as held:
+        held.enter_context(pinned_directory(project))
+        images = {}
+        for name in [main, *sorted(present)]:
+            path = project / name
+            info = check_entry(path)
+            raw = open_file(str(path), 0x80000000, 1, None, 3, 0x00200000, None)
+            if raw == ctypes.c_void_p(-1).value:
+                raise ctypes.WinError(ctypes.get_last_error())
+            file = held.enter_context(os.fdopen(msvcrt.open_osfhandle(raw, os.O_RDONLY | os.O_BINARY), "rb"))
+            pinned = os.fstat(file.fileno())
+            require(os.path.samestat(info, pinned) and not pinned.st_file_attributes & 0x400
+                    and pinned.st_nlink == 1 and 0 < pinned.st_size <= budget, "unsupported SQLite file")
+            images[name] = file
+        if verify is not None:
+            verify()
+        for name, file in images.items():
+            require(hashlib.file_digest(file, "sha256").hexdigest() == expected[name], "changed SQLite file")
+
+        db = held.enter_context(closing(sqlite3.connect(":memory:")))
+        if wal in images:
+            # SQLite interprets WAL commits. All three on-disk files deny writes and replacement.
+            uri = (project / main).as_uri() + "?mode=ro"
+            with closing(sqlite3.connect(uri, uri=True, timeout=0)) as source:
+                source.execute("PRAGMA trusted_schema=OFF")
+                source.execute("PRAGMA query_only=ON")
+                source.execute("BEGIN")
+                pages = source.execute("PRAGMA page_count").fetchone()[0]
+                size = source.execute("PRAGMA page_size").fetchone()[0]
+                require(source.execute("PRAGMA journal_mode").fetchone() == ("wal",)
+                        and 0 < pages * size <= budget, "unsupported WAL view")
+
+                def backup_progress(status, remaining, total):
+                    require(status in (sqlite3.SQLITE_OK, sqlite3.SQLITE_DONE)
+                            and total * size <= budget, "SQLite backup unavailable")
+
+                source.backup(db, pages=128, progress=backup_progress, sleep=0)
+        else:
+            images[main].seek(0)
+            data = images[main].read(budget + 1)
+            require(data[18:20] == b"\x01\x01", "missing WAL evidence")
+            db.deserialize(data)
+        db.execute("PRAGMA trusted_schema=OFF")
+        db.execute("PRAGMA temp_store=MEMORY")
+        db.execute("PRAGMA query_only=ON")
+        yield db
+
+
 def copy_project(root, bundle, metadata, approved, key, interrupt):
     identity, document, asset, expected = metadata
     stage = bundle / "project"
@@ -271,7 +344,9 @@ def copy_project(root, bundle, metadata, approved, key, interrupt):
                 challenge(root, True)
             shutil.copyfileobj(src, dst)
     require(inventory(stage) == expected == inventory(root), "incomplete copy")
-    with closing(sqlite3.connect((stage / "kraqel.sqlite3").as_uri() + "?mode=ro", uri=True)) as db:
+    with fixture_database(stage, expected) as db:
+        require(db.execute("SELECT title, plain_text, revision FROM document WHERE project_id=? AND id=?",
+                           (identity, document)).fetchall() == [P3_SCENE], "incomplete scene revision")
         require(db.execute("pragma integrity_check").fetchall() == [("ok",)], "invalid copy")
         require(db.execute("select id from project").fetchall() == [(identity,)], "wrong project")
         require(not db.execute("pragma foreign_key_check").fetchall(), "invalid foreign key")
@@ -484,25 +559,10 @@ def read_published_scene(root, target, metadata, approved, home, interactive=Fal
             require(not os.path.lexists(target / (".pending-" + project_id)), "unresolved staging")
             final = target / project_id
             with pinned_directory(final), pinned_directory(final / "project"):
-                # Read precisely the authenticated bytes. SQLite works only on an in-memory image.
-                path = final / "project/kraqel.sqlite3"
-                raw = open_file(str(path), 0x80000000, 1, None, 3, 0x00200000, None)
-                if raw == ctypes.c_void_p(-1).value:
-                    raise ctypes.WinError(ctypes.get_last_error())
-                with os.fdopen(msvcrt.open_osfhandle(raw, os.O_RDONLY | os.O_BINARY), "rb") as image:
-                    info = os.fstat(image.fileno())
-                    require(not info.st_file_attributes & 0x400, "unexpected database link")
+                def verify_publication():
                     verify_bundle(final, approved, metadata, authority)
-                    require(info.st_nlink == 1 and 0 < info.st_size <= 8 * 1024 * 1024,
-                            "unsupported fixture database")
-                    data = image.read(info.st_size + 1)
-                require(hashlib.sha256(data).hexdigest() == expected["kraqel.sqlite3"],
-                        "changed fixture database")
-                with closing(sqlite3.connect(":memory:")) as db:
-                    db.deserialize(data)
-                    db.execute("PRAGMA trusted_schema=OFF")
-                    db.execute("PRAGMA temp_store=MEMORY")
-                    db.execute("PRAGMA query_only=ON")
+
+                with fixture_database(final / "project", expected, verify_publication) as db:
                     rows = db.execute("SELECT title, plain_text, revision FROM document "
                                       "WHERE project_id=? AND id=? AND kind='scene'",
                                       (project_id, scene_id)).fetchall()
@@ -514,10 +574,23 @@ def read_published_scene(root, target, metadata, approved, home, interactive=Fal
 
 
 def retire_preview_profiles(home):
-    result = subprocess.run([home / "p3-starter.exe", "broker-store", "retire-p3-preview-profiles"],
-                            env={**os.environ, "USERPROFILE": str(home)}, input=b"",
-                            capture_output=True, timeout=10)
-    require(result.returncode == 0, "profile cleanup failed: " + result.stderr.decode())
+    deadline = time.monotonic() + 3
+    while True:
+        result = subprocess.run([home / "p3-starter.exe", "broker-store", "retire-p3-preview-profiles"],
+                                env={**os.environ, "USERPROFILE": str(home)}, input=b"",
+                                capture_output=True, timeout=10)
+        if result.returncode == 0:
+            break
+        # Kill-on-close can still be draining when the controller process has already exited.
+        # Retry only the authenticated broker's specific busy result. Other refusals retain evidence.
+        try:
+            failure = json.loads(result.stderr)
+        except (ValueError, UnicodeError):
+            failure = None
+        if not (isinstance(failure, dict) and failure.get("stage") == "product-job-active"
+                and time.monotonic() < deadline):
+            raise RuntimeError("profile cleanup failed: " + result.stderr.decode(errors="replace"))
+        time.sleep(0.1)
     summary = json.loads(result.stdout)
     require(summary["profileFoldersAbsent"] and summary["sessionOpen"], "uncertain crash cleanup")
     return summary["deletedProfiles"]
@@ -617,10 +690,14 @@ def native_restart(root, fixture, metadata, interactive):
             except RuntimeError as exc:
                 require("win32-window-session-open" in str(exc), "unexpected delivery restart refusal")
 
+    except BaseException as exc:
+        exc.add_note(f"P3 control evidence retained in {fixture.name}/install-a")
+        raise
+    else:
+        # Only the successful return path proved profile absence and the restart lock.
+        shutil.rmtree(home)
     finally:
-        # Both directories were exclusively created by this synthetic run.
-        for directory in (home, foreign):
-            shutil.rmtree(directory)
+        shutil.rmtree(foreign)
 
 
 def remove_first_then_stop(root, target, metadata, ticket, home):
@@ -925,4 +1002,6 @@ if __name__ == "__main__":
             else:
                 capture(root, fixture, interactive=mode == "preview")
         if mode != "prepare":
-            print("PASS: native controller restart resumed partial transfer and confirmed publication; foreign installation refused; cleanup recovered; bound scene shown read-only; substituted scene and window image refused")
+            require(inventory(root) == json.loads((fixture / "expected.json").read_text())[3],
+                    "source changed during capture")
+            print("PASS: committed WAL scene read from published copy; native controller restart resumed partial transfer and confirmed publication; foreign installation refused; cleanup recovered; bound scene shown read-only; substituted scene and window image refused")

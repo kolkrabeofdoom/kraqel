@@ -12,6 +12,8 @@ Der gezielte P3-Leseaufruf kann die gebundene synthetische Szene aus der bestät
 
 Der vollständige VHDX-Lauf bestätigte auch die Abweisung der ausgetauschten Fenster-EXE. Mit `-InteractivePreview` bleibt das schreibgeschützte Fenster bis zum Schließen geöffnet. Im lokalen Rollenlauf sperrte die Anzeige parallele Leseaufrufe. Nach Starterabbruch endete die Fensterrolle und der Wiederanlauf blieb gesperrt. Für neue synthetische Vorschauen ist die Profilbereinigung nach einem harten Starterabbruch im lokalen Rollenlauf geprüft. Ein Ersatzverzeichnis blieb erhalten. Das ursprüngliche Fensterprofil wurde einmal entfernt und der Szenenneustart blieb gesperrt.
 
+Der vollständige Windows-VHDX-Lauf hat Profilbereinigung und gesperrten Neustart nach dem Abbruch bei sichtbarem Fenster bestätigt. Er wurde mit einem ausschließlich im WAL bestätigten Szenentext wiederholt. Staging und Fenster erhielten »Text aus der Testkopie.« aus der veröffentlichten Kopie. Der Hauptdateihash blieb beim WAL-Commit gleich, das gesamte Quellinventar blieb bis zum Laufende unverändert. Ein separater lokaler Leseversuch mit fehlendem SHM-Index wurde vor dem SQLite-Aufruf abgewiesen. Bei einem unklaren Laufende erhält die Prüfsteuerung das Kontrolljournal der Primärinstallation für die Diagnose.
+
 ### PDF-Export
 
 Text- und Bildexport lesen das selbst erzeugte PDF zur Ausgabeprüfung mit `lopdf 0.47.0`.
