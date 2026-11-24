@@ -165,6 +165,8 @@ Am 24. November 2026 wurde eine ausschließlich synthetische SQLite-Quelle unter
 
 Nach Prozessende hielt die Probe für sämtliche vorhandenen Dateien im festen Prüfverzeichnis solche Handles gleichzeitig offen. Nur Datenbank und WAL wurden aus diesen Handles in das leere Staging gelesen. SQLite öffnete ausschließlich diese Arbeitskopie zur Wiederherstellung und erzeugte dort eine separate Sicherung. Diese enthielt die im WAL bestätigte UUID und Schemaversion 6 und bestand die SQLite-Integritätsprüfung. Namen und SHA-256 sämtlicher Quelldateien einschließlich der SQLite-Nebendateien waren vor und nach der Erfassung gleich.
 
+**Gegenprobe zur Verzeichnisbindung.** In einer zweiten synthetischen Quelle hielt der Prüfprozess zugleich das Verzeichnis und das vorhandene Asset mit ausschließlich Lesefreigabe offen. Trotzdem konnte ein separat gestarteter Prozess ein neues Asset in diesem Verzeichnis anlegen. Die Dateihandles sichern daher nur die bereits erfassten Objekte. Eine zunächst vollständige Namensliste darf keine Veröffentlichung eines Gesamtprojekts autorisieren. Der nächste Entwurf muss eine über die gesamte Erfassung wirksame Quelle mit stabilem Dateibestand nachweisen.
+
 Das Ergebnis belegt den SQLite-Teil für diese fest vorgegebene Quelle. Für eine Bestandskopie fehlen weiterhin die authentisierte native Quellen-/Zielbindung, der Ausschluss von Veränderungen am gesamten Verzeichnisbestand einschließlich neuer Dateien und Assets sowie die idempotente Veröffentlichung. Bis dahin gibt es keinen Produktaufruf zur Bestandsübernahme. Bei unbekannten oder unvollständig erfassten Dateien bleibt die Übernahme vor der Veröffentlichung gesperrt.
 
 ## 5. Vor Fortsetzung des eingeschränkten Prozesses
