@@ -880,8 +880,8 @@ pub fn main() {
         if args.len() == 6 && args[0] == "product-control-child" {
             return exchange::product_crash_child(&args[1..]);
         }
-        if args.len() == 1 && args[0] == "select-p3-fixture" {
-            return p3_picker::choose();
+        if args.len() == 3 && args[0] == "select-p3-fixture" {
+            return p3_picker::choose(&args[1], &args[2]);
         }
         if args.first().is_some_and(|arg| arg == "broker-store") {
             return exchange::product_storage(&args[1..]);

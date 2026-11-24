@@ -1,7 +1,13 @@
 //! Local P3 research picker. The dialog receives no paths and has three fixed outcomes.
 use super::{Result, Value, fail, json};
+use std::ffi::OsStr;
 use std::ptr::null_mut;
+use windows_sys::Win32::Storage::FileSystem::*;
 use windows_sys::Win32::{Foundation::HWND, UI::WindowsAndMessaging::*};
+
+fn invalid(stage: &'static str) -> super::Failure {
+    super::Failure { stage, code: -1 }
+}
 
 const NORTH: u16 = 101;
 const SOUTH: u16 = 102;
@@ -24,7 +30,44 @@ fn string(words: &mut Vec<u16>, text: &str) {
     words.extend(text.encode_utf16().chain(Some(0)));
 }
 
-pub(super) fn choose() -> Result<Value> {
+fn directory_identity(argument: &OsStr) -> Result<(u64, String)> {
+    let raw: usize = argument
+        .to_str()
+        .and_then(|s| s.parse().ok())
+        .ok_or_else(|| invalid("p3-selection-handle"))?;
+    let handle = raw as windows_sys::Win32::Foundation::HANDLE;
+    let mut info = BY_HANDLE_FILE_INFORMATION::default();
+    let mut id = FILE_ID_INFO::default();
+    if unsafe { GetFileType(handle) } != FILE_TYPE_DISK
+        || unsafe { GetFileInformationByHandle(handle, &mut info) } == 0
+        || info.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT)
+            != FILE_ATTRIBUTE_DIRECTORY
+        || unsafe {
+            GetFileInformationByHandleEx(
+                handle,
+                FileIdInfo,
+                (&raw mut id).cast(),
+                size_of::<FILE_ID_INFO>() as u32,
+            )
+        } == 0
+        || id.VolumeSerialNumber == 0
+        || id.FileId.Identifier == [0; 16]
+    {
+        return Err(invalid("p3-selection-directory"));
+    }
+    Ok((
+        id.VolumeSerialNumber,
+        format!("{:032x}", u128::from_le_bytes(id.FileId.Identifier)),
+    ))
+}
+
+pub(super) fn choose(north: &OsStr, south: &OsStr) -> Result<Value> {
+    let north = directory_identity(north)?;
+    let south = directory_identity(south)?;
+    if north == south {
+        return Err(invalid("p3-selection-duplicate"));
+    }
+
     // Standard DLGTEMPLATE and DLGITEMTEMPLATE structures use little-endian WORDs.
     let style = WS_POPUP | WS_CAPTION | WS_SYSMENU | DS_MODALFRAME as u32 | DS_SETFONT as u32;
     let mut words = vec![
@@ -97,10 +140,10 @@ pub(super) fn choose() -> Result<Value> {
         )
     };
     let selection = match result {
-        2 => "cancel",
-        n if n == NORTH as isize => "north",
-        n if n == SOUTH as isize => "south",
+        2 => return Ok(json!({"selection":"cancel"})),
+        n if n == NORTH as isize => ("north", north),
+        n if n == SOUTH as isize => ("south", south),
         _ => return Err(fail("p3-source-dialog")),
     };
-    Ok(json!({"selection": selection}))
+    Ok(json!({"selection": selection.0, "directory": selection.1}))
 }

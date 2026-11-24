@@ -194,24 +194,42 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
     with tempfile.TemporaryDirectory(prefix="kraqel-p3-writable-") as temp, ExitStack() as pins:
         pins.enter_context(pinned_directory(Path(temp)))
         choices = {}
+        handles = []
         for name in (("Projekt Nord", "Projekt Sued") if interactive_selection else ("project",)):
             source_fixture = Path(temp) / name
             source_fixture.mkdir()
             root = source_fixture / "project"
             seed_writable_project(root, source_fixture)
             pins.enter_context(pinned_directory(source_fixture))
-            pins.enter_context(pinned_directory(root))
+            handles.append(pins.enter_context(pinned_directory(root)))
             choices[name] = (source_fixture, root, root.lstat())
         if interactive_selection:
             picker = Path(__file__).parent / "probe/target/debug/kraqel-isolation-probe.exe"
-            result = subprocess.run([picker, "select-p3-fixture"], capture_output=True, check=True)
-            choices_by_reply = {b'{"selection":"north"}': "Projekt Nord",
-                                b'{"selection":"south"}': "Projekt Sued"}
-            reply = result.stdout.rstrip(b"\r\n")
-            if reply == b'{"selection":"cancel"}':
+            import _winapi
+            process = _winapi.GetCurrentProcess()
+            with ExitStack() as inherited:
+                duplicates = []
+                for handle in handles:
+                    duplicate = _winapi.DuplicateHandle(process, handle, process, 0x80, True, 0)
+                    inherited.callback(_winapi.CloseHandle, duplicate)
+                    duplicates.append(duplicate)
+                startup = subprocess.STARTUPINFO(lpAttributeList={"handle_list": duplicates})
+                dialog = subprocess.Popen([picker, "select-p3-fixture", *map(str, duplicates)],
+                                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                                          stdin=subprocess.DEVNULL, startupinfo=startup, close_fds=True)
+            with dialog:
+                output, _ = dialog.communicate()
+                require(dialog.returncode == 0, "source selection unavailable")
+            reply = json.loads(output)
+            if reply == {"selection": "cancel"}:
                 return False
-            require(reply in choices_by_reply, "source selection unavailable")
-            name = choices_by_reply[reply]
+            names = {"north": "Projekt Nord", "south": "Projekt Sued"}
+            require(isinstance(reply, dict) and reply.get("selection") in names, "unknown source selection")
+            name = names[reply["selection"]]
+            stat = choices[name][2]
+            require(reply == {"selection": reply["selection"],
+                              "directory": [stat.st_dev, f"{stat.st_ino:032x}"]},
+                    "selected directory identity mismatch")
         else:
             name = "project"
         source_fixture, root, selected_root = choices[name]
