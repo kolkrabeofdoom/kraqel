@@ -4,6 +4,8 @@
 
 Der native P3-Prüfstarter bietet zwei synthetische Projektordner in einem eigenen Win32-Dialog zur Auswahl an. Der Auswahlschritt benötigt weder PowerShell noch den Windows-Explorer. Für beide wurde geprüft, dass genau die ausgewählte Projekt- und Verzeichnisidentität samt Inventar übernommen wurde. Auch bei vertauschten Verzeichnishandles verweigerte die Prüfsteuerung die Erfassung vor der Zielanlage. Abbrechen hinterließ ein leeres Ziel. Beim harten Abbruch der Prüfsteuerung schloss sich der offene Dialog, beide Ordnerhandles wurden frei und es entstand kein Freigabebeleg. Windows entfernte die für den Dialog vorgemerkten synthetischen Quelldateien. Eine zusätzlich angelegte Fremddatei blieb erhalten.
 
+Auch die reguläre Bereinigung des interaktiven Quellbestands ist an Dateiidentität und Inhalt gebunden. Eine zusätzliche Datei in der gewählten Quelle blockierte die Kopie und blieb erhalten. Eine Fremddatei im anderen Projekt blieb bei erfolgreicher Auswahl und beim Abbrechen erhalten.
+
 Der native Prüfstarter bindet den synthetischen Quellordner an den erfassten Kandidaten und dessen Inventar. Ein Wiederanlauf mit anderer Quellidentität wurde abgewiesen, der ursprüngliche Kandidat bestätigt.
 
 Am beschreibbaren synthetischen NTFS-Ordner führte ein neues Asset im Unterverzeichnis zum Abbruch ohne Zielkopie. Die anschließende Erfassung übernahm das Asset und die im WAL bestätigte Szene. Der vollständige VHDX-Lauf mit diesem Bestand bestätigte Veröffentlichung, Wiederanlauf, Bereinigung und schreibgeschützte Anzeige der Szene im verwalteten Win32-Fenster. [Erfassung und Geltungsbereich](data-format/product-start-integration-v1-draft.md#erfassung-eines-beschreibbaren-synthetischen-projektordners)

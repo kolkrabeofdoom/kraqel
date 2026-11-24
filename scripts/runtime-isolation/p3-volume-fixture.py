@@ -210,46 +210,99 @@ def pending_fixture_deletion(files):
                     "source cleanup identity mismatch")
             handles.append(wintypes.HANDLE(raw))
 
-        def disposition(handle, delete):
-            flag = ctypes.c_ubyte(delete)
-            if not kernel.SetFileInformationByHandle(handle, 4, ctypes.byref(flag), ctypes.sizeof(flag)):
-                raise ctypes.WinError(ctypes.get_last_error())
+        for handle in handles:
+            set_delete_disposition(handle, True)
 
-        for handle in handles:
-            disposition(handle, True)
-        yield
-        for handle in handles:
-            disposition(handle, False)
+        def retain():
+            for handle in handles:
+                set_delete_disposition(handle, False)
+
+        yield retain
+
+
+def set_delete_disposition(handle, delete):
+    flag = ctypes.c_ubyte(delete)
+    if not kernel.SetFileInformationByHandle(handle, 4, ctypes.byref(flag), ctypes.sizeof(flag)):
+        raise ctypes.WinError(ctypes.get_last_error())
+
+
+def remove_empty_fixture_directory(path, identity):
+    raw = open_file(str(path), 0x10080, 3, None, 3, 0x02200000, None)
+    if raw == ctypes.c_void_p(-1).value:
+        if ctypes.get_last_error() in (2, 3):
+            return
+        raise ctypes.WinError(ctypes.get_last_error())
+    try:
+        fd = msvcrt.open_osfhandle(raw, os.O_RDONLY)
+    except OSError:
+        kernel.CloseHandle(wintypes.HANDLE(raw))
+        raise
+    try:
+        info = os.fstat(fd)
+        if os.path.samestat(info, identity) and info.st_file_attributes & 0x410 == 0x10:
+            try:
+                set_delete_disposition(wintypes.HANDLE(raw), True)
+            except OSError as exc:
+                if exc.winerror != 145:  # A new entry keeps this directory and its ancestors alive.
+                    raise
+    finally:
+        os.close(fd)
+
+
+@contextmanager
+def selection_sources(interactive):
+    if not interactive:
+        with tempfile.TemporaryDirectory(prefix="kraqel-p3-writable-") as temp:
+            yield Path(temp), {}, []
+        return
+    temp = Path(tempfile.mkdtemp(prefix="kraqel-p3-writable-"))
+    files = {}
+    directories = [(temp, temp.lstat())]
+    try:
+        yield temp, files, directories
+    finally:
+        for entries in files.values():
+            for entry in entries:
+                try:
+                    with pending_fixture_deletion([entry]):
+                        pass
+                except FileNotFoundError:
+                    pass
+        for directory, identity in reversed(directories):
+            remove_empty_fixture_directory(directory, identity)
 
 
 def prepare_captured_project(target, fixture, interactive_selection=False):
     import runpy
     read_oplock = runpy.run_path(str(Path(__file__).with_name("p3_directory_oplock.py")))["read_oplock"]
-    with tempfile.TemporaryDirectory(prefix="kraqel-p3-writable-") as temp, ExitStack() as pins:
-        pins.enter_context(pinned_directory(Path(temp)))
+    with selection_sources(interactive_selection) as (temp, generated_files, directories), ExitStack() as pins:
+        pins.enter_context(pinned_directory(temp))
         choices = {}
         handles = []
-        generated_files = []
         for name in (("Projekt Nord", "Projekt Sued") if interactive_selection else ("project",)):
             source_fixture = Path(temp) / name
             source_fixture.mkdir()
             root = source_fixture / "project"
-            inventory_hashes, manifest_digest = seed_writable_project(root, source_fixture)
+            metadata = seed_writable_project(root)
             if interactive_selection:
-                manifest = source_fixture / "expected.json"
-                generated_files.append((manifest, manifest.lstat(), manifest_digest))
+                for directory in (source_fixture, root, root / "empty", root / "assets",
+                                  root / "assets/nested", root / "assets/thumbnails"):
+                    directories.append((directory, directory.lstat()))
+                generated_files[name] = []
                 for relative in ("kraqel.sqlite3", "kraqel.sqlite3-wal", "kraqel.sqlite3-shm",
                                  "assets/nested/cover.png", "assets/thumbnails/cover.png"):
                     path = root / relative
-                    generated_files.append((path, path.lstat(), inventory_hashes[relative]))
+                    generated_files[name].append((path, path.lstat(), metadata[3][relative]))
             pins.enter_context(pinned_directory(source_fixture))
             handles.append(pins.enter_context(pinned_directory(root)))
-            choices[name] = (source_fixture, root, root.lstat())
+            choices[name] = (metadata, root, root.lstat())
         if interactive_selection:
             picker = Path(__file__).parent / "probe/target/debug/kraqel-isolation-probe.exe"
             import _winapi
             process = _winapi.GetCurrentProcess()
-            with pending_fixture_deletion(generated_files):
+            with ExitStack() as protected:
+                retain = {name: protected.enter_context(pending_fixture_deletion(files))
+                          for name, files in generated_files.items()}
                 with ExitStack() as inherited:
                     duplicates = []
                     for handle in handles:
@@ -266,20 +319,20 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
                 with dialog:
                     output, _ = dialog.communicate()
                     require(dialog.returncode == 0, "source selection unavailable")
-            reply = json.loads(output)
-            if reply == {"selection": "cancel"}:
-                return False
-            names = {"north": "Projekt Nord", "south": "Projekt Sued"}
-            require(isinstance(reply, dict) and reply.get("selection") in names, "unknown source selection")
-            name = names[reply["selection"]]
-            stat = choices[name][2]
-            require(reply == {"selection": reply["selection"],
-                              "directory": [stat.st_dev, f"{stat.st_ino:032x}"]},
-                    "selected directory identity mismatch")
+                reply = json.loads(output)
+                if reply == {"selection": "cancel"}:
+                    return False
+                names = {"north": "Projekt Nord", "south": "Projekt Sued"}
+                require(isinstance(reply, dict) and reply.get("selection") in names, "unknown source selection")
+                name = names[reply["selection"]]
+                stat = choices[name][2]
+                require(reply == {"selection": reply["selection"],
+                                  "directory": [stat.st_dev, f"{stat.st_ino:032x}"]},
+                        "selected directory identity mismatch")
+                retain[name]()
         else:
             name = "project"
-        source_fixture, root, selected_root = choices[name]
-        metadata = json.loads((source_fixture / "expected.json").read_text())
+        metadata, root, selected_root = choices[name]
 
         planned = dict(metadata[3])
 
@@ -387,7 +440,7 @@ def commit_fixture_wal(root, document):
     os._exit(82)  # Keep the committed WAL and its matching shared-memory index.
 
 
-def seed_writable_project(root, fixture):
+def seed_writable_project(root):
     root.mkdir()
     nested = root / "assets" / "nested"
     nested.mkdir(parents=True)
@@ -431,10 +484,7 @@ def seed_writable_project(root, fixture):
     else:
         raise RuntimeError("named stream omitted")
     alternate.unlink()
-    expected = inventory(root)
-    manifest = json.dumps([identity, document, asset, expected]).encode("ascii")
-    (fixture / "expected.json").write_bytes(manifest)
-    return expected, hashlib.sha256(manifest).hexdigest()
+    return [identity, document, asset, inventory(root)]
 
 
 def stage_tag(bundle, expected, approved, key, register=False):
