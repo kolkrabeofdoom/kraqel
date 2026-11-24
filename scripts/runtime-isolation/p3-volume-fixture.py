@@ -4,6 +4,10 @@ import ctypes
 from ctypes import wintypes
 from contextlib import closing, contextmanager
 import hashlib
+import hmac
+import multiprocessing
+import os
+import secrets
 import json
 from pathlib import Path
 import re
@@ -27,11 +31,19 @@ open_file.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, ctypes.c
 open_file.restype = wintypes.HANDLE
 
 @contextmanager
-def volume_guard(volume, readonly):
-    handle = open_file(volume, 0x80, 3, None, 3, 0x02000000, None)
+def pinned_directory(path):
+    handle = open_file(str(path), 0x80, 3, None, 3, 0x02000000 | 0x00200000, None)
     if handle == ctypes.c_void_p(-1).value:
         raise ctypes.WinError(ctypes.get_last_error())
     try:
+        yield handle
+    finally:
+        kernel.CloseHandle(wintypes.HANDLE(handle))
+
+
+@contextmanager
+def volume_guard(volume, readonly):
+    with pinned_directory(volume) as handle:
         flags = wintypes.DWORD()
         label = ctypes.create_unicode_buffer(64)
         if not kernel.GetVolumeInformationByHandleW(wintypes.HANDLE(handle), label, len(label),
@@ -40,8 +52,6 @@ def volume_guard(volume, readonly):
         require(label.value == "KRAQEL-P3", "foreign volume")
         require(bool(flags.value & 0x80000) == readonly, "unexpected volume write protection")
         yield
-    finally:
-        kernel.CloseHandle(wintypes.HANDLE(handle))
 
 
 class StreamInfo(ctypes.Structure):
@@ -153,34 +163,145 @@ def prepare(root, fixture):
     (fixture / "expected.json").write_text(json.dumps([identity, document, asset, inventory(root)]))
 
 
-def capture(root, fixture):
-    identity, document, asset, expected = json.loads((fixture / "expected.json").read_text())
+def copy_project(root, stage, metadata):
+    identity, document, asset, expected = metadata
     entries = inventory(root)
     require(entries == expected, "source inventory mismatch")
+    for name, digest in sorted(entries.items()):
+        if digest is None:
+            (stage / name).mkdir()
+        else:
+            with (root / name).open("rb") as src, (stage / name).open("xb") as dst:
+                dst.write(src.read(1))
+                if name == "kraqel.sqlite3":
+                    challenge(root, True)
+                shutil.copyfileobj(src, dst)
+    require(inventory(stage) == expected == inventory(root), "incomplete copy")
+    with closing(sqlite3.connect((stage / "kraqel.sqlite3").as_uri() + "?mode=ro", uri=True)) as db:
+        require(db.execute("pragma integrity_check").fetchall() == [("ok",)], "invalid copy")
+        require(db.execute("select id from project").fetchall() == [(identity,)], "wrong project")
+        require(not db.execute("pragma foreign_key_check").fetchall(), "invalid foreign key")
+        links = db.execute("SELECT d.id,m.id,m.relative_path,m.thumbnail_path,m.checksum FROM document d "
+                           "JOIN asset_link a ON a.target_type='document' AND a.target_id=d.id "
+                           "AND a.project_id=d.project_id JOIN media_asset m ON m.id=a.asset_id "
+                           "AND m.project_id=a.project_id WHERE d.project_id=?", (identity,)).fetchall()
+        image = "assets/nested/cover.png"
+        thumb = "assets/thumbnails/cover.png"
+        require(links == [(document, asset, image, thumb, entries[image])]
+                and entries[thumb] == entries[image], "incomplete scene asset binding")
+
+
+def object_id(path):
+    info = check_entry(path)
+    require(path.is_dir() and info.st_ino != 0, "missing directory identity")
+    return [info.st_dev, info.st_ino]
+
+
+def tag(key, domain, fields):
+    encoded = json.dumps(fields, ensure_ascii=True, sort_keys=True,
+                         separators=(",", ":")).encode("ascii")
+    return hmac.digest(key, domain + b"\0" + encoded, "sha256").hex()
+
+
+def decision(key, source, destination, metadata):
+    return tag(key, b"KRAQEL-P3-FIXTURE-DECISION-v1",
+               [str(source), object_id(source), object_id(destination), metadata])
+
+
+def receipt(key, approved, bundle):
+    return tag(key, b"KRAQEL-P3-FIXTURE-RECEIPT-v1",
+               [approved, object_id(bundle), object_id(bundle / "project")])
+
+
+def publish(root, destination, metadata, approved, key):
+    with volume_guard(str(root.parent), True), pinned_directory(root), pinned_directory(destination):
+        return publish_pinned(root, destination, metadata, approved, key)
+
+
+def publish_pinned(root, destination, metadata, approved, key):
+    require(hmac.compare_digest(decision(key, root, destination, metadata), approved),
+            "unbound decision")
+    # One fixed slot for this project in this isolated destination. On Windows
+    # rename never replaces an existing slot, even if a second worker wins.
+    project_id = str(uuid.UUID(metadata[0]))
+    final = destination / project_id
+    if not os.path.lexists(final):
+        with tempfile.TemporaryDirectory(dir=destination) as temp:
+            bundle = Path(temp) / "bundle"
+            stage = bundle / "project"
+            stage.mkdir(parents=True)
+            copy_project(root, stage, metadata)
+            (bundle / "receipt").write_bytes(receipt(key, approved, bundle).encode("ascii"))
+            try:
+                bundle.rename(final)
+            except FileExistsError:
+                pass  # Verify the winner with the same checks as any other replay.
+    check_entry(final)
+    require({p.name for p in final.iterdir()} == {"receipt", "project"}, "unexpected bundle")
+    proof = final / "receipt"
+    require(check_entry(proof).st_nlink == 1 and proof.is_file() and proof.stat().st_size == 64,
+            "invalid receipt")
+    require(hmac.compare_digest(proof.read_bytes(), receipt(key, approved, final).encode("ascii")),
+            "unbound receipt")
+    require(inventory(final / "project") == metadata[3], "changed destination")
+    return final
+
+
+def publish_without_reply(root, destination, metadata, approved, key):
+    publish(root, destination, metadata, approved, key)
+    os._exit(86)
+
+
+def capture(root, fixture):
+    metadata = json.loads((fixture / "expected.json").read_text())
+    require(metadata[3] == inventory(root), "unexpected source")
+    # The fixture controller supplies one explicit decision. Its key lasts
+    # across worker processes but grants no authority after the controller exits.
+    key = secrets.token_bytes(32)
     with tempfile.TemporaryDirectory(dir=fixture) as temp:
-        stage = Path(temp)
-        for name, digest in sorted(entries.items()):
-            if digest is None:
-                (stage / name).mkdir()
+        destination = Path(temp)
+        approved = decision(key, root, destination, metadata)
+        with tempfile.TemporaryDirectory(dir=fixture) as other:
+            try:
+                publish(root, Path(other), metadata, approved, key)
+            except RuntimeError as exc:
+                require(str(exc) == "unbound decision" and not list(Path(other).iterdir()),
+                        "wrong target was touched")
             else:
-                with (root / name).open("rb") as src, (stage / name).open("xb") as dst:
-                    dst.write(src.read(1))
-                    if name == "kraqel.sqlite3":
-                        challenge(root, True)
-                    shutil.copyfileobj(src, dst)
-        require(inventory(stage) == expected == inventory(root), "incomplete copy")
-        with closing(sqlite3.connect((stage / "kraqel.sqlite3").as_uri() + "?mode=ro", uri=True)) as db:
-            require(db.execute("pragma integrity_check").fetchall() == [("ok",)], "invalid copy")
-            require(db.execute("select id from project").fetchall() == [(identity,)], "wrong project")
-            require(not db.execute("pragma foreign_key_check").fetchall(), "invalid foreign key")
-            links = db.execute("SELECT d.id,m.id,m.relative_path,m.thumbnail_path,m.checksum FROM document d "
-                               "JOIN asset_link a ON a.target_type='document' AND a.target_id=d.id "
-                               "AND a.project_id=d.project_id JOIN media_asset m ON m.id=a.asset_id "
-                               "AND m.project_id=a.project_id WHERE d.project_id=?", (identity,)).fetchall()
-            image = "assets/nested/cover.png"
-            thumb = "assets/thumbnails/cover.png"
-            require(links == [(document, asset, image, thumb, entries[image])]
-                    and entries[thumb] == entries[image], "incomplete scene asset binding")
+                raise RuntimeError("foreign destination accepted")
+
+        worker = multiprocessing.get_context("spawn").Process(
+            target=publish_without_reply, args=(root, destination, metadata, approved, key))
+        worker.start()
+        try:
+            worker.join(30)
+            require(worker.exitcode == 86, "publication boundary not reached")
+        finally:
+            if worker.is_alive():
+                worker.kill()
+                worker.join()
+            worker.close()
+
+        final = destination / metadata[0]
+        before = object_id(final)
+        reopened = publish(root, destination, metadata, approved, key)
+        require(object_id(reopened) == before and list(destination.iterdir()) == [final],
+                "duplicate publication")
+        fresh_key = secrets.token_bytes(32)
+        try:
+            publish(root, destination, metadata, decision(fresh_key, root, destination, metadata), fresh_key)
+        except RuntimeError as exc:
+            require(str(exc) == "unbound receipt" and object_id(final) == before,
+                    "unexpected controller recovery")
+        else:
+            raise RuntimeError("new controller claimed the earlier publication")
+        (final / "project" / "assets" / "nested" / "cover.png").write_bytes(b"changed fixture")
+        try:
+            publish(root, destination, metadata, approved, key)
+        except RuntimeError as exc:
+            require(str(exc) == "changed destination", "unexpected replay refusal")
+        else:
+            raise RuntimeError("changed destination accepted")
 
 
 if __name__ == "__main__":
@@ -200,4 +321,4 @@ if __name__ == "__main__":
         with volume_guard(volume, mode == "capture"):
             (prepare if mode == "prepare" else capture)(root, fixture)
         if mode == "capture":
-            print("PASS: whole fixture copied; root and nested creates denied; inventory and UUID verified")
+            print("PASS: target-bound publication; replay after worker exit; foreign target and changed copy refused")
