@@ -48,6 +48,12 @@ enum Action {
         slot: u8,
         digest: [u8; 32],
     },
+    P3FixtureRemoved {
+        count: u32,
+    },
+    P3FixtureRemoval {
+        step: u32,
+    },
     P3FixtureCleanup {
         digest: [u8; 32],
     },
@@ -204,6 +210,8 @@ struct State {
     actor: [u8; 32],
     schema: u16,
     pending: Option<[u8; 32]>,
+    p3_removed: bool,
+    p3_removal: u32,
     p3_cleanup: Option<[u8; 32]>,
     p3_evidence: [Option<[u8; 32]>; 3],
     scene_snapshot: Option<([u8; 32], win32_binding::Snapshot)>,
@@ -247,6 +255,21 @@ impl State {
                         == usize::from(*slot) =>
             {
                 self.p3_evidence[usize::from(*slot)] = Some(*digest);
+            }
+            Action::P3FixtureRemoved { count }
+                if self.p3_cleanup.is_some()
+                    && !self.p3_removed
+                    && *count > 0
+                    && self.p3_removal == *count =>
+            {
+                self.p3_removed = true;
+            }
+            Action::P3FixtureRemoval { step }
+                if !self.p3_removed
+                    && self.p3_cleanup.is_some()
+                    && self.p3_removal.checked_add(1) == Some(*step) =>
+            {
+                self.p3_removal = *step;
             }
             Action::P3FixtureCleanup { digest }
                 if self.schema == 1
@@ -697,6 +720,8 @@ impl Store {
                         1
                     },
                     pending: None,
+                    p3_removed: false,
+                    p3_removal: 0,
                     p3_cleanup: None,
                     p3_evidence: [None; 3],
                     scene_snapshot: None,

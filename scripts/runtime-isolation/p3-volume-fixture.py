@@ -294,6 +294,18 @@ class NativeAuthority:
         require(re.fullmatch(b"[0-9a-f]{64}\n", response), "native evidence refused")
         return response[:-1].decode("ascii")
 
+    def removal_step(self, step, advance=False):
+        self.pipe.stdin.write(bytes((int(advance), 4)) + step.to_bytes(4, "little") + bytes(28))
+        self.pipe.stdin.flush()
+        require(self.pipe.stdout.readline(4) == b"OK\n", "unconfirmed cleanup progress")
+
+    def cleanup_finished(self, count, finish=False):
+        self.pipe.stdin.write(bytes((int(finish), 5)) + count.to_bytes(4, "little") + bytes(28))
+        self.pipe.stdin.flush()
+        reply = self.pipe.stdout.readline(6)
+        require(reply in (b"OPEN\n", b"DONE\n"), "unconfirmed cleanup end")
+        return reply == b"DONE\n"
+
 
 @contextmanager
 def native_authority(home, create, cleanup=False):
@@ -328,9 +340,105 @@ def confirm_cleanup(root, destination, metadata, approved, home):
                 pending = destination / (".pending-" + project_id)
                 with checked_staging(root, pending, metadata[3], approved, authority) as (files, info):
                     # Bind the decision to the exact verified prefixes and reservation file.
-                    lengths = [(name, dst.tell()) for name, _, dst in files]
-                    return tag(authority, NativeAuthority.domains[3],
-                               [approved, object_id(pending), info.st_dev, info.st_ino, lengths], True)
+                    lengths = {name: dst.tell() for name, _, dst in files}
+                    ids = {name: [os.fstat(dst.fileno()).st_dev, os.fstat(dst.fileno()).st_ino]
+                           for name, _, dst in files}
+                    layout = [[name, *(object_id(pending / "project" / name) if digest is None
+                                       else ids[name])] for name, digest in sorted(metadata[3].items())]
+                    plan = [approved, object_id(pending), object_id(pending / "project"), layout]
+                    record = [plan, [info.st_dev, info.st_ino], lengths]
+                    sidecar = destination / (".cleanup-" + project_id)
+                    data = json.dumps(record, separators=(",", ":")).encode("ascii")
+                    if os.path.lexists(sidecar):
+                        require(read_cleanup_record(sidecar) == data, "different cleanup record")
+                    else:
+                        with sidecar.open("xb") as out:
+                            out.write(data)
+                            out.flush()
+                            os.fsync(out.fileno())
+                    return tag(authority, NativeAuthority.domains[3], record, True)
+
+
+def read_cleanup_record(path):
+    info = check_entry(path)
+    require(path.is_file() and info.st_nlink == 1 and info.st_size <= 65536, "invalid cleanup record")
+    with reserved_file(path) as handle:
+        require(os.path.samestat(info, os.fstat(handle.fileno())), "replaced cleanup record")
+        return handle.read(65537)
+
+
+def remove_confirmed(root, destination, metadata, approved, home, after_remove=None):
+    project_id = str(uuid.UUID(metadata[0]))
+    with volume_guard(str(root.parent), True), pinned_directory(root), pinned_directory(destination):
+        with native_authority(home, False, cleanup=True) as authority, target_lock(destination, project_id):
+            require(not os.path.lexists(destination / project_id), "published destination")
+            require(hmac.compare_digest(decision(authority, root, destination, metadata), approved),
+                    "unbound decision")
+            record = json.loads(read_cleanup_record(destination / (".cleanup-" + project_id)))
+            plan, reservation_id, lengths = record
+            require(plan[0] == approved, "unbound cleanup plan")
+            reservation = tag(authority, NativeAuthority.domains[1], plan).encode("ascii")
+            tag(authority, NativeAuthority.domains[3], record)  # Verify only. Never grant here.
+            pending = destination / (".pending-" + project_id)
+            entries = [("project/" + name, [dev, ino], metadata[3][name] is None)
+                       for name, dev, ino in plan[3]]
+            entries += [("reservation", reservation_id, False), ("project", plan[2], True)]
+            entries.sort(key=lambda entry: (-entry[0].count("/"), entry[0]))
+            count = len(entries) + 1
+            if authority.cleanup_finished(count):
+                require(not os.path.lexists(pending), "completed cleanup path reused")
+                return
+            if not os.path.lexists(pending):
+                require(authority.cleanup_finished(count, finish=True), "cleanup still open")
+                return
+            require(object_id(pending) == plan[1], "replaced cleanup root")
+            present = inventory(pending)
+            remaining = [entry for entry in entries if entry[0] in present]
+            require(len(present) == len(remaining) and remaining == entries[len(entries)-len(remaining):],
+                    "unexpected cleanup remainder")
+            removed = len(entries) - len(remaining)
+            authority.removal_step(removed)
+            remaining.append(("", plan[1], True))
+            with ExitStack() as pins:
+                opened = []
+                for name, identity, directory in remaining:
+                    path = pending / name
+                    info = check_entry(path)
+                    require([info.st_dev, info.st_ino] == identity and path.is_dir() == directory,
+                            "replaced cleanup object")
+                    raw = open_file(str(path), 0x80010000, 1 if directory else 0, None, 3,
+                                    0x02200000, None)  # READ | DELETE, OPEN_REPARSE_POINT, BACKUP_SEMANTICS
+                    if raw == ctypes.c_void_p(-1).value:
+                        raise ctypes.WinError(ctypes.get_last_error())
+                    fd = msvcrt.open_osfhandle(raw, os.O_RDONLY | os.O_BINARY)
+                    owner = pins.enter_context(ExitStack())
+                    owner.callback(os.close, fd)
+                    held = os.fstat(fd)
+                    require(os.path.samestat(info, held) and not held.st_file_attributes & 0x400,
+                            "replaced cleanup handle")
+                    if not directory:
+                        require(held.st_nlink == 1, "linked cleanup file")
+                        if name == "reservation":
+                            require(os.read(fd, 65) == reservation, "changed cleanup reservation")
+                        else:
+                            relative = name[len("project/"):]
+                            require(held.st_size == lengths[relative], "changed cleanup prefix")
+                            with (root / relative).open("rb") as source:
+                                while chunk := os.read(fd, 65536):
+                                    require(source.read(len(chunk)) == chunk, "changed cleanup prefix")
+                    opened.append((owner, raw))
+                # Delete only through the checked handles. Windows refuses a nonempty directory.
+                for step, (owner, raw) in enumerate(opened, start=removed + 1):
+                    authority.removal_step(step, advance=True)
+                    flag = ctypes.c_ubyte(1)
+                    if not kernel.SetFileInformationByHandle(wintypes.HANDLE(raw), 4, ctypes.byref(flag), 1):
+                        raise ctypes.WinError(ctypes.get_last_error())
+                    owner.close()
+                    if after_remove:
+                        after_remove()
+            require(not os.path.lexists(pending) and authority.cleanup_finished(count, finish=True),
+                    "cleanup still open")
+
 
 
 def native_restart(root, fixture, metadata):
@@ -384,6 +492,10 @@ def native_restart(root, fixture, metadata):
             shutil.rmtree(directory)
 
 
+def remove_first_then_stop(root, target, metadata, ticket, home):
+    remove_confirmed(root, target, metadata, ticket, home, after_remove=lambda: os._exit(88))
+
+
 def check_cleanup_decision(root, fixture, metadata):
     home = fixture / "install-a"
     home.mkdir()
@@ -408,6 +520,38 @@ def check_cleanup_decision(root, fixture, metadata):
             proof = confirm_cleanup(root, target, metadata, ticket, home)
             require(confirm_cleanup(root, target, metadata, ticket, home) == proof,
                     "cleanup decision lost on restart")
+            run_to_exit(remove_first_then_stop, (root, target, metadata, ticket, home), 88)
+            victim = pending / "project/assets/thumbnails/cover.png"
+            retained = target / "retained"
+            victim.rename(retained)
+            try:
+                remove_confirmed(root, target, metadata, ticket, home)
+            except RuntimeError as exc:
+                require(str(exc) == "unconfirmed cleanup progress", "missing object counted as removed")
+            else:
+                raise RuntimeError("missing object accepted")
+            victim.write_bytes(retained.read_bytes())
+            try:
+                remove_confirmed(root, target, metadata, ticket, home)
+            except RuntimeError as exc:
+                require(str(exc) == "replaced cleanup object" and victim.exists(), "replacement removed")
+            else:
+                raise RuntimeError("replacement accepted")
+            victim.unlink()
+            retained.rename(victim)
+            remove_confirmed(root, target, metadata, ticket, home)
+            remove_confirmed(root, target, metadata, ticket, home)
+            require(not pending.exists(), "cleanup incomplete")
+            pending.mkdir()
+            try:
+                remove_confirmed(root, target, metadata, ticket, home)
+            except RuntimeError as exc:
+                require(str(exc) == "completed cleanup path reused" and pending.is_dir(),
+                        "terminal cleanup reused")
+            else:
+                raise RuntimeError("old decision reused after completion")
+            pending.rmdir()  # Fixture-owned replacement.
+
             try:
                 with native_authority(home, False):
                     raise AssertionError("transfer reopened after cleanup decision")
@@ -640,4 +784,4 @@ if __name__ == "__main__":
         with volume_guard(volume, mode == "capture"):
             (prepare if mode == "prepare" else capture)(root, fixture)
         if mode == "capture":
-            print("PASS: native controller restart resumed partial transfer and confirmed publication; foreign installation refused; inventory and prefix checks passed")
+            print("PASS: native controller restart resumed partial transfer and confirmed publication; foreign installation refused; inventory, prefix and journal-bound cleanup checks passed")

@@ -75,6 +75,48 @@ pub(super) fn serve(
         }
         io("p3-frame", input.read_exact(&mut frame[1..]))?;
         let [mode, slot] = [frame[0], frame[1]];
+        if slot == 4 || slot == 5 {
+            // The cursor is accessible only after verifying the exact cleanup decision.
+            if !cleanup || !verified[2] || mode > 1 || frame[6..].iter().any(|b| *b != 0) {
+                return Err(invalid("p3-removal-order"));
+            }
+            let step = u32::from_le_bytes(frame[2..6].try_into().unwrap());
+            let cursor = store.state.p3_removal;
+            if slot == 5 {
+                if mode == 1 && !store.state.p3_removed {
+                    store.append(
+                        actor,
+                        store.state.head,
+                        Action::P3FixtureRemoved { count: step },
+                    )?;
+                }
+                if store.state.p3_removed && step != cursor {
+                    return Err(invalid("p3-removal-count"));
+                }
+                let reply: &[u8] = if store.state.p3_removed {
+                    b"DONE\n"
+                } else {
+                    b"OPEN\n"
+                };
+                io("p3-final-reply", output.write_all(reply))?;
+                io("p3-final-reply", output.flush())?;
+                continue;
+            }
+            if store.state.p3_removed {
+                return Err(invalid("p3-removal-closed"));
+            }
+            if mode == 0 {
+                // At most one deletion may have been authorized but not yet completed.
+                if step != cursor && step.checked_add(1) != Some(cursor) {
+                    return Err(invalid("p3-removal-remainder"));
+                }
+            } else if step != cursor {
+                store.append(actor, store.state.head, Action::P3FixtureRemoval { step })?;
+            }
+            io("p3-removal-reply", output.write_all(b"OK\n"))?;
+            io("p3-removal-reply", output.flush())?;
+            continue;
+        }
         // Cleanup and publication are mutually exclusive terminal decisions.
         if (slot == 3 && !cleanup) || (cleanup && (slot == 2 || (mode == 1 && slot != 3))) {
             return Err(invalid("p3-operation"));
