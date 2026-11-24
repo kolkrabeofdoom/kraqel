@@ -188,6 +188,40 @@ def verify_selection(fixture, candidate, metadata, selected):
         authority.attest(NativeAuthority.domains[0], selection_digest(selected, candidate, metadata[:4]), False)
 
 
+@contextmanager
+def pending_fixture_deletion(files):
+    """Windows closes these exact synthetic files if the controller dies in the picker."""
+    with ExitStack() as pins:
+        handles = []
+        for path, identity, digest in files:
+            raw = open_file(str(path), 0x80010000, 0, None, 3, 0x00200000, None)
+            if raw == ctypes.c_void_p(-1).value:
+                raise ctypes.WinError(ctypes.get_last_error())
+            try:
+                fd = msvcrt.open_osfhandle(raw, os.O_RDONLY | os.O_BINARY)
+            except OSError:
+                kernel.CloseHandle(wintypes.HANDLE(raw))
+                raise
+            file = pins.enter_context(os.fdopen(fd, "rb"))
+            info = os.fstat(fd)
+            require(os.path.samestat(identity, info) and info.st_nlink == 1
+                    and not info.st_file_attributes & 0x410
+                    and hashlib.file_digest(file, "sha256").hexdigest() == digest,
+                    "source cleanup identity mismatch")
+            handles.append(wintypes.HANDLE(raw))
+
+        def disposition(handle, delete):
+            flag = ctypes.c_ubyte(delete)
+            if not kernel.SetFileInformationByHandle(handle, 4, ctypes.byref(flag), ctypes.sizeof(flag)):
+                raise ctypes.WinError(ctypes.get_last_error())
+
+        for handle in handles:
+            disposition(handle, True)
+        yield
+        for handle in handles:
+            disposition(handle, False)
+
+
 def prepare_captured_project(target, fixture, interactive_selection=False):
     import runpy
     read_oplock = runpy.run_path(str(Path(__file__).with_name("p3_directory_oplock.py")))["read_oplock"]
@@ -195,11 +229,19 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
         pins.enter_context(pinned_directory(Path(temp)))
         choices = {}
         handles = []
+        generated_files = []
         for name in (("Projekt Nord", "Projekt Sued") if interactive_selection else ("project",)):
             source_fixture = Path(temp) / name
             source_fixture.mkdir()
             root = source_fixture / "project"
-            seed_writable_project(root, source_fixture)
+            inventory_hashes, manifest_digest = seed_writable_project(root, source_fixture)
+            if interactive_selection:
+                manifest = source_fixture / "expected.json"
+                generated_files.append((manifest, manifest.lstat(), manifest_digest))
+                for relative in ("kraqel.sqlite3", "kraqel.sqlite3-wal", "kraqel.sqlite3-shm",
+                                 "assets/nested/cover.png", "assets/thumbnails/cover.png"):
+                    path = root / relative
+                    generated_files.append((path, path.lstat(), inventory_hashes[relative]))
             pins.enter_context(pinned_directory(source_fixture))
             handles.append(pins.enter_context(pinned_directory(root)))
             choices[name] = (source_fixture, root, root.lstat())
@@ -207,22 +249,23 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
             picker = Path(__file__).parent / "probe/target/debug/kraqel-isolation-probe.exe"
             import _winapi
             process = _winapi.GetCurrentProcess()
-            with ExitStack() as inherited:
-                duplicates = []
-                for handle in handles:
-                    duplicate = _winapi.DuplicateHandle(process, handle, process, 0x80, True, 0)
-                    inherited.callback(_winapi.CloseHandle, duplicate)
-                    duplicates.append(duplicate)
-                owner = _winapi.DuplicateHandle(process, process, process, 0x100000, True, 0)  # SYNCHRONIZE
-                inherited.callback(_winapi.CloseHandle, owner)
-                duplicates.append(owner)
-                startup = subprocess.STARTUPINFO(lpAttributeList={"handle_list": duplicates})
-                dialog = subprocess.Popen([picker, "select-p3-fixture", *map(str, duplicates)],
-                                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                                          stdin=subprocess.DEVNULL, startupinfo=startup, close_fds=True)
-            with dialog:
-                output, _ = dialog.communicate()
-                require(dialog.returncode == 0, "source selection unavailable")
+            with pending_fixture_deletion(generated_files):
+                with ExitStack() as inherited:
+                    duplicates = []
+                    for handle in handles:
+                        duplicate = _winapi.DuplicateHandle(process, handle, process, 0x80, True, 0)
+                        inherited.callback(_winapi.CloseHandle, duplicate)
+                        duplicates.append(duplicate)
+                    owner = _winapi.DuplicateHandle(process, process, process, 0x100000, True, 0)  # SYNCHRONIZE
+                    inherited.callback(_winapi.CloseHandle, owner)
+                    duplicates.append(owner)
+                    startup = subprocess.STARTUPINFO(lpAttributeList={"handle_list": duplicates})
+                    dialog = subprocess.Popen([picker, "select-p3-fixture", *map(str, duplicates)],
+                                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                                              stdin=subprocess.DEVNULL, startupinfo=startup, close_fds=True)
+                with dialog:
+                    output, _ = dialog.communicate()
+                    require(dialog.returncode == 0, "source selection unavailable")
             reply = json.loads(output)
             if reply == {"selection": "cancel"}:
                 return False
@@ -388,7 +431,10 @@ def seed_writable_project(root, fixture):
     else:
         raise RuntimeError("named stream omitted")
     alternate.unlink()
-    (fixture / "expected.json").write_text(json.dumps([identity, document, asset, inventory(root)]))
+    expected = inventory(root)
+    manifest = json.dumps([identity, document, asset, expected]).encode("ascii")
+    (fixture / "expected.json").write_bytes(manifest)
+    return expected, hashlib.sha256(manifest).hexdigest()
 
 
 def stage_tag(bundle, expected, approved, key, register=False):
