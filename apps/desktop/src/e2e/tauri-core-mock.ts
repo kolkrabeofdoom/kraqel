@@ -1007,6 +1007,7 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       if (payload.folder !== "uebernahme-beispiel" || payload.manifest !== "a".repeat(64))
         throw new Error("Unbekannter Stand");
       const ids: Record<string, string> = {
+        mediaAsset: "99999999-9999-4999-8999-999999999999",
         entity: "66666666-6666-4666-8666-666666666666",
         event: "77777777-7777-4777-8777-777777777777",
         timeline: "88888888-8888-4888-8888-888888888888",
@@ -1016,7 +1017,7 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       return [
         {
           key: { kind, ids: [ids[kind]] },
-          local: kind === "timeline" ? null : "c".repeat(64),
+          local: kind === "timeline" ? null : (kind === "mediaAsset" ? "d" : "c").repeat(64),
           incoming: "d".repeat(64),
         },
       ];
@@ -1036,6 +1037,7 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       };
       if (
         ![
+          "99999999-9999-4999-8999-999999999999",
           "66666666-6666-4666-8666-666666666666",
           "77777777-7777-4777-8777-777777777777",
           "88888888-8888-4888-8888-888888888888",
@@ -1049,6 +1051,13 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       }
       return {
         choice: "incoming",
+        selection:
+          selection.change.key.kind === "mediaAsset"
+            ? {
+                ...selection,
+                change: { ...selection.change, local: "4".repeat(64), incoming: "5".repeat(64) },
+              }
+            : selection,
         candidate: {
           folder: "uebernahme-eintrag",
           manifestSha256: "e".repeat(64),
@@ -1058,7 +1067,14 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
     }
     case "secure_handoff_item": {
       findProject(state, payload.projectId);
-      const selection = payload.selection as { change: { key: { kind: string } } };
+      const selection = payload.selection as {
+        change: { key: { kind: string }; local: string | null; incoming: string };
+      };
+      if (
+        selection.change.key.kind === "mediaAsset" &&
+        (selection.change.local !== "4".repeat(64) || selection.change.incoming !== "5".repeat(64))
+      )
+        throw new Error("Medienauswahl ohne bestätigte Dateibindung");
       return (selection.change.key.kind === "timeline" ? "3" : "2").repeat(64);
     }
     case "switch_handoff_item":

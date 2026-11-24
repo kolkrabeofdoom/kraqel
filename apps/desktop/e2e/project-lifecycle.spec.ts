@@ -59,6 +59,15 @@ test("Arbeitskopie wird im geöffneten Projekt ausdrücklich vorbereitet", async
     page.getByRole("status").filter({ hasText: "Der vorherige Eintragsstand ist wieder aktiv" }),
   ).toBeVisible();
   const kind = page.getByRole("combobox", { name: /^Projektbereich/u });
+  await kind.selectOption("mediaAsset");
+  await page.getByRole("button", { name: "Medienkennungen laden" }).click();
+  await itemSelect.selectOption("99999999-9999-4999-8999-999999999999");
+  await reviewItem.click();
+  await page.getByRole("button", { name: "Rücknahme für diesen Eintrag sichern" }).click();
+  await expect(page.getByLabel("Lokaler Beleg für Aktivierung oder Rücknahme")).toHaveValue(
+    "2".repeat(64),
+  );
+
   await kind.selectOption("event");
   await loadItems.click();
   const eventId = "77777777-7777-4777-8777-777777777777";

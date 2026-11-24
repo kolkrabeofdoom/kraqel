@@ -1,7 +1,9 @@
 //! Locally approved activation and undo of an individual project row.
+use super::item_handoff::ItemKind;
 use super::item_handoff::{
     ItemKey, ItemRow, ItemSelection, load_item, remove_item, row_hash, write_item,
 };
+use super::media_activation::{MediaActivation, MediaSwitch};
 use super::scene_activation::publish_receipt;
 use super::scene_basis::{hash, is_hash};
 use super::scene_merge::{confirmed_file, package_database};
@@ -24,6 +26,8 @@ struct Record {
     selection: ItemSelection,
     candidate: PreparedHandoff,
     previous: Option<ItemRow>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    media: Option<MediaActivation>,
 }
 
 fn approval(
@@ -80,27 +84,41 @@ impl ProjectManager {
         selection: &ItemSelection,
         candidate: &PreparedHandoff,
     ) -> Result<String, ProjectError> {
+        let mut pins = Vec::new();
         self.with_activation_transaction(id, |tx, backups| {
             let project = self.root.join(id.to_string());
             let proof = approval(id, selection, candidate)?;
             if !verify_marker(&project.join(format!(".eintragswahl-{proof}")), &proof)? {
                 return Err(ProjectError::InvalidDatabase);
             }
-            let previous = load_item(tx, id, &selection.change.key)?;
-            if optional_hash(previous.as_ref())? != selection.change.local
-                || selection.change.local == selection.change.incoming
+            if selection.change.local == selection.change.incoming
                 || selection.change.incoming.is_none()
             {
                 return Err(ProjectError::InvalidDatabase);
             }
-            verify_recoverable(tx, id, &selection.change.key, previous.as_ref())?;
-            self.confirm_item_source(id, selection)?;
-            candidate_row(tx, backups, id, selection, candidate)?;
+            let (previous, media) = if selection.change.key.kind == ItemKind::MediaAsset {
+                (
+                    None,
+                    Some(MediaActivation::secure(
+                        self, tx, backups, id, selection, candidate, &mut pins,
+                    )?),
+                )
+            } else {
+                let previous = load_item(tx, id, &selection.change.key)?;
+                if optional_hash(previous.as_ref())? != selection.change.local {
+                    return Err(ProjectError::InvalidDatabase);
+                }
+                verify_recoverable(tx, id, &selection.change.key, previous.as_ref())?;
+                self.confirm_item_source(id, selection)?;
+                candidate_row(tx, backups, id, selection, candidate)?;
+                (previous, None)
+            };
             let record = Record {
                 format: FORMAT.into(),
                 project: id,
                 selection: selection.clone(),
                 previous,
+                media,
                 candidate: candidate.clone(),
             };
             let bytes = serde_json::to_vec(&record).map_err(|_| ProjectError::InvalidDatabase)?;
@@ -148,6 +166,7 @@ impl ProjectManager {
         if !is_hash(ticket) {
             return Err(ProjectError::InvalidRelativePath);
         }
+        let mut pins = Vec::new();
         self.with_activation_transaction(id, |tx, backups| {
             let project = self.root.join(id.to_string());
             if !verify_marker(&project.join(format!(".eintragsfreigabe-{ticket}")), ticket)? {
@@ -162,7 +181,8 @@ impl ProjectManager {
                 || record.project != id
                 || record.selection.change.incoming.is_none()
                 || record.selection.change.local == record.selection.change.incoming
-                || optional_hash(record.previous.as_ref())? != record.selection.change.local
+                || (record.media.is_some()
+                    != (record.selection.change.key.kind == ItemKind::MediaAsset))
             {
                 return Err(ProjectError::InvalidDatabase);
             }
@@ -174,7 +194,6 @@ impl ProjectManager {
                 return Err(ProjectError::InvalidDatabase);
             }
             let selection = &record.selection;
-            let current = optional_hash(load_item(tx, id, &selection.change.key)?.as_ref())?;
             let (from, to, intent) = if undo {
                 (&selection.change.incoming, &selection.change.local, undone)
             } else {
@@ -184,6 +203,26 @@ impl ProjectManager {
                     activated,
                 )
             };
+            if let Some(media) = &record.media {
+                if record.previous.is_some() {
+                    return Err(ProjectError::InvalidDatabase);
+                }
+                let transition = MediaSwitch {
+                    project_id: id,
+                    selection,
+                    candidate: &record.candidate,
+                    undo,
+                    intent,
+                };
+                if media.switch(self, tx, backups, &transition, &mut pins)? {
+                    publish_receipt(if undo { &reversed } else { &applied }, ticket.as_bytes())?;
+                }
+                return Ok(((), Some(pin)));
+            }
+            if optional_hash(record.previous.as_ref())? != selection.change.local {
+                return Err(ProjectError::InvalidDatabase);
+            }
+            let current = optional_hash(load_item(tx, id, &selection.change.key)?.as_ref())?;
             if current == *to && intent {
                 return Ok(((), Some(pin)));
             }

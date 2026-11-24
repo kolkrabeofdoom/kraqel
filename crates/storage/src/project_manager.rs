@@ -6,6 +6,10 @@ mod item_activation;
 #[cfg(windows)]
 mod item_handoff;
 #[cfg(windows)]
+mod media_activation;
+#[cfg(windows)]
+pub(super) mod media_handoff;
+#[cfg(windows)]
 pub use item_handoff::{ItemChange, ItemKey, ItemKind, ItemSelection};
 #[cfg(windows)]
 mod handoff_compare;

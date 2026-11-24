@@ -12,6 +12,7 @@ use std::collections::BTreeMap;
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ItemKind {
+    MediaAsset,
     Storyline,
     Timeline,
     Entity,
@@ -28,6 +29,7 @@ impl ItemKind {
         match self {
             Self::Storyline => "storyline",
             Self::Timeline => "timeline",
+            Self::MediaAsset => "media_asset",
             Self::Entity => "entity",
             Self::Relation => "relation",
             Self::Link => "link",
@@ -100,7 +102,7 @@ fn args(id: ProjectId, key: &ItemKey) -> Vec<String> {
     values.extend_from_slice(&key.ids);
     values
 }
-fn item_row(row: &rusqlite::Row<'_>) -> Result<ItemRow, ProjectError> {
+pub(super) fn item_row(row: &rusqlite::Row<'_>) -> Result<ItemRow, ProjectError> {
     let mut values = ItemRow::new();
     for (index, name) in row.as_ref().column_names().into_iter().enumerate() {
         let value = match row.get_ref(index)? {
@@ -153,7 +155,13 @@ fn inventory(
                 .collect::<Result<_, _>>()?,
         };
         validate_key(&key)?;
-        out.insert(key.ids, row_hash(&item_row(row)?)?);
+        let values = item_row(row)?;
+        let digest = if kind == ItemKind::MediaAsset {
+            media_handoff::catalog_digest(db, id, &key, &values)?
+        } else {
+            row_hash(&values)?
+        };
+        out.insert(key.ids, digest);
     }
     Ok(out)
 }
@@ -276,6 +284,7 @@ pub(super) fn validate_fields(
                 }
             }
         }
+        ItemKind::MediaAsset => media_handoff::validate_catalog_row(row)?,
         ItemKind::Entity => {
             bible::parse_entity_kind(text("kind")?).map_err(|_| invalid())?;
             bible::validate_name(text("name")?).map_err(|_| invalid())?;
@@ -377,7 +386,7 @@ impl ProjectManager {
                 let mut result = Vec::new();
                 for (ids, here) in inventory(local, id, kind)? {
                     let there = incoming.remove(&ids);
-                    if there.as_ref() != Some(&here) {
+                    if kind == ItemKind::MediaAsset || there.as_ref() != Some(&here) {
                         result.push(ItemChange {
                             key: ItemKey { kind, ids },
                             local: Some(here),
@@ -471,6 +480,9 @@ impl ProjectManager {
         id: ProjectId,
         s: &ItemSelection,
     ) -> Result<PreparedHandoff, ProjectError> {
+        if s.change.key.kind == ItemKind::MediaAsset {
+            return Err(invalid());
+        }
         self.prepare_changed_handoff(id, None, Some(s))
     }
 

@@ -9,7 +9,7 @@ use std::{
 use kraqel_domain::{
     AssetLink, AssetTargetKind, EntityId, MediaAsset, MediaKind, MediaProvenance, ProjectId,
 };
-use rusqlite::{OptionalExtension, Row, Transaction, params};
+use rusqlite::{OptionalExtension, Row, params};
 
 use crate::{Database, StorageError};
 
@@ -489,7 +489,7 @@ fn raw_asset(row: &Row<'_>) -> rusqlite::Result<RawAsset> {
     })
 }
 
-fn validate_metadata(title: &str, tags: &[String]) -> Result<String, MediaError> {
+pub(crate) fn validate_metadata(title: &str, tags: &[String]) -> Result<String, MediaError> {
     if title.trim() != title
         || title.is_empty()
         || title.chars().count() > 240
@@ -519,7 +519,7 @@ fn validate_metadata(title: &str, tags: &[String]) -> Result<String, MediaError>
     clippy::too_many_arguments,
     reason = "Der explizite Dateivertrag wird gemeinsam validiert"
 )]
-fn validate_file_contract(
+pub(crate) fn validate_file_contract(
     relative: &str,
     thumbnail: &str,
     original: &str,
@@ -559,7 +559,7 @@ fn validate_file_contract(
     Ok(())
 }
 
-fn validate_role(role: &str) -> Result<(), MediaError> {
+pub(crate) fn validate_role(role: &str) -> Result<(), MediaError> {
     if role.trim() != role
         || role.is_empty()
         || role.chars().count() > MAX_ROLE_CHARS
@@ -579,7 +579,7 @@ const fn target_name(kind: AssetTargetKind) -> &'static str {
     }
 }
 
-fn parse_target(value: &str) -> Result<AssetTargetKind, MediaError> {
+pub(crate) fn parse_target(value: &str) -> Result<AssetTargetKind, MediaError> {
     match value {
         "document" => Ok(AssetTargetKind::Document),
         "entity" => Ok(AssetTargetKind::Entity),
@@ -604,7 +604,7 @@ fn require_asset(
 }
 
 fn require_exists(
-    transaction: &Transaction<'_>,
+    transaction: &rusqlite::Connection,
     table: &str,
     project: ProjectId,
     id: EntityId,
@@ -618,8 +618,8 @@ fn require_exists(
         .ok_or(MediaError::NotFound)
 }
 
-fn require_target(
-    transaction: &Transaction<'_>,
+pub(crate) fn require_target(
+    transaction: &rusqlite::Connection,
     project: ProjectId,
     kind: AssetTargetKind,
     id: EntityId,

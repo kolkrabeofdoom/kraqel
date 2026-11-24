@@ -15,6 +15,7 @@ import {
 
 const kinds: Record<HandoffItemKind, string> = {
   entity: "Story-Bibel-Einträge",
+  mediaAsset: "Bilder und Vorschaubilder",
   relation: "Beziehungen",
   link: "Verknüpfungen",
   storyline: "Handlungsstränge",
@@ -129,7 +130,12 @@ export function HandoffItemPanel({
       const next = await listHandoffItems(projectId, source, kind);
       setRows(next);
       if (!next.some((row) => keyOf(row) === selected)) setPreference({ kind, selected: "" });
-      if (!next.length) setNotice("In diesem Bereich stimmen die Einträge überein.");
+      if (!next.length)
+        setNotice(
+          kind === "mediaAsset"
+            ? "In beiden Projekten sind keine Bilder erfasst."
+            : "In diesem Bereich stimmen die Einträge überein.",
+        );
     } catch {
       setRows(null);
       setNotice(
@@ -168,7 +174,7 @@ export function HandoffItemPanel({
       }
       const result = await reviewHandoffItem(projectId, selection);
       if (result.choice === "incoming") {
-        setPrepared({ selection, candidate: result.candidate });
+        setPrepared({ selection: result.selection, candidate: result.candidate });
         setNotice("Die bestätigte Fassung liegt als separate Arbeitskopie vor.");
       } else
         setNotice(
@@ -262,8 +268,15 @@ export function HandoffItemPanel({
             </select>
           </label>
           <button type="button" disabled={busy} onClick={() => void load()}>
-            Abweichende Einträge laden
+            {kind === "mediaAsset" ? "Medienkennungen laden" : "Abweichende Einträge laden"}
           </button>
+          {kind === "mediaAsset" && (
+            <p>
+              Wähle genau ein Bild. Im isolierten Fenster kannst du Metadaten, Prüfsummen und
+              Zuordnungen vergleichen. Eine externe Wahl umfasst auch die Vorschau und die
+              angezeigten Verknüpfungen.
+            </p>
+          )}
           {rows && rows.length > 0 && (
             <label>
               Eintrag nach Kennung auswählen
@@ -281,8 +294,14 @@ export function HandoffItemPanel({
                 <option value="">Eintrag wählen</option>
                 {rows.map((row) => (
                   <option key={keyOf(row)} value={keyOf(row)}>
-                    {row.incoming ? (row.local ? "Geändert" : "Nur im Eingang") : "Nur lokal"} ·{" "}
-                    {keyOf(row)}
+                    {row.incoming && row.incoming === row.local
+                      ? "Gleicher Katalogstand"
+                      : row.incoming
+                        ? row.local
+                          ? "Geändert"
+                          : "Nur im Eingang"
+                        : "Nur lokal"}{" "}
+                    · {keyOf(row)}
                   </option>
                 ))}
               </select>

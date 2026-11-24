@@ -1124,6 +1124,7 @@ export async function prepareSceneMerge(
 }
 
 export type HandoffItemKind =
+  | "mediaAsset"
   | "storyline"
   | "timeline"
   | "entity"
@@ -1168,7 +1169,8 @@ export async function reviewHandoffItem(projectId: ProjectId, selection: Handoff
   return (
     await callCommand<
       typeof payload,
-      { choice: "local" | "cancel" } | { choice: "incoming"; candidate: PreparedHandoff }
+      | { choice: "local" | "cancel" }
+      | { choice: "incoming"; candidate: PreparedHandoff; selection: HandoffItemSelection }
     >("review_handoff_item", payload)
   ).data;
 }

@@ -2879,6 +2879,7 @@ dependencies = [
 name = "kraqel-storage"
 version = "0.1.0"
 dependencies = [
+ "kraqel-asset-service",
  "kraqel-continuity",
  "kraqel-domain",
  "rusqlite",

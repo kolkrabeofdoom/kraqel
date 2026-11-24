@@ -26,6 +26,8 @@ Im geöffneten Zielprojekt unter **Werkzeuge → Versionen** die Eingangskopie m
 3. Die externe Fassung im Fenster ausdrücklich wählen. KRAQEL bereitet eine separate Arbeitskopie vor. **Rücknahme für diesen Eintrag sichern** und den angezeigten lokalen Beleg aufbewahren. Erst **Eintrag aktivieren** verändert das geöffnete Projekt.
 4. Mit **Eintragsübernahme zurücknehmen** den gesicherten Ausgangsstand wiederherstellen. Nach einem Programmneustart lässt sich der Beleg im selben Projekt erneut eingeben. Bei einem zwischenzeitlich geänderten Stand die Einträge neu laden und die Fassungswahl wiederholen. Die Auswahl bleibt beim erneuten Laden anhand ihrer Kennung erhalten, sofern der Eintrag weiterhin abweicht.
 
+Für ein einzelnes Bild **Bilder und Vorschaubilder → Medienkennungen laden** wählen. Auch **Gleicher Katalogstand** lässt sich öffnen, weil die Vorschaudatei bei identischen Metadaten abweichen kann. Nach ausdrücklicher Bestätigung prüft KRAQEL Original und Vorschau. Im isolierten Fenster stehen die Metadaten, Dateiprüfsummen und Verknüpfungen zur Wahl. Die verknüpften Ziele müssen im Zielprojekt vorhanden sein. Die lokale Rücknahmesicherung enthält die früheren Bilddaten. Frühere Dateigenerationen können für noch offene Lesezugriffe im Projektordner verbleiben. Projekt und Sicherung deshalb gemeinsam schützen.
+
 Eine Beziehung setzt die beteiligten Einträge im Ziel voraus. Das gilt entsprechend für Dokumentverknüpfungen, Plotkarten, Ereignisse und ihre Zuordnungen. Fehlt einer gewählten Plotkarte der Handlungsstrang oder einem Ereignis die Zeitachse, bietet der Dialog die passende Kennung aus derselben Eingangskopie an. **Fehlenden Handlungsstrang auswählen** bzw. **Fehlende Zeitachse auswählen** führt zur separaten Fassungswahl. Die Voraussetzung erhält einen eigenen Rücknahmebeleg. Nach ihrer Aktivierung lädt der Dialog die ursprüngliche Karte bzw. das Ereignis erneut. Die Fassung dieses Eintrags ausdrücklich prüfen und übernehmen. Für die Rücknahme zuerst den abhängigen Eintrag und anschließend die Voraussetzung zurücknehmen. Handlungsstränge und Zeitachsen lassen sich auch direkt im Projektbereich wählen. Ein Typwechsel für dieselbe Story-Bibel-Kennung ist gesperrt. Hat eine neu übernommene Figur inzwischen eine Beziehung erhalten, sperrt KRAQEL die Rücknahme. Bei unklarem Transaktionsende den aktuellen Stand erneut vergleichen. Lokale Sicherungen können vollständige frühere Inhalte enthalten und gehören auf einen geschützten Datenträger.
 
 ## Zusatzarchiv auf einem anderen Windows-PC öffnen
@@ -975,10 +977,22 @@ ist kein Abnahmenachweis. Danach Auswahl aus einer laufenden App, assistive Abna
 Auftrags-/Replay-/Crash-Reconciliation. Weitere Formate, Git-/Credential-/Providergrenzen,
 öffentliche UDP-/IPv6-/DNS-/Broker-Gegenproben und Produkt-/Installerintegration folgen separat.
 
-Abhängigkeiten auf dem Entwicklungsbranch (Stand 23. November 2026):
+**Abhängigkeiten des Windows-Kandidaten, geprüft am 24. November 2026.** GitHub meldete drei offene
+Dependabot-Warnungen für `main` (`9650ee7d6730`). Die eingecheckten Lockfiles auf dem
+Entwicklungsbranch (`8c4132a4a176`) ergeben für den lokalen Kandidaten folgenden Stand.
 
-- Die von [#8 (PDF)](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/8) und [#6 (Lint)](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/6) betroffenen Versionen sind aus den Lockfiles entfernt. TypeScript-ESLint 8.73.0 verwendet minimatch 11.0.9. Die separate ESLint-Abhängigkeit 3.1.5 liegt außerhalb des für #6 gemeldeten Bereichs.
-- [#7 (GLib)](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/7) bleibt für Linux offen. Der Cargo-Baum enthält dort glib 0.18.5 über GTK/WebKitGTK. Im Windows-MSVC-Zielbaum fehlt diese Abhängigkeit. Auch Tauri 2.12.7 verlangt GTK 0.18. Erneut prüfen, sobald der stabile Tauri-/GTK-Stack eine korrigierte GLib-Version zulässt oder ein rückportierter Fix erscheint.
+| Warnung                                                                               | Auflösung auf `main`                                     | Auflösung auf dem Entwicklungsbranch                                                                                                                 |
+| ------------------------------------------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [#8 · PDF](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/8)            | `printpdf 0.7.0` zieht `lopdf 0.31.0` ein.               | PDF-Schreiber und Rückleseprüfung verwenden dieselbe korrigierte Version `lopdf 0.47.0`.                                                             |
+| [#6 · Lint-Werkzeuge](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/6) | `typescript-estree 8.72.1` zieht `minimatch 10.2.6` ein. | `typescript-estree 8.73.0` verwendet `11.0.9`. Die separate ESLint-Abhängigkeit `3.1.5` liegt auf beiden Branches außerhalb des gemeldeten Bereichs. |
+| [#7 · GLib](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/7)           | `glib 0.18.5` im plattformübergreifenden Cargo-Lockfile. | `cargo tree --locked --offline` bestätigt `glib 0.18.5` über GTK/WebKitGTK für Linux und keine Einbindung in das Windows-x64-MSVC-Ziel.              |
+
+Für Linux bleibt #7 offen. Der korrigierte GLib-Zweig beginnt mit 0.20.0, während Tauri 2.12.7 GTK
+^0.18 verwendet. Erneut prüfen, sobald der Desktop-Stack die korrigierte Reihe unterstützt oder ein
+bestätigter Backport erscheint. Die Korrekturen des Entwicklungsbranches erreichen `main` und ältere
+Installationen jeweils erst mit Integration und Auslieferung.
+[GLib-Advisory](https://github.com/advisories/GHSA-wrw7-89jp-8q8g) ·
+[Abhängigkeiten von Tauri 2.12.7](https://docs.rs/crate/tauri/2.12.7)
 
 Für die Fortsetzung zuerst lesen:
 

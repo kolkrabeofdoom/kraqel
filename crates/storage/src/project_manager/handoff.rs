@@ -147,7 +147,7 @@ fn unavailable_file(metadata: &fs::Metadata) -> bool {
 }
 
 #[cfg(windows)]
-fn pin_local_directory(path: &Path) -> Result<fs::File, ProjectError> {
+pub(super) fn pin_local_directory(path: &Path) -> Result<fs::File, ProjectError> {
     let handle = pin_candidate_directory(path)?;
     if unavailable_file(&handle.metadata().map_err(io_error)?) {
         return Err(ProjectError::InvalidDatabase);
@@ -198,12 +198,7 @@ pub(super) fn pin_database_files(dir: &Path) -> Result<Vec<fs::File>, ProjectErr
     Ok(pins)
 }
 
-fn inspect_asset(
-    root: &Path,
-    stage: Option<&Path>,
-    relative: &str,
-    limit: u64,
-) -> Result<(String, u64), ProjectError> {
+pub(super) fn asset_parts(relative: &str) -> Result<Vec<&str>, ProjectError> {
     // Only regular application asset names and local directory components. No Windows streams or aliases.
     let parts: Vec<_> = relative.split('/').collect();
     if parts.len() < 2
@@ -226,6 +221,11 @@ fn inspect_asset(
     {
         return Err(ProjectError::InvalidRelativePath);
     }
+    Ok(parts)
+}
+
+pub(super) fn pin_asset(root: &Path, relative: &str, limit: u64) -> Result<fs::File, ProjectError> {
+    let parts = asset_parts(relative)?;
     let mut parent = root.to_path_buf();
     #[cfg(windows)]
     let mut pins = Vec::new();
@@ -241,6 +241,17 @@ fn inspect_asset(
     if !info.is_file() || is_reparse_point(&info) || info.len() == 0 || info.len() > limit {
         return Err(ProjectError::InvalidDatabase);
     }
+    Ok(input)
+}
+
+fn inspect_asset(
+    root: &Path,
+    stage: Option<&Path>,
+    relative: &str,
+    limit: u64,
+) -> Result<(String, u64), ProjectError> {
+    let input = pin_asset(root, relative, limit)?;
+    let info = input.metadata().map_err(io_error)?;
     let Some(stage) = stage else {
         let mut hash = Sha256::new();
         let read = io::copy(&mut input.take(limit + 1), &mut hash).map_err(io_error)?;
@@ -267,10 +278,20 @@ pub(super) fn media_inventory(
     stage: Option<&Path>,
     approved: Option<&BTreeMap<String, String>>,
 ) -> Result<BTreeMap<String, String>, ProjectError> {
+    media_inventory_except(source, dir, stage, approved, None)
+}
+
+fn media_inventory_except(
+    source: &Connection,
+    dir: &Path,
+    stage: Option<&Path>,
+    approved: Option<&BTreeMap<String, String>>,
+    skip: Option<&str>,
+) -> Result<BTreeMap<String, String>, ProjectError> {
     let mut files = BTreeMap::new();
     let mut stmt = source
-        .prepare("SELECT relative_path,thumbnail_path,checksum,byte_count FROM media_asset")?;
-    let mut rows = stmt.query([])?;
+        .prepare("SELECT relative_path,thumbnail_path,checksum,byte_count FROM media_asset WHERE id IS NOT ?1")?;
+    let mut rows = stmt.query([skip])?;
     while let Some(row) = rows.next()? {
         let (original, thumb, expected, size): (String, String, String, u32) =
             (row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?);
@@ -430,15 +451,25 @@ impl ProjectManager {
             selection.apply(&mut fresh, id, &backup, reviewed)?;
         }
         #[cfg(windows)]
-        if let Some(item) = item {
+        let media = item.filter(|s| s.change.key.kind == ItemKind::MediaAsset);
+        #[cfg(windows)]
+        if let Some(item) = item.filter(|_| media.is_none()) {
             self.apply_item_selection(id, item, &mut fresh)?;
+        }
+        #[cfg(windows)]
+        let skip_asset = media.and_then(|s| s.change.key.ids.first().map(String::as_str));
+        #[cfg(not(windows))]
+        let skip_asset: Option<&str> = None;
+        let mut files = media_inventory_except(&tx, &dir, Some(stage.path()), None, skip_asset)?;
+        #[cfg(windows)]
+        if let Some(selection) = media {
+            self.stage_selected_media(id, selection, &dir, stage.path(), &mut fresh, &mut files)?;
         }
         if selection.is_some() || item.is_some() {
             // Rematerialize logical rows. Edited SQLite and FTS pages can retain the old text.
             fresh = rebuild(fresh.connection(), id)?;
         }
         write_database(&fresh, &main)?;
-        let mut files = media_inventory(&tx, &dir, Some(stage.path()), None)?;
         files.insert(DATABASE_FILE_NAME.to_owned(), digest_file(&main)?);
         let scene_basis_sha256 = scene_basis::stage_basis(fresh.connection(), id, stage.path())?;
         let receipt = serde_json::json!({"format":"kraqel-logical-preparation-v2","projectId":id,"files":files,"sceneBasisSha256":scene_basis_sha256});

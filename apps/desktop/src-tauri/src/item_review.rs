@@ -1,8 +1,6 @@
 //! Desktop IPC for explicit, row-bound native comparisons. Renderer replies contain only receipts.
 use super::*;
-use kraqel_storage::project_manager::{
-    ItemChange, ItemKind, ItemSelection, ReviewChoice, ReviewOutcome,
-};
+use kraqel_storage::project_manager::{ItemChange, ItemKind, ItemSelection, ReviewChoice};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -66,12 +64,23 @@ pub(super) async fn missing_handoff_parent(
     Ok(CommandResponse::current(request_id, parent))
 }
 
+#[derive(serde::Serialize)]
+#[serde(tag = "choice", rename_all = "camelCase")]
+pub(super) enum ItemReviewOutcome {
+    Cancel,
+    Local,
+    Incoming {
+        candidate: PreparedHandoff,
+        selection: ItemSelection,
+    },
+}
+
 #[tauri::command]
 pub(super) async fn review_handoff_item(
     app: AppHandle,
     state: State<'_, AppState>,
     request: CommandRequest<ReviewRequest>,
-) -> Result<CommandResponse<ReviewOutcome>, CommandError> {
+) -> Result<CommandResponse<ItemReviewOutcome>, CommandError> {
     require_current_contract(&request)?;
     let request_id = request.request_id;
     let p = request.payload;
@@ -83,35 +92,40 @@ pub(super) async fn review_handoff_item(
         .ok_or_else(|| CommandError::internal(request_id))?
         .to_owned();
     let outcome = tauri::async_runtime::spawn_blocking(move || {
-        let prompt = app
-            .dialog()
-            .message(concat!(
-                "Den ausgewählten Datensatz mit allen Feldern im isolierten Windows-Fenster anzeigen? ",
-                "Die bestätigte externe Wahl bereitet eine separate Arbeitskopie vor."
-            ))
-            .title("Datensatzvergleich öffnen")
-            .buttons(tauri_plugin_dialog::MessageDialogButtons::OkCancel);
-        if !prompt.blocking_show() {
-            return Ok(ReviewOutcome::Cancel);
+        let media = p.selection.change.key.kind == ItemKind::MediaAsset;
+        let prompt = if media {
+            "Das gewählte Bild und seine Vorschau lokal prüfen? Das isolierte Fenster zeigt die Metadaten, Prüfsummen und Zuordnungen beider Fassungen. Die externe Wahl bereitet eine separate Arbeitskopie vor."
+        } else {
+            "Den ausgewählten Datensatz mit allen Feldern im isolierten Windows-Fenster anzeigen? Die bestätigte externe Wahl bereitet eine separate Arbeitskopie vor."
+        };
+        if !app.dialog().message(prompt).title("Datensatzvergleich öffnen")
+            .buttons(tauri_plugin_dialog::MessageDialogButtons::OkCancel).blocking_show() {
+            return Ok(ItemReviewOutcome::Cancel);
         }
-        let (local, incoming) = manager.review_handoff_item(id, &p.selection)?;
-        let choice = kraqel_isolation_transport::open_item_review(
-            &home,
-            id,
-            &p.selection,
-            local,
-            incoming,
-            [
-                include_bytes!(concat!(env!("KRAQEL_REVIEW_IMAGES"), "/pipe-service.exe")),
-                include_bytes!(concat!(env!("KRAQEL_REVIEW_IMAGES"), "/native-leaf.exe")),
-            ],
-        )
-        .map_err(|_| ProjectError::InvalidDatabase)?;
-        match choice {
-            ReviewChoice::Cancel => Ok(ReviewOutcome::Cancel),
-            ReviewChoice::Local => Ok(ReviewOutcome::Local),
-            ReviewChoice::Incoming => Ok(ReviewOutcome::Incoming {
-                candidate: manager.prepare_handoff_item(id, &p.selection)?,
+        let display = |selection: &ItemSelection, local:Option<String>, incoming:String| {
+            kraqel_isolation_transport::open_item_review(
+                &home,id,selection,local,incoming,[
+                    include_bytes!(concat!(env!("KRAQEL_REVIEW_IMAGES"), "/pipe-service.exe")),
+                    include_bytes!(concat!(env!("KRAQEL_REVIEW_IMAGES"), "/native-leaf.exe")),
+                ],
+            ).map_err(|_|ProjectError::InvalidDatabase)
+        };
+        if media {
+            let (choice,prepared)=manager.review_media_handoff(id,&p.selection,|bound,local,incoming|display(bound,local.map(str::to_owned),incoming.to_owned()))?;
+            return match (choice,prepared) {
+                (ReviewChoice::Incoming,Some((selection,candidate)))=>Ok(ItemReviewOutcome::Incoming{selection,candidate}),
+                (ReviewChoice::Cancel,None)=>Ok(ItemReviewOutcome::Cancel),
+                (ReviewChoice::Local,None)=>Ok(ItemReviewOutcome::Local),
+                _=>Err(ProjectError::InvalidDatabase),
+            };
+        }
+        let (local,incoming)=manager.review_handoff_item(id,&p.selection)?;
+        match display(&p.selection,local,incoming)? {
+            ReviewChoice::Cancel=>Ok(ItemReviewOutcome::Cancel),
+            ReviewChoice::Local=>Ok(ItemReviewOutcome::Local),
+            ReviewChoice::Incoming=>Ok(ItemReviewOutcome::Incoming{
+                candidate:manager.prepare_handoff_item(id,&p.selection)?,
+                selection:p.selection,
             }),
         }
     })
