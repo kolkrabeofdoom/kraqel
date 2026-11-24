@@ -1,5 +1,24 @@
 # Rechnerwechsel und Arbeitsübergabe
 
+## Zusatzarchiv auf einem anderen Windows-PC öffnen
+
+Für die synthetische P3-Übernahme lassen sich ausgewählte Zusatzdateien lokal mit einer Passphrase verschlüsseln. Auf dem Entwicklungsrechner im Repository ausführen (der native P3-Prüfstarter muss wie in der P3-Anleitung gebaut sein):
+
+```powershell
+cargo build --locked --release -p kraqel-archiv
+python -I scripts/runtime-isolation/p3-volume-fixture.py export-supplement .\zusatz.zip.age
+```
+
+Im Fenster die gewünschten Gruppen markieren und das Quellprojekt bestätigen. Im Terminal eine lange, einzigartige Passphrase zweimal verdeckt eingeben. Das Ziel muss neu sein. Die Beispieldateien stammen aus dem synthetischen Projektkatalog.
+
+Für den Rechnerwechsel die Datei `zusatz.zip.age` und die vertrauenswürdige `target/release/kraqel-archiv.exe` mitnehmen. Die Passphrase getrennt aufbewahren. Auf dem zweiten Windows-x64-PC im Ordner mit beiden Dateien ausführen:
+
+```powershell
+.\kraqel-archiv.exe restore .\zusatz.zip.age .\wiederhergestellt.zip
+```
+
+Nach Eingabe der Passphrase entsteht ein **unverschlüsseltes ZIP** am gewählten neuen Ziel. Ein vorhandenes Ziel bleibt erhalten. Zur Wiederherstellung genügen Archiv, Programm und Passphrase. Windows-Konto, Laufwerksbuchstabe und ursprüngliches Projektjournal spielen dafür keine Rolle. Eine verlorene Passphrase lässt sich über KRAQEL nicht zurücksetzen.
+
 ## Wiedereinstieg in den verwalteten Szeneneditor
 
 Arbeitsbranch ist `feat/kq-069-live-file-selection`. Der Fokusmodus ist im verwalteten Szeneneditor verfügbar; Bedienung und Prüfumfang stehen im Entwicklungsstatus.

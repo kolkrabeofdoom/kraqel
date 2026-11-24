@@ -43,7 +43,13 @@ EXTRA_FILES = {
     ".git/HEAD": (4, b"ref: refs/heads/synthetic\n"),
     "notiz.txt": (8, b"synthetic private note"),
 }
-EXTRA_ARCHIVE = "zusatzbestand.zip"
+ARCHIVE_HELPER = Path(__file__).resolve().parents[2] / "target/release/kraqel-archiv.exe"
+
+
+def archive_name(metadata):
+    encoding = metadata[6].get("format") if len(metadata) == 7 else None
+    require(encoding in (None, "age-v1-scrypt"), "unsupported archive format")
+    return "zusatzbestand.zip.age" if encoding else "zusatzbestand.zip"
 
 
 def expected_scene(metadata):
@@ -224,25 +230,33 @@ def verify_selection(fixture, candidate, metadata, selected):
 
 
 def approved_archive(parent, metadata):
-    path = parent / EXTRA_ARCHIVE
+    path = parent / archive_name(metadata)
     record = metadata[6] if len(metadata) == 7 else None
     if not record or not record["groups"]:
         require(not os.path.lexists(path), "unapproved archive")
         return None
+    limit = 32 * 1024 * 1024 + (64 * 1024 if record.get("format") else 0)
     before = check_entry(path)
     require(before.st_nlink == 1 and path.is_file(), "archive changed")
     with path.open("rb") as stream:
         require(os.path.samestat(before, os.fstat(stream.fileno())), "archive replaced")
-        data = stream.read(32 * 1024 * 1024 + 1)
-    require(len(data) <= 32 * 1024 * 1024 and hashlib.sha256(data).hexdigest() == record["sha256"],
+        data = stream.read(limit + 1)
+    require(len(data) <= limit and hashlib.sha256(data).hexdigest() == record["sha256"],
             "archive changed")
+    if record.get("format") == "age-v1-scrypt":
+        require(data.startswith(b"age-encryption.org/v1\n"), "invalid encrypted envelope")
+    else:
+        verify_zip(data, record["groups"])
+    return data
+
+
+def verify_zip(data, groups):
     expected = {"files/" + name: content for name, (group, content) in EXTRA_FILES.items()
-                if record["groups"] & group}
+                if groups & group}
     with zipfile.ZipFile(io.BytesIO(data)) as archive:
         require(sorted(archive.namelist()) == sorted(expected), "archive selection mismatch")
         for name, content in expected.items():
             require(archive.read(name) == content, "archive entry mismatch")
-    return data
 
 
 class UnownedFixtureFile(RuntimeError):
@@ -444,7 +458,7 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
             selected_entries.update((path, identity) for path, identity in directories
                                     if root in path.parents)
         variant = [("south" if name == "Projekt Sued" else "north"),
-                   {"groups": groups, "sha256": None}] if interactive_selection else []
+                   {"groups": groups, "sha256": None, "format": "age-v1-scrypt"}] if interactive_selection else []
         extras = {relative for relative, (group, _) in EXTRA_FILES.items() if groups & group}
         planned = dict(metadata[3])
 
@@ -471,11 +485,16 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
                         with (staged / name).open("xb") as dst:
                             dst.write(data)
                 require(inventory(staged) == expected, "capture staging changed")
-                archive = package / EXTRA_ARCHIVE
                 if archive_bytes:
-                    with zipfile.ZipFile(archive, "x", compression=zipfile.ZIP_STORED) as output:
-                        for relative, data in archive_bytes.items():
-                            output.writestr("files/" + relative, data)
+                    require(ARCHIVE_HELPER.is_file(), "Zuerst cargo build --locked --release -p kraqel-archiv ausführen.")
+                    archive = package / archive_name([*metadata, selected, *variant])
+                    with io.BytesIO() as plaintext:
+                        with zipfile.ZipFile(plaintext, "w", compression=zipfile.ZIP_STORED) as output:
+                            for relative, data in archive_bytes.items():
+                                output.writestr("files/" + relative, data)
+                        verify_zip(plaintext.getvalue(), groups)
+                        subprocess.run([ARCHIVE_HELPER, "pack-stdin", archive],
+                                       input=plaintext.getvalue(), check=True)
                     with archive.open("rb") as stream:
                         variant[1]["sha256"] = hashlib.file_digest(stream, "sha256").hexdigest()
                 # Register while the original selection and the staged candidate are still bound.
@@ -516,7 +535,7 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
         return True
 
 
-def writable_fixture(interactive_selection=False):
+def writable_fixture(interactive_selection=False, export_to=None):
     fixture = Path(tempfile.gettempdir()) / ("kraqel-p3-" + uuid.uuid4().hex)
     fixture.mkdir()
     try:
@@ -538,6 +557,18 @@ def writable_fixture(interactive_selection=False):
             rows = db.execute("SELECT title, plain_text, revision FROM document WHERE project_id=? AND id=?",
                               metadata[:2]).fetchall()
             require(rows == [expected_scene(metadata)], "lost committed WAL scene")
+        if export_to is not None:
+            data = approved_archive(target.parent, metadata)
+            require(data is not None, "Keine Zusatzbestände zum Export ausgewählt.")
+            # Same-volume publication, Windows rename refuses an existing destination.
+            with tempfile.TemporaryDirectory(dir=export_to.parent) as work:
+                staged = Path(work) / "sealed.age"
+                with staged.open("xb") as stream:
+                    stream.write(data)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                staged.rename(export_to)
+            print("Passphrasenverschlüsseltes Zusatzarchiv gespeichert.")
     finally:
         shutil.rmtree(fixture)
     print("PASS: substituted source refused after native restart; selected candidate contains committed WAL scene")
@@ -632,8 +663,8 @@ def stage_tag(bundle, metadata, approved, key, register=False):
         layout.append([name, info.st_dev, info.st_ino])
     archive_id = None
     if has_archive(metadata):
-        info = check_entry(bundle / EXTRA_ARCHIVE)
-        require(info.st_nlink == 1 and (bundle / EXTRA_ARCHIVE).is_file(), "invalid staging archive")
+        info = check_entry(bundle / archive_name(metadata))
+        require(info.st_nlink == 1 and (bundle / archive_name(metadata)).is_file(), "invalid staging archive")
         archive_id = [info.st_dev, info.st_ino]
     plan = staging_plan(bundle, approved, layout, archive_id)
     return tag(key, NativeAuthority.domains[1], plan, register).encode("ascii")
@@ -663,7 +694,7 @@ def create_stage(root, bundle, metadata, approved, key):
             with (stage / name).open("xb"):
                 pass
     if archive_data is not None:
-        with (bundle / EXTRA_ARCHIVE).open("xb") as archive:
+        with (bundle / archive_name(metadata)).open("xb") as archive:
             archive.write(archive_data)
             archive.flush()
             os.fsync(archive.fileno())
@@ -689,7 +720,7 @@ def checked_staging(root, bundle, metadata, approved, key):
     check_entry(bundle)
     allowed = {"project", "reservation"}
     if has_archive(metadata):
-        allowed.add(EXTRA_ARCHIVE)
+        allowed.add(archive_name(metadata))
     require({p.name for p in bundle.iterdir()} == allowed, "unexpected staging evidence")
     reservation = bundle / "reservation"
     require(check_entry(reservation).st_nlink == 1 and reservation.is_file()
@@ -719,7 +750,7 @@ def checked_staging(root, bundle, metadata, approved, key):
             files.append((name, src, dst))
         archive_id = None
         if has_archive(metadata):
-            path = bundle / EXTRA_ARCHIVE
+            path = bundle / archive_name(metadata)
             before = check_entry(path)
             archive = pins.enter_context(reserved_file(path))
             stat = os.fstat(archive.fileno())
@@ -952,7 +983,7 @@ def remove_confirmed(root, destination, metadata, approved, home, after_remove=N
             entries = [("project/" + name, [dev, ino], metadata[3][name] is None)
                        for name, dev, ino in plan[3]]
             if has_archive(metadata):
-                entries.append((EXTRA_ARCHIVE, plan[4], False))
+                entries.append((archive_name(metadata), plan[4], False))
             entries += [("reservation", reservation_id, False), ("project", plan[2], True)]
             entries.sort(key=lambda entry: (-entry[0].count("/"), entry[0]))
             count = len(entries) + 1
@@ -991,7 +1022,7 @@ def remove_confirmed(root, destination, metadata, approved, home, after_remove=N
                         require(held.st_nlink == 1, "linked cleanup file")
                         if name == "reservation":
                             require(os.read(fd, 65) == reservation, "changed cleanup reservation")
-                        elif name == EXTRA_ARCHIVE:
+                        elif name == archive_name(metadata):
                             with os.fdopen(os.dup(fd), "rb") as file:
                                 require(hashlib.file_digest(file, "sha256").hexdigest() == metadata[6]["sha256"],
                                         "changed cleanup archive")
@@ -1119,7 +1150,7 @@ def native_restart(root, fixture, metadata, interactive):
             else:
                 raise RuntimeError("partial copy released for reading")
             if has_archive(metadata):
-                archive = target / (".pending-" + metadata[0]) / EXTRA_ARCHIVE
+                archive = target / (".pending-" + metadata[0]) / archive_name(metadata)
                 original = target / "held-archive"
                 archive.rename(original)
                 shutil.copyfile(original, archive)
@@ -1358,7 +1389,7 @@ def verify_bundle(final, approved, metadata, key):
     check_entry(final)
     names = {"receipt", "reservation", "project"}
     if len(metadata) == 7 and metadata[6]["groups"]:
-        names.add(EXTRA_ARCHIVE)
+        names.add(archive_name(metadata))
     require({p.name for p in final.iterdir()} == names, "unexpected bundle")
     proof = final / "receipt"
     require(check_entry(proof).st_nlink == 1 and proof.is_file() and proof.stat().st_size == 64,
@@ -1498,6 +1529,12 @@ def capture(root, fixture, interactive=False):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) == 3 and sys.argv[1] == "export-supplement":
+        destination = Path(sys.argv[2]).absolute()
+        require(destination.name.lower().endswith(".zip.age") and not os.path.lexists(destination),
+                "Bitte einen neuen Dateinamen mit Endung .zip.age wählen.")
+        writable_fixture(interactive_selection=True, export_to=destination)
+        sys.exit(0)
     if sys.argv[1:] in (["writable"], ["select-writable"]):
         writable_fixture(interactive_selection=sys.argv[1] == "select-writable")
         sys.exit(0)
