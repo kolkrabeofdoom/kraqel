@@ -6,6 +6,7 @@ pub(super) fn serve(
     image: &fs::File,
     actor: [u8; 32],
     create: bool,
+    cleanup: bool,
 ) -> Result<Value> {
     let home = preview.parent().ok_or(invalid("p3-fixture-home"))?;
     let fixture = home.parent().ok_or(invalid("p3-fixture-root"))?;
@@ -55,6 +56,11 @@ pub(super) fn serve(
     };
     store.actor(actor)?;
     store.append_guard(actor, store.state.head)?;
+    if (cleanup && store.state.p3_evidence[2].is_some())
+        || (!cleanup && store.state.p3_cleanup.is_some())
+    {
+        return Err(invalid("p3-terminal-decision"));
+    }
     let mut input = std::io::stdin().lock();
     let mut output = std::io::stdout().lock();
     io("p3-ready", output.write_all(b"P3/1\n"))?;
@@ -69,18 +75,31 @@ pub(super) fn serve(
         }
         io("p3-frame", input.read_exact(&mut frame[1..]))?;
         let [mode, slot] = [frame[0], frame[1]];
-        let index = usize::from(slot);
+        // Cleanup and publication are mutually exclusive terminal decisions.
+        if (slot == 3 && !cleanup) || (cleanup && (slot == 2 || (mode == 1 && slot != 3))) {
+            return Err(invalid("p3-operation"));
+        }
+        let index = if slot == 3 { 2 } else { usize::from(slot) };
         if mode > 1 || index >= 3 || verified[..index].contains(&false) {
             return Err(invalid("p3-request-order"));
         }
         let digest: [u8; 32] = frame[2..].try_into().unwrap();
-        match store.state.p3_evidence[index] {
+        let saved = if slot == 3 {
+            store.state.p3_cleanup
+        } else {
+            store.state.p3_evidence[index]
+        };
+        match saved {
             Some(saved) if saved == digest => (),
             None if mode == 1 && (slot != 0 || create) => {
                 store.append(
                     actor,
                     store.state.head,
-                    Action::P3FixtureEvidence { slot, digest },
+                    if slot == 3 {
+                        Action::P3FixtureCleanup { digest }
+                    } else {
+                        Action::P3FixtureEvidence { slot, digest }
+                    },
                 )?;
             }
             _ => return Err(invalid("p3-unbound-evidence")),

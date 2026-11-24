@@ -48,6 +48,9 @@ enum Action {
         slot: u8,
         digest: [u8; 32],
     },
+    P3FixtureCleanup {
+        digest: [u8; 32],
+    },
     BeginWin32Window {
         anchor: [u8; 32],
     },
@@ -201,6 +204,7 @@ struct State {
     actor: [u8; 32],
     schema: u16,
     pending: Option<[u8; 32]>,
+    p3_cleanup: Option<[u8; 32]>,
     p3_evidence: [Option<[u8; 32]>; 3],
     scene_snapshot: Option<([u8; 32], win32_binding::Snapshot)>,
     window_session: win32_binding::Session,
@@ -235,6 +239,7 @@ impl State {
         match action {
             Action::P3FixtureEvidence { slot, digest }
                 if self.schema == 1
+                    && self.p3_cleanup.is_none()
                     && self.sequence == usize::from(*slot)
                     && usize::from(*slot) < self.p3_evidence.len()
                     && *digest != [0; 32]
@@ -242,6 +247,15 @@ impl State {
                         == usize::from(*slot) =>
             {
                 self.p3_evidence[usize::from(*slot)] = Some(*digest);
+            }
+            Action::P3FixtureCleanup { digest }
+                if self.schema == 1
+                    && self.sequence == 2
+                    && self.p3_cleanup.is_none()
+                    && matches!(self.p3_evidence, [Some(_), Some(_), None])
+                    && *digest != [0; 32] =>
+            {
+                self.p3_cleanup = Some(*digest);
             }
             Action::AdoptWin32Scene {
                 previous_owner,
@@ -683,6 +697,7 @@ impl Store {
                         1
                     },
                     pending: None,
+                    p3_cleanup: None,
                     p3_evidence: [None; 3],
                     scene_snapshot: None,
                     window_session: Default::default(),
@@ -1152,12 +1167,17 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
     let root = default_root()?;
     let exe = io("product-current-exe", std::env::current_exe())?;
     let (_parents, running_image, actor) = binary_pin(&exe)?;
-    if args.len() == 1 && (args[0] == "authorize-p3-fixture" || args[0] == "reopen-p3-fixture") {
+    if args.len() == 1
+        && (args[0] == "authorize-p3-fixture"
+            || args[0] == "reopen-p3-fixture"
+            || args[0] == "confirm-p3-fixture-cleanup")
+    {
         return p3_fixture::serve(
             &root,
             &running_image,
             actor,
             args[0] == "authorize-p3-fixture",
+            args[0] == "confirm-p3-fixture-cleanup",
         );
     }
     if args.len() == 1 && args[0] == "init" {

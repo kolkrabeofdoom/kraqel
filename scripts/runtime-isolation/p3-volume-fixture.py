@@ -205,8 +205,8 @@ def reserved_file(path):
         yield file
 
 
-def copy_project(root, bundle, metadata, approved, key, interrupt):
-    identity, document, asset, expected = metadata
+@contextmanager
+def checked_staging(root, bundle, expected, approved, key):
     stage = bundle / "project"
     entries = inventory(root)
     require(entries == expected, "source inventory mismatch")
@@ -215,11 +215,12 @@ def copy_project(root, bundle, metadata, approved, key, interrupt):
     reservation = bundle / "reservation"
     require(check_entry(reservation).st_nlink == 1 and reservation.is_file()
             and reservation.stat().st_size == 64, "invalid reservation")
-    attestation = reservation.read_bytes()
     require(inventory(stage).keys() == entries.keys(), "unexpected staging contents")
     with ExitStack() as pins:
         pins.enter_context(pinned_directory(bundle))
         pins.enter_context(pinned_directory(stage))
+        reservation_file = pins.enter_context(reserved_file(reservation))
+        attestation = reservation_file.read(65)
         files = []
         layout = []
         for name, digest in sorted(entries.items()):
@@ -239,7 +240,14 @@ def copy_project(root, bundle, metadata, approved, key, interrupt):
             files.append((name, src, dst))
         require(hmac.compare_digest(layout_tag(bundle, approved, key, layout), attestation),
                 "unbound reservation")
-        # All prefixes must pass before any destination byte changes.
+        yield files, os.fstat(reservation_file.fileno())
+
+
+def copy_project(root, bundle, metadata, approved, key, interrupt):
+    identity, document, asset, expected = metadata
+    stage = bundle / "project"
+    entries = expected
+    with checked_staging(root, bundle, expected, approved, key) as (files, _):
         for name, src, dst in files:
             dst.write(src.read(1))
             if callable(interrupt):
@@ -274,7 +282,7 @@ def object_id(path):
 
 class NativeAuthority:
     domains = (b"KRAQEL-P3-FIXTURE-DECISION-v1", b"KRAQEL-P3-FIXTURE-STAGING-v1",
-               b"KRAQEL-P3-FIXTURE-RECEIPT-v1")
+               b"KRAQEL-P3-FIXTURE-RECEIPT-v1", b"KRAQEL-P3-FIXTURE-CLEANUP-v1")
 
     def __init__(self, pipe):
         self.pipe = pipe
@@ -288,9 +296,12 @@ class NativeAuthority:
 
 
 @contextmanager
-def native_authority(home, create):
+def native_authority(home, create, cleanup=False):
     binary = home / "p3-starter.exe"
     operation = "authorize-p3-fixture" if create else "reopen-p3-fixture"
+    if cleanup:
+        require(not create, "cleanup requires existing installation")
+        operation = "confirm-p3-fixture-cleanup"
     with subprocess.Popen([binary, "broker-store", operation], env={**os.environ, "USERPROFILE": str(home)},
                           stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
         try:
@@ -304,6 +315,22 @@ def native_authority(home, create):
             except subprocess.TimeoutExpired:
                 proc.kill()
                 proc.wait()
+
+
+def confirm_cleanup(root, destination, metadata, approved, home):
+    with volume_guard(str(root.parent), True), pinned_directory(root), pinned_directory(destination):
+        with native_authority(home, False, cleanup=True) as authority:
+            require(hmac.compare_digest(decision(authority, root, destination, metadata), approved),
+                    "unbound decision")
+            project_id = str(uuid.UUID(metadata[0]))
+            with target_lock(destination, project_id):
+                require(not os.path.lexists(destination / project_id), "published destination")
+                pending = destination / (".pending-" + project_id)
+                with checked_staging(root, pending, metadata[3], approved, authority) as (files, info):
+                    # Bind the decision to the exact verified prefixes and reservation file.
+                    lengths = [(name, dst.tell()) for name, _, dst in files]
+                    return tag(authority, NativeAuthority.domains[3],
+                               [approved, object_id(pending), info.st_dev, info.st_ino, lengths], True)
 
 
 def native_restart(root, fixture, metadata):
@@ -355,6 +382,39 @@ def native_restart(root, fixture, metadata):
         # Both directories were exclusively created by this synthetic run.
         for directory in (home, foreign):
             shutil.rmtree(directory)
+
+
+def check_cleanup_decision(root, fixture, metadata):
+    home = fixture / "install-a"
+    home.mkdir()
+    try:
+        shutil.copyfile(Path(__file__).parent / "probe/target/debug/kraqel-isolation-probe.exe",
+                        home / "p3-starter.exe")
+        with tempfile.TemporaryDirectory(dir=fixture) as temp:
+            target = Path(temp)
+            with native_authority(home, True) as authority:
+                ticket = decision(authority, root, target, metadata, register=True)
+                pending = target / (".pending-" + metadata[0])
+                create_stage(pending, metadata[3], ticket, authority)
+            unowned = pending / "project" / "foreign.bin"
+            unowned.write_bytes(b"foreign")
+            try:
+                confirm_cleanup(root, target, metadata, ticket, home)
+            except RuntimeError as exc:
+                require(str(exc) == "unexpected staging contents", "wrong cleanup refusal")
+            else:
+                raise RuntimeError("foreign staging authorized")
+            unowned.unlink()
+            proof = confirm_cleanup(root, target, metadata, ticket, home)
+            require(confirm_cleanup(root, target, metadata, ticket, home) == proof,
+                    "cleanup decision lost on restart")
+            try:
+                with native_authority(home, False):
+                    raise AssertionError("transfer reopened after cleanup decision")
+            except RuntimeError as exc:
+                require("p3-terminal-decision" in str(exc), "unexpected restart refusal")
+    finally:
+        shutil.rmtree(home)
 
 
 def tag(key, domain, fields, register=False):
@@ -466,6 +526,7 @@ def capture(root, fixture):
     metadata = json.loads((fixture / "expected.json").read_text())
     require(metadata[3] == inventory(root), "unexpected source")
     native_restart(root, fixture, metadata)
+    check_cleanup_decision(root, fixture, metadata)
     # The fixture controller supplies one explicit decision. Its key lasts
     # across worker processes but grants no authority after the controller exits.
     key = secrets.token_bytes(32)
