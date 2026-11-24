@@ -27,6 +27,25 @@ fn main() {
     std::hint::black_box(&MERGE_ABI);
     let mut arg = std::env::args_os().nth(1);
     use kraqel_native_scene_model::channel::ReviewedWrite;
+    if arg.as_deref()
+        == Some(std::ffi::OsStr::new(
+            kraqel_window_probe::window_receipt::P3_READ,
+        ))
+    {
+        use kraqel_window_probe::{managed_scene::confirm_bootstrap, window_receipt as protocol};
+        use std::io::{Read, Write};
+        let ok = std::env::args().nth(2).is_some_and(|profile| {
+            (|| -> std::io::Result<()> {
+                let (mut input, mut reply) = confirm_bootstrap(Some(&profile), Role::Data)?;
+                let mut row = [0; protocol::P3_LEN];
+                input.read_exact(&mut row)?;
+                kraqel_window_probe::require(protocol::valid_p3_row(&row), "P3 row")?;
+                reply.write_all(&protocol::p3_receipt(&row))
+            })()
+            .is_ok()
+        });
+        std::process::exit(if ok { 0 } else { 65 });
+    }
     let repeat_arg = arg
         .as_deref()
         .and_then(|a| a.to_str())

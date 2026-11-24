@@ -3,6 +3,7 @@ use super::*;
 use crate::native_win32_package::{IMAGES, PinnedPackage};
 
 mod suspended;
+pub(super) use suspended::deliver_p3;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Snapshot {

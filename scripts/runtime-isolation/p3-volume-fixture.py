@@ -25,6 +25,16 @@ def require(ok, message):
         raise RuntimeError(message)
 
 
+P3_SERVICE = Path(__file__).resolve().parent / "native-window/target/release/pipe-service.exe"
+P3_SCENE = ("Szene A", "Text aus der Testkopie.", 0)
+
+
+def scene_frame(metadata, row):
+    title, text, revision = row
+    return (uuid.UUID(metadata[0]).bytes + uuid.UUID(metadata[1]).bytes + revision.to_bytes(4, "little")
+            + title.encode("utf-8") + b"\0" + text.encode("utf-8"))
+
+
 kernel = ctypes.WinDLL("kernel32", use_last_error=True)
 open_file = kernel.CreateFileW
 open_file.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, ctypes.c_void_p,
@@ -140,8 +150,8 @@ def prepare(root, fixture):
         db.execute("PRAGMA foreign_keys=ON")
         db.execute("PRAGMA user_version=6")
         db.execute("INSERT INTO project(id,name,schema_version,created_at,updated_at) VALUES(?, 'P3',1,'t','t')", (identity,))
-        db.execute("INSERT INTO document(id,project_id,kind,title,position,created_at,updated_at) "
-                   "VALUES(?,?,'scene','Szene A',0,'t','t')", (document, identity))
+        db.execute("INSERT INTO document(id,project_id,kind,title,plain_text,position,created_at,updated_at) "
+                   "VALUES(?,?,'scene',?,?,0,'t','t')", (document, identity, *P3_SCENE[:2]))
         db.execute("INSERT INTO media_asset(id,project_id,kind,relative_path,thumbnail_path,original_name,"
                    "title,mime_type,checksum,byte_count,width,height,provenance,created_at,updated_at) "
                    "VALUES(?,?,'image','assets/nested/cover.png','assets/thumbnails/cover.png','cover.png',"
@@ -286,6 +296,7 @@ class NativeAuthority:
 
     def __init__(self, pipe):
         self.pipe = pipe
+        self.plan_digest = None
 
     def attest(self, domain, digest, register):
         self.pipe.stdin.write(bytes((int(register), self.domains.index(domain))) + digest)
@@ -293,6 +304,13 @@ class NativeAuthority:
         response = self.pipe.stdout.readline(66)
         require(re.fullmatch(b"[0-9a-f]{64}\n", response), "native evidence refused")
         return response[:-1].decode("ascii")
+
+    def deliver(self, row):
+        require(self.plan_digest is not None, "missing delivery decision")
+        self.pipe.stdin.write(bytes((0, 6)) + self.plan_digest + row)
+        self.pipe.stdin.flush()
+        if self.pipe.stdout.readline(16) != b"DELIVERED\n":
+            raise RuntimeError("scene delivery failed: " + self.pipe.stderr.read(512).decode())
 
     def removal_step(self, step, advance=False):
         self.pipe.stdin.write(bytes((int(advance), 4)) + step.to_bytes(4, "little") + bytes(28))
@@ -476,6 +494,9 @@ def read_published_scene(root, target, metadata, approved, home):
                                       "WHERE project_id=? AND id=? AND kind='scene'",
                                       (project_id, scene_id)).fetchall()
                     require(len(rows) == 1, "bound scene missing")
+                    row = scene_frame(metadata, rows[0])
+                    require(len(row) == len(scene_frame(metadata, P3_SCENE)), "unsupported fixture row")
+                    authority.deliver(row)
                     return rows[0]
 
 
@@ -492,6 +513,8 @@ def native_restart(root, fixture, metadata):
             target = Path(temp)
             with native_authority(home, True) as authority:
                 ticket = decision(authority, root, target, metadata, register=True)
+                shutil.copyfile(P3_SERVICE, home / "p3-control/bin/pipe-service.exe")
+
                 class ControllerStopped(Exception):
                     pass
 
@@ -530,7 +553,17 @@ def native_restart(root, fixture, metadata):
                 reopened = publish(root, target, metadata, ticket, restored)
                 require(object_id(reopened) == published_id and list(target.iterdir()) == [final],
                         "native restart duplicated the copy")
-            require(read_published_scene(root, target, metadata, ticket, home) == ("Szene A", "", 0),
+            with native_authority(home, False, read_only=True) as reader:
+                require(decision(reader, root, target, metadata) == ticket, "wrong read decision")
+                verify_bundle(final, ticket, metadata, reader)
+                wrong_scene = [metadata[0], metadata[2]]  # Use the asset UUID in the scene field.
+                try:
+                    reader.deliver(scene_frame(wrong_scene, P3_SCENE))
+                except RuntimeError as exc:
+                    require('"stage":"p3-unbound-row"' in str(exc), "unexpected handoff refusal")
+                else:
+                    raise RuntimeError("unbound scene delivered")
+            require(read_published_scene(root, target, metadata, ticket, home) == P3_SCENE,
                     "wrong published scene")
     finally:
         # Both directories were exclusively created by this synthetic run.
@@ -612,7 +645,13 @@ def tag(key, domain, fields, register=False):
                          separators=(",", ":")).encode("ascii")
     payload = domain + b"\0" + encoded
     if isinstance(key, NativeAuthority):
-        return key.attest(domain, hashlib.sha256(payload).digest(), register)
+        digest = hashlib.sha256(payload).digest()
+        if domain == NativeAuthority.domains[0]:
+            key.plan_digest = digest
+            service = hashlib.sha256(P3_SERVICE.read_bytes()).digest()
+            digest = hashlib.sha256(b"KRAQEL-P3-HANDOFF-v1" + digest + service
+                                    + scene_frame(fields[-1], P3_SCENE)).digest()
+        return key.attest(domain, digest, register)
     return hmac.digest(key, payload, "sha256").hex()
 
 
@@ -830,4 +869,4 @@ if __name__ == "__main__":
         with volume_guard(volume, mode == "capture"):
             (prepare if mode == "prepare" else capture)(root, fixture)
         if mode == "capture":
-            print("PASS: native controller restart resumed partial transfer and confirmed publication; foreign installation refused; inventory, prefix and journal-bound cleanup checks passed")
+            print("PASS: native controller restart resumed partial transfer and confirmed publication; foreign installation refused; cleanup recovered; bound scene delivered to isolated data role; substituted scene refused")

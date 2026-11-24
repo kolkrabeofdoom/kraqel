@@ -113,3 +113,24 @@ pub const REVIEWED_EXIT: u32 = 47;
 pub const SCENE_REVISION_LIMIT: u32 = 256;
 
 pub const REPEAT_ABI: [u8; 32] = *b"KRAQEL-SCENE-REPEAT-V1..........";
+
+/// Fixed synthetic row: project UUID, scene UUID, revision LE, title NUL and text.
+pub const P3_READ: &str = "--managed-p3-read-v1";
+pub const P3_CONTENT: &[u8] = b"Szene A\0Text aus der Testkopie.";
+pub const P3_LEN: usize = 36 + P3_CONTENT.len();
+
+pub fn valid_p3_row(row: &[u8; P3_LEN]) -> bool {
+    row[..16] != [0; 16]
+        && row[16..32] != [0; 16]
+        && row[..16] != row[16..32]
+        && row[32..36] == [0; 4]
+        && &row[36..] == P3_CONTENT
+}
+
+pub fn p3_receipt(row: &[u8; P3_LEN]) -> [u8; 32] {
+    Sha256::new()
+        .chain_update(b"KRAQEL-P3-ROW-RECEIVED-v1")
+        .chain_update(row)
+        .finalize()
+        .into()
+}

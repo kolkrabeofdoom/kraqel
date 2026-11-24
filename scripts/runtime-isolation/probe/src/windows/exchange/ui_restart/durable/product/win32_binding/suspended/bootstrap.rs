@@ -8,11 +8,9 @@ fn authenticator(
     image: &fs::File,
     pi: &PROCESS_INFORMATION,
     created: u64,
+    binding: ([u8; 32], [u8; 32]),
 ) -> Result<HmacSha256> {
-    let (actor, anchor) = store
-        .state
-        .win32_anchor
-        .ok_or(invalid("win32-bootstrap-anchor"))?;
+    let (actor, anchor) = binding;
     if actor != store.state.actor {
         return Err(invalid("win32-bootstrap-actor"));
     }
@@ -40,8 +38,24 @@ pub(super) fn stage(
     writer: &mut fs::File,
     surface: bool,
 ) -> Result<[u8; 32]> {
+    let binding = store
+        .state
+        .win32_anchor
+        .ok_or(invalid("win32-bootstrap-anchor"))?;
+    stage_bound(store, image, pi, endpoint, writer, surface, binding)
+}
+
+pub(super) fn stage_bound(
+    store: &Store,
+    image: &fs::File,
+    pi: &PROCESS_INFORMATION,
+    endpoint: HANDLE,
+    writer: &mut fs::File,
+    surface: bool,
+    binding: ([u8; 32], [u8; 32]),
+) -> Result<[u8; 32]> {
     let created = workspace_probe::lifetime::creation_time(pi.hProcess)?;
-    let mac = authenticator(store, image, pi, created)?;
+    let mac = authenticator(store, image, pi, created, binding)?;
     // The receipt-only protocol exposes its tag. Derive the UI secret in a separate domain.
     let mut secret_mac = mac.clone();
     secret_mac.update(b"window-open-v1");
@@ -102,6 +116,14 @@ pub(super) fn resume_and_confirm(
     if unsafe { ResumeThread(pi.hThread) } != 1 {
         return Err(invalid("win32-window-resume"));
     }
+    confirm_exit_receipt(pi, reply, expected)
+}
+
+pub(super) fn confirm_exit_receipt(
+    pi: &PROCESS_INFORMATION,
+    reply: &fs::File,
+    expected: [u8; 32],
+) -> Result<()> {
     if unsafe { WaitForSingleObject(pi.hProcess, 5000) } != WAIT_OBJECT_0 {
         return Err(invalid("win32-window-receipt-timeout"));
     }
@@ -267,12 +289,12 @@ mod tests {
             dwThreadId: 200,
             ..Default::default()
         };
-        let previous = authenticator(&store, &image, &pi, 1)
+        let previous = authenticator(&store, &image, &pi, 1, store.state.win32_anchor.unwrap())
             .unwrap()
             .finalize()
             .into_bytes();
         assert!(
-            authenticator(&store, &image, &pi, 2)
+            authenticator(&store, &image, &pi, 2, store.state.win32_anchor.unwrap())
                 .unwrap()
                 .verify_slice(&previous)
                 .is_err()

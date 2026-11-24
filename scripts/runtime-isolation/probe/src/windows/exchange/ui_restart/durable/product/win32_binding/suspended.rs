@@ -51,6 +51,40 @@ pub(super) fn check_window(
     )
 }
 
+pub(in super::super) fn deliver_p3(
+    store: &mut Store,
+    root: &Path,
+    image: &fs::File,
+    binding: [u8; 32],
+    row: &[u8; crate::window_receipt::P3_LEN],
+) -> Result<()> {
+    use crate::window_receipt as protocol;
+    with_role(
+        store,
+        root,
+        image,
+        "pipe-service.exe",
+        protocol::P3_READ,
+        true,
+        |store, pi, endpoint, mut writer, reply| {
+            let mut reply = reply.ok_or(invalid("p3-service-pipe"))?;
+            let grant = bootstrap::stage_bound(
+                store,
+                image,
+                pi,
+                endpoint,
+                &mut writer,
+                true,
+                (store.state.actor, binding),
+            )?;
+            bootstrap::confirm_grant(pi, &mut writer, &mut reply, &grant)?;
+            io("p3-service-send", writer.write_all(row))?;
+            drop(writer);
+            bootstrap::confirm_exit_receipt(pi, &reply, protocol::p3_receipt(row))
+        },
+    )
+}
+
 fn with_role(
     store: &mut Store,
     root: &Path,

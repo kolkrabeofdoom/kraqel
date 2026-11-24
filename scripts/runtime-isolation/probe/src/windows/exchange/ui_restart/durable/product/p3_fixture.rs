@@ -87,6 +87,28 @@ pub(super) fn serve(
         }
         io("p3-frame", input.read_exact(&mut frame[1..]))?;
         let [mode, slot] = [frame[0], frame[1]];
+        if operation == Operation::Read && slot == 6 && mode == 0 && verified == [true; 3] {
+            use crate::window_receipt as protocol;
+            let mut row = [0; protocol::P3_LEN];
+            io("p3-row", input.read_exact(&mut row))?;
+            let root = store.root.join("bin");
+            let image_path = root.join("pipe-service.exe");
+            let (_dirs, image, digest) = binary_pin(&image_path)?;
+            let binding: [u8; 32] = Sha256::new()
+                .chain_update(b"KRAQEL-P3-HANDOFF-v1")
+                .chain_update(&frame[2..])
+                .chain_update(digest)
+                .chain_update(row)
+                .finalize()
+                .into();
+            if !protocol::valid_p3_row(&row) || Some(binding) != store.state.p3_evidence[0] {
+                return Err(invalid("p3-unbound-row"));
+            }
+            win32_binding::deliver_p3(&mut store, &root, &image, binding, &row)?;
+            io("p3-service-confirmed", output.write_all(b"DELIVERED\n"))?;
+            io("p3-service-confirmed", output.flush())?;
+            break;
+        }
         if operation == Operation::Read && (mode != 0 || slot > 2) {
             return Err(invalid("p3-read-only"));
         }
