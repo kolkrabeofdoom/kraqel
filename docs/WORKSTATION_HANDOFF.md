@@ -11,7 +11,13 @@ python -I scripts/runtime-isolation/p3-volume-fixture.py export-supplement .\zus
 
 Im Fenster die gewünschten Gruppen markieren und das Quellprojekt bestätigen. Im Terminal eine lange, einzigartige Passphrase zweimal verdeckt eingeben. Das Ziel muss neu sein. Die Beispieldateien stammen aus dem synthetischen Projektkatalog.
 
-Für den Rechnerwechsel die Datei `zusatz.zip.age` und die vertrauenswürdige `target/release/kraqel-archiv.exe` mitnehmen. Die Passphrase getrennt aufbewahren. Auf dem zweiten Windows-x64-PC im Ordner mit beiden Dateien ausführen:
+Für den Rechnerwechsel die Datei `zusatz.zip.age` und die portable Windows-x64-EXE mitnehmen. Der normale Build für den Prüfpfad lädt `VCRUNTIME140.dll`. Die portable Variante bindet die C-Laufzeit statisch. Der folgende Build setzt die Option ausschließlich im gestarteten Prozess:
+
+```powershell
+cmd /d /c "set CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS=-C target-feature=+crt-static&&cargo build --locked --release --target x86_64-pc-windows-msvc -p kraqel-archiv"
+```
+
+Die portable EXE liegt in `target/x86_64-pc-windows-msvc/release/kraqel-archiv.exe`. Die Passphrase getrennt aufbewahren. Auf dem zweiten Windows-x64-PC im Ordner mit beiden Dateien ausführen:
 
 ```powershell
 .\kraqel-archiv.exe restore .\zusatz.zip.age .\wiederhergestellt.zip
