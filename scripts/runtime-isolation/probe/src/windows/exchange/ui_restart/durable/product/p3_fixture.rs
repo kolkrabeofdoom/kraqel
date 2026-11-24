@@ -1,13 +1,22 @@
 //! Synthetic local copy controller. The private store is never an ordinary preview installation.
 use super::*;
 
+#[derive(PartialEq, Eq)]
+pub(super) enum Operation {
+    Authorize,
+    Reopen,
+    Cleanup,
+    Read,
+}
+
 pub(super) fn serve(
     preview: &Path,
     image: &fs::File,
     actor: [u8; 32],
-    create: bool,
-    cleanup: bool,
+    operation: Operation,
 ) -> Result<Value> {
+    let create = operation == Operation::Authorize;
+    let cleanup = operation == Operation::Cleanup;
     let home = preview.parent().ok_or(invalid("p3-fixture-home"))?;
     let fixture = home.parent().ok_or(invalid("p3-fixture-root"))?;
     let parent = fixture.parent().ok_or(invalid("p3-temp-parent"))?;
@@ -56,6 +65,9 @@ pub(super) fn serve(
     };
     store.actor(actor)?;
     store.append_guard(actor, store.state.head)?;
+    if operation == Operation::Read && store.state.p3_evidence[2].is_none() {
+        return Err(invalid("p3-publication-required"));
+    }
     if (cleanup && store.state.p3_evidence[2].is_some())
         || (!cleanup && store.state.p3_cleanup.is_some())
     {
@@ -75,6 +87,9 @@ pub(super) fn serve(
         }
         io("p3-frame", input.read_exact(&mut frame[1..]))?;
         let [mode, slot] = [frame[0], frame[1]];
+        if operation == Operation::Read && (mode != 0 || slot > 2) {
+            return Err(invalid("p3-read-only"));
+        }
         if slot == 4 || slot == 5 {
             // The cursor is accessible only after verifying the exact cleanup decision.
             if !cleanup || !verified[2] || mode > 1 || frame[6..].iter().any(|b| *b != 0) {

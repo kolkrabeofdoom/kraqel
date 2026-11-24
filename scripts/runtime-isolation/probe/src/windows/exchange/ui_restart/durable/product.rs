@@ -1192,18 +1192,18 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
     let root = default_root()?;
     let exe = io("product-current-exe", std::env::current_exe())?;
     let (_parents, running_image, actor) = binary_pin(&exe)?;
-    if args.len() == 1
-        && (args[0] == "authorize-p3-fixture"
-            || args[0] == "reopen-p3-fixture"
-            || args[0] == "confirm-p3-fixture-cleanup")
-    {
-        return p3_fixture::serve(
-            &root,
-            &running_image,
-            actor,
-            args[0] == "authorize-p3-fixture",
-            args[0] == "confirm-p3-fixture-cleanup",
-        );
+    if let [name] = args {
+        use p3_fixture::Operation;
+        let operation = match name.to_str() {
+            Some("authorize-p3-fixture") => Some(Operation::Authorize),
+            Some("reopen-p3-fixture") => Some(Operation::Reopen),
+            Some("confirm-p3-fixture-cleanup") => Some(Operation::Cleanup),
+            Some("read-p3-fixture") => Some(Operation::Read),
+            _ => None,
+        };
+        if let Some(operation) = operation {
+            return p3_fixture::serve(&root, &running_image, actor, operation);
+        }
     }
     if args.len() == 1 && args[0] == "init" {
         return Ok(Store::initialize(&root, actor)?.summary());

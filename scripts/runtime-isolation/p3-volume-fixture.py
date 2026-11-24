@@ -308,9 +308,12 @@ class NativeAuthority:
 
 
 @contextmanager
-def native_authority(home, create, cleanup=False):
+def native_authority(home, create, cleanup=False, read_only=False):
     binary = home / "p3-starter.exe"
     operation = "authorize-p3-fixture" if create else "reopen-p3-fixture"
+    if read_only:
+        require(not create and not cleanup, "read requires existing publication")
+        operation = "read-p3-fixture"
     if cleanup:
         require(not create, "cleanup requires existing installation")
         operation = "confirm-p3-fixture-cleanup"
@@ -441,6 +444,41 @@ def remove_confirmed(root, destination, metadata, approved, home, after_remove=N
 
 
 
+def read_published_scene(root, target, metadata, approved, home):
+    project_id, scene_id, _, expected = metadata
+    with volume_guard(str(root.parent), True), pinned_directory(root), pinned_directory(target):
+        with native_authority(home, False, read_only=True) as authority, target_lock(target, project_id):
+            require(hmac.compare_digest(approved, decision(authority, root, target, metadata)),
+                    "unbound decision")
+            require(not os.path.lexists(target / (".pending-" + project_id)), "unresolved staging")
+            final = target / project_id
+            with pinned_directory(final), pinned_directory(final / "project"):
+                # Read precisely the authenticated bytes. SQLite works only on an in-memory image.
+                path = final / "project/kraqel.sqlite3"
+                raw = open_file(str(path), 0x80000000, 1, None, 3, 0x00200000, None)
+                if raw == ctypes.c_void_p(-1).value:
+                    raise ctypes.WinError(ctypes.get_last_error())
+                with os.fdopen(msvcrt.open_osfhandle(raw, os.O_RDONLY | os.O_BINARY), "rb") as image:
+                    info = os.fstat(image.fileno())
+                    require(not info.st_file_attributes & 0x400, "unexpected database link")
+                    verify_bundle(final, approved, metadata, authority)
+                    require(info.st_nlink == 1 and 0 < info.st_size <= 8 * 1024 * 1024,
+                            "unsupported fixture database")
+                    data = image.read(info.st_size + 1)
+                require(hashlib.sha256(data).hexdigest() == expected["kraqel.sqlite3"],
+                        "changed fixture database")
+                with closing(sqlite3.connect(":memory:")) as db:
+                    db.deserialize(data)
+                    db.execute("PRAGMA trusted_schema=OFF")
+                    db.execute("PRAGMA temp_store=MEMORY")
+                    db.execute("PRAGMA query_only=ON")
+                    rows = db.execute("SELECT title, plain_text, revision FROM document "
+                                      "WHERE project_id=? AND id=? AND kind='scene'",
+                                      (project_id, scene_id)).fetchall()
+                    require(len(rows) == 1, "bound scene missing")
+                    return rows[0]
+
+
 def native_restart(root, fixture, metadata):
     home = fixture / "install-a"
     foreign = fixture / "install-b"
@@ -468,6 +506,12 @@ def native_restart(root, fixture, metadata):
                     pass
                 else:
                     raise RuntimeError("controller interruption missing")
+            try:
+                read_published_scene(root, target, metadata, ticket, home)
+            except RuntimeError as exc:
+                require("p3-publication-required" in str(exc), "unexpected partial read refusal")
+            else:
+                raise RuntimeError("partial copy released for reading")
             with native_authority(home, False) as authority:
                 final = publish(root, target, metadata, ticket, authority, resume=True)
                 published_id = object_id(final)
@@ -486,6 +530,8 @@ def native_restart(root, fixture, metadata):
                 reopened = publish(root, target, metadata, ticket, restored)
                 require(object_id(reopened) == published_id and list(target.iterdir()) == [final],
                         "native restart duplicated the copy")
+            require(read_published_scene(root, target, metadata, ticket, home) == ("Szene A", "", 0),
+                    "wrong published scene")
     finally:
         # Both directories were exclusively created by this synthetic run.
         for directory in (home, foreign):

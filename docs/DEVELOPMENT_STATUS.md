@@ -8,6 +8,8 @@ Die geprüfte synthetische Kopie lässt sich einmalig an ein gebundenes Testziel
 
 Der native Prüfstarter bindet die Entscheidung für eine synthetische Übernahme an das Kontrolljournal der Testinstallation. Der Windows-Lauf prüft den Neustart nach dem ersten Kopierbyte und nach Veröffentlichung sowie die Ablehnung durch eine zweite Installation. Eine ausdrückliche Bereinigungsentscheidung für den gebundenen Teilbestand sperrt die weitere Übernahme auch nach Neustart. Die Entfernung lässt sich nach dem geprüften Prozessabbruch anhand der im Journal freigegebenen Schritte fortsetzen. Unerwartet fehlende und ausgetauschte Objekte sperren die Fortsetzung. [Kontrolljournal und Geltungsbereich](data-format/product-start-integration-v1-draft.md#wiederanlauf-mit-installationsgebundenem-kontrolljournal)
 
+Der gezielte P3-Leseaufruf kann die gebundene synthetische Szene aus der bestätigten Kopie im Arbeitsspeicher lesen. Die Teilkopie bleibt für diesen Aufruf gesperrt. Die Anbindung an den isolierten Win32-Datendienst ist offen.
+
 ### PDF-Export
 
 Text- und Bildexport lesen das selbst erzeugte PDF zur Ausgabeprüfung mit `lopdf 0.47.0`.

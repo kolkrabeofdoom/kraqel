@@ -209,6 +209,8 @@ Der gezielte VHDX-Lauf beendet den nativen Starter nach dem ersten Kopierbyte un
 
 Die Windows-Probe beendet den Kopierprozess direkt nach der ersten Entfernung. Das ungeplante Fehlen des nächsten Objekts und eine bytegleiche Ersatzdatei sperren die Fortsetzung. Nach Rückgabe des ursprünglichen Objekts kann der Folgeprozess abschließen. Der Prüfaufbau verwendet eine kontrollierte temporäre Zielablage und einen schreibgeschützten synthetischen Quelldatenträger. Der Abschluss betrifft den vorgesehenen Stagingplatz. Er belegt weder sichere physische Datenlöschung noch Verhalten bei Stromausfall.
 
+**Erster Lesezugriff auf die veröffentlichte Kopie.** Der Prüfaufruf `broker-store read-p3-fixture` verlangt den gespeicherten Abschlussbeleg. Er erlaubt am lokalen Kanal ausschließlich die Prüfung der drei bereits gebundenen Werte. Der Kopierprozess hält die Zielsperre, prüft das veröffentlichte Verzeichnis und sein Inventar und hält die Datenbank dabei über ein Windows-Lesehandle gegen Schreiben und Ersetzen gesperrt. Die auf acht MiB begrenzten Datenbankbytes müssen den erwarteten SHA-256 erfüllen. SQLite liest dieses Abbild im Arbeitsspeicher. Die feste Abfrage liefert Titel, Klartext und Revision genau der in der Übergabe gebundenen Projekt- und Szenen-UUID. Der Prüflauf erwartet bei der vorbereiteten Szene den Titel »Szene A«, leeren Klartext und Revision 0. Während der unterbrochenen Übernahme bleibt der Leseaufruf gesperrt. Dieser Pfad läuft noch in der synthetischen Prüfsteuerung. Die Übergabe an den isolierten Win32-Datendienst bleibt offen.
+
 ## 5. Vor Fortsetzung des eingeschränkten Prozesses
 
 - Aktuellen Actor/Kopf/Paketvertrag, unveränderte Paketbytes/Ressourcen und gültige Datenbindung
