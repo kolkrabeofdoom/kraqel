@@ -5,6 +5,9 @@ param()
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $python = (Get-Command python.exe -CommandType Application | Select-Object -First 1).Source
+if (!(Test-Path -LiteralPath (Join-Path $PSScriptRoot 'probe/target/debug/kraqel-isolation-probe.exe') -PathType Leaf)) {
+    throw 'Build the local probe first: cargo build --offline --locked --manifest-path scripts/runtime-isolation/probe/Cargo.toml --bin kraqel-isolation-probe'
+}
 $fixture = Join-Path ([IO.Path]::GetTempPath()) ("kraqel-p3-" + [guid]::NewGuid().ToString("N"))
 $image = Join-Path $fixture 'source.vhdx'
 $attached = $false

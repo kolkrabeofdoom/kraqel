@@ -164,7 +164,7 @@ def prepare(root, fixture):
     (fixture / "expected.json").write_text(json.dumps([identity, document, asset, inventory(root)]))
 
 
-def stage_tag(bundle, expected, approved, key):
+def stage_tag(bundle, expected, approved, key, register=False):
     stage = bundle / "project"
     layout = []
     for name, digest in sorted(expected.items()):
@@ -174,12 +174,12 @@ def stage_tag(bundle, expected, approved, key):
         if digest is not None:
             require(path.is_file() and info.st_nlink == 1, "invalid staging file")
         layout.append([name, info.st_dev, info.st_ino])
-    return layout_tag(bundle, approved, key, layout)
+    return layout_tag(bundle, approved, key, layout, register)
 
 
-def layout_tag(bundle, approved, key, layout):
+def layout_tag(bundle, approved, key, layout, register=False):
     return tag(key, b"KRAQEL-P3-FIXTURE-STAGING-v1",
-               [approved, object_id(bundle), object_id(bundle / "project"), layout]).encode("ascii")
+               [approved, object_id(bundle), object_id(bundle / "project"), layout], register).encode("ascii")
 
 
 def create_stage(bundle, expected, approved, key):
@@ -193,7 +193,7 @@ def create_stage(bundle, expected, approved, key):
             with (stage / name).open("xb"):
                 pass
     with (bundle / "reservation").open("xb") as proof:
-        proof.write(stage_tag(bundle, expected, approved, key))
+        proof.write(stage_tag(bundle, expected, approved, key, register=True))
 
 
 @contextmanager
@@ -242,6 +242,9 @@ def copy_project(root, bundle, metadata, approved, key, interrupt):
         # All prefixes must pass before any destination byte changes.
         for name, src, dst in files:
             dst.write(src.read(1))
+            if callable(interrupt):
+                dst.flush()
+                interrupt()
             if interrupt == "first-byte":
                 dst.flush()
                 os._exit(85)
@@ -269,20 +272,108 @@ def object_id(path):
     return [info.st_dev, info.st_ino]
 
 
-def tag(key, domain, fields):
+class NativeAuthority:
+    domains = (b"KRAQEL-P3-FIXTURE-DECISION-v1", b"KRAQEL-P3-FIXTURE-STAGING-v1",
+               b"KRAQEL-P3-FIXTURE-RECEIPT-v1")
+
+    def __init__(self, pipe):
+        self.pipe = pipe
+
+    def attest(self, domain, digest, register):
+        self.pipe.stdin.write(bytes((int(register), self.domains.index(domain))) + digest)
+        self.pipe.stdin.flush()
+        response = self.pipe.stdout.readline(66)
+        require(re.fullmatch(b"[0-9a-f]{64}\n", response), "native evidence refused")
+        return response[:-1].decode("ascii")
+
+
+@contextmanager
+def native_authority(home, create):
+    binary = home / "p3-starter.exe"
+    operation = "authorize-p3-fixture" if create else "reopen-p3-fixture"
+    with subprocess.Popen([binary, "broker-store", operation], env={**os.environ, "USERPROFILE": str(home)},
+                          stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
+        try:
+            if proc.stdout.readline(16) != b"P3/1\n":
+                raise RuntimeError("native store unavailable: " + proc.stderr.read(512).decode())
+            yield NativeAuthority(proc)
+        finally:
+            proc.stdin.close()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait()
+
+
+def native_restart(root, fixture, metadata):
+    home = fixture / "install-a"
+    foreign = fixture / "install-b"
+    for directory in (home, foreign):
+        directory.mkdir()
+    try:
+        for directory in (home, foreign):
+            shutil.copyfile(Path(__file__).parent / "probe/target/debug/kraqel-isolation-probe.exe",
+                            directory / "p3-starter.exe")
+        with tempfile.TemporaryDirectory(dir=fixture) as temp:
+            target = Path(temp)
+            with native_authority(home, True) as authority:
+                ticket = decision(authority, root, target, metadata, register=True)
+                class ControllerStopped(Exception):
+                    pass
+
+                def stop_controller():
+                    authority.pipe.kill()
+                    authority.pipe.wait(timeout=5)
+                    raise ControllerStopped
+
+                try:
+                    publish(root, target, metadata, ticket, authority, interrupt=stop_controller)
+                except ControllerStopped:
+                    pass
+                else:
+                    raise RuntimeError("controller interruption missing")
+            with native_authority(home, False) as authority:
+                final = publish(root, target, metadata, ticket, authority, resume=True)
+                published_id = object_id(final)
+                authority.pipe.kill()
+                authority.pipe.wait(timeout=5)
+            with native_authority(foreign, True) as other:
+                other_ticket = decision(other, root, target, metadata, register=True)
+                require(not hmac.compare_digest(ticket, other_ticket), "shared installation proof")
+                try:
+                    publish(root, target, metadata, ticket, other)
+                except RuntimeError as exc:
+                    require(str(exc) == "unbound decision", "unexpected foreign refusal")
+                else:
+                    raise RuntimeError("foreign installation claimed the copy")
+            with native_authority(home, False) as restored:
+                reopened = publish(root, target, metadata, ticket, restored)
+                require(object_id(reopened) == published_id and list(target.iterdir()) == [final],
+                        "native restart duplicated the copy")
+    finally:
+        # Both directories were exclusively created by this synthetic run.
+        for directory in (home, foreign):
+            shutil.rmtree(directory)
+
+
+def tag(key, domain, fields, register=False):
     encoded = json.dumps(fields, ensure_ascii=True, sort_keys=True,
                          separators=(",", ":")).encode("ascii")
-    return hmac.digest(key, domain + b"\0" + encoded, "sha256").hex()
+    payload = domain + b"\0" + encoded
+    if isinstance(key, NativeAuthority):
+        return key.attest(domain, hashlib.sha256(payload).digest(), register)
+    return hmac.digest(key, payload, "sha256").hex()
 
 
-def decision(key, source, destination, metadata):
+def decision(key, source, destination, metadata, register=False):
     return tag(key, b"KRAQEL-P3-FIXTURE-DECISION-v1",
-               [str(source), object_id(source), object_id(destination), metadata])
+               [str(source), object_id(source), object_id(destination), metadata], register)
 
 
-def receipt(key, approved, bundle):
+def receipt(key, approved, bundle, register=False):
     return tag(key, b"KRAQEL-P3-FIXTURE-RECEIPT-v1",
-               [approved, object_id(bundle), object_id(bundle / "project")])
+               [approved, object_id(bundle), object_id(bundle / "project")], register)
 
 
 @contextmanager
@@ -330,7 +421,7 @@ def publish_locked(root, destination, project_id, metadata, approved, key, inter
     else:
         copy_project(root, bundle, metadata, approved, key, interrupt)
         with (bundle / "receipt").open("xb") as proof:
-            proof.write(receipt(key, approved, bundle).encode("ascii"))
+            proof.write(receipt(key, approved, bundle, register=True).encode("ascii"))
         if interrupt == "before-rename":
             os._exit(87)
     bundle.rename(final)
@@ -343,12 +434,12 @@ def verify_bundle(final, approved, metadata, key):
     proof = final / "receipt"
     require(check_entry(proof).st_nlink == 1 and proof.is_file() and proof.stat().st_size == 64,
             "invalid receipt")
-    require(hmac.compare_digest(proof.read_bytes(), receipt(key, approved, final).encode("ascii")),
-            "unbound receipt")
     reservation = final / "reservation"
     require(check_entry(reservation).st_nlink == 1 and reservation.is_file()
             and reservation.stat().st_size == 64 and hmac.compare_digest(
                 reservation.read_bytes(), stage_tag(final, metadata[3], approved, key)), "unbound reservation")
+    require(hmac.compare_digest(proof.read_bytes(), receipt(key, approved, final).encode("ascii")),
+            "unbound receipt")
     require(inventory(final / "project") == metadata[3], "changed destination")
     return final
 
@@ -374,6 +465,7 @@ def run_to_exit(operation, args, code):
 def capture(root, fixture):
     metadata = json.loads((fixture / "expected.json").read_text())
     require(metadata[3] == inventory(root), "unexpected source")
+    native_restart(root, fixture, metadata)
     # The fixture controller supplies one explicit decision. Its key lasts
     # across worker processes but grants no authority after the controller exits.
     key = secrets.token_bytes(32)
@@ -457,7 +549,7 @@ def capture(root, fixture):
         try:
             publish(root, destination, metadata, decision(fresh_key, root, destination, metadata), fresh_key)
         except RuntimeError as exc:
-            require(str(exc) == "unbound receipt" and object_id(final) == before,
+            require(str(exc) == "unbound reservation" and object_id(final) == before,
                     "unexpected controller recovery")
         else:
             raise RuntimeError("new controller claimed the earlier publication")
@@ -487,4 +579,4 @@ if __name__ == "__main__":
         with volume_guard(volume, mode == "capture"):
             (prepare if mode == "prepare" else capture)(root, fixture)
         if mode == "capture":
-            print("PASS: authenticated partial transfer resumed; unknown entry and wrong prefix refused; publication replay verified")
+            print("PASS: native controller restart resumed partial transfer and confirmed publication; foreign installation refused; inventory and prefix checks passed")

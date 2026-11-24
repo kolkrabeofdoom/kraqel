@@ -6,6 +6,8 @@ Für die Kopie eines Projekts von einem vollständig schreibgeschützten synthet
 
 Die geprüfte synthetische Kopie lässt sich einmalig an ein gebundenes Testziel veröffentlichen. Nach Prozessende vor der Rückmeldung bestätigte der Folgeaufruf denselben Abschluss. Fremdes Ziel, frischer Schlüssel und veränderter Zielbestand wurden abgewiesen. Ein regulärer Neustart sperrt vorhandene Teilkopien. Im kontrollierten Prüfziel kann derselbe Controller eine ausdrücklich angeforderte Fortsetzung anhand authentisierter Dateiidentitäten und aller bisherigen Quellbytes zulassen. Ein bereits vollständig bestätigtes Paket ließ sich nach einem zweiten Abbruch vor der Umbenennung einmalig veröffentlichen. Unklare Bestände bleiben gesperrt. [Nachweis und Grenze der Prüfautorität](data-format/product-start-integration-v1-draft.md#einmalige-veröffentlichung-am-gebundenen-synthetischen-ziel)
 
+Der native Prüfstarter bindet die Entscheidung für eine synthetische Übernahme an das Kontrolljournal der Testinstallation. Der Windows-Lauf prüft den Neustart nach dem ersten Kopierbyte und nach Veröffentlichung sowie die Ablehnung durch eine zweite Installation. Die authentisierte Bereinigung von Restbeständen bleibt offen. [Kontrolljournal und Geltungsbereich](data-format/product-start-integration-v1-draft.md#wiederanlauf-mit-installationsgebundenem-kontrolljournal)
+
 ### PDF-Export
 
 Text- und Bildexport lesen das selbst erzeugte PDF zur Ausgabeprüfung mit `lopdf 0.47.0`.

@@ -6,6 +6,7 @@ use windows_sys::Win32::Security::{
 };
 use zeroize::Zeroizing;
 mod crash;
+mod p3_fixture;
 mod package;
 mod secure_fs;
 mod session;
@@ -43,6 +44,10 @@ const BAD_ATTRIBUTES: u32 = FILE_ATTRIBUTE_REPARSE_POINT
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(tag = "kind", rename_all = "camelCase", deny_unknown_fields)]
 enum Action {
+    P3FixtureEvidence {
+        slot: u8,
+        digest: [u8; 32],
+    },
     BeginWin32Window {
         anchor: [u8; 32],
     },
@@ -196,6 +201,7 @@ struct State {
     actor: [u8; 32],
     schema: u16,
     pending: Option<[u8; 32]>,
+    p3_evidence: [Option<[u8; 32]>; 3],
     scene_snapshot: Option<([u8; 32], win32_binding::Snapshot)>,
     window_session: win32_binding::Session,
     scene_adopted: bool,
@@ -227,6 +233,16 @@ impl State {
             return session::apply(self, action);
         }
         match action {
+            Action::P3FixtureEvidence { slot, digest }
+                if self.schema == 1
+                    && self.sequence == usize::from(*slot)
+                    && usize::from(*slot) < self.p3_evidence.len()
+                    && *digest != [0; 32]
+                    && self.p3_evidence.iter().take_while(|e| e.is_some()).count()
+                        == usize::from(*slot) =>
+            {
+                self.p3_evidence[usize::from(*slot)] = Some(*digest);
+            }
             Action::AdoptWin32Scene {
                 previous_owner,
                 snapshot,
@@ -667,6 +683,7 @@ impl Store {
                         1
                     },
                     pending: None,
+                    p3_evidence: [None; 3],
                     scene_snapshot: None,
                     window_session: Default::default(),
                     scene_adopted: false,
@@ -1135,6 +1152,14 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
     let root = default_root()?;
     let exe = io("product-current-exe", std::env::current_exe())?;
     let (_parents, running_image, actor) = binary_pin(&exe)?;
+    if args.len() == 1 && (args[0] == "authorize-p3-fixture" || args[0] == "reopen-p3-fixture") {
+        return p3_fixture::serve(
+            &root,
+            &running_image,
+            actor,
+            args[0] == "authorize-p3-fixture",
+        );
+    }
     if args.len() == 1 && args[0] == "init" {
         return Ok(Store::initialize(&root, actor)?.summary());
     }

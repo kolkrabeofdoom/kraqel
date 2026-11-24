@@ -133,6 +133,7 @@ fn synthetic_state() -> State {
         actor: grant.code.sha256,
         schema: 6,
         pending: None,
+        p3_evidence: [None; 3],
         scene_snapshot: None,
         window_session: Default::default(),
         win32_anchor: None,
