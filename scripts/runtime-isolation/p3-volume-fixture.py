@@ -213,6 +213,66 @@ def capture_writable_fixture(root, selected_root, read_oplock, during_copy=None,
     return snapshot
 
 
+def initialize_fixture_schema(db):
+    migrations = sorted((Path(__file__).resolve().parents[2] / "crates/storage/migrations").glob("*.sql"))
+    require([m.name[:4] for m in migrations] == [f"{i:04d}" for i in range(1, 7)], "unexpected fixture schema")
+    for migration in migrations:
+        db.executescript(migration.read_text(encoding="utf-8"))
+
+
+def check_working_schema(db):
+    # Only objects produced by the six supported migrations belong in this preview.
+    query = "SELECT type,name,tbl_name,sql FROM main.sqlite_schema ORDER BY type,name"
+    with closing(sqlite3.connect(":memory:")) as reference:
+        initialize_fixture_schema(reference)
+        expected = reference.execute(query).fetchall()
+    require(db.execute("PRAGMA user_version").fetchone() == (6,)
+            and db.execute(query).fetchmany(len(expected) + 1) == expected,
+            "unsupported project schema")
+
+
+def selected_working_files(root, directory_id, entries, read_oplock, metadata):
+    # Resolve rows against already enumerated entries. Never use a database string to open a path.
+    database_names = {"kraqel.sqlite3", "kraqel.sqlite3-wal", "kraqel.sqlite3-shm"}
+    snapshot = capture_writable_fixture(root, directory_id, read_oplock, selected_entries=entries,
+                                        include=database_names)
+    require("kraqel.sqlite3" in snapshot and all(isinstance(b, bytes) for b in snapshot.values()),
+            "invalid database inventory")
+    files = {path.relative_to(root).as_posix(): stat for path, stat in entries.items()
+             if not stat.st_file_attributes & 0x10}
+    require("kraqel.sqlite3-journal" not in files, "unsupported SQLite sidecars")
+    database_hashes = {name: hashlib.sha256(data).hexdigest() for name, data in snapshot.items()}
+    working = set(database_hashes)
+    hashes = dict(database_hashes)
+    with tempfile.TemporaryDirectory(prefix="kraqel-p3-db-") as work:
+        staged = Path(work)
+        for name, data in snapshot.items():
+            (staged / name).write_bytes(data)
+        with fixture_database(staged, database_hashes) as db:
+            check_working_schema(db)
+            require(db.execute("SELECT id FROM project LIMIT 2").fetchall() == [(root.name,)],
+                    "unsupported media inventory")
+            rows = db.execute("SELECT project_id,relative_path,thumbnail_path,checksum,byte_count "
+                              "FROM media_asset LIMIT 257").fetchall()
+            require(len(rows) <= 256, "media inventory budget exceeded")
+            for project, image, thumb, digest, size in rows:
+                require(project == root.name and image in files and thumb in files
+                        and image.startswith("assets/") and not image.startswith("assets/thumbnails/")
+                        and thumb.startswith("assets/thumbnails/") and image not in hashes
+                        and files[image].st_size == size and re.fullmatch("[a-f0-9]{64}", digest),
+                        "invalid media reference")
+                working.update((image, thumb))
+                hashes[image] = digest
+            verify_scene_view(db, metadata, metadata[3])
+    # The picker lists these exact supplemental names. A new unlisted file requires a new decision.
+    require(set(files) - working == set(EXTRA_FILES), "unreviewed supplemental inventory")
+    for name in tuple(working):
+        working.update(parent.as_posix() for parent in Path(name).parents if parent != Path("."))
+    if (root / "empty") in entries and entries[root / "empty"].st_file_attributes & 0x10:
+        working.add("empty")
+    return working, hashes
+
+
 def selection_digest(selected, candidate, metadata):
     require(len(selected) == 2 and all(type(n) is int and n > 0 for n in selected),
             "missing selected directory identity")
@@ -393,10 +453,11 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
                                   root / "backups", root / "exports", root / ".git"):
                     directories.append((directory, directory.lstat()))
                 generated_files[name] = []
-                for relative in ("kraqel.sqlite3", "kraqel.sqlite3-wal", "kraqel.sqlite3-shm",
-                                 "assets/nested/cover.png", "assets/thumbnails/cover.png"):
+                for relative, digest in metadata[3].items():
+                    if digest is None:
+                        continue
                     path = root / relative
-                    generated_files[name].append((path, path.lstat(), metadata[3][relative]))
+                    generated_files[name].append((path, path.lstat(), digest))
                 for relative, (_, content) in EXTRA_FILES.items():
                     path = root / relative
                     generated_files[name].append((path, path.lstat(), hashlib.sha256(content).hexdigest()))
@@ -462,8 +523,16 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
         extras = {relative for relative, (group, _) in EXTRA_FILES.items() if groups & group}
         planned = dict(metadata[3])
 
+        selected = object_id(root)
+        require(selected == [selected_root.st_dev, selected_root.st_ino], "selected root replaced")
+        if interactive_selection:
+            working, required_hashes = selected_working_files(
+                root, selected_root, selected_entries, read_oplock, [*metadata, selected, *variant])
+        else:
+            working, required_hashes = set(planned), {}
+
         def capture(after_first=None):
-            include = set(planned) | extras if interactive_selection else None
+            include = working | extras if interactive_selection else None
             snapshot = capture_writable_fixture(root, selected_root, read_oplock, after_first,
                                                 selected_entries, include)
             archive_bytes = {relative: snapshot.pop(relative) for relative in sorted(extras)}
@@ -471,7 +540,11 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
                     "selected archive entry changed")
             expected = {name: None if data is None else hashlib.sha256(data).hexdigest()
                         for name, data in snapshot.items()}
-            require(expected == planned, "incomplete writable capture")
+            if interactive_selection:
+                require(set(expected) == working and expected == planned and all(expected.get(n) == digest
+                        for n, digest in required_hashes.items()), "working inventory changed")
+            else:
+                require(expected == planned, "incomplete writable capture")
             parent = target.parent.parent if interactive_selection else target.parent
             with tempfile.TemporaryDirectory(dir=parent) as work:
                 package = Path(work) / "package"
@@ -518,8 +591,6 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
             subprocess.run([sys.executable, "-I", "-c",
                             "import sys; open(sys.argv[1], 'xb').write(b'late asset')",
                             str(root / "assets/nested/late.png")], check=True, timeout=10)
-        selected = object_id(root)
-        require(selected == [selected_root.st_dev, selected_root.st_ino], "selected root replaced")
         if not interactive_selection:
             planned["assets/nested/late.png"] = hashlib.sha256(b"late asset").hexdigest()
             try:
@@ -612,13 +683,11 @@ def seed_writable_project(root, identity, scene):
     (nested / "cover.png").write_bytes(png)
     thumbnails = root / "assets" / "thumbnails"
     thumbnails.mkdir()
-    (thumbnails / "cover.png").write_bytes(png)
+    thumbnail_name = "vorschau.png" if scene == P3_SOUTH else "cover.png"
+    (thumbnails / thumbnail_name).write_bytes(png)
     document, asset = (str(uuid.uuid4()) for _ in range(2))
     with closing(sqlite3.connect(root / "kraqel.sqlite3")) as db:
-        migrations = sorted((Path(__file__).resolve().parents[2] / "crates/storage/migrations").glob("*.sql"))
-        require([m.name[:4] for m in migrations] == [f"{i:04d}" for i in range(1, 7)], "unexpected fixture schema")
-        for migration in migrations:
-            db.executescript(migration.read_text(encoding="utf-8"))
+        initialize_fixture_schema(db)
         db.execute("PRAGMA foreign_keys=ON")
         db.execute("PRAGMA user_version=6")
         db.execute("INSERT INTO project(id,name,schema_version,created_at,updated_at) VALUES(?, 'P3',1,'t','t')", (identity,))
@@ -626,9 +695,9 @@ def seed_writable_project(root, identity, scene):
                    "VALUES(?,?,'scene',?,?,0,'t','t')", (document, identity, scene[0], "Vor dem WAL-Commit"))
         db.execute("INSERT INTO media_asset(id,project_id,kind,relative_path,thumbnail_path,original_name,"
                    "title,mime_type,checksum,byte_count,width,height,provenance,created_at,updated_at) "
-                   "VALUES(?,?,'image','assets/nested/cover.png','assets/thumbnails/cover.png','cover.png',"
+                   "VALUES(?,?,'image','assets/nested/cover.png',?,'cover.png',"
                    "'Cover','image/png',?,?,1,1,'imported','t','t')",
-                   (asset, identity, hashlib.sha256(png).hexdigest(), len(png)))
+                   (asset, identity, "assets/thumbnails/" + thumbnail_name, hashlib.sha256(png).hexdigest(), len(png)))
         db.execute("INSERT INTO asset_link(project_id,asset_id,target_type,target_id,created_at) "
                    "VALUES(?,?,'document',?,'t')", (identity, asset, document))
         db.commit()
@@ -823,9 +892,8 @@ def fixture_database(project, expected, verify=None):
 
 
 def copy_project(root, bundle, metadata, approved, key, interrupt):
-    identity, document, asset, expected = metadata[:4]
+    expected = metadata[3]
     stage = bundle / "project"
-    entries = expected
     with checked_staging(root, bundle, metadata, approved, key) as (files, _, _):
         for name, src, dst in files:
             dst.write(src.read(1))
@@ -840,19 +908,26 @@ def copy_project(root, bundle, metadata, approved, key, interrupt):
             shutil.copyfileobj(src, dst)
     require(inventory(stage) == expected == inventory(root), "incomplete copy")
     with fixture_database(stage, expected) as db:
-        require(db.execute("SELECT title, plain_text, revision FROM document WHERE project_id=? AND id=?",
-                           (identity, document)).fetchall() == [expected_scene(metadata)], "incomplete scene revision")
-        require(db.execute("pragma integrity_check").fetchall() == [("ok",)], "invalid copy")
-        require(db.execute("select id from project").fetchall() == [(identity,)], "wrong project")
-        require(not db.execute("pragma foreign_key_check").fetchall(), "invalid foreign key")
-        links = db.execute("SELECT d.id,m.id,m.relative_path,m.thumbnail_path,m.checksum FROM document d "
-                           "JOIN asset_link a ON a.target_type='document' AND a.target_id=d.id "
-                           "AND a.project_id=d.project_id JOIN media_asset m ON m.id=a.asset_id "
-                           "AND m.project_id=a.project_id WHERE d.project_id=?", (identity,)).fetchall()
-        image = "assets/nested/cover.png"
-        thumb = "assets/thumbnails/cover.png"
-        require(links == [(document, asset, image, thumb, entries[image])]
-                and entries[thumb] == entries[image], "incomplete scene asset binding")
+        verify_scene_view(db, metadata, expected)
+
+
+def verify_scene_view(db, metadata, entries):
+    identity, document, asset = metadata[:3]
+    require(db.execute("SELECT title, plain_text, revision FROM document WHERE project_id=? AND id=?",
+                       (identity, document)).fetchall() == [expected_scene(metadata)], "incomplete scene revision")
+    require(db.execute("pragma integrity_check").fetchall() == [("ok",)], "invalid copy")
+    require(db.execute("select id from project").fetchall() == [(identity,)], "wrong project")
+    require(not db.execute("pragma foreign_key_check").fetchall(), "invalid foreign key")
+    links = db.execute("SELECT d.id,m.id,m.relative_path,m.thumbnail_path,m.checksum FROM document d "
+                       "JOIN asset_link a ON a.target_type='document' AND a.target_id=d.id "
+                       "AND a.project_id=d.project_id JOIN media_asset m ON m.id=a.asset_id "
+                       "AND m.project_id=a.project_id WHERE d.project_id=?", (identity,)).fetchall()
+    require(len(links) == 1, "incomplete scene asset binding")
+    linked_document, linked_asset, image, thumb, checksum = links[0]
+    require((linked_document, linked_asset) == (document, asset)
+            and image.startswith("assets/") and thumb.startswith("assets/thumbnails/")
+            and checksum == entries.get(image) and entries.get(thumb) is not None,
+            "incomplete scene asset binding")
 
 
 def object_id(path):
