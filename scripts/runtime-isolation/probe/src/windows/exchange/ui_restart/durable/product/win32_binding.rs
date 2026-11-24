@@ -124,6 +124,7 @@ pub(super) enum WindowMode {
 }
 pub(super) enum Operation<'a> {
     Bind(&'a Path, [u8; 32]),
+    Upgrade(&'a Path, [u8; 32]),
     Verify,
     CheckWindow(WindowMode),
 }
@@ -134,17 +135,36 @@ fn available_saves(sequence: usize) -> usize {
     MAX_RECORDS.saturating_sub(sequence).saturating_sub(2) / 2
 }
 
-fn verify_inline_pair(pins: &PinnedPackage) -> Result<()> {
+fn inline_pair_supported(pins: &PinnedPackage) -> Result<bool> {
     let window = pins
         .image(suspended::WINDOW)
         .ok_or(invalid("win32-window-not-pinned"))?;
     let service = pins
         .image("pipe-service.exe")
         .ok_or(invalid("win32-service-not-pinned"))?;
-    if package::inline_image(window)? != package::inline_image(service)? {
+    let supported = package::inline_image(window)?;
+    if supported != package::inline_image(service)? {
         return Err(invalid("win32-scene-inline-abi-mismatch"));
     }
-    Ok(())
+    Ok(supported)
+}
+
+impl WindowMode {
+    fn allowed_for_legacy_pair(self) -> bool {
+        use crate::window_receipt::SceneOperation::*;
+        match self {
+            Self::Suspended
+            | Self::Receipt
+            | Self::Surface
+            | Self::Interactive
+            | Self::Scene(Once | ReadPersistent | ReadRevision) => true,
+            Self::Checkpoint
+            | Self::Continue
+            | Self::Scene(
+                CheckDeniedSave | CheckEditConflict | Revise | KeyboardEdit | SavePersistent,
+            ) => false,
+        }
+    }
 }
 
 impl Store {
@@ -154,8 +174,11 @@ impl Store {
         head: [u8; 32],
         operation: Operation,
     ) -> Result<Value> {
+        let upgrade = matches!(operation, Operation::Upgrade(..));
         let enrollment = match operation {
-            Operation::Bind(path, digest) => Some((path, digest)),
+            Operation::Bind(path, digest) | Operation::Upgrade(path, digest) => {
+                Some((path, digest))
+            }
             _ => None,
         };
         self.append_guard(actor, head)?;
@@ -168,7 +191,17 @@ impl Store {
             .win32_anchor
             .filter(|(owner, _)| *owner == actor)
             .map(|(_, anchor)| anchor);
+        let upgrade_action = if upgrade {
+            let previous = active.ok_or(invalid("win32-upgrade-unbound"))?;
+            let (_, anchor) = enrollment.ok_or(invalid("win32-upgrade-source"))?;
+            let action = Action::UpgradeWin32Package { previous, anchor };
+            self.next_state(actor, head, &action)?;
+            Some(action)
+        } else {
+            None
+        };
         let expected = match (enrollment, active) {
+            (Some((_, digest)), Some(_)) if upgrade => digest,
             (Some((_, digest)), None) | (None, Some(digest)) if digest != [0; 32] => digest,
             _ => return Err(invalid("win32-package-binding-state")),
         };
@@ -179,14 +212,32 @@ impl Store {
             return Err(invalid("win32-managed-broker-mismatch"));
         }
         package::verify_win32_binding(&mut managed)?;
-        let root = self.root.join("bin").join(format!("win32-{}", hex(&actor)));
+        let bin = self.root.join("bin");
+        let original = bin.join(format!("win32-{}", hex(&actor)));
+        if let Some(Action::UpgradeWin32Package { previous, .. }) = &upgrade_action {
+            let _dirs = pin_directories(&original)?;
+            let old = io(
+                "win32-upgrade-old-pin",
+                PinnedPackage::open(&original, Some(*previous)),
+            )?;
+            if inline_pair_supported(&old)? {
+                return Err(invalid("win32-upgrade-requires-legacy"));
+            }
+        }
+        let root = if upgrade || (enrollment.is_none() && self.state.win32_upgraded) {
+            bin.join(format!("win32-{}-{}", hex(&actor), hex(&expected)))
+        } else {
+            original
+        };
         if let Some((source, _)) = enrollment {
             let _source_dirs = pin_directories(source)?;
             let source_pins = io(
                 "win32-provision-source",
                 PinnedPackage::open(source, Some(expected)),
             )?;
-            verify_inline_pair(&source_pins)?;
+            if !inline_pair_supported(&source_pins)? && upgrade {
+                return Err(invalid("win32-upgrade-requires-inline"));
+            }
             if !io("win32-managed-directory", root.try_exists())? {
                 publish(source, &root)?;
             }
@@ -197,14 +248,21 @@ impl Store {
             "win32-package-pin",
             PinnedPackage::open(&root, Some(expected)),
         )?;
-        verify_inline_pair(&pins)?;
+        let inline_supported = inline_pair_supported(&pins)?;
         for name in IMAGES.into_iter().chain(["anchor.json"]) {
             private_acl(&root.join(name), false)?;
         }
         if enrollment.is_some() {
-            self.append(actor, head, Action::BindWin32Package { anchor: expected })?;
+            self.append(
+                actor,
+                head,
+                upgrade_action.unwrap_or(Action::BindWin32Package { anchor: expected }),
+            )?;
         }
         if let Operation::CheckWindow(mode) = operation {
+            if !inline_supported && !mode.allowed_for_legacy_pair() {
+                return Err(invalid("win32-legacy-scene-read-only"));
+            }
             let image = pins
                 .image(suspended::WINDOW)
                 .ok_or(invalid("win32-window-not-pinned"))?;
@@ -332,7 +390,7 @@ impl Store {
         }
         Ok(
             json!({"nativePreviewOnly":true,"roleStarted":false,"dataAllowed":false,
-            "actorSha256":hex(&actor),"anchorSha256":hex(&pins.anchor_digest),"headSha256":hex(&self.state.head)}),
+            "legacySceneReadOnly":!inline_supported,"actorSha256":hex(&actor),"anchorSha256":hex(&pins.anchor_digest),"headSha256":hex(&self.state.head)}),
         )
     }
 }

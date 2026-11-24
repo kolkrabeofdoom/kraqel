@@ -67,6 +67,10 @@ enum Action {
     EndWin32Window {
         begin: [u8; 32],
     },
+    UpgradeWin32Package {
+        previous: [u8; 32],
+        anchor: [u8; 32],
+    },
     BindWin32Package {
         anchor: [u8; 32],
     },
@@ -189,6 +193,7 @@ struct State {
     pending: Option<[u8; 32]>,
     scene_snapshot: Option<([u8; 32], win32_binding::Snapshot)>,
     window_session: win32_binding::Session,
+    win32_upgraded: bool,
     win32_anchor: Option<([u8; 32], [u8; 32])>,
     activated: std::collections::HashSet<[u8; 32]>,
     aborted_packages: std::collections::HashSet<[u8; 32]>,
@@ -223,6 +228,18 @@ impl State {
                     && self.win32_anchor.is_none_or(|(owner, _)| owner != actor)
                     && *anchor != [0; 32] =>
             {
+                self.win32_upgraded = false;
+                self.win32_anchor = Some((actor, *anchor));
+            }
+            Action::UpgradeWin32Package { previous, anchor }
+                if self.schema == 4
+                    && self.pending.is_none()
+                    && !self.win32_upgraded
+                    && self.win32_anchor == Some((actor, *previous))
+                    && anchor != previous
+                    && *anchor != [0; 32] =>
+            {
+                self.win32_upgraded = true;
                 self.win32_anchor = Some((actor, *anchor));
             }
             Action::Prepare { binary }
@@ -615,6 +632,7 @@ impl Store {
                     pending: None,
                     scene_snapshot: None,
                     window_session: Default::default(),
+                    win32_upgraded: false,
                     win32_anchor: None,
                     activated: std::collections::HashSet::from([record.actor]),
                     aborted_packages: std::collections::HashSet::new(),
@@ -798,6 +816,7 @@ impl Store {
             package::verify(&mut source)?;
             if self.state.win32_anchor.is_some() {
                 package::verify_win32_binding(&mut source)?;
+                package::verify_legacy_read_policy(&mut source)?;
                 if self.state.window_session != win32_binding::Session::Unused {
                     package::verify_window_session(&mut source)?;
                     if self.state.scene_snapshot.is_some() {
@@ -868,6 +887,7 @@ impl Store {
             package::verify(&mut file)?;
             if self.state.win32_anchor.is_some() {
                 package::verify_win32_binding(&mut file)?;
+                package::verify_legacy_read_policy(&mut file)?;
                 if self.state.window_session != win32_binding::Session::Unused {
                     package::verify_window_session(&mut file)?;
                     if self.state.scene_snapshot.is_some() {
@@ -1055,7 +1075,7 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
         return Ok(store.summary());
     }
     store.state.window_session.require_closed()?;
-    if (args.len() == 4 && args[0] == "bind-win32-package")
+    if (args.len() == 4 && (args[0] == "bind-win32-package" || args[0] == "upgrade-win32-package"))
         || (args.len() == 2
             && (args[0] == "verify-win32-package"
                 || args[0] == "check-win32-suspended"
@@ -1083,7 +1103,9 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
             return Err(invalid("win32-broker-not-managed-image"));
         }
         let head = parse_hash(args.last().unwrap())?;
-        let operation = if args.len() == 4 {
+        let operation = if args.len() == 4 && args[0] == "upgrade-win32-package" {
+            win32_binding::Operation::Upgrade(Path::new(&args[1]), parse_hash(&args[2])?)
+        } else if args.len() == 4 {
             win32_binding::Operation::Bind(Path::new(&args[1]), parse_hash(&args[2])?)
         } else if args[0] == "check-win32-suspended" {
             win32_binding::Operation::CheckWindow(win32_binding::WindowMode::Suspended)

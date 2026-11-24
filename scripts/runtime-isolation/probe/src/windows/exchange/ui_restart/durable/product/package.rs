@@ -15,6 +15,19 @@ static EMBEDDED: [u8; 32] = EXPECTED;
 #[used]
 #[unsafe(link_section = ".kqwin")]
 static WIN32_BINDING: [u8; 32] = *b"KRAQEL-WIN32-BINDING-V1.........";
+#[used]
+#[unsafe(link_section = ".kqro")]
+static LEGACY_READ_POLICY: [u8; 32] = *b"KRAQEL-SCENE-LEGACY-READ-V1.....";
+pub(super) fn verify_legacy_read_policy(file: &mut fs::File) -> Result<()> {
+    let size = io("win32-broker-size", file.metadata())?.len();
+    verify_named(
+        file,
+        size,
+        b".kqro\0\0\0",
+        std::hint::black_box(&LEGACY_READ_POLICY),
+    )
+}
+
 pub(super) fn verify_win32_binding(file: &mut fs::File) -> Result<()> {
     let size = io("win32-broker-size", file.metadata())?.len();
     verify_named(
@@ -287,10 +300,10 @@ fn named_contract<R: Read + Seek>(
 }
 
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     use super::*;
     use std::io::Cursor;
-    fn image() -> Vec<u8> {
+    pub(in super::super) fn image() -> Vec<u8> {
         let mut b = vec![0; 1024];
         b[..2].copy_from_slice(b"MZ");
         b[60..64].copy_from_slice(&64u32.to_le_bytes());

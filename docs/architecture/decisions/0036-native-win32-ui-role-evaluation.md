@@ -358,7 +358,7 @@ gilt für die gemessenen Programmbytes und Abläufe. Die Rohspuren verbleiben lo
 
 ### Paketkompatibilität und ETW für einzelne Fettmarkierungen
 
-Seit dem 24. November 2026 deklarieren Fensterrolle und Datendienst den gemeinsamen Vertrag für Lesen, Speichern und Entfernen einer einzelnen Fettstelle in der schreibgeschützten PE-Sektion `.kqspan`. Der Starter liest die Kennung über die gehaltenen Dateihandles unter der Kontrollsperre. Bei der Aufnahme prüft er die Quelldateien vor der Veröffentlichung und anschließend das verwaltete Paket. Bei späteren Aufrufen prüft er das gebundene Paket vor dem Sitzungsbeginn. Eine einseitige Kennung oder eine ungültige Sektion sperrt den Aufruf. Die bestehenden Paketdigests bestimmen weiterhin die Identität der Dateien. Für zwei unmarkierte Rollen gilt der bisherige Pfad. Deren Unterstützung für einzelne Fettstellen lässt sich aus den fehlenden Kennungen nicht ableiten.
+Seit dem 24. November 2026 deklarieren Fensterrolle und Datendienst den gemeinsamen Vertrag für Lesen, Speichern und Entfernen einer einzelnen Fettstelle in der schreibgeschützten PE-Sektion `.kqspan`. Der Starter liest die Kennung über die gehaltenen Dateihandles unter der Kontrollsperre. Bei der Aufnahme prüft er die Quelldateien vor der Veröffentlichung und anschließend das verwaltete Paket. Bei späteren Aufrufen prüft er das gebundene Paket vor dem Sitzungsbeginn. Eine einseitige Kennung oder eine ungültige Sektion sperrt den Aufruf. Die bestehenden Paketdigests bestimmen weiterhin die Identität der Dateien. Im ersten Prüfstand galt für zwei unmarkierte Rollen der bisherige Pfad. Deren Unterstützung für einzelne Fettstellen lässt sich aus den fehlenden Kennungen nicht ableiten.
 
 In einer frischen synthetischen Kontrollablage wies der Starter die Kombination aus neuem Fenster und bisherigem Datendienst vor dem Kopieren zurück. Der Status vor und nach der Ablehnung stimmte überein. Anschließend ließ sich das passende Paar unter demselben Kontrollkopf aufnehmen.
 
@@ -369,6 +369,16 @@ Zwei kurze lokale ETW-Spuren erfassten das Referenzfenster sowie drei aufeinande
 | Verwalteter Starter | `c950c38c4e668f548111eceac56fc607f859be4a844e1dc4ffa3b4be54410b09` |
 | Fensterrolle | `8aed700f2682db1907290f1e790159f37a2e823445ffd2700366e6b9a12ead13` |
 | Datendienst | `10ba323592c03ef3bb94af10a4dff0dc51f2a2f662d0226f39feb73fe456a122` |
+
+### Lesezugriff für Altpaare und authentisierter Rollenwechsel
+
+Der aktualisierte verwaltete Starter stuft zwei Rollen ohne Inline-Kennung als lesend ein. `verify-win32-package` meldet dafür `legacySceneReadOnly: true`. Gesperrt sind Editieren, Speichern, Checkpoint, Fortsetzung sowie beide Diagnoseaufträge mit Schreibversuch. Die Prüfung erfolgt unter der Kontrollsperre vor Sitzungsrecord, Dateianlage und Rollenstart. Die Prüfung der Szenenidentität und ihres Eigentümers gilt auch für Leseaufträge.
+
+`broker-store upgrade-win32-package <Paketordner> <SHA-256 von anchor.json> <Kontrollkopf>` wechselt einmalig von einem gebundenen Altpaar auf ein vollständig gekennzeichnetes Paar. Die Startergeneration bleibt gleich. Der Starter hält die Paketdateien bei der Prüfung offen, veröffentlicht den neuen Ordner separat und überprüft den Zielanker. Erst der authentisierte Journaleintrag aktiviert das neue Paar. Ein Wiederholungsversuch nach der Ordneranlage kann den bereits veröffentlichten Ordner prüfen. Der alte Ordner bleibt erhalten. Ein veralteter Kontrollkopf, eine offene Sitzung oder ein vorbereitetes Starterupdate sperrt den Wechsel. Nach einer Win32-Paketbindung prüft dieser Starter bei Vorbereitung und Aktivierung weiterer Starterupdates auch deren Lesevertragskennung `.kqro`.
+
+Der lokale Windows-Lauf am 24. November 2026 erfasste das Lesen der synthetischen Szene A mit einem unmarkierten Paar, den Paketwechsel, das Speichern einer Fettstelle und das Wiederöffnen der gespeicherten Revision 1. Vorher wurden sechs abgewiesene Schreibpfade mit identischem Kontrollstatus und ohne Szenendatei geprüft. Beim Paketwechsel lief nur der verwaltete Starter. Bei den drei Szenenaufträgen kamen Fensterrolle und Datendienst hinzu. Alle vier Auswertungen meldeten null Netzwerkereignisse im zugeordneten Prozessbaum. Beide ETW-Spuren enthielten alle vier lokalen Positivkontrollen ohne Verlust oder nicht zuordenbare Ereignisse. Starter-SHA-256 `d11a93a39e2451a5fc5d0f8d6f0809765208a891e96674786144a435713c292a`. Das markierte Rollenpaar entspricht der vorstehenden Hash-Tabelle. Der bestehende Bindungstest prüft zusätzlich die Wiederaufnahme nach der Ordneranlage, das erneute Öffnen der Kontrollablage, den gesperrten zweiten Wechsel und die Ablehnung eines Starterkandidaten ohne Lesevertragskennung.
+
+Ein Wechsel der Startergeneration ist ein anderer Vorgang. Eine bestehende Revision ist an den Hash des Starters gebunden, der sie veröffentlicht hat. Der Rollenwechsel erteilt einer anderen Startergeneration keine Rechte an dieser Revision. Eine generationsübergreifende Übernahme ist offen.
 
 ### ETW beim bestätigten Verwerfen und Wiederöffnen
 

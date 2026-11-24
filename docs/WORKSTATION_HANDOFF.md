@@ -11,6 +11,8 @@ git pull --ff-only
 git status -sb
 ```
 
+Der aktualisierte Starter lässt unmarkierte Altpaare nur lesen. Ein gebundenes Altpaar kann unter demselben Starter mit `upgrade-win32-package` auf ein geprüftes Schreibpaar wechseln. Der lokale Windows-Lauf bestätigte Sperre, Lesen, Rollenwechsel, Schreiben und Wiederöffnen. Offen ist die Übernahme einer Revision, die einem anderen Starter gehört. [Aufruf, Grenzen und ETW-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#lesezugriff-für-altpaare-und-authentisierter-rollenwechsel).
+
 **Stand zum Tagesabschluss am 23. November 2026.** F4 oder **Bearbeiten → Gespeicherte Fettstelle auswählen** springt im Bearbeitungsauftrag zur eindeutig zugeordneten Fettstelle und markiert sie im Absatz. Im lokalen Windows-Lauf markierte F4 nach dem Wechsel von „Rabe“ zu „Kolkrabe“ genau „ab“. Bei „Kolkrabe ab“ blieb die vorhandene Auswahl erhalten.
 
 **Stand am 24. November 2026.** Zum Entfernen einer gespeicherten einzelnen Fettmarkierung die Szene im Bearbeitungsauftrag öffnen und **Bearbeiten → Fettmarkierung entfernen, speichern und schließen** wählen. Der Befehl ist bei ungespeicherten Änderungen gesperrt. Der lokale Windows-Lauf bestätigte nach dem Wiederöffnen den vollständigen Text und die weiterhin fett gesetzte „42“.

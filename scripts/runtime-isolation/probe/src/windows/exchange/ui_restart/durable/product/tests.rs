@@ -1158,7 +1158,7 @@ fn win32_package_binding_is_durable_and_cannot_cross_activation() {
     let mut entries = Vec::new();
     for name in crate::native_win32_package::IMAGES {
         let path = dir.join(name);
-        fs::write(&path, name).unwrap();
+        fs::write(&path, package::tests::image()).unwrap();
         entries.push(json!({"name":name,"hash":hex(&hash(&path).unwrap())}));
     }
     let manifest = dir.join("anchor.json");
@@ -1197,6 +1197,53 @@ fn win32_package_binding_is_durable_and_cannot_cross_activation() {
             .is_err()
     );
     fs::copy(&manifest, &managed_manifest).unwrap();
+    // Retry after directory publication, before the durable anchor switch.
+    let mut marked = package::tests::image();
+    marked[328..336].copy_from_slice(b".kqspan\0");
+    marked[512..544].copy_from_slice(&crate::window_receipt::INLINE_ABI);
+    let mut entries = Vec::new();
+    for name in crate::native_win32_package::IMAGES {
+        let path = dir.join(name);
+        if matches!(name, "native-leaf.exe" | "pipe-service.exe") {
+            fs::write(&path, &marked).unwrap();
+        }
+        entries.push(json!({"name":name,"hash":hex(&hash(&path).unwrap())}));
+    }
+    fs::write(&manifest, json!({"files":entries}).to_string()).unwrap();
+    let upgraded = hash(&manifest).unwrap();
+    let staged = store
+        .root
+        .join("bin")
+        .join(format!("win32-{}-{}", hex(&actor), hex(&upgraded)));
+    secure_directory(&staged).unwrap();
+    for name in crate::native_win32_package::IMAGES
+        .into_iter()
+        .chain(["anchor.json"])
+    {
+        fs::copy(dir.join(name), staged.join(name)).unwrap();
+    }
+    let previous_head = store.state.head;
+    assert_eq!(
+        store.win32_binding(actor, previous_head, Verify).unwrap()["legacySceneReadOnly"],
+        true
+    );
+    let upgrade = || win32_binding::Operation::Upgrade(&dir, upgraded);
+    store
+        .win32_binding(actor, previous_head, upgrade())
+        .unwrap();
+    drop(store);
+    let mut store = Store::open(&f.root()).unwrap();
+    assert_eq!(
+        store
+            .win32_binding(actor, store.state.head, Verify)
+            .unwrap()["legacySceneReadOnly"],
+        false
+    );
+    assert!(
+        store
+            .win32_binding(actor, store.state.head, upgrade())
+            .is_err()
+    );
     let next = f.0.join("next.exe");
     fs::copy(f.candidate(), &next).unwrap();
     OpenOptions::new()
@@ -1207,20 +1254,19 @@ fn win32_package_binding_is_durable_and_cannot_cross_activation() {
         .unwrap();
     // An older record reader must not be activated after enrollment.
     let incompatible = f.0.join("incompatible.exe");
-    let mut bytes = fs::read(&next).unwrap();
-    let section = bytes
-        .windows(8)
-        .position(|name| name == b".kqwin\0\0")
-        .unwrap();
-    bytes[section + 1] = b'z';
-    fs::write(&incompatible, bytes).unwrap();
     let head = store.state.head;
-    assert!(
-        store
-            .prepare(actor, head, &incompatible, hash(&incompatible).unwrap())
-            .is_err()
-    );
-    assert_eq!(store.state.head, head);
+    for required in [b".kqwin\0\0", b".kqro\0\0\0"] {
+        let mut bytes = fs::read(&next).unwrap();
+        let section = bytes.windows(8).position(|name| name == required).unwrap();
+        bytes[section + 1] = b'z';
+        fs::write(&incompatible, bytes).unwrap();
+        assert!(
+            store
+                .prepare(actor, head, &incompatible, hash(&incompatible).unwrap())
+                .is_err()
+        );
+        assert_eq!(store.state.head, head);
+    }
     let next_actor = hash(&next).unwrap();
     store
         .prepare(actor, store.state.head, &next, next_actor)
@@ -1231,7 +1277,7 @@ fn win32_package_binding_is_durable_and_cannot_cross_activation() {
             .is_err()
     );
     store.activate(actor, store.state.head).unwrap();
-    assert_eq!(store.state.win32_anchor, Some((actor, digest)));
+    assert_eq!(store.state.win32_anchor, Some((actor, upgraded)));
     assert!(
         store
             .win32_binding(next_actor, store.state.head, Verify)
