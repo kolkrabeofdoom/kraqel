@@ -1002,6 +1002,52 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
         sceneBasisSha256: "f".repeat(64),
       };
     }
+    case "list_handoff_items": {
+      findProject(state, payload.projectId);
+      if (
+        payload.kind !== "entity" ||
+        payload.folder !== "uebernahme-beispiel" ||
+        payload.manifest !== "a".repeat(64)
+      )
+        throw new Error("Unbekannter Stand");
+      return [
+        {
+          key: { kind: "entity", ids: ["66666666-6666-4666-8666-666666666666"] },
+          local: "c".repeat(64),
+          incoming: "d".repeat(64),
+        },
+      ];
+    }
+    case "review_handoff_item": {
+      findProject(state, payload.projectId);
+      const selection = payload.selection as {
+        change: { key: { kind: string; ids: string[] }; incoming: string };
+      };
+      if (
+        selection.change.key.ids[0] !== "66666666-6666-4666-8666-666666666666" ||
+        selection.change.incoming !== "d".repeat(64)
+      )
+        throw new Error("Auswahl ungültig");
+      if (localStorage.getItem("kraqel-e2e-item-stale")) {
+        localStorage.removeItem("kraqel-e2e-item-stale");
+        throw new Error("Auswahl überholt");
+      }
+      return {
+        choice: "incoming",
+        candidate: {
+          folder: "uebernahme-eintrag",
+          manifestSha256: "e".repeat(64),
+          sceneBasisSha256: "f".repeat(64),
+        },
+      };
+    }
+    case "secure_handoff_item":
+      findProject(state, payload.projectId);
+      return "2".repeat(64);
+    case "switch_handoff_item":
+      findProject(state, payload.projectId);
+      if (payload.ticket !== "2".repeat(64)) throw new Error("Ungültiger Beleg");
+      return null;
     case "compare_project_handoff": {
       findProject(state, payload.projectId);
       if (payload.folder !== "uebernahme-beispiel" || payload.manifestSha256 !== "a".repeat(64))

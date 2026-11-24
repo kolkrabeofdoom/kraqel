@@ -17,6 +17,17 @@ Der lokale Empfang ist vom Desktop-Speichermodul bis zum schreibgeschützten Win
 3. Auf der Startseite unter **Windows-Arbeitskopie empfangen** den Ordnernamen und die separat bestätigte Inventarprüfsumme eingeben. **Als lokales Projekt übernehmen** wählen. Erst nach erfolgreicher Prüfung erscheint das Projekt in der Liste. Der Eingangsordner bleibt erhalten.
 4. Ist die Projektkennung am Ziel belegt, im vorhandenen Projekt **Werkzeuge → Versionen → Eingangskopie vergleichen** öffnen. Mit Ordnername und separat bestätigtem Inventar-SHA-256 zeigt **Arbeitsdaten vergleichen** die Bereiche mit abweichenden gespeicherten Einträgen an. Dazu zählen auch Revisionen und Zeitstempel. Bilder und Vorschaubilder werden nur bei angekreuzter Zusatzprüfung gelesen. Dann vergleicht KRAQEL die referenzierten Dateien lokal anhand ihrer Prüfsummen. Fehlende referenzierte Dateien auf beiden Seiten oder ein abweichender Inhaltsbeleg sperren die Zusatzprüfung. Das Ergebnis beschreibt die einzeln gelesenen Dateien. Eine spätere Übernahme braucht eine frische Prüfung. Für die anschließende Entscheidung über einzelne Szenen den Szenenvergleich mit der gemeinsamen Ausgangsbasis verwenden.
 
+## Einzelne Projekteinträge übernehmen
+
+Im geöffneten Zielprojekt unter **Werkzeuge → Versionen** die Eingangskopie mit ihrem separat bestätigten Inventar-SHA-256 vergleichen.
+
+1. **Einzelne Projekteinträge übernehmen** aufklappen, den Projektbereich wählen und **Abweichende Einträge laden**. Die Liste verwendet die stabilen Kennungen. Bei Ereigniszuordnungen gehört das Kennungspaar zusammen. Gleiche Namen sind kein Identitätsbeleg.
+2. Einen geänderten oder nur im Eingang vorhandenen Eintrag auswählen. **Fassungen im isolierten Fenster öffnen** und den nativen Dialog bestätigen. Die vollständigen Felder sind im Win32-Fenster lesbar. Nur lokal vorhandene Einträge bleiben erhalten.
+3. Die externe Fassung im Fenster ausdrücklich wählen. KRAQEL bereitet eine separate Arbeitskopie vor. **Rücknahme für diesen Eintrag sichern** und den angezeigten lokalen Beleg aufbewahren. Erst **Eintrag aktivieren** verändert das geöffnete Projekt.
+4. Mit **Eintragsübernahme zurücknehmen** den gesicherten Ausgangsstand wiederherstellen. Nach einem Programmneustart lässt sich der Beleg im selben Projekt erneut eingeben. Bei einem zwischenzeitlich geänderten Stand die Einträge neu laden und die Fassungswahl wiederholen. Die Auswahl bleibt beim erneuten Laden anhand ihrer Kennung erhalten, sofern der Eintrag weiterhin abweicht.
+
+Eine Beziehung setzt die beteiligten Einträge im Ziel voraus. Das gilt entsprechend für Dokumentverknüpfungen, Plotkarten, Ereignisse und ihre Zuordnungen. Fehlende Bezugseinträge zuerst ausdrücklich übernehmen oder im Ziel bereitstellen. Ein Typwechsel für dieselbe Story-Bibel-Kennung ist gesperrt. Hat eine neu übernommene Figur inzwischen eine Beziehung erhalten, sperrt KRAQEL die Rücknahme. Bei unklarem Transaktionsende den aktuellen Stand erneut vergleichen. Lokale Sicherungen können vollständige frühere Inhalte enthalten und gehören auf einen geschützten Datenträger.
+
 ## Zusatzarchiv auf einem anderen Windows-PC öffnen
 
 Für die synthetische P3-Übernahme lassen sich ausgewählte Zusatzdateien lokal mit einer Passphrase verschlüsseln. Auf dem Entwicklungsrechner im Repository ausführen (der native P3-Prüfstarter muss wie in der P3-Anleitung gebaut sein):

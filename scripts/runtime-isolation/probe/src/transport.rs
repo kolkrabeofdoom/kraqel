@@ -583,4 +583,4 @@ mod window_receipt;
 mod windows;
 
 #[cfg(all(windows, feature = "desktop-review"))]
-pub use windows::exchange::ui_restart::durable::product::manuscript::open_review;
+pub use windows::exchange::ui_restart::durable::product::manuscript::{open_item_review, open_review};

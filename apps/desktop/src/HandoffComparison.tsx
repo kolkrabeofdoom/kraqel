@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import type { ProjectId } from "@kraqel/domain";
-import { compareProjectHandoff } from "./commands";
+import { HandoffItemPanel, type ItemPreference } from "./HandoffItemPanel";
+import { compareProjectHandoff, type HandoffSource } from "./commands";
 
 const areas: Record<string, string> = {
   project: "Projekteigenschaften",
@@ -26,19 +27,27 @@ const areas: Record<string, string> = {
 export function HandoffComparison({ projectId }: { projectId: ProjectId }) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
+  const [source, setSource] = useState<HandoffSource | null>(null);
+  const [preference, setPreference] = useState<ItemPreference>({ kind: "entity", selected: "" });
   async function compare(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
+    const input = {
+      folder: String(data.get("folder")).trim(),
+      manifest: String(data.get("digest")).trim().toLowerCase(),
+    };
     const includeMedia = data.has("includeMedia");
     setBusy(true);
+    setSource(null);
     setNotice("");
     try {
       const changes = await compareProjectHandoff(
         projectId,
-        String(data.get("folder")).trim(),
-        String(data.get("digest")).trim().toLowerCase(),
+        input.folder,
+        input.manifest,
         includeMedia,
       );
+      setSource(input);
       setNotice(
         changes.length
           ? "Unterschiede in folgenden Bereichen: " +
@@ -64,7 +73,13 @@ export function HandoffComparison({ projectId }: { projectId: ProjectId }) {
         Vergleicht die gespeicherten Datenbankeinträge mit der Arbeitskopie in{" "}
         <code>projects\empfang</code>. Die Übersicht zeigt Unterschiede pro Bereich.
       </p>
-      <form onSubmit={compare} onChange={() => setNotice("")}>
+      <form
+        onSubmit={compare}
+        onChange={() => {
+          setNotice("");
+          setSource(null);
+        }}
+      >
         <label htmlFor="comparison-folder">Ordnername im Eingang</label>
         <input
           id="comparison-folder"
@@ -94,6 +109,15 @@ export function HandoffComparison({ projectId }: { projectId: ProjectId }) {
         </button>
       </form>
       <p role="status">{notice}</p>
+      <HandoffItemPanel
+        key={source ? source.folder + source.manifest : "recovery"}
+        projectId={projectId}
+        source={source}
+        preference={preference}
+        setPreference={setPreference}
+        busy={busy}
+        setBusy={setBusy}
+      />
     </section>
   );
 }

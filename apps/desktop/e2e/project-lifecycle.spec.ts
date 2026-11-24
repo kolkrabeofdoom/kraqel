@@ -34,6 +34,30 @@ test("Arbeitskopie wird im geöffneten Projekt ausdrücklich vorbereitet", async
       .getByRole("status")
       .filter({ hasText: "Manuskript, Medieneinträge, Bild- und Vorschaudateien" }),
   ).toBeVisible();
+  await page.getByText("Einzelne Projekteinträge übernehmen", { exact: true }).click();
+  const loadItems = page.getByRole("button", { name: "Abweichende Einträge laden" });
+  const itemSelect = page.getByLabel("Eintrag nach Kennung auswählen");
+  const reviewItem = page.getByRole("button", { name: "Fassungen im isolierten Fenster öffnen" });
+  await loadItems.click();
+  const id = "66666666-6666-4666-8666-666666666666";
+  await itemSelect.selectOption(id);
+  await page.evaluate(() => localStorage.setItem("kraqel-e2e-item-stale", "1"));
+  await reviewItem.click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Lade die Einträge erneut" }),
+  ).toBeVisible();
+  await loadItems.click();
+  await expect(itemSelect).toHaveValue(id);
+  await reviewItem.click();
+  await page.getByRole("button", { name: "Rücknahme für diesen Eintrag sichern" }).click();
+  await page.getByRole("button", { name: "Eintrag aktivieren" }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Die ausgewählte Fassung ist jetzt aktiv" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Eintragsübernahme zurücknehmen" }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Der vorherige Eintragsstand ist wieder aktiv" }),
+  ).toBeVisible();
   await page.getByText("Szenenstände zwischen zwei Rechnern vergleichen", { exact: true }).click();
   await page.getByRole("button", { name: "Szenenbasis sichern" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Basis für 2 Szenen" })).toBeVisible();

@@ -57,6 +57,8 @@ use zeroize::Zeroizing;
 mod docx_import;
 mod docx_roundtrip;
 mod illustrated_export;
+#[cfg(windows)]
+mod item_review;
 #[cfg(test)]
 mod m3_acceptance;
 
@@ -4070,6 +4072,10 @@ fn setup_local_state(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Err
 /// # Panics
 ///
 /// Bricht ab, wenn die Tauri-Laufzeit nicht initialisiert oder ausgeführt werden kann.
+#[allow(
+    clippy::too_many_lines,
+    reason = "Alle freigegebenen Tauri-Commands stehen in einer prüfbaren Registrierungsliste."
+)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -4156,6 +4162,14 @@ pub fn run() {
             compare_scene_bases,
             prepare_scene_merge,
             review_scene_conflict,
+            #[cfg(windows)]
+            item_review::list_handoff_items,
+            #[cfg(windows)]
+            item_review::review_handoff_item,
+            #[cfg(windows)]
+            item_review::secure_handoff_item,
+            #[cfg(windows)]
+            item_review::switch_handoff_item,
             secure_scene_activation,
             switch_scene_activation,
             validate_project_snapshot,

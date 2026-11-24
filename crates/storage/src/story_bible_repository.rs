@@ -20,7 +20,7 @@ const MAX_PROPERTY_COUNT: usize = 50;
 const MAX_PROPERTY_KEY_CHARS: usize = 80;
 const MAX_PROPERTY_VALUE_CHARS: usize = 2_000;
 const MAX_PROPERTIES_BYTES: usize = 64 * 1024;
-const MAX_RELATION_KIND_CHARS: usize = 80;
+pub(crate) const MAX_RELATION_KIND_CHARS: usize = 80;
 
 /// Fachlich unterscheidbare Fehler des Story-Bibel-Repositorys.
 #[derive(Debug)]
@@ -541,7 +541,9 @@ fn parse_relation(raw: RawRelation) -> Result<StoryRelation, StoryBibleError> {
     Ok(relation)
 }
 
-fn parse_stored_properties(value: &str) -> Result<BTreeMap<String, String>, StoryBibleError> {
+pub(crate) fn parse_stored_properties(
+    value: &str,
+) -> Result<BTreeMap<String, String>, StoryBibleError> {
     let properties = serde_json::from_str(value).map_err(|_| StoryBibleError::InvalidStoredData)?;
     validate_and_serialize_properties(&properties)
         .map_err(|_| StoryBibleError::InvalidStoredData)?;
@@ -555,11 +557,11 @@ fn entity_matches(entity: &StoryEntity, needle: &str) -> bool {
         })
 }
 
-fn validate_name(name: &str) -> Result<(), StoryBibleError> {
+pub(crate) fn validate_name(name: &str) -> Result<(), StoryBibleError> {
     validate_short_text(name, MAX_NAME_CHARS)
 }
 
-fn validate_short_text(value: &str, maximum: usize) -> Result<(), StoryBibleError> {
+pub(crate) fn validate_short_text(value: &str, maximum: usize) -> Result<(), StoryBibleError> {
     let trimmed = value.trim();
     if trimmed.is_empty()
         || trimmed.chars().count() > maximum
@@ -854,7 +856,7 @@ const fn kind_name(kind: EntityKind) -> &'static str {
     }
 }
 
-fn parse_entity_kind(value: &str) -> Result<EntityKind, StoryBibleError> {
+pub(crate) fn parse_entity_kind(value: &str) -> Result<EntityKind, StoryBibleError> {
     match value {
         "character" => Ok(EntityKind::Character),
         "location" => Ok(EntityKind::Location),

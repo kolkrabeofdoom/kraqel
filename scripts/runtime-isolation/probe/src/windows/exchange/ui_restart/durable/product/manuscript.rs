@@ -13,27 +13,70 @@ pub fn open_review(
     service: &[u8],
     window: &[u8],
 ) -> std::io::Result<ReviewChoice> {
-    review(parent, project, plan, left, right, service, window)
+    let [scene] = plan.scenes.as_slice() else {
+        return Err(std::io::Error::other("review-scene"));
+    };
+    let context = PairContext {
+        subject: *scene.as_uuid().as_bytes(),
+        local: &plan.local,
+        manifest: &plan.manifest,
+        scope: [plan.base.as_bytes(), plan.incoming.as_bytes()].concat(),
+    };
+    review(parent, project, &context, [left, right], [service, window])
+        .map_err(|failure| std::io::Error::other(failure.stage))
+}
+
+struct PairContext<'a> {
+    subject: [u8; 16],
+    local: &'a str,
+    manifest: &'a str,
+    scope: Vec<u8>,
+}
+
+/// Runs the same authenticated roles for an item pair. Its domain-separated binding
+/// includes the complete composite key, both reviewed row hashes and the inventory.
+pub fn open_item_review(
+    parent: &Path,
+    project: kraqel_domain::ProjectId,
+    plan: &kraqel_storage::project_manager::ItemSelection,
+    local: Option<String>,
+    incoming: String,
+    images: [&[u8]; 2],
+) -> std::io::Result<ReviewChoice> {
+    let identity = serde_json::to_vec(&("kraqel-item-pair-v1", project, plan))?;
+    let digest = Sha256::digest(&identity);
+    let local_binding = format!("{digest:x}");
+    let context = PairContext {
+        subject: digest[..16].try_into().unwrap(),
+        local: &local_binding,
+        manifest: &plan.manifest,
+        scope: identity,
+    };
+    let left = ReviewedScene {
+        title: "Lokaler Datensatz · Vergleichsformat".into(),
+        text: local.unwrap_or_else(|| "Am Ziel noch nicht vorhanden.".into()),
+        revision: 1,
+    };
+    let right = ReviewedScene {
+        title: "Externer Datensatz · Vergleichsformat".into(),
+        text: incoming,
+        revision: 1,
+    };
+    review(parent, project, &context, [&left, &right], images)
         .map_err(|failure| std::io::Error::other(failure.stage))
 }
 
 fn review(
     parent: &Path,
     project: kraqel_domain::ProjectId,
-    plan: &SceneMergeSelection,
-    left: &ReviewedScene,
-    right: &ReviewedScene,
-    service: &[u8],
-    window: &[u8],
+    context: &PairContext<'_>,
+    pair: [&ReviewedScene; 2],
+    [service, window]: [&[u8]; 2],
 ) -> Result<ReviewChoice> {
-    let [scene] = plan.scenes.as_slice() else {
-        return Err(invalid("review-scene"));
-    };
     let mut row = Zeroizing::new(Vec::new());
     row.extend_from_slice(project.as_uuid().as_bytes());
-    row.extend_from_slice(scene.as_uuid().as_bytes());
-    // The local frame binds the full reviewed database basis, the external side its inventory.
-    for hash in [&plan.local, &plan.manifest] {
+    row.extend_from_slice(&context.subject);
+    for hash in [context.local, context.manifest] {
         if hash.len() != 64 || !hash.bytes().all(|b| b.is_ascii_hexdigit()) {
             return Err(invalid("review-digest"));
         }
@@ -44,7 +87,7 @@ fn review(
             );
         }
     }
-    for (i, v) in [left, right].iter().enumerate() {
+    for (i, v) in pair.iter().enumerate() {
         if v.title.is_empty()
             || v.title.chars().any(char::is_control)
             || v.text.contains('\0')
@@ -116,8 +159,7 @@ fn review(
         .chain_update(b"KRAQEL-MANUSCRIPT-PAIR-v1")
         .chain_update(actor)
         .chain_update(store.state.installation.as_bytes())
-        .chain_update(plan.base.as_bytes())
-        .chain_update(plan.incoming.as_bytes())
+        .chain_update(&context.scope)
         .chain_update(&*row)
         .finalize()
         .into();

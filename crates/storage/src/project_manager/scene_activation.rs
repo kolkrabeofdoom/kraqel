@@ -68,7 +68,7 @@ struct Activation {
 }
 
 impl ProjectManager {
-    fn with_activation_transaction<T>(
+    pub(super) fn with_activation_transaction<T>(
         &self,
         id: ProjectId,
         run: impl FnOnce(&Transaction<'_>, &Path) -> Result<(T, Option<fs::File>), ProjectError>,
@@ -88,9 +88,7 @@ impl ProjectManager {
         )?;
         db.execute_batch("PRAGMA foreign_keys=ON; PRAGMA trusted_schema=OFF; PRAGMA temp_store=MEMORY; PRAGMA synchronous=FULL")?;
         let tx = db.transaction_with_behavior(TransactionBehavior::Immediate)?;
-        if handoff::schema(&tx)? != handoff::schema(Database::open_in_memory()?.connection())? {
-            return Err(ProjectError::InvalidDatabase);
-        }
+        handoff::validate_source(&tx, Database::open_in_memory()?.connection(), id)?;
         let (result, pin) = run(&tx, &backup)?;
         tx.commit()?;
         drop(pin);

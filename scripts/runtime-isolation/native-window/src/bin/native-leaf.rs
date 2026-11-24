@@ -2451,9 +2451,9 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                     SetWindowTextW(
                         hwnd,
                         wide(if side == 0 {
-                            "Szenenvergleich · Lokale Fassung"
+                            "Fassungsvergleich · Lokale Fassung"
                         } else {
-                            "Szenenvergleich · Externe Fassung"
+                            "Fassungsvergleich · Externe Fassung"
                         })
                         .as_ptr(),
                     ) != 0
@@ -3732,7 +3732,7 @@ fn main() {
                 {
                     let local = format!("{first}\n{a}");
                     FASSUNGEN.replace([local.clone(), format!("{second}\n{b}")]);
-                    ("Szenenvergleich · Lokale Fassung".to_owned(), local)
+                    ("Fassungsvergleich · Lokale Fassung".to_owned(), local)
                 }
                 #[cfg(not(feature = "manuscript-window"))]
                 (

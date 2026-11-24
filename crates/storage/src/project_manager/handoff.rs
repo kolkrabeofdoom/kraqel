@@ -4,6 +4,8 @@ use kraqel_domain::ProjectId;
 use rusqlite::{TransactionBehavior, params_from_iter, types::Value};
 use std::collections::BTreeMap;
 use std::io::Read;
+#[cfg(not(windows))]
+type ItemSelection = ();
 
 fn io_error(source: io::Error) -> ProjectError {
     ProjectError::Io {
@@ -394,6 +396,17 @@ impl ProjectManager {
         id: ProjectId,
         selection: Option<(&SceneMergeSelection, Option<[i64; 2]>)>,
     ) -> Result<PreparedHandoff, ProjectError> {
+        self.prepare_changed_handoff(id, selection, None)
+    }
+
+    pub(super) fn prepare_changed_handoff(
+        &self,
+        id: ProjectId,
+        selection: Option<(&SceneMergeSelection, Option<[i64; 2]>)>,
+        item: Option<&ItemSelection>,
+    ) -> Result<PreparedHandoff, ProjectError> {
+        #[cfg(not(windows))]
+        debug_assert!(item.is_none());
         #[cfg(windows)]
         let directory = self.root.join(id.to_string());
         #[cfg(windows)]
@@ -415,6 +428,12 @@ impl ProjectManager {
         let mut fresh = rebuild(&tx, id)?;
         if let Some((selection, reviewed)) = selection {
             selection.apply(&mut fresh, id, &backup, reviewed)?;
+        }
+        #[cfg(windows)]
+        if let Some(item) = item {
+            self.apply_item_selection(id, item, &mut fresh)?;
+        }
+        if selection.is_some() || item.is_some() {
             // Rematerialize logical rows. Edited SQLite and FTS pages can retain the old text.
             fresh = rebuild(fresh.connection(), id)?;
         }
@@ -444,6 +463,10 @@ impl ProjectManager {
                 &dir.join(format!(".fassungswahl-{digest}")),
                 digest.as_bytes(),
             )?;
+        }
+        #[cfg(windows)]
+        if let Some(item) = item {
+            item_activation::approve_candidate(&dir, id, item, &candidate)?;
         }
         fs::rename(stage.path(), backup.join(&candidate.folder)).map_err(io_error)?;
         stage.keep();

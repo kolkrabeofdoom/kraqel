@@ -430,6 +430,8 @@ Freigabe oder ein Import dieses Formats im isolierten Starter steht noch aus.
 
 Am Windows-Zielrechner lässt sich eine vorbereitete Arbeitskopie mit freier Projektkennung über die Startseite empfangen. [Eingangsordner und Bedienung](docs/WORKSTATION_HANDOFF.md#vorbereitete-arbeitskopie-erstmals-empfangen)
 
+Für einzelne Story-Bibel-Einträge, Beziehungen, Dokumentverknüpfungen, Plotkarten und Timeline-Ereignisse samt Zuordnungen führt der Versionsdialog von der Kennungsauswahl über die isolierte Fassungsansicht bis zur Aktivierung und Rücknahme. [Einzelübernahme im Windows-Entwicklungsstand](docs/WORKSTATION_HANDOFF.md#einzelne-projekteinträge-übernehmen)
+
 ### Portabler Snapshot v3
 
 Ein Snapshot enthält deterministisch sortierte JSON-Daten, UUID-basierte Markdown-Manuskripte,

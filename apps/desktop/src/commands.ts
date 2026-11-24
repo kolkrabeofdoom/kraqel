@@ -1123,6 +1123,53 @@ export async function prepareSceneMerge(
   ).data;
 }
 
+export type HandoffItemKind =
+  "entity" | "relation" | "link" | "plotCard" | "event" | "eventDocumentLink" | "eventEntityLink";
+export interface HandoffItemChange {
+  key: { kind: HandoffItemKind; ids: string[] };
+  local: string | null;
+  incoming: string | null;
+}
+export interface HandoffSource {
+  folder: string;
+  manifest: string;
+}
+export interface HandoffItemSelection extends HandoffSource {
+  change: HandoffItemChange;
+}
+export async function listHandoffItems(
+  projectId: ProjectId,
+  source: HandoffSource,
+  kind: HandoffItemKind,
+) {
+  const payload = { projectId, ...source, kind };
+  return (await callCommand<typeof payload, HandoffItemChange[]>("list_handoff_items", payload))
+    .data;
+}
+export async function reviewHandoffItem(projectId: ProjectId, selection: HandoffItemSelection) {
+  const payload = { projectId, selection };
+  return (
+    await callCommand<
+      typeof payload,
+      { choice: "local" | "cancel" } | { choice: "incoming"; candidate: PreparedHandoff }
+    >("review_handoff_item", payload)
+  ).data;
+}
+export async function secureHandoffItem(
+  projectId: ProjectId,
+  selection: HandoffItemSelection,
+  candidate: PreparedHandoff,
+) {
+  const payload = { projectId, selection, candidate };
+  return (await callCommand<typeof payload, string>("secure_handoff_item", payload)).data;
+}
+export async function switchHandoffItem(projectId: ProjectId, ticket: string, undo: boolean) {
+  await callCommand<{ projectId: ProjectId; ticket: string; undo: boolean }, null>(
+    "switch_handoff_item",
+    { projectId, ticket, undo },
+  );
+}
+
 export async function compareProjectHandoff(
   projectId: ProjectId,
   folder: string,
