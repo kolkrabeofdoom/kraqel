@@ -113,10 +113,130 @@ def inventory(root):
     return entries
 
 
+def capture_writable_fixture(root, selected_root, read_oplock, during_copy=None):
+    """Capture one bounded logical instant. Return bytes only after every outstanding lease passes."""
+    checks, files, snapshot = [], [], {}
+    remaining = 32 * 1024 * 1024
+    with ExitStack() as pins:
+        def visit(path, depth):
+            require(depth <= 32 and len(checks) < 256, "fixture tree budget exceeded")
+            before = path.lstat()
+            require(not before.st_file_attributes & 0x400, "reparse point")
+            directory = bool(before.st_file_attributes & 0x10)
+            # Deny rename/deletion on each opened object; acquire a directory lease before listing.
+            raw = open_file(str(path), 0x80, 3 if directory else 1, None, 3, 0x42200000, None)
+            if raw == ctypes.c_void_p(-1).value:
+                raise ctypes.WinError(ctypes.get_last_error())
+            try:
+                fd = msvcrt.open_osfhandle(raw, os.O_RDONLY | os.O_BINARY)
+            except OSError:
+                kernel.CloseHandle(wintypes.HANDLE(raw))
+                raise
+            pins.callback(os.close, fd)
+            if depth == 0:
+                filesystem = ctypes.create_unicode_buffer(32)
+                require(len(path.drive) == 2 and kernel.GetDriveTypeW(path.anchor) == 3,
+                        "fixture requires a local fixed drive")
+                if not kernel.GetVolumeInformationByHandleW(wintypes.HANDLE(raw), None, 0, None, None,
+                                                           None, filesystem, len(filesystem)):
+                    raise ctypes.WinError(ctypes.get_last_error())
+                require(filesystem.value.upper() == "NTFS", "fixture requires NTFS")
+            info = os.fstat(fd)
+            require(os.path.samestat(before, info) and not info.st_file_attributes & 0x400,
+                    "changed capture identity")
+            if depth == 0:
+                require(os.path.samestat(selected_root, info), "selected project directory changed")
+            checks.append(pins.enter_context(read_oplock(raw)))
+            check_entry(path)
+            name = path.relative_to(root).as_posix()
+            if directory:
+                if depth:
+                    snapshot[name] = None
+                for child in path.iterdir():
+                    visit(child, depth + 1)
+            else:
+                require(info.st_nlink == 1 and path.is_file(), "unsupported capture file")
+                reader = pins.enter_context(path.open("rb"))
+                require(os.path.samestat(info, os.fstat(reader.fileno())), "changed capture file")
+                files.append((name, reader, info.st_size))
+
+        visit(root, 0)
+        for index, (name, reader, length) in enumerate(files):
+            require(length <= min(remaining, 8 * 1024 * 1024), "fixture byte budget exceeded")
+            data = reader.read(length + 1)
+            require(len(data) == length, "changed capture size")
+            snapshot[name] = data
+            remaining -= length
+            if index == 0 and during_copy:
+                during_copy()
+        # The snapshot instant is after the last read, before the first final lease check.
+        for verify in checks:
+            verify()
+    return snapshot
+
+
+def prepare_captured_project(target, fixture):
+    import runpy
+    read_oplock = runpy.run_path(str(Path(__file__).with_name("p3_directory_oplock.py")))["read_oplock"]
+    with tempfile.TemporaryDirectory(prefix="kraqel-p3-writable-") as temp:
+        source_fixture = Path(temp)
+        root = source_fixture / "project"
+        seed_writable_project(root, source_fixture)
+        metadata = json.loads((source_fixture / "expected.json").read_text())
+
+        selected_root = root.lstat()
+        planned = {**metadata[3], "assets/nested/late.png": hashlib.sha256(b"late asset").hexdigest()}
+
+        def capture(after_first=None):
+            snapshot = capture_writable_fixture(root, selected_root, read_oplock, after_first)
+            expected = {name: None if data is None else hashlib.sha256(data).hexdigest()
+                        for name, data in snapshot.items()}
+            require(expected == planned, "incomplete writable capture")
+            with tempfile.TemporaryDirectory(dir=target.parent) as work:
+                staged = Path(work) / "project"
+                staged.mkdir()
+                for name, data in snapshot.items():
+                    if data is None:
+                        (staged / name).mkdir()
+                    else:
+                        with (staged / name).open("xb") as dst:
+                            dst.write(data)
+                require(inventory(staged) == expected, "capture staging changed")
+                staged.rename(target)
+            return expected
+
+        def add_asset():
+            subprocess.run([sys.executable, "-I", "-c",
+                            "import sys; open(sys.argv[1], 'xb').write(b'late asset')",
+                            str(root / "assets/nested/late.png")], check=True, timeout=10)
+        try:
+            capture(add_asset)
+        except RuntimeError as exc:
+            require(str(exc) == "project changed during capture" and not target.exists(),
+                    "uncertain capture released")
+        else:
+            raise RuntimeError("concurrent asset omitted")
+        metadata[3] = capture()
+        (fixture / "expected.json").write_text(json.dumps(metadata))
+
+
+def writable_fixture():
+    with tempfile.TemporaryDirectory(prefix="kraqel-p3-candidate-") as temp:
+        fixture = Path(temp)
+        target = fixture / "captured"
+        prepare_captured_project(target, fixture)
+        metadata = json.loads((fixture / "expected.json").read_text())
+        with fixture_database(target, metadata[3]) as db:
+            rows = db.execute("SELECT title, plain_text, revision FROM document WHERE project_id=? AND id=?",
+                              metadata[:2]).fetchall()
+            require(rows == [P3_SCENE], "lost committed WAL scene")
+    print("PASS: concurrent nested asset refused; fresh staged capture includes the asset and committed WAL scene")
+
+
 def writer(root, readonly):
     # Same process image, access and paths before and during capture.
     for directory in (root, root / "assets" / "nested"):
-        target = directory / "late.png"
+        target = directory / "volume-write-probe.png"
         handle = open_file(str(target), 0x40000000, 0, None, 1, 0, None)
         if handle == ctypes.c_void_p(-1).value:
             code = ctypes.get_last_error()
@@ -142,7 +262,7 @@ def commit_fixture_wal(root, document):
     os._exit(82)  # Keep the committed WAL and its matching shared-memory index.
 
 
-def prepare(root, fixture):
+def seed_writable_project(root, fixture):
     root.mkdir()
     nested = root / "assets" / "nested"
     nested.mkdir(parents=True)
@@ -176,7 +296,6 @@ def prepare(root, fixture):
     run_to_exit(commit_fixture_wal, (root, document), 82)
     require(hashlib.sha256((root / "kraqel.sqlite3").read_bytes()).digest() == main_before,
             "scene was checkpointed into the main file")
-    challenge(root, False)
     # The normal stream stays identical, so a hash-only probe would miss this.
     alternate = Path(str(nested / "cover.png") + ":fixture")
     alternate.write_bytes(b"synthetic")
@@ -729,7 +848,10 @@ def check_cleanup_decision(root, fixture, metadata):
             require(confirm_cleanup(root, target, metadata, ticket, home) == proof,
                     "cleanup decision lost on restart")
             run_to_exit(remove_first_then_stop, (root, target, metadata, ticket, home), 88)
-            victim = pending / "project/assets/thumbnails/cover.png"
+            # Remove the next scheduled object without its journal step.
+            order = sorted(metadata[3], key=lambda name: (-name.count("/"), name))
+            victim = pending / "project" / order[1]
+            require(victim.is_file(), "expected pending cleanup file")
             retained = target / "retained"
             victim.rename(retained)
             try:
@@ -983,6 +1105,9 @@ def capture(root, fixture, interactive=False):
 
 
 if __name__ == "__main__":
+    if sys.argv[1:] == ["writable"]:
+        writable_fixture()
+        sys.exit(0)
     mode, volume, arg = sys.argv[1:]
     require(re.fullmatch(r"\\\\\?\\Volume\{[0-9a-fA-F-]{36}\}\\?", volume), "invalid fixture volume")
     volume = volume.rstrip("\\") + "\\"
@@ -998,7 +1123,8 @@ if __name__ == "__main__":
         require(mode in ("prepare", "capture", "preview"), "invalid fixture mode")
         with volume_guard(volume, mode != "prepare"):
             if mode == "prepare":
-                prepare(root, fixture)
+                prepare_captured_project(root, fixture)
+                challenge(root, False)
             else:
                 capture(root, fixture, interactive=mode == "preview")
         if mode != "prepare":
