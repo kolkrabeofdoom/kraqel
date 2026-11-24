@@ -81,8 +81,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "Der Hafen liegt im Nebel.",
             ),
         ] {
-            let content = serde_json::json!({"type":"doc","content":[{"type":"paragraph",
-                "content":[{"type":"text","text":text}]}]})
+            let content = serde_json::json!({"version":1,"document":{"type":"doc","content":[{"type":"paragraph",
+                "content":[{"type":"text","text":text}]}]}})
             .to_string();
             conn.execute(
                 "UPDATE document SET title=?1,plain_text=?2,content_json=?3,revision=revision+1 WHERE id=?4",
