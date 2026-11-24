@@ -173,7 +173,10 @@ fn bold_replacement(hwnd: HWND) -> Option<(i32, String, BoldRange)> {
     ))
 }
 
+const CHOOSE_HERE: usize = 241;
+const CHOOSE_INCOMING: usize = 242;
 thread_local! {
+    static REVIEWED_SIDE: std::cell::Cell<Option<u8>> = const { std::cell::Cell::new(None) };
     static LOADED_SPAN: std::cell::Cell<Option<BoldRange>> = const {std::cell::Cell::new(None)};
     static FORMAT_REQUEST: std::cell::Cell<Option<SpanEdit>> = const {std::cell::Cell::new(None)};
     static PLAIN_REVIEW: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
@@ -2422,6 +2425,34 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 PostMessageW(hwnd, SAVE_DRAFT, 0, 0);
                 0
             }
+            WM_COMMAND
+                if l == 0
+                    && matches!(w, CHOOSE_HERE | CHOOSE_INCOMING)
+                    && REVIEWED_SIDE.get() == Some(0) =>
+            {
+                let (side, message) = if w == CHOOSE_HERE {
+                    (
+                        1,
+                        "Die lokale Fassung auswählen und den Vergleich schließen?",
+                    )
+                } else {
+                    (
+                        2,
+                        "Die Fassung vom anderen Rechner auswählen und den Vergleich schließen?",
+                    )
+                };
+                if MessageBoxW(
+                    hwnd,
+                    wide(message).as_ptr(),
+                    wide("Fassung auswählen").as_ptr(),
+                    MB_YESNO | MB_DEFBUTTON2 | MB_ICONQUESTION,
+                ) == IDYES
+                {
+                    REVIEWED_SIDE.set(Some(side));
+                    return finish_close(hwnd);
+                }
+                0
+            }
             WM_COMMAND if w & 0xffff == CLOSE as usize => {
                 PostMessageW(hwnd, WM_CLOSE, 0, 0);
                 0
@@ -2847,6 +2878,29 @@ fn show(
             return 24;
         }
         if let Some(view) = surface.as_ref().filter(|view| view.p3_title.is_some()) {
+            if REVIEWED_SIDE.get().is_some() {
+                let menu = CreateMenu();
+                if menu.is_null() {
+                    return 24;
+                }
+                if AppendMenuW(
+                    menu,
+                    MF_STRING,
+                    CHOOSE_HERE,
+                    wide("&Lokale Fassung wählen").as_ptr(),
+                ) == 0
+                    || AppendMenuW(
+                        menu,
+                        MF_STRING,
+                        CHOOSE_INCOMING,
+                        wide("&Externe Fassung wählen").as_ptr(),
+                    ) == 0
+                    || SetMenu(hwnd, menu) == 0
+                {
+                    DestroyMenu(menu);
+                    return 24;
+                }
+            }
             let edit = GetDlgItem(hwnd, EDIT);
             if GetWindowLongW(edit, GWL_STYLE) & ES_READONLY == 0
                 || !matches_preview_text(hwnd, &view.text)
@@ -3597,12 +3651,18 @@ fn main() {
                 let (second, b) = scene(right)?;
                 (
                     "Szenenvergleich".to_owned(),
-                    format!("Fassung 1 · {first}\n{a}\n\nFassung 2 · {second}\n{b}"),
+                    format!("Lokal · {first}\n{a}\n\nAnderer Rechner · {second}\n{b}"),
                 )
             } else {
                 scene(&row[32..])?
             };
-            Ok(show(
+            let mut decision = if size == window_receipt::P3_PAIR_LEN {
+                REVIEWED_SIDE.set(Some(0));
+                Some(output.try_clone()?)
+            } else {
+                None
+            };
+            let code = show(
                 None,
                 Some(SceneSurface {
                     p3_title: Some(format!("{heading} – Schreibgeschützt")),
@@ -3614,7 +3674,16 @@ fn main() {
                 }),
                 None,
                 None,
-            ))
+            );
+            if code == 40 {
+                if let Some(pipe) = decision.as_mut() {
+                    use std::io::Write;
+                    pipe.write_all(&[REVIEWED_SIDE
+                        .take()
+                        .ok_or(std::io::Error::other("missing comparison"))?])?;
+                }
+            }
+            Ok(code)
         })();
         std::process::exit(result.unwrap_or(20));
     }

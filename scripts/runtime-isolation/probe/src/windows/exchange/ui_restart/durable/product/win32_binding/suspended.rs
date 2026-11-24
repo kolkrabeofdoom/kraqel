@@ -60,8 +60,9 @@ pub(in super::super) fn deliver_p3(
     row: &[u8],
     interactive: bool,
     visible: impl FnOnce() -> Result<()>,
-) -> Result<()> {
+) -> Result<u8> {
     use crate::window_receipt as protocol;
+    let mut choice = 0;
     use windows_sys::Win32::Storage::FileSystem::{FILE_READ_DATA, FILE_WRITE_DATA, SYNCHRONIZE};
     let argument = if row.len() == protocol::P3_PAIR_LEN {
         protocol::P3_COMPARE
@@ -125,9 +126,20 @@ pub(in super::super) fn deliver_p3(
             if interactive {
                 visible()?;
             }
-            bootstrap::wait_for_close(ui, hwnd, interactive)
+            bootstrap::wait_for_close(ui, hwnd, interactive)?;
+            if argument == protocol::P3_COMPARE {
+                use std::io::Read;
+                let mut decision = [0u8];
+                io("p3-window-choice", reply.read_exact(&mut decision))?;
+                if decision[0] > 2 || (!interactive && decision[0] != 0) {
+                    return Err(invalid("p3-window-choice"));
+                }
+                choice = decision[0];
+            }
+            Ok(())
         },
-    )
+    )?;
+    Ok(choice)
 }
 
 fn with_role(

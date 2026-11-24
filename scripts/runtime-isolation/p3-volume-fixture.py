@@ -1409,11 +1409,16 @@ def deliver_comparison(project, scene, hashes, views, interactive, base_hash):
                     and b"p3-unbound-row" in authority.pipe.stderr.read(512), "changed comparison accepted")
     with native_authority(home, False, read_only=True, comparison=True) as authority:
         verify(authority, False)
-        authority.deliver(payload, interactive)
+        authority.start_delivery(payload, interactive)
+        side = authority.pipe.stdout.read(1)
+        require(side in (b"\x00", b"\x01", b"\x02") and authority.pipe.stdout.readline(16) == b"DELIVERED\n",
+                "missing confirmed comparison outcome")
+        require(interactive or side == b"\x00", "closing selected a version")
     # Keep the control journal on uncertain exit, including failed profile retirement.
     require(root.parent == Path(tempfile.gettempdir()).resolve() and root.resolve() == root
             and home.resolve() == home, "unexpected comparison cleanup root")
     shutil.rmtree(root)
+    return side[0]
 
 
 def compare_prepared(interactive):
@@ -1437,9 +1442,9 @@ def compare_prepared(interactive):
                 and reply["incomingSha256"] == other["sceneBasisSha256"], "comparison basis differs from preparation")
         require(reply["comparison"]["changes"] == [{"sceneId":scene,"difference":"conflict","baseExists":True,
                 "localExists":True,"incomingExists":True}], "missing scene conflict")
-        deliver_comparison(project, scene, (digest, other["manifestSha256"]), views, interactive, reply["baseSha256"])
+        side = deliver_comparison(project, scene, (digest, other["manifestSha256"]), views, interactive, reply["baseSha256"])
         require(before == (inventory(folder), inventory(second)), "comparison changed a preparation")
-    print("PASS: two separately verified versions compared at equal revision; both preserved")
+    print(("Keine Auswahl.", "Lokale Fassung ausgewählt.", "Externe Fassung ausgewählt.")[side])
 
 
 def check_prepared_refusals():

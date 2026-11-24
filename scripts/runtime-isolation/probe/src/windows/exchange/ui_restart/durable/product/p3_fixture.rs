@@ -189,7 +189,7 @@ pub(super) fn serve(
                 [2] => true,
                 _ => return Err(invalid("p3-delivery-start")),
             };
-            win32_binding::deliver_p3(
+            let choice = win32_binding::deliver_p3(
                 &mut store,
                 &root,
                 &image,
@@ -207,6 +207,9 @@ pub(super) fn serve(
                 store.state.head,
                 Action::EndWin32Window { begin },
             )?;
+            if comparison {
+                io("p3-comparison-choice", output.write_all(&[choice]))?;
+            }
             io("p3-service-confirmed", output.write_all(b"DELIVERED\n"))?;
             io("p3-service-confirmed", output.flush())?;
             break;
