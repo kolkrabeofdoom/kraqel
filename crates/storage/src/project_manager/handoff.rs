@@ -22,12 +22,12 @@ pub(super) fn schema(db: &Connection) -> Result<Vec<SchemaObject>, ProjectError>
         .collect::<Result<_, _>>()?)
 }
 
-fn rebuild(source: &Connection, id: ProjectId) -> Result<Database, ProjectError> {
-    let mut fresh = Database::open_in_memory()?;
-    fresh
-        .connection()
-        .execute_batch("PRAGMA temp_store=MEMORY")?;
-    if schema(source)? != schema(fresh.connection())?
+pub(super) fn validate_source(
+    source: &Connection,
+    reference: &Connection,
+    id: ProjectId,
+) -> Result<(), ProjectError> {
+    if schema(source)? != schema(reference)?
         || source.pragma_query_value(None, "user_version", |r| r.get::<_, u32>(0))?
             != CURRENT_DATABASE_VERSION.0
     {
@@ -40,6 +40,15 @@ fn rebuild(source: &Connection, id: ProjectId) -> Result<Database, ProjectError>
     if ids != [id.to_string()] {
         return Err(ProjectError::InvalidProjectMetadata);
     }
+    Ok(())
+}
+
+fn rebuild(source: &Connection, id: ProjectId) -> Result<Database, ProjectError> {
+    let mut fresh = Database::open_in_memory()?;
+    fresh
+        .connection()
+        .execute_batch("PRAGMA temp_store=MEMORY")?;
+    validate_source(source, fresh.connection(), id)?;
     let target = fresh.transaction()?;
     target.execute_batch("PRAGMA defer_foreign_keys=ON")?;
     let mut tables = target.prepare(
@@ -72,22 +81,8 @@ fn rebuild(source: &Connection, id: ProjectId) -> Result<Database, ProjectError>
     }
     for table in tables.query_map([], |row| row.get::<_, String>(0))? {
         let query = format!("SELECT rowid,* FROM \"{}\" ORDER BY rowid", table?);
-        let mut lhs = source.prepare(&query)?;
-        let mut rhs = target.prepare(&query)?;
-        let width = lhs.column_count();
-        let (mut original, mut copy) = (lhs.query([])?, rhs.query([])?);
-        loop {
-            match (original.next()?, copy.next()?) {
-                (None, None) => break,
-                (Some(left), Some(right)) => {
-                    for i in 0..width {
-                        if left.get_ref(i)? != right.get_ref(i)? {
-                            return Err(ProjectError::InvalidDatabase);
-                        }
-                    }
-                }
-                _ => return Err(ProjectError::InvalidDatabase),
-            }
+        if !same_rows(source, &target, &query)? {
+            return Err(ProjectError::InvalidDatabase);
         }
     }
     drop(tables);
@@ -95,6 +90,30 @@ fn rebuild(source: &Connection, id: ProjectId) -> Result<Database, ProjectError>
         .execute_batch("INSERT INTO document_fts(document_fts,rank) VALUES('integrity-check',1)")?;
     target.commit()?;
     Ok(fresh)
+}
+
+pub(super) fn same_rows(
+    local: &Connection,
+    incoming: &Connection,
+    query: &str,
+) -> Result<bool, ProjectError> {
+    let mut left = local.prepare(query)?;
+    let mut right = incoming.prepare(query)?;
+    let width = left.column_count();
+    let (mut a, mut b) = (left.query([])?, right.query([])?);
+    loop {
+        match (a.next()?, b.next()?) {
+            (None, None) => return Ok(true),
+            (Some(a), Some(b)) => {
+                for index in 0..width {
+                    if a.get_ref(index)? != b.get_ref(index)? {
+                        return Ok(false);
+                    }
+                }
+            }
+            _ => return Ok(false),
+        }
+    }
 }
 
 fn write_database(fresh: &Database, path: &Path) -> Result<(), ProjectError> {
@@ -177,9 +196,9 @@ pub(super) fn pin_database_files(dir: &Path) -> Result<Vec<fs::File>, ProjectErr
     Ok(pins)
 }
 
-fn transfer_asset(
+fn inspect_asset(
     root: &Path,
-    stage: &Path,
+    stage: Option<&Path>,
     relative: &str,
     limit: u64,
 ) -> Result<(String, u64), ProjectError> {
@@ -220,6 +239,14 @@ fn transfer_asset(
     if !info.is_file() || is_reparse_point(&info) || info.len() == 0 || info.len() > limit {
         return Err(ProjectError::InvalidDatabase);
     }
+    let Some(stage) = stage else {
+        let mut hash = Sha256::new();
+        let read = io::copy(&mut input.take(limit + 1), &mut hash).map_err(io_error)?;
+        if read != info.len() {
+            return Err(ProjectError::InvalidDatabase);
+        }
+        return Ok((format!("{:x}", hash.finalize()), read));
+    };
     let dest = stage.join(relative);
     fs::create_dir_all(dest.parent().ok_or(ProjectError::InvalidRelativePath)?)
         .map_err(io_error)?;
@@ -232,10 +259,10 @@ fn transfer_asset(
     Ok((digest_file(&dest)?, copied))
 }
 
-fn copy_referenced_media(
+pub(super) fn media_inventory(
     source: &Connection,
     dir: &Path,
-    stage: &Path,
+    stage: Option<&Path>,
     approved: Option<&BTreeMap<String, String>>,
 ) -> Result<BTreeMap<String, String>, ProjectError> {
     let mut files = BTreeMap::new();
@@ -253,14 +280,14 @@ fn copy_referenced_media(
         }) {
             return Err(ProjectError::InvalidDatabase);
         }
-        let (hash, len) = transfer_asset(dir, stage, &original, 25 * 1024 * 1024)?;
+        let (hash, len) = inspect_asset(dir, stage, &original, 25 * 1024 * 1024)?;
         if hash != expected || len != u64::from(size) {
             return Err(ProjectError::InvalidDatabase);
         }
         files.insert(original, hash);
         files.insert(
             thumb.clone(),
-            transfer_asset(dir, stage, &thumb, 25 * 1024 * 1024)?.0,
+            inspect_asset(dir, stage, &thumb, 25 * 1024 * 1024)?.0,
         );
     }
     drop(rows);
@@ -289,16 +316,13 @@ impl ProjectManager {
         self.prepare_selected_handoff(id, None)
     }
 
-    /// Receives an explicitly selected v2 package from the local inbox.
-    ///
-    /// # Errors
-    /// An occupied destination or a mismatching receipt prevents publication.
     #[cfg(windows)]
-    pub fn receive_handoff(
+    pub(super) fn with_inbox_manifest<T>(
         &self,
         folder: &str,
         inventory_sha256: &str,
-    ) -> Result<(), ProjectError> {
+        run: impl FnOnce(&Path, scene_merge::Manifest) -> Result<T, ProjectError>,
+    ) -> Result<T, ProjectError> {
         scene_merge::validate_package_folder(folder)?;
         let inbox = self.root.join("empfang");
         let dir = inbox.join(folder);
@@ -310,44 +334,59 @@ impl ProjectManager {
             inventory_sha256,
             128 * 1024,
         )?;
-        let mut inventory: scene_merge::Manifest =
+        let inventory: scene_merge::Manifest =
             serde_json::from_slice(&bytes).map_err(|_| ProjectError::InvalidDatabase)?;
         if inventory.format != "kraqel-logical-preparation-v2" {
             return Err(ProjectError::InvalidDatabase);
         }
-        let id = inventory.project_id;
-        let dest = self.root.join(id.to_string());
-        match fs::symlink_metadata(&dest) {
-            Ok(_) => return Err(ProjectError::ProjectAlreadyExists),
-            Err(e) if e.kind() == io::ErrorKind::NotFound => (),
-            Err(e) => return Err(io_error(e)),
-        }
-        scene_basis::Basis::read(&dir, &inventory.scene_basis_sha256, id)?;
-        let db_hash = inventory
-            .files
-            .remove(DATABASE_FILE_NAME)
-            .ok_or(ProjectError::InvalidDatabase)?;
-        let source = scene_merge::read_package_database(&dir, &db_hash)?;
-        let fresh = rebuild(&source, id)?;
-        let mut stage = TemporaryDirectory::create(&self.root)?;
-        let backups = stage.path().join(BACKUP_DIRECTORY_NAME);
-        fs::create_dir(&backups).map_err(io_error)?;
-        if scene_basis::stage_basis(fresh.connection(), id, &backups)?
-            != inventory.scene_basis_sha256
-            || copy_referenced_media(
-                fresh.connection(),
-                &dir,
-                stage.path(),
-                Some(&inventory.files),
-            )? != inventory.files
-        {
-            return Err(ProjectError::InvalidDatabase);
-        }
-        write_database(&fresh, &stage.path().join(DATABASE_FILE_NAME))?;
-        // Windows refuses to rename a directory over another directory.
-        fs::rename(stage.path(), dest).map_err(io_error)?;
-        stage.keep();
-        Ok(())
+        run(&dir, inventory)
+    }
+
+    /// Receives an explicitly selected v2 package from the local inbox.
+    ///
+    /// # Errors
+    /// An occupied destination or a mismatching receipt prevents publication.
+    #[cfg(windows)]
+    pub fn receive_handoff(
+        &self,
+        folder: &str,
+        inventory_sha256: &str,
+    ) -> Result<(), ProjectError> {
+        self.with_inbox_manifest(folder, inventory_sha256, |dir, mut inventory| {
+            let id = inventory.project_id;
+            let dest = self.root.join(id.to_string());
+            match fs::symlink_metadata(&dest) {
+                Ok(_) => return Err(ProjectError::ProjectAlreadyExists),
+                Err(e) if e.kind() == io::ErrorKind::NotFound => (),
+                Err(e) => return Err(io_error(e)),
+            }
+            scene_basis::Basis::read(dir, &inventory.scene_basis_sha256, id)?;
+            let db_hash = inventory
+                .files
+                .remove(DATABASE_FILE_NAME)
+                .ok_or(ProjectError::InvalidDatabase)?;
+            let source = scene_merge::read_package_database(dir, &db_hash)?;
+            let fresh = rebuild(&source, id)?;
+            let mut stage = TemporaryDirectory::create(&self.root)?;
+            let backups = stage.path().join(BACKUP_DIRECTORY_NAME);
+            fs::create_dir(&backups).map_err(io_error)?;
+            if scene_basis::stage_basis(fresh.connection(), id, &backups)?
+                != inventory.scene_basis_sha256
+                || media_inventory(
+                    fresh.connection(),
+                    dir,
+                    Some(stage.path()),
+                    Some(&inventory.files),
+                )? != inventory.files
+            {
+                return Err(ProjectError::InvalidDatabase);
+            }
+            write_database(&fresh, &stage.path().join(DATABASE_FILE_NAME))?;
+            // Windows refuses to rename a directory over another directory.
+            fs::rename(stage.path(), dest).map_err(io_error)?;
+            stage.keep();
+            Ok(())
+        })
     }
 
     pub(super) fn prepare_selected_handoff(
@@ -380,7 +419,7 @@ impl ProjectManager {
             fresh = rebuild(fresh.connection(), id)?;
         }
         write_database(&fresh, &main)?;
-        let mut files = copy_referenced_media(&tx, &dir, stage.path(), None)?;
+        let mut files = media_inventory(&tx, &dir, Some(stage.path()), None)?;
         files.insert(DATABASE_FILE_NAME.to_owned(), digest_file(&main)?);
         let scene_basis_sha256 = scene_basis::stage_basis(fresh.connection(), id, stage.path())?;
         let receipt = serde_json::json!({"format":"kraqel-logical-preparation-v2","projectId":id,"files":files,"sceneBasisSha256":scene_basis_sha256});

@@ -13,6 +13,7 @@ import {
   type VersionControlStatus,
 } from "./commands";
 
+import { HandoffComparison } from "./HandoffComparison";
 import { SceneBasisPanel } from "./SceneBasisPanel";
 
 interface VersionControlProps {
@@ -181,6 +182,8 @@ export function VersionControl({ projectId, documents, onActivated }: VersionCon
           Übernahme vorbereiten
         </button>
       </section>
+
+      <HandoffComparison key={`incoming-${projectId}`} projectId={projectId} />
 
       <SceneBasisPanel
         key={projectId}

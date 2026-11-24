@@ -2084,6 +2084,56 @@ struct ReceiveHandoffRequest {
     manifest_sha256: String,
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct CompareHandoffRequest {
+    include_media: bool,
+    project_id: String,
+    folder: String,
+    manifest_sha256: String,
+}
+
+#[tauri::command]
+async fn compare_project_handoff(
+    state: State<'_, AppState>,
+    request: CommandRequest<CompareHandoffRequest>,
+) -> Result<CommandResponse<Vec<String>>, CommandError> {
+    require_current_contract(&request)?;
+    let request_id = request.request_id;
+    let payload = request.payload;
+    let id = parse_project_id(request_id, &payload.project_id)?;
+    #[cfg(windows)]
+    {
+        let manager = manager(&state, request_id)?;
+        let changed = tauri::async_runtime::spawn_blocking(move || {
+            manager.compare_handoff(
+                id,
+                &payload.folder,
+                &payload.manifest_sha256,
+                payload.include_media,
+            )
+        })
+        .await
+        .map_err(|_| CommandError::internal(request_id))?
+        .map_err(|e| map_project_error(request_id, &e))?;
+        Ok(CommandResponse::current(request_id, changed))
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (
+            state,
+            id,
+            payload.folder,
+            payload.manifest_sha256,
+            payload.include_media,
+        );
+        Err(CommandError::invalid_request(
+            request_id,
+            "Dieser Vergleich erfordert Windows.",
+        ))
+    }
+}
+
 #[tauri::command]
 async fn receive_project_handoff(
     state: State<'_, AppState>,
@@ -4099,6 +4149,7 @@ pub fn run() {
             link_timeline_event,
             create_project_snapshot,
             export_project_archive,
+            compare_project_handoff,
             receive_project_handoff,
             prepare_project_handoff,
             save_scene_basis,

@@ -1002,6 +1002,14 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
         sceneBasisSha256: "f".repeat(64),
       };
     }
+    case "compare_project_handoff": {
+      findProject(state, payload.projectId);
+      if (payload.folder !== "uebernahme-beispiel" || payload.manifestSha256 !== "a".repeat(64))
+        throw new Error("Ungültige Arbeitskopie");
+      return payload.includeMedia
+        ? ["document", "media_asset", "media_files"]
+        : ["document", "media_asset"];
+    }
     case "prepare_project_handoff": {
       findProject(state, payload.projectId);
       return {

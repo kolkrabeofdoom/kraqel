@@ -174,6 +174,14 @@ impl ProjectManager {
         id: ProjectId,
         run: impl FnOnce(Basis, &Path, &Connection) -> Result<T, ProjectError>,
     ) -> Result<T, ProjectError> {
+        self.with_read_snapshot(id, |backup, db| run(Basis::from_db(db, id)?, backup, db))
+    }
+
+    pub(super) fn with_read_snapshot<T>(
+        &self,
+        id: ProjectId,
+        run: impl FnOnce(&Path, &Connection) -> Result<T, ProjectError>,
+    ) -> Result<T, ProjectError> {
         #[cfg(windows)]
         let _project = pin_candidate_directory(&self.root.join(id.to_string()))?;
         let dir = self
@@ -188,8 +196,7 @@ impl ProjectManager {
             "PRAGMA trusted_schema=OFF; PRAGMA temp_store=MEMORY; PRAGMA query_only=ON",
         )?;
         let tx = db.transaction()?;
-        let basis = Basis::from_db(&tx, id)?;
-        let result = run(basis, &backup, &tx)?;
+        let result = run(&backup, &tx)?;
         tx.commit()?;
         Ok(result)
     }

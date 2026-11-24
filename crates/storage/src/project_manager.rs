@@ -1,6 +1,8 @@
 //! Sicherer Lebenszyklus lokaler Projektverzeichnisse.
 
 mod handoff;
+#[cfg(windows)]
+mod handoff_compare;
 mod scene_activation;
 mod scene_basis;
 mod scene_merge;
@@ -1437,6 +1439,39 @@ mod tests {
             .unwrap();
         assert_eq!(&received_row, row);
         assert!(matches!(receive(), Err(ProjectError::ProjectAlreadyExists)));
+        let compare = |media| {
+            target.compare_handoff(
+                kraqel_domain::ProjectId::parse(id).unwrap(),
+                &receipt.folder,
+                &receipt.manifest_sha256,
+                media,
+            )
+        };
+        assert!(matches!(
+            target.compare_handoff(
+                kraqel_domain::ProjectId::new(),
+                &receipt.folder,
+                &receipt.manifest_sha256,
+                false
+            ),
+            Err(ProjectError::InvalidProjectMetadata)
+        ));
+        assert!(compare(true).unwrap().is_empty());
+        received
+            .database()
+            .connection()
+            .execute("UPDATE media_asset SET title='privater Testtitel'", [])
+            .unwrap();
+        assert_eq!(compare(false).unwrap(), ["media_asset"]);
+        fs::write(
+            received.directory().join("assets/thumbnails/test.png"),
+            b"local preview",
+        )
+        .unwrap();
+        assert_eq!(compare(true).unwrap(), ["media_asset", "media_files"]);
+        fs::write(&thumb, b"unexpected incoming preview").unwrap();
+        assert!(compare(true).is_err());
+        assert_eq!(compare(false).unwrap(), ["media_asset"]);
         fs::rename(incoming, published).unwrap();
     }
 

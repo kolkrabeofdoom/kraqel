@@ -1123,6 +1123,16 @@ export async function prepareSceneMerge(
   ).data;
 }
 
+export async function compareProjectHandoff(
+  projectId: ProjectId,
+  folder: string,
+  manifestSha256: string,
+  includeMedia: boolean,
+): Promise<string[]> {
+  const payload = { projectId, folder, manifestSha256, includeMedia };
+  return (await callCommand<typeof payload, string[]>("compare_project_handoff", payload)).data;
+}
+
 export async function receiveProjectHandoff(folder: string, manifestSha256: string): Promise<void> {
   await callCommand<{ folder: string; manifestSha256: string }, null>("receive_project_handoff", {
     folder,

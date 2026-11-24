@@ -23,6 +23,17 @@ test("Arbeitskopie wird im geöffneten Projekt ausdrücklich vorbereitet", async
   await expect(
     page.getByText(/Übernahme vorbereitet.*uebernahme-beispiel.*SHA-256/u),
   ).toBeVisible();
+  await page.getByLabel("Ordnername im Eingang").fill("uebernahme-beispiel");
+  await page.getByLabel("Separat bestätigter Inventar-SHA-256").fill("a".repeat(64));
+  const includeMedia = page.getByLabel("Auch referenzierte Bilder und Vorschaubilder prüfen");
+  await expect(includeMedia).not.toBeChecked();
+  await includeMedia.check();
+  await page.getByRole("button", { name: "Arbeitsdaten vergleichen" }).click();
+  await expect(
+    page
+      .getByRole("status")
+      .filter({ hasText: "Manuskript, Medieneinträge, Bild- und Vorschaudateien" }),
+  ).toBeVisible();
   await page.getByText("Szenenstände zwischen zwei Rechnern vergleichen", { exact: true }).click();
   await page.getByRole("button", { name: "Szenenbasis sichern" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Basis für 2 Szenen" })).toBeVisible();
