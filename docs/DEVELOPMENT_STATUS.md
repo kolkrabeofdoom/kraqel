@@ -1,5 +1,9 @@
 # Entwicklungsstatus
 
+### P3 · synthetische Bestandskopie
+
+Für die Kopie eines Projekts von einem vollständig schreibgeschützten synthetischen Quelldatenträger sind stabiler Dateibestand, Assetverknüpfungen und Identitätserhalt im Staging geprüft. Der zweite Prozess erhielt beim Anlegen neuer Assets im Stamm und im Unterverzeichnis jeweils `ERROR_WRITE_PROTECT`. Die Freigabe gewöhnlicher Bestandsordner und die Veröffentlichung einer produktiven Arbeitskopie sind offen. [Prüfaufbau und Geltungsbereich](data-format/product-start-integration-v1-draft.md#stabiler-dateibestand-auf-einem-synthetischen-quelldatenträger)
+
 ### PDF-Export
 
 Text- und Bildexport lesen das selbst erzeugte PDF zur Ausgabeprüfung mit `lopdf 0.47.0`.

@@ -169,6 +169,18 @@ Nach Prozessende hielt die Probe für sämtliche vorhandenen Dateien im festen P
 
 Das Ergebnis belegt den SQLite-Teil für diese fest vorgegebene Quelle. Für eine Bestandskopie fehlen weiterhin die authentisierte native Quellen-/Zielbindung, der Ausschluss von Veränderungen am gesamten Verzeichnisbestand einschließlich neuer Dateien und Assets sowie die idempotente Veröffentlichung. Bis dahin gibt es keinen Produktaufruf zur Bestandsübernahme. Bei unbekannten oder unvollständig erfassten Dateien bleibt die Übernahme vor der Veröffentlichung gesperrt.
 
+### Stabiler Dateibestand auf einem synthetischen Quelldatenträger
+
+**Windows-Nachweis vom 24. November 2026.** Das Projekt wurde unmittelbar auf einer neu erzeugten lokalen NTFS-VHDX angelegt. Nach dem Aushängen hielt die Prüfsteuerung die VHDX-Datei mit einem Lesehandle ohne Schreib- und Löschfreigabe fest und band sie ausschließlich lesend ein. Sie prüfte Datenträgerstatus, Partitionskennung und Volume-GUID. Der Kopierprozess prüfte das Schreibschutzflag über ein gehaltenes Volume-Handle vor der ersten Inventarisierung. Diese Bindungen bestanden bis nach der Zielprüfung.
+
+Ein zweiter Prozess konnte in der beschreibbaren Vorbereitungsphase je ein neues Asset im Projektstamm und im verschachtelten Assetverzeichnis anlegen. Während des Kopierens der bereits geöffneten Datenbank scheiterten dieselben beiden Erzeugungsaufrufe mit Windows-Fehler 19 (`ERROR_WRITE_PROTECT`). Erfasst wurden relative Namen, Verzeichnisse einschließlich eines leeren Verzeichnisses und die SHA-256-Werte der regulären Dateien. Ein zusätzlich angelegter benannter NTFS-Datenstrom sperrte die Inventarisierung. Reparse Points und mehrfach verknüpfte Dateien werden im Prüfpfad ebenfalls abgewiesen.
+
+Im getrennten Staging stimmten Inventar und Bytes mit der synthetischen Vorgabe und der Quelle überein. SQLite-Integrität, Fremdschlüssel, Projekt-, Dokument- und Medien-UUIDs sowie die Verweise auf Original und Vorschaubild wurden geprüft. Ein unbekannter oder nicht bestätigter Zustand gibt keine Kopie frei. Die Probe veröffentlicht keine Arbeitsablage.
+
+Der Nachweis gilt für eine Quelle, deren **gesamter Datenträger bereits vor Beginn der Erfassung** wirksam schreibgeschützt ist. Eine VHDX aus Dateien eines während der Erfassung veränderlichen Projektordners zu befüllen, erfüllt diese Voraussetzung nicht. Gewöhnliche Bestandsordner bleiben gesperrt. Offen bleiben die produktive Herkunfts- und Zielbindung, eine stabile Erfassungsgrenze für solche Ordner sowie die idempotente Veröffentlichung. Eine Authentisierung über Neustarts ist durch das für den Prüflauf gehaltene Handle nicht belegt.
+
+Die [gezielte Windows-Probe](../../scripts/runtime-isolation/check-p3-readonly-volume.ps1) benötigt Hyper-V-VHD-Befehle, Python und lokale administrative Rechte für das Einbinden ihres eigenen Datenträgers. Sie nimmt keine Projekt- oder Datenträgerpfade entgegen. Die beiden Negativkontrollen und die Prüfung der einen Kopie laufen gemeinsam, außerhalb des regulären Testrunners.
+
 ## 5. Vor Fortsetzung des eingeschränkten Prozesses
 
 - Aktuellen Actor/Kopf/Paketvertrag, unveränderte Paketbytes/Ressourcen und gültige Datenbindung
