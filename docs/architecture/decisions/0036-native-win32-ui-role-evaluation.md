@@ -425,6 +425,18 @@ Der erweiterte Windows-Paketbindungstest stellte den Zwischenstand mit dem authe
 
 Im lokalen Windows-Lauf beendete die temporäre Prüffassung (Starter-SHA-256 `423b2900b9de815bd2cded986f5d49649d8d4ff029bda6e0726b2128e35dea91`) die verwalteten Starterprozesse bei `RecordSynced` und danach bei `HeadStaged` mit Exitcode 86. Als Gegenprobe wurde ausschließlich in der synthetischen Ablage der gültig authentisierte Vorgängerkopf als `head.next` eingesetzt. Die Bestätigung wurde abgewiesen, Vorgängerkopf und Journal blieben unverändert. Mit wiederhergestellten Originalbytes veröffentlichte der ausdrückliche Aufruf exakt den vorbereiteten Kopf. Das Journal blieb bytegleich. Der neue Starter las Revision 1 schreibgeschützt, der SQLite-Hash blieb gleich und ein erneuter Bestätigungsversuch wurde abgewiesen. Der Befund gilt für Prozessabbrüche auf diesem Prüfplatz.
 
+### ETW beim Arbeiten mit dem Klartextmenü
+
+Am 24. November 2026 wurden die regulären lokalen Programmbytes zu `4d15b5d` verwendet. Die Referenz `check-win32-surface` umfasste Starter und Fensterrolle. Im Szenenlauf öffnete der verwaltete Starter Revision 1 der synthetischen Szene A. Im langen Editor wurden Suche aus der markierten Textstelle, Ersetzen, Rückgängig/Wiederholen und der Fokusmodus über das Menü bedient. Nach dem Speichern bestätigte ein eigener schreibgeschützter Auftrag Revision 2. Der unabhängige SQLite-Lesevergleich bestätigte den erwarteten Klartext. In beiden Szenenaufträgen war zusätzlich der Datendienst erfasst.
+
+| Programm | SHA-256 |
+| --- | --- |
+| Verwalteter Starter | `8daf861e9fcfda961e123b0593b7c0f350a7ca4d22bf5e8e2c1a4027dadbe35a` |
+| Fensterrolle | `91c76c9c468b04e45d786d76ad1334517bea28eb9b0ddb8b744b6e2828a0ed4a` |
+| Datendienst | `354798d579d145dec3e762d51d02bd5a5a7aaf92feaca32ab3b57c2a254d9aae` |
+
+Alle drei Prozessbäume hatten null zugeordnete Netzwerkereignisse und endeten mit leerem Job. Referenzspur und Szenenspur enthielten jeweils vier von vier TCP-/UDP-Positivkontrollen, null nicht zuordenbare Netzwerkereignisse und null verlorene Ereignisse oder Puffer. Ausgewertet wurden die gültige Referenz und der vollständige Szenenlauf nach Korrektur der Synchronisation im Bedienhelfer. Rohspuren und synthetische Daten wurden nicht veröffentlicht.
+
 ### ETW beim bestätigten Verwerfen und Wiederöffnen
 
 Für den regulären Binärstand zu `f0cbb5d` enthielt die erste Messung den Referenzaufruf `check-win32-surface` (Starter und Fenster). In der zweiten Messung wurde die vorbereitete Revision 1 bearbeitet und das Verwerfen beim Schließen bestätigt. Der anschließende Leseauftrag unter frischer Bindung bestätigte Revision 1. Für beide Aufträge wurden Starter, Fenster und Datendienst jeweils anhand der erfassten Prozesslebenszeiten ausgewertet. Der Dateihash von Revision 1 blieb unverändert.
