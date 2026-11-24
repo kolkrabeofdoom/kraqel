@@ -187,7 +187,9 @@ Im Windows-Prüflauf vom 24. November 2026 bindet die Prüfsteuerung eine Entsch
 
 Der Kopierprozess endete nach der Veröffentlichung mit Exitcode 86 vor der Rückmeldung. Mit derselben Entscheidung fand der Folgeaufruf genau das vorhandene Verzeichnis. Ein fremdes Ziel blieb leer. Eine neue Prüfautorität mit frischem Schlüssel konnte den vorhandenen Beleg auch mit einer neu ausgestellten Entscheidung nicht bestätigen. Nach Änderung des Zielbildes scheiterte ebenfalls die Wiederholung. Die temporäre Probe wurde im vorhandenen gezielten Lauf ausgeführt.
 
-Der Schlüssel existiert nur während der Lebensdauer der synthetischen Prüfsteuerung. Die Windows-Probe belegt die Wiederholung nach Ausfall des Kopierprozesses in einem kontrollierten temporären Ziel. Für den Produktstarter fehlen insbesondere die dauerhafte Bindung an eine Installation und deren Kontrollsperre, das Verhalten bei unvollständigem Staging und die Freigabe einer Arbeitskopie zur späteren Bearbeitung. Normale Bestandsordner bleiben gesperrt.
+**Abbruch während der Kopie.** Für die Projekt-UUID wird ein eigener Stagingplatz exklusiv angelegt. Der Kopierprozess endete im separaten synthetischen Ziel nach dem ersten geschriebenen Byte mit Exitcode 85. Beim erneuten Aufruf war allein dieser unvollständige Bestand vorhanden. Die Wiederholung wurde vor neuer Zielanlage abgewiesen, sein Inventar blieb bytegleich. Die Probe verleiht keine Berechtigung zur Bereinigung oder Fortsetzung eines solchen Restbestands.
+
+Der Schlüssel existiert nur während der Lebensdauer der synthetischen Prüfsteuerung. Die Windows-Probe belegt die Wiederholung nach Ausfall des Kopierprozesses in einem kontrollierten temporären Ziel. Für den Produktstarter fehlen insbesondere die dauerhafte Bindung an eine Installation und deren Kontrollsperre, eine authentisierte Bereinigung gesperrter Stagingreste und die Freigabe einer Arbeitskopie zur späteren Bearbeitung. Normale Bestandsordner bleiben gesperrt.
 
 ## 5. Vor Fortsetzung des eingeschränkten Prozesses
 

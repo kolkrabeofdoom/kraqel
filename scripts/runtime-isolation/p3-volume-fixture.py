@@ -163,7 +163,7 @@ def prepare(root, fixture):
     (fixture / "expected.json").write_text(json.dumps([identity, document, asset, inventory(root)]))
 
 
-def copy_project(root, stage, metadata):
+def copy_project(root, stage, metadata, interrupt=False):
     identity, document, asset, expected = metadata
     entries = inventory(root)
     require(entries == expected, "source inventory mismatch")
@@ -173,6 +173,9 @@ def copy_project(root, stage, metadata):
         else:
             with (root / name).open("rb") as src, (stage / name).open("xb") as dst:
                 dst.write(src.read(1))
+                if interrupt:
+                    dst.flush()
+                    os._exit(85)
                 if name == "kraqel.sqlite3":
                     challenge(root, True)
                 shutil.copyfileobj(src, dst)
@@ -213,29 +216,37 @@ def receipt(key, approved, bundle):
                [approved, object_id(bundle), object_id(bundle / "project")])
 
 
-def publish(root, destination, metadata, approved, key):
+def publish(root, destination, metadata, approved, key, interrupt=False):
     with volume_guard(str(root.parent), True), pinned_directory(root), pinned_directory(destination):
-        return publish_pinned(root, destination, metadata, approved, key)
+        return publish_pinned(root, destination, metadata, approved, key, interrupt)
 
 
-def publish_pinned(root, destination, metadata, approved, key):
+def publish_pinned(root, destination, metadata, approved, key, interrupt):
     require(hmac.compare_digest(decision(key, root, destination, metadata), approved),
             "unbound decision")
     # One fixed slot for this project in this isolated destination. On Windows
     # rename never replaces an existing slot, even if a second worker wins.
     project_id = str(uuid.UUID(metadata[0]))
     final = destination / project_id
+    bundle = destination / (".pending-" + project_id)
+    require(not os.path.lexists(bundle), "unresolved staging")
     if not os.path.lexists(final):
-        with tempfile.TemporaryDirectory(dir=destination) as temp:
-            bundle = Path(temp) / "bundle"
-            stage = bundle / "project"
-            stage.mkdir(parents=True)
-            copy_project(root, stage, metadata)
-            (bundle / "receipt").write_bytes(receipt(key, approved, bundle).encode("ascii"))
-            try:
-                bundle.rename(final)
-            except FileExistsError:
-                pass  # Verify the winner with the same checks as any other replay.
+        # Exclusive reservation. A crash leaves a closed gate. Unknown or
+        # incomplete work is never deleted or used as a new source of authority.
+        bundle.mkdir()
+        # Recheck after reservation: a competing publisher may just have finished.
+        if os.path.lexists(final):
+            bundle.rmdir()  # Only our freshly created empty reservation.
+            return verify_published(final, approved, metadata, key)
+        stage = bundle / "project"
+        stage.mkdir()
+        copy_project(root, stage, metadata, interrupt)
+        (bundle / "receipt").write_bytes(receipt(key, approved, bundle).encode("ascii"))
+        bundle.rename(final)
+    return verify_published(final, approved, metadata, key)
+
+
+def verify_published(final, approved, metadata, key):
     check_entry(final)
     require({p.name for p in final.iterdir()} == {"receipt", "project"}, "unexpected bundle")
     proof = final / "receipt"
@@ -250,6 +261,19 @@ def publish_pinned(root, destination, metadata, approved, key):
 def publish_without_reply(root, destination, metadata, approved, key):
     publish(root, destination, metadata, approved, key)
     os._exit(86)
+
+
+def run_to_exit(operation, args, code):
+    worker = multiprocessing.get_context("spawn").Process(target=operation, args=args)
+    worker.start()
+    try:
+        worker.join(30)
+        require(worker.exitcode == code, "publication boundary not reached")
+    finally:
+        if worker.is_alive():
+            worker.kill()
+            worker.join()
+        worker.close()
 
 
 def capture(root, fixture):
@@ -270,17 +294,22 @@ def capture(root, fixture):
             else:
                 raise RuntimeError("foreign destination accepted")
 
-        worker = multiprocessing.get_context("spawn").Process(
-            target=publish_without_reply, args=(root, destination, metadata, approved, key))
-        worker.start()
-        try:
-            worker.join(30)
-            require(worker.exitcode == 86, "publication boundary not reached")
-        finally:
-            if worker.is_alive():
-                worker.kill()
-                worker.join()
-            worker.close()
+        with tempfile.TemporaryDirectory(dir=fixture) as partial:
+            target = Path(partial)
+            ticket = decision(key, root, target, metadata)
+            run_to_exit(publish, (root, target, metadata, ticket, key, True), 85)
+            pending = target / (".pending-" + metadata[0])
+            prefix = inventory(pending)
+            require(any(value is not None for value in prefix.values()), "missing partial transfer")
+            try:
+                publish(root, target, metadata, ticket, key)
+            except RuntimeError as exc:
+                require(str(exc) == "unresolved staging" and inventory(pending) == prefix
+                        and list(target.iterdir()) == [pending], "partial transfer released")
+            else:
+                raise RuntimeError("partial staging accepted")
+
+        run_to_exit(publish_without_reply, (root, destination, metadata, approved, key), 86)
 
         final = destination / metadata[0]
         before = object_id(final)

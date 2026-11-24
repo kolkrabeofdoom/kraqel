@@ -4,7 +4,7 @@
 
 Für die Kopie eines Projekts von einem vollständig schreibgeschützten synthetischen Quelldatenträger sind stabiler Dateibestand, Assetverknüpfungen und Identitätserhalt im Staging geprüft. Der zweite Prozess erhielt beim Anlegen neuer Assets im Stamm und im Unterverzeichnis jeweils `ERROR_WRITE_PROTECT`. Die Freigabe gewöhnlicher Bestandsordner und die Veröffentlichung einer produktiven Arbeitskopie sind offen. [Prüfaufbau und Geltungsbereich](data-format/product-start-integration-v1-draft.md#stabiler-dateibestand-auf-einem-synthetischen-quelldatenträger)
 
-Die geprüfte synthetische Kopie lässt sich einmalig an ein gebundenes Testziel veröffentlichen. Nach Prozessende vor der Rückmeldung bestätigte der Folgeaufruf denselben Abschluss. Fremdes Ziel, frischer Schlüssel und veränderter Zielbestand wurden abgewiesen. [Nachweis und Grenze der Prüfautorität](data-format/product-start-integration-v1-draft.md#einmalige-veröffentlichung-am-gebundenen-synthetischen-ziel)
+Die geprüfte synthetische Kopie lässt sich einmalig an ein gebundenes Testziel veröffentlichen. Nach Prozessende vor der Rückmeldung bestätigte der Folgeaufruf denselben Abschluss. Fremdes Ziel, frischer Schlüssel und veränderter Zielbestand wurden abgewiesen. Nach Prozessende während der Teilkopie blieb der unbekannte Restbestand gesperrt und unverändert. [Nachweis und Grenze der Prüfautorität](data-format/product-start-integration-v1-draft.md#einmalige-veröffentlichung-am-gebundenen-synthetischen-ziel)
 
 ### PDF-Export
 
