@@ -6,6 +6,19 @@ test.beforeEach(async ({ page }) => {
   await page.reload();
 });
 
+test("Projektordner archiviert nur ausdrücklich gewählte Zusatzbestände", async ({ page }) => {
+  await page.addInitScript(() =>
+    Object.defineProperty(navigator, "userAgent", { value: "Windows" }),
+  );
+  await page.reload();
+  await page.getByRole("button", { name: "Projektordner auswählen" }).click();
+  const groups = page.getByRole("group", { name: "Separat mit Passphrase archivieren" });
+  await expect(groups.locator("input:checked")).toHaveCount(0);
+  await groups.getByRole("checkbox", { name: /Exporte/u }).check();
+  await page.getByRole("button", { name: "Arbeitskopie anlegen" }).click();
+  await expect(page.getByText("Arbeitskopie angelegt und Zusatzarchiv gespeichert.")).toBeVisible();
+});
+
 test("Projektarchiv wird aus einem aktuellen Snapshot exportiert", async ({ page }) => {
   await page.getByRole("button", { name: "Abenteuer ausprobieren" }).click();
   await page.getByRole("button", { name: "Versionen" }).click();

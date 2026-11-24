@@ -1206,6 +1206,34 @@ export async function receiveProjectHandoff(folder: string, manifestSha256: stri
   });
 }
 
+export type ExtraGroup = "backups" | "exports" | "git" | "other";
+export type FolderPreview = {
+  token: string;
+  documents: number;
+  images: number;
+  extras: Record<ExtraGroup, number>;
+};
+
+export async function previewExistingFolder(): Promise<FolderPreview | null> {
+  return (
+    await callCommand<Record<string, never>, FolderPreview | null>("preview_existing_folder", {})
+  ).data;
+}
+
+export async function receiveExistingFolder(token: string, groups: ExtraGroup[]) {
+  const payload = { token, groups };
+  return (
+    await callCommand<typeof payload, "cancel" | "received" | "archiveFailed">(
+      "receive_existing_folder",
+      payload,
+    )
+  ).data;
+}
+
+export async function cancelExistingFolder(token: string) {
+  await callCommand<{ token: string }, null>("cancel_existing_folder", { token });
+}
+
 export async function prepareProjectHandoff(projectId: ProjectId): Promise<PreparedHandoff> {
   return (
     await callCommand<{ readonly projectId: ProjectId }, PreparedHandoff>(

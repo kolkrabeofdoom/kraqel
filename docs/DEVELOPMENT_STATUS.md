@@ -1,5 +1,14 @@
 # Entwicklungsstatus
 
+### Direkte Übernahme bestehender Windows-Projektordner
+
+Der Entwicklungsstand nach Alpha 6 bindet die lokale Bestandsaufnahme an die reguläre Startseite an.
+Der native Import erstellt für eine freie Projektkennung eine separate Arbeitskopie aus bestätigten
+Datenbankinhalten und referenzierten Medien. Ein lokales Änderungsereignis und gebundene
+Dateihandles sichern die Erfassung. Der optionale Archivpfad verschlüsselt ausdrücklich gewählte
+Zusatzgruppen im portablen age-Format.
+[Bedienung und Grenzen](WORKSTATION_HANDOFF.md#einen-vorhandenen-windows-projektordner-übernehmen)
+
 ### P3 · synthetische Bestandskopie
 
 Das Speichermodul erkennt mögliche Bestandsprojekte anhand ihrer Verzeichniskennung und Datenbankdatei, ohne SQLite zu öffnen. Der native Prüfpfad verwendet diese Erkennung an einem synthetischen Projektkatalog.

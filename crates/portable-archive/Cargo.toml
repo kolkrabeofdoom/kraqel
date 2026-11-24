@@ -13,3 +13,4 @@ age = { version = "=0.12.1", default-features = false }
 rpassword = "=7.5.5"
 tempfile = "3"
 zeroize = "1"
+zip = { version = "9.0.5", default-features = false }

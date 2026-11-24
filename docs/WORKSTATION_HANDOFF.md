@@ -1,5 +1,25 @@
 # Rechnerwechsel und Arbeitsübergabe
 
+## Einen vorhandenen Windows-Projektordner übernehmen
+
+Im Entwicklungsstand nach Alpha 6 auf der Startseite **Projektordner auswählen** öffnen. Den
+geschlossenen lokalen Projektordner mit seiner ursprünglichen UUID als Namen auswählen. Die Vorschau
+zeigt die Anzahl der Dokumente und Bilder sowie die Dateianzahl jeder Zusatzgruppe. Projektpfade,
+Dateinamen und Passphrase bleiben im nativen Teil der Anwendung.
+
+**Arbeitskopie anlegen** und die native Rückfrage bestätigen. KRAQEL legt die Kopie unter der
+ursprünglichen, am Ziel freien Projektkennung an. Die Auswahl läuft nach zehn Minuten ab. Bei
+geändertem Dateibestand die Vorschau neu laden. Ist die Kennung im lokalen Katalog belegt, steht der
+Vergleich vorbereiteter Arbeitskopien im Versionsdialog zur Verfügung.
+
+Wer Sicherungen, Exporte, Git-Historie oder weitere Dateien mitnehmen möchte, markiert die
+gewünschten Gruppen einzeln. Ein neues Archivziel außerhalb von Quelle und Katalog wählen und die
+eigene Passphrase zweimal im Windows-Dialog eingeben. Das portable Zusatzarchiv enthält ein ZIP mit
+höchstens 32 MiB vor der Verschlüsselung. Es lässt sich auch auf einem anderen Rechner mit der
+Passphrase und `kraqel-archiv restore QUELLE.zip.age NEUES_ZIEL.zip` wiederherstellen. Kann das
+Archiv nach erfolgreicher Projektanlage nicht am Ziel veröffentlicht werden, meldet die App beide
+Ergebnisse getrennt. Die Zusatzdateien bleiben in der Quelle.
+
 ## Getrennt auf zwei Rechnern schreiben
 
 Vor dem Abzweigen im Versionsdialog die gemeinsame Szenenbasis sichern. Nach der Rückkehr lassen sich einseitige Änderungen und Konflikte anhand der Basisdateien lesend vergleichen. Für die Auswahl einseitiger Änderungen den vorbereiteten Quellordner und seinen getrennt bestätigten Inventarhash mitnehmen. Die Bestätigung erzeugt einen weiteren Vorbereitungsordner. Die vollständigen Arbeitskopien für die weitere Bearbeitung separat aufbewahren. Aktivierung und Rücknahme geschehen im geöffneten Zielprojekt. Seine lokale Freigabe und die unverschlüsselte Rücknahmedatei gehören zu diesem Arbeitsplatz. Für den Wiederanlauf die separat gesicherte Prüfsumme bereithalten. [Ablauf im Desktop-Entwicklungsstand](../README.md#szenenstände-auf-zwei-rechnern-vergleichen)

@@ -16,6 +16,7 @@ sha2 = "0.10"
 tempfile = "3"
 
 [target.'cfg(windows)'.dependencies]
+kraqel-windows-inventory = { path = "windows-inventory" }
 kraqel-asset-service = { path = "../asset-service" }
 winapi-util = "0.1"
 

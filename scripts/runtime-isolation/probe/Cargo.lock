@@ -398,12 +398,20 @@ dependencies = [
  "kraqel-asset-service",
  "kraqel-continuity",
  "kraqel-domain",
+ "kraqel-windows-inventory",
  "rusqlite",
  "serde",
  "serde_json",
  "sha2",
  "tempfile",
  "winapi-util",
+]
+
+[[package]]
+name = "kraqel-windows-inventory"
+version = "0.1.0"
+dependencies = [
+ "windows-sys",
 ]
 
 [[package]]

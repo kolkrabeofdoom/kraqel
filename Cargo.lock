@@ -2750,6 +2750,7 @@ dependencies = [
  "rpassword",
  "tempfile",
  "zeroize",
+ "zip",
 ]
 
 [[package]]
@@ -2777,6 +2778,7 @@ dependencies = [
  "base64 0.22.1",
  "image",
  "kraqel-ai-service",
+ "kraqel-archiv",
  "kraqel-asset-service",
  "kraqel-continuity",
  "kraqel-domain",
@@ -2791,7 +2793,9 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-dialog",
  "tempfile",
+ "tokio",
  "uuid",
+ "winapi-util",
  "zeroize",
  "zip",
 ]
@@ -2882,12 +2886,20 @@ dependencies = [
  "kraqel-asset-service",
  "kraqel-continuity",
  "kraqel-domain",
+ "kraqel-windows-inventory",
  "rusqlite",
  "serde",
  "serde_json",
  "sha2 0.10.9",
  "tempfile",
  "winapi-util",
+]
+
+[[package]]
+name = "kraqel-windows-inventory"
+version = "0.1.0"
+dependencies = [
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

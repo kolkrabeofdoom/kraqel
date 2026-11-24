@@ -56,6 +56,8 @@ use tauri_plugin_dialog::DialogExt as _;
 use zeroize::Zeroizing;
 mod docx_import;
 mod docx_roundtrip;
+#[cfg(windows)]
+mod existing_folder;
 mod illustrated_export;
 #[cfg(windows)]
 mod item_review;
@@ -4059,6 +4061,8 @@ fn map_credential_error(request_id: uuid::Uuid, error: CredentialError) -> Comma
 fn setup_local_state(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let project_root = app.path().app_local_data_dir()?.join("projects");
     fs::create_dir_all(&project_root)?;
+    #[cfg(windows)]
+    app.manage(existing_folder::FolderState::default());
     app.manage(AppState {
         project_root,
         ai_releases: Mutex::new(HashMap::new()),
@@ -4157,6 +4161,12 @@ pub fn run() {
             export_project_archive,
             compare_project_handoff,
             receive_project_handoff,
+            #[cfg(windows)]
+            existing_folder::preview_existing_folder,
+            #[cfg(windows)]
+            existing_folder::cancel_existing_folder,
+            #[cfg(windows)]
+            existing_folder::receive_existing_folder,
             prepare_project_handoff,
             save_scene_basis,
             compare_scene_bases,

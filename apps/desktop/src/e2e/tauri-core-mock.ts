@@ -125,6 +125,22 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
   const state = readState();
 
   switch (command) {
+    case "cancel_existing_folder":
+      return null;
+    case "preview_existing_folder":
+      return {
+        token: "095c7239-7021-4da1-a3f6-c2bc987f23be",
+        documents: 2,
+        images: 1,
+        extras: { backups: 1, exports: 1, git: 1, other: 0 },
+      };
+    case "receive_existing_folder":
+      if (
+        payload.token !== "095c7239-7021-4da1-a3f6-c2bc987f23be" ||
+        JSON.stringify(payload.groups) !== '["exports"]'
+      )
+        throw new Error("Unerwartete Archivauswahl");
+      return "received";
     case "list_projects":
       return state.projects.map(({ project }) => ({ id: project.id, name: project.name }));
     case "delete_project": {

@@ -584,3 +584,8 @@ mod windows;
 
 #[cfg(all(windows, feature = "desktop-review"))]
 pub use windows::exchange::ui_restart::durable::product::manuscript::{open_item_review, open_review};
+
+#[cfg(all(windows, feature = "desktop-review"))]
+mod archive_passphrase;
+#[cfg(all(windows, feature = "desktop-review"))]
+pub use archive_passphrase::prompt_archive_passphrase;

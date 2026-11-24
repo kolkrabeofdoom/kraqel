@@ -13,6 +13,7 @@ import {
   type Workspace,
 } from "./commands";
 import { EditorWorkspace } from "./EditorWorkspace";
+import { ExistingFolderImport } from "./ExistingFolderImport";
 
 export function App() {
   const [projects, setProjects] = useState<readonly ProjectOverview[]>([]);
@@ -238,6 +239,9 @@ export function App() {
           </p>
         </section>
 
+        {navigator.userAgent.includes("Windows") && (
+          <ExistingFolderImport busy={busy} setBusy={setBusy} refresh={refreshProjects} />
+        )}
         <section className="project-card" aria-labelledby="receive-heading">
           <h2 id="receive-heading">Windows-Arbeitskopie empfangen</h2>
           <p>

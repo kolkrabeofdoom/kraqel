@@ -1,6 +1,13 @@
 //! Sicherer Lebenszyklus lokaler Projektverzeichnisse.
 
+#[cfg(windows)]
+mod existing_folder;
 mod handoff;
+#[cfg(windows)]
+pub use existing_folder::{
+    ExistingExtraCounts, ExistingExtraFile, ExistingExtraGroup, ExistingFolderGuard,
+    ExistingFolderPreview, pin_existing_folder_path, safe_existing_name,
+};
 #[cfg(windows)]
 mod item_activation;
 #[cfg(windows)]

@@ -45,7 +45,7 @@ pub(super) fn validate_source(
     Ok(())
 }
 
-fn rebuild(source: &Connection, id: ProjectId) -> Result<Database, ProjectError> {
+pub(super) fn rebuild(source: &Connection, id: ProjectId) -> Result<Database, ProjectError> {
     let mut fresh = Database::open_in_memory()?;
     fresh
         .connection()
@@ -118,7 +118,7 @@ pub(super) fn same_rows(
     }
 }
 
-fn write_database(fresh: &Database, path: &Path) -> Result<(), ProjectError> {
+pub(super) fn write_database(fresh: &Database, path: &Path) -> Result<(), ProjectError> {
     fresh.connection().backup(MAIN_DB, path, None)?;
     fs::OpenOptions::new()
         .write(true)
