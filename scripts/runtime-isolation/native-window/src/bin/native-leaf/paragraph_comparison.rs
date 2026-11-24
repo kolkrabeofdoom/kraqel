@@ -58,6 +58,15 @@ fn field_range(lines: &[&str], paragraphs: Range<usize>) -> Range<usize> {
     start..end
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub(super) struct Difference {
+    pub index: usize,
+    pub count: usize,
+    pub local: Range<usize>,
+    pub remote: Range<usize>,
+    pub hint: &'static str,
+}
+
 pub(super) struct Comparison {
     text: String,
     header_units: usize,
@@ -77,20 +86,19 @@ impl Comparison {
         self.current = None;
     }
 
-    pub fn selected_service_block(&self, draft: &str) -> Option<String> {
+    pub fn selected_service_block(&self, draft: &str) -> Option<(String, Range<usize>)> {
         let index = self.current?;
         let mut left: Vec<_> = draft.split('\n').collect();
         let right: Vec<_> = self.text.split('\n').collect();
         let (local, remote) = gaps(&left, &right).into_iter().nth(index)?;
+        let start = local.start;
+        let end = start + remote.len();
         left.splice(local, right[remote].iter().copied());
-        Some(left.join("\n"))
+        let selection = field_range(&left, start..end);
+        Some((left.join("\n"), selection))
     }
 
-    pub fn step(
-        &mut self,
-        draft: &str,
-        backwards: bool,
-    ) -> Option<(usize, usize, Range<usize>, Range<usize>)> {
+    pub fn step(&mut self, draft: &str, backwards: bool) -> Option<Difference> {
         let left: Vec<_> = draft.split('\n').collect();
         let right: Vec<_> = self.text.split('\n').collect();
         let gaps = gaps(&left, &right);
@@ -107,13 +115,22 @@ impl Comparison {
         };
         self.current = Some(index);
         let (a, b) = &gaps[index];
+        // An empty paragraph has a zero-width selection but still occupies a paragraph.
+        let hint = if b.is_empty() {
+            "F8 entfernt lokale Absätze"
+        } else if a.is_empty() {
+            "F8 fügt Dienstabsätze ein"
+        } else {
+            "F8 ersetzt lokale Absätze"
+        };
         let b = field_range(&right, b.clone());
-        Some((
-            index + 1,
+        Some(Difference {
+            index: index + 1,
             count,
-            field_range(&left, a.clone()),
-            self.header_units + b.start..self.header_units + b.end,
-        ))
+            local: field_range(&left, a.clone()),
+            remote: self.header_units + b.start..self.header_units + b.end,
+            hint,
+        })
     }
 }
 
@@ -124,17 +141,44 @@ mod tests {
     fn independent_insertions_and_removals_keep_the_shared_paragraphs_aligned() {
         let mut compare = Comparison::new("🐦\nB\nC\nNeu", "X\r\n");
         let draft = "🐦\nLokal\nB\nC";
-        assert_eq!(compare.step(draft, false), Some((1, 2, 4..9, 7..7)));
         assert_eq!(
-            compare.selected_service_block(draft).as_deref(),
-            Some("🐦\nB\nC")
+            compare.step(draft, false),
+            Some(Difference {
+                index: 1,
+                count: 2,
+                local: 4..9,
+                remote: 7..7,
+                hint: "F8 entfernt lokale Absätze"
+            })
         );
-        assert_eq!(compare.step(draft, false), Some((2, 2, 15..15, 13..16)));
         assert_eq!(
-            compare.selected_service_block(draft).as_deref(),
-            Some("🐦\nLokal\nB\nC\nNeu")
+            compare.selected_service_block(draft),
+            Some(("🐦\nB\nC".to_owned(), 4..4))
         );
-        assert_eq!(compare.step(draft, true), Some((1, 2, 4..9, 7..7)));
+        assert_eq!(
+            compare.step(draft, false),
+            Some(Difference {
+                index: 2,
+                count: 2,
+                local: 15..15,
+                remote: 13..16,
+                hint: "F8 fügt Dienstabsätze ein"
+            })
+        );
+        assert_eq!(
+            compare.selected_service_block(draft),
+            Some(("🐦\nLokal\nB\nC\nNeu".to_owned(), 17..20))
+        );
+        assert_eq!(
+            compare.step(draft, true),
+            Some(Difference {
+                index: 1,
+                count: 2,
+                local: 4..9,
+                remote: 7..7,
+                hint: "F8 entfernt lokale Absätze"
+            })
+        );
         assert_eq!(compare.step("🐦\nB\nC\nNeu", false), None);
     }
 }

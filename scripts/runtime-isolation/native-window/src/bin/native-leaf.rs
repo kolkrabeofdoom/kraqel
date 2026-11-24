@@ -1602,7 +1602,14 @@ fn navigate_paragraph_difference(hwnd: HWND, backwards: bool) {
     });
     let Some(selection) = result else { return };
     unsafe {
-        let message = if let Some((index, count, local, remote)) = selection {
+        let message = if let Some(paragraph_comparison::Difference {
+            index,
+            count,
+            local,
+            remote,
+            hint,
+        }) = selection
+        {
             let pane = GetDlgItem(hwnd, COMPARISON);
             SetFocus(pane);
             for (control, range) in [(GetDlgItem(hwnd, EDIT), local), (pane, remote)] {
@@ -1614,9 +1621,7 @@ fn navigate_paragraph_difference(hwnd: HWND, backwards: bool) {
                     0,
                 );
             }
-            format!(
-                "Unterschied {index} von {count} · F7 weiter · Umschalt+F7 zurück · F8 in Entwurf übernehmen"
-            )
+            format!("Unterschied {index} von {count} · {hint} · F7 weiter · Umschalt+F7 zurück")
         } else {
             String::from("Beide Texte stimmen überein · Speichern gesperrt")
         };
@@ -1633,15 +1638,17 @@ fn take_service_paragraphs(hwnd: HWND) {
     unsafe {
         let message = match merged {
             None => "Zuerst mit F7 einen Unterschied auswählen",
-            Some(text) if !kraqel_native_scene_model::valid_scene_edit(&text, false) => {
+            Some((text, _)) if !kraqel_native_scene_model::valid_scene_edit(&text, false) => {
                 "Übernahme überschreitet die Textgrenzen · Entwurf unverändert"
             }
-            Some(text) => {
+            Some((text, selection)) => {
                 let edit = GetDlgItem(hwnd, EDIT);
                 SetFocus(edit);
                 let replacement = wide(text.replace('\n', "\r\n"));
                 SendMessageW(edit, EM_SETSEL, 0, -1);
                 SendMessageW(edit, EM_REPLACESEL, 1, replacement.as_ptr() as LPARAM);
+                SendMessageW(edit, EM_SETSEL, selection.start, selection.end as isize);
+                SendMessageW(edit, windows_sys::Win32::UI::Controls::EM_SCROLLCARET, 0, 0);
                 if PLAIN_REVIEW.get() {
                     "Dienstabsätze übernommen · F7 weiter · F9 Entwurf prüfen und speichern"
                 } else {
