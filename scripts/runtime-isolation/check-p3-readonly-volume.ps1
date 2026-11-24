@@ -1,7 +1,11 @@
 # Windows-only P3 research fixture. Run with administrative rights for VHD attachment.
 # Creates its own source volume. Takes no source, destination or physical disk parameter.
-[CmdletBinding()]
-param([switch]$InteractivePreview)
+[CmdletBinding(DefaultParameterSetName="Regression")]
+param(
+    [Parameter(ParameterSetName="Regression")][switch]$InteractivePreview,
+    [Parameter(ParameterSetName="Selection", Mandatory)][switch]$SelectedPreview,
+    [Parameter(ParameterSetName="Selection")][switch]$RecoveryChecks
+)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $python = (Get-Command python.exe -CommandType Application | Select-Object -First 1).Source
@@ -28,6 +32,7 @@ function Get-FixtureDisk {
 }
 function Invoke-Fixture([string]$Mode, [string]$VolumePath) {
     & $python -I (Join-Path $PSScriptRoot 'p3-volume-fixture.py') $Mode $VolumePath $fixture
+    if ($Mode -eq "select" -and $LASTEXITCODE -eq 10) { return }
     if ($LASTEXITCODE -ne 0) { throw "P3 fixture failed ($Mode)" }
 }
 try {
@@ -43,7 +48,16 @@ try {
     $volumePath = $volume.Path
     if ($volumePath -notmatch '^\\\\\?\\Volume\{[0-9a-f-]{36}\}\\$') { throw 'Missing local volume binding' }
     $partitionId = $partition.Guid
-    Invoke-Fixture 'prepare' $volumePath
+    if ($SelectedPreview) {
+        Invoke-Fixture 'select' $volumePath
+        if ($LASTEXITCODE -eq 10) {
+            Write-Output 'Auswahl abgebrochen. Keine Projektkopie angelegt.'
+            $completed = $true
+            return
+        }
+    } else {
+        Invoke-Fixture 'prepare' $volumePath
+    }
 
     Dismount-VHD -Path $image
     $attached = $false
@@ -56,7 +70,7 @@ try {
     if (!$disk.IsReadOnly -or $reopened.Count -ne 1 -or $reopened[0].Path -ne $volumePath) {
         throw 'Read-only source volume not confirmed'
     }
-    $mode = if ($InteractivePreview) { 'preview' } else { 'capture' }
+    $mode = if ($RecoveryChecks) { 'selected-recovery' } elseif ($SelectedPreview) { 'selected-preview' } elseif ($InteractivePreview) { 'preview' } else { 'capture' }
     Invoke-Fixture $mode $volumePath
     $completed = $true
 } finally {

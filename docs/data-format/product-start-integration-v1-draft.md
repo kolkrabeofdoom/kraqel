@@ -143,8 +143,7 @@ Für vorhandene Projekte ist eine **ausdrückliche, zerstörungsfreie Arbeitskop
    keine rohe Kopie einer möglicherweise aktiven WAL-Datenbank. Stillstand/Änderungserkennung muss
    technisch belegt sein; „altes Fenster geschlossen“ allein ist kein Nachweis exklusiven Besitzes.
 4. Nur im getrennten Staging prüfen/migrieren. Projekt-, Dokument- und Entitäts-UUIDs der lokalen
-   Arbeitskopie erhalten, Querverweise/Medien/Unicode und Schema prüfen. Keine stillen Auslassungen:
-   Umgang mit Backups, Exporten, Git-Historie und weiteren Dateien vor Veröffentlichung festlegen.
+   Arbeitskopie erhalten, Querverweise/Medien/Unicode und Schema prüfen. Zusatzbestände vor der Entscheidung anzeigen. Backups, Exporte, Git-Historie und weitere Dateien sind standardmäßig abgewählt. Eine ausdrückliche Freigabe gilt für genau die angezeigten Bestände des gewählten Projekts. Sie werden als separates Archiv neben der Arbeitskopie aufbewahrt. Die Originalquelle bleibt vollständig erhalten.
 5. Geprüften Zielbestand und Herkunftsbeleg authentisiert binden, dann atomar veröffentlichen.
    Wiederholung derselben Entscheidung liefert denselben Abschluss; keine zweite Kopie oder neue
    Importautorität. Alte Quelle bleibt unverändert und wird niemals automatisch gelöscht.
@@ -197,6 +196,37 @@ Zwischen Dialogbestätigung und Erfassung vergleicht die Prüfsteuerung jeden ge
 
 Für reguläre Projekte bleibt die freie Ordnerauswahl in der installierten Anwendung offen. Das synthetische Verfahren setzt die vertrauenswürdige Prüfsteuerung und die zugehörige Kontrollablage voraus.
 
+### Bedienbare P3-Übernahme mit separatem Zusatzarchiv
+
+Der zusammenhängende Windows-Prüflauf verbindet native Auswahl, inventarisierte Erfassung, Veröffentlichung, Wiederöffnen durch die Prüfinstallation und schreibgeschützte Szenenanzeige. Er benötigt PowerShell 7 mit administrativen Rechten zum Einhängen seiner temporären VHDX und die im Skript genannten drei lokalen Binärdateien.
+
+```powershell
+./scripts/runtime-isolation/check-p3-readonly-volume.ps1 -SelectedPreview
+```
+
+Vor der Auswahl liest `ProjectManager::existing_project_candidates` ausschließlich Verzeichnis- und Dateimetadaten der gebundenen Projektwurzel. Es liefert sortierte Kandidatenkennungen, öffnet keine SQLite-Verbindung und löst keine Migration aus. Windows hält die Verzeichnisse ohne Löschfreigabe offen. Mehrdeutige Kennungen, fehlende Datenbankdateien und unsichere Verzeichniseinträge führen zum Fehler. Die Kennung bestätigt noch keine gültige Datenbank. Der native Aufruf `inspect-p3-fixture-catalog` vergleicht im durchlaufenen Prüfpfad ausschließlich Kandidaten aus einer laufgebundenen TEMP-Wurzel mit den vorbereiteten Projekten.
+
+Im Dialog stehen Nord und Süd sowie vier zunächst leere Kontrollkästchen. Die angezeigten relativen Namen gehören zu festen synthetischen Beispielen. Die Wahl eines Projekts bestätigt zugleich die markierten Gruppen. Die Arbeitskopie enthält die SQLite-Daten mit belegtem WAL-Stand und die Arbeitsassets. Freigegebene Zusatzdateien liegen in `zusatzbestand.zip` neben dem Projektverzeichnis. Git-Bestände gelangen als Archivinhalt in die Kopie. Die Vorschau führt sie weder aus noch entpackt sie. Ohne Freigabe entsteht kein ZIP. Die Erfassung überspringt die Nutzdaten abgewählter Zusätze. Die Erzeugung und sichere Bereinigung der synthetischen Testdateien verwendet eigene Prüfsummen.
+
+Arbeitsbestand und optionales Archiv werden in einem gemeinsamen Staging-Verzeichnis vorbereitet und gemeinsam umbenannt. Quellidentität, Szenenwahl, Archivfreigabe und Archivhash sind an die Entscheidung gebunden. Die Stagingreservierung erfasst die Dateiidentität des Zusatzarchivs vor dem ersten Kopierbyte des Projekts. Die Veröffentlichung prüft das Archiv erneut und der Abschlussbeleg gilt für das gesamte Paket. Mit `-SelectedPreview -RecoveryChecks` lässt sich der Wiederanlauf einschließlich bestätigter Bereinigung prüfen. Der Lauf verweigerte eine bytegleiche Ersatzdatei und setzte den ursprünglichen Bestand nach dem Starterabbruch fort. Ein unklarer Teilbestand vor Abschluss bleibt gesperrt. Der Runner entfernt seine synthetische Testinstallation nach regulärem Abschluss.
+
+**Windows-Nachweise vom 24. November 2026.** Ohne Zusatzfreigabe öffnete sich für Nord »Szene A«, mit Sicherung und Git-Bestand für Süd »Szene B«. Beide Fenster prüften Revision, Nur-Lese-Stil und den Inhalt des nativen Textfelds. Der Abbruch vor der Erfassung erzeugte keine Kopie. Ein zusätzlich freigegebener Export enthielt ausschließlich den angeforderten Eintrag. Manipulierte Freigabe und veränderte Archivbytes wurden beim Wiederöffnen abgewiesen. Der separate Wiederanlauflauf prüfte auch die Ablehnung einer anderen zulässigen synthetischen Zeile mit den richtigen UUIDs.
+
+Der frische ETW-Vergleich verwendete den Abbruch als Referenz. Im zweiten Lauf war Süd mit Git-Bestand und weiterer Datei ausgewählt. Die Prüfsteuerung meldete mit `KRAQEL_P3_ETW_ROOTS=1` beim Start jeweils PID und Programmbasename. Der bestehende Auswerter prüfte die zugehörigen Prozesslebenszeiten im Modus `native-control`.
+
+| Messung | Native Prozesse | Positive Loopback-Kontrollen | Ereignis-/Pufferverluste | Zugeordnete Netzwerkereignisse |
+| --- | --- | --- | --- | --- |
+| Abbruch | 1 Bestandserkennung, 1 Auswahldialog | 4 von 4 | 0 / 0 | 0 |
+| Zusatzarchiv und Vorschau | 1 Bestandserkennung, 1 Auswahldialog, 4 Starteraufrufe, 1 Datendienst, 1 Fensterrolle | 4 von 4 | 0 / 0 | 0 |
+
+Beide Läufe hatten vollständige Prozessenden und keine Zuordnungslücken. Der Nachweis gilt für die gemessenen nativen Prozessbäume. Python-Prüfsteuerung, systemweite Dienste und installierte Alpha liegen außerhalb dieser Messung.
+
+| Gemessene Datei | SHA-256 |
+| --- | --- |
+| `kraqel-isolation-probe.exe` und ihre Kopie `p3-starter.exe` | `3930e917dcd340f26f452b3034ff2e1aabff351905da40d3a8766c1d8a95e053` |
+| `pipe-service.exe` | `d03cdee9c35e8c7387822cb79825b5c189d8f55551cb07c8cee746aef6f2c5b1` |
+| `native-leaf.exe` | `df514a4b13d56b5781f3675000ef69d438052a420261fb26b8716923856cef44` |
+
 ### Einmalige Veröffentlichung am gebundenen synthetischen Ziel
 
 Im Windows-Prüflauf vom 24. November 2026 bindet die Prüfsteuerung eine Entscheidung per HMAC an Volume-Pfad und Verzeichnisidentität der Quelle, Verzeichnisidentität des privaten Prüfziels, Projekt-, Dokument- und Medienkennungen sowie das vollständige erwartete Inventar. Der Kopierprozess prüft selbst den Schreibschutz und hält Quelle und Zielverzeichnis während der Operation offen. Die geprüfte Kopie und ihr Abschlussbeleg werden gemeinsam durch Umbenennen eines Verzeichnisses an den festen, aus der Projekt-UUID abgeleiteten Zielplatz veröffentlicht. Der Beleg hat eine eigene HMAC-Domäne und bindet die Entscheidung und die Dateiidentitäten beider veröffentlichten Verzeichnisse. Die Wiederholung prüft Beleg und tatsächliches Inventar am selben Ziel.
@@ -225,7 +255,7 @@ Der gezielte VHDX-Lauf beendet den nativen Starter nach dem ersten Kopierbyte un
 
 Die Windows-Probe beendet den Kopierprozess direkt nach der ersten Entfernung. Das ungeplante Fehlen des nächsten Objekts und eine bytegleiche Ersatzdatei sperren die Fortsetzung. Nach Rückgabe des ursprünglichen Objekts kann der Folgeprozess abschließen. Der Prüfaufbau verwendet eine kontrollierte temporäre Zielablage und einen schreibgeschützten synthetischen Quelldatenträger. Der Abschluss betrifft den vorgesehenen Stagingplatz. Er belegt weder sichere physische Datenlöschung noch Verhalten bei Stromausfall.
 
-**Erster Lesezugriff auf die veröffentlichte Kopie.** Der Prüfaufruf `broker-store read-p3-fixture` verlangt den gespeicherten Abschlussbeleg. Er erlaubt am lokalen Kanal ausschließlich die Prüfung der drei bereits gebundenen Werte. Der Kopierprozess hält die Zielsperre, prüft das veröffentlichte Verzeichnis und sein Inventar und hält die Datenbank dabei über ein Windows-Lesehandle gegen Schreiben und Ersetzen gesperrt. Für eine einzelne Datenbank im Rollback-Modus liest SQLite das geprüfte Hauptabbild im Arbeitsspeicher. Im WAL-Fall hält die Prüfsteuerung Hauptdatei, WAL und zugehörigen SHM-Index gleichzeitig gegen Schreiben und Ersetzen gesperrt und prüft ihre SHA-256-Werte. SQLite öffnet die Kopie lesend und übernimmt die bestätigte Transaktionssicht mit seiner Backup-API in eine speicherinterne Datenbank. Die Grenze beträgt acht MiB je SQLite-Datei und acht MiB für die logische Datenbank. Fehlende WAL-/SHM-Partner und vorhandene Rollback-Journale sperren diesen synthetischen Pfad. Die feste Abfrage liefert Titel, Klartext und Revision genau der in der Übergabe gebundenen Projekt- und Szenen-UUID. Der Prüflauf erwartet bei der vorbereiteten Szene den Titel »Szene A«, den Klartext »Text aus der Testkopie.« und Revision 0. Während der unterbrochenen Übernahme bleibt der Leseaufruf gesperrt. Die SQLite-Abfrage läuft in der synthetischen Prüfsteuerung.
+**Erster Lesezugriff auf die veröffentlichte Kopie.** Der Prüfaufruf `broker-store read-p3-fixture` verlangt den gespeicherten Abschlussbeleg. Er erlaubt am lokalen Kanal ausschließlich die Prüfung der drei bereits gebundenen Werte. Der Kopierprozess hält die Zielsperre, prüft das veröffentlichte Verzeichnis und sein Inventar und hält die Datenbank dabei über ein Windows-Lesehandle gegen Schreiben und Ersetzen gesperrt. Für eine einzelne Datenbank im Rollback-Modus liest SQLite das geprüfte Hauptabbild im Arbeitsspeicher. Im WAL-Fall hält die Prüfsteuerung Hauptdatei, WAL und zugehörigen SHM-Index gleichzeitig gegen Schreiben und Ersetzen gesperrt und prüft ihre SHA-256-Werte. SQLite öffnet die Kopie lesend und übernimmt die bestätigte Transaktionssicht mit seiner Backup-API in eine speicherinterne Datenbank. Die Grenze beträgt acht MiB je SQLite-Datei und acht MiB für die logische Datenbank. Fehlende WAL-/SHM-Partner und vorhandene Rollback-Journale sperren diesen synthetischen Pfad. Die feste Abfrage liefert Titel, Klartext und Revision genau der in der Übergabe gebundenen Projekt- und Szenen-UUID. Der Referenzlauf erwartet »Szene A« mit »Text aus der Testkopie.«. Projekt Süd verwendet »Szene B« mit »Wind an der Suedkueste.«. Beide haben Revision 0. Während der unterbrochenen Übernahme bleibt der Leseaufruf gesperrt. Die SQLite-Abfrage läuft in der synthetischen Prüfsteuerung.
 
 Die WAL-Probe speichert zunächst »Vor dem WAL-Commit« in der Hauptdatei. Ein separater Prozess bestätigt »Text aus der Testkopie.« im WAL und endet ohne Schließen der Verbindung. Der unveränderte Hauptdateihash belegt, dass der neue Text beim Kopieren noch im WAL liegt. Staging und Vorschau prüfen den bestätigten Text. Die Quelldateien bleiben bis zum abschließenden Inventarvergleich auf dem schreibgeschützten Datenträger.
 

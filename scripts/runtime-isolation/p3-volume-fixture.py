@@ -5,6 +5,7 @@ from ctypes import wintypes
 from contextlib import ExitStack, closing, contextmanager
 import hashlib
 import hmac
+import io
 import multiprocessing
 import msvcrt
 import os
@@ -19,6 +20,7 @@ import sys
 import tempfile
 import time
 import uuid
+import zipfile
 
 
 def require(ok, message):
@@ -29,6 +31,26 @@ def require(ok, message):
 P3_SERVICE = Path(__file__).resolve().parent / "native-window/target/release/pipe-service.exe"
 P3_WINDOW = P3_SERVICE.with_name("native-leaf.exe")
 P3_SCENE = ("Szene A", "Text aus der Testkopie.", 0)
+
+
+P3_SOUTH = ("Szene B", "Wind an der Suedkueste.", 0)
+
+
+# Known synthetic examples. A real project's working set must come from its verified database.
+EXTRA_FILES = {
+    "backups/alt.txt": (1, b"synthetic backup"),
+    "exports/entwurf.txt": (2, b"synthetic export"),
+    ".git/HEAD": (4, b"ref: refs/heads/synthetic\n"),
+    "notiz.txt": (8, b"synthetic private note"),
+}
+EXTRA_ARCHIVE = "zusatzbestand.zip"
+
+
+def expected_scene(metadata):
+    if len(metadata) == 5:
+        return P3_SCENE
+    require(len(metadata) in (6, 7) and metadata[5] in ("north", "south"), "unknown fixture scene")
+    return P3_SOUTH if metadata[5] == "south" else P3_SCENE
 
 
 def scene_frame(metadata, row):
@@ -113,9 +135,10 @@ def inventory(root):
     return entries
 
 
-def capture_writable_fixture(root, selected_root, read_oplock, during_copy=None, selected_entries=None):
+def capture_writable_fixture(root, selected_root, read_oplock, during_copy=None, selected_entries=None, include=None):
     """Capture one bounded logical instant. Return bytes only after every outstanding lease passes."""
     checks, files, snapshot = [], [], {}
+    observed = set()
     remaining = 32 * 1024 * 1024
     with ExitStack() as pins:
         def visit(path, depth):
@@ -152,18 +175,24 @@ def capture_writable_fixture(root, selected_root, read_oplock, during_copy=None,
             checks.append(pins.enter_context(read_oplock(raw)))
             check_entry(path)
             name = path.relative_to(root).as_posix()
+            observed.add(path)
+            included = include is None or name in include
             if directory:
-                if depth:
+                if depth and included:
                     snapshot[name] = None
                 for child in path.iterdir():
                     visit(child, depth + 1)
             else:
                 require(info.st_nlink == 1 and path.is_file(), "unsupported capture file")
+                if not included:
+                    return
                 reader = pins.enter_context(path.open("rb"))
                 require(os.path.samestat(info, os.fstat(reader.fileno())), "changed capture file")
                 files.append((name, reader, info.st_size))
 
         visit(root, 0)
+        if selected_entries is not None:
+            require(observed == set(selected_entries) | {root}, "selected source entry missing")
         for index, (name, reader, length) in enumerate(files):
             require(length <= min(remaining, 8 * 1024 * 1024), "fixture byte budget exceeded")
             data = reader.read(length + 1)
@@ -188,7 +217,32 @@ def selection_digest(selected, candidate, metadata):
 
 def verify_selection(fixture, candidate, metadata, selected):
     with native_authority(fixture / "selection-install", False) as authority:
-        authority.attest(NativeAuthority.domains[0], selection_digest(selected, candidate, metadata[:4]), False)
+        authority.attest(NativeAuthority.domains[0], selection_digest(selected, candidate, metadata[:4] + metadata[5:]), False)
+
+    if len(metadata) == 7:
+        approved_archive(candidate.parent, metadata)
+
+
+def approved_archive(parent, metadata):
+    path = parent / EXTRA_ARCHIVE
+    record = metadata[6] if len(metadata) == 7 else None
+    if not record or not record["groups"]:
+        require(not os.path.lexists(path), "unapproved archive")
+        return None
+    before = check_entry(path)
+    require(before.st_nlink == 1 and path.is_file(), "archive changed")
+    with path.open("rb") as stream:
+        require(os.path.samestat(before, os.fstat(stream.fileno())), "archive replaced")
+        data = stream.read(32 * 1024 * 1024 + 1)
+    require(len(data) <= 32 * 1024 * 1024 and hashlib.sha256(data).hexdigest() == record["sha256"],
+            "archive changed")
+    expected = {"files/" + name: content for name, (group, content) in EXTRA_FILES.items()
+                if record["groups"] & group}
+    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        require(sorted(archive.namelist()) == sorted(expected), "archive selection mismatch")
+        for name, content in expected.items():
+            require(archive.read(name) == content, "archive entry mismatch")
+    return data
 
 
 class UnownedFixtureFile(RuntimeError):
@@ -274,7 +328,8 @@ def selection_sources(interactive):
         with tempfile.TemporaryDirectory(prefix="kraqel-p3-writable-") as temp:
             yield Path(temp), {}, []
         return
-    temp = Path(tempfile.mkdtemp(prefix="kraqel-p3-writable-"))
+    temp = Path(tempfile.gettempdir()) / ("kraqel-p3-writable-" + uuid.uuid4().hex)
+    temp.mkdir()
     files = {}
     directories = [(temp, temp.lstat())]
     try:
@@ -291,32 +346,59 @@ def selection_sources(interactive):
             remove_empty_fixture_directory(directory, identity)
 
 
+def report_native_root(process, image):
+    if os.environ.get("KRAQEL_P3_ETW_ROOTS") == "1":
+        print(f"P3-ETW {process.pid} {image.name}", flush=True)
+
+
 def prepare_captured_project(target, fixture, interactive_selection=False):
     import runpy
     read_oplock = runpy.run_path(str(Path(__file__).with_name("p3_directory_oplock.py")))["read_oplock"]
     with selection_sources(interactive_selection) as (temp, generated_files, directories), ExitStack() as pins:
         pins.enter_context(pinned_directory(temp))
         choices = {}
+        groups = 0
         handles = []
+        catalog = temp / "projects"
+        catalog.mkdir()
+        if interactive_selection:
+            directories.append((catalog, catalog.lstat()))
+        pins.enter_context(pinned_directory(catalog))
         for name in (("Projekt Nord", "Projekt Sued") if interactive_selection else ("project",)):
-            source_fixture = Path(temp) / name
-            source_fixture.mkdir()
-            root = source_fixture / "project"
-            metadata = seed_writable_project(root)
+            identity = str(uuid.uuid4())
+            root = catalog / identity
+            metadata = seed_writable_project(root, identity, P3_SOUTH if name == "Projekt Sued" else P3_SCENE)
             if interactive_selection:
-                for directory in (source_fixture, root, root / "empty", root / "assets",
-                                  root / "assets/nested", root / "assets/thumbnails"):
+                for relative, (_, content) in EXTRA_FILES.items():
+                    path = root / relative
+                    path.parent.mkdir(exist_ok=True)
+                    with path.open("xb") as stream:
+                        stream.write(content)
+                for directory in (root, root / "empty", root / "assets",
+                                  root / "assets/nested", root / "assets/thumbnails",
+                                  root / "backups", root / "exports", root / ".git"):
                     directories.append((directory, directory.lstat()))
                 generated_files[name] = []
                 for relative in ("kraqel.sqlite3", "kraqel.sqlite3-wal", "kraqel.sqlite3-shm",
                                  "assets/nested/cover.png", "assets/thumbnails/cover.png"):
                     path = root / relative
                     generated_files[name].append((path, path.lstat(), metadata[3][relative]))
-            pins.enter_context(pinned_directory(source_fixture))
+                for relative, (_, content) in EXTRA_FILES.items():
+                    path = root / relative
+                    generated_files[name].append((path, path.lstat(), hashlib.sha256(content).hexdigest()))
             handles.append(pins.enter_context(pinned_directory(root)))
             choices[name] = (metadata, root, root.lstat())
         if interactive_selection:
             picker = Path(__file__).parent / "probe/target/debug/kraqel-isolation-probe.exe"
+            with subprocess.Popen([picker, "broker-store", "inspect-p3-fixture-catalog",
+                                   temp.name.removeprefix("kraqel-p3-writable-")],
+                                  stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                  stderr=subprocess.DEVNULL) as probe:
+                report_native_root(probe, picker)
+                output, _ = probe.communicate()
+                require(probe.returncode == 0 and json.loads(output) ==
+                        {"candidates": sorted(choice[0][0] for choice in choices.values())},
+                        "uncertain project catalog")
             import _winapi
             process = _winapi.GetCurrentProcess()
             with ExitStack() as protected:
@@ -336,6 +418,7 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
                                               stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                                               stdin=subprocess.DEVNULL, startupinfo=startup, close_fds=True)
                 with dialog:
+                    report_native_root(dialog, picker)
                     output, _ = dialog.communicate()
                     require(dialog.returncode == 0, "source selection unavailable")
                 reply = json.loads(output)
@@ -345,7 +428,9 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
                 require(isinstance(reply, dict) and reply.get("selection") in names, "unknown source selection")
                 name = names[reply["selection"]]
                 stat = choices[name][2]
-                require(reply == {"selection": reply["selection"],
+                groups = reply.get("archiveGroups")
+                require(type(groups) is int and 0 <= groups <= 15, "invalid archive selection")
+                require(reply == {"selection": reply["selection"], "archiveGroups": groups,
                                   "directory": [stat.st_dev, f"{stat.st_ino:032x}"]},
                         "selected directory identity mismatch")
                 retain[name]()
@@ -358,15 +443,26 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
             selected_entries = {path: identity for path, identity, _ in generated_files[name]}
             selected_entries.update((path, identity) for path, identity in directories
                                     if root in path.parents)
+        variant = [("south" if name == "Projekt Sued" else "north"),
+                   {"groups": groups, "sha256": None}] if interactive_selection else []
+        extras = {relative for relative, (group, _) in EXTRA_FILES.items() if groups & group}
         planned = dict(metadata[3])
 
         def capture(after_first=None):
-            snapshot = capture_writable_fixture(root, selected_root, read_oplock, after_first, selected_entries)
+            include = set(planned) | extras if interactive_selection else None
+            snapshot = capture_writable_fixture(root, selected_root, read_oplock, after_first,
+                                                selected_entries, include)
+            archive_bytes = {relative: snapshot.pop(relative) for relative in sorted(extras)}
+            require(all(data == EXTRA_FILES[relative][1] for relative, data in archive_bytes.items()),
+                    "selected archive entry changed")
             expected = {name: None if data is None else hashlib.sha256(data).hexdigest()
                         for name, data in snapshot.items()}
             require(expected == planned, "incomplete writable capture")
-            with tempfile.TemporaryDirectory(dir=target.parent) as work:
-                staged = Path(work) / "project"
+            parent = target.parent.parent if interactive_selection else target.parent
+            with tempfile.TemporaryDirectory(dir=parent) as work:
+                package = Path(work) / "package"
+                package.mkdir()
+                staged = package / "project"
                 staged.mkdir()
                 for name, data in snapshot.items():
                     if data is None:
@@ -375,6 +471,13 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
                         with (staged / name).open("xb") as dst:
                             dst.write(data)
                 require(inventory(staged) == expected, "capture staging changed")
+                archive = package / EXTRA_ARCHIVE
+                if archive_bytes:
+                    with zipfile.ZipFile(archive, "x", compression=zipfile.ZIP_STORED) as output:
+                        for relative, data in archive_bytes.items():
+                            output.writestr("files/" + relative, data)
+                    with archive.open("rb") as stream:
+                        variant[1]["sha256"] = hashlib.file_digest(stream, "sha256").hexdigest()
                 # Register while the original selection and the staged candidate are still bound.
                 with pinned_directory(staged):
                     home = fixture / "selection-install"
@@ -383,8 +486,13 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
                                     home / "p3-starter.exe")
                     with native_authority(home, True) as authority:
                         authority.attest(NativeAuthority.domains[0],
-                                         selection_digest(selected, staged, [*metadata[:3], expected]), True)
-                staged.rename(target)
+                                         selection_digest(selected, staged, [*metadata[:3], expected, *variant]), True)
+                if interactive_selection:
+                    require(target.name == "project" and target.parent.name == "selected",
+                            "unexpected selection target")
+                    package.rename(target.parent)
+                else:
+                    staged.rename(target)
             return expected
 
         def add_asset():
@@ -403,7 +511,7 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
             else:
                 raise RuntimeError("concurrent asset omitted")
         metadata[3] = capture()
-        metadata.append(selected)
+        metadata.extend([selected, *variant])
         (fixture / "expected.json").write_text(json.dumps(metadata))
         return True
 
@@ -412,7 +520,7 @@ def writable_fixture(interactive_selection=False):
     fixture = Path(tempfile.gettempdir()) / ("kraqel-p3-" + uuid.uuid4().hex)
     fixture.mkdir()
     try:
-        target = fixture / "captured"
+        target = fixture / "selected/project" if interactive_selection else fixture / "captured"
         if not prepare_captured_project(target, fixture, interactive_selection):
             require(not any(fixture.iterdir()), "cancelled selection produced an artifact")
             print("CANCELLED: no candidate or selection record")
@@ -429,7 +537,7 @@ def writable_fixture(interactive_selection=False):
         with fixture_database(target, metadata[3]) as db:
             rows = db.execute("SELECT title, plain_text, revision FROM document WHERE project_id=? AND id=?",
                               metadata[:2]).fetchall()
-            require(rows == [P3_SCENE], "lost committed WAL scene")
+            require(rows == [expected_scene(metadata)], "lost committed WAL scene")
     finally:
         shutil.rmtree(fixture)
     print("PASS: substituted source refused after native restart; selected candidate contains committed WAL scene")
@@ -451,20 +559,20 @@ def writer(root, readonly):
 
 
 def challenge(root, readonly):
-    subprocess.run([sys.executable, "-I", __file__, "writer", str(root.parent),
+    subprocess.run([sys.executable, "-I", __file__, ("selected-writer" if root.parent.name == "selected" else "writer"), root.anchor,
                     "ro" if readonly else "rw"], check=True, timeout=15)
 
 
-def commit_fixture_wal(root, document):
+def commit_fixture_wal(root, document, text):
     db = sqlite3.connect(root / "kraqel.sqlite3")
     db.execute("PRAGMA wal_autocheckpoint=0")
-    updated = db.execute("UPDATE document SET plain_text=? WHERE id=?", (P3_SCENE[1], document))
+    updated = db.execute("UPDATE document SET plain_text=? WHERE id=?", (text, document))
     require(updated.rowcount == 1, "missing WAL scene")
     db.commit()
     os._exit(82)  # Keep the committed WAL and its matching shared-memory index.
 
 
-def seed_writable_project(root):
+def seed_writable_project(root, identity, scene):
     root.mkdir()
     nested = root / "assets" / "nested"
     nested.mkdir(parents=True)
@@ -474,7 +582,7 @@ def seed_writable_project(root):
     thumbnails = root / "assets" / "thumbnails"
     thumbnails.mkdir()
     (thumbnails / "cover.png").write_bytes(png)
-    identity, document, asset = (str(uuid.uuid4()) for _ in range(3))
+    document, asset = (str(uuid.uuid4()) for _ in range(2))
     with closing(sqlite3.connect(root / "kraqel.sqlite3")) as db:
         migrations = sorted((Path(__file__).resolve().parents[2] / "crates/storage/migrations").glob("*.sql"))
         require([m.name[:4] for m in migrations] == [f"{i:04d}" for i in range(1, 7)], "unexpected fixture schema")
@@ -484,7 +592,7 @@ def seed_writable_project(root):
         db.execute("PRAGMA user_version=6")
         db.execute("INSERT INTO project(id,name,schema_version,created_at,updated_at) VALUES(?, 'P3',1,'t','t')", (identity,))
         db.execute("INSERT INTO document(id,project_id,kind,title,plain_text,position,created_at,updated_at) "
-                   "VALUES(?,?,'scene',?,?,0,'t','t')", (document, identity, P3_SCENE[0], "Vor dem WAL-Commit"))
+                   "VALUES(?,?,'scene',?,?,0,'t','t')", (document, identity, scene[0], "Vor dem WAL-Commit"))
         db.execute("INSERT INTO media_asset(id,project_id,kind,relative_path,thumbnail_path,original_name,"
                    "title,mime_type,checksum,byte_count,width,height,provenance,created_at,updated_at) "
                    "VALUES(?,?,'image','assets/nested/cover.png','assets/thumbnails/cover.png','cover.png',"
@@ -495,7 +603,7 @@ def seed_writable_project(root):
         db.commit()
         require(db.execute("PRAGMA journal_mode=WAL").fetchone() == ("wal",), "WAL mode unavailable")
     main_before = hashlib.sha256((root / "kraqel.sqlite3").read_bytes()).digest()
-    run_to_exit(commit_fixture_wal, (root, document), 82)
+    run_to_exit(commit_fixture_wal, (root, document, scene[1]), 82)
     require(hashlib.sha256((root / "kraqel.sqlite3").read_bytes()).digest() == main_before,
             "scene was checkpointed into the main file")
     # The normal stream stays identical, so a hash-only probe would miss this.
@@ -511,7 +619,8 @@ def seed_writable_project(root):
     return [identity, document, asset, inventory(root)]
 
 
-def stage_tag(bundle, expected, approved, key, register=False):
+def stage_tag(bundle, metadata, approved, key, register=False):
+    expected = metadata[3]
     stage = bundle / "project"
     layout = []
     for name, digest in sorted(expected.items()):
@@ -521,15 +630,29 @@ def stage_tag(bundle, expected, approved, key, register=False):
         if digest is not None:
             require(path.is_file() and info.st_nlink == 1, "invalid staging file")
         layout.append([name, info.st_dev, info.st_ino])
-    return layout_tag(bundle, approved, key, layout, register)
+    archive_id = None
+    if has_archive(metadata):
+        info = check_entry(bundle / EXTRA_ARCHIVE)
+        require(info.st_nlink == 1 and (bundle / EXTRA_ARCHIVE).is_file(), "invalid staging archive")
+        archive_id = [info.st_dev, info.st_ino]
+    plan = staging_plan(bundle, approved, layout, archive_id)
+    return tag(key, NativeAuthority.domains[1], plan, register).encode("ascii")
 
 
-def layout_tag(bundle, approved, key, layout, register=False):
-    return tag(key, b"KRAQEL-P3-FIXTURE-STAGING-v1",
-               [approved, object_id(bundle), object_id(bundle / "project"), layout], register).encode("ascii")
+def has_archive(metadata):
+    return len(metadata) == 7 and metadata[6]["groups"] != 0
 
 
-def create_stage(bundle, expected, approved, key):
+def staging_plan(bundle, approved, layout, archive_id):
+    plan = [approved, object_id(bundle), object_id(bundle / "project"), layout]
+    if archive_id is not None:
+        plan.append(archive_id)
+    return plan
+
+
+def create_stage(root, bundle, metadata, approved, key):
+    expected = metadata[3]
+    archive_data = approved_archive(root.parent, metadata) if len(metadata) == 7 else None
     bundle.mkdir()
     stage = bundle / "project"
     stage.mkdir()
@@ -539,8 +662,13 @@ def create_stage(bundle, expected, approved, key):
         else:
             with (stage / name).open("xb"):
                 pass
+    if archive_data is not None:
+        with (bundle / EXTRA_ARCHIVE).open("xb") as archive:
+            archive.write(archive_data)
+            archive.flush()
+            os.fsync(archive.fileno())
     with (bundle / "reservation").open("xb") as proof:
-        proof.write(stage_tag(bundle, expected, approved, key, register=True))
+        proof.write(stage_tag(bundle, metadata, approved, key, register=True))
 
 
 @contextmanager
@@ -553,12 +681,16 @@ def reserved_file(path):
 
 
 @contextmanager
-def checked_staging(root, bundle, expected, approved, key):
+def checked_staging(root, bundle, metadata, approved, key):
+    expected = metadata[3]
     stage = bundle / "project"
     entries = inventory(root)
     require(entries == expected, "source inventory mismatch")
     check_entry(bundle)
-    require({p.name for p in bundle.iterdir()} == {"project", "reservation"}, "unexpected staging evidence")
+    allowed = {"project", "reservation"}
+    if has_archive(metadata):
+        allowed.add(EXTRA_ARCHIVE)
+    require({p.name for p in bundle.iterdir()} == allowed, "unexpected staging evidence")
     reservation = bundle / "reservation"
     require(check_entry(reservation).st_nlink == 1 and reservation.is_file()
             and reservation.stat().st_size == 64, "invalid reservation")
@@ -585,9 +717,20 @@ def checked_staging(root, bundle, expected, approved, key):
             while prefix := dst.read(65536):
                 require(prefix == src.read(len(prefix)), "staging prefix mismatch")
             files.append((name, src, dst))
-        require(hmac.compare_digest(layout_tag(bundle, approved, key, layout), attestation),
+        archive_id = None
+        if has_archive(metadata):
+            path = bundle / EXTRA_ARCHIVE
+            before = check_entry(path)
+            archive = pins.enter_context(reserved_file(path))
+            stat = os.fstat(archive.fileno())
+            require(os.path.samestat(before, stat) and stat.st_nlink == 1
+                    and hashlib.file_digest(archive, "sha256").hexdigest() == metadata[6]["sha256"],
+                    "unbound staging archive")
+            archive_id = [stat.st_dev, stat.st_ino]
+        plan = staging_plan(bundle, approved, layout, archive_id)
+        require(hmac.compare_digest(tag(key, NativeAuthority.domains[1], plan).encode("ascii"), attestation),
                 "unbound reservation")
-        yield files, os.fstat(reservation_file.fileno())
+        yield files, os.fstat(reservation_file.fileno()), plan
 
 
 @contextmanager
@@ -652,7 +795,7 @@ def copy_project(root, bundle, metadata, approved, key, interrupt):
     identity, document, asset, expected = metadata[:4]
     stage = bundle / "project"
     entries = expected
-    with checked_staging(root, bundle, expected, approved, key) as (files, _):
+    with checked_staging(root, bundle, metadata, approved, key) as (files, _, _):
         for name, src, dst in files:
             dst.write(src.read(1))
             if callable(interrupt):
@@ -667,7 +810,7 @@ def copy_project(root, bundle, metadata, approved, key, interrupt):
     require(inventory(stage) == expected == inventory(root), "incomplete copy")
     with fixture_database(stage, expected) as db:
         require(db.execute("SELECT title, plain_text, revision FROM document WHERE project_id=? AND id=?",
-                           (identity, document)).fetchall() == [P3_SCENE], "incomplete scene revision")
+                           (identity, document)).fetchall() == [expected_scene(metadata)], "incomplete scene revision")
         require(db.execute("pragma integrity_check").fetchall() == [("ok",)], "invalid copy")
         require(db.execute("select id from project").fetchall() == [(identity,)], "wrong project")
         require(not db.execute("pragma foreign_key_check").fetchall(), "invalid foreign key")
@@ -747,6 +890,7 @@ def native_authority(home, create, cleanup=False, read_only=False):
     with subprocess.Popen([binary, "broker-store", operation], env={**os.environ, "USERPROFILE": str(home)},
                           stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
         try:
+            report_native_root(proc, binary)
             if proc.stdout.readline(16) != b"P3/1\n":
                 raise RuntimeError("native store unavailable: " + proc.stderr.read(512).decode())
             yield NativeAuthority(proc)
@@ -760,7 +904,7 @@ def native_authority(home, create, cleanup=False, read_only=False):
 
 
 def confirm_cleanup(root, destination, metadata, approved, home):
-    with volume_guard(str(root.parent), True), pinned_directory(root), pinned_directory(destination):
+    with volume_guard(root.anchor, True), pinned_directory(root), pinned_directory(destination):
         with native_authority(home, False, cleanup=True) as authority:
             require(hmac.compare_digest(decision(authority, root, destination, metadata), approved),
                     "unbound decision")
@@ -768,14 +912,9 @@ def confirm_cleanup(root, destination, metadata, approved, home):
             with target_lock(destination, project_id):
                 require(not os.path.lexists(destination / project_id), "published destination")
                 pending = destination / (".pending-" + project_id)
-                with checked_staging(root, pending, metadata[3], approved, authority) as (files, info):
+                with checked_staging(root, pending, metadata, approved, authority) as (files, info, plan):
                     # Bind the decision to the exact verified prefixes and reservation file.
                     lengths = {name: dst.tell() for name, _, dst in files}
-                    ids = {name: [os.fstat(dst.fileno()).st_dev, os.fstat(dst.fileno()).st_ino]
-                           for name, _, dst in files}
-                    layout = [[name, *(object_id(pending / "project" / name) if digest is None
-                                       else ids[name])] for name, digest in sorted(metadata[3].items())]
-                    plan = [approved, object_id(pending), object_id(pending / "project"), layout]
                     record = [plan, [info.st_dev, info.st_ino], lengths]
                     sidecar = destination / (".cleanup-" + project_id)
                     data = json.dumps(record, separators=(",", ":")).encode("ascii")
@@ -799,7 +938,7 @@ def read_cleanup_record(path):
 
 def remove_confirmed(root, destination, metadata, approved, home, after_remove=None):
     project_id = str(uuid.UUID(metadata[0]))
-    with volume_guard(str(root.parent), True), pinned_directory(root), pinned_directory(destination):
+    with volume_guard(root.anchor, True), pinned_directory(root), pinned_directory(destination):
         with native_authority(home, False, cleanup=True) as authority, target_lock(destination, project_id):
             require(not os.path.lexists(destination / project_id), "published destination")
             require(hmac.compare_digest(decision(authority, root, destination, metadata), approved),
@@ -812,6 +951,8 @@ def remove_confirmed(root, destination, metadata, approved, home, after_remove=N
             pending = destination / (".pending-" + project_id)
             entries = [("project/" + name, [dev, ino], metadata[3][name] is None)
                        for name, dev, ino in plan[3]]
+            if has_archive(metadata):
+                entries.append((EXTRA_ARCHIVE, plan[4], False))
             entries += [("reservation", reservation_id, False), ("project", plan[2], True)]
             entries.sort(key=lambda entry: (-entry[0].count("/"), entry[0]))
             count = len(entries) + 1
@@ -850,6 +991,10 @@ def remove_confirmed(root, destination, metadata, approved, home, after_remove=N
                         require(held.st_nlink == 1, "linked cleanup file")
                         if name == "reservation":
                             require(os.read(fd, 65) == reservation, "changed cleanup reservation")
+                        elif name == EXTRA_ARCHIVE:
+                            with os.fdopen(os.dup(fd), "rb") as file:
+                                require(hashlib.file_digest(file, "sha256").hexdigest() == metadata[6]["sha256"],
+                                        "changed cleanup archive")
                         else:
                             relative = name[len("project/"):]
                             require(held.st_size == lengths[relative], "changed cleanup prefix")
@@ -873,7 +1018,7 @@ def remove_confirmed(root, destination, metadata, approved, home, after_remove=N
 
 def read_published_scene(root, target, metadata, approved, home, interactive=False):
     project_id, scene_id, _, expected = metadata[:4]
-    with volume_guard(str(root.parent), True), pinned_directory(root), pinned_directory(target):
+    with volume_guard(root.anchor, True), pinned_directory(root), pinned_directory(target):
         with native_authority(home, False, read_only=True) as authority, target_lock(target, project_id):
             require(hmac.compare_digest(approved, decision(authority, root, target, metadata)),
                     "unbound decision")
@@ -889,7 +1034,7 @@ def read_published_scene(root, target, metadata, approved, home, interactive=Fal
                                       (project_id, scene_id)).fetchall()
                     require(len(rows) == 1, "bound scene missing")
                     row = scene_frame(metadata, rows[0])
-                    require(len(row) == len(scene_frame(metadata, P3_SCENE)), "unsupported fixture row")
+                    require(rows[0] == expected_scene(metadata), "unsupported fixture row")
                     authority.deliver(row, interactive)
                     return rows[0]
 
@@ -915,6 +1060,26 @@ def retire_preview_profiles(home):
     summary = json.loads(result.stdout)
     require(summary["profileFoldersAbsent"] and summary["sessionOpen"], "uncertain crash cleanup")
     return summary["deletedProfiles"]
+
+
+def preview_selected_project(root, fixture):
+    """One selection, publication and read-only window, without fault injection."""
+    metadata = json.loads((fixture / "expected.json").read_text())
+    require(metadata[3] == inventory(root), "unexpected source")
+    verify_selection(fixture, root, metadata, metadata[4])
+    home = fixture / "install-a"
+    home.mkdir()
+    shutil.copyfile(Path(__file__).parent / "probe/target/debug/kraqel-isolation-probe.exe",
+                    home / "p3-starter.exe")
+    with tempfile.TemporaryDirectory(dir=fixture) as temporary:
+        target = Path(temporary)
+        with native_authority(home, True) as authority:
+            ticket = decision(authority, root, target, metadata, register=True)
+            for image in (P3_SERVICE, P3_WINDOW):
+                shutil.copyfile(image, home / "p3-control/bin" / image.name)
+            publish(root, target, metadata, ticket, authority)
+        read_published_scene(root, target, metadata, ticket, home, interactive=True)
+    shutil.rmtree(home)
 
 
 def native_restart(root, fixture, metadata, interactive):
@@ -953,6 +1118,21 @@ def native_restart(root, fixture, metadata, interactive):
                 require("p3-publication-required" in str(exc), "unexpected partial read refusal")
             else:
                 raise RuntimeError("partial copy released for reading")
+            if has_archive(metadata):
+                archive = target / (".pending-" + metadata[0]) / EXTRA_ARCHIVE
+                original = target / "held-archive"
+                archive.rename(original)
+                shutil.copyfile(original, archive)
+                try:
+                    with native_authority(home, False) as authority:
+                        publish(root, target, metadata, ticket, authority, resume=True)
+                except RuntimeError as exc:
+                    require(str(exc) == "native evidence refused" and archive.is_file(),
+                            "unexpected archive replacement result")
+                else:
+                    raise RuntimeError("replacement archive published")
+                archive.unlink()
+                original.rename(archive)
             with native_authority(home, False) as authority:
                 final = publish(root, target, metadata, ticket, authority, resume=True)
                 published_id = object_id(final)
@@ -971,16 +1151,19 @@ def native_restart(root, fixture, metadata, interactive):
                 reopened = publish(root, target, metadata, ticket, restored)
                 require(object_id(reopened) == published_id and list(target.iterdir()) == [final],
                         "native restart duplicated the copy")
-            with native_authority(home, False, read_only=True) as reader:
-                require(decision(reader, root, target, metadata) == ticket, "wrong read decision")
-                verify_bundle(final, ticket, metadata, reader)
-                wrong_scene = [metadata[0], metadata[2]]  # Use the asset UUID in the scene field.
-                try:
-                    reader.deliver(scene_frame(wrong_scene, P3_SCENE))
-                except RuntimeError as exc:
-                    require('"stage":"p3-unbound-row"' in str(exc), "unexpected handoff refusal")
-                else:
-                    raise RuntimeError("unbound scene delivered")
+            scene = expected_scene(metadata)
+            other_scene = P3_SOUTH if scene == P3_SCENE else P3_SCENE
+            for unbound in (scene_frame([metadata[0], metadata[2]], scene),
+                            scene_frame(metadata, other_scene)):
+                with native_authority(home, False, read_only=True) as reader:
+                    require(decision(reader, root, target, metadata) == ticket, "wrong read decision")
+                    verify_bundle(final, ticket, metadata, reader)
+                    try:
+                        reader.deliver(unbound)
+                    except RuntimeError as exc:
+                        require('"stage":"p3-unbound-row"' in str(exc), "unexpected handoff refusal")
+                    else:
+                        raise RuntimeError("unbound scene delivered")
             window = home / "p3-control/bin" / P3_WINDOW.name
             original = window.with_suffix(".original")
             window.rename(original)
@@ -995,12 +1178,12 @@ def native_restart(root, fixture, metadata, interactive):
             finally:
                 window.unlink(missing_ok=True)
                 original.rename(window)
-            require(read_published_scene(root, target, metadata, ticket, home, interactive) == P3_SCENE,
+            require(read_published_scene(root, target, metadata, ticket, home, interactive) == expected_scene(metadata),
                     "wrong published scene")
             with native_authority(home, False, read_only=True) as reader:
                 require(decision(reader, root, target, metadata) == ticket, "wrong restart decision")
                 verify_bundle(final, ticket, metadata, reader)
-                reader.start_delivery(scene_frame(metadata, P3_SCENE), interactive=True)
+                reader.start_delivery(scene_frame(metadata, expected_scene(metadata)), interactive=True)
                 reader.pipe.kill()
                 reader.pipe.wait(timeout=5)
             require(retire_preview_profiles(home) == 1 and retire_preview_profiles(home) == 0,
@@ -1036,7 +1219,7 @@ def check_cleanup_decision(root, fixture, metadata):
             with native_authority(home, True) as authority:
                 ticket = decision(authority, root, target, metadata, register=True)
                 pending = target / (".pending-" + metadata[0])
-                create_stage(pending, metadata[3], ticket, authority)
+                create_stage(root, pending, metadata, ticket, authority)
             unowned = pending / "project" / "foreign.bin"
             unowned.write_bytes(b"foreign")
             try:
@@ -1104,7 +1287,7 @@ def tag(key, domain, fields, register=False):
             service = hashlib.sha256(P3_SERVICE.read_bytes()).digest()
             window = hashlib.sha256(P3_WINDOW.read_bytes()).digest()
             digest = hashlib.sha256(b"KRAQEL-P3-PREVIEW-v2" + digest + service + window
-                                    + scene_frame(fields[-1], P3_SCENE)).digest()
+                                    + scene_frame(fields[-1], expected_scene(fields[-1]))).digest()
         return key.attest(domain, digest, register)
     return hmac.digest(key, payload, "sha256").hex()
 
@@ -1139,7 +1322,7 @@ def target_lock(destination, project_id):
 
 
 def publish(root, destination, metadata, approved, key, interrupt=None, resume=False):
-    with volume_guard(str(root.parent), True), pinned_directory(root), pinned_directory(destination):
+    with volume_guard(root.anchor, True), pinned_directory(root), pinned_directory(destination):
         require(hmac.compare_digest(decision(key, root, destination, metadata), approved),
                 "unbound decision")
         project_id = str(uuid.UUID(metadata[0]))
@@ -1158,7 +1341,7 @@ def publish_locked(root, destination, project_id, metadata, approved, key, inter
     elif os.path.lexists(final):
         return verify_bundle(final, approved, metadata, key)
     else:
-        create_stage(bundle, metadata[3], approved, key)
+        create_stage(root, bundle, metadata, approved, key)
     if pending and os.path.lexists(bundle / "receipt"):
         verify_bundle(bundle, approved, metadata, key)
     else:
@@ -1173,17 +1356,22 @@ def publish_locked(root, destination, project_id, metadata, approved, key, inter
 
 def verify_bundle(final, approved, metadata, key):
     check_entry(final)
-    require({p.name for p in final.iterdir()} == {"receipt", "reservation", "project"}, "unexpected bundle")
+    names = {"receipt", "reservation", "project"}
+    if len(metadata) == 7 and metadata[6]["groups"]:
+        names.add(EXTRA_ARCHIVE)
+    require({p.name for p in final.iterdir()} == names, "unexpected bundle")
     proof = final / "receipt"
     require(check_entry(proof).st_nlink == 1 and proof.is_file() and proof.stat().st_size == 64,
             "invalid receipt")
     reservation = final / "reservation"
     require(check_entry(reservation).st_nlink == 1 and reservation.is_file()
             and reservation.stat().st_size == 64 and hmac.compare_digest(
-                reservation.read_bytes(), stage_tag(final, metadata[3], approved, key)), "unbound reservation")
+                reservation.read_bytes(), stage_tag(final, metadata, approved, key)), "unbound reservation")
     require(hmac.compare_digest(proof.read_bytes(), receipt(key, approved, final).encode("ascii")),
             "unbound receipt")
     require(inventory(final / "project") == metadata[3], "changed destination")
+    if len(metadata) == 7:
+        approved_archive(final, metadata)
     return final
 
 
@@ -1211,6 +1399,8 @@ def capture(root, fixture, interactive=False):
     verify_selection(fixture, root, metadata, metadata[4])
     native_restart(root, fixture, metadata, interactive)
     check_cleanup_decision(root, fixture, metadata)
+    if len(metadata) == 7:
+        return  # The selected recovery run covers the native publication and cleanup above.
     # The fixture controller supplies one explicit decision. Its key lasts
     # across worker processes but grants no authority after the controller exits.
     key = secrets.token_bytes(32)
@@ -1315,7 +1505,9 @@ if __name__ == "__main__":
     require(re.fullmatch(r"\\\\\?\\Volume\{[0-9a-fA-F-]{36}\}\\?", volume), "invalid fixture volume")
     volume = volume.rstrip("\\") + "\\"
     root = Path(volume) / "project"
-    if mode == "writer":
+    if mode in ("select", "selected-preview", "selected-recovery", "selected-writer"):
+        root = Path(volume) / "selected/project"
+    if mode in ("writer", "selected-writer"):
         require(arg in ("ro", "rw"), "invalid writer mode")
         with volume_guard(volume, arg == "ro"):
             writer(root, arg == "ro")
@@ -1323,15 +1515,22 @@ if __name__ == "__main__":
         fixture = Path(arg)
         require(fixture.parent.resolve() == Path(tempfile.gettempdir()).resolve()
                 and re.fullmatch(r"kraqel-p3-[0-9a-f]{32}", fixture.name), "invalid fixture home")
-        require(mode in ("prepare", "capture", "preview"), "invalid fixture mode")
-        with volume_guard(volume, mode != "prepare"):
-            if mode == "prepare":
-                prepare_captured_project(root, fixture)
+        require(mode in ("prepare", "select", "selected-preview", "selected-recovery", "capture", "preview"), "invalid fixture mode")
+        preparing = mode in ("prepare", "select")
+        with volume_guard(volume, not preparing):
+            if preparing:
+                if not prepare_captured_project(root, fixture, interactive_selection=mode == "select"):
+                    sys.exit(10)
                 challenge(root, False)
+            elif mode == "selected-preview":
+                preview_selected_project(root, fixture)
             else:
                 capture(root, fixture, interactive=mode == "preview")
-        if mode != "prepare":
+        if not preparing:
             require(inventory(root) == json.loads((fixture / "expected.json").read_text())[3],
                     "source changed during capture")
             shutil.rmtree(fixture / "selection-install")
+            if mode == "selected-preview":
+                print("PASS: selected WAL scene displayed from published copy")
+                sys.exit(0)
             print("PASS: committed WAL scene read from published copy; native controller restart resumed partial transfer and confirmed publication; foreign installation refused; cleanup recovered; bound scene shown read-only; substituted scene and window image refused")

@@ -74,7 +74,7 @@ def root_image_bindings(records):
         pid, image = record["pid"], record["image"]
         if type(pid) is not int or pid <= 0 or pid in bindings:
             raise ValueError("Root PIDs must be positive, unique integers")
-        if not isinstance(image, str) or not re.fullmatch(r"(?:kraqel-isolation-probe|[0-9a-f]{64})\.exe", image):
+        if not isinstance(image, str) or not re.fullmatch(r"(?:kraqel-isolation-probe|p3-starter|[0-9a-f]{64})\.exe", image):
             raise ValueError("Expected a native broker basename or lowercase SHA-256 basename")
         bindings[pid] = image
     return bindings

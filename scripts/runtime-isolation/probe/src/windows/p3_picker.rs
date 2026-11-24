@@ -1,4 +1,4 @@
-//! Local P3 research picker. The dialog receives no paths and has three fixed outcomes.
+//! Local P3 research picker. Only synthetic choices and explicit archive consent leave the dialog.
 use super::{Result, Value, fail, json};
 use std::ffi::OsStr;
 use std::ptr::null_mut;
@@ -24,7 +24,16 @@ unsafe extern "system" fn on_dialog(hwnd: HWND, msg: u32, w: usize, _: isize) ->
         }
         WM_CLOSE => unsafe { EndDialog(hwnd, IDCANCEL as isize) as isize },
         WM_COMMAND if matches!(w as u16, NORTH | SOUTH | 2) && w >> 16 == 0 => unsafe {
-            EndDialog(hwnd, (w as u16) as isize) as isize
+            let mut result = (w as u16) as isize;
+            if w as u16 != IDCANCEL as u16 {
+                for index in 0..4 {
+                    let checked = SendMessageW(GetDlgItem(hwnd, 201 + index), BM_GETCHECK, 0, 0);
+                    if checked == 1 {
+                        result |= 1 << (8 + index);
+                    }
+                }
+            }
+            EndDialog(hwnd, result) as isize
         },
         _ => 0,
     }
@@ -95,11 +104,11 @@ pub(super) fn choose(north: &OsStr, south: &OsStr, owner: &OsStr) -> Result<Valu
         (style >> 16) as u16,
         0,
         0,
-        4,
+        9,
         0,
         0,
-        220,
-        73,
+        240,
+        152,
         0,
         0,
     ];
@@ -116,9 +125,22 @@ pub(super) fn choose(north: &OsStr, south: &OsStr, owner: &OsStr) -> Result<Valu
             24,
             "Welchen synthetischen Projektordner als Testkopie erfassen?",
         ),
-        (NORTH, 0x80, 8, 45, 62, 17, "Projekt Nord"),
-        (SOUTH, 0x80, 78, 45, 62, 17, "Projekt Sued"),
-        (IDCANCEL as u16, 0x80, 148, 45, 64, 17, "Abbrechen"),
+        (
+            0xffff,
+            0x82,
+            8,
+            31,
+            224,
+            24,
+            "Zusätzlich separat archivieren (je Projekt):",
+        ),
+        (201, 0x80, 8, 52, 218, 15, "Sicherung: backups/alt.txt"),
+        (202, 0x80, 8, 69, 218, 15, "Export: exports/entwurf.txt"),
+        (203, 0x80, 8, 86, 218, 15, "Git-Bestand: .git/HEAD"),
+        (204, 0x80, 8, 103, 218, 15, "Weitere Datei: notiz.txt"),
+        (NORTH, 0x80, 8, 128, 62, 17, "Projekt Nord"),
+        (SOUTH, 0x80, 78, 128, 62, 17, "Projekt Sued"),
+        (IDCANCEL as u16, 0x80, 148, 128, 64, 17, "Abbrechen"),
     ] {
         if words.len() % 2 != 0 {
             words.push(0);
@@ -126,6 +148,9 @@ pub(super) fn choose(north: &OsStr, south: &OsStr, owner: &OsStr) -> Result<Valu
         let mut style = WS_CHILD | WS_VISIBLE;
         if class == 0x80 {
             style |= WS_TABSTOP;
+        }
+        if (201..=204).contains(&id) {
+            style |= BS_AUTOCHECKBOX as u32;
         }
         if id == IDCANCEL as u16 {
             style |= BS_DEFPUSHBUTTON as u32;
@@ -159,11 +184,14 @@ pub(super) fn choose(north: &OsStr, south: &OsStr, owner: &OsStr) -> Result<Valu
             0,
         )
     };
-    let selection = match result {
+    if !(0..=0x0fff).contains(&result) {
+        return Err(fail("p3-source-dialog"));
+    }
+    let selection = match result & 0xff {
         2 => return Ok(json!({"selection":"cancel"})),
         n if n == NORTH as isize => ("north", north),
         n if n == SOUTH as isize => ("south", south),
         _ => return Err(fail("p3-source-dialog")),
     };
-    Ok(json!({"selection": selection.0, "directory": selection.1}))
+    Ok(json!({"selection": selection.0, "directory": selection.1, "archiveGroups": result >> 8}))
 }

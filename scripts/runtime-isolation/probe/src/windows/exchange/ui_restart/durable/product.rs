@@ -1257,6 +1257,23 @@ fn default_root() -> Result<PathBuf> {
     Ok(path.join(".kraqel-broker-preview"))
 }
 pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value> {
+    if let [operation, run] = args {
+        if operation == "inspect-p3-fixture-catalog" {
+            use kraqel_storage::project_manager::ProjectManager;
+            let run = run
+                .to_str()
+                .filter(|s| s.len() == 32 && s.bytes().all(|b| b.is_ascii_hexdigit()))
+                .ok_or(invalid("p3-catalog-scope"))?;
+            let catalog = local_path(&std::env::temp_dir())?
+                .join(format!("kraqel-p3-writable-{run}"))
+                .join("projects");
+            let _pins = pin_directories(&catalog)?;
+            let candidates = ProjectManager::new(catalog)
+                .and_then(|manager| manager.existing_project_candidates())
+                .map_err(|_| invalid("p3-catalog-unavailable"))?;
+            return Ok(json!({"candidates": candidates}));
+        }
+    }
     let root = default_root()?;
     let exe = io("product-current-exe", std::env::current_exe())?;
     let (_parents, running_image, actor) = binary_pin(&exe)?;

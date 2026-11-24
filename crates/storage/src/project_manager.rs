@@ -205,6 +205,66 @@ impl ProjectManager {
         &self.root
     }
 
+    /// Ermittelt mögliche Bestandsprojekte anhand ihrer UUID-Verzeichnisse und Datenbankdateien.
+    /// Öffnet weder SQLite noch eine Projektdatei. Die Kennungen allein erlauben keine Übernahme.
+    ///
+    /// # Errors
+    ///
+    /// Meldet unklare Verzeichnisse, fehlende Datenbanken und mehrdeutige Kennungen.
+    pub fn existing_project_candidates(
+        &self,
+    ) -> Result<Vec<kraqel_domain::ProjectId>, ProjectError> {
+        #[cfg(windows)]
+        let _root_pin = pin_candidate_directory(&self.root)?;
+        let mut candidates = Vec::new();
+        for (name, id) in self.named_project_directories()? {
+            let directory = self.root.join(name);
+            #[cfg(windows)]
+            let _pin = pin_candidate_directory(&directory)?;
+            #[cfg(not(windows))]
+            validate_directory_metadata(&candidate_attributes(&directory)?)?;
+            let database = candidate_attributes(&directory.join(DATABASE_FILE_NAME))?;
+            if database.file_type().is_symlink() || is_reparse_point(&database) {
+                return Err(ProjectError::SymlinkNotAllowed);
+            }
+            if !database.is_file() {
+                return Err(ProjectError::InvalidDatabase);
+            }
+            candidates.push(id);
+        }
+        candidates.sort_unstable();
+        if candidates.windows(2).any(|pair| pair[0] == pair[1]) {
+            return Err(ProjectError::InvalidDatabase);
+        }
+        Ok(candidates)
+    }
+
+    fn named_project_directories(
+        &self,
+    ) -> Result<Vec<(OsString, kraqel_domain::ProjectId)>, ProjectError> {
+        let entries = fs::read_dir(&self.root).map_err(|source| ProjectError::Io {
+            operation: "Projektwurzel auflisten",
+            source,
+        })?;
+        let mut directories = Vec::new();
+
+        for entry in entries {
+            let entry = entry.map_err(|source| ProjectError::Io {
+                operation: "Projekteintrag lesen",
+                source,
+            })?;
+            let name = entry.file_name();
+            let Some(file_name) = name.to_str() else {
+                continue;
+            };
+            let Some(directory_id) = kraqel_domain::ProjectId::parse(file_name) else {
+                continue;
+            };
+            directories.push((name, directory_id));
+        }
+        Ok(directories)
+    }
+
     /// Listet alle unmittelbar verwalteten Projekte stabil nach Name und UUID.
     ///
     /// # Errors
@@ -212,25 +272,9 @@ impl ProjectManager {
     /// Liefert einen Fehler, wenn ein als Projekt benanntes Verzeichnis unsicher, beschädigt oder
     /// nicht lesbar ist.
     pub fn list_projects(&self) -> Result<Vec<ProjectOverview>, ProjectError> {
-        let entries = fs::read_dir(&self.root).map_err(|source| ProjectError::Io {
-            operation: "Projektwurzel auflisten",
-            source,
-        })?;
         let mut projects = Vec::new();
-
-        for entry in entries {
-            let entry = entry.map_err(|source| ProjectError::Io {
-                operation: "Projekteintrag lesen",
-                source,
-            })?;
-            let file_name = entry.file_name();
-            let Some(file_name) = file_name.to_str() else {
-                continue;
-            };
-            let Some(directory_id) = kraqel_domain::ProjectId::parse(file_name) else {
-                continue;
-            };
-            let opened = self.open_project(Path::new(file_name))?;
+        for (file_name, directory_id) in self.named_project_directories()? {
+            let opened = self.open_project(Path::new(&file_name))?;
             let (stored_id, name): (String, String) = opened.database().connection().query_row(
                 "SELECT id, name FROM project",
                 [],
@@ -657,6 +701,51 @@ fn validate_single_name(name: &str) -> Result<(), ProjectError> {
     }
 }
 
+fn candidate_attributes(path: &Path) -> Result<fs::Metadata, ProjectError> {
+    fs::symlink_metadata(path).map_err(|source| match source.kind() {
+        io::ErrorKind::NotFound => ProjectError::DatabaseMissing,
+        _ => ProjectError::Io {
+            operation: "Bestandseintrag prüfen",
+            source,
+        },
+    })
+}
+
+#[cfg(windows)]
+fn is_reparse_point(metadata: &fs::Metadata) -> bool {
+    use std::os::windows::fs::MetadataExt as _;
+    metadata.file_attributes() & 0x400 != 0
+}
+
+#[cfg(not(windows))]
+fn is_reparse_point(_: &fs::Metadata) -> bool {
+    false
+}
+
+#[cfg(windows)]
+fn pin_candidate_directory(directory: &Path) -> Result<fs::File, ProjectError> {
+    use std::os::windows::fs::OpenOptionsExt as _;
+    // FILE_READ_ATTRIBUTES, no delete sharing, OPEN_REPARSE_POINT | BACKUP_SEMANTICS.
+    let handle = fs::OpenOptions::new()
+        .access_mode(0x80)
+        .share_mode(3)
+        .custom_flags(0x0220_0000)
+        .open(directory)
+        .map_err(|source| ProjectError::Io {
+            operation: "Bestandsordner binden",
+            source,
+        })?;
+    let metadata = handle.metadata().map_err(|source| ProjectError::Io {
+        operation: "Bestandsordner prüfen",
+        source,
+    })?;
+    if is_reparse_point(&metadata) {
+        return Err(ProjectError::SymlinkNotAllowed);
+    }
+    validate_directory_metadata(&metadata)?;
+    Ok(handle)
+}
+
 fn validate_directory_metadata(metadata: &fs::Metadata) -> Result<(), ProjectError> {
     if metadata.file_type().is_symlink() {
         return Err(ProjectError::SymlinkNotAllowed);
@@ -1038,6 +1127,26 @@ mod tests {
         manager
             .open_project(&relative)
             .expect("project should reopen");
+    }
+
+    #[test]
+    fn discovers_candidates_without_opening_sqlite_or_releasing_incomplete_projects() {
+        let root = tempdir().unwrap();
+        let manager = ProjectManager::new(root.path()).unwrap();
+        let id = ProjectId::new();
+        let directory = root.path().join(id.to_string());
+        fs::create_dir(&directory).unwrap();
+        fs::create_dir(root.path().join("exports")).unwrap();
+        assert!(matches!(
+            manager.existing_project_candidates(),
+            Err(ProjectError::DatabaseMissing)
+        ));
+
+        let database = directory.join(DATABASE_FILE_NAME);
+        fs::write(&database, b"synthetic unopened database").unwrap();
+        assert_eq!(manager.existing_project_candidates().unwrap(), vec![id]);
+        assert_eq!(fs::read(database).unwrap(), b"synthetic unopened database");
+        assert_eq!(fs::read_dir(directory).unwrap().count(), 1);
     }
 
     #[test]

@@ -124,7 +124,7 @@ pub fn valid_p3_row(row: &[u8; P3_LEN]) -> bool {
         && row[16..32] != [0; 16]
         && row[..16] != row[16..32]
         && row[32..36] == [0; 4]
-        && &row[36..] == P3_CONTENT
+        && matches!(&row[36..], P3_CONTENT | b"Szene B\0Wind an der Suedkueste.")
 }
 
 pub fn p3_receipt(row: &[u8; P3_LEN]) -> [u8; 32] {
