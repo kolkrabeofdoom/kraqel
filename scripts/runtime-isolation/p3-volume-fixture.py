@@ -213,6 +213,9 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
                     duplicate = _winapi.DuplicateHandle(process, handle, process, 0x80, True, 0)
                     inherited.callback(_winapi.CloseHandle, duplicate)
                     duplicates.append(duplicate)
+                owner = _winapi.DuplicateHandle(process, process, process, 0x100000, True, 0)  # SYNCHRONIZE
+                inherited.callback(_winapi.CloseHandle, owner)
+                duplicates.append(owner)
                 startup = subprocess.STARTUPINFO(lpAttributeList={"handle_list": duplicates})
                 dialog = subprocess.Popen([picker, "select-p3-fixture", *map(str, duplicates)],
                                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,

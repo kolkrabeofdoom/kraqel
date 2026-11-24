@@ -4,6 +4,10 @@ use std::ffi::OsStr;
 use std::ptr::null_mut;
 use windows_sys::Win32::Storage::FileSystem::*;
 use windows_sys::Win32::{Foundation::HWND, UI::WindowsAndMessaging::*};
+use windows_sys::Win32::{
+    Foundation::{HANDLE, WAIT_TIMEOUT},
+    System::Threading::{INFINITE, WaitForSingleObject},
+};
 
 fn invalid(stage: &'static str) -> super::Failure {
     super::Failure { stage, code: -1 }
@@ -30,12 +34,15 @@ fn string(words: &mut Vec<u16>, text: &str) {
     words.extend(text.encode_utf16().chain(Some(0)));
 }
 
-fn directory_identity(argument: &OsStr) -> Result<(u64, String)> {
-    let raw: usize = argument
+fn handle_number(argument: &OsStr) -> Result<usize> {
+    argument
         .to_str()
         .and_then(|s| s.parse().ok())
-        .ok_or_else(|| invalid("p3-selection-handle"))?;
-    let handle = raw as windows_sys::Win32::Foundation::HANDLE;
+        .ok_or_else(|| invalid("p3-selection-handle"))
+}
+
+fn directory_identity(argument: &OsStr) -> Result<(u64, String)> {
+    let handle = handle_number(argument)? as HANDLE;
     let mut info = BY_HANDLE_FILE_INFORMATION::default();
     let mut id = FILE_ID_INFO::default();
     if unsafe { GetFileType(handle) } != FILE_TYPE_DISK
@@ -61,7 +68,20 @@ fn directory_identity(argument: &OsStr) -> Result<(u64, String)> {
     ))
 }
 
-pub(super) fn choose(north: &OsStr, south: &OsStr) -> Result<Value> {
+pub(super) fn choose(north: &OsStr, south: &OsStr, owner: &OsStr) -> Result<Value> {
+    // This one-shot process retains the inherited SYNCHRONIZE handle until exit.
+    let owner = handle_number(owner)?;
+    if unsafe { WaitForSingleObject(owner as HANDLE, 0) } != WAIT_TIMEOUT {
+        return Err(invalid("p3-selection-owner"));
+    }
+    std::thread::Builder::new()
+        .name("p3-selection-owner".into())
+        .spawn(move || {
+            unsafe { WaitForSingleObject(owner as HANDLE, INFINITE) };
+            // A dead controller or a wait failure invalidates the outstanding dialog.
+            std::process::exit(2);
+        })
+        .map_err(|_| invalid("p3-selection-owner-watch"))?;
     let north = directory_identity(north)?;
     let south = directory_identity(south)?;
     if north == south {
