@@ -313,10 +313,15 @@ class NativeAuthority:
         if self.pipe.stdout.readline(16) != b"BOUND\n":
             raise RuntimeError("scene binding failed: " + self.pipe.stderr.read(512).decode())
 
-    def deliver(self, row, interactive=False):
+    def start_delivery(self, row, interactive):
         self.bind_delivery(row)
         self.pipe.stdin.write(b"\x02" if interactive else b"\x01")
         self.pipe.stdin.flush()
+        if interactive and self.pipe.stdout.readline(16) != b"VISIBLE\n":
+            raise RuntimeError("preview failed: " + self.pipe.stderr.read(512).decode())
+
+    def deliver(self, row, interactive=False):
+        self.start_delivery(row, interactive)
         if self.pipe.stdout.readline(16) != b"DELIVERED\n":
             raise RuntimeError("scene delivery failed: " + self.pipe.stderr.read(512).decode())
 
@@ -508,6 +513,16 @@ def read_published_scene(root, target, metadata, approved, home, interactive=Fal
                     return rows[0]
 
 
+def retire_preview_profiles(home):
+    result = subprocess.run([home / "p3-starter.exe", "broker-store", "retire-p3-preview-profiles"],
+                            env={**os.environ, "USERPROFILE": str(home)}, input=b"",
+                            capture_output=True, timeout=10)
+    require(result.returncode == 0, "profile cleanup failed: " + result.stderr.decode())
+    summary = json.loads(result.stdout)
+    require(summary["profileFoldersAbsent"] and summary["sessionOpen"], "uncertain crash cleanup")
+    return summary["deletedProfiles"]
+
+
 def native_restart(root, fixture, metadata, interactive):
     home = fixture / "install-a"
     foreign = fixture / "install-b"
@@ -591,9 +606,11 @@ def native_restart(root, fixture, metadata, interactive):
             with native_authority(home, False, read_only=True) as reader:
                 require(decision(reader, root, target, metadata) == ticket, "wrong restart decision")
                 verify_bundle(final, ticket, metadata, reader)
-                reader.bind_delivery(scene_frame(metadata, P3_SCENE))
+                reader.start_delivery(scene_frame(metadata, P3_SCENE), interactive=True)
                 reader.pipe.kill()
                 reader.pipe.wait(timeout=5)
+            require(retire_preview_profiles(home) == 1 and retire_preview_profiles(home) == 0,
+                    "unexpected profile retirement count")
             try:
                 with native_authority(home, False, read_only=True):
                     raise AssertionError("delivery reopened without end record")

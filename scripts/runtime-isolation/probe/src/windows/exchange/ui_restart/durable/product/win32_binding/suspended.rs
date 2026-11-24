@@ -59,6 +59,7 @@ pub(in super::super) fn deliver_p3(
     binding: [u8; 32],
     row: &[u8; crate::window_receipt::P3_LEN],
     interactive: bool,
+    visible: impl FnOnce() -> Result<()>,
 ) -> Result<()> {
     use crate::window_receipt as protocol;
     use windows_sys::Win32::Storage::FileSystem::{FILE_READ_DATA, FILE_WRITE_DATA, SYNCHRONIZE};
@@ -115,7 +116,11 @@ pub(in super::super) fn deliver_p3(
                 to_ui.write_all(&protocol::p3_receipt(row)),
             )?;
             drop(to_ui);
-            bootstrap::wait_surface(ui, &mut reply, interactive)
+            let hwnd = bootstrap::verified_surface(ui, &mut reply)?;
+            if interactive {
+                visible()?;
+            }
+            bootstrap::wait_for_close(ui, hwnd, interactive)
         },
     )
 }
@@ -131,12 +136,43 @@ fn with_role(
 ) -> Result<()> {
     let image = root.join(name);
     let data = name == "pipe-service.exe";
-    let profile_id = format!(
-        "{}.{}",
-        if data { "data" } else { "ui" },
-        Uuid::new_v4().simple()
+    let role = if data { "data" } else { "ui" };
+    let begin = if argument == crate::window_receipt::P3_READ {
+        let begin = store
+            .state
+            .p3_pipe_begin
+            .ok_or(invalid("p3-profile-generation"))?;
+        if store.state.window_session != Session::Open(begin) {
+            return Err(invalid("p3-profile-session"));
+        }
+        Some(begin)
+    } else {
+        None
+    };
+    let id = begin.map_or_else(
+        || format!("{role}.{}", Uuid::new_v4().simple()),
+        |b| p3_fixture::profile_id(b, data),
     );
-    let mut profile = Profile::create(&profile_id)?;
+    let mut profile = Profile::create(&id)?;
+    let witness = if let Some(begin) = begin {
+        let folder = p3_fixture::folder_identity(store, &profile)?
+            .ok_or(invalid("p3-created-profile-missing"))?;
+        store.append_with_checked_context(
+            store.state.actor,
+            store.state.head,
+            Action::P3Profile {
+                begin,
+                data,
+                folder,
+                removed: false,
+            },
+        )?;
+        // From here the journal owns retirement, including any error during role startup.
+        profile.active = false;
+        Some((begin, folder))
+    } else {
+        None
+    };
     let job_name = if data {
         wide(format!(
             "Local\\KRAQEL.Scene.{}",
@@ -315,7 +351,12 @@ fn with_role(
     } else {
         store.idle()?;
     }
-    let removed = profile.remove();
+    let removed = if let Some((begin, folder)) = witness {
+        p3_fixture::retire_profile(store, begin, data, &profile, folder)?;
+        true
+    } else {
+        profile.remove()
+    };
     verified?;
     if !removed {
         return Err(invalid("win32-window-profile-cleanup"));

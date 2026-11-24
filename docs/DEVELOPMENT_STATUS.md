@@ -10,7 +10,7 @@ Der native Prüfstarter bindet die Entscheidung für eine synthetische Übernahm
 
 Der gezielte P3-Leseaufruf kann die gebundene synthetische Szene aus der bestätigten Kopie im Arbeitsspeicher lesen. Die Teilkopie bleibt für diesen Aufruf gesperrt. Der isolierte Win32-Datendienst quittiert genau die gebundene Zeile nach bestätigtem Bootstrap. Eine andere Szenenkennung wird vor dem Dienststart abgewiesen. Ein Starterabbruch nach dem dauerhaften Beginn und vor der Startbestätigung sperrt den folgenden Leseaufruf. Die P3-Fensterrolle empfängt diese Zeile über eine nur lesbare Pipe und zeigt den geprüften Klartext im schreibgeschützten nativen Eingabefeld an.
 
-Der vollständige VHDX-Lauf bestätigte auch die Abweisung der ausgetauschten Fenster-EXE. Mit `-InteractivePreview` bleibt das schreibgeschützte Fenster bis zum Schließen geöffnet. Im lokalen Rollenlauf sperrte die Anzeige parallele Leseaufrufe. Nach Starterabbruch endete die Fensterrolle und der Wiederanlauf blieb gesperrt. Der Profilabbau nach hartem Starterabbruch ist offen.
+Der vollständige VHDX-Lauf bestätigte auch die Abweisung der ausgetauschten Fenster-EXE. Mit `-InteractivePreview` bleibt das schreibgeschützte Fenster bis zum Schließen geöffnet. Im lokalen Rollenlauf sperrte die Anzeige parallele Leseaufrufe. Nach Starterabbruch endete die Fensterrolle und der Wiederanlauf blieb gesperrt. Für neue synthetische Vorschauen ist die Profilbereinigung nach einem harten Starterabbruch im lokalen Rollenlauf geprüft. Ein Ersatzverzeichnis blieb erhalten. Das ursprüngliche Fensterprofil wurde einmal entfernt und der Szenenneustart blieb gesperrt.
 
 ### PDF-Export
 

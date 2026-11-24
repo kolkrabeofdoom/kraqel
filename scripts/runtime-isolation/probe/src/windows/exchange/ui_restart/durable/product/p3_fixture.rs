@@ -7,6 +7,7 @@ pub(super) enum Operation {
     Reopen,
     Cleanup,
     Read,
+    Profiles,
 }
 
 pub(super) fn serve(
@@ -64,6 +65,38 @@ pub(super) fn serve(
         Store::open(&path)?
     };
     store.actor(actor)?;
+    if operation == Operation::Profiles {
+        let begin = store
+            .state
+            .p3_pipe_begin
+            .ok_or(invalid("p3-profile-generation"))?;
+        store.idle()?;
+        Store::job_idle(&wide(format!(
+            "Local\\KRAQEL.Scene.{}",
+            store.state.installation.simple()
+        )))?;
+        // Check both identities before any removal; a missing creation witness never grants deletion.
+        let mut owned = Vec::new();
+        for data in [false, true] {
+            let identity = derived_profile(begin, data)?;
+            let current = folder_identity(&store, &identity)?;
+            let expected = store.state.p3_profiles[usize::from(data)];
+            if current.is_some() && current != expected {
+                return Err(invalid("p3-unowned-profile"));
+            }
+            if let Some(folder) = expected {
+                owned.push((data, identity, folder));
+            }
+        }
+        let mut deleted = 0;
+        for (data, identity, folder) in owned {
+            deleted += usize::from(retire_profile(&mut store, begin, data, &identity, folder)?);
+        }
+        return Ok(
+            json!({"synthetic":true, "profileFoldersAbsent":true, "deletedProfiles":deleted,
+            "sessionOpen":matches!(store.state.window_session, win32_binding::Session::Open(_))}),
+        );
+    }
     store.append_guard(actor, store.state.head)?;
     if operation == Operation::Read && store.state.p3_evidence[2].is_none() {
         return Err(invalid("p3-publication-required"));
@@ -106,10 +139,17 @@ pub(super) fn serve(
             if !protocol::valid_p3_row(&row) || Some(binding) != store.state.p3_evidence[0] {
                 return Err(invalid("p3-unbound-row"));
             }
-            if store.state.sequence + 2 >= MAX_RECORDS {
+            if store.state.sequence + 6 >= MAX_RECORDS {
                 return Err(invalid("p3-delivery-budget"));
             }
-            store.append(actor, store.state.head, Action::BeginP3Delivery { binding })?;
+            store.append(
+                actor,
+                store.state.head,
+                Action::BeginP3PipePreview {
+                    binding,
+                    packages: packages_folder()?.1,
+                },
+            )?;
             let begin = store.state.head;
             io("p3-delivery-ready", output.write_all(b"BOUND\n"))?;
             io("p3-delivery-ready", output.flush())?;
@@ -128,8 +168,16 @@ pub(super) fn serve(
                 binding,
                 &row,
                 interactive,
+                || {
+                    io("p3-visible", output.write_all(b"VISIBLE\n"))?;
+                    io("p3-visible", output.flush())
+                },
             )?;
-            store.append_with_checked_context(actor, begin, Action::EndWin32Window { begin })?;
+            store.append_with_checked_context(
+                actor,
+                store.state.head,
+                Action::EndWin32Window { begin },
+            )?;
             io("p3-service-confirmed", output.write_all(b"DELIVERED\n"))?;
             io("p3-service-confirmed", output.flush())?;
             break;
@@ -222,4 +270,127 @@ pub(super) fn serve(
         io("p3-reply", output.flush())?;
     }
     Ok(json!({"synthetic":true,"networkMeasurement":false}))
+}
+
+pub(super) fn retire_profile(
+    store: &mut Store,
+    begin: [u8; 32],
+    data: bool,
+    identity: &Profile,
+    folder: [u8; 32],
+) -> Result<bool> {
+    let current = folder_identity(store, identity)?;
+    if let Some(current) = current {
+        if folder != current {
+            return Err(invalid("p3-replaced-profile"));
+        }
+        let hr = unsafe { DeleteAppContainerProfile(identity.name.as_ptr()) };
+        if hr < 0 {
+            return Err(Failure {
+                stage: "p3-profile-delete",
+                code: hr.into(),
+            });
+        }
+    }
+    if folder_identity(store, identity)?.is_some() {
+        return Err(invalid("p3-profile-remains"));
+    }
+    store.append_with_checked_context(
+        store.state.actor,
+        store.state.head,
+        Action::P3Profile {
+            begin,
+            data,
+            folder,
+            removed: true,
+        },
+    )?;
+    Ok(current.is_some())
+}
+
+pub(super) fn profile_id(begin: [u8; 32], data: bool) -> String {
+    let id = Uuid::from_bytes(begin[..16].try_into().unwrap());
+    format!("{}.{}", if data { "data" } else { "ui" }, id.simple())
+}
+
+fn derived_profile(begin: [u8; 32], data: bool) -> Result<Profile> {
+    let name = wide(format!("org.kraqel.probe.{}", profile_id(begin, data)));
+    let mut sid = null_mut();
+    let hr = unsafe { DeriveAppContainerSidFromAppContainerName(name.as_ptr(), &mut sid) };
+    if hr < 0 {
+        return Err(Failure {
+            stage: "p3-profile-sid",
+            code: hr.into(),
+        });
+    }
+    Ok(Profile {
+        name,
+        sid,
+        active: false,
+    })
+}
+
+fn packages_folder() -> Result<(PathBuf, (u64, [u8; 16]), Vec<fs::File>)> {
+    let path =
+        PathBuf::from(std::env::var_os("LOCALAPPDATA").ok_or(invalid("p3-profile-local-data"))?)
+            .join("Packages");
+    let pins = pin_directories(&path)?;
+    let id = secure_fs::file_id(pins.last().ok_or(invalid("p3-packages-pin"))?)?;
+    Ok((path, id, pins))
+}
+
+pub(super) fn folder_identity(store: &Store, profile: &Profile) -> Result<Option<[u8; 32]>> {
+    let name = String::from_utf16(&profile.name[..profile.name.len() - 1])
+        .map_err(|_| invalid("p3-profile-name"))?;
+    let (packages, id, _pins) = packages_folder()?;
+    if Some(id) != store.state.p3_packages {
+        return Err(invalid("p3-profile-parent"));
+    }
+    let mut text = null_mut();
+    check(
+        unsafe { ConvertSidToStringSidW(profile.sid, &mut text) },
+        "p3-profile-sid-text",
+    )?;
+    let _text = Local(text.cast());
+    let mut folder = null_mut();
+    let hr = unsafe { GetAppContainerFolderPath(text, &mut folder) };
+    if hr as u32 == 0x80070002 {
+        return match fs::symlink_metadata(local_path(&packages.join(&name))?) {
+            Err(e) if e.raw_os_error() == Some(ERROR_FILE_NOT_FOUND as i32) => Ok(None),
+            _ => Err(invalid("p3-profile-absence-unconfirmed")),
+        };
+    }
+    if hr < 0 || folder.is_null() {
+        return Err(Failure {
+            stage: "p3-profile-folder",
+            code: hr.into(),
+        });
+    }
+    let path = unsafe { ::windows::core::PWSTR(folder).to_string() };
+    unsafe { ::windows::Win32::System::Com::CoTaskMemFree(Some(folder.cast())) };
+    let path = PathBuf::from(path.map_err(|_| invalid("p3-profile-path"))?);
+    let root = path.parent().ok_or(invalid("p3-profile-root"))?;
+    if path.file_name().and_then(|s| s.to_str()) != Some("AC")
+        || !root
+            .file_name()
+            .and_then(|s| s.to_str())
+            .is_some_and(|s| s.eq_ignore_ascii_case(&name))
+    {
+        return Err(invalid("p3-profile-layout"));
+    }
+    let pins = pin_directories(&path)?;
+    // Windows resolves the AC subdirectory, while profile removal includes its parent.
+    let [.., parent, package, ac] = pins.as_slice() else {
+        return Err(invalid("p3-profile-folder-pin"));
+    };
+    if secure_fs::file_id(parent)? != id {
+        return Err(invalid("p3-profile-parent"));
+    }
+    let mut digest = Sha256::new();
+    for directory in [package, ac] {
+        let (volume, file) = secure_fs::file_id(directory)?;
+        digest.update(volume.to_le_bytes());
+        digest.update(file);
+    }
+    Ok(Some(digest.finalize().into()))
 }

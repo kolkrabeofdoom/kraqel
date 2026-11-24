@@ -60,6 +60,16 @@ enum Action {
     BeginP3Delivery {
         binding: [u8; 32],
     },
+    P3Profile {
+        begin: [u8; 32],
+        data: bool,
+        folder: [u8; 32],
+        removed: bool,
+    },
+    BeginP3PipePreview {
+        packages: (u64, [u8; 16]),
+        binding: [u8; 32],
+    },
     BeginWin32Window {
         anchor: [u8; 32],
     },
@@ -216,6 +226,9 @@ struct State {
     p3_removed: bool,
     p3_removal: u32,
     p3_cleanup: Option<[u8; 32]>,
+    p3_profiles: [Option<[u8; 32]>; 2],
+    p3_packages: Option<(u64, [u8; 16])>,
+    p3_pipe_begin: Option<[u8; 32]>,
     p3_evidence: [Option<[u8; 32]>; 3],
     scene_snapshot: Option<([u8; 32], win32_binding::Snapshot)>,
     window_session: win32_binding::Session,
@@ -396,11 +409,37 @@ impl State {
             self.scene_snapshot = Some((actor, *snapshot));
             return Ok(());
         }
+        if let Action::P3Profile {
+            begin,
+            data,
+            folder,
+            removed,
+        } = action
+        {
+            if actor != self.actor
+                || self.p3_pipe_begin != Some(*begin)
+                || self.window_session != win32_binding::Session::Open(*begin)
+            {
+                return Err(invalid("p3-profile-generation"));
+            }
+            let entry = &mut self.p3_profiles[usize::from(*data)];
+            if *removed && *entry == Some(*folder) {
+                *entry = None;
+            } else if !removed && entry.is_none() {
+                *entry = Some(*folder);
+            } else {
+                return Err(invalid("p3-profile-transition"));
+            }
+            return Ok(());
+        }
         if let Action::EndWin32Window { begin }
         | Action::PublishWin32Scene { begin, .. }
         | Action::EndWin32SceneSave { begin, .. } = action
         {
-            if actor != self.actor || self.window_session != win32_binding::Session::Open(*begin) {
+            if self.p3_profiles != [None; 2]
+                || actor != self.actor
+                || self.window_session != win32_binding::Session::Open(*begin)
+            {
                 return Err(invalid("win32-window-end-binding"));
             }
             if let Action::EndWin32SceneSave { snapshot, .. }
@@ -444,7 +483,9 @@ impl State {
         if let Action::C3 { event } = action {
             return workspace_persistent::apply_group(self, actor, event);
         }
-        if let Action::BeginP3Delivery { binding } = action {
+        if let Action::BeginP3Delivery { binding } | Action::BeginP3PipePreview { binding, .. } =
+            action
+        {
             if actor != self.actor
                 || self.schema != 1
                 || self.p3_cleanup.is_some()
@@ -454,6 +495,12 @@ impl State {
                 return Err(invalid("p3-delivery-session-binding"));
             }
             self.window_session.require_closed()?;
+            self.p3_packages = match action {
+                Action::BeginP3PipePreview { packages, .. } => Some(*packages),
+                _ => None,
+            };
+            self.p3_pipe_begin =
+                matches!(action, Action::BeginP3PipePreview { .. }).then_some(digest);
             self.window_session = win32_binding::Session::Open(digest);
             return Ok(());
         }
@@ -739,6 +786,9 @@ impl Store {
                     p3_removed: false,
                     p3_removal: 0,
                     p3_cleanup: None,
+                    p3_profiles: [None; 2],
+                    p3_packages: None,
+                    p3_pipe_begin: None,
                     p3_evidence: [None; 3],
                     scene_snapshot: None,
                     window_session: Default::default(),
@@ -818,7 +868,9 @@ impl Store {
         Ok(())
     }
     fn idle(&self) -> Result<()> {
-        let name = self.job_name();
+        Self::job_idle(&self.job_name())
+    }
+    fn job_idle(name: &[u16]) -> Result<()> {
         let raw = unsafe { OpenJobObjectW(JOB_OBJECT_QUERY, 0, name.as_ptr()) };
         if raw.is_null() {
             if unsafe { GetLastError() } == ERROR_FILE_NOT_FOUND {
@@ -1215,6 +1267,7 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
             Some("reopen-p3-fixture") => Some(Operation::Reopen),
             Some("confirm-p3-fixture-cleanup") => Some(Operation::Cleanup),
             Some("read-p3-fixture") => Some(Operation::Read),
+            Some("retire-p3-preview-profiles") => Some(Operation::Profiles),
             _ => None,
         };
         if let Some(operation) = operation {

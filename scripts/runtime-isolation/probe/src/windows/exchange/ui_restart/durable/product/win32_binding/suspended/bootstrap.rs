@@ -248,8 +248,15 @@ pub(super) fn wait_surface(
     reply: &mut fs::File,
     interactive: bool,
 ) -> Result<()> {
-    use windows_sys::Win32::UI::WindowsAndMessaging::{PostMessageW, WM_CLOSE};
     let hwnd = verified_surface(pi, reply)?;
+    wait_for_close(pi, hwnd, interactive)
+}
+pub(super) fn wait_for_close(
+    pi: &PROCESS_INFORMATION,
+    hwnd: HWND,
+    interactive: bool,
+) -> Result<()> {
+    use windows_sys::Win32::UI::WindowsAndMessaging::{PostMessageW, WM_CLOSE};
     let wait_ms = if interactive {
         // The verified role owns the window until close; the broker retains the job and lock.
         INFINITE
