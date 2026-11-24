@@ -188,7 +188,20 @@ def verify_selection(fixture, candidate, metadata, selected):
         authority.attest(NativeAuthority.domains[0], selection_digest(selected, candidate, metadata[:4]), False)
 
 
-def prepare_captured_project(target, fixture):
+def confirm_fixture_source():
+    dialog = ctypes.WinDLL("user32", use_last_error=True).MessageBoxW
+    dialog.argtypes = [wintypes.HWND, wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.UINT]
+    dialog.restype = ctypes.c_int
+    result = dialog(None,
+                    "Den vorbereiteten synthetischen Projektordner „Szene A“ für diese lokale "
+                    "Testkopie auswählen?",
+                    "KRAQEL – P3-Quellauswahl", 0x1 | 0x100)  # OK/Cancel, default Cancel
+    if result == 0:
+        raise ctypes.WinError(ctypes.get_last_error())
+    return result == 1
+
+
+def prepare_captured_project(target, fixture, interactive_selection=False):
     import runpy
     read_oplock = runpy.run_path(str(Path(__file__).with_name("p3_directory_oplock.py")))["read_oplock"]
     with tempfile.TemporaryDirectory(prefix="kraqel-p3-writable-") as temp:
@@ -198,7 +211,7 @@ def prepare_captured_project(target, fixture):
         metadata = json.loads((source_fixture / "expected.json").read_text())
 
         selected_root = root.lstat()
-        planned = {**metadata[3], "assets/nested/late.png": hashlib.sha256(b"late asset").hexdigest()}
+        planned = dict(metadata[3])
 
         def capture(after_first=None):
             snapshot = capture_writable_fixture(root, selected_root, read_oplock, after_first)
@@ -231,27 +244,36 @@ def prepare_captured_project(target, fixture):
             subprocess.run([sys.executable, "-I", "-c",
                             "import sys; open(sys.argv[1], 'xb').write(b'late asset')",
                             str(root / "assets/nested/late.png")], check=True, timeout=10)
-        try:
-            capture(add_asset)
-        except RuntimeError as exc:
-            require(str(exc) == "project changed during capture" and not target.exists(),
-                    "uncertain capture released")
-        else:
-            raise RuntimeError("concurrent asset omitted")
         with pinned_directory(root):
             selected = object_id(root)
             require(selected == [selected_root.st_dev, selected_root.st_ino], "selected root replaced")
+            if interactive_selection:
+                if not confirm_fixture_source():
+                    return False
+            else:
+                planned["assets/nested/late.png"] = hashlib.sha256(b"late asset").hexdigest()
+                try:
+                    capture(add_asset)
+                except RuntimeError as exc:
+                    require(str(exc) == "project changed during capture" and not target.exists(),
+                            "uncertain capture released")
+                else:
+                    raise RuntimeError("concurrent asset omitted")
             metadata[3] = capture()
         metadata.append(selected)
         (fixture / "expected.json").write_text(json.dumps(metadata))
+        return True
 
 
-def writable_fixture():
+def writable_fixture(interactive_selection=False):
     fixture = Path(tempfile.gettempdir()) / ("kraqel-p3-" + uuid.uuid4().hex)
     fixture.mkdir()
     try:
         target = fixture / "captured"
-        prepare_captured_project(target, fixture)
+        if not prepare_captured_project(target, fixture, interactive_selection):
+            require(not any(fixture.iterdir()), "cancelled selection produced an artifact")
+            print("CANCELLED: no candidate or selection record")
+            return
         metadata = json.loads((fixture / "expected.json").read_text())
         selected = metadata[4]
         try:
@@ -267,7 +289,7 @@ def writable_fixture():
             require(rows == [P3_SCENE], "lost committed WAL scene")
     finally:
         shutil.rmtree(fixture)
-    print("PASS: substituted source refused after native restart; fresh staged capture includes the asset and committed WAL scene")
+    print("PASS: substituted source refused after native restart; selected candidate contains committed WAL scene")
 
 
 def writer(root, readonly):
@@ -1143,8 +1165,8 @@ def capture(root, fixture, interactive=False):
 
 
 if __name__ == "__main__":
-    if sys.argv[1:] == ["writable"]:
-        writable_fixture()
+    if sys.argv[1:] in (["writable"], ["select-writable"]):
+        writable_fixture(interactive_selection=sys.argv[1] == "select-writable")
         sys.exit(0)
     mode, volume, arg = sys.argv[1:]
     require(re.fullmatch(r"\\\\\?\\Volume\{[0-9a-fA-F-]{36}\}\\?", volume), "invalid fixture volume")

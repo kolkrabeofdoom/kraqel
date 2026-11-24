@@ -2,6 +2,8 @@
 
 ### P3 · synthetische Bestandskopie
 
+Im nativen Prüfdialog kann die vorbereitete Quelle ausdrücklich bestätigt oder verworfen werden. Beim Abbruch blieb das Ziel leer. Nach Bestätigung wurde die WAL-Szene aus dem gebundenen Kandidaten gelesen. Beide Dialogpfade wurden automatisiert unter Windows geprüft.
+
 Der native Prüfstarter bindet den synthetischen Quellordner an den erfassten Kandidaten und dessen Inventar. Ein Wiederanlauf mit anderer Quellidentität wurde abgewiesen, der ursprüngliche Kandidat bestätigt.
 
 Am beschreibbaren synthetischen NTFS-Ordner führte ein neues Asset im Unterverzeichnis zum Abbruch ohne Zielkopie. Die anschließende Erfassung übernahm das Asset und die im WAL bestätigte Szene. Der vollständige VHDX-Lauf mit diesem Bestand bestätigte Veröffentlichung, Wiederanlauf, Bereinigung und schreibgeschützte Anzeige der Szene im verwalteten Win32-Fenster. [Erfassung und Geltungsbereich](data-format/product-start-integration-v1-draft.md#erfassung-eines-beschreibbaren-synthetischen-projektordners)
