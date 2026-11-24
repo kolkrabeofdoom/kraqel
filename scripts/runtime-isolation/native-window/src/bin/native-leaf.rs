@@ -3620,7 +3620,8 @@ fn main() {
     std::hint::black_box(&MERGE_ABI);
     std::hint::black_box(&COMPARE_ABI);
     let mut arg = std::env::args_os().nth(1);
-    if let Some(size) = window_receipt::p3_size(arg.as_deref().and_then(|a| a.to_str())) {
+    if let Some(comparison) = window_receipt::p3_comparison(arg.as_deref().and_then(|a| a.to_str()))
+    {
         use std::io::Read;
         let result = (|| -> std::io::Result<i32> {
             let profile = std::env::args()
@@ -3631,10 +3632,10 @@ fn main() {
             let mut from_service = managed_scene::p3_pipe(&mut input)?;
             let mut expected = [0; 32];
             input.read_exact(&mut expected)?;
-            let mut row = vec![0; size];
-            from_service.read_exact(&mut row)?;
+            let row = window_receipt::read_p3(&mut from_service, comparison)?;
             require(
-                window_receipt::valid_p3_row(&row) && window_receipt::p3_receipt(&row) == expected,
+                window_receipt::valid_p3_row(&row, comparison)
+                    && window_receipt::p3_receipt(&row) == expected,
                 "P3 binding",
             )?;
             let scene = |bytes: &[u8]| -> std::io::Result<(String, String)> {
@@ -3645,8 +3646,9 @@ fn main() {
                     .ok_or(std::io::Error::other("P3 scene"))?;
                 Ok((format!("{title} · Revision {revision}"), text.to_owned()))
             };
-            let (heading, text) = if size == window_receipt::P3_PAIR_LEN {
-                let (left, right) = row[96..].split_at(4 + window_receipt::LEFT.len());
+            let (heading, text) = if comparison {
+                let (left, right) = window_receipt::pair_parts(&row)
+                    .ok_or(std::io::Error::other("comparison lengths"))?;
                 let (first, a) = scene(left)?;
                 let (second, b) = scene(right)?;
                 (
@@ -3656,7 +3658,7 @@ fn main() {
             } else {
                 scene(&row[32..])?
             };
-            let mut decision = if size == window_receipt::P3_PAIR_LEN {
+            let mut decision = if comparison {
                 REVIEWED_SIDE.set(Some(0));
                 Some(output.try_clone()?)
             } else {

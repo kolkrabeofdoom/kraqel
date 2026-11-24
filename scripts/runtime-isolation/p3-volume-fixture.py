@@ -1334,10 +1334,12 @@ def receive_prepared(folder, trusted_hash, project_id):
 
 
 @contextmanager
-def desktop_fixture_source(followup=False, divergent=False):
+def desktop_fixture_source(followup=False, divergent=False, long_scene=False):
     producer = Path(__file__).parent / "probe/target/debug/examples/p3_handoff_source.exe"
     with tempfile.TemporaryDirectory(prefix="kraqel-p3-handoff-") as source:
         args = ["--divergent"] if divergent else ["--followup"] if followup else []
+        if long_scene:
+            args.append("--long-scene")
         with subprocess.Popen([producer, *args], cwd=source, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
             report_native_root(proc, producer)
             try:
@@ -1379,15 +1381,17 @@ def deliver_comparison(project, scene, hashes, views, interactive, base_hash):
     # are ordered inputs to the registered decision; neither source path crosses the pipe.
     manifests = [bytes.fromhex(digest) for digest in hashes]
     payload = bytearray(uuid.UUID(project).bytes + uuid.UUID(scene).bytes + b"".join(manifests))
-    for title, text, revision, _ in views:
-        payload.extend(revision.to_bytes(4, "little") + title.encode() + b"\0" + text.encode())
+    left, right = (revision.to_bytes(4, "little") + title.encode() + b"\0" + text.encode()
+                   for title, text, revision, _ in views)
+    payload.extend(len(left).to_bytes(4, "little") + left + right)
+    length = len(payload).to_bytes(4, "little")
     root = Path(tempfile.gettempdir()).resolve() / ("kraqel-p3-" + uuid.uuid4().hex)
     home = root / "comparison-install"
     root.mkdir()
     home.mkdir()
     shutil.copyfile(Path(__file__).parent / "probe/target/debug/kraqel-isolation-probe.exe", home / "p3-starter.exe")
     nonce = hashlib.sha256(b"KRAQEL-P3-COMMON-BASIS-v1" + bytes.fromhex(base_hash) + secrets.token_bytes(32)).digest()
-    binding = hashlib.sha256(b"KRAQEL-P3-COMPARISON-v1" + nonce + hashlib.sha256(P3_SERVICE.read_bytes()).digest()
+    binding = hashlib.sha256(b"KRAQEL-P3-COMPARISON-v2" + nonce + hashlib.sha256(P3_SERVICE.read_bytes()).digest()
                              + hashlib.sha256(P3_WINDOW.read_bytes()).digest() + payload).digest()
     records = (binding, *manifests)
     def verify(authority, register):
@@ -1403,13 +1407,13 @@ def deliver_comparison(project, scene, hashes, views, interactive, base_hash):
         with native_authority(home, False, read_only=True, comparison=True) as authority:
             verify(authority, False)
             swapped = payload[:32] + payload[64:96] + payload[32:64] + payload[96:]
-            authority.pipe.stdin.write(bytes((0, 6)) + nonce + swapped)
+            authority.pipe.stdin.write(bytes((0, 6)) + nonce + length + swapped)
             authority.pipe.stdin.flush()
             require(authority.pipe.stdout.read(16) == b"" and authority.pipe.wait(timeout=5) != 0
                     and b"p3-unbound-row" in authority.pipe.stderr.read(512), "changed comparison accepted")
     with native_authority(home, False, read_only=True, comparison=True) as authority:
         verify(authority, False)
-        authority.start_delivery(payload, interactive)
+        authority.start_delivery(length + payload, interactive)
         side = authority.pipe.stdout.read(1)
         require(side in (b"\x00", b"\x01", b"\x02") and authority.pipe.stdout.readline(16) == b"DELIVERED\n",
                 "missing confirmed comparison outcome")
@@ -1424,7 +1428,7 @@ def deliver_comparison(project, scene, hashes, views, interactive, base_hash):
 def compare_prepared(interactive):
     # Both receipts arrive from the producer independently of the folders.
     # This preview has no destination, publication ticket or write binding.
-    with desktop_fixture_source(divergent=True) as (folder, digest, reply):
+    with desktop_fixture_source(divergent=True, long_scene=not interactive) as (folder, digest, reply):
         other = reply["followup"]
         second = folder.parent / other["folder"]
         project, scene = reply["project"], reply["scene"]
@@ -1434,7 +1438,7 @@ def compare_prepared(interactive):
         views = [prepared_scene_view(snapshot, project, scene) for snapshot in (left, right)]
         # The dialog accepts only the fixed synthetic texts, never arbitrary manuscript content.
         require(all(view is not None for view in views) and
-                [view[:3] for view in views] == [("Szene B", "Die Flut erreicht den Hafen.", 1),
+                [view[:3] for view in views] == [("Szene B", "Die Flut erreicht den Hafen." * (1 if interactive else 1024), 1),
                                                  ("Szene A", "Der Hafen liegt im Nebel.", 1)], "unexpected comparison scene")
         changed_files = {name for name in left.keys() | right.keys() if left.get(name) != right.get(name)}
         require(changed_files == {"kraqel.sqlite3"}, "unexpected comparison inventory")
@@ -1991,7 +1995,7 @@ def capture(root, fixture, interactive=False):
 
 
 if __name__ == "__main__":
-    if sys.argv[1:2] in (["check-prepared"], ["prepared"], ["prepared-preview"], ["check-prepared-comparison"]) and os.environ.get("KRAQEL_P3_ETW_ROOTS") == "1":
+    if sys.argv[1:2] in (["check-prepared"], ["prepared"], ["prepared-preview"], ["compare-prepared"], ["check-prepared-comparison"]) and os.environ.get("KRAQEL_P3_ETW_ROOTS") == "1":
         print(f"P3-ETW-CONTROLLER {os.getpid()}", flush=True)
     if sys.argv[1:] in (["compare-prepared"], ["check-prepared-comparison"]):
         compare_prepared(interactive=sys.argv[1] == "compare-prepared")

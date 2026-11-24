@@ -133,22 +133,14 @@ pub(super) fn serve(
         let [mode, slot] = [frame[0], frame[1]];
         if read && slot == 6 && mode == 0 && verified == [true; 3] {
             use crate::window_receipt as protocol;
-            let mut row = vec![
-                0;
-                if comparison {
-                    protocol::P3_PAIR_LEN
-                } else {
-                    protocol::P3_LEN
-                }
-            ];
-            io("p3-row", input.read_exact(&mut row))?;
+            let row = io("p3-row", protocol::read_p3(&mut input, comparison))?;
             let root = store.root.join("bin");
             let image_path = root.join("pipe-service.exe");
             let (_dirs, image, digest) = binary_pin(&image_path)?;
             let (_window_dirs, window, window_digest) = binary_pin(&root.join("native-leaf.exe"))?;
             let binding: [u8; 32] = Sha256::new()
                 .chain_update(if comparison {
-                    b"KRAQEL-P3-COMPARISON-v1".as_slice()
+                    b"KRAQEL-P3-COMPARISON-v2".as_slice()
                 } else {
                     b"KRAQEL-P3-PREVIEW-v2".as_slice()
                 })
@@ -158,7 +150,7 @@ pub(super) fn serve(
                 .chain_update(&row)
                 .finalize()
                 .into();
-            if !protocol::valid_p3_row(&row)
+            if !protocol::valid_p3_row(&row, comparison)
                 || Some(binding) != store.state.p3_evidence[0]
                 || comparison
                     && (store.state.p3_evidence[1].as_ref().map(|v| v.as_slice())

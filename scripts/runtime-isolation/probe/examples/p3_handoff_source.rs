@@ -66,8 +66,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             fs::copy(root.join(relative), other_root.join(relative))?;
         }
         let other_project = other_manager.open_project(&id_text)?;
+        let local_text = "Die Flut erreicht den Hafen.".repeat(
+            if std::env::args().nth(2).as_deref() == Some("--long-scene") {
+                1024
+            } else {
+                1
+            },
+        );
         for (conn, title, text) in [
-            (db, "Szene B", "Die Flut erreicht den Hafen."),
+            (db, "Szene B", local_text.as_str()),
             (
                 other_project.database().connection(),
                 "Szene A",

@@ -119,38 +119,79 @@ pub const P3_READ: &str = "--managed-p3-preview-v2";
 pub const P3_CONTENT: &[u8] = b"Szene A\0Text aus der Testkopie.";
 pub const P3_LEN: usize = 36 + P3_CONTENT.len();
 
-pub const P3_COMPARE: &str = "--managed-p3-comparison-v1";
-// Project, scene, ordered manifest hashes, then each revision and title/text pair.
-pub const LEFT: &[u8] = b"Szene B\0Die Flut erreicht den Hafen.";
-pub const RIGHT: &[u8] = b"Szene A\0Der Hafen liegt im Nebel.";
-pub const P3_PAIR_LEN: usize = 96 + 8 + LEFT.len() + RIGHT.len();
+pub const P3_COMPARE: &str = "--managed-p3-comparison-v2";
+const MAX_PAIR: usize = 2 * 1024 * 1024;
 
-pub fn p3_size(argument: Option<&str>) -> Option<usize> {
+pub fn p3_comparison(argument: Option<&str>) -> Option<bool> {
     match argument {
-        Some(P3_COMPARE) => Some(P3_PAIR_LEN),
-        Some(P3_READ) => Some(P3_LEN),
+        Some(P3_COMPARE) => Some(true),
+        Some(P3_READ) => Some(false),
         _ => None,
     }
 }
 
-pub fn valid_p3_row(row: &[u8]) -> bool {
-    if row.len() != P3_LEN && row.len() != P3_PAIR_LEN {
+// Comparison frames carry a little-endian length; the single-scene ABI stays fixed.
+pub fn read_p3(input: &mut impl std::io::Read, comparison: bool) -> std::io::Result<Vec<u8>> {
+    let size = if comparison {
+        let mut length = [0; 4];
+        input.read_exact(&mut length)?;
+        let size = u32::from_le_bytes(length) as usize;
+        if !(110..=MAX_PAIR).contains(&size) {
+            return Err(std::io::Error::other("invalid comparison length"));
+        }
+        size
+    } else {
+        P3_LEN
+    };
+    let mut row = vec![0; size];
+    input.read_exact(&mut row)?;
+    Ok(row)
+}
+
+pub fn write_p3(
+    output: &mut impl std::io::Write,
+    comparison: bool,
+    row: &[u8],
+) -> std::io::Result<()> {
+    if comparison {
+        if !(110..=MAX_PAIR).contains(&row.len()) {
+            return Err(std::io::Error::other("invalid comparison length"));
+        }
+        output.write_all(&(row.len() as u32).to_le_bytes())?;
+    }
+    output.write_all(row)
+}
+
+pub fn pair_parts(row: &[u8]) -> Option<(&[u8], &[u8])> {
+    let left_len = u32::from_le_bytes(row.get(96..100)?.try_into().ok()?) as usize;
+    let (left, right) = row.get(100..)?.split_at_checked(left_len)?;
+    Some((left, right))
+}
+
+pub fn valid_p3_row(row: &[u8], comparison: bool) -> bool {
+    if row.len() < 36 || row[..16] == [0; 16] || row[16..32] == [0; 16] || row[..16] == row[16..32]
+    {
         return false;
     }
-    if row[..16] == [0; 16] || row[16..32] == [0; 16] || row[..16] == row[16..32] {
-        return false;
-    }
-    if row.len() == P3_PAIR_LEN {
-        let split = 100 + LEFT.len();
+    if comparison {
+        let Some((left, right)) = pair_parts(row) else {
+            return false;
+        };
+        // This research installation may render only known synthetic text.
+        let Some(text) = left.strip_prefix(b"\x01\0\0\0Szene B\0") else {
+            return false;
+        };
+        let phrase = b"Die Flut erreicht den Hafen.";
         return row[32..64] != [0; 32]
             && row[64..96] != [0; 32]
             && row[32..64] != row[64..96]
-            && row[96..100] == 1u32.to_le_bytes()
-            && &row[100..split] == LEFT
-            && row[split..split + 4] == 1u32.to_le_bytes()
-            && &row[split + 4..] == RIGHT;
+            && matches!(text.len(), n if n == phrase.len() || n == 1024 * phrase.len())
+            && text.chunks(phrase.len()).all(|chunk| chunk == phrase)
+            && right == b"\x01\0\0\0Szene A\0Der Hafen liegt im Nebel.";
     }
-    row[32..36] == [0; 4] && matches!(&row[36..], P3_CONTENT | b"Szene B\0Wind an der Suedkueste.")
+    row.len() == P3_LEN
+        && row[32..36] == [0; 4]
+        && matches!(&row[36..], P3_CONTENT | b"Szene B\0Wind an der Suedkueste.")
 }
 
 pub fn p3_receipt(row: &[u8]) -> [u8; 32] {

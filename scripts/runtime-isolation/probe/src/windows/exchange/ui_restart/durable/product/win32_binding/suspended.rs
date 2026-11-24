@@ -64,7 +64,7 @@ pub(in super::super) fn deliver_p3(
     use crate::window_receipt as protocol;
     let mut choice = 0;
     use windows_sys::Win32::Storage::FileSystem::{FILE_READ_DATA, FILE_WRITE_DATA, SYNCHRONIZE};
-    let argument = if row.len() == protocol::P3_PAIR_LEN {
+    let argument = if row.len() != protocol::P3_LEN {
         protocol::P3_COMPARE
     } else {
         protocol::P3_READ
@@ -89,6 +89,13 @@ pub(in super::super) fn deliver_p3(
             )?;
             let (rx, tx) = crate::windows::exchange::ui_restart::pipe()?;
             let read_end = scene::install(ui.hProcess, rx, FILE_READ_DATA | SYNCHRONIZE)?;
+            bootstrap::confirm_grant(ui, &mut to_ui, &mut reply, &ui_grant)?;
+            io("p3-window-end", to_ui.write_all(&read_end))?;
+            io(
+                "p3-window-binding",
+                to_ui.write_all(&protocol::p3_receipt(row)),
+            )?;
+            drop(to_ui);
             with_role(
                 store,
                 root,
@@ -110,18 +117,14 @@ pub(in super::super) fn deliver_p3(
                     let write_end = scene::install(pi.hProcess, tx, FILE_WRITE_DATA | SYNCHRONIZE)?;
                     bootstrap::confirm_grant(pi, &mut writer, &mut reply, &grant)?;
                     io("p3-service-end", writer.write_all(&write_end))?;
-                    io("p3-service-send", writer.write_all(row))?;
+                    io(
+                        "p3-service-send",
+                        protocol::write_p3(&mut writer, argument == protocol::P3_COMPARE, row),
+                    )?;
                     drop(writer);
                     bootstrap::confirm_exit_receipt(pi, &reply, protocol::p3_receipt(row))
                 },
             )?;
-            bootstrap::confirm_grant(ui, &mut to_ui, &mut reply, &ui_grant)?;
-            io("p3-window-end", to_ui.write_all(&read_end))?;
-            io(
-                "p3-window-binding",
-                to_ui.write_all(&protocol::p3_receipt(row)),
-            )?;
-            drop(to_ui);
             let hwnd = bootstrap::verified_surface(ui, &mut reply)?;
             if interactive {
                 visible()?;
@@ -154,7 +157,7 @@ fn with_role(
     let image = root.join(name);
     let data = name == "pipe-service.exe";
     let role = if data { "data" } else { "ui" };
-    let begin = if crate::window_receipt::p3_size(Some(argument)).is_some() {
+    let begin = if crate::window_receipt::p3_comparison(Some(argument)).is_some() {
         let begin = store
             .state
             .p3_pipe_begin
