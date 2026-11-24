@@ -224,7 +224,7 @@ fn transfer_asset(
 }
 
 /// Öffentliche Metadaten einer vollständig veröffentlichten Arbeitskopie.
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PreparedHandoff {
     /// Relativer Ordnername innerhalb des lokalen Sicherungsordners.

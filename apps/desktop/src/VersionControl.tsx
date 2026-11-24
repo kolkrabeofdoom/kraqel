@@ -8,6 +8,7 @@ import {
   getVersionControlDiff,
   getVersionControlStatus,
   validateProjectSnapshot,
+  type Workspace,
   type SnapshotSummary,
   type VersionControlStatus,
 } from "./commands";
@@ -17,9 +18,10 @@ import { SceneBasisPanel } from "./SceneBasisPanel";
 interface VersionControlProps {
   readonly projectId: ProjectId;
   readonly documents: readonly DocumentNode[];
+  readonly onActivated: (workspace: Workspace) => void;
 }
 
-export function VersionControl({ projectId, documents }: VersionControlProps) {
+export function VersionControl({ projectId, documents, onActivated }: VersionControlProps) {
   const [status, setStatus] = useState<VersionControlStatus | null>(null);
   const [summary, setSummary] = useState<SnapshotSummary | null>(null);
   const [diff, setDiff] = useState("");
@@ -180,7 +182,12 @@ export function VersionControl({ projectId, documents }: VersionControlProps) {
         </button>
       </section>
 
-      <SceneBasisPanel key={projectId} projectId={projectId} documents={documents} />
+      <SceneBasisPanel
+        key={projectId}
+        projectId={projectId}
+        documents={documents}
+        onActivated={onActivated}
+      />
 
       <div className="version-status" aria-live="polite">
         <strong>

@@ -1,6 +1,7 @@
 //! Sicherer Lebenszyklus lokaler Projektverzeichnisse.
 
 mod handoff;
+mod scene_activation;
 mod scene_basis;
 mod scene_merge;
 pub use handoff::PreparedHandoff;

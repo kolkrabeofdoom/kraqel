@@ -1943,6 +1943,63 @@ struct PrepareSceneMergeRequest {
     selection: SceneMergeSelection,
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SecureActivationRequest {
+    project_id: String,
+    selection: SceneMergeSelection,
+    candidate: PreparedHandoff,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SwitchActivationRequest {
+    project_id: String,
+    ticket: String,
+    undo: bool,
+}
+
+#[tauri::command]
+async fn secure_scene_activation(
+    state: State<'_, AppState>,
+    request: CommandRequest<SecureActivationRequest>,
+) -> Result<CommandResponse<String>, CommandError> {
+    require_current_contract(&request)?;
+    let request_id = request.request_id;
+    let payload = request.payload;
+    let id = parse_project_id(request_id, &payload.project_id)?;
+    let manager = manager(&state, request_id)?;
+    let ticket = tauri::async_runtime::spawn_blocking(move || {
+        manager.secure_scene_activation(id, &payload.selection, &payload.candidate)
+    })
+    .await
+    .map_err(|_| CommandError::internal(request_id))?
+    .map_err(|e| map_project_error(request_id, &e))?;
+    Ok(CommandResponse::current(request_id, ticket))
+}
+
+#[tauri::command]
+async fn switch_scene_activation(
+    state: State<'_, AppState>,
+    request: CommandRequest<SwitchActivationRequest>,
+) -> Result<CommandResponse<WorkspaceResponse>, CommandError> {
+    require_current_contract(&request)?;
+    let request_id = request.request_id;
+    let payload = request.payload;
+    let id = parse_project_id(request_id, &payload.project_id)?;
+    let manager = manager(&state, request_id)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        manager.switch_scene_activation(id, &payload.ticket, payload.undo)
+    })
+    .await
+    .map_err(|_| CommandError::internal(request_id))?
+    .map_err(|e| map_project_error(request_id, &e))?;
+    Ok(CommandResponse::current(
+        request_id,
+        open_workspace_impl(&state, request_id, &id.to_string())?,
+    ))
+}
+
 #[tauri::command]
 async fn prepare_scene_merge(
     state: State<'_, AppState>,
@@ -3940,6 +3997,8 @@ pub fn run() {
             save_scene_basis,
             compare_scene_bases,
             prepare_scene_merge,
+            secure_scene_activation,
+            switch_scene_activation,
             validate_project_snapshot,
             get_version_control_status,
             get_version_control_diff,

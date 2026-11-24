@@ -1,6 +1,11 @@
 import type { DocumentNode, ProjectId } from "@kraqel/domain";
 import { useMemo, useState } from "react";
 import {
+  secureSceneActivation,
+  switchSceneActivation,
+  type Workspace,
+  type SceneSelection,
+  type PreparedHandoff,
   compareSceneBases,
   prepareSceneMerge,
   saveSceneBasis,
@@ -25,9 +30,11 @@ const effectLabels = {
 export function SceneBasisPanel({
   projectId,
   documents,
+  onActivated,
 }: {
   projectId: ProjectId;
   documents: readonly DocumentNode[];
+  onActivated: (workspace: Workspace) => void;
 }) {
   const titles = useMemo(
     () => new Map<string, string>(documents.map((d) => [d.id, d.title])),
@@ -42,7 +49,49 @@ export function SceneBasisPanel({
   const [selected, setSelected] = useState<string[]>([]);
   const [folder, setFolder] = useState("");
   const [manifest, setManifest] = useState("");
-  function resetReview() {
+  const [prepared, setPrepared] = useState<{
+    selection: SceneSelection;
+    candidate: PreparedHandoff;
+  } | null>(null);
+  const [ticket, setTicket] = useState("");
+  async function secure() {
+    if (!prepared || busy) return;
+    setBusy(true);
+    try {
+      const proof = await secureSceneActivation(projectId, prepared.selection, prepared.candidate);
+      setTicket(proof);
+      setPrepared(null);
+      setNotice(
+        "Die bisherigen Szenen sind lokal gesichert. Bewahre den angezeigten SHA-256 für den Wiederanlauf oder die Rücknahme auf.",
+      );
+    } catch {
+      setNotice("Der Stand konnte nicht gesichert werden. Bitte erneut vergleichen.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function switchState(undo: boolean) {
+    if (busy || !/^[0-9a-f]{64}$/.test(ticket)) return;
+    setBusy(true);
+    try {
+      onActivated(await switchSceneActivation(projectId, ticket, undo));
+      resetReview(true);
+      setNotice(
+        undo
+          ? "Die vorherigen Szenenfassungen sind wieder aktiv."
+          : "Die ausgewählten Szenen sind jetzt im geöffneten Projekt aktiv.",
+      );
+    } catch {
+      setNotice(
+        "Der Wechsel wurde nicht bestätigt. Prüfe den lokalen Beleg und den aktuellen Projektstand. Nach einer unterbrochenen Antwort kannst du denselben Vorgang wiederholen.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  function resetReview(keepTicket = false) {
+    if (!keepTicket) setTicket("");
+    setPrepared(null);
     setResult(null);
     setSelected([]);
     setFolder("");
@@ -54,15 +103,17 @@ export function SceneBasisPanel({
     setBusy(true);
     setNotice("");
     try {
-      const receipt = await prepareSceneMerge(projectId, {
+      const selection = {
         base,
         incoming,
         local: result.localSha256,
         folder,
         manifest,
         scenes: selected,
-      });
+      };
+      const receipt = await prepareSceneMerge(projectId, selection);
       resetReview();
+      setPrepared({ selection, candidate: receipt });
       setNotice(
         `Neue Arbeitskopie mit der Auswahl: backups/${receipt.folder}. SHA-256 des Inventars: ${receipt.manifestSha256}. SHA-256 der Szenenbasis: ${receipt.sceneBasisSha256}.`,
       );
@@ -252,6 +303,50 @@ export function SceneBasisPanel({
           </fieldset>
         </form>
       )}
+      {prepared && (
+        <fieldset disabled={busy}>
+          <legend>Aktivierung vorbereiten</legend>
+          <p>
+            Für die Rücknahme werden die bisherigen Titel und Inhalte der ausgewählten Szenen
+            unverschlüsselt im lokalen Sicherungsordner gespeichert.
+          </p>
+          <button type="button" onClick={() => void secure()}>
+            Vorherige Fassungen sichern
+          </button>
+        </fieldset>
+      )}
+      <details open={ticket ? true : undefined}>
+        <summary>Aktivieren oder vorherige Szenen wiederherstellen</summary>
+        <fieldset disabled={busy}>
+          <legend>Lokaler Aktivierungsbeleg</legend>
+          <label>
+            SHA-256 aus der lokalen Sicherung
+            <input
+              value={ticket}
+              maxLength={64}
+              onChange={(e) => setTicket(e.target.value.trim().toLowerCase())}
+            />
+          </label>
+          <p>
+            Beide Aktionen betreffen die ausgewählten Szenen im geöffneten Projekt. Nach einem
+            Neustart denselben vor der Aktivierung gesicherten Beleg verwenden.
+          </p>
+          <button
+            type="button"
+            disabled={!/^[0-9a-f]{64}$/.test(ticket)}
+            onClick={() => void switchState(false)}
+          >
+            Auswahl jetzt im Projekt aktivieren
+          </button>
+          <button
+            type="button"
+            disabled={!/^[0-9a-f]{64}$/.test(ticket)}
+            onClick={() => void switchState(true)}
+          >
+            Vorherige Szenen jetzt wiederherstellen
+          </button>
+        </fieldset>
+      </details>
     </details>
   );
 }

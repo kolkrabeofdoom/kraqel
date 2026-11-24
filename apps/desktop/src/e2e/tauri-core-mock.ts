@@ -965,6 +965,12 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
         ],
       };
     }
+    case "secure_scene_activation":
+      findProject(state, payload.projectId);
+      return "1".repeat(64);
+    case "switch_scene_activation":
+      if (payload.ticket !== "1".repeat(64)) throw new Error("Ungültiger Beleg");
+      return workspace(findProject(state, payload.projectId));
     case "prepare_scene_merge": {
       findProject(state, payload.projectId);
       const selection = payload.selection as { scenes: string[]; local: string };

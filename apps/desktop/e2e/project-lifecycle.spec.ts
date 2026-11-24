@@ -42,6 +42,16 @@ test("Arbeitskopie wird im geöffneten Projekt ausdrücklich vorbereitet", async
   await page.getByRole("button", { name: /Auswahl bestätigen/ }).click();
   await expect(page.getByRole("status").filter({ hasText: "uebernahme-ergebnis" })).toBeVisible();
   await expect(choice).toHaveCount(0);
+  await page.getByRole("button", { name: "Vorherige Fassungen sichern" }).click();
+  await expect(page.getByLabel("SHA-256 aus der lokalen Sicherung")).toHaveValue("1".repeat(64));
+  await page.getByRole("button", { name: "Auswahl jetzt im Projekt aktivieren" }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "im geöffneten Projekt aktiv" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Vorherige Szenen jetzt wiederherstellen" }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "vorherigen Szenenfassungen sind wieder aktiv" }),
+  ).toBeVisible();
 });
 
 test("abgebrochener Projektarchivexport bleibt neutral", async ({ page }) => {

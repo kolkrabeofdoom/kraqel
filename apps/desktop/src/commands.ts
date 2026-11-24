@@ -1065,22 +1065,46 @@ export async function compareSceneBases(projectId: ProjectId, base: string, inco
   ).data;
 }
 
-interface PreparedHandoff {
+export interface PreparedHandoff {
   readonly folder: string;
   readonly manifestSha256: string;
   readonly sceneBasisSha256: string;
 }
 
+export interface SceneSelection {
+  base: string;
+  local: string;
+  incoming: string;
+  folder: string;
+  manifest: string;
+  scenes: readonly string[];
+}
+
+export async function secureSceneActivation(
+  projectId: ProjectId,
+  selection: SceneSelection,
+  candidate: PreparedHandoff,
+) {
+  return (
+    await callCommand<
+      { projectId: ProjectId; selection: SceneSelection; candidate: PreparedHandoff },
+      string
+    >("secure_scene_activation", { projectId, selection, candidate })
+  ).data;
+}
+
+export async function switchSceneActivation(projectId: ProjectId, ticket: string, undo: boolean) {
+  return (
+    await callCommand<{ projectId: ProjectId; ticket: string; undo: boolean }, Workspace>(
+      "switch_scene_activation",
+      { projectId, ticket, undo },
+    )
+  ).data;
+}
+
 export async function prepareSceneMerge(
   projectId: ProjectId,
-  selection: {
-    base: string;
-    local: string;
-    incoming: string;
-    folder: string;
-    manifest: string;
-    scenes: readonly string[];
-  },
+  selection: SceneSelection,
 ): Promise<PreparedHandoff> {
   return (
     await callCommand<{ projectId: ProjectId; selection: typeof selection }, PreparedHandoff>(

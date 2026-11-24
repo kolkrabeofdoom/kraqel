@@ -3,13 +3,13 @@ use super::scene_basis::{Basis, hash, is_hash};
 use super::*;
 use crate::document_repository::{MAX_EDITOR_DOCUMENT_BYTES, plain_text, validate_content};
 use kraqel_domain::{EntityId, ProjectId};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, BTreeSet},
     io::Read,
 };
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SceneMergeSelection {
     pub base: String,
@@ -29,7 +29,7 @@ struct Manifest {
     files: BTreeMap<String, String>,
 }
 
-fn confirmed_file(path: &Path, digest: &str, max: u64) -> Result<Vec<u8>, ProjectError> {
+pub(super) fn confirmed_file(path: &Path, digest: &str, max: u64) -> Result<Vec<u8>, ProjectError> {
     if !is_hash(digest) {
         return Err(ProjectError::InvalidDatabase);
     }
@@ -51,46 +51,49 @@ fn confirmed_file(path: &Path, digest: &str, max: u64) -> Result<Vec<u8>, Projec
     Ok(bytes)
 }
 
-impl SceneMergeSelection {
-    fn incoming_database(&self, id: ProjectId, backup: &Path) -> Result<Connection, ProjectError> {
-        let raw = self
-            .folder
-            .strip_prefix("uebernahme-")
-            .ok_or(ProjectError::InvalidRelativePath)?;
-        if ProjectId::parse(raw).is_none_or(|v| v.to_string() != raw) {
-            return Err(ProjectError::InvalidRelativePath);
-        }
-        let dir = backup.join(&self.folder);
-        #[cfg(windows)]
-        let _pin = pin_candidate_directory(&dir)?;
-        validate_directory_metadata(&candidate_attributes(&dir)?)?;
-        let bytes = confirmed_file(&dir.join("uebernahme.json"), &self.manifest, 128 * 1024)?;
-        let manifest: Manifest =
-            serde_json::from_slice(&bytes).map_err(|_| ProjectError::InvalidDatabase)?;
-        if manifest.format != "kraqel-logical-preparation-v2"
-            || manifest.project_id != id
-            || manifest.scene_basis_sha256 != self.incoming
-        {
-            return Err(ProjectError::InvalidDatabase);
-        }
-        // The separately approved scene receipt must also be present in this exact package.
-        Basis::read(&dir, &self.incoming, id)?;
-        let digest = manifest
-            .files
-            .get(DATABASE_FILE_NAME)
-            .ok_or(ProjectError::InvalidDatabase)?;
-        let image = confirmed_file(&dir.join(DATABASE_FILE_NAME), digest, 128 * 1024 * 1024)?;
-        if !image.starts_with(b"SQLite format 3\0") || image.get(18..20) != Some(&[1, 1]) {
-            return Err(ProjectError::InvalidDatabase);
-        }
-        let mut db = Connection::open_in_memory()?;
-        db.deserialize_read_exact(MAIN_DB, image.as_slice(), image.len(), true)?;
-        db.execute_batch(
-            "PRAGMA trusted_schema=OFF; PRAGMA temp_store=MEMORY; PRAGMA query_only=ON",
-        )?;
-        Ok(db)
+pub(super) fn package_database(
+    id: ProjectId,
+    backup: &Path,
+    folder: &str,
+    manifest_hash: &str,
+    basis_hash: &str,
+) -> Result<Connection, ProjectError> {
+    let raw = folder
+        .strip_prefix("uebernahme-")
+        .ok_or(ProjectError::InvalidRelativePath)?;
+    if ProjectId::parse(raw).is_none_or(|v| v.to_string() != raw) {
+        return Err(ProjectError::InvalidRelativePath);
     }
+    let dir = backup.join(folder);
+    #[cfg(windows)]
+    let _pin = pin_candidate_directory(&dir)?;
+    validate_directory_metadata(&candidate_attributes(&dir)?)?;
+    let bytes = confirmed_file(&dir.join("uebernahme.json"), manifest_hash, 128 * 1024)?;
+    let manifest: Manifest =
+        serde_json::from_slice(&bytes).map_err(|_| ProjectError::InvalidDatabase)?;
+    if manifest.format != "kraqel-logical-preparation-v2"
+        || manifest.project_id != id
+        || manifest.scene_basis_sha256 != basis_hash
+    {
+        return Err(ProjectError::InvalidDatabase);
+    }
+    // The separately approved scene receipt must also be present in this exact package.
+    Basis::read(&dir, basis_hash, id)?;
+    let digest = manifest
+        .files
+        .get(DATABASE_FILE_NAME)
+        .ok_or(ProjectError::InvalidDatabase)?;
+    let image = confirmed_file(&dir.join(DATABASE_FILE_NAME), digest, 128 * 1024 * 1024)?;
+    if !image.starts_with(b"SQLite format 3\0") || image.get(18..20) != Some(&[1, 1]) {
+        return Err(ProjectError::InvalidDatabase);
+    }
+    let mut db = Connection::open_in_memory()?;
+    db.deserialize_read_exact(MAIN_DB, image.as_slice(), image.len(), true)?;
+    db.execute_batch("PRAGMA trusted_schema=OFF; PRAGMA temp_store=MEMORY; PRAGMA query_only=ON")?;
+    Ok(db)
+}
 
+impl SceneMergeSelection {
     pub(super) fn apply(
         &self,
         target: &mut Database,
@@ -107,7 +110,7 @@ impl SceneMergeSelection {
         }
         let base = Basis::read(backup, &self.base, id)?;
         let incoming = Basis::read(backup, &self.incoming, id)?;
-        let source = self.incoming_database(id, backup)?;
+        let source = package_database(id, backup, &self.folder, &self.manifest, &self.incoming)?;
         if handoff::schema(&source)? != handoff::schema(target.connection())?
             || Basis::from_db(&source, id)?.bytes()? != incoming.bytes()?
         {
@@ -190,6 +193,19 @@ mod tests {
 
     #[test]
     fn adopts_only_selected_scene_into_new_copy_and_refuses_remote_deletion() {
+        if let Ok(root) = std::env::var("KRAQEL_TEST_ACTIVATION_HOME") {
+            let manager = ProjectManager::new(root).unwrap();
+            let id = ProjectId::parse(&std::env::var("KRAQEL_TEST_ACTIVATION_PROJECT").unwrap())
+                .unwrap();
+            manager
+                .switch_scene_activation(
+                    id,
+                    &std::env::var("KRAQEL_TEST_ACTIVATION_TICKET").unwrap(),
+                    false,
+                )
+                .unwrap();
+            std::process::exit(82); // Committed, response never delivered.
+        }
         let local_home = tempfile::tempdir().unwrap();
         let other_home = tempfile::tempdir().unwrap();
         let local = ProjectManager::new(local_home.path()).unwrap();
@@ -254,7 +270,7 @@ mod tests {
         assert_eq!(count(), initial);
         plan.scenes = vec![selected];
         let receipt = local.prepare_scene_merge(id, &plan).unwrap();
-        let result = backups.join(receipt.folder).join(DATABASE_FILE_NAME);
+        let result = backups.join(&receipt.folder).join(DATABASE_FILE_NAME);
         let copy = open_read_only(&result).unwrap();
         let read = |db: &Connection| {
             db.query_row(
@@ -298,6 +314,76 @@ mod tests {
                 .unwrap()
                 .windows(old.len())
                 .any(|s| s == old)
+        );
+        let ticket = local.secure_scene_activation(id, &plan, &receipt).unwrap();
+        // Even with the correct source revision, backup and digest, local approval is required.
+        let marker = here.directory().join(format!(".szenenfreigabe-{ticket}"));
+        let parked = local_home.path().join("parked-approval");
+        fs::rename(&marker, &parked).unwrap();
+        assert!(local.switch_scene_activation(id, &ticket, false).is_err());
+        fs::rename(parked, marker).unwrap();
+        // Even an edit which only advances the revision invalidates the old activation.
+        live.execute(
+            "UPDATE document SET revision=revision+1 WHERE id=?1",
+            [selected.to_string()],
+        )
+        .unwrap();
+        assert!(local.switch_scene_activation(id, &ticket, false).is_err());
+        live.execute(
+            "UPDATE document SET revision=0 WHERE id=?1",
+            [selected.to_string()],
+        )
+        .unwrap();
+        // New manager instance: no process-local authority or remembered state is needed.
+        let restarted = ProjectManager::new(local_home.path()).unwrap();
+        assert!(
+            restarted
+                .switch_scene_activation(id, &ticket, true)
+                .is_err()
+        );
+        for (point, code, revision) in [("before-commit", 81, 0), ("after-commit", 82, 1)] {
+            let status=std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--exact","project_manager::scene_merge::tests::adopts_only_selected_scene_into_new_copy_and_refuses_remote_deletion"])
+                .env("KRAQEL_TEST_ACTIVATION_HOME",local_home.path())
+                .env("KRAQEL_TEST_ACTIVATION_PROJECT",id.to_string())
+                .env("KRAQEL_TEST_ACTIVATION_TICKET",&ticket)
+                .env("KRAQEL_TEST_ACTIVATION_CRASH",point).status().unwrap();
+            assert_eq!(status.code(), Some(code));
+            assert_eq!(read(live).2, revision);
+        }
+        restarted
+            .switch_scene_activation(id, &ticket, false)
+            .unwrap();
+        restarted
+            .switch_scene_activation(id, &ticket, false)
+            .unwrap();
+        assert_eq!(read(live), read(&copy));
+        live.execute(
+            "UPDATE plot_card SET status='revised' WHERE document_id=?1",
+            [retained.to_string()],
+        )
+        .unwrap();
+        restarted
+            .switch_scene_activation(id, &ticket, true)
+            .unwrap();
+        restarted
+            .switch_scene_activation(id, &ticket, true)
+            .unwrap();
+        assert_eq!(read(live).1, "Früherer Entwurf des Hafens");
+        assert_eq!(read(live).2, 2);
+        assert!(
+            restarted
+                .switch_scene_activation(id, &ticket, false)
+                .is_err()
+        );
+        assert_eq!(
+            live.query_row(
+                "SELECT status FROM plot_card WHERE document_id=?1",
+                [retained.to_string()],
+                |r| r.get::<_, String>(0)
+            )
+            .unwrap(),
+            "revised"
         );
         live.execute(
             "UPDATE document SET title='Späterer lokaler Entwurf' WHERE id=?1",

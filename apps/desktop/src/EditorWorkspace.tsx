@@ -91,6 +91,7 @@ const navigationGroups: readonly {
 
 export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspaceProps) {
   const [workspace, setWorkspace] = useState(initialWorkspace);
+  const [activationGeneration, setActivationGeneration] = useState(0);
   const [activeId, setActiveId] = useState<EntityId | null>(
     firstSceneId(initialWorkspace.documents),
   );
@@ -127,7 +128,7 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
     return () => {
       active = false;
     };
-  }, [activeId, workspace.project.id]);
+  }, [activeId, workspace.project.id, activationGeneration]);
 
   const addChapter = async () => {
     try {
@@ -466,7 +467,15 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
           activeDocumentId={activeId}
         />
       ) : view === "versions" ? (
-        <VersionControl projectId={workspace.project.id} documents={workspace.documents} />
+        <VersionControl
+          projectId={workspace.project.id}
+          documents={workspace.documents}
+          onActivated={(next) => {
+            setStored(null);
+            setWorkspace(next);
+            setActivationGeneration((n) => n + 1);
+          }}
+        />
       ) : view === "exports" ? (
         <Exports projectId={workspace.project.id} />
       ) : (
