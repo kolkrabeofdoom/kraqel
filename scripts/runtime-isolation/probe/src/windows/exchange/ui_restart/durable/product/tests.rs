@@ -1244,6 +1244,25 @@ fn win32_package_binding_is_durable_and_cannot_cross_activation() {
             .win32_binding(actor, store.state.head, upgrade())
             .is_err()
     );
+    let path = store.root.join("data").join("scene-a-v1.sqlite");
+    fs::write(&path, b"synthetic scene").unwrap();
+    let digest_a = hash(&path).unwrap();
+    let (volume, id) = secure_fs::file_id(&fs::File::open(&path).unwrap()).unwrap();
+    let snapshot = serde_json::from_value(
+        json!({"revision":1,"volume":volume,"file_id":id,"sha256":digest_a}),
+    )
+    .unwrap();
+    store
+        .append(
+            actor,
+            store.state.head,
+            Action::BeginWin32Window { anchor: upgraded },
+        )
+        .unwrap();
+    let begin = store.state.head;
+    store
+        .append_with_checked_context(actor, begin, Action::EndWin32SceneSave { begin, snapshot })
+        .unwrap();
     let next = f.0.join("next.exe");
     fs::copy(f.candidate(), &next).unwrap();
     OpenOptions::new()
@@ -1288,4 +1307,60 @@ fn win32_package_binding_is_durable_and_cannot_cross_activation() {
             .win32_binding(actor, store.state.head, Bind(&dir, digest))
             .is_err()
     );
+    store
+        .win32_binding(next_actor, store.state.head, Bind(&dir, upgraded))
+        .unwrap();
+    let adopt = || win32_binding::Operation::Adopt(1, digest_a);
+    store
+        .append(
+            next_actor,
+            store.state.head,
+            Action::BeginWin32Window { anchor: upgraded },
+        )
+        .unwrap();
+    let begin = store.state.head;
+    assert_eq!(
+        store
+            .win32_binding(next_actor, begin, adopt())
+            .unwrap_err()
+            .stage,
+        "win32-window-session-open"
+    );
+    store
+        .append_with_checked_context(next_actor, begin, Action::EndWin32Window { begin })
+        .unwrap();
+    let head = store.state.head;
+    let backup = path.with_extension("original");
+    fs::rename(&path, &backup).unwrap();
+    fs::copy(&backup, &path).unwrap();
+    assert_eq!(
+        store
+            .win32_binding(next_actor, head, adopt())
+            .unwrap_err()
+            .stage,
+        "scene-snapshot-mismatch"
+    );
+    assert_eq!(store.state.head, head);
+    fs::remove_file(&path).unwrap();
+    fs::rename(&backup, &path).unwrap();
+    store.win32_binding(next_actor, head, adopt()).unwrap();
+    drop(store);
+    let mut store = Store::open(&f.root()).unwrap();
+    assert_eq!(store.state.scene_snapshot, Some((next_actor, snapshot)));
+    let head = store.state.head;
+    let mut bytes = fs::read(&next).unwrap();
+    let index = bytes.windows(8).position(|w| w == b".kqadopt").unwrap();
+    bytes[index + 1] = b'z';
+    fs::write(&incompatible, bytes).unwrap();
+    assert!(
+        store
+            .prepare(
+                next_actor,
+                head,
+                &incompatible,
+                hash(&incompatible).unwrap()
+            )
+            .is_err()
+    );
+    assert_eq!(store.state.head, head);
 }

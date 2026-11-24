@@ -126,6 +126,7 @@ pub(super) enum Operation<'a> {
     Bind(&'a Path, [u8; 32]),
     Upgrade(&'a Path, [u8; 32]),
     Verify,
+    Adopt(u32, [u8; 32]),
     CheckWindow(WindowMode),
 }
 
@@ -251,6 +252,29 @@ impl Store {
         let inline_supported = inline_pair_supported(&pins)?;
         for name in IMAGES.into_iter().chain(["anchor.json"]) {
             private_acl(&root.join(name), false)?;
+        }
+        if let Operation::Adopt(revision, hash) = operation {
+            let (previous_owner, snapshot) = self
+                .state
+                .scene_snapshot
+                .ok_or(invalid("scene-snapshot-unbound"))?;
+            if snapshot.revision != revision || snapshot.sha256 != hash {
+                return Err(invalid("scene-adopt-basis"));
+            }
+            let action = Action::AdoptWin32Scene {
+                previous_owner,
+                snapshot,
+                anchor: expected,
+            };
+            self.next_state(actor, head, &action)?;
+            let mut source = SnapshotFile::open(self, &scene_file(revision), false)?;
+            if source.identity(revision)? != snapshot {
+                return Err(invalid("scene-snapshot-mismatch"));
+            }
+            self.append(actor, head, action)?;
+            return Ok(
+                json!({"nativePreviewOnly":true,"roleStarted":false,"dataAllowed":false,"revision":revision,"snapshotSha256":hex(&snapshot.sha256),"headSha256":hex(&self.state.head)}),
+            );
         }
         if enrollment.is_some() {
             self.append(
@@ -390,6 +414,7 @@ impl Store {
         }
         Ok(
             json!({"nativePreviewOnly":true,"roleStarted":false,"dataAllowed":false,
+            "sceneSnapshot":self.state.scene_snapshot.map(|(owner,snap)|json!({"revision":snap.revision,"sha256":hex(&snap.sha256),"ownedByActiveStarter":owner==actor})),
             "legacySceneReadOnly":!inline_supported,"actorSha256":hex(&actor),"anchorSha256":hex(&pins.anchor_digest),"headSha256":hex(&self.state.head)}),
         )
     }

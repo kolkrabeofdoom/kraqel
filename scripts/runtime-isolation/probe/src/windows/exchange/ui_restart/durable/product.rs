@@ -67,6 +67,11 @@ enum Action {
     EndWin32Window {
         begin: [u8; 32],
     },
+    AdoptWin32Scene {
+        previous_owner: [u8; 32],
+        snapshot: win32_binding::Snapshot,
+        anchor: [u8; 32],
+    },
     UpgradeWin32Package {
         previous: [u8; 32],
         anchor: [u8; 32],
@@ -193,6 +198,7 @@ struct State {
     pending: Option<[u8; 32]>,
     scene_snapshot: Option<([u8; 32], win32_binding::Snapshot)>,
     window_session: win32_binding::Session,
+    scene_adopted: bool,
     win32_upgraded: bool,
     win32_anchor: Option<([u8; 32], [u8; 32])>,
     activated: std::collections::HashSet<[u8; 32]>,
@@ -221,6 +227,20 @@ impl State {
             return session::apply(self, action);
         }
         match action {
+            Action::AdoptWin32Scene {
+                previous_owner,
+                snapshot,
+                anchor,
+            } if self.schema == 4
+                && self.pending.is_none()
+                && self.window_session == win32_binding::Session::Closed
+                && self.win32_anchor == Some((actor, *anchor))
+                && *previous_owner != actor
+                && self.scene_snapshot == Some((*previous_owner, *snapshot)) =>
+            {
+                self.scene_snapshot = Some((actor, *snapshot));
+                self.scene_adopted = true;
+            }
             Action::BindWin32Package { anchor }
                 if self.schema == 4
                     && self.pending.is_none()
@@ -632,6 +652,7 @@ impl Store {
                     pending: None,
                     scene_snapshot: None,
                     window_session: Default::default(),
+                    scene_adopted: false,
                     win32_upgraded: false,
                     win32_anchor: None,
                     activated: std::collections::HashSet::from([record.actor]),
@@ -817,6 +838,9 @@ impl Store {
             if self.state.win32_anchor.is_some() {
                 package::verify_win32_binding(&mut source)?;
                 package::verify_legacy_read_policy(&mut source)?;
+                if self.state.scene_adopted {
+                    package::verify_scene_adoption(&mut source)?;
+                }
                 if self.state.window_session != win32_binding::Session::Unused {
                     package::verify_window_session(&mut source)?;
                     if self.state.scene_snapshot.is_some() {
@@ -888,6 +912,9 @@ impl Store {
             if self.state.win32_anchor.is_some() {
                 package::verify_win32_binding(&mut file)?;
                 package::verify_legacy_read_policy(&mut file)?;
+                if self.state.scene_adopted {
+                    package::verify_scene_adoption(&mut file)?;
+                }
                 if self.state.window_session != win32_binding::Session::Unused {
                     package::verify_window_session(&mut file)?;
                     if self.state.scene_snapshot.is_some() {
@@ -1075,7 +1102,10 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
         return Ok(store.summary());
     }
     store.state.window_session.require_closed()?;
-    if (args.len() == 4 && (args[0] == "bind-win32-package" || args[0] == "upgrade-win32-package"))
+    if (args.len() == 4
+        && (args[0] == "bind-win32-package"
+            || args[0] == "upgrade-win32-package"
+            || args[0] == "adopt-win32-scene"))
         || (args.len() == 2
             && (args[0] == "verify-win32-package"
                 || args[0] == "check-win32-suspended"
@@ -1103,7 +1133,14 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
             return Err(invalid("win32-broker-not-managed-image"));
         }
         let head = parse_hash(args.last().unwrap())?;
-        let operation = if args.len() == 4 && args[0] == "upgrade-win32-package" {
+        let operation = if args.len() == 4 && args[0] == "adopt-win32-scene" {
+            let revision = args[1]
+                .to_str()
+                .and_then(|v| v.parse::<u32>().ok())
+                .filter(|v| *v > 0)
+                .ok_or(invalid("scene-adopt-revision"))?;
+            win32_binding::Operation::Adopt(revision, parse_hash(&args[2])?)
+        } else if args.len() == 4 && args[0] == "upgrade-win32-package" {
             win32_binding::Operation::Upgrade(Path::new(&args[1]), parse_hash(&args[2])?)
         } else if args.len() == 4 {
             win32_binding::Operation::Bind(Path::new(&args[1]), parse_hash(&args[2])?)

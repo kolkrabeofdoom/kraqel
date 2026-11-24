@@ -378,7 +378,23 @@ Der aktualisierte verwaltete Starter stuft zwei Rollen ohne Inline-Kennung als l
 
 Der lokale Windows-Lauf am 24. November 2026 erfasste das Lesen der synthetischen Szene A mit einem unmarkierten Paar, den Paketwechsel, das Speichern einer Fettstelle und das Wiederöffnen der gespeicherten Revision 1. Vorher wurden sechs abgewiesene Schreibpfade mit identischem Kontrollstatus und ohne Szenendatei geprüft. Beim Paketwechsel lief nur der verwaltete Starter. Bei den drei Szenenaufträgen kamen Fensterrolle und Datendienst hinzu. Alle vier Auswertungen meldeten null Netzwerkereignisse im zugeordneten Prozessbaum. Beide ETW-Spuren enthielten alle vier lokalen Positivkontrollen ohne Verlust oder nicht zuordenbare Ereignisse. Starter-SHA-256 `d11a93a39e2451a5fc5d0f8d6f0809765208a891e96674786144a435713c292a`. Das markierte Rollenpaar entspricht der vorstehenden Hash-Tabelle. Der bestehende Bindungstest prüft zusätzlich die Wiederaufnahme nach der Ordneranlage, das erneute Öffnen der Kontrollablage, den gesperrten zweiten Wechsel und die Ablehnung eines Starterkandidaten ohne Lesevertragskennung.
 
-Ein Wechsel der Startergeneration ist ein anderer Vorgang. Eine bestehende Revision ist an den Hash des Starters gebunden, der sie veröffentlicht hat. Der Rollenwechsel erteilt einer anderen Startergeneration keine Rechte an dieser Revision. Eine generationsübergreifende Übernahme ist offen.
+Ein Wechsel der Startergeneration ist ein anderer Vorgang. Eine bestehende Revision ist an den Hash des Starters gebunden, der sie veröffentlicht hat. Der Rollenwechsel erteilt einer anderen Startergeneration keine Rechte an dieser Revision. Für den ausdrücklichen Wechsel gilt das folgende Verfahren.
+
+### Ausdrückliche Übernahme der synthetischen Szene nach einem Starterupdate
+
+Nach der Aktivierung und Paketbindung des neuen Starters zeigt `broker-store verify-win32-package <Kontrollkopf>` unter `sceneSnapshot` die gespeicherte Revision, ihren SHA-256 und `ownedByActiveStarter`. Bei einem Eigentümerwechsel muss die Bedienperson die gewünschte Revision und den Digest prüfen und die Übernahme ausdrücklich auslösen:
+
+```text
+broker-store adopt-win32-scene <Revision> <Snapshot-SHA-256> <Kontrollkopf>
+```
+
+Der neue Starter hält die exklusive Kontrollsperre. Er verlangt eine regulär geschlossene Fenstersitzung, einen aktuellen Kontrollkopf, ein gebundenes Rollenpaket und die gespeicherte Revision eines früheren Starters. Er prüft die synthetische Datei am festen internen Speicherort gegen den authentisierten Snapshot einschließlich Volume, Datei-ID und vollständigem Hash. Das geprüfte Handle bleibt bis zum Journaleintrag geöffnet. Der Eintrag bindet bisherigen und neuen Starter, Paketanker und Snapshot. Die SQLite-Datei und ihre Revision bleiben erhalten. Die Rollen starten erst beim nachfolgenden Lese- oder Bearbeitungsauftrag.
+
+Bei ausbleibender Bestätigung zuerst den aktuellen Kontrollkopf mit `status` ermitteln und die Zuordnung mit `verify-win32-package` lesen. Ist dieselbe Revision mit demselben Digest bereits zugeordnet, ist der Schritt abgeschlossen. Bei gesperrter Kontrollablage bleibt die Sitzung gesperrt. Nach einer Übernahme müssen künftige Starterkandidaten bei Vorbereitung und Aktivierung den Journaleintrag unterstützen (PE-Kennung `.kqadopt`).
+
+**Windows-Nachweis vom 24. November 2026.** Nach echtem Starterwechsel verweigerten Lesen vor der Übernahme, falsche Revision und falscher Hash den Zugriff. Eine erfolgreiche Übernahme behielt die Dateibytes bei. Der erneute Aufruf war gesperrt, der neue Starter las Revision 1 und speicherte Revision 2. Ein separater Lauf mit unmarkiertem Paar bestätigte Leserecht und Schreibsperre nach Übernahme. Erst das ausdrückliche Rollenupdate erlaubte das Speichern. Der bestehende Bindungstest prüft zusätzlich offene Sitzung, dateiidentische Kopie mit anderer Datei-ID, Journalwiederanlauf und inkompatiblen Folge-Starter.
+
+Der ETW-Vergleich umfasste Referenzfenster, Übernahme, Lesen und anschließendes Entfernen der Fettstelle. Beim Übernehmen lief nur der neue Starter, beim Lesen und Schreiben zusätzlich Fensterrolle und Datendienst. Vier ausgewertete Prozessbäume mit null Netzwerkereignissen, zwei Spuren mit je vier von vier lokalen Positivkontrollen, ohne verlorene Ereignisse, verlorene Puffer oder nicht zuordenbare Netzwerkereignisse. SHA-256 des neuen Starters: `1a7b8e93ed971b1b5f006966566f1d8f9b8fc5fc00e38d3757a03594b392decd`. Das markierte Rollenpaar entspricht der Tabelle im Abschnitt zur Inline-Paketkompatibilität. Die Aussage gilt für diese synthetischen Abläufe.
 
 ### ETW beim bestätigten Verwerfen und Wiederöffnen
 

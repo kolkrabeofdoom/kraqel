@@ -136,6 +136,7 @@ fn synthetic_state() -> State {
         scene_snapshot: None,
         window_session: Default::default(),
         win32_anchor: None,
+        scene_adopted: false,
         win32_upgraded: false,
         activated: Default::default(),
         aborted_packages: Default::default(),

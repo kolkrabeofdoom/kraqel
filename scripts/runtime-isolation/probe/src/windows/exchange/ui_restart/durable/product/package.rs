@@ -18,6 +18,19 @@ static WIN32_BINDING: [u8; 32] = *b"KRAQEL-WIN32-BINDING-V1.........";
 #[used]
 #[unsafe(link_section = ".kqro")]
 static LEGACY_READ_POLICY: [u8; 32] = *b"KRAQEL-SCENE-LEGACY-READ-V1.....";
+#[used]
+#[unsafe(link_section = ".kqadopt")]
+static SCENE_ADOPTION: [u8; 32] = *b"KRAQEL-SCENE-ADOPTION-V1........";
+pub(super) fn verify_scene_adoption(file: &mut fs::File) -> Result<()> {
+    let size = io("scene-broker-size", file.metadata())?.len();
+    verify_named(
+        file,
+        size,
+        b".kqadopt",
+        std::hint::black_box(&SCENE_ADOPTION),
+    )
+}
+
 pub(super) fn verify_legacy_read_policy(file: &mut fs::File) -> Result<()> {
     let size = io("win32-broker-size", file.metadata())?.len();
     verify_named(
