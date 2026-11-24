@@ -382,6 +382,20 @@ laufende Datenbank ist **kein Austauschformat** und gehört nicht in Git.
 
 Backups sind Recovery-Artefakte. Für Austausch und Versionskontrolle dient der portable Snapshot.
 
+### Szenenstände auf zwei Rechnern vergleichen
+
+Im Desktop-Entwicklungsstand unter **Werkzeuge → Versionen → Szenenstände zwischen zwei Rechnern vergleichen**:
+
+1. Vor dem getrennten Weiterschreiben die letzte Speicherung abwarten und **Szenenbasis sichern** wählen. Die angezeigte SHA-256-Prüfsumme der gemeinsamen Basis getrennt aufbewahren.
+2. Nach der Bearbeitung auf dem anderen Rechner dessen neuen Stand genauso sichern. Die Basisdatei `szenenbasis-<SHA-256>.json` in den Ordner `backups` des Zielprojekts kopieren. Dort muss auch die ursprüngliche Basisdatei liegen. Die beim Sichern angezeigte Prüfsumme unabhängig von der kopierten Datei abgleichen.
+3. Am Ziel beide Prüfsummen eingeben und **Szenen lesend vergleichen** wählen. Als dritte Fassung dient der hier bereits gespeicherte Stand. Das Ergebnis unterscheidet neue, fehlende, einseitig geänderte, identisch geänderte und widersprüchliche Szenen.
+
+Die Basisdatei enthält Format, Projektkennung sowie pro Szene deren Kennung und einen Hash. Dieser erfasst Titel, Text, Formatierung, übergeordnetes Dokument und Position. Änderungen allein an Revision oder Zeitstempeln zählen nicht als Textänderung. Medien, Plot und Story-Bibel werden nicht als Teil des Szenentexts verglichen. Bei einer auf dem anderen Rechner entfernten Szene zeigt die Übersicht vorhandene lokale Plotkarten, Bildprompt-Entwürfe und Verknüpfungen als mögliche Löschfolgen an.
+
+Eine neu vorbereitete Arbeitskopie enthält die passende Basisdatei aus derselben SQLite-Transaktion. Für den Vergleich genügt es, diese Datei in den Zielordner `backups` zu kopieren und die bei der Vorbereitung angezeigte Basisprüfsumme zu verwenden.
+
+Die Basisdatei ist ein Vergleichsbeleg. Eine Wiederherstellung des Manuskripts oder eine zeilenweise Rekonstruktion früherer Texte ist daraus nicht möglich. Für die gemeinsame Herkunft ist die vor der Trennung gesicherte Basis maßgeblich. Die Projektkennung allein belegt diese Herkunft nicht.
+
 ### Übernahme eines geöffneten Projekts vorbereiten
 
 Im Entwicklungsstand unter **Werkzeuge → Versionen → Lokale Arbeitskopie → Übernahme vorbereiten**

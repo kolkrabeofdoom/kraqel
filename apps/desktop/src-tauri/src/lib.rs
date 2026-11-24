@@ -32,7 +32,9 @@ use kraqel_storage::{
     continuity_repository::{ContinuityError, ContinuityRepository},
     document_repository::{DocumentError, DocumentRepository},
     media_repository::{MediaError, MediaRepository},
-    project_manager::{PreparedHandoff, ProjectError, ProjectManager},
+    project_manager::{
+        PreparedHandoff, ProjectError, ProjectManager, SceneBasisComparison, SceneBasisReceipt,
+    },
     prompt_repository::{PromptError, PromptRepository},
     story_bible_repository::{StoryBibleError, StoryBibleRepository},
     structure_repository::{StructureError, StructureRepository},
@@ -1888,6 +1890,49 @@ fn create_project_snapshot(
         |project, service, database| service.create_snapshot(database, project),
     )?;
     Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct CompareSceneBasesRequest {
+    project_id: String,
+    base: String,
+    incoming: String,
+}
+
+#[tauri::command]
+async fn save_scene_basis(
+    state: State<'_, AppState>,
+    request: CommandRequest<ProjectRequest>,
+) -> Result<CommandResponse<SceneBasisReceipt>, CommandError> {
+    require_current_contract(&request)?;
+    let request_id = request.request_id;
+    let id = parse_project_id(request_id, &request.payload.project_id)?;
+    let manager = manager(&state, request_id)?;
+    let result = tauri::async_runtime::spawn_blocking(move || manager.save_scene_basis(id))
+        .await
+        .map_err(|_| CommandError::internal(request_id))?
+        .map_err(|e| map_project_error(request_id, &e))?;
+    Ok(CommandResponse::current(request_id, result))
+}
+
+#[tauri::command]
+async fn compare_scene_bases(
+    state: State<'_, AppState>,
+    request: CommandRequest<CompareSceneBasesRequest>,
+) -> Result<CommandResponse<SceneBasisComparison>, CommandError> {
+    require_current_contract(&request)?;
+    let request_id = request.request_id;
+    let payload = request.payload;
+    let id = parse_project_id(request_id, &payload.project_id)?;
+    let manager = manager(&state, request_id)?;
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        manager.compare_scene_bases(id, &payload.base, &payload.incoming)
+    })
+    .await
+    .map_err(|_| CommandError::internal(request_id))?
+    .map_err(|e| map_project_error(request_id, &e))?;
+    Ok(CommandResponse::current(request_id, result))
 }
 
 #[tauri::command]
@@ -3865,6 +3910,8 @@ pub fn run() {
             create_project_snapshot,
             export_project_archive,
             prepare_project_handoff,
+            save_scene_basis,
+            compare_scene_bases,
             validate_project_snapshot,
             get_version_control_status,
             get_version_control_diff,

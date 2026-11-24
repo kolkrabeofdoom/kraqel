@@ -929,9 +929,35 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       writeState(state);
       return snapshotSummary(current);
     }
+    case "save_scene_basis": {
+      findProject(state, payload.projectId);
+      return { sha256: "a".repeat(64), sceneCount: 2 };
+    }
+    case "compare_scene_bases": {
+      findProject(state, payload.projectId);
+      if (payload.base !== "a".repeat(64) || payload.incoming !== "b".repeat(64))
+        throw new Error("Unbekannte Basis");
+      return {
+        localSha256: "c".repeat(64),
+        unchanged: 1,
+        changes: [
+          {
+            sceneId: "11111111-1111-4111-8111-111111111111",
+            difference: "conflict",
+            baseExists: true,
+            localExists: false,
+            incomingExists: true,
+          },
+        ],
+      };
+    }
     case "prepare_project_handoff": {
       findProject(state, payload.projectId);
-      return { folder: "uebernahme-beispiel", manifestSha256: "a".repeat(64) };
+      return {
+        folder: "uebernahme-beispiel",
+        manifestSha256: "a".repeat(64),
+        sceneBasisSha256: "b".repeat(64),
+      };
     }
     case "export_project_archive": {
       if (localStorage.getItem("kraqel-e2e-cancel-snapshot-export") === "1") return null;

@@ -23,6 +23,15 @@ test("Arbeitskopie wird im geöffneten Projekt ausdrücklich vorbereitet", async
   await expect(
     page.getByText(/Übernahme vorbereitet.*uebernahme-beispiel.*SHA-256/u),
   ).toBeVisible();
+  await page.getByText("Szenenstände zwischen zwei Rechnern vergleichen", { exact: true }).click();
+  await page.getByRole("button", { name: "Szenenbasis sichern" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Basis für 2 Szenen" })).toBeVisible();
+  await page.getByLabel("SHA-256 der gemeinsamen Ausgangsbasis").fill("a".repeat(64));
+  await page.getByLabel("SHA-256 des Stands vom anderen Rechner").fill("b".repeat(64));
+  await page.getByRole("button", { name: "Szenen lesend vergleichen" }).click();
+  await expect(page.getByText(/Auswahl erforderlich.*hier nicht vorhanden/)).toBeVisible();
+  await page.getByLabel("SHA-256 der gemeinsamen Ausgangsbasis").fill("d".repeat(64));
+  await expect(page.getByText(/Auswahl erforderlich/)).toHaveCount(0);
 });
 
 test("abgebrochener Projektarchivexport bleibt neutral", async ({ page }) => {

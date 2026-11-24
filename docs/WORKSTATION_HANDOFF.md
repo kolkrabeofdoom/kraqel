@@ -1,5 +1,9 @@
 # Rechnerwechsel und Arbeitsübergabe
 
+## Getrennt auf zwei Rechnern schreiben
+
+Vor dem Abzweigen im Versionsdialog die gemeinsame Szenenbasis sichern. Nach der Rückkehr lassen sich einseitige Änderungen und Konflikte anhand der Basisdateien lesend vergleichen. Die vollständigen Arbeitskopien für die weitere Bearbeitung separat aufbewahren. [Ablauf im Desktop-Entwicklungsstand](../README.md#szenenstände-auf-zwei-rechnern-vergleichen)
+
 ## Desktop-Vorbereitung und isolierte Vorschau
 
 Der lokale Empfang ist vom Desktop-Speichermodul bis zum schreibgeschützten Win32-Fenster mit synthetischen Arbeitsdaten geprüft. Die Anleitung enthält den Build und den automatischen VHDX-Lauf. Für die Übernahme eines echten Projekts auf einen anderen Rechner ist der Empfangspfad noch offen. [Prüflauf und Grenzen](data-format/product-start-integration-v1-draft.md#vorbereitete-desktop-arbeitskopie-im-isolierten-vorschaufenster)

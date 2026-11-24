@@ -1032,9 +1032,43 @@ export async function createProjectSnapshot(projectId: ProjectId): Promise<Snaps
   ).data;
 }
 
+export interface SceneBasisComparison {
+  readonly localSha256: string;
+  readonly unchanged: number;
+  readonly changes: readonly {
+    readonly sceneId: string;
+    readonly difference: "local" | "incoming" | "bothEqual" | "conflict";
+    readonly baseExists: boolean;
+    readonly deletionEffects?: Partial<
+      Record<"plotCards" | "storyLinks" | "timelineLinks" | "mediaLinks" | "promptDrafts", number>
+    >;
+    readonly localExists: boolean;
+    readonly incomingExists: boolean;
+  }[];
+}
+
+export async function saveSceneBasis(projectId: ProjectId) {
+  return (
+    await callCommand<{ projectId: ProjectId }, { sha256: string; sceneCount: number }>(
+      "save_scene_basis",
+      { projectId },
+    )
+  ).data;
+}
+
+export async function compareSceneBases(projectId: ProjectId, base: string, incoming: string) {
+  return (
+    await callCommand<
+      { projectId: ProjectId; base: string; incoming: string },
+      SceneBasisComparison
+    >("compare_scene_bases", { projectId, base, incoming })
+  ).data;
+}
+
 interface PreparedHandoff {
   readonly folder: string;
   readonly manifestSha256: string;
+  readonly sceneBasisSha256: string;
 }
 
 export async function prepareProjectHandoff(projectId: ProjectId): Promise<PreparedHandoff> {

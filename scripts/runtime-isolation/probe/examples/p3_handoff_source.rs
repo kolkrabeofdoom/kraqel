@@ -53,21 +53,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
     if std::env::args().nth(1).as_deref() == Some("--divergent") {
         // Seed an independent offline workspace from one committed logical baseline.
-        let baseline = manager.prepare_handoff(id)?;
+        let baseline = manager.save_scene_basis(id)?;
         let backup = root.join("backups");
-        let seed = backup.join(baseline.folder);
         fs::create_dir("second-catalog")?;
         let other_manager = ProjectManager::new("second-catalog")?;
         let other_root = std::path::Path::new("second-catalog").join(&id_text);
         for relative in ["backups", "assets/nested", "assets/thumbnails"] {
             fs::create_dir_all(other_root.join(relative))?;
         }
-        for relative in [
-            "kraqel.sqlite3",
-            "assets/nested/hafen.png",
-            "assets/thumbnails/hafen.png",
-        ] {
-            fs::copy(seed.join(relative), other_root.join(relative))?;
+        db.backup("main", other_root.join("kraqel.sqlite3"), None)?;
+        for relative in ["assets/nested/hafen.png", "assets/thumbnails/hafen.png"] {
+            fs::copy(root.join(relative), other_root.join(relative))?;
         }
         let other_project = other_manager.open_project(&id_text)?;
         for (conn, title, text) in [
@@ -86,6 +82,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 [title, text, &content, &scene],
             )?;
         }
+        let incoming = other_manager.save_scene_basis(id)?;
+        let basis_name = format!("szenenbasis-{}.json", incoming.sha256);
+        fs::copy(
+            other_root.join("backups").join(&basis_name),
+            backup.join(&basis_name),
+        )?;
+        let comparison = manager.compare_scene_bases(id, &baseline.sha256, &incoming.sha256)?;
         let receipt = manager.prepare_handoff(id)?;
         let followup = other_manager.prepare_handoff(id)?;
         // Collect only the prepared copy, leaving both workspaces intact.
@@ -96,7 +99,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!(
             "{}",
             serde_json::json!({"project":id,"scene":scene,"asset":asset,
-                                          "receipt":receipt,"followup":followup})
+                                          "receipt":receipt,"followup":followup,"comparison":comparison,"baseSha256":baseline.sha256,"incomingSha256":incoming.sha256})
         );
         return Ok(());
     }

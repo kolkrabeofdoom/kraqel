@@ -466,7 +466,7 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
           activeDocumentId={activeId}
         />
       ) : view === "versions" ? (
-        <VersionControl projectId={workspace.project.id} />
+        <VersionControl projectId={workspace.project.id} documents={workspace.documents} />
       ) : view === "exports" ? (
         <Exports projectId={workspace.project.id} />
       ) : (

@@ -110,10 +110,20 @@ fn digest_file(path: &Path) -> Result<String, ProjectError> {
     Ok(format!("{:x}", digest.finalize()))
 }
 
-fn pinned_file(path: &Path, writable_source: bool) -> Result<fs::File, ProjectError> {
-    let attributes = candidate_attributes(path)?;
-    if !attributes.is_file() || attributes.file_type().is_symlink() || is_reparse_point(&attributes)
+fn unavailable_file(metadata: &fs::Metadata) -> bool {
+    #[cfg(windows)]
     {
+        use std::os::windows::fs::MetadataExt as _;
+        // Reparse points, offline data, recall-on-open and recall-on-access.
+        metadata.file_attributes() & (0x400 | 0x1000 | 0x0004_0000 | 0x0040_0000) != 0
+    }
+    #[cfg(not(windows))]
+    metadata.file_type().is_symlink()
+}
+
+pub(super) fn pinned_file(path: &Path, writable_source: bool) -> Result<fs::File, ProjectError> {
+    let attributes = candidate_attributes(path)?;
+    if !attributes.is_file() || unavailable_file(&attributes) {
         return Err(ProjectError::InvalidDatabase);
     }
     let mut options = fs::OpenOptions::new();
@@ -135,10 +145,23 @@ fn pinned_file(path: &Path, writable_source: bool) -> Result<fs::File, ProjectEr
         .number_of_links();
     #[cfg(unix)]
     let links = std::os::unix::fs::MetadataExt::nlink(&info);
-    if !info.is_file() || is_reparse_point(&info) || links != 1 {
+    if !info.is_file() || unavailable_file(&info) || links != 1 {
         return Err(ProjectError::InvalidDatabase);
     }
     Ok(file)
+}
+
+pub(super) fn pin_database_files(dir: &Path) -> Result<Vec<fs::File>, ProjectError> {
+    let mut pins = vec![pinned_file(&dir.join(DATABASE_FILE_NAME), true)?];
+    for suffix in ["-wal", "-shm", "-journal"] {
+        let sidecar = dir.join(format!("{DATABASE_FILE_NAME}{suffix}"));
+        match fs::symlink_metadata(&sidecar) {
+            Ok(_) => pins.push(pinned_file(&sidecar, true)?),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => (),
+            Err(e) => return Err(io_error(e)),
+        }
+    }
+    Ok(pins)
 }
 
 fn transfer_asset(
@@ -204,6 +227,8 @@ pub struct PreparedHandoff {
     pub folder: String,
     /// Unabhängig vom Ordner ausgegebener SHA-256 über die Inventardatei.
     pub manifest_sha256: String,
+    /// Separater Beleg der Szenenbasis aus derselben Transaktion.
+    pub scene_basis_sha256: String,
 }
 
 impl ProjectManager {
@@ -220,15 +245,7 @@ impl ProjectManager {
             .resolve_existing_directory(Path::new(&id.to_string()), ProjectError::ProjectMissing)?;
         let path =
             self.resolve_regular_child(&dir, DATABASE_FILE_NAME, ProjectError::DatabaseMissing)?;
-        let mut pins = vec![pinned_file(&dir.join(DATABASE_FILE_NAME), true)?];
-        for suffix in ["-wal", "-shm", "-journal"] {
-            let sidecar = dir.join(format!("{DATABASE_FILE_NAME}{suffix}"));
-            match fs::symlink_metadata(&sidecar) {
-                Ok(_) => pins.push(pinned_file(&sidecar, true)?),
-                Err(e) if e.kind() == io::ErrorKind::NotFound => (),
-                Err(e) => return Err(io_error(e)),
-            }
-        }
+        let pins = pin_database_files(&dir)?;
         let mut db = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_WRITE)?;
         db.execute_batch("PRAGMA trusted_schema=OFF; PRAGMA temp_store=MEMORY")?;
         let tx = db.transaction_with_behavior(TransactionBehavior::Immediate)?;
@@ -263,7 +280,8 @@ impl ProjectManager {
         }
         drop(rows);
         drop(stmt);
-        let receipt = serde_json::json!({"format":"kraqel-logical-preparation-v1","projectId":id,"files":files});
+        let scene_basis_sha256 = scene_basis::stage_basis(&tx, id, stage.path())?;
+        let receipt = serde_json::json!({"format":"kraqel-logical-preparation-v2","projectId":id,"files":files,"sceneBasisSha256":scene_basis_sha256});
         let mut manifest =
             fs::File::create_new(stage.path().join("uebernahme.json")).map_err(io_error)?;
         serde_json::to_writer(&mut manifest, &receipt)
@@ -279,6 +297,7 @@ impl ProjectManager {
         Ok(PreparedHandoff {
             folder: name,
             manifest_sha256,
+            scene_basis_sha256,
         })
     }
 }

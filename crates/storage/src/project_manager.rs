@@ -1,7 +1,9 @@
 //! Sicherer Lebenszyklus lokaler Projektverzeichnisse.
 
 mod handoff;
+mod scene_basis;
 pub use handoff::PreparedHandoff;
+pub use scene_basis::{SceneBasisComparison, SceneBasisReceipt};
 
 use std::{
     error::Error,

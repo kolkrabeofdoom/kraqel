@@ -1271,13 +1271,23 @@ def receive_prepared(folder, trusted_hash, project_id):
             return result
 
         manifest = json.loads(raw, object_pairs_hook=distinct)
-        require(isinstance(manifest, dict) and set(manifest) == {"format", "projectId", "files"}
-                and manifest["format"] == "kraqel-logical-preparation-v1"
-                and manifest["projectId"] == project_id, "wrong preparation")
+        require(isinstance(manifest, dict) and manifest.get("projectId") == project_id, "wrong preparation")
+        basis_hash = None
+        if manifest.get("format") == "kraqel-logical-preparation-v2":
+            require(set(manifest) == {"format", "projectId", "files", "sceneBasisSha256"}
+                    and isinstance(manifest["sceneBasisSha256"], str)
+                    and re.fullmatch(r"[0-9a-f]{64}", manifest["sceneBasisSha256"]), "invalid scene basis receipt")
+            basis_hash = manifest["sceneBasisSha256"]
+        else:
+            require(set(manifest) == {"format", "projectId", "files"}
+                    and manifest["format"] == "kraqel-logical-preparation-v1", "wrong preparation")
         files = manifest["files"]
         require(isinstance(files, dict) and 1 <= len(files) <= 250 and "kraqel.sqlite3" in files,
                 "invalid prepared inventory")
         allowed = {manifest_name, *files}
+        if basis_hash:
+            basis_name = f"szenenbasis-{basis_hash}.json"
+            allowed.add(basis_name)
         for name, digest in files.items():
             parts = name.split("/")
             require(isinstance(digest, str) and re.fullmatch("[0-9a-f]{64}", digest)
@@ -1290,6 +1300,10 @@ def receive_prepared(folder, trusted_hash, project_id):
         snapshot = acquire(allowed, exact=True)
         require(set(snapshot) == allowed and snapshot.pop(manifest_name) == raw,
                 "incomplete prepared inventory")
+        if basis_hash:
+            basis = snapshot.pop(basis_name)
+            require(isinstance(basis, bytes) and hashlib.sha256(basis).hexdigest() == basis_hash,
+                    "changed scene basis")
     actual = {n: hashlib.sha256(data).hexdigest() for n, data in snapshot.items() if data is not None}
     require(actual == files, "changed prepared file")
     image = snapshot["kraqel.sqlite3"]
@@ -1360,7 +1374,7 @@ def prepared_scene_view(snapshot, project, scene):
                           "WHERE project_id=? AND id=? AND kind='scene'", (project, scene)).fetchone()
 
 
-def deliver_comparison(project, scene, hashes, views, interactive):
+def deliver_comparison(project, scene, hashes, views, interactive, base_hash):
     # Each role receives only its bootstrap and pipe handles. Both inventory receipts
     # are ordered inputs to the registered decision; neither source path crosses the pipe.
     manifests = [bytes.fromhex(digest) for digest in hashes]
@@ -1372,7 +1386,7 @@ def deliver_comparison(project, scene, hashes, views, interactive):
     root.mkdir()
     home.mkdir()
     shutil.copyfile(Path(__file__).parent / "probe/target/debug/kraqel-isolation-probe.exe", home / "p3-starter.exe")
-    nonce = secrets.token_bytes(32)
+    nonce = hashlib.sha256(b"KRAQEL-P3-COMMON-BASIS-v1" + bytes.fromhex(base_hash) + secrets.token_bytes(32)).digest()
     binding = hashlib.sha256(b"KRAQEL-P3-COMPARISON-v1" + nonce + hashlib.sha256(P3_SERVICE.read_bytes()).digest()
                              + hashlib.sha256(P3_WINDOW.read_bytes()).digest() + payload).digest()
     records = (binding, *manifests)
@@ -1419,7 +1433,11 @@ def compare_prepared(interactive):
                                                  ("Szene A", "Der Hafen liegt im Nebel.", 1)], "unexpected comparison scene")
         changed_files = {name for name in left.keys() | right.keys() if left.get(name) != right.get(name)}
         require(changed_files == {"kraqel.sqlite3"}, "unexpected comparison inventory")
-        deliver_comparison(project, scene, (digest, other["manifestSha256"]), views, interactive)
+        require(reply["comparison"]["localSha256"] == reply["receipt"]["sceneBasisSha256"]
+                and reply["incomingSha256"] == other["sceneBasisSha256"], "comparison basis differs from preparation")
+        require(reply["comparison"]["changes"] == [{"sceneId":scene,"difference":"conflict","baseExists":True,
+                "localExists":True,"incomingExists":True}], "missing scene conflict")
+        deliver_comparison(project, scene, (digest, other["manifestSha256"]), views, interactive, reply["baseSha256"])
         require(before == (inventory(folder), inventory(second)), "comparison changed a preparation")
     print("PASS: two separately verified versions compared at equal revision; both preserved")
 
@@ -1450,6 +1468,19 @@ def check_prepared_refusals():
         manifest.write_bytes(altered)
         refused("unconfirmed prepared manifest", trusted_hash)
         refused("unreferenced prepared file", hashlib.sha256(altered).hexdigest())
+        # An authenticated old-format handoff has no comparison authority.
+        extra.unlink()
+        manifest.write_bytes(raw)
+        legacy = json.loads(raw)
+        sidecar = folder / ("szenenbasis-" + legacy.pop("sceneBasisSha256") + ".json")
+        sidecar.write_bytes(b"changed basis")
+        refused("changed scene basis", trusted_hash)
+        sidecar.unlink()
+        legacy["format"] = "kraqel-logical-preparation-v1"
+        old = json.dumps(legacy).encode()
+        manifest.write_bytes(old)
+        snapshot = receive_prepared(folder, hashlib.sha256(old).hexdigest(), reply["project"])
+        require(snapshot["assets/nested/hafen.png"] == original, "incomplete legacy preparation")
     print("PASS: changed media, extra file, substituted manifest and unreferenced file refused")
 
 

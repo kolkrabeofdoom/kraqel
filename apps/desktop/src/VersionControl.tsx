@@ -1,4 +1,4 @@
-import type { ProjectId } from "@kraqel/domain";
+import type { DocumentNode, ProjectId } from "@kraqel/domain";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import {
   commitProjectSnapshot,
@@ -12,11 +12,14 @@ import {
   type VersionControlStatus,
 } from "./commands";
 
+import { SceneBasisPanel } from "./SceneBasisPanel";
+
 interface VersionControlProps {
   readonly projectId: ProjectId;
+  readonly documents: readonly DocumentNode[];
 }
 
-export function VersionControl({ projectId }: VersionControlProps) {
+export function VersionControl({ projectId, documents }: VersionControlProps) {
   const [status, setStatus] = useState<VersionControlStatus | null>(null);
   const [summary, setSummary] = useState<SnapshotSummary | null>(null);
   const [diff, setDiff] = useState("");
@@ -97,9 +100,9 @@ export function VersionControl({ projectId }: VersionControlProps) {
     setError(null);
     setNotice(null);
     try {
-      const { folder, manifestSha256 } = await prepareProjectHandoff(projectId);
+      const { folder, manifestSha256, sceneBasisSha256 } = await prepareProjectHandoff(projectId);
       setNotice(
-        `Übernahme vorbereitet. Die lokale Arbeitskopie liegt im Projektordner unter backups/${folder}. SHA-256 des Inventars: ${manifestSha256}`,
+        `Übernahme vorbereitet. Die lokale Arbeitskopie liegt im Projektordner unter backups/${folder}. SHA-256 des Inventars: ${manifestSha256}. SHA-256 der beiliegenden Szenenbasis: ${sceneBasisSha256}`,
       );
     } catch {
       setError(
@@ -176,6 +179,8 @@ export function VersionControl({ projectId }: VersionControlProps) {
           Übernahme vorbereiten
         </button>
       </section>
+
+      <SceneBasisPanel key={projectId} projectId={projectId} documents={documents} />
 
       <div className="version-status" aria-live="polite">
         <strong>
