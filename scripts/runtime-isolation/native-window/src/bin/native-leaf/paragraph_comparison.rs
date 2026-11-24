@@ -82,6 +82,10 @@ impl Comparison {
         }
     }
 
+    pub fn has_selection(&self) -> bool {
+        self.current.is_some()
+    }
+
     pub fn reset(&mut self) {
         self.current = None;
     }

@@ -73,6 +73,11 @@ struct PendingSave {
 
 const SAVE_AND_STAY: i32 = 112;
 const CONTINUE_PLAIN_DRAFT: u32 = WM_APP + 8;
+const OPEN_REPLACEMENT: usize = 236;
+const DIFF_NEXT: usize = 237;
+const DIFF_PREVIOUS: usize = 238;
+const DIFF_TAKE: usize = 239;
+const REVIEW_PLAIN: usize = 240;
 const OPEN_PLAIN: usize = 230;
 const SAVE_SPAN: usize = 232;
 const REPLACE_BOLD: usize = 233;
@@ -173,7 +178,6 @@ thread_local! {
     static FORMAT_REQUEST: std::cell::Cell<Option<SpanEdit>> = const {std::cell::Cell::new(None)};
     static PLAIN_REVIEW: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static PARAGRAPH_COMPARE: std::cell::RefCell<Option<paragraph_comparison::Comparison>> = const {std::cell::RefCell::new(None)};
-    static LONG_FOCUS: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static LONG_EDIT: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static AUTOSAVE_TURN: std::cell::Cell<Option<(u8, u8)>> = const { std::cell::Cell::new(None) };
     static PENDING_SAVE: std::cell::RefCell<Option<PendingSave>> = const { std::cell::RefCell::new(None) };
@@ -200,9 +204,6 @@ const HISTORY_UNDO: u32 = WM_APP + 3;
 const HISTORY_REDO: u32 = WM_APP + 4;
 
 fn in_focus_mode(hwnd: HWND) -> bool {
-    if LONG_EDIT.get() {
-        return LONG_FOCUS.get();
-    }
     unsafe {
         let state = GetMenuState(GetMenu(hwnd), FOCUS_MODE as u32, MF_BYCOMMAND);
         state != u32::MAX && state & MF_CHECKED != 0
@@ -215,11 +216,7 @@ fn set_focus_mode(hwnd: HWND, enabled: bool) {
             return;
         }
         let checked = if enabled { MF_CHECKED } else { MF_UNCHECKED };
-        if LONG_EDIT.get() {
-            LONG_FOCUS.set(enabled);
-        } else if CheckMenuItem(GetMenu(hwnd), FOCUS_MODE as u32, MF_BYCOMMAND | checked)
-            == u32::MAX
-        {
+        if CheckMenuItem(GetMenu(hwnd), FOCUS_MODE as u32, MF_BYCOMMAND | checked) == u32::MAX {
             return;
         }
         if enabled {
@@ -254,10 +251,32 @@ fn set_focus_mode(hwnd: HWND, enabled: bool) {
     }
 }
 
-fn open_search(hwnd: HWND) {
+fn open_search_field(hwnd: HWND, target: i32, use_selection: bool) {
     unsafe {
+        let source = GetFocus();
+        if use_selection
+            && !source.is_null()
+            && [GetDlgItem(hwnd, EDIT), GetDlgItem(hwnd, SECOND)].contains(&source)
+        {
+            let range = SendMessageW(source, EM_GETSEL, 0, 0) as u32;
+            let start = (range & 0xffff) as usize;
+            let end = (range >> 16) as usize;
+            if end > start && end - start <= MAX_PARAGRAPH_UTF16 {
+                // EDIT offsets and the query limit both use UTF-16. Keep the previous
+                // query when the selection spans lines or cuts a surrogate pair.
+                let mut buffer = vec![0u16; end + 1];
+                let n = GetWindowTextW(source, buffer.as_mut_ptr(), buffer.len() as i32) as usize;
+                if n >= end {
+                    if let Ok(query) = String::from_utf16(&buffer[start..end]) {
+                        if !query.contains(['\r', '\n']) {
+                            SetDlgItemTextW(hwnd, SEARCH, wide(query).as_ptr());
+                        }
+                    }
+                }
+            }
+        }
         set_focus_mode(hwnd, false);
-        let field = GetDlgItem(hwnd, SEARCH);
+        let field = GetDlgItem(hwnd, target);
         SetFocus(field);
         SendMessageW(field, EM_SETSEL, 0, -1);
     }
@@ -267,7 +286,7 @@ fn find_in_scene(hwnd: HWND, backwards: bool) {
     unsafe {
         set_focus_mode(hwnd, false);
         let Some(query) = paragraph_text(hwnd, SEARCH).filter(|q| !q.is_empty()) else {
-            open_search(hwnd);
+            open_search_field(hwnd, SEARCH, false);
             return;
         };
         let mut hits = Vec::new();
@@ -320,7 +339,7 @@ fn find_in_scene(hwnd: HWND, backwards: bool) {
                 LABEL,
                 wide(format!("{prefix}Kein Treffer in Szene A")).as_ptr(),
             );
-            open_search(hwnd);
+            open_search_field(hwnd, SEARCH, false);
             return;
         }
         let index = if backwards {
@@ -356,7 +375,7 @@ fn replace_in_scene(hwnd: HWND, all: bool) -> bool {
     unsafe {
         set_focus_mode(hwnd, false);
         let Some(query) = paragraph_text(hwnd, SEARCH).filter(|q| !q.is_empty()) else {
-            open_search(hwnd);
+            open_search_field(hwnd, SEARCH, false);
             return true;
         };
         let long = LONG_EDIT.get();
@@ -464,50 +483,92 @@ fn replace_in_scene(hwnd: HWND, all: bool) -> bool {
     }
 }
 
-fn install_editor_menu(hwnd: HWND) -> bool {
+fn install_editor_menu(hwnd: HWND, plain: bool) -> bool {
+    let formatted = [
+        (
+            "&Datei",
+            &[
+                (SAVE as usize, "&Speichern\tStrg+S"),
+                (CLOSE as usize, "S&chließen\tAlt+F4"),
+            ][..],
+        ),
+        (
+            "&Bearbeiten",
+            &[
+                (
+                    REMOVE_BOLD,
+                    "Fettmarkierung entfernen, speichern und schließen",
+                ),
+                (SELECT_BOLD, "Gespeicherte Fettstelle aus&wählen\tF4"),
+                (OPEN_PLAIN, "Als längeren Klartext bearbeiten"),
+                (UNDO, "&Rückgängig\tStrg+Z"),
+                (REDO, "&Wiederholen\tStrg+Y"),
+                (
+                    SAVE_SPAN,
+                    "Markierte &Textstelle fett speichern und schließen\tStrg+Umschalt+B",
+                ),
+                (
+                    REPLACE_BOLD,
+                    "Fettstelle durch &Ersatztext ersetzen, speichern und schließen",
+                ),
+                (BOLD_SECOND, "Zweiter Absatz &fett\tStrg+B"),
+                (FIND, "&Suchen…\tStrg+F"),
+                (FIND_NEXT, "&Nächster Treffer\tF3"),
+                (FIND_PREVIOUS, "&Vorheriger Treffer\tUmschalt+F3"),
+                (REPLACE_ONE, "Treffer &ersetzen"),
+                (REPLACE_ALL, "Alle Treffer erset&zen"),
+                (SELECT_PARAGRAPH, "&Absatz auswählen\tStrg+A"),
+            ][..],
+        ),
+        ("&Ansicht", &[(FOCUS_MODE, "&Fokusmodus\tF11")][..]),
+    ];
+    let plain_items = [
+        (
+            "&Datei",
+            &[
+                (
+                    SAVE_AND_STAY as usize,
+                    "Speichern und &weiterschreiben\tStrg+Enter",
+                ),
+                (SAVE as usize, "&Speichern und schließen\tStrg+S"),
+                (CLOSE as usize, "S&chließen\tAlt+F4"),
+            ][..],
+        ),
+        (
+            "&Bearbeiten",
+            &[
+                (UNDO, "&Rückgängig\tStrg+Z"),
+                (REDO, "&Wiederholen\tStrg+Y"),
+                (FIND, "&Suchen…\tStrg+F"),
+                (FIND_NEXT, "&Nächster Treffer\tF3"),
+                (FIND_PREVIOUS, "&Vorheriger Treffer\tUmschalt+F3"),
+                (OPEN_REPLACEMENT, "&Ersetzen…\tStrg+H"),
+                (REPLACE_ONE, "Treffer ersetzen"),
+                (REPLACE_ALL, "Alle Treffer ersetzen"),
+            ][..],
+        ),
+        ("&Ansicht", &[(FOCUS_MODE, "&Fokusmodus\tF11")][..]),
+        (
+            "&Vergleich",
+            &[
+                (DIFF_NEXT, "&Nächster Unterschied\tF7"),
+                (DIFF_PREVIOUS, "&Vorheriger Unterschied\tUmschalt+F7"),
+                (DIFF_TAKE, "Dienstabsätze &übernehmen\tF8"),
+                (REVIEW_PLAIN, "&Entwurf prüfen und speichern…\tF9"),
+            ][..],
+        ),
+    ];
+    let groups = if plain {
+        &plain_items[..]
+    } else {
+        &formatted[..]
+    };
     unsafe {
         let bar = CreateMenu();
         if bar.is_null() {
             return false;
         }
-        for (title, items) in [
-            (
-                "&Datei",
-                &[
-                    (SAVE as usize, "&Speichern\tStrg+S"),
-                    (CLOSE as usize, "S&chließen\tAlt+F4"),
-                ][..],
-            ),
-            (
-                "&Bearbeiten",
-                &[
-                    (
-                        REMOVE_BOLD,
-                        "Fettmarkierung entfernen, speichern und schließen",
-                    ),
-                    (SELECT_BOLD, "Gespeicherte Fettstelle aus&wählen\tF4"),
-                    (OPEN_PLAIN, "Als längeren Klartext bearbeiten"),
-                    (UNDO, "&Rückgängig\tStrg+Z"),
-                    (REDO, "&Wiederholen\tStrg+Y"),
-                    (
-                        SAVE_SPAN,
-                        "Markierte &Textstelle fett speichern und schließen\tStrg+Umschalt+B",
-                    ),
-                    (
-                        REPLACE_BOLD,
-                        "Fettstelle durch &Ersatztext ersetzen, speichern und schließen",
-                    ),
-                    (BOLD_SECOND, "Zweiter Absatz &fett\tStrg+B"),
-                    (FIND, "&Suchen…\tStrg+F"),
-                    (FIND_NEXT, "&Nächster Treffer\tF3"),
-                    (FIND_PREVIOUS, "&Vorheriger Treffer\tUmschalt+F3"),
-                    (REPLACE_ONE, "Treffer &ersetzen"),
-                    (REPLACE_ALL, "Alle Treffer erset&zen"),
-                    (SELECT_PARAGRAPH, "&Absatz auswählen\tStrg+A"),
-                ][..],
-            ),
-            ("&Ansicht", &[(FOCUS_MODE, "&Fokusmodus\tF11")][..]),
-        ] {
+        for &(title, items) in groups {
             let popup = CreatePopupMenu();
             if popup.is_null()
                 || AppendMenuW(bar, MF_POPUP, popup as usize, wide(title).as_ptr()) == 0
@@ -525,11 +586,15 @@ fn install_editor_menu(hwnd: HWND) -> bool {
                 }
             }
         }
+        let previous = GetMenu(hwnd);
         if SetMenu(hwnd, bar) == 0 {
             DestroyMenu(bar);
             return false;
         }
-        true
+        if !previous.is_null() {
+            DestroyMenu(previous);
+        }
+        DrawMenuBar(hwnd) != 0
     }
 }
 
@@ -770,33 +835,51 @@ struct HeldEditor {
     autosave_turn: Option<(u8, u8)>,
 }
 
+struct DraftVersion {
+    text: String,
+    bold: bool,
+    // Packed EM_GETSEL offsets in the multiline EDIT, including native CRLFs.
+    selection: u32,
+}
+
 struct DraftHistory {
-    states: std::collections::VecDeque<(String, bool)>,
+    states: std::collections::VecDeque<DraftVersion>,
     current: usize,
 }
 
 impl DraftHistory {
     fn new(text: String) -> Self {
         Self {
-            states: [(text, is_bold())].into(),
+            states: [DraftVersion {
+                text,
+                bold: is_bold(),
+                selection: 0,
+            }]
+            .into(),
             current: 0,
         }
     }
 
-    fn record(&mut self, text: String) {
-        let state = (text, is_bold());
-        if self.states[self.current] == state {
+    fn record(&mut self, text: String, selection: u32) {
+        let bold = is_bold();
+        let previous = &mut self.states[self.current];
+        if previous.text == text && previous.bold == bold {
+            previous.selection = selection;
             return;
         }
         self.states.truncate(self.current + 1);
-        self.states.push_back(state);
+        self.states.push_back(DraftVersion {
+            text,
+            bold,
+            selection,
+        });
         if self.states.len() > 65 {
             self.states.pop_front();
         }
         self.current = self.states.len() - 1;
     }
 
-    fn step(&mut self, redo: bool) -> Option<&(String, bool)> {
+    fn step(&mut self, redo: bool) -> Option<&DraftVersion> {
         let next = if redo {
             self.current + 1
         } else {
@@ -1800,13 +1883,8 @@ fn enter_plain_editor(hwnd: HWND, text: &str) -> bool {
     unsafe {
         set_focus_mode(hwnd, false);
         cancel_pending_save(hwnd);
-        let menu = GetMenu(hwnd);
-        if !menu.is_null() {
-            if SetMenu(hwnd, null_mut()) == 0 {
-                return false;
-            }
-            DestroyMenu(menu);
-            DrawMenuBar(hwnd);
+        if !install_editor_menu(hwnd, true) {
+            return false;
         }
         let stay = CreateWindowExW(
             0,
@@ -1831,7 +1909,6 @@ fn enter_plain_editor(hwnd: HWND, text: &str) -> bool {
             SendDlgItemMessageW(hwnd, SAVE, WM_GETFONT, 0, 0) as usize,
             1,
         );
-        LONG_FOCUS.set(false);
         LONG_EDIT.set(true);
         for id in [SECOND, DISCARD] {
             ShowWindow(GetDlgItem(hwnd, id), SW_HIDE);
@@ -2181,7 +2258,7 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 0
             }
             WM_COMMAND if w == FIND => {
-                open_search(hwnd);
+                open_search_field(hwnd, SEARCH, true);
                 0
             }
             WM_COMMAND if w == FIND_NEXT || w == FIND_PREVIOUS => {
@@ -2231,6 +2308,50 @@ unsafe extern "system" fn window(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                     0,
                     0,
                 );
+                0
+            }
+            WM_INITMENU if LONG_EDIT.get() => {
+                for id in [SAVE, SAVE_AND_STAY] {
+                    enable_menu_command(
+                        hwnd,
+                        id as usize,
+                        IsWindowEnabled(GetDlgItem(hwnd, id)) != 0,
+                    );
+                }
+                let comparing = REVISION_CONFLICT.get() && !GetDlgItem(hwnd, COMPARISON).is_null();
+                for id in [DIFF_NEXT, DIFF_PREVIOUS] {
+                    enable_menu_command(hwnd, id, comparing);
+                }
+                enable_menu_command(
+                    hwnd,
+                    DIFF_TAKE,
+                    comparing
+                        && PARAGRAPH_COMPARE
+                            .with_borrow(|c| c.as_ref().is_some_and(|c| c.has_selection())),
+                );
+                enable_menu_command(hwnd, REVIEW_PLAIN, comparing && PLAIN_REVIEW.get());
+                0
+            }
+            WM_COMMAND if LONG_EDIT.get() && w == OPEN_REPLACEMENT => {
+                open_search_field(hwnd, REPLACEMENT, true);
+                0
+            }
+            WM_COMMAND
+                if matches!(w, DIFF_NEXT | DIFF_PREVIOUS | DIFF_TAKE | REVIEW_PLAIN)
+                    && LONG_EDIT.get()
+                    && REVISION_CONFLICT.get()
+                    && !GetDlgItem(hwnd, COMPARISON).is_null() =>
+            {
+                match w {
+                    DIFF_NEXT | DIFF_PREVIOUS => {
+                        navigate_paragraph_difference(hwnd, w == DIFF_PREVIOUS)
+                    }
+                    DIFF_TAKE => take_service_paragraphs(hwnd),
+                    REVIEW_PLAIN if PLAIN_REVIEW.get() => {
+                        PostMessageW(hwnd, WM_KEYDOWN, VK_F9 as usize, 0);
+                    }
+                    _ => return DefWindowProcW(hwnd, msg, w, l),
+                }
                 0
             }
             WM_INITMENU if !GetMenu(hwnd).is_null() => {
@@ -2459,7 +2580,7 @@ fn show(
         if hwnd.is_null() {
             return 23;
         }
-        if draft.is_some() && !install_editor_menu(hwnd) {
+        if draft.is_some() && !install_editor_menu(hwnd, false) {
             return 24;
         }
         let dpi = GetDpiForWindow(hwnd);
@@ -2857,27 +2978,41 @@ unsafe fn run_editor_loop(
                     plain_history = true;
                 }
                 if let (Some(current), Some(text)) = (history.as_mut(), draft_text(hwnd)) {
-                    current.record(text);
+                    current.record(text, SendMessageW(field, EM_GETSEL, 0, 0) as u32);
+                    enable_menu_command(hwnd, UNDO, current.current > 0);
+                    enable_menu_command(hwnd, REDO, current.current + 1 < current.states.len());
                     let undo = msg.message == HISTORY_UNDO
                         || (ctrl && key == 0x5a)
                         || (msg.message == WM_CHAR && key == 26);
                     let redo = msg.message == HISTORY_REDO
                         || (ctrl && key == 0x59)
                         || (msg.message == WM_CHAR && key == 25);
-                    if (undo || redo) && GetFocus() == field {
+                    let menu_history = matches!(msg.message, HISTORY_UNDO | HISTORY_REDO);
+                    if (undo || redo) && (GetFocus() == field || menu_history) {
                         let forward = redo || (ctrl && GetKeyState(i32::from(VK_SHIFT)) < 0);
-                        if let Some((value, _)) = current.step(forward) {
-                            let value = wide(value.replace('\n', "\r\n"));
+                        if let Some(version) = current.step(forward) {
+                            SetFocus(field);
+                            let value = wide(version.text.replace('\n', "\r\n"));
                             SendMessageW(field, EM_SETSEL, 0, -1);
                             SendMessageW(field, EM_REPLACESEL, 0, value.as_ptr() as LPARAM);
+                            SendMessageW(
+                                field,
+                                EM_SETSEL,
+                                (version.selection & 0xffff) as usize,
+                                (version.selection >> 16) as isize,
+                            );
+                            SendMessageW(
+                                field,
+                                windows_sys::Win32::UI::Controls::EM_SCROLLCARET,
+                                0,
+                                0,
+                            );
                         }
                         continue;
                     }
                 }
                 if ctrl && key == 0x48 && GetKeyState(i32::from(VK_MENU)) >= 0 {
-                    set_focus_mode(hwnd, false);
-                    SetFocus(replacement);
-                    SendMessageW(replacement, EM_SETSEL, 0, -1);
+                    open_search_field(hwnd, REPLACEMENT, true);
                     continue;
                 }
                 if msg.message == REPLACE_DRAFT || (enter && GetFocus() == replacement) {
@@ -2894,7 +3029,7 @@ unsafe fn run_editor_loop(
                 if (ctrl && key == 0x46 && GetKeyState(i32::from(VK_MENU)) >= 0)
                     || (msg.message == WM_CHAR && key == 6)
                 {
-                    open_search(hwnd);
+                    open_search_field(hwnd, SEARCH, true);
                     continue;
                 }
                 if msg.message == WM_KEYDOWN
@@ -3024,7 +3159,10 @@ unsafe fn run_editor_loop(
                     };
                     for n in 1..=order.len() {
                         let next = order[(index + n * step) % order.len()];
-                        if !next.is_null() && IsWindowEnabled(next) != 0 {
+                        if !next.is_null()
+                            && IsWindowVisible(next) != 0
+                            && IsWindowEnabled(next) != 0
+                        {
                             SetFocus(next);
                             break;
                         }
@@ -3046,7 +3184,7 @@ unsafe fn run_editor_loop(
             let in_search = GetFocus() == search;
             if !search.is_null() && GetFocus() != GetDlgItem(hwnd, COMPARISON) {
                 if (ctrl && key == 0x46) || (msg.message == WM_CHAR && key == 6) {
-                    open_search(hwnd);
+                    open_search_field(hwnd, SEARCH, true);
                     continue;
                 }
                 if msg.message == WM_KEYDOWN && (key == VK_F3 || (in_search && key == VK_RETURN)) {
@@ -3096,7 +3234,7 @@ unsafe fn run_editor_loop(
                     return 24;
                 };
                 if let Some(text) = draft_text(hwnd) {
-                    current_history.record(text);
+                    current_history.record(text, 0);
                 }
                 enable_menu_command(hwnd, UNDO, current_history.current > 0);
                 enable_menu_command(
@@ -3142,9 +3280,7 @@ unsafe fn run_editor_loop(
                     continue;
                 }
                 if ctrl && key == 0x48 {
-                    set_focus_mode(hwnd, false);
-                    SetFocus(GetDlgItem(hwnd, REPLACEMENT));
-                    SendDlgItemMessageW(hwnd, REPLACEMENT, EM_SETSEL, 0, -1);
+                    open_search_field(hwnd, REPLACEMENT, true);
                     continue;
                 }
                 if ctrl && key == 0x42 && GetKeyState(i32::from(VK_SHIFT)) < 0 {
@@ -3190,8 +3326,8 @@ unsafe fn run_editor_loop(
                 }
                 if undo || redo {
                     let forward = redo || (ctrl && GetKeyState(i32::from(VK_SHIFT)) < 0);
-                    if let Some((text, bold)) = current_history.step(forward) {
-                        if !set_bold(hwnd, *bold) || !restore_draft(hwnd, text) {
+                    if let Some(version) = current_history.step(forward) {
+                        if !set_bold(hwnd, version.bold) || !restore_draft(hwnd, &version.text) {
                             return 24;
                         }
                     }
