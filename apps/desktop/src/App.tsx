@@ -6,6 +6,7 @@ import {
   importSnapshotProject,
   importDocxProject,
   receiveProjectHandoff,
+  KraqelCommandError,
   listProjects,
   openWorkspace,
   type ProjectOverview,
@@ -37,9 +38,11 @@ export function App() {
       form.reset();
       setHandoffNotice("Die Arbeitskopie ist jetzt in der Projektliste verfügbar.");
       await refreshProjects();
-    } catch {
+    } catch (cause) {
       setError(
-        "Empfang fehlgeschlagen. Prüfe den Eingangsordner, die Prüfsumme und ob die Projektkennung hier bereits belegt ist.",
+        cause instanceof KraqelCommandError && cause.code === "CONFLICT"
+          ? "Die Projektkennung ist hier bereits belegt. Zum Szenenvergleich öffne das vorhandene Projekt und wähle Werkzeuge → Versionen."
+          : "Empfang fehlgeschlagen. Prüfe den Eingangsordner, die separat bestätigte Prüfsumme und die Vollständigkeit der Arbeitskopie.",
       );
     } finally {
       setBusy(false);

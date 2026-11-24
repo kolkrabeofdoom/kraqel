@@ -2100,7 +2100,13 @@ async fn receive_project_handoff(
         })
         .await
         .map_err(|_| CommandError::internal(request_id))?
-        .map_err(|e| map_project_error(request_id, &e))?;
+        .map_err(|e| match e {
+            ProjectError::ProjectAlreadyExists => CommandError {
+                message: "Die Projektkennung ist am Ziel bereits belegt.",
+                ..CommandError::conflict(request_id)
+            },
+            other => map_project_error(request_id, &other),
+        })?;
         Ok(CommandResponse::current(request_id, ()))
     }
     #[cfg(not(windows))]
