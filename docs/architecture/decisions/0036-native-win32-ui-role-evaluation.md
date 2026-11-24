@@ -396,6 +396,18 @@ Bei ausbleibender Bestätigung zuerst den aktuellen Kontrollkopf mit `status` er
 
 Der ETW-Vergleich umfasste Referenzfenster, Übernahme, Lesen und anschließendes Entfernen der Fettstelle. Beim Übernehmen lief nur der neue Starter, beim Lesen und Schreiben zusätzlich Fensterrolle und Datendienst. Vier ausgewertete Prozessbäume mit null Netzwerkereignissen, zwei Spuren mit je vier von vier lokalen Positivkontrollen, ohne verlorene Ereignisse, verlorene Puffer oder nicht zuordenbare Netzwerkereignisse. SHA-256 des neuen Starters: `1a7b8e93ed971b1b5f006966566f1d8f9b8fc5fc00e38d3757a03594b392decd`. Das markierte Rollenpaar entspricht der Tabelle im Abschnitt zur Inline-Paketkompatibilität. Die Aussage gilt für diese synthetischen Abläufe.
 
+### Wiederanlauf nach Abbruch der Szenenübernahme
+
+Die Veröffentlichung von `control/head.mac` ist die Commitgrenze der Übernahme. Am 24. November 2026 wurde der übernehmende Starter im synthetischen Windows-Lauf an drei vorhandenen Journal-Haltepunkten mit `TerminateProcess` beendet (Exitcode 86). Die Abfragen nach dem Abbruch liefen jeweils in einem neu gestarteten Prozess.
+
+| Abbruchpunkt | Ergebnis nach dem Neustart | Vorgehen bei fehlender Bestätigung |
+| --- | --- | --- |
+| `BeforeRecord`, vor Anlage des Eintrags | Kontrollkopf und Sequenz unverändert. Revision 1 gehört weiterhin dem früheren Starter. Der aktive neue Starter erhält beim Lesen `scene-snapshot-owner`. | Aktuellen Kopf, Revision und Hash prüfen. Die Übernahme kann erneut ausdrücklich ausgelöst werden. |
+| `RecordSynced`, nach Synchronisation des Eintrags, vor Veröffentlichung des Kopfs | Status, Paketprüfung und erneute Übernahme scheitern mit `product-uncommitted-or-truncated-chain`. Keine Zuordnung ist über die Kontrollablage nutzbar. | Ablage gesperrt lassen. Journal und Kopf erhalten. |
+| `HeadPublished`, nach Veröffentlichung, vor der Antwort | Kontrollsequenz um genau eins erhöht. Der neue Starter ist Eigentümer und liest Revision 1. Ein erneuter Übernahmeaufruf mit aktuellem Kopf wird abgewiesen. | Zuordnung, Revision und Hash mit `verify-win32-package` bestätigen. Anschließend regulär lesen oder bearbeiten. |
+
+Der SHA-256 der SQLite-Datei blieb in allen drei Fällen identisch. Der Rückstand zwischen Eintrag und Kopf wurde in einer eigenen Testablage erzeugt. Die temporäre Prüffassung von `089659d` schaltete die vorhandenen Haltepunkte für den regulären Übernahmebefehl ausschließlich im isolierten Prüfverzeichnis frei (Starter-SHA-256 `fd256aaaf1dea26012e89a8a0463b3eb403093398f4aa47be775008440a97044`). Der Befund gilt für Prozessabbrüche auf diesem Windows-Prüfplatz.
+
 ### ETW beim bestätigten Verwerfen und Wiederöffnen
 
 Für den regulären Binärstand zu `f0cbb5d` enthielt die erste Messung den Referenzaufruf `check-win32-surface` (Starter und Fenster). In der zweiten Messung wurde die vorbereitete Revision 1 bearbeitet und das Verwerfen beim Schließen bestätigt. Der anschließende Leseauftrag unter frischer Bindung bestätigte Revision 1. Für beide Aufträge wurden Starter, Fenster und Datendienst jeweils anhand der erfassten Prozesslebenszeiten ausgewertet. Der Dateihash von Revision 1 blieb unverändert.
