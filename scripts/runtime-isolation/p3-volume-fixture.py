@@ -305,9 +305,16 @@ class NativeAuthority:
         require(re.fullmatch(b"[0-9a-f]{64}\n", response), "native evidence refused")
         return response[:-1].decode("ascii")
 
-    def deliver(self, row):
+    def bind_delivery(self, row):
         require(self.plan_digest is not None, "missing delivery decision")
         self.pipe.stdin.write(bytes((0, 6)) + self.plan_digest + row)
+        self.pipe.stdin.flush()
+        if self.pipe.stdout.readline(16) != b"BOUND\n":
+            raise RuntimeError("scene binding failed: " + self.pipe.stderr.read(512).decode())
+
+    def deliver(self, row):
+        self.bind_delivery(row)
+        self.pipe.stdin.write(b"\x01")
         self.pipe.stdin.flush()
         if self.pipe.stdout.readline(16) != b"DELIVERED\n":
             raise RuntimeError("scene delivery failed: " + self.pipe.stderr.read(512).decode())
@@ -565,6 +572,18 @@ def native_restart(root, fixture, metadata):
                     raise RuntimeError("unbound scene delivered")
             require(read_published_scene(root, target, metadata, ticket, home) == P3_SCENE,
                     "wrong published scene")
+            with native_authority(home, False, read_only=True) as reader:
+                require(decision(reader, root, target, metadata) == ticket, "wrong restart decision")
+                verify_bundle(final, ticket, metadata, reader)
+                reader.bind_delivery(scene_frame(metadata, P3_SCENE))
+                reader.pipe.kill()
+                reader.pipe.wait(timeout=5)
+            try:
+                with native_authority(home, False, read_only=True):
+                    raise AssertionError("delivery reopened without end record")
+            except RuntimeError as exc:
+                require("win32-window-session-open" in str(exc), "unexpected delivery restart refusal")
+
     finally:
         # Both directories were exclusively created by this synthetic run.
         for directory in (home, foreign):

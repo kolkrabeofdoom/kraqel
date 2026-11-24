@@ -57,6 +57,9 @@ enum Action {
     P3FixtureCleanup {
         digest: [u8; 32],
     },
+    BeginP3Delivery {
+        binding: [u8; 32],
+    },
     BeginWin32Window {
         anchor: [u8; 32],
     },
@@ -440,6 +443,19 @@ impl State {
         }
         if let Action::C3 { event } = action {
             return workspace_persistent::apply_group(self, actor, event);
+        }
+        if let Action::BeginP3Delivery { binding } = action {
+            if actor != self.actor
+                || self.schema != 1
+                || self.p3_cleanup.is_some()
+                || self.p3_evidence[0] != Some(*binding)
+                || self.p3_evidence[2].is_none()
+            {
+                return Err(invalid("p3-delivery-session-binding"));
+            }
+            self.window_session.require_closed()?;
+            self.window_session = win32_binding::Session::Open(digest);
+            return Ok(());
         }
         if let Action::BeginWin32Window { anchor } = action {
             if actor != self.actor

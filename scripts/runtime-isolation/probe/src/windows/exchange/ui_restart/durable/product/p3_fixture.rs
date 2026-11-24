@@ -104,7 +104,20 @@ pub(super) fn serve(
             if !protocol::valid_p3_row(&row) || Some(binding) != store.state.p3_evidence[0] {
                 return Err(invalid("p3-unbound-row"));
             }
+            if store.state.sequence + 2 >= MAX_RECORDS {
+                return Err(invalid("p3-delivery-budget"));
+            }
+            store.append(actor, store.state.head, Action::BeginP3Delivery { binding })?;
+            let begin = store.state.head;
+            io("p3-delivery-ready", output.write_all(b"BOUND\n"))?;
+            io("p3-delivery-ready", output.flush())?;
+            let mut start = [0];
+            io("p3-delivery-start", input.read_exact(&mut start))?;
+            if start != [1] {
+                return Err(invalid("p3-delivery-start"));
+            }
             win32_binding::deliver_p3(&mut store, &root, &image, binding, &row)?;
+            store.append_with_checked_context(actor, begin, Action::EndWin32Window { begin })?;
             io("p3-service-confirmed", output.write_all(b"DELIVERED\n"))?;
             io("p3-service-confirmed", output.flush())?;
             break;
