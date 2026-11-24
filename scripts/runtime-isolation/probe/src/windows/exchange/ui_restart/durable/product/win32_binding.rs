@@ -280,13 +280,29 @@ impl Store {
                 io("scene-adopt-record-sync", tail.record_file.sync_all())?;
                 next.sequence += 1;
                 next.head = tail.digest;
-                write_head(
-                    &self.root,
-                    &self.key,
-                    next.installation,
-                    next.sequence,
-                    next.head,
-                )?;
+                let staged = self.root.join("control/head.next");
+                match fs::symlink_metadata(&staged) {
+                    Ok(_) => {
+                        let expected = head_wire(
+                            &self.root,
+                            &self.key,
+                            next.installation,
+                            next.sequence,
+                            next.head,
+                        )?;
+                        secure_fs::publish_matching_head(&staged, &expected)?;
+                    }
+                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                        write_head(
+                            &self.root,
+                            &self.key,
+                            next.installation,
+                            next.sequence,
+                            next.head,
+                        )?;
+                    }
+                    Err(_) => return Err(invalid("product-head-exists")),
+                }
                 self.state = next;
             } else {
                 self.append(actor, head, action)?;

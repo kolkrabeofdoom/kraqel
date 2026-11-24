@@ -592,10 +592,11 @@ impl Store {
                 .try_into()
                 .map_err(|_| invalid("product-key-size"))?,
         );
-        if root
-            .join("control/head.next")
-            .try_exists()
-            .map_err(|_| invalid("product-head-exists"))?
+        if !recover_adoption
+            && root
+                .join("control/head.next")
+                .try_exists()
+                .map_err(|_| invalid("product-head-exists"))?
         {
             return Err(invalid("product-incomplete-head"));
         }
@@ -1065,13 +1066,13 @@ fn write_record(root: &Path, sequence: usize, bytes: &[u8]) -> Result<()> {
     crash::hit(crash::Point::RecordSynced);
     Ok(())
 }
-fn write_head(
+fn head_wire(
     root: &Path,
     key: &[u8; 32],
     installation: Uuid,
     sequence: usize,
     record_sha256: [u8; 32],
-) -> Result<()> {
+) -> Result<Vec<u8>> {
     let head = Head {
         version: 1,
         installation,
@@ -1085,7 +1086,17 @@ fn write_head(
     };
     let mut bytes = b"HEAD\0".to_vec();
     bytes.extend(serde_json::to_vec(&head).map_err(|_| invalid("product-head-encode"))?);
-    let wire = sealed(&bytes, key)?;
+    sealed(&bytes, key)
+}
+
+fn write_head(
+    root: &Path,
+    key: &[u8; 32],
+    installation: Uuid,
+    sequence: usize,
+    record_sha256: [u8; 32],
+) -> Result<()> {
+    let wire = head_wire(root, key, installation, sequence, record_sha256)?;
     let pending = root.join("control/head.next");
     let mut file = io(
         "product-head-create",

@@ -270,3 +270,64 @@ pub(super) fn file_id(file: &fs::File) -> Result<(u64, [u8; 16])> {
     )?;
     Ok((info.VolumeSerialNumber, info.FileId.Identifier))
 }
+
+// Promote the exact verified object, keeping the exclusive handle through the rename.
+pub(super) fn publish_matching_head(staged: &Path, expected: &[u8]) -> Result<()> {
+    use windows_sys::Win32::Foundation::{GENERIC_READ, GENERIC_WRITE};
+    use windows_sys::Win32::Storage::FileSystem::{
+        FILE_RENAME_INFO, FileRenameInfo, SetFileInformationByHandle,
+    };
+    let mut file = io(
+        "scene-adopt-staged-open",
+        OpenOptions::new()
+            .access_mode(GENERIC_READ | GENERIC_WRITE | DELETE)
+            .share_mode(0)
+            .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT)
+            .open(staged),
+    )?;
+    let info = file_info(&file)?;
+    if info.dwFileAttributes & (BAD_ATTRIBUTES | FILE_ATTRIBUTE_DIRECTORY) != 0
+        || info.nNumberOfLinks != 1
+    {
+        return Err(invalid("scene-adopt-staged-kind"));
+    }
+    private_acl(staged, false)?;
+    let mut bytes = Vec::new();
+    io(
+        "scene-adopt-staged-read",
+        (&mut file)
+            .take(expected.len() as u64 + 1)
+            .read_to_end(&mut bytes),
+    )?;
+    if bytes != expected {
+        return Err(invalid("scene-adopt-staged-mismatch"));
+    }
+    io("scene-adopt-staged-sync", file.sync_all())?;
+    let name = path_wide(&staged.with_file_name("head.mac"))?;
+    let name = &name[..name.len() - 1];
+    let name_bytes = std::mem::size_of_val(name);
+    let size = (std::mem::offset_of!(FILE_RENAME_INFO, FileName) + name_bytes + 2)
+        .max(size_of::<FILE_RENAME_INFO>());
+    let mut buffer = vec![0usize; size.div_ceil(size_of::<usize>())];
+    // The usize buffer supplies native pointer alignment and space for the full UTF-16 name.
+    let rename = buffer.as_mut_ptr().cast::<FILE_RENAME_INFO>();
+    unsafe {
+        (*rename).Anonymous.ReplaceIfExists = true;
+        (*rename).FileNameLength = name_bytes as u32;
+        std::ptr::copy_nonoverlapping(
+            name.as_ptr(),
+            std::ptr::addr_of_mut!((*rename).FileName).cast::<u16>(),
+            name.len(),
+        );
+        check(
+            SetFileInformationByHandle(
+                file.as_raw_handle(),
+                FileRenameInfo,
+                rename.cast(),
+                size as u32,
+            ),
+            "scene-adopt-staged-commit",
+        )?;
+    }
+    Ok(())
+}
