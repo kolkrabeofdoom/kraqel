@@ -1032,6 +1032,22 @@ export async function createProjectSnapshot(projectId: ProjectId): Promise<Snaps
   ).data;
 }
 
+interface PreparedHandoff {
+  readonly folder: string;
+  readonly manifestSha256: string;
+}
+
+export async function prepareProjectHandoff(projectId: ProjectId): Promise<PreparedHandoff> {
+  return (
+    await callCommand<{ readonly projectId: ProjectId }, PreparedHandoff>(
+      "prepare_project_handoff",
+      {
+        projectId,
+      },
+    )
+  ).data;
+}
+
 export async function exportProjectArchive(
   projectId: ProjectId,
 ): Promise<ProjectArchiveExportResult | null> {

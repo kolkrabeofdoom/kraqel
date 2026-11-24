@@ -1,5 +1,8 @@
 //! Sicherer Lebenszyklus lokaler Projektverzeichnisse.
 
+mod handoff;
+pub use handoff::PreparedHandoff;
+
 use std::{
     error::Error,
     ffi::OsString,
@@ -1301,6 +1304,89 @@ mod tests {
             manager.backup_project("quelle", "stand-1"),
             Err(ProjectError::BackupAlreadyExists)
         ));
+    }
+
+    #[test]
+    fn handoff_rebuilds_the_live_wal_view_and_refuses_partial_media() {
+        let root = tempdir().unwrap();
+        let manager = ProjectManager::new(root.path()).unwrap();
+        let project = project("Übergabe");
+        let id = project.id.to_string();
+        let opened = manager.create_project(&id, &project).unwrap();
+        let source = opened.database().connection();
+        let scene = EntityId::new().to_string();
+        source.execute("INSERT INTO document(id,project_id,kind,title,plain_text,position,created_at,updated_at)
+            VALUES(?1,?2,'scene','Süd','VERWORFENERABSATZ',0,'t','t')", params![scene,id]).unwrap();
+        source
+            .execute_batch("PRAGMA wal_checkpoint(TRUNCATE); PRAGMA wal_autocheckpoint=0")
+            .unwrap();
+        source
+            .execute(
+                "UPDATE document SET plain_text='Hafenlicht',revision=1 WHERE id=?1",
+                [&scene],
+            )
+            .unwrap();
+        let dir = opened.directory();
+        fs::create_dir_all(dir.join("assets/thumbnails")).unwrap();
+        fs::write(dir.join("assets/test.png"), b"Bild").unwrap();
+        fs::write(dir.join("assets/thumbnails/test.png"), b"Vorschau").unwrap();
+        fs::write(dir.join("private.txt"), b"Privat").unwrap();
+        source.execute("INSERT INTO media_asset(id,project_id,kind,relative_path,thumbnail_path,original_name,title,
+            mime_type,checksum,byte_count,width,height,provenance,created_at,updated_at)
+            VALUES(?1,?2,'image','assets/test.png','assets/thumbnails/test.png','test.png','Bild',
+            'image/png',?3,4,1,1,'imported','t','t')",params![EntityId::new().to_string(),id,format!("{:x}",Sha256::digest(b"Bild"))]).unwrap();
+        let receipt = manager.prepare_handoff(project.id).unwrap();
+        let published = dir.join("backups").join(&receipt.folder);
+        assert_eq!(
+            receipt.manifest_sha256,
+            format!(
+                "{:x}",
+                Sha256::digest(fs::read(published.join("uebernahme.json")).unwrap())
+            )
+        );
+        let main = published.join(DATABASE_FILE_NAME);
+        let db = super::open_read_only(&main).unwrap();
+        let row: (String, i64) = db
+            .query_row(
+                "SELECT plain_text,revision FROM document WHERE id=?1",
+                [&scene],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(row, ("Hafenlicht".into(), 1));
+        for (term, expected) in [("Hafenlicht", 1), ("VERWORFENERABSATZ", 0)] {
+            let hits: i64 = db
+                .query_row(
+                    "SELECT count(*) FROM document_fts WHERE document_fts MATCH ?",
+                    [term],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert_eq!(hits, expected);
+        }
+        let old = b"VERWORFENERABSATZ";
+        assert!(
+            fs::read(dir.join(DATABASE_FILE_NAME))
+                .unwrap()
+                .windows(old.len())
+                .any(|s| s == old)
+        );
+        let clean = fs::read(main).unwrap();
+        assert!(!clean.windows(old.len()).any(|s| s == old));
+        assert!(!published.join("private.txt").exists());
+        let manifest: serde_json::Value =
+            serde_json::from_slice(&fs::read(published.join("uebernahme.json")).unwrap()).unwrap();
+        assert_eq!(
+            manifest["files"][DATABASE_FILE_NAME],
+            format!("{:x}", Sha256::digest(&clean))
+        );
+        assert_eq!(
+            fs::read(published.join("assets/thumbnails/test.png")).unwrap(),
+            b"Vorschau"
+        );
+        fs::write(dir.join("assets/test.png"), b"Fremd").unwrap();
+        assert!(manager.prepare_handoff(project.id).is_err());
+        assert_eq!(fs::read_dir(dir.join("backups")).unwrap().count(), 1);
     }
 
     #[test]

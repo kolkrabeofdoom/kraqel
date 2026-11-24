@@ -4,6 +4,7 @@ import {
   commitProjectSnapshot,
   createProjectSnapshot,
   exportProjectArchive,
+  prepareProjectHandoff,
   getVersionControlDiff,
   getVersionControlStatus,
   validateProjectSnapshot,
@@ -91,6 +92,24 @@ export function VersionControl({ projectId }: VersionControlProps) {
     }
   };
 
+  const prepareHandoff = async () => {
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const { folder, manifestSha256 } = await prepareProjectHandoff(projectId);
+      setNotice(
+        `Übernahme vorbereitet. Die lokale Arbeitskopie liegt im Projektordner unter backups/${folder}. SHA-256 des Inventars: ${manifestSha256}`,
+      );
+    } catch {
+      setError(
+        "Die Übernahme konnte nicht vorbereitet werden. Prüfe, ob das Projekt verfügbar ist und die verwendeten Bilder vollständig sind.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const commit = async (event: FormEvent) => {
     event.preventDefault();
     setBusy(true);
@@ -141,6 +160,22 @@ export function VersionControl({ projectId }: VersionControlProps) {
           </button>
         </div>
       </header>
+
+      <section className="version-panel" aria-labelledby="handoff-title">
+        <h3 id="handoff-title">Lokale Arbeitskopie</h3>
+        <p>
+          Bereitet den gespeicherten Projektstand samt verwendeten Bildern für die Übernahme vor.
+          Die Kopie liegt unverschlüsselt im lokalen Sicherungsordner.
+        </p>
+        <button
+          type="button"
+          className="secondary"
+          disabled={busy}
+          onClick={() => void prepareHandoff()}
+        >
+          Übernahme vorbereiten
+        </button>
+      </section>
 
       <div className="version-status" aria-live="polite">
         <strong>

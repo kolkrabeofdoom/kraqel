@@ -16,6 +16,15 @@ test("Projektarchiv wird aus einem aktuellen Snapshot exportiert", async ({ page
   await expect(page.getByText(/Format 3, [1-9][0-9]* Dateien/u)).toBeVisible();
 });
 
+test("Arbeitskopie wird im geöffneten Projekt ausdrücklich vorbereitet", async ({ page }) => {
+  await page.getByRole("button", { name: "Abenteuer ausprobieren" }).click();
+  await page.getByRole("button", { name: "Versionen" }).click();
+  await page.getByRole("button", { name: "Übernahme vorbereiten" }).click();
+  await expect(
+    page.getByText(/Übernahme vorbereitet.*uebernahme-beispiel.*SHA-256/u),
+  ).toBeVisible();
+});
+
 test("abgebrochener Projektarchivexport bleibt neutral", async ({ page }) => {
   await page.evaluate(() => localStorage.setItem("kraqel-e2e-cancel-snapshot-export", "1"));
   await page.getByRole("button", { name: "Abenteuer ausprobieren" }).click();

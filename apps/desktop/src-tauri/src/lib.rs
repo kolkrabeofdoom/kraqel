@@ -32,7 +32,7 @@ use kraqel_storage::{
     continuity_repository::{ContinuityError, ContinuityRepository},
     document_repository::{DocumentError, DocumentRepository},
     media_repository::{MediaError, MediaRepository},
-    project_manager::{ProjectError, ProjectManager},
+    project_manager::{PreparedHandoff, ProjectError, ProjectManager},
     prompt_repository::{PromptError, PromptRepository},
     story_bible_repository::{StoryBibleError, StoryBibleRepository},
     structure_repository::{StructureError, StructureRepository},
@@ -1888,6 +1888,22 @@ fn create_project_snapshot(
         |project, service, database| service.create_snapshot(database, project),
     )?;
     Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+async fn prepare_project_handoff(
+    state: State<'_, AppState>,
+    request: CommandRequest<ProjectRequest>,
+) -> Result<CommandResponse<PreparedHandoff>, CommandError> {
+    require_current_contract(&request)?;
+    let request_id = request.request_id;
+    let id = parse_project_id(request_id, &request.payload.project_id)?;
+    let manager = manager(&state, request_id)?;
+    let receipt = tauri::async_runtime::spawn_blocking(move || manager.prepare_handoff(id))
+        .await
+        .map_err(|_| CommandError::internal(request_id))?
+        .map_err(|error| map_project_error(request_id, &error))?;
+    Ok(CommandResponse::current(request_id, receipt))
 }
 
 #[tauri::command]
@@ -3848,6 +3864,7 @@ pub fn run() {
             link_timeline_event,
             create_project_snapshot,
             export_project_archive,
+            prepare_project_handoff,
             validate_project_snapshot,
             get_version_control_status,
             get_version_control_diff,
@@ -4097,6 +4114,17 @@ mod tests {
             "Die Stadt, die den Dienstag verkaufte (Beispiel)"
         );
         assert_eq!(workspace.documents.len(), 20);
+        let receipt = super::manager(&state, REQUEST_ID)
+            .unwrap()
+            .prepare_handoff(workspace.project.id)
+            .expect("bundled manuscript and media should prepare together");
+        let prepared = state
+            .project_root
+            .join(workspace.project.id.to_string())
+            .join("backups")
+            .join(receipt.folder);
+        assert!(prepared.join("uebernahme.json").is_file());
+        assert!(prepared.join("assets/thumbnails").is_dir());
         assert_eq!(list_projects_impl(&state, REQUEST_ID).unwrap().len(), 1);
     }
 

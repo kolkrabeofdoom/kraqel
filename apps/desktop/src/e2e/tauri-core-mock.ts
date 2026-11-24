@@ -929,6 +929,10 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       writeState(state);
       return snapshotSummary(current);
     }
+    case "prepare_project_handoff": {
+      findProject(state, payload.projectId);
+      return { folder: "uebernahme-beispiel", manifestSha256: "a".repeat(64) };
+    }
     case "export_project_archive": {
       if (localStorage.getItem("kraqel-e2e-cancel-snapshot-export") === "1") return null;
       const current = findProject(state, payload.projectId);

@@ -382,6 +382,24 @@ laufende Datenbank ist **kein Austauschformat** und gehört nicht in Git.
 
 Backups sind Recovery-Artefakte. Für Austausch und Versionskontrolle dient der portable Snapshot.
 
+### Übernahme eines geöffneten Projekts vorbereiten
+
+Im Entwicklungsstand unter **Werkzeuge → Versionen → Lokale Arbeitskopie → Übernahme vorbereiten**
+wird der bereits gespeicherte Projektstand einschließlich bestätigter WAL-Änderungen übernommen.
+Vorher die Speicherung der letzten Bearbeitung abwarten.
+
+Unter Windows liegt das Ergebnis der regulären Desktop-App in
+`%LOCALAPPDATA%\org.kraqel.desktop\projects\<Projektkennung>\backups\<angezeigter Ordnername>`. Der
+Ordner enthält eine **unverschlüsselte** neue Datenbank mit den aktuellen Texten, Entwürfen,
+Kennungen und Verknüpfungen, den verwendeten Bildern und Vorschaubildern sowie `uebernahme.json`.
+Der Suchindex entsteht aus den aktuellen Dokumenten. Die Vorbereitung übernimmt ausschließlich diese
+Arbeitsdaten. Jeder erfolgreiche Aufruf erzeugt einen eigenen Ordner.
+
+Für den Transfer den gesamten Ordner mitnehmen und den angezeigten SHA-256 des Inventars getrennt
+festhalten. Mit PowerShell lässt sich dieser Wert im Zielordner mit `Get-FileHash .\uebernahme.json`
+vergleichen. Die Dateiprüfsummen im Inventar dienen dem Abgleich des Inhalts. Eine automatische
+Freigabe oder ein Import dieses Formats im isolierten Starter steht noch aus.
+
 ### Portabler Snapshot v3
 
 Ein Snapshot enthält deterministisch sortierte JSON-Daten, UUID-basierte Markdown-Manuskripte,
