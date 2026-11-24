@@ -134,6 +134,19 @@ fn available_saves(sequence: usize) -> usize {
     MAX_RECORDS.saturating_sub(sequence).saturating_sub(2) / 2
 }
 
+fn verify_inline_pair(pins: &PinnedPackage) -> Result<()> {
+    let window = pins
+        .image(suspended::WINDOW)
+        .ok_or(invalid("win32-window-not-pinned"))?;
+    let service = pins
+        .image("pipe-service.exe")
+        .ok_or(invalid("win32-service-not-pinned"))?;
+    if package::inline_image(window)? != package::inline_image(service)? {
+        return Err(invalid("win32-scene-inline-abi-mismatch"));
+    }
+    Ok(())
+}
+
 impl Store {
     pub(super) fn win32_binding(
         &mut self,
@@ -169,10 +182,11 @@ impl Store {
         let root = self.root.join("bin").join(format!("win32-{}", hex(&actor)));
         if let Some((source, _)) = enrollment {
             let _source_dirs = pin_directories(source)?;
-            let _source_pins = io(
+            let source_pins = io(
                 "win32-provision-source",
                 PinnedPackage::open(source, Some(expected)),
             )?;
+            verify_inline_pair(&source_pins)?;
             if !io("win32-managed-directory", root.try_exists())? {
                 publish(source, &root)?;
             }
@@ -183,6 +197,7 @@ impl Store {
             "win32-package-pin",
             PinnedPackage::open(&root, Some(expected)),
         )?;
+        verify_inline_pair(&pins)?;
         for name in IMAGES.into_iter().chain(["anchor.json"]) {
             private_acl(&root.join(name), false)?;
         }

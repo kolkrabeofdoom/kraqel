@@ -51,6 +51,16 @@ pub(super) fn verify_scene_snapshot(file: &mut fs::File) -> Result<()> {
 #[used]
 #[unsafe(link_section = ".kqsrev")]
 static SCENE_REVISIONS: [u8; 32] = *b"KRAQEL-SCENE-REVISIONS-V1.......";
+pub(super) fn inline_image(file: &fs::File) -> Result<bool> {
+    let size = io("scene-image-size", file.metadata())?.len();
+    named_contract(
+        &mut &*file,
+        size,
+        b".kqspan\0",
+        &crate::window_receipt::INLINE_ABI,
+    )
+}
+
 pub(super) fn comparison_image(file: &fs::File) -> Result<bool> {
     let size = io("scene-image-size", file.metadata())?.len();
     Ok(verify_named(
@@ -206,6 +216,18 @@ fn verify_named<R: Read + Seek>(
     name: &[u8; 8],
     expected: &[u8; 32],
 ) -> Result<()> {
+    if !named_contract(r, size, name, expected)? {
+        return Err(invalid("package-missing-contract"));
+    }
+    Ok(())
+}
+
+fn named_contract<R: Read + Seek>(
+    r: &mut R,
+    size: u64,
+    name: &[u8; 8],
+    expected: &[u8; 32],
+) -> Result<bool> {
     if !(64..=128 * 1024 * 1024).contains(&size) {
         return Err(invalid("package-size-budget"));
     }
@@ -261,10 +283,7 @@ fn verify_named<R: Read + Seek>(
         }
         found = true;
     }
-    if !found {
-        return Err(invalid("package-missing-contract"));
-    }
-    Ok(())
+    Ok(found)
 }
 
 #[cfg(test)]

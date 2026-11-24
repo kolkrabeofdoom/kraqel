@@ -15,6 +15,8 @@ git status -sb
 
 **Stand am 24. November 2026.** Zum Entfernen einer gespeicherten einzelnen Fettmarkierung die Szene im Bearbeitungsauftrag öffnen und **Bearbeiten → Fettmarkierung entfernen, speichern und schließen** wählen. Der Befehl ist bei ungespeicherten Änderungen gesperrt. Der lokale Windows-Lauf bestätigte nach dem Wiederöffnen den vollständigen Text und die weiterhin fett gesetzte „42“.
 
+Der verwaltete Starter erkennt gemischte Generationen mit einseitiger Inline-Kennung vor dem Sitzungsstart. Für das passende Paar sind Markieren, Entfernen und Wiederöffnen im aktuellen Windows-Netzvergleich geprüft. [Paketprüfung und ETW-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#paketkompatibilität-und-etw-für-einzelne-fettmarkierungen).
+
 Zum Weiterbearbeiten einer gespeicherten Szene mit einer einzelnen Fettstelle den Auftrag `edit-win32-scene` öffnen. Strg+S erhält die Fettstelle auch nach einer eindeutigen Änderung davor oder dahinter. Fordert das Fenster zur erneuten Auswahl auf, die gewünschte Stelle markieren und mit Strg+Umschalt+B speichern. Zum gezielten Ersetzen der gespeicherten Fettstelle Strg+H drücken, den Ersatztext eingeben und im Ersatzfeld mit Strg+Umschalt+Enter speichern und schließen.
 
 Der verwaltete Win32-Editor bearbeitet ausschließlich die synthetische Szene A. Text,

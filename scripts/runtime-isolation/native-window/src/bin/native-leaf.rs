@@ -19,6 +19,10 @@ use windows_sys::Win32::{
 };
 
 #[used]
+#[unsafe(link_section = ".kqspan")]
+static INLINE_ABI: [u8; 32] = kraqel_window_probe::window_receipt::INLINE_ABI;
+
+#[used]
 #[unsafe(link_section = ".kqauto")]
 static AUTOSAVE_ABI: [u8; 32] = window_receipt::AUTOSAVE_ABI;
 
@@ -3335,6 +3339,7 @@ static GAP_ABI: [u8; 32] = kraqel_window_probe::window_receipt::GAP_ABI;
 #[unsafe(link_section = ".kqagain")]
 static REPEAT_ABI: [u8; 32] = kraqel_window_probe::window_receipt::REPEAT_ABI;
 fn main() {
+    std::hint::black_box(&INLINE_ABI);
     std::hint::black_box(&REPEAT_ABI);
     std::hint::black_box(&GAP_ABI);
     std::hint::black_box(&REFRESH_ABI);

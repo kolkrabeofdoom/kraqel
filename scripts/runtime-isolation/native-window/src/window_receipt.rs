@@ -100,6 +100,8 @@ pub fn budgeted_argument(mode: SceneOperation) -> &'static str {
     }
 }
 
+pub const INLINE_ABI: [u8; 32] = *b"KRAQEL-SCENE-INLINE-V1..........";
+
 pub const COMPARE_ABI: [u8; 32] = *b"KRAQEL-SCENE-COMPARE-V1.........";
 
 pub const MERGE_ABI: [u8; 32] = *b"KRAQEL-SCENE-MERGE-V1...........";

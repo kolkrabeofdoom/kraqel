@@ -356,6 +356,20 @@ gilt für die gemessenen Programmbytes und Abläufe. Die Rohspuren verbleiben lo
 | Fensterrolle | `cfbdd3386001ce40378799b13734c8ca7c0020487a82633b51672b859fc2574d` |
 | Datendienst | `5b0ff5f267098bbd908c65c8a0c58d23835219b1905334b8fe11d1ea95569428` |
 
+### Paketkompatibilität und ETW für einzelne Fettmarkierungen
+
+Seit dem 24. November 2026 deklarieren Fensterrolle und Datendienst den gemeinsamen Vertrag für Lesen, Speichern und Entfernen einer einzelnen Fettstelle in der schreibgeschützten PE-Sektion `.kqspan`. Der Starter liest die Kennung über die gehaltenen Dateihandles unter der Kontrollsperre. Bei der Aufnahme prüft er die Quelldateien vor der Veröffentlichung und anschließend das verwaltete Paket. Bei späteren Aufrufen prüft er das gebundene Paket vor dem Sitzungsbeginn. Eine einseitige Kennung oder eine ungültige Sektion sperrt den Aufruf. Die bestehenden Paketdigests bestimmen weiterhin die Identität der Dateien. Für zwei unmarkierte Rollen gilt der bisherige Pfad. Deren Unterstützung für einzelne Fettstellen lässt sich aus den fehlenden Kennungen nicht ableiten.
+
+In einer frischen synthetischen Kontrollablage wies der Starter die Kombination aus neuem Fenster und bisherigem Datendienst vor dem Kopieren zurück. Der Status vor und nach der Ablehnung stimmte überein. Anschließend ließ sich das passende Paar unter demselben Kontrollkopf aufnehmen.
+
+Zwei kurze lokale ETW-Spuren erfassten das Referenzfenster sowie drei aufeinanderfolgende Aufträge für Szene A. Das Fenster markierte „ab“ in „Rabe“ fett, entfernte diese Markierung unter frischer Edit-Bindung und öffnete Revision 2 lesend. Beide Revisionen enthielten denselben Text und die Fettmarkierung von „42“. Der Referenzlauf enthielt Starter und Fensterrolle, jeder Szenenauftrag zusätzlich den Datendienst. Alle vier Prozessbäume endeten mit leerem Job und jeweils null zugeordneten Netzwerkereignissen. Beide Spuren erfassten vier von vier lokalen TCP-/UDP-Kontrollen über IPv4 und IPv6. Keine verlorenen Ereignisse oder Puffer und keine nicht zuordenbaren Netzwerkereignisse in der Auswertung. Gemessen wurde der synthetische Win32-Pfad auf dem Windows-Arbeitsplatz. Die Rohspuren bleiben lokal.
+
+| Gemessene Binärdatei | SHA-256 |
+| --- | --- |
+| Verwalteter Starter | `c950c38c4e668f548111eceac56fc607f859be4a844e1dc4ffa3b4be54410b09` |
+| Fensterrolle | `8aed700f2682db1907290f1e790159f37a2e823445ffd2700366e6b9a12ead13` |
+| Datendienst | `10ba323592c03ef3bb94af10a4dff0dc51f2a2f662d0226f39feb73fe456a122` |
+
 ### ETW beim bestätigten Verwerfen und Wiederöffnen
 
 Für den regulären Binärstand zu `f0cbb5d` enthielt die erste Messung den Referenzaufruf `check-win32-surface` (Starter und Fenster). In der zweiten Messung wurde die vorbereitete Revision 1 bearbeitet und das Verwerfen beim Schließen bestätigt. Der anschließende Leseauftrag unter frischer Bindung bestätigte Revision 1. Für beide Aufträge wurden Starter, Fenster und Datendienst jeweils anhand der erfassten Prozesslebenszeiten ausgewertet. Der Dateihash von Revision 1 blieb unverändert.
