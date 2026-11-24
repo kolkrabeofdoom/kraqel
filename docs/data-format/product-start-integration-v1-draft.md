@@ -159,6 +159,14 @@ leeres Projektfenster darf vorhandene noch nicht übernommene Projekte nicht wie
 aussehen lassen; verständlicher Übernahme-/Sperrstatus, ohne Manuskriptpfade oder Diagnosen
 offenzulegen.
 
+### Vorprüfung zur SQLite-Erfassung bei P3
+
+Am 24. November 2026 wurde eine ausschließlich synthetische SQLite-Quelle unter Windows im temporären Prüfverzeichnis angelegt. Sie verwendete die sechs Repository-Migrationen. Ein separater Schreibprozess bestätigte eine neue Projekt-UUID im WAL und endete anschließend ohne Schließen der SQLite-Verbindung. Während dieser Prozess noch lief, verweigerte Windows das zum Lesen geöffnete Handle mit ausschließlich Lesefreigabe (Sharing Violation 32).
+
+Nach Prozessende hielt die Probe für sämtliche vorhandenen Dateien im festen Prüfverzeichnis solche Handles gleichzeitig offen. Nur Datenbank und WAL wurden aus diesen Handles in das leere Staging gelesen. SQLite öffnete ausschließlich diese Arbeitskopie zur Wiederherstellung und erzeugte dort eine separate Sicherung. Diese enthielt die im WAL bestätigte UUID und Schemaversion 6 und bestand die SQLite-Integritätsprüfung. Namen und SHA-256 sämtlicher Quelldateien einschließlich der SQLite-Nebendateien waren vor und nach der Erfassung gleich.
+
+Das Ergebnis belegt den SQLite-Teil für diese fest vorgegebene Quelle. Für eine Bestandskopie fehlen weiterhin die authentisierte native Quellen-/Zielbindung, der Ausschluss von Veränderungen am gesamten Verzeichnisbestand einschließlich neuer Dateien und Assets sowie die idempotente Veröffentlichung. Bis dahin gibt es keinen Produktaufruf zur Bestandsübernahme. Bei unbekannten oder unvollständig erfassten Dateien bleibt die Übernahme vor der Veröffentlichung gesperrt.
+
 ## 5. Vor Fortsetzung des eingeschränkten Prozesses
 
 - Aktuellen Actor/Kopf/Paketvertrag, unveränderte Paketbytes/Ressourcen und gültige Datenbindung
