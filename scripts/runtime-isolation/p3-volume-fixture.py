@@ -1317,10 +1317,11 @@ def receive_prepared(folder, trusted_hash, project_id):
 
 
 @contextmanager
-def desktop_fixture_source(followup=False):
+def desktop_fixture_source(followup=False, divergent=False):
     producer = Path(__file__).parent / "probe/target/debug/examples/p3_handoff_source.exe"
     with tempfile.TemporaryDirectory(prefix="kraqel-p3-handoff-") as source:
-        with subprocess.Popen([producer, *(['--followup'] if followup else [])], cwd=source, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
+        args = ["--divergent"] if divergent else ["--followup"] if followup else []
+        with subprocess.Popen([producer, *args], cwd=source, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
             report_native_root(proc, producer)
             try:
                 output, _ = proc.communicate(timeout=60)
@@ -1339,10 +1340,49 @@ def desktop_fixture_source(followup=False):
                 pins.enter_context(pinned_directory(parent))
                 require(parent.is_dir() and not parent.lstat().st_file_attributes & (0x400 | 0x1000 | 0x40000 | 0x400000),
                         "unsafe fixture ancestor")
-            for evidence in (receipt, reply["followup"]) if followup else (receipt,):
+            for evidence in (receipt, reply["followup"]) if followup or divergent else (receipt,):
                 require(re.fullmatch(r"uebernahme-[0-9a-f-]{36}", evidence["folder"]), "invalid fixture folder")
                 pins.enter_context(pinned_directory(parent / evidence["folder"]))
             yield parent / receipt["folder"], receipt["manifestSha256"], reply
+
+
+def prepared_scene_view(snapshot, project, scene):
+    """Project one bound scene from the already verified, detached image."""
+    with closing(sqlite3.connect(":memory:")) as db:
+        db.deserialize(snapshot["kraqel.sqlite3"])
+        db.execute("PRAGMA trusted_schema=OFF")
+        db.execute("PRAGMA temp_store=MEMORY")
+        db.execute("PRAGMA query_only=ON")
+        return db.execute("SELECT title, plain_text, revision, content_json FROM document "
+                          "WHERE project_id=? AND id=? AND kind='scene'", (project, scene)).fetchone()
+
+
+def compare_prepared(interactive):
+    # Both receipts arrive from the producer independently of the folders.
+    # This preview has no destination, publication ticket or write binding.
+    with desktop_fixture_source(divergent=True) as (folder, digest, reply):
+        other = reply["followup"]
+        second = folder.parent / other["folder"]
+        project, scene = reply["project"], reply["scene"]
+        before = (inventory(folder), inventory(second))
+        left = receive_prepared(folder, digest, project)
+        right = receive_prepared(second, other["manifestSha256"], project)
+        views = [prepared_scene_view(snapshot, project, scene) for snapshot in (left, right)]
+        # The dialog accepts only the fixed synthetic texts, never arbitrary manuscript content.
+        require(all(view is not None for view in views) and
+                [view[:3] for view in views] == [("Szene B", "Die Flut erreicht den Hafen.", 1),
+                                                 ("Szene A", "Der Hafen liegt im Nebel.", 1)], "unexpected comparison scene")
+        changed_files = {name for name in left.keys() | right.keys() if left.get(name) != right.get(name)}
+        require(changed_files == {"kraqel.sqlite3"}, "unexpected comparison inventory")
+        if interactive:
+            columns = [f"{label} · Revision {revision}\n{title}\n{text}"
+                       for label, (title, text, revision, _) in zip(("Fassung 1", "Fassung 2"), views)]
+            message = "\n\n".join(columns + [
+                "Die Datenbank unterscheidet sich. Die Mediendateien stimmen überein.",
+                "Beide Fassungen bleiben erhalten."])
+            ctypes.windll.user32.MessageBoxW(None, message, "KRAQEL · Schreibgeschützter Szenenvergleich", 0)
+        require(before == (inventory(folder), inventory(second)), "comparison changed a preparation")
+    print("PASS: two separately verified versions compared at equal revision; both preserved")
 
 
 def check_prepared_refusals():
@@ -1878,6 +1918,9 @@ def capture(root, fixture, interactive=False):
 if __name__ == "__main__":
     if sys.argv[1:2] in (["check-prepared"], ["prepared"], ["prepared-preview"]) and os.environ.get("KRAQEL_P3_ETW_ROOTS") == "1":
         print(f"P3-ETW-CONTROLLER {os.getpid()}", flush=True)
+    if sys.argv[1:] in (["compare-prepared"], ["check-prepared-comparison"]):
+        compare_prepared(interactive=sys.argv[1] == "compare-prepared")
+        sys.exit(0)
     if sys.argv[1:] == ["check-prepared"]:
         check_prepared_refusals()
         sys.exit(0)

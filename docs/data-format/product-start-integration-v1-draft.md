@@ -214,6 +214,14 @@ python -I scripts/runtime-isolation/p3-volume-fixture.py check-prepared
 
 Der lokale ETW-Vergleich erfasste in der Referenz einen Python-Prozess und den Erzeugungshelfer. Im Vorschaupfad erfasste er vier Python-Prozesse, den Erzeugungshelfer, sechs Starterläufe, die Fensterrolle und den Datendienst. Beide Auswertungen erkannten alle vier Positivkontrollen, meldeten null verlorene Ereignisse und Puffer und fanden keine diesen Prozessbäumen zugeordneten Netzwerkereignisse. Der Befund gilt für diesen synthetischen Lauf. Der Empfang echter Arbeitskopien auf einem zweiten Rechner benötigt weiterhin einen Produktpfad mit unabhängig bestätigter Freigabe.
 
+### Auseinanderentwickelte Projektfassungen
+
+Die Projektkennung stellt die fachliche Verbindung her. Dieselbe Szenenkennung und Revisionsnummer können auf zwei Rechnern verschiedene Texte bezeichnen. Beide Fassungen bleiben erhalten. Das Schließen des Vergleichs bestätigt keine Auswahl. Eine spätere Übernahme braucht eine ausdrückliche Auswahl, die an beide geprüften Inventare gebunden ist. Ändert sich eines davon, muss der Vergleich erneuert werden.
+
+Der synthetische Prüflauf startet zwei Arbeitsverzeichnisse mit derselben bestätigten Basis, bearbeitet beide unabhängig und bereitet beide mit dem Desktop-Speichermodul vor. Die Steuerung prüft jeden Inventarhash separat und liest ausschließlich die gebundene Szene aus den abgetrennten Datenbankabbildern im Arbeitsspeicher. Beide Szenen haben Revision 1. Der lokale Win32-Dialog zeigt beide Titel und Texte. Nach dem Schließen stimmen beide Verzeichnisinventare mit dem Stand vor dem Vergleich überein.
+
+Nach dem obigen Build öffnet `python -I scripts/runtime-isolation/p3-volume-fixture.py compare-prepared` den Dialog. Der Aufruf akzeptiert ausschließlich die eingebauten synthetischen Fassungen. Die Darstellung läuft im Prüfprozess. Eine Paketabnahme für echte Manuskripte, eine Merge-Freigabe oder ein neuer ETW-Nachweis sind damit nicht verbunden.
+
 ### Bedienbare P3-Übernahme mit separatem Zusatzarchiv
 
 Der zusammenhängende Windows-Prüflauf verbindet native Auswahl, inventarisierte Erfassung, Veröffentlichung, Wiederöffnen durch die Prüfinstallation und schreibgeschützte Szenenanzeige. Er benötigt PowerShell 7 mit administrativen Rechten zum Einhängen seiner temporären VHDX und die im Skript genannten drei lokalen Binärdateien.

@@ -51,6 +51,55 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         VALUES(?1,?2,'document',?3,'t')",
         [&id_text, &asset, &scene],
     )?;
+    if std::env::args().nth(1).as_deref() == Some("--divergent") {
+        // Seed an independent offline workspace from one committed logical baseline.
+        let baseline = manager.prepare_handoff(id)?;
+        let backup = root.join("backups");
+        let seed = backup.join(baseline.folder);
+        fs::create_dir("second-catalog")?;
+        let other_manager = ProjectManager::new("second-catalog")?;
+        let other_root = std::path::Path::new("second-catalog").join(&id_text);
+        for relative in ["backups", "assets/nested", "assets/thumbnails"] {
+            fs::create_dir_all(other_root.join(relative))?;
+        }
+        for relative in [
+            "kraqel.sqlite3",
+            "assets/nested/hafen.png",
+            "assets/thumbnails/hafen.png",
+        ] {
+            fs::copy(seed.join(relative), other_root.join(relative))?;
+        }
+        let other_project = other_manager.open_project(&id_text)?;
+        for (conn, title, text) in [
+            (db, "Szene B", "Die Flut erreicht den Hafen."),
+            (
+                other_project.database().connection(),
+                "Szene A",
+                "Der Hafen liegt im Nebel.",
+            ),
+        ] {
+            let content = serde_json::json!({"type":"doc","content":[{"type":"paragraph",
+                "content":[{"type":"text","text":text}]}]})
+            .to_string();
+            conn.execute(
+                "UPDATE document SET title=?1,plain_text=?2,content_json=?3,revision=revision+1 WHERE id=?4",
+                [title, text, &content, &scene],
+            )?;
+        }
+        let receipt = manager.prepare_handoff(id)?;
+        let followup = other_manager.prepare_handoff(id)?;
+        // Collect only the prepared copy, leaving both workspaces intact.
+        fs::rename(
+            other_root.join("backups").join(&followup.folder),
+            backup.join(&followup.folder),
+        )?;
+        println!(
+            "{}",
+            serde_json::json!({"project":id,"scene":scene,"asset":asset,
+                                          "receipt":receipt,"followup":followup})
+        );
+        return Ok(());
+    }
     let receipt = manager.prepare_handoff(id)?;
     let followup = if std::env::args().nth(1).as_deref() == Some("--followup") {
         db.execute(
