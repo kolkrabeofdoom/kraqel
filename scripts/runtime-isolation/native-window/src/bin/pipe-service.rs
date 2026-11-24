@@ -27,10 +27,8 @@ fn main() {
     std::hint::black_box(&MERGE_ABI);
     let mut arg = std::env::args_os().nth(1);
     use kraqel_native_scene_model::channel::ReviewedWrite;
-    if arg.as_deref()
-        == Some(std::ffi::OsStr::new(
-            kraqel_window_probe::window_receipt::P3_READ,
-        ))
+    if let Some(size) =
+        kraqel_window_probe::window_receipt::p3_size(arg.as_deref().and_then(|a| a.to_str()))
     {
         use kraqel_window_probe::{managed_scene::confirm_bootstrap, window_receipt as protocol};
         use std::io::{Read, Write};
@@ -38,7 +36,7 @@ fn main() {
             (|| -> std::io::Result<()> {
                 let (mut input, mut reply) = confirm_bootstrap(Some(&profile), Role::Data)?;
                 let mut to_window = kraqel_window_probe::managed_scene::p3_pipe(&mut input)?;
-                let mut row = [0; protocol::P3_LEN];
+                let mut row = vec![0; size];
                 input.read_exact(&mut row)?;
                 kraqel_window_probe::require(protocol::valid_p3_row(&row), "P3 row")?;
                 to_window.write_all(&row)?;

@@ -57,18 +57,23 @@ pub(in super::super) fn deliver_p3(
     image: &fs::File,
     window: &fs::File,
     binding: [u8; 32],
-    row: &[u8; crate::window_receipt::P3_LEN],
+    row: &[u8],
     interactive: bool,
     visible: impl FnOnce() -> Result<()>,
 ) -> Result<()> {
     use crate::window_receipt as protocol;
     use windows_sys::Win32::Storage::FileSystem::{FILE_READ_DATA, FILE_WRITE_DATA, SYNCHRONIZE};
+    let argument = if row.len() == protocol::P3_PAIR_LEN {
+        protocol::P3_COMPARE
+    } else {
+        protocol::P3_READ
+    };
     with_role(
         store,
         root,
         window,
         WINDOW,
-        protocol::P3_READ,
+        argument,
         true,
         |store, ui, endpoint, mut to_ui, reply| {
             let mut reply = reply.ok_or(invalid("p3-window-pipe"))?;
@@ -88,7 +93,7 @@ pub(in super::super) fn deliver_p3(
                 root,
                 image,
                 "pipe-service.exe",
-                protocol::P3_READ,
+                argument,
                 true,
                 |store, pi, endpoint, mut writer, reply| {
                     let mut reply = reply.ok_or(invalid("p3-service-pipe"))?;
@@ -137,7 +142,7 @@ fn with_role(
     let image = root.join(name);
     let data = name == "pipe-service.exe";
     let role = if data { "data" } else { "ui" };
-    let begin = if argument == crate::window_receipt::P3_READ {
+    let begin = if crate::window_receipt::p3_size(Some(argument)).is_some() {
         let begin = store
             .state
             .p3_pipe_begin

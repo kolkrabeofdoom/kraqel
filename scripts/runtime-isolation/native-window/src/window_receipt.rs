@@ -119,15 +119,41 @@ pub const P3_READ: &str = "--managed-p3-preview-v2";
 pub const P3_CONTENT: &[u8] = b"Szene A\0Text aus der Testkopie.";
 pub const P3_LEN: usize = 36 + P3_CONTENT.len();
 
-pub fn valid_p3_row(row: &[u8; P3_LEN]) -> bool {
-    row[..16] != [0; 16]
-        && row[16..32] != [0; 16]
-        && row[..16] != row[16..32]
-        && row[32..36] == [0; 4]
-        && matches!(&row[36..], P3_CONTENT | b"Szene B\0Wind an der Suedkueste.")
+pub const P3_COMPARE: &str = "--managed-p3-comparison-v1";
+// Project, scene, ordered manifest hashes, then each revision and title/text pair.
+pub const LEFT: &[u8] = b"Szene B\0Die Flut erreicht den Hafen.";
+pub const RIGHT: &[u8] = b"Szene A\0Der Hafen liegt im Nebel.";
+pub const P3_PAIR_LEN: usize = 96 + 8 + LEFT.len() + RIGHT.len();
+
+pub fn p3_size(argument: Option<&str>) -> Option<usize> {
+    match argument {
+        Some(P3_COMPARE) => Some(P3_PAIR_LEN),
+        Some(P3_READ) => Some(P3_LEN),
+        _ => None,
+    }
 }
 
-pub fn p3_receipt(row: &[u8; P3_LEN]) -> [u8; 32] {
+pub fn valid_p3_row(row: &[u8]) -> bool {
+    if row.len() != P3_LEN && row.len() != P3_PAIR_LEN {
+        return false;
+    }
+    if row[..16] == [0; 16] || row[16..32] == [0; 16] || row[..16] == row[16..32] {
+        return false;
+    }
+    if row.len() == P3_PAIR_LEN {
+        let split = 100 + LEFT.len();
+        return row[32..64] != [0; 32]
+            && row[64..96] != [0; 32]
+            && row[32..64] != row[64..96]
+            && row[96..100] == 1u32.to_le_bytes()
+            && &row[100..split] == LEFT
+            && row[split..split + 4] == 1u32.to_le_bytes()
+            && &row[split + 4..] == RIGHT;
+    }
+    row[32..36] == [0; 4] && matches!(&row[36..], P3_CONTENT | b"Szene B\0Wind an der Suedkueste.")
+}
+
+pub fn p3_receipt(row: &[u8]) -> [u8; 32] {
     Sha256::new()
         .chain_update(b"KRAQEL-P3-ROW-RECEIVED-v1")
         .chain_update(row)

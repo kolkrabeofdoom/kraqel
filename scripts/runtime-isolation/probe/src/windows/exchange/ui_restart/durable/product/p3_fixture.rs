@@ -4,6 +4,8 @@ use super::*;
 #[derive(PartialEq, Eq)]
 pub(super) enum Operation {
     Authorize,
+    AuthorizeComparison,
+    ReadComparison,
     Reopen,
     Cleanup,
     Read,
@@ -16,7 +18,15 @@ pub(super) fn serve(
     actor: [u8; 32],
     operation: Operation,
 ) -> Result<Value> {
-    let create = operation == Operation::Authorize;
+    let comparison = matches!(
+        operation,
+        Operation::AuthorizeComparison | Operation::ReadComparison
+    );
+    let create = matches!(
+        operation,
+        Operation::Authorize | Operation::AuthorizeComparison
+    );
+    let read = matches!(operation, Operation::Read | Operation::ReadComparison);
     let cleanup = operation == Operation::Cleanup;
     let home = preview.parent().ok_or(invalid("p3-fixture-home"))?;
     let fixture = home.parent().ok_or(invalid("p3-fixture-root"))?;
@@ -38,9 +48,10 @@ pub(super) fn serve(
         .is_some_and(|s| s.len() == 32 && s.bytes().all(|b| b.is_ascii_hexdigit()));
     if !valid
         || identity(parent_pins.last().unwrap())? != identity(temp_pins.last().unwrap())?
+        || (home.file_name().and_then(|s| s.to_str()) == Some("comparison-install")) != comparison
         || !matches!(
             home.file_name().and_then(|s| s.to_str()),
-            Some("install-a" | "install-b" | "selection-install")
+            Some("install-a" | "install-b" | "selection-install" | "comparison-install")
         )
     {
         return Err(invalid("p3-fixture-scope"));
@@ -98,7 +109,7 @@ pub(super) fn serve(
         );
     }
     store.append_guard(actor, store.state.head)?;
-    if operation == Operation::Read && store.state.p3_evidence[2].is_none() {
+    if read && store.state.p3_evidence[2].is_none() {
         return Err(invalid("p3-publication-required"));
     }
     if (cleanup && store.state.p3_evidence[2].is_some())
@@ -120,23 +131,41 @@ pub(super) fn serve(
         }
         io("p3-frame", input.read_exact(&mut frame[1..]))?;
         let [mode, slot] = [frame[0], frame[1]];
-        if operation == Operation::Read && slot == 6 && mode == 0 && verified == [true; 3] {
+        if read && slot == 6 && mode == 0 && verified == [true; 3] {
             use crate::window_receipt as protocol;
-            let mut row = [0; protocol::P3_LEN];
+            let mut row = vec![
+                0;
+                if comparison {
+                    protocol::P3_PAIR_LEN
+                } else {
+                    protocol::P3_LEN
+                }
+            ];
             io("p3-row", input.read_exact(&mut row))?;
             let root = store.root.join("bin");
             let image_path = root.join("pipe-service.exe");
             let (_dirs, image, digest) = binary_pin(&image_path)?;
             let (_window_dirs, window, window_digest) = binary_pin(&root.join("native-leaf.exe"))?;
             let binding: [u8; 32] = Sha256::new()
-                .chain_update(b"KRAQEL-P3-PREVIEW-v2")
+                .chain_update(if comparison {
+                    b"KRAQEL-P3-COMPARISON-v1".as_slice()
+                } else {
+                    b"KRAQEL-P3-PREVIEW-v2".as_slice()
+                })
                 .chain_update(&frame[2..])
                 .chain_update(digest)
                 .chain_update(window_digest)
-                .chain_update(row)
+                .chain_update(&row)
                 .finalize()
                 .into();
-            if !protocol::valid_p3_row(&row) || Some(binding) != store.state.p3_evidence[0] {
+            if !protocol::valid_p3_row(&row)
+                || Some(binding) != store.state.p3_evidence[0]
+                || comparison
+                    && (store.state.p3_evidence[1].as_ref().map(|v| v.as_slice())
+                        != Some(&row[32..64])
+                        || store.state.p3_evidence[2].as_ref().map(|v| v.as_slice())
+                            != Some(&row[64..96]))
+            {
                 return Err(invalid("p3-unbound-row"));
             }
             if store.state.sequence + 6 >= MAX_RECORDS {
@@ -182,7 +211,7 @@ pub(super) fn serve(
             io("p3-service-confirmed", output.flush())?;
             break;
         }
-        if operation == Operation::Read && (mode != 0 || slot > 2) {
+        if read && (mode != 0 || slot > 2) {
             return Err(invalid("p3-read-only"));
         }
         if slot == 4 || slot == 5 {

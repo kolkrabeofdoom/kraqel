@@ -1054,7 +1054,7 @@ class NativeAuthority:
 
 
 @contextmanager
-def native_authority(home, create, cleanup=False, read_only=False):
+def native_authority(home, create, cleanup=False, read_only=False, comparison=False):
     binary = home / "p3-starter.exe"
     operation = "authorize-p3-fixture" if create else "reopen-p3-fixture"
     if read_only:
@@ -1063,6 +1063,9 @@ def native_authority(home, create, cleanup=False, read_only=False):
     if cleanup:
         require(not create, "cleanup requires existing installation")
         operation = "confirm-p3-fixture-cleanup"
+    if comparison:
+        require(not cleanup and (create != read_only), "invalid comparison operation")
+        operation = "authorize-p3-comparison" if create else "read-p3-comparison"
     with subprocess.Popen([binary, "broker-store", operation], env={**os.environ, "USERPROFILE": str(home)},
                           stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
         try:
@@ -1357,6 +1360,48 @@ def prepared_scene_view(snapshot, project, scene):
                           "WHERE project_id=? AND id=? AND kind='scene'", (project, scene)).fetchone()
 
 
+def deliver_comparison(project, scene, hashes, views, interactive):
+    # Each role receives only its bootstrap and pipe handles. Both inventory receipts
+    # are ordered inputs to the registered decision; neither source path crosses the pipe.
+    manifests = [bytes.fromhex(digest) for digest in hashes]
+    payload = bytearray(uuid.UUID(project).bytes + uuid.UUID(scene).bytes + b"".join(manifests))
+    for title, text, revision, _ in views:
+        payload.extend(revision.to_bytes(4, "little") + title.encode() + b"\0" + text.encode())
+    root = Path(tempfile.gettempdir()).resolve() / ("kraqel-p3-" + uuid.uuid4().hex)
+    home = root / "comparison-install"
+    root.mkdir()
+    home.mkdir()
+    shutil.copyfile(Path(__file__).parent / "probe/target/debug/kraqel-isolation-probe.exe", home / "p3-starter.exe")
+    nonce = secrets.token_bytes(32)
+    binding = hashlib.sha256(b"KRAQEL-P3-COMPARISON-v1" + nonce + hashlib.sha256(P3_SERVICE.read_bytes()).digest()
+                             + hashlib.sha256(P3_WINDOW.read_bytes()).digest() + payload).digest()
+    records = (binding, *manifests)
+    def verify(authority, register):
+        for domain, record in zip(authority.domains, records):
+            authority.attest(domain, record, register)
+        authority.plan_digest = nonce
+
+    with native_authority(home, True, comparison=True) as authority:
+        verify(authority, True)
+    for image in (P3_SERVICE, P3_WINDOW):
+        shutil.copyfile(image, home / "p3-control/bin" / image.name)
+    if not interactive:
+        with native_authority(home, False, read_only=True, comparison=True) as authority:
+            verify(authority, False)
+            swapped = payload[:32] + payload[64:96] + payload[32:64] + payload[96:]
+            authority.pipe.stdin.write(bytes((0, 6)) + nonce + swapped)
+            authority.pipe.stdin.flush()
+            require(authority.pipe.stdout.read(16) == b"" and authority.pipe.wait(timeout=5) != 0
+                    and b"p3-unbound-row" in authority.pipe.stderr.read(512), "changed comparison accepted")
+    with native_authority(home, False, read_only=True, comparison=True) as authority:
+        verify(authority, False)
+        authority.deliver(payload, interactive)
+    # Keep the control journal on uncertain exit, including failed profile retirement.
+    require(root.parent == Path(tempfile.gettempdir()).resolve() and root.resolve() == root
+            and home.resolve() == home, "unexpected comparison cleanup root")
+    shutil.rmtree(root)
+
+
 def compare_prepared(interactive):
     # Both receipts arrive from the producer independently of the folders.
     # This preview has no destination, publication ticket or write binding.
@@ -1374,13 +1419,7 @@ def compare_prepared(interactive):
                                                  ("Szene A", "Der Hafen liegt im Nebel.", 1)], "unexpected comparison scene")
         changed_files = {name for name in left.keys() | right.keys() if left.get(name) != right.get(name)}
         require(changed_files == {"kraqel.sqlite3"}, "unexpected comparison inventory")
-        if interactive:
-            columns = [f"{label} · Revision {revision}\n{title}\n{text}"
-                       for label, (title, text, revision, _) in zip(("Fassung 1", "Fassung 2"), views)]
-            message = "\n\n".join(columns + [
-                "Die Datenbank unterscheidet sich. Die Mediendateien stimmen überein.",
-                "Beide Fassungen bleiben erhalten."])
-            ctypes.windll.user32.MessageBoxW(None, message, "KRAQEL · Schreibgeschützter Szenenvergleich", 0)
+        deliver_comparison(project, scene, (digest, other["manifestSha256"]), views, interactive)
         require(before == (inventory(folder), inventory(second)), "comparison changed a preparation")
     print("PASS: two separately verified versions compared at equal revision; both preserved")
 
@@ -1916,7 +1955,7 @@ def capture(root, fixture, interactive=False):
 
 
 if __name__ == "__main__":
-    if sys.argv[1:2] in (["check-prepared"], ["prepared"], ["prepared-preview"]) and os.environ.get("KRAQEL_P3_ETW_ROOTS") == "1":
+    if sys.argv[1:2] in (["check-prepared"], ["prepared"], ["prepared-preview"], ["check-prepared-comparison"]) and os.environ.get("KRAQEL_P3_ETW_ROOTS") == "1":
         print(f"P3-ETW-CONTROLLER {os.getpid()}", flush=True)
     if sys.argv[1:] in (["compare-prepared"], ["check-prepared-comparison"]):
         compare_prepared(interactive=sys.argv[1] == "compare-prepared")

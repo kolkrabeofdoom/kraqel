@@ -220,7 +220,16 @@ Die Projektkennung stellt die fachliche Verbindung her. Dieselbe Szenenkennung u
 
 Der synthetische Prüflauf startet zwei Arbeitsverzeichnisse mit derselben bestätigten Basis, bearbeitet beide unabhängig und bereitet beide mit dem Desktop-Speichermodul vor. Die Steuerung prüft jeden Inventarhash separat und liest ausschließlich die gebundene Szene aus den abgetrennten Datenbankabbildern im Arbeitsspeicher. Beide Szenen haben Revision 1. Der lokale Win32-Dialog zeigt beide Titel und Texte. Nach dem Schließen stimmen beide Verzeichnisinventare mit dem Stand vor dem Vergleich überein.
 
-Nach dem obigen Build öffnet `python -I scripts/runtime-isolation/p3-volume-fixture.py compare-prepared` den Dialog. Der Aufruf akzeptiert ausschließlich die eingebauten synthetischen Fassungen. Die Darstellung läuft im Prüfprozess. Eine Paketabnahme für echte Manuskripte, eine Merge-Freigabe oder ein neuer ETW-Nachweis sind damit nicht verbunden.
+Der Vergleich verwendet einen eigenen Kontrollordner und eigene Startoperationen. Der Prüfprozess registriert die geordneten Inventarhashes und eine Bindung an Projekt, Szene, beide Revisionen und Inhalte, einen frischen Zufallswert und beide Rollenprogramme. Nach dem Wiederöffnen prüft der Starter die drei Belege unter der Kontrollsperre. Erst dann startet er die gebundenen Rollen. Der Datendienst liefert genau das geprüfte Paar. Das Fenster vergleicht die Empfangsquittung, die sichtbaren Texte und das Schreibschutzattribut. Das bestätigte Fensterende setzt auch die Bereinigung beider Rollen voraus. Das Schließen erteilt keine Schreibfreigabe. Ein ausgetauschtes Hashpaar bei sonst identischem Inhalt wurde vor dem Rollenstart abgewiesen.
+
+Nach dem obigen Starterbuild die Rollen aktualisieren und den interaktiven Vergleich öffnen:
+
+```powershell
+cargo build --offline --locked --release --manifest-path scripts/runtime-isolation/native-window/Cargo.toml --bin native-leaf --bin pipe-service
+python -I scripts/runtime-isolation/p3-volume-fixture.py compare-prepared
+```
+
+`check-prepared-comparison` nutzt denselben Anzeigeweg mit automatischem Schließen und Hashgegenprobe. Ein gemeinsamer lokaler ETW-Mitschnitt umfasste die Referenz, den bisherigen Einzelvorschaupfad und den neuen Vergleich. Für den Vergleich waren der Python-Prüfprozess, der Erzeugungshelfer, drei Starterläufe, ein Datendienst und eine Fensterrolle sichtbar. Alle drei Auswertungen erkannten vier von vier Positivkontrollen und meldeten keine verlorenen Ereignisse oder Puffer sowie keine zugeordneten Netzwerkereignisse. Die Dateiprüfung läuft weiterhin auf synthetischen Quellen. Die Abnahme für echte Manuskripte und das Speichern einer ausgewählten Zusammenführung sind offen.
 
 ### Bedienbare P3-Übernahme mit separatem Zusatzarchiv
 

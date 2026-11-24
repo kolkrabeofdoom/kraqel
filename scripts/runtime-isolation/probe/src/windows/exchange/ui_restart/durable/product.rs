@@ -1283,6 +1283,8 @@ pub(in super::super::super::super) fn command(args: &[OsString]) -> Result<Value
             Some("authorize-p3-fixture") => Some(Operation::Authorize),
             Some("reopen-p3-fixture") => Some(Operation::Reopen),
             Some("confirm-p3-fixture-cleanup") => Some(Operation::Cleanup),
+            Some("authorize-p3-comparison") => Some(Operation::AuthorizeComparison),
+            Some("read-p3-comparison") => Some(Operation::ReadComparison),
             Some("read-p3-fixture") => Some(Operation::Read),
             Some("retire-p3-preview-profiles") => Some(Operation::Profiles),
             _ => None,

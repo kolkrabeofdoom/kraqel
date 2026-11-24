@@ -742,6 +742,16 @@ fn font_description(font: HFONT) -> Option<LOGFONTW> {
     let size = size_of::<LOGFONTW>() as i32;
     (unsafe { GetObjectW(font, size, (&mut desc as *mut LOGFONTW).cast()) } == size).then_some(desc)
 }
+fn matches_preview_text(hwnd: HWND, expected: &str) -> bool {
+    let expected = expected
+        .replace('\n', "\r\n")
+        .encode_utf16()
+        .collect::<Vec<_>>();
+    let mut actual = vec![0u16; expected.len() + 2];
+    let n = unsafe { GetDlgItemTextW(hwnd, EDIT, actual.as_mut_ptr(), actual.len() as i32) };
+    actual[..n as usize] == expected
+}
+
 fn paragraph_text(hwnd: HWND, id: i32) -> Option<String> {
     // Read one extra UTF-16 unit so an overlong value cannot be saved as a valid prefix.
     let mut buf = [0u16; MAX_PARAGRAPH_UTF16 + 2];
@@ -2839,7 +2849,7 @@ fn show(
         if let Some(view) = surface.as_ref().filter(|view| view.p3_title.is_some()) {
             let edit = GetDlgItem(hwnd, EDIT);
             if GetWindowLongW(edit, GWL_STYLE) & ES_READONLY == 0
-                || paragraph_text(hwnd, EDIT).as_deref() != Some(view.text.as_str())
+                || !matches_preview_text(hwnd, &view.text)
                 || SetWindowTextW(hwnd, wide(view.p3_title.as_ref().unwrap()).as_ptr()) == 0
             {
                 return 24;
@@ -3556,7 +3566,7 @@ fn main() {
     std::hint::black_box(&MERGE_ABI);
     std::hint::black_box(&COMPARE_ABI);
     let mut arg = std::env::args_os().nth(1);
-    if arg.as_deref() == Some(std::ffi::OsStr::new(window_receipt::P3_READ)) {
+    if let Some(size) = window_receipt::p3_size(arg.as_deref().and_then(|a| a.to_str())) {
         use std::io::Read;
         let result = (|| -> std::io::Result<i32> {
             let profile = std::env::args()
@@ -3567,21 +3577,35 @@ fn main() {
             let mut from_service = managed_scene::p3_pipe(&mut input)?;
             let mut expected = [0; 32];
             input.read_exact(&mut expected)?;
-            let mut row = [0; window_receipt::P3_LEN];
+            let mut row = vec![0; size];
             from_service.read_exact(&mut row)?;
             require(
                 window_receipt::valid_p3_row(&row) && window_receipt::p3_receipt(&row) == expected,
                 "P3 binding",
             )?;
-            let (title, text) = std::str::from_utf8(&row[36..])
-                .ok()
-                .and_then(|s| s.split_once('\0'))
-                .ok_or(std::io::Error::other("P3 scene"))?;
-            let revision = u32::from_le_bytes(row[32..36].try_into().unwrap());
+            let scene = |bytes: &[u8]| -> std::io::Result<(String, String)> {
+                let revision = u32::from_le_bytes(bytes[..4].try_into().unwrap());
+                let (title, text) = std::str::from_utf8(&bytes[4..])
+                    .ok()
+                    .and_then(|s| s.split_once('\0'))
+                    .ok_or(std::io::Error::other("P3 scene"))?;
+                Ok((format!("{title} · Revision {revision}"), text.to_owned()))
+            };
+            let (heading, text) = if size == window_receipt::P3_PAIR_LEN {
+                let (left, right) = row[96..].split_at(4 + window_receipt::LEFT.len());
+                let (first, a) = scene(left)?;
+                let (second, b) = scene(right)?;
+                (
+                    "Szenenvergleich".to_owned(),
+                    format!("Fassung 1 · {first}\n{a}\n\nFassung 2 · {second}\n{b}"),
+                )
+            } else {
+                scene(&row[32..])?
+            };
             Ok(show(
                 None,
                 Some(SceneSurface {
-                    p3_title: Some(format!("{title} · Revision {revision} – Schreibgeschützt")),
+                    p3_title: Some(format!("{heading} – Schreibgeschützt")),
                     output: Some(output),
                     text: text.to_owned(),
                     second_bold: None,
