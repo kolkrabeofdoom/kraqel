@@ -40,7 +40,7 @@ pub(super) fn serve(
         || identity(parent_pins.last().unwrap())? != identity(temp_pins.last().unwrap())?
         || !matches!(
             home.file_name().and_then(|s| s.to_str()),
-            Some("install-a" | "install-b")
+            Some("install-a" | "install-b" | "selection-install")
         )
     {
         return Err(invalid("p3-fixture-scope"));

@@ -175,6 +175,19 @@ def capture_writable_fixture(root, selected_root, read_oplock, during_copy=None)
     return snapshot
 
 
+def selection_digest(selected, candidate, metadata):
+    require(len(selected) == 2 and all(type(n) is int and n > 0 for n in selected),
+            "missing selected directory identity")
+    payload = json.dumps([selected, object_id(candidate), metadata], ensure_ascii=True,
+                         sort_keys=True, separators=(",", ":")).encode("ascii")
+    return hashlib.sha256(b"KRAQEL-P3-SELECTED-SOURCE-v1\0" + payload).digest()
+
+
+def verify_selection(fixture, candidate, metadata, selected):
+    with native_authority(fixture / "selection-install", False) as authority:
+        authority.attest(NativeAuthority.domains[0], selection_digest(selected, candidate, metadata[:4]), False)
+
+
 def prepare_captured_project(target, fixture):
     import runpy
     read_oplock = runpy.run_path(str(Path(__file__).with_name("p3_directory_oplock.py")))["read_oplock"]
@@ -202,6 +215,15 @@ def prepare_captured_project(target, fixture):
                         with (staged / name).open("xb") as dst:
                             dst.write(data)
                 require(inventory(staged) == expected, "capture staging changed")
+                # Register while the original selection and the staged candidate are still bound.
+                with pinned_directory(staged):
+                    home = fixture / "selection-install"
+                    home.mkdir()
+                    shutil.copyfile(Path(__file__).parent / "probe/target/debug/kraqel-isolation-probe.exe",
+                                    home / "p3-starter.exe")
+                    with native_authority(home, True) as authority:
+                        authority.attest(NativeAuthority.domains[0],
+                                         selection_digest(selected, staged, [*metadata[:3], expected]), True)
                 staged.rename(target)
             return expected
 
@@ -216,21 +238,36 @@ def prepare_captured_project(target, fixture):
                     "uncertain capture released")
         else:
             raise RuntimeError("concurrent asset omitted")
-        metadata[3] = capture()
+        with pinned_directory(root):
+            selected = object_id(root)
+            require(selected == [selected_root.st_dev, selected_root.st_ino], "selected root replaced")
+            metadata[3] = capture()
+        metadata.append(selected)
         (fixture / "expected.json").write_text(json.dumps(metadata))
 
 
 def writable_fixture():
-    with tempfile.TemporaryDirectory(prefix="kraqel-p3-candidate-") as temp:
-        fixture = Path(temp)
+    fixture = Path(tempfile.gettempdir()) / ("kraqel-p3-" + uuid.uuid4().hex)
+    fixture.mkdir()
+    try:
         target = fixture / "captured"
         prepare_captured_project(target, fixture)
         metadata = json.loads((fixture / "expected.json").read_text())
+        selected = metadata[4]
+        try:
+            verify_selection(fixture, target, metadata, object_id(fixture))
+        except RuntimeError as exc:
+            require(str(exc) == "native evidence refused", "wrong source substitution refusal")
+        else:
+            raise RuntimeError("substituted selection accepted")
+        verify_selection(fixture, target, metadata, selected)
         with fixture_database(target, metadata[3]) as db:
             rows = db.execute("SELECT title, plain_text, revision FROM document WHERE project_id=? AND id=?",
                               metadata[:2]).fetchall()
             require(rows == [P3_SCENE], "lost committed WAL scene")
-    print("PASS: concurrent nested asset refused; fresh staged capture includes the asset and committed WAL scene")
+    finally:
+        shutil.rmtree(fixture)
+    print("PASS: substituted source refused after native restart; fresh staged capture includes the asset and committed WAL scene")
 
 
 def writer(root, readonly):
@@ -447,7 +484,7 @@ def fixture_database(project, expected, verify=None):
 
 
 def copy_project(root, bundle, metadata, approved, key, interrupt):
-    identity, document, asset, expected = metadata
+    identity, document, asset, expected = metadata[:4]
     stage = bundle / "project"
     entries = expected
     with checked_staging(root, bundle, expected, approved, key) as (files, _):
@@ -670,7 +707,7 @@ def remove_confirmed(root, destination, metadata, approved, home, after_remove=N
 
 
 def read_published_scene(root, target, metadata, approved, home, interactive=False):
-    project_id, scene_id, _, expected = metadata
+    project_id, scene_id, _, expected = metadata[:4]
     with volume_guard(str(root.parent), True), pinned_directory(root), pinned_directory(target):
         with native_authority(home, False, read_only=True) as authority, target_lock(target, project_id):
             require(hmac.compare_digest(approved, decision(authority, root, target, metadata)),
@@ -1006,6 +1043,7 @@ def run_to_exit(operation, args, code):
 def capture(root, fixture, interactive=False):
     metadata = json.loads((fixture / "expected.json").read_text())
     require(metadata[3] == inventory(root), "unexpected source")
+    verify_selection(fixture, root, metadata, metadata[4])
     native_restart(root, fixture, metadata, interactive)
     check_cleanup_decision(root, fixture, metadata)
     # The fixture controller supplies one explicit decision. Its key lasts
@@ -1130,4 +1168,5 @@ if __name__ == "__main__":
         if mode != "prepare":
             require(inventory(root) == json.loads((fixture / "expected.json").read_text())[3],
                     "source changed during capture")
+            shutil.rmtree(fixture / "selection-install")
             print("PASS: committed WAL scene read from published copy; native controller restart resumed partial transfer and confirmed publication; foreign installation refused; cleanup recovered; bound scene shown read-only; substituted scene and window image refused")

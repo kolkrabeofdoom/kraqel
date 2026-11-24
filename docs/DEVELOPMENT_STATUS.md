@@ -2,6 +2,8 @@
 
 ### P3 · synthetische Bestandskopie
 
+Der native Prüfstarter bindet den synthetischen Quellordner an den erfassten Kandidaten und dessen Inventar. Ein Wiederanlauf mit anderer Quellidentität wurde abgewiesen, der ursprüngliche Kandidat bestätigt.
+
 Am beschreibbaren synthetischen NTFS-Ordner führte ein neues Asset im Unterverzeichnis zum Abbruch ohne Zielkopie. Die anschließende Erfassung übernahm das Asset und die im WAL bestätigte Szene. Der vollständige VHDX-Lauf mit diesem Bestand bestätigte Veröffentlichung, Wiederanlauf, Bereinigung und schreibgeschützte Anzeige der Szene im verwalteten Win32-Fenster. [Erfassung und Geltungsbereich](data-format/product-start-integration-v1-draft.md#erfassung-eines-beschreibbaren-synthetischen-projektordners)
 
 Für die Kopie eines Projekts von einem vollständig schreibgeschützten synthetischen Quelldatenträger sind stabiler Dateibestand, Assetverknüpfungen und Identitätserhalt im Staging geprüft. Der zweite Prozess erhielt beim Anlegen neuer Assets im Stamm und im Unterverzeichnis jeweils `ERROR_WRITE_PROTECT`. Die Freigabe gewöhnlicher Bestandsordner und die Veröffentlichung einer produktiven Arbeitskopie sind offen. [Prüfaufbau und Geltungsbereich](data-format/product-start-integration-v1-draft.md#stabiler-dateibestand-auf-einem-synthetischen-quelldatenträger)
