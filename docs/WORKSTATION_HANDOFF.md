@@ -1,5 +1,9 @@
 # Rechnerwechsel und Arbeitsübergabe
 
+## Desktop-Vorbereitung und isolierte Vorschau
+
+Der lokale Empfang ist vom Desktop-Speichermodul bis zum schreibgeschützten Win32-Fenster mit synthetischen Arbeitsdaten geprüft. Die Anleitung enthält den Build und den automatischen VHDX-Lauf. Für die Übernahme eines echten Projekts auf einen anderen Rechner ist der Empfangspfad noch offen. [Prüflauf und Grenzen](data-format/product-start-integration-v1-draft.md#vorbereitete-desktop-arbeitskopie-im-isolierten-vorschaufenster)
+
 ## Zusatzarchiv auf einem anderen Windows-PC öffnen
 
 Für die synthetische P3-Übernahme lassen sich ausgewählte Zusatzdateien lokal mit einer Passphrase verschlüsseln. Auf dem Entwicklungsrechner im Repository ausführen (der native P3-Prüfstarter muss wie in der P3-Anleitung gebaut sein):

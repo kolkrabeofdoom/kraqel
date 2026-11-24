@@ -2,6 +2,7 @@
 # Creates its own source volume. Takes no source, destination or physical disk parameter.
 [CmdletBinding(DefaultParameterSetName="Regression")]
 param(
+    [Parameter(ParameterSetName="Prepared", Mandatory)][switch]$PreparedPreview,
     [Parameter(ParameterSetName="Regression")][switch]$InteractivePreview,
     [Parameter(ParameterSetName="Selection", Mandatory)][switch]$SelectedPreview,
     [Parameter(ParameterSetName="Selection")][switch]$RecoveryChecks
@@ -11,6 +12,9 @@ Set-StrictMode -Version Latest
 $python = (Get-Command python.exe -CommandType Application | Select-Object -First 1).Source
 if (!(Test-Path -LiteralPath (Join-Path $PSScriptRoot 'probe/target/debug/kraqel-isolation-probe.exe') -PathType Leaf)) {
     throw 'Build the local probe first: cargo build --offline --locked --manifest-path scripts/runtime-isolation/probe/Cargo.toml --bin kraqel-isolation-probe'
+}
+if ($PreparedPreview -and !(Test-Path -LiteralPath (Join-Path $PSScriptRoot 'probe/target/debug/examples/p3_handoff_source.exe') -PathType Leaf)) {
+    throw 'Build the synthetic desktop sender: cargo build --offline --locked --manifest-path scripts/runtime-isolation/probe/Cargo.toml --example p3_handoff_source'
 }
 foreach ($role in @('pipe-service', 'native-leaf')) {
     if (!(Test-Path -LiteralPath (Join-Path $PSScriptRoot "native-window/target/release/$role.exe") -PathType Leaf)) {
@@ -48,7 +52,9 @@ try {
     $volumePath = $volume.Path
     if ($volumePath -notmatch '^\\\\\?\\Volume\{[0-9a-f-]{36}\}\\$') { throw 'Missing local volume binding' }
     $partitionId = $partition.Guid
-    if ($SelectedPreview) {
+    if ($PreparedPreview) {
+        Invoke-Fixture 'prepared' $volumePath
+    } elseif ($SelectedPreview) {
         Invoke-Fixture 'select' $volumePath
         if ($LASTEXITCODE -eq 10) {
             Write-Output 'Auswahl abgebrochen. Keine Projektkopie angelegt.'
@@ -70,13 +76,13 @@ try {
     if (!$disk.IsReadOnly -or $reopened.Count -ne 1 -or $reopened[0].Path -ne $volumePath) {
         throw 'Read-only source volume not confirmed'
     }
-    $mode = if ($RecoveryChecks) { 'selected-recovery' } elseif ($SelectedPreview) { 'selected-preview' } elseif ($InteractivePreview) { 'preview' } else { 'capture' }
+    $mode = if ($PreparedPreview) { 'prepared-preview' } elseif ($RecoveryChecks) { 'selected-recovery' } elseif ($SelectedPreview) { 'selected-preview' } elseif ($InteractivePreview) { 'preview' } else { 'capture' }
     Invoke-Fixture $mode $volumePath
     $completed = $true
 } finally {
     try { if ($attached) { Dismount-VHD -Path $image } } finally { if ($null -ne $imagePin) { $imagePin.Dispose() } }
     # The only removable items are this run's own image and fixed fixture outputs.
-    foreach ($name in @('source.vhdx', 'expected.json')) {
+    foreach ($name in @('source.vhdx', 'expected.json', 'followup.json')) {
         $file = Join-Path $fixture $name
         if ([IO.File]::Exists($file)) { [IO.File]::Delete($file) }
     }

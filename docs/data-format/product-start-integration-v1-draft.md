@@ -196,6 +196,24 @@ Zwischen Dialogbestätigung und Erfassung vergleicht die Prüfsteuerung jeden ge
 
 Für reguläre Projekte bleibt die freie Ordnerauswahl in der installierten Anwendung offen. Das synthetische Verfahren setzt die vertrauenswürdige Prüfsteuerung und die zugehörige Kontrollablage voraus.
 
+### Vorbereitete Desktop-Arbeitskopie im isolierten Vorschaufenster
+
+Der Windows-Prüflauf erzeugt mit `ProjectManager::prepare_handoff` zwei Vorbereitungen desselben synthetischen Projekts. Die Prüfsteuerung erhält die Projektkennung und den erwarteten Inventarhash direkt vom erzeugenden Prozess. Ein Hash, den die empfangende Seite allein aus dem übergebenen Ordner berechnet, genügt als Freigabe nicht.
+
+Die Steuerung erfasst die Dateien unter Verzeichnissperren und gleicht Bestand, Prüfsummen und Medienreferenzen mit dem bestätigten Inventar und der speicherintern geöffneten Schema-6-Datenbank ab. Geänderte Mediendaten, zusätzliche Dateien, ein ausgetauschtes Inventar und ein im Inventar aufgeführtes, aber von SQLite unreferenziertes Asset wurden abgewiesen. Der Auswahlbeleg bindet das Format `desktop-prepared-v1` an den Inventarhash.
+
+Nach der Veröffentlichung und dem schreibgeschützten Wiedereinhängen der synthetischen VHDX verweigerte der neu gestartete Prüfpfad die zweite Vorbereitung unter derselben Freigabe. Die ursprüngliche Veröffentlichung behielt Kennung und Inventar. Die Win32-Vorschau zeigte die bestätigte Szene über den Datendienst an.
+
+Gezielter Lauf unter Windows mit Python ab 3.13 und PowerShell 7 aus dem Repository. Das Einhängen der Test-VHDX benötigt erhöhte Rechte. Die nativen Fenster- und Datendienstprogramme müssen wie für die Auswahlvorschau gebaut sein.
+
+```powershell
+cargo build --offline --locked --manifest-path scripts/runtime-isolation/probe/Cargo.toml --bin kraqel-isolation-probe --example p3_handoff_source
+python -I scripts/runtime-isolation/p3-volume-fixture.py check-prepared
+./scripts/runtime-isolation/check-p3-readonly-volume.ps1 -PreparedPreview
+```
+
+Der lokale ETW-Vergleich erfasste in der Referenz einen Python-Prozess und den Erzeugungshelfer. Im Vorschaupfad erfasste er vier Python-Prozesse, den Erzeugungshelfer, sechs Starterläufe, die Fensterrolle und den Datendienst. Beide Auswertungen erkannten alle vier Positivkontrollen, meldeten null verlorene Ereignisse und Puffer und fanden keine diesen Prozessbäumen zugeordneten Netzwerkereignisse. Der Befund gilt für diesen synthetischen Lauf. Der Empfang echter Arbeitskopien auf einem zweiten Rechner benötigt weiterhin einen Produktpfad mit unabhängig bestätigter Freigabe.
+
 ### Bedienbare P3-Übernahme mit separatem Zusatzarchiv
 
 Der zusammenhängende Windows-Prüflauf verbindet native Auswahl, inventarisierte Erfassung, Veröffentlichung, Wiederöffnen durch die Prüfinstallation und schreibgeschützte Szenenanzeige. Er benötigt PowerShell 7 mit administrativen Rechten zum Einhängen seiner temporären VHDX und die im Skript genannten drei lokalen Binärdateien.

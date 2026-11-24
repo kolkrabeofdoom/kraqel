@@ -74,16 +74,18 @@ def root_image_bindings(records):
         pid, image = record["pid"], record["image"]
         if type(pid) is not int or pid <= 0 or pid in bindings:
             raise ValueError("Root PIDs must be positive, unique integers")
-        if not isinstance(image, str) or not re.fullmatch(r"(?:kraqel-isolation-probe|p3-starter|kraqel-archiv|[0-9a-f]{64})\.exe", image):
+        if not isinstance(image, str) or not re.fullmatch(r"(?:kraqel-isolation-probe|p3-starter|p3_handoff_source|kraqel-archiv|[0-9a-f]{64})\.exe", image):
             raise ValueError("Expected a native broker basename or lowercase SHA-256 basename")
         bindings[pid] = image
     return bindings
 
 
 def analyze(path, root_pids, ready, mode="desktop", root_images=None):
-    if mode not in ("desktop", "exchange", "isolation-ui", "broker-ui", "native-control"):
+    if mode not in ("desktop", "exchange", "isolation-ui", "broker-ui", "native-control", "p3-handoff"):
         raise ValueError("Unknown bounded measurement mode")
     root_image = "kraqel-desktop.exe" if mode == "desktop" else "kraqel-isolation-probe.exe"
+    if mode == "p3-handoff":
+        root_image = "python.exe"
     if root_images is not None:
         if mode != "native-control":
             raise ValueError("Explicit image bindings require native-control mode")
@@ -174,6 +176,11 @@ def analyze(path, root_pids, ready, mode="desktop", root_images=None):
                 for broker in own_processes)
         if any(not has_broker_gui(root_pid) for root_pid in root_pids):
             problems.append("missing-broker-ui-descendant-tree")
+    if mode == "p3-handoff" and any(not any(
+        p.parent == pid and p.root_pid == pid and p.image in ("p3_handoff_source.exe", "p3-starter.exe")
+        for p in own_processes
+    ) for pid in root_pids):
+        problems.append("missing-prepared-handoff-child")
     # native-control covers explicit short host calls that legitimately have no child/GUI.
     # It retains every root, calibration, loss, attribution and lifetime guard below/above;
     # callers must independently match the complete expected native call set and any GUI starts.
@@ -216,7 +223,7 @@ def main():
     parser.add_argument("ready_json", type=Path)
     parser.add_argument("--root-pid", type=int, action="append", required=True)
     parser.add_argument("--root-map", type=Path, help="Private JSON list of exact pid/image bindings; native-control only")
-    parser.add_argument("--mode", choices=("desktop", "exchange", "isolation-ui", "broker-ui", "native-control"), default="desktop")
+    parser.add_argument("--mode", choices=("desktop", "exchange", "isolation-ui", "broker-ui", "native-control", "p3-handoff"), default="desktop")
     args = parser.parse_args()
     ready = json.loads(args.ready_json.read_text(encoding="utf-8-sig"))
     bindings = json.loads(args.root_map.read_text(encoding="utf-8-sig")) if args.root_map else None

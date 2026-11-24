@@ -4,6 +4,10 @@ from ctypes import wintypes
 from contextlib import contextmanager
 
 
+class CaptureChanged(RuntimeError):
+    """The pending read lease broke before this acquisition completed."""
+
+
 class Overlapped(ctypes.Structure):
     _fields_ = [("internal", ctypes.c_size_t), ("internal_high", ctypes.c_size_t),
                 ("offset", wintypes.DWORD), ("offset_high", wintypes.DWORD), ("event", wintypes.HANDLE)]
@@ -45,7 +49,7 @@ def read_oplock(raw):
 
         def verify():
             if kernel.WaitForSingleObject(event, 0) != 258:  # WAIT_TIMEOUT
-                raise RuntimeError("project changed during capture")
+                raise CaptureChanged("project changed during capture")
 
         verify()
         yield verify

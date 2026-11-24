@@ -141,7 +141,7 @@ def inventory(root):
     return entries
 
 
-def capture_writable_fixture(root, selected_root, read_oplock, during_copy=None, selected_entries=None, include=None):
+def capture_writable_fixture(root, selected_root, read_oplock, during_copy=None, selected_entries=None, include=None, exact=False):
     """Capture one bounded logical instant. Return bytes only after every outstanding lease passes."""
     checks, files, snapshot = [], [], {}
     observed = set()
@@ -150,7 +150,8 @@ def capture_writable_fixture(root, selected_root, read_oplock, during_copy=None,
         def visit(path, depth):
             require(depth <= 32 and len(checks) < 256, "fixture tree budget exceeded")
             before = path.lstat()
-            require(not before.st_file_attributes & 0x400, "reparse point")
+            require(not before.st_file_attributes & (0x400 | 0x1000 | 0x40000 | 0x400000),
+                    "reparse or remotely backed entry")
             directory = bool(before.st_file_attributes & 0x10)
             # Deny rename/deletion on each opened object; acquire a directory lease before listing.
             raw = open_file(str(path), 0x80, 3 if directory else 1, None, 3, 0x42200000, None)
@@ -171,7 +172,7 @@ def capture_writable_fixture(root, selected_root, read_oplock, during_copy=None,
                     raise ctypes.WinError(ctypes.get_last_error())
                 require(filesystem.value.upper() == "NTFS", "fixture requires NTFS")
             info = os.fstat(fd)
-            require(os.path.samestat(before, info) and not info.st_file_attributes & 0x400,
+            require(os.path.samestat(before, info) and not info.st_file_attributes & (0x400 | 0x1000 | 0x40000 | 0x400000),
                     "changed capture identity")
             if depth == 0:
                 require(os.path.samestat(selected_root, info), "selected project directory changed")
@@ -183,6 +184,8 @@ def capture_writable_fixture(root, selected_root, read_oplock, during_copy=None,
             name = path.relative_to(root).as_posix()
             observed.add(path)
             included = include is None or name in include
+            if exact and depth:
+                require(included, "unexpected prepared entry")
             if directory:
                 if depth and included:
                     snapshot[name] = None
@@ -326,8 +329,9 @@ def verify_selection(fixture, candidate, metadata, selected):
 def require_logical_copy(metadata):
     # A historical byte-copy receipt cannot authorize a new logical preview.
     record = metadata[6].get("workingCopy", {}) if len(metadata) == 7 else {}
-    require(record.get("format") == "schema6-logical-v1"
-            and re.fullmatch("[0-9a-f]{64}", record.get("sourceInventorySha256", ""))
+    digest_field = {"schema6-logical-v1": "sourceInventorySha256",
+                    "desktop-prepared-v1": "manifestSha256"}.get(record.get("format"))
+    require(digest_field and re.fullmatch("[0-9a-f]{64}", record.get(digest_field, ""))
             and not {"kraqel.sqlite3-wal", "kraqel.sqlite3-shm"} & metadata[3].keys(),
             "new preview requires logical copy evidence")
 
@@ -626,13 +630,7 @@ def prepare_captured_project(target, fixture, interactive_selection=False):
                         variant[1]["sha256"] = hashlib.file_digest(stream, "sha256").hexdigest()
                 # Register while the original selection and the staged candidate are still bound.
                 with pinned_directory(staged):
-                    home = fixture / "selection-install"
-                    home.mkdir()
-                    shutil.copyfile(Path(__file__).parent / "probe/target/debug/kraqel-isolation-probe.exe",
-                                    home / "p3-starter.exe")
-                    with native_authority(home, True) as authority:
-                        authority.attest(NativeAuthority.domains[0],
-                                         selection_digest(selected, staged, [*metadata[:3], expected, *variant]), True)
+                    register_selection(fixture, staged, [*metadata[:3], expected, selected, *variant])
                 if interactive_selection:
                     require(target.name == "project" and target.parent.name == "selected",
                             "unexpected selection target")
@@ -1240,7 +1238,188 @@ def retire_preview_profiles(home):
     return summary["deletedProfiles"]
 
 
-def preview_selected_project(root, fixture):
+def receive_prepared(folder, trusted_hash, project_id):
+    """Capture only externally authorized bytes; return a detached in-memory working set."""
+    import runpy
+    lease = runpy.run_path(str(Path(__file__).with_name("p3_directory_oplock.py")))
+    manifest_name = "uebernahme.json"
+    with pinned_directory(folder):
+        identity = folder.lstat()
+
+        def acquire(names, exact=False):
+            # A broken lease invalidates the whole snapshot. Retry only under the original
+            # directory identity and external receipt, before any bytes are staged or authorized.
+            for attempt in range(3):
+                try:
+                    return capture_writable_fixture(folder, identity, lease["read_oplock"],
+                                                    include=names, exact=exact)
+                except lease["CaptureChanged"]:
+                    if attempt == 2:
+                        raise
+                    time.sleep(0.1)
+
+        raw = acquire({manifest_name}).get(manifest_name)
+        require(isinstance(raw, bytes) and len(raw) <= 128 * 1024 and
+                hashlib.sha256(raw).hexdigest() == trusted_hash, "unconfirmed prepared manifest")
+
+        def distinct(pairs):
+            result = dict(pairs)
+            require(len(result) == len(pairs), "ambiguous prepared manifest")
+            return result
+
+        manifest = json.loads(raw, object_pairs_hook=distinct)
+        require(isinstance(manifest, dict) and set(manifest) == {"format", "projectId", "files"}
+                and manifest["format"] == "kraqel-logical-preparation-v1"
+                and manifest["projectId"] == project_id, "wrong preparation")
+        files = manifest["files"]
+        require(isinstance(files, dict) and 1 <= len(files) <= 250 and "kraqel.sqlite3" in files,
+                "invalid prepared inventory")
+        allowed = {manifest_name, *files}
+        for name, digest in files.items():
+            parts = name.split("/")
+            require(isinstance(digest, str) and re.fullmatch("[0-9a-f]{64}", digest)
+                    and (name == "kraqel.sqlite3" or parts[0] == "assets" and len(parts) >= 2)
+                    and all(part and not part.startswith(".") and not part.endswith((" ", "."))
+                            and not os.path.isreserved(part) and "\\" not in part for part in parts),
+                    "unsafe prepared inventory")
+            allowed.update("/".join(parts[:i]) for i in range(1, len(parts)))
+        require(len({s.casefold() for s in allowed}) == len(allowed), "ambiguous prepared names")
+        snapshot = acquire(allowed, exact=True)
+        require(set(snapshot) == allowed and snapshot.pop(manifest_name) == raw,
+                "incomplete prepared inventory")
+    actual = {n: hashlib.sha256(data).hexdigest() for n, data in snapshot.items() if data is not None}
+    require(actual == files, "changed prepared file")
+    image = snapshot["kraqel.sqlite3"]
+    require(image[:16] == b"SQLite format 3\0" and image[18:20] == b"\1\1", "unsupported prepared database")
+    with closing(sqlite3.connect(":memory:")) as db:
+        db.deserialize(image)
+        db.execute("PRAGMA trusted_schema=OFF")
+        db.execute("PRAGMA temp_store=MEMORY")
+        db.execute("PRAGMA query_only=ON")
+        check_working_schema(db)
+        page_size = db.execute("PRAGMA page_size").fetchone()[0]
+        pages = db.execute("PRAGMA page_count").fetchone()[0]
+        require(len(image) == page_size * pages, "invalid prepared database length")
+        require(db.execute("PRAGMA integrity_check").fetchall() == [("ok",)]
+                and db.execute("PRAGMA foreign_key_check").fetchone() is None
+                and db.execute("SELECT id FROM project LIMIT 2").fetchall() == [(project_id,)],
+                "invalid prepared database")
+        refs = {"kraqel.sqlite3"}
+        for owner, original, thumb, checksum, size in db.execute(
+                "SELECT project_id,relative_path,thumbnail_path,checksum,byte_count FROM media_asset"):
+            require(owner == project_id and original.startswith("assets/") and not original.startswith("assets/thumbnails/")
+                    and thumb.startswith("assets/thumbnails/") and original in actual and thumb in actual
+                    and actual[original] == checksum and len(snapshot[original]) == size,
+                    "invalid prepared media binding")
+            refs.update((original, thumb))
+        require(refs == set(files), "unreferenced prepared file")
+    return snapshot
+
+
+@contextmanager
+def desktop_fixture_source(followup=False):
+    producer = Path(__file__).parent / "probe/target/debug/examples/p3_handoff_source.exe"
+    with tempfile.TemporaryDirectory(prefix="kraqel-p3-handoff-") as source:
+        with subprocess.Popen([producer, *(['--followup'] if followup else [])], cwd=source, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
+            report_native_root(proc, producer)
+            try:
+                output, _ = proc.communicate(timeout=60)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.communicate()
+                raise
+            require(proc.returncode == 0, "desktop preparation failed")
+        reply = json.loads(output)
+        project, receipt = reply["project"], reply["receipt"]
+        require(str(uuid.UUID(project)) == project, "invalid fixture project")
+        with ExitStack() as pins:
+            parent = Path(source)
+            for child in ("", "catalog", project, "backups"):
+                parent = parent / child
+                pins.enter_context(pinned_directory(parent))
+                require(parent.is_dir() and not parent.lstat().st_file_attributes & (0x400 | 0x1000 | 0x40000 | 0x400000),
+                        "unsafe fixture ancestor")
+            for evidence in (receipt, reply["followup"]) if followup else (receipt,):
+                require(re.fullmatch(r"uebernahme-[0-9a-f-]{36}", evidence["folder"]), "invalid fixture folder")
+                pins.enter_context(pinned_directory(parent / evidence["folder"]))
+            yield parent / receipt["folder"], receipt["manifestSha256"], reply
+
+
+def check_prepared_refusals():
+    with desktop_fixture_source() as (folder, trusted_hash, reply):
+        def refused(expected, digest):
+            try:
+                receive_prepared(folder, digest, reply["project"])
+            except RuntimeError as error:
+                require(str(error) == expected, "wrong preparation refusal")
+            else:
+                raise RuntimeError("unexpected prepared admission")
+
+        manifest = folder / "uebernahme.json"
+        raw = manifest.read_bytes()
+        media = folder / "assets/nested/hafen.png"
+        original = media.read_bytes()
+        media.write_bytes(b"changed content")
+        refused("changed prepared file", trusted_hash)
+        media.write_bytes(original)
+        extra = folder / "assets/unreferenced.png"
+        extra.write_bytes(b"synthetic optional item")
+        refused("unexpected prepared entry", trusted_hash)
+        edited = json.loads(raw)
+        edited["files"]["assets/unreferenced.png"] = hashlib.sha256(extra.read_bytes()).hexdigest()
+        altered = json.dumps(edited).encode()
+        manifest.write_bytes(altered)
+        refused("unconfirmed prepared manifest", trusted_hash)
+        refused("unreferenced prepared file", hashlib.sha256(altered).hexdigest())
+    print("PASS: changed media, extra file, substituted manifest and unreferenced file refused")
+
+
+def stage_desktop_receipt(folder, manifest_hash, reply, target, scene, selection_home=None):
+    selected = object_id(folder)
+    snapshot = receive_prepared(folder, manifest_hash, reply["project"])
+    expected = {name: None if data is None else hashlib.sha256(data).hexdigest() for name, data in snapshot.items()}
+    metadata = [reply["project"], reply["scene"], reply["asset"], expected, selected, scene,
+                {"groups": 0, "workingCopy": {"format": "desktop-prepared-v1", "manifestSha256": manifest_hash}}]
+    with tempfile.TemporaryDirectory(dir=target.parent.parent) as work:
+        package = Path(work) / "package"
+        staged = package / "project"
+        staged.mkdir(parents=True)
+        for name, data in snapshot.items():
+            dest = staged / name
+            if data is None:
+                dest.mkdir()
+            else:
+                with dest.open("xb") as output:
+                    output.write(data)
+        require(inventory(staged) == expected, "prepared staging changed")
+        if selection_home is not None:
+            with pinned_directory(staged):
+                register_selection(selection_home, staged, metadata)
+        package.rename(target.parent)
+    return metadata
+
+
+def prepare_desktop_fixture(target, fixture):
+    with desktop_fixture_source(followup=True) as (folder, manifest_hash, reply):
+        metadata = stage_desktop_receipt(folder, manifest_hash, reply, target, "south", fixture)
+        other = reply["followup"]
+        require(other["manifestSha256"] != manifest_hash, "missing second preparation")
+        followup = stage_desktop_receipt(folder.parent / other["folder"], other["manifestSha256"], reply,
+                                         target.parent.parent / "followup/project", "north")
+        (fixture / "expected.json").write_text(json.dumps(metadata))
+        (fixture / "followup.json").write_text(json.dumps(followup))
+
+
+def register_selection(fixture, staged, metadata):
+    home = fixture / "selection-install"
+    home.mkdir()
+    shutil.copyfile(Path(__file__).parent / "probe/target/debug/kraqel-isolation-probe.exe", home / "p3-starter.exe")
+    with native_authority(home, True) as authority:
+        authority.attest(NativeAuthority.domains[0],
+                         selection_digest(metadata[4], staged, metadata[:4] + metadata[5:]), True)
+
+
+def preview_selected_project(root, fixture, interactive=True):
     """One selection, publication and read-only window, without fault injection."""
     metadata = json.loads((fixture / "expected.json").read_text())
     require(metadata[3] == inventory(root), "unexpected source")
@@ -1257,7 +1436,27 @@ def preview_selected_project(root, fixture):
             for image in (P3_SERVICE, P3_WINDOW):
                 shutil.copyfile(image, home / "p3-control/bin" / image.name)
             publish(root, target, metadata, ticket, authority)
-        read_published_scene(root, target, metadata, ticket, home, interactive=True)
+        if metadata[6]["workingCopy"]["format"] == "desktop-prepared-v1":
+            # A second genuine preparation shares the UUID. A ticket grants exactly one state.
+            final = target / metadata[0]
+            before = object_id(final)
+            next_root = root.parent.parent / "followup/project"
+            followup = json.loads((fixture / "followup.json").read_text())
+            require(followup[0] == metadata[0] and inventory(next_root) == followup[3]
+                    and followup[3] != metadata[3], "missing conflicting generation")
+            try:
+                with native_authority(home, False) as reopened:
+                    publish(next_root, target, followup, ticket, reopened)
+            except RuntimeError as exc:
+                require(str(exc) == "native evidence refused", "unexpected preparation conflict")
+            else:
+                raise RuntimeError("different preparation accepted")
+            with native_authority(home, False) as reopened:
+                same = publish(root, target, metadata, ticket, reopened)
+                require(object_id(same) == before and list(target.iterdir()) == [final]
+                        and inventory(final / "project") == metadata[3], "prepared replay changed destination")
+            print("PASS: changed preparation refused; original publication reopened exactly once")
+        read_published_scene(root, target, metadata, ticket, home, interactive=interactive)
     shutil.rmtree(home)
 
 
@@ -1677,6 +1876,11 @@ def capture(root, fixture, interactive=False):
 
 
 if __name__ == "__main__":
+    if sys.argv[1:2] in (["check-prepared"], ["prepared"], ["prepared-preview"]) and os.environ.get("KRAQEL_P3_ETW_ROOTS") == "1":
+        print(f"P3-ETW-CONTROLLER {os.getpid()}", flush=True)
+    if sys.argv[1:] == ["check-prepared"]:
+        check_prepared_refusals()
+        sys.exit(0)
     if len(sys.argv) == 3 and sys.argv[1] == "export-supplement":
         destination = Path(sys.argv[2]).absolute()
         require(destination.name.lower().endswith(".zip.age") and not os.path.lexists(destination),
@@ -1690,7 +1894,7 @@ if __name__ == "__main__":
     require(re.fullmatch(r"\\\\\?\\Volume\{[0-9a-fA-F-]{36}\}\\?", volume), "invalid fixture volume")
     volume = volume.rstrip("\\") + "\\"
     root = Path(volume) / "project"
-    if mode in ("select", "selected-preview", "selected-recovery", "selected-writer"):
+    if mode in ("select", "prepared", "prepared-preview", "selected-preview", "selected-recovery", "selected-writer"):
         root = Path(volume) / "selected/project"
     if mode in ("writer", "selected-writer"):
         require(arg in ("ro", "rw"), "invalid writer mode")
@@ -1700,22 +1904,24 @@ if __name__ == "__main__":
         fixture = Path(arg)
         require(fixture.parent.resolve() == Path(tempfile.gettempdir()).resolve()
                 and re.fullmatch(r"kraqel-p3-[0-9a-f]{32}", fixture.name), "invalid fixture home")
-        require(mode in ("prepare", "select", "selected-preview", "selected-recovery", "capture", "preview"), "invalid fixture mode")
-        preparing = mode in ("prepare", "select")
+        require(mode in ("prepare", "select", "prepared", "prepared-preview", "selected-preview", "selected-recovery", "capture", "preview"), "invalid fixture mode")
+        preparing = mode in ("prepare", "select", "prepared")
         with volume_guard(volume, not preparing):
             if preparing:
-                if not prepare_captured_project(root, fixture, interactive_selection=mode == "select"):
+                if mode == "prepared":
+                    prepare_desktop_fixture(root, fixture)
+                elif not prepare_captured_project(root, fixture, interactive_selection=mode == "select"):
                     sys.exit(10)
                 challenge(root, False)
-            elif mode == "selected-preview":
-                preview_selected_project(root, fixture)
+            elif mode in ("selected-preview", "prepared-preview"):
+                preview_selected_project(root, fixture, interactive=mode == "selected-preview")
             else:
                 capture(root, fixture, interactive=mode == "preview")
         if not preparing:
             require(inventory(root) == json.loads((fixture / "expected.json").read_text())[3],
                     "source changed during capture")
             shutil.rmtree(fixture / "selection-install")
-            if mode == "selected-preview":
+            if mode in ("selected-preview", "prepared-preview"):
                 print("PASS: selected WAL scene displayed from published copy")
                 sys.exit(0)
             print("PASS: committed WAL scene read from published copy; native controller restart resumed partial transfer and confirmed publication; foreign installation refused; cleanup recovered; bound scene shown read-only; substituted scene and window image refused")
