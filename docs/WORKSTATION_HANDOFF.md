@@ -2,6 +2,12 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](data-format/screenplay-v2.md)
 
+## Wiedereinstieg am Freitag, 27. November 2026
+
+Der Windows-Kandidat vom 25. November stammt aus `5eaadf32b236` auf `feat/kq-069-live-file-selection`. Kapitel und Gesamtmanuskripte lassen sich einschließlich gemischter Prosa- und Drehbuchszenen als PDF ausgeben. Die zweitseitige Probe wurde visuell geprüft und maschinell rückgelesen. Auswahlgrenzen und Dateierhalt bei Fehlern sind in der [Abnahmematrix](testing/F08_M3_ACCEPTANCE_MATRIX.md) dokumentiert.
+
+Als Nächstes steht die Installationsprobe dieses Kandidaten auf einer sauberen Windows-VM an. Den unsignierten Installer findest du vom Repository-Stamm aus unter `artifacts/release/0.1.0/windows-x64/5eaadf32b236/KRAQEL_0.1.0_windows-x64-setup.exe`. SHA-256: `c282818e445dc69fdc702922716015142e4c3558575dd028fc79485645dd5cf9`. Für die Probe ein synthetisches Projekt verwenden, das installierte Programm regulär starten und ein gemischtes Kapitel über die native Gliederung exportieren.
+
 ## Windows-Entwicklungsstand vom 25. November
 
 Der reguläre Windows-Start zeigt die lokale Projektliste. **Projekt anlegen** erstellt ein neues Projekt und führt direkt zur Kapitelauswahl. **Manuskript öffnen** führt für ein ausgewähltes Projekt dorthin. **Im Studio öffnen** und **Projektverwaltung öffnen** starten den bisherigen Desktop mit WebView2, etwa für den Import oder das Löschen eines Projekts. Die veröffentlichte Alpha 7 hat noch den bisherigen Einstieg.
