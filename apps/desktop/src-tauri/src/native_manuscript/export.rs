@@ -40,28 +40,18 @@ pub(super) fn choose(
         }
     };
     let (scope, summary) = options.get(index).ok_or("Ungültige Exportauswahl.")?;
-    if !confirm_export(summary, format) {
+    if !confirm_export(summary, format, matches!(scope, ExportScope::Scene(_))) {
         return Ok(());
     }
 
     let expected = scope.select(project, outline)?;
-    let heading_only = match scope {
-        ExportScope::Scene(id) => Some(
-            expected
-                .iter()
-                .find(|node| node.id == *id)
-                .and_then(|node| node.parent_id)
-                .ok_or("Zugehöriges Kapitel fehlt.")?,
-        ),
-        _ => None,
-    };
     let mut opened = manager.open_project(project.to_string())?;
     let directory = opened.directory().to_owned();
     let contents = DocumentRepository::new(opened.database_mut()).load_export_snapshot(
         project,
         project_name,
         &expected,
-        heading_only,
+        matches!(scope, ExportScope::Scene(_)),
         |current| scope.select(project, current).ok(),
     )?;
     drop(opened);

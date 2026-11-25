@@ -65,9 +65,18 @@ pub fn choose_export(scopes: &[String]) -> io::Result<Option<NativeExportChoice>
     }
 }
 
-pub fn confirm_export(scope: &str, format: NativeExportFormat) -> bool {
+pub fn confirm_export(scope: &str, format: NativeExportFormat, single_scene: bool) -> bool {
+    let layout = match (format, single_scene) {
+        (NativeExportFormat::Pdf, true) => {
+            "\r\n\r\nBei einer Drehbuchszene enthält die A4-Ausgabe ausschließlich die Rollenabsätze. Projekt-, Kapitel- und Szenentitel entfallen."
+        }
+        (NativeExportFormat::Pdf, false) => {
+            "\r\n\r\nFür diesen Umfang ist PDF nur bei reinen Prosatexten verfügbar."
+        }
+        _ => "",
+    };
     let message = format!(
-        "{scope}\r\nFormat: {}\r\n\r\nJetzt eine neue Datei im Unterordner „exports“ dieses Projekts speichern?",
+        "{scope}\r\nFormat: {}{layout}\r\n\r\nJetzt eine neue Datei im Unterordner „exports“ dieses Projekts speichern?",
         format.label()
     );
     unsafe {

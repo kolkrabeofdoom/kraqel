@@ -2,6 +2,12 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Ausgewählte Drehbuchszenen drucken (DB-05, DB-06 und DB-08)
+
+Der bestehende QA-Generator schreibt mit dem produktiven Renderer eine A4-Probe mit allen sechs Rollen. Poppler rasterte die ganze Seite. Bei der Sichtprüfung waren Szenenkopf, Figur, Klammeranweisung, beide Dialogzeilen und Übergang vollständig lesbar. Die unabhängige Messung mit pdfplumber ergab 595,276 × 841,890 pt und durchgängig 12 pt Schriftgröße. Szenenkopf und Handlung beginnen bei 30 mm, Figur bei 85 mm, Klammeranweisung bei 70 mm und Dialog bei 55 mm vom linken Papierrand. Der Übergang endet bei 185 mm. Die Grundlinien liegen im Dialogblock 14 pt auseinander, an den gemessenen Absatzgrenzen 26 pt. Die Messung gilt für diese synthetische Ausgabe.
+
+Eine zweiteilige Dialogeröffnung an der Seitengrenze wird jetzt mit der Figurenzeile zusammen umgebrochen, auch wenn die beiden Dialogzeilen getrennte Absätze sind. Beim Rücklesen lagen alle drei auf Seite 2. Der bestehende Desktop-Integrationstest verwendete den produktiven Aufruf des Studio-Exports mit synthetischen Daten. Eine leere Auswahl erzeugte keine Datei. Ein unlesbarer Kapitelinhalt hinderte den Druck der gewählten Szene nicht. Nach einer ungültigen Kapitelwahl und nach einer druckungültigen Figurenzeile ohne Dialog blieb die zuvor erzeugte PDF jeweils bytegleich. Der SQLite-Snapshottest prüfte das Lesen während eines parallelen Schreibvorgangs. Dies sind Teilnachweise für DB-05, DB-06 und DB-08.
+
 ## Native Manuskriptauszüge und Exportverlauf
 
 Die aus dem unsignierten Installer `0af9bd27cf55` extrahierte Desktop-EXE lief zweimal mit einem isolierten synthetischen Projekt. Der Verlauf war zunächst leer. Nach Ablehnung der Bestätigung entstand keine Datei. Zwei Markdown-Exporte derselben Szene hatten verschiedene Namen und identischen Inhalt. Die Nachbarszenen fehlten wie vorgesehen. Kapitel-HTML und Manuskript-DOCX wurden inhaltlich geprüft, die PDF-Datei strukturell. Nach dem Neustart stimmten Zielordner, alle fünf Dateinamen und Größen. Die fünf Prüfsummen blieben gleich. Das Prüfprofil und die extrahierte EXE wurden entfernt.

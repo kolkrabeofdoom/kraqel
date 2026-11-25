@@ -576,7 +576,7 @@ Auf der nativen Windows-Startseite des Entwicklungsstands erstellt **Projekt anl
 
 Im Entwicklungszweig lassen sich Szenen ausdrücklich in Drehbuchszenen umwandeln. Sechs Absatzrollen
 bleiben beim Speichern und Wiederöffnen erhalten. Unter **Export → Drehbuch als A4-PDF** wählst du
-die zu druckenden Szenen einzeln aus. Ab dem ersten Speichern einer Drehbuchszene benötigt das
+die zu druckenden Szenen einzeln aus. Die Druckausgabe enthält ihre Rollenabsätze in Manuskriptreihenfolge. Ein Fehler beim Drucken erhält die vorherige Drehbuch-PDF. Ab dem ersten Speichern einer Drehbuchszene benötigt das
 Projekt den neuen Desktop. Die öffentliche Alpha 7 verwendet für Prosa weiterhin Schema 6.
 [Formatvertrag](docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md) ·
 [Prüfstand und Grenzen](docs/testing/F08_M3_ACCEPTANCE_MATRIX.md)

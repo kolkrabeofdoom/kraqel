@@ -184,6 +184,7 @@ Datenschutzziel bleibt unverändert.
            entscheiden
      - [ ] Nach Freigabe Modell-/Versionsprototyp und Schriftprüfung, danach Renderer und
            DB-01–DB-08
+       - [x] A4-Rollenmaße einer vollständigen synthetischen Szene unabhängig vermessen, Dialogumbruch über zwei kurze Absätze korrigieren und den Erhalt einer vorhandenen Ausgabe bei Auswahl- und Grammatikfehlern im Desktop prüfen. [DB-05/06/08](docs/testing/F08_M3_ACCEPTANCE_MATRIX.md)
      - [x] Funktionalen nativen Gesamtlauf M3-G01 mit 100 Szenen/50 Bildern, Neustart,
            Backup/Recovery, Snapshot-Neuimport, Umbenennung, Backlinks und sichtbaren Assetfehlern
            durchführen (KQ-067)

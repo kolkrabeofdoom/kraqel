@@ -1013,14 +1013,23 @@ async fn export_screenplay_pdf(
     let manager = manager(&state, id)?;
     let project = parse_project_id(id, &request.payload.project_id)?;
     let data = tauri::async_runtime::spawn_blocking(move || {
-        let (directory, project, docs) =
-            manuscript_source(&manager, id, project, Some(&selection))?;
-        kraqel_export::export_screenplay_pdf(&directory, &project, &docs, &selection)
-            .map_err(|e| map_export_error(id, &e))
+        export_selected_screenplay(&manager, id, project, &selection)
     })
     .await
     .map_err(|_| CommandError::internal(id))??;
     Ok(CommandResponse::current(id, data))
+}
+
+fn export_selected_screenplay(
+    manager: &ProjectManager,
+    request_id: uuid::Uuid,
+    project_id: ProjectId,
+    selection: &[EntityId],
+) -> Result<ExportResult, CommandError> {
+    let (directory, project, docs) =
+        manuscript_source(manager, request_id, project_id, Some(selection))?;
+    kraqel_export::export_screenplay_pdf(&directory, &project, &docs, selection)
+        .map_err(|error| map_export_error(request_id, &error))
 }
 
 #[tauri::command]
@@ -3063,24 +3072,58 @@ fn manuscript_source(
             .copied()
             .collect::<std::collections::HashSet<_>>()
     });
-    let documents = repository
+    let select = |outline: &[DocumentNode]| -> Option<Vec<DocumentNode>> {
+        let Some(ids) = &selected else {
+            return Some(outline.to_vec());
+        };
+        if ids.is_empty() || selection?.len() != ids.len() {
+            return None;
+        }
+        let scenes = outline
+            .iter()
+            .filter(|n| n.kind == DocumentKind::Scene && ids.contains(&n.id));
+        if scenes.clone().count() != ids.len() {
+            return None;
+        }
+        let parents: std::collections::HashSet<_> =
+            scenes.map(|n| n.parent_id).collect::<Option<_>>()?;
+        let chapters = outline.iter().filter(|n| {
+            n.kind == DocumentKind::Chapter && parents.contains(&n.id) && n.parent_id.is_none()
+        });
+        if chapters.count() != parents.len() {
+            return None;
+        }
+        Some(
+            outline
+                .iter()
+                .filter(|n| ids.contains(&n.id) || parents.contains(&n.id))
+                .cloned()
+                .collect(),
+        )
+    };
+    let outline = repository
         .list(project_id)
-        .map_err(|error| map_document_error(request_id, &error))?
+        .map_err(|e| map_document_error(request_id, &e))?;
+    let expected = select(&outline).ok_or_else(|| {
+        CommandError::invalid_request(
+            request_id,
+            "Die Auswahl muss gespeicherte Szenen dieses Projekts enthalten.",
+        )
+    })?;
+    let contents = repository
+        .load_export_snapshot(
+            project_id,
+            &project.name,
+            &expected,
+            selected.is_some(),
+            select,
+        )
+        .map_err(|e| map_document_error(request_id, &e))?;
+    let documents = expected
         .into_iter()
-        .filter(|node| {
-            node.kind == DocumentKind::Chapter
-                || selected.as_ref().is_none_or(|ids| ids.contains(&node.id))
-        })
-        .map(|node| {
-            repository
-                .load(project_id, node.id)
-                .map(|stored| ExportSourceDocument {
-                    node: stored.node,
-                    content: stored.content,
-                })
-                .map_err(|error| map_document_error(request_id, &error))
-        })
-        .collect::<Result<Vec<_>, _>>()?;
+        .zip(contents)
+        .map(|(node, content)| ExportSourceDocument { node, content })
+        .collect();
     Ok((project_directory, project, documents))
 }
 
@@ -4846,15 +4889,51 @@ mod tests {
         .unwrap();
         assert_eq!(reopened.content, content);
         let manager = super::manager(&state, REQUEST_ID).unwrap();
-        let (dir, project, documents) =
-            super::manuscript_source(&manager, REQUEST_ID, project_id, Some(&[scene.id])).unwrap();
-        let pdf =
-            kraqel_export::export_screenplay_pdf(&dir, &project, &documents, &[scene.id]).unwrap();
-        assert!(
-            fs::read(dir.join("exports").join(pdf.file_name))
-                .unwrap()
-                .starts_with(b"%PDF-")
-        );
+        let export = |ids: &[super::EntityId]| {
+            super::export_selected_screenplay(&manager, REQUEST_ID, project_id, ids)
+        };
+        let chapter = scene.parent_id.unwrap();
+        let opened = manager.open_project(project_id.to_string()).unwrap();
+        let path = opened.directory().join("exports").join("drehbuch.pdf");
+        // A chapter supplies ordering metadata; its body has no place in a selected scene PDF.
+        opened
+            .database()
+            .connection()
+            .execute(
+                "UPDATE document SET content_json = '{}' WHERE id = ?1",
+                [chapter.to_string()],
+            )
+            .unwrap();
+        drop(opened);
+        assert!(export(&[]).is_err());
+        assert!(!path.exists());
+        let pdf = export(&[scene.id]).unwrap();
+        assert_eq!(pdf.file_name, "drehbuch.pdf");
+        let saved = fs::read(&path).unwrap();
+        assert!(saved.starts_with(b"%PDF-"));
+        assert!(export(&[chapter]).is_err());
+        assert_eq!(fs::read(&path).unwrap(), saved);
+
+        let mut unprintable = content;
+        unprintable.document["content"]
+            .as_array_mut()
+            .unwrap()
+            .pop(); // Figure without dialogue.
+        let opened = manager.open_project(project_id.to_string()).unwrap();
+        opened
+            .database()
+            .connection()
+            .execute(
+                "UPDATE document SET content_json = ?1 WHERE id = ?2",
+                [
+                    serde_json::to_string(&unprintable).unwrap(),
+                    scene.id.to_string(),
+                ],
+            )
+            .unwrap();
+        drop(opened);
+        assert!(export(&[scene.id]).is_err());
+        assert_eq!(fs::read(path).unwrap(), saved);
     }
 
     #[test]

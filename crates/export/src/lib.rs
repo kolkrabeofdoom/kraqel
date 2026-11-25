@@ -694,6 +694,8 @@ mod tests {
         let directory = directory.join("screenplay");
         fs::create_dir_all(&directory).unwrap();
         let (project, documents) = mixed_fixture();
+        let selection = [documents.last().expect("screenplay scene").node.id];
+        export_screenplay_pdf(&directory, &project, &documents, &selection).expect("A4 layout QA");
         for format in [
             ExportFormat::Markdown,
             ExportFormat::Html,

@@ -227,7 +227,16 @@ impl Layout {
                         idx + 1
                     };
                     if let Some(next) = spans.get(dialogue) {
-                        (next.start + 2).min(next.end)
+                        // Two dialogue lines can belong to separate consecutive paragraphs.
+                        let end = if blocks
+                            .get(dialogue + 1)
+                            .is_some_and(|b| b.role == Role::Dialogue)
+                        {
+                            spans[dialogue + 1].end
+                        } else {
+                            next.end
+                        };
+                        (next.start + 2).min(end)
                     } else {
                         span.end
                     }
@@ -339,6 +348,35 @@ pub(crate) fn render_selected(
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn figure_keeps_two_short_dialogue_paragraphs_at_the_page_boundary() {
+        let (project, mut docs) = crate::tests::fixture();
+        let block = |role: &str, text: &str| {
+            json!({
+                "type":"screenplayBlock", "attrs":{"role":role},
+                "content":[{"type":"text","text":text}]
+            })
+        };
+        let action = vec!["Schritte."; 46].join("\n");
+        docs[1].content = kraqel_domain::EditorDocument {
+            version: kraqel_domain::SCREENPLAY_DOCUMENT_VERSION,
+            document: json!({"type":"doc","content":[
+                block("sceneHeading", "INT. ARCHIV"),
+                block("action", &action),
+                block("character", "MIRA"),
+                block("dialogue", "Erste Zeile."),
+                block("dialogue", "Zweite Zeile.")
+            ]}),
+        };
+        let bytes = render_selected(&project, &docs, &[docs[1].node.id]).unwrap();
+        let pdf = lopdf::Document::load_mem(&bytes).unwrap();
+        assert_eq!(pdf.get_pages().len(), 2);
+        let second = pdf.extract_text(&[2]).unwrap();
+        for expected in ["MIRA", "Erste Zeile.", "Zweite Zeile."] {
+            assert!(second.contains(expected), "missing {expected}");
+        }
+    }
 
     #[test]
     fn selected_screenplay_preserves_unicode_styles_and_dialogue_across_pages() {

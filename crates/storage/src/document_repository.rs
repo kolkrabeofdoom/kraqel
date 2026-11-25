@@ -278,7 +278,7 @@ impl<'database> DocumentRepository<'database> {
         project: ProjectId,
         project_name: &str,
         expected: &[DocumentNode],
-        heading_only: Option<EntityId>,
+        chapter_headings_only: bool,
         select: impl FnOnce(&[DocumentNode]) -> Option<Vec<DocumentNode>>,
     ) -> Result<Vec<EditorDocument>, DocumentError> {
         let tx = self.database.connection().unchecked_transaction()?;
@@ -300,8 +300,8 @@ impl<'database> DocumentRepository<'database> {
             let limit = i64::try_from(MAX_EDITOR_DOCUMENT_BYTES)
                 .map_err(|_| DocumentError::InvalidInput)?;
             for node in expected {
-                if Some(node.id) == heading_only {
-                    if node.kind != DocumentKind::Chapter || node.parent_id.is_some() {
+                if chapter_headings_only && node.kind == DocumentKind::Chapter {
+                    if node.parent_id.is_some() {
                         return Err(DocumentError::InvalidParent);
                     }
                     contents.push(empty_editor_document());
@@ -1185,28 +1185,16 @@ mod tests {
             )
         };
         let bodies = repo
-            .load_export_snapshot(
-                project.id,
-                &project.name,
-                &expected,
-                Some(chapter.id),
-                |outline| {
-                    DocumentRepository::new(second.database_mut())
-                        .save_scene(project.id, scene.id, scene.revision, &content("Später"))
-                        .unwrap();
-                    select(outline)
-                },
-            )
+            .load_export_snapshot(project.id, &project.name, &expected, true, |outline| {
+                DocumentRepository::new(second.database_mut())
+                    .save_scene(project.id, scene.id, scene.revision, &content("Später"))
+                    .unwrap();
+                select(outline)
+            })
             .unwrap();
         assert_eq!(bodies, [super::empty_editor_document(), approved]);
         assert!(matches!(
-            repo.load_export_snapshot(
-                project.id,
-                &project.name,
-                &expected,
-                Some(chapter.id),
-                select
-            ),
+            repo.load_export_snapshot(project.id, &project.name, &expected, true, select),
             Err(DocumentError::RevisionConflict)
         ));
     }

@@ -139,7 +139,7 @@ BEGIN
     PUSHBUTTON "&Abbrechen", IDCANCEL, 224, 132, 76, 17
 END
 
-412 DIALOGEX 0, 0, 360, 187
+412 DIALOGEX 0, 0, 360, 207
 STYLE DS_SHELLFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "KRAQEL – Manuskript exportieren"
 FONT 9, "Segoe UI"
@@ -148,10 +148,10 @@ BEGIN
     LISTBOX 121, 10, 22, 340, 42, LBS_NOINTEGRALHEIGHT | WS_HSCROLL | WS_VSCROLL | WS_TABSTOP | WS_BORDER
     LTEXT "Datei&format", -1, 10, 70, 340, 12
     LISTBOX 122, 10, 84, 340, 50, LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP | WS_BORDER
-    LTEXT "Der Export erstellt eine neue Datei im Unterordner „exports“ des lokalen Projekts.", -1, 10, 140, 340, 16
-    PUSHBUTTON "&Vorhandene Ausgaben …", 123, 10, 162, 140, 17
-    DEFPUSHBUTTON "&Weiter", IDOK, 196, 162, 74, 17
-    PUSHBUTTON "&Abbrechen", IDCANCEL, 276, 162, 74, 17
+    LTEXT "Für ein Drehbuch-PDF wähle eine einzelne Szene. Für ganze Kapitel und Manuskripte mit Drehbuchszenen stehen Markdown, HTML und DOCX zur Verfügung.", -1, 10, 140, 340, 34
+    PUSHBUTTON "&Vorhandene Ausgaben …", 123, 10, 182, 140, 17
+    DEFPUSHBUTTON "&Weiter", IDOK, 196, 182, 74, 17
+    PUSHBUTTON "&Abbrechen", IDCANCEL, 276, 182, 74, 17
 END
 
 413 DIALOGEX 0, 0, 420, 215
