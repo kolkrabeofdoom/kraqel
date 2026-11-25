@@ -4,7 +4,7 @@ pub(super) fn word_separator(c: char) -> bool {
 }
 
 #[cfg(feature = "manuscript-window")]
-pub(super) use product::{EDIT_UNIT_LIMIT, draft, units, update};
+pub(super) use product::{EDIT_UNIT_LIMIT, draft, matches_draft, units, update};
 
 #[cfg(feature = "manuscript-window")]
 mod product {
@@ -77,6 +77,16 @@ mod product {
         })?;
         (size.valid_controls && size.bytes <= PROJECT_EDIT_BYTES)
             .then(|| std::mem::take(&mut *text))
+    }
+
+    /// Compare against the transmitted LF-normalized form without constructing another String.
+    pub(in super::super) fn matches_draft(field: HWND, expected: &str) -> Option<bool> {
+        let input = units(field, PROJECT_EDIT_BYTES * 2)?;
+        let mut expected = expected.chars();
+        let mut equal = true;
+        let size = measure(&input, |ch| equal = equal && expected.next() == Some(ch))?;
+        (size.valid_controls && size.bytes <= PROJECT_EDIT_BYTES)
+            .then(|| equal && expected.next().is_none())
     }
 
     pub(in super::super) fn update(hwnd: HWND, label_id: i32) {

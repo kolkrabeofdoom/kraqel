@@ -34,11 +34,29 @@ pub(super) fn enabled() -> bool {
     STATE.get().enabled
 }
 
+thread_local! { static MANUAL_RETRY: Cell<bool> = const { Cell::new(false) }; }
+pub(super) fn retry_required() -> bool {
+    MANUAL_RETRY.get()
+}
+pub(super) unsafe fn retry(hwnd: HWND, required: bool) {
+    unsafe {
+        MANUAL_RETRY.set(required);
+        if required {
+            stop(hwnd);
+        } else {
+            project_menu::refresh(hwnd);
+        }
+    }
+}
+
 pub(super) unsafe fn stop(hwnd: HWND) {
     unsafe {
         KillTimer(hwnd, TIMER);
         STATE.set(Schedule::default());
         project_menu::refresh(hwnd);
+        if !GetDlgItem(hwnd, SAVE).is_null() {
+            project_save_status::changed(hwnd);
+        }
     }
 }
 
@@ -73,6 +91,9 @@ pub(super) unsafe fn changed(hwnd: HWND) {
 
 pub(super) unsafe fn toggle(hwnd: HWND) {
     unsafe {
+        if retry_required() {
+            return;
+        }
         if enabled() {
             stop(hwnd);
         } else {
@@ -82,6 +103,7 @@ pub(super) unsafe fn toggle(hwnd: HWND) {
             });
             changed(hwnd);
             project_menu::refresh(hwnd);
+            project_save_status::changed(hwnd);
         }
     }
 }

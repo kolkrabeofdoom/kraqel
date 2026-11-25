@@ -153,6 +153,7 @@ pub(super) unsafe fn observe<T>(field: HWND, forced: bool, operation: impl FnOnc
             let after = project_search::selection(field);
             HISTORY.with_borrow_mut(|h| h.record(text, before, after));
             project_autosave::changed(GetParent(field));
+            project_save_status::changed(GetParent(field));
             SendMessageW(field, EM_EMPTYUNDOBUFFER, 0, 0);
             project_menu::refresh(GetParent(field));
         }
@@ -189,6 +190,7 @@ pub(super) unsafe fn step(field: HWND, redo: bool) -> bool {
                 project_replace::MATCH.set(None);
                 let hwnd = GetParent(field);
                 project_autosave::changed(hwnd);
+                project_save_status::changed(hwnd);
                 SetDlgItemTextW(hwnd, LABEL, wide("&Szenentext").as_ptr());
                 if !focus_mode(hwnd) {
                     project_metrics::update(hwnd, METRICS);

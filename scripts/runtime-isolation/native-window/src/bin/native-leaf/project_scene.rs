@@ -14,12 +14,14 @@ mod project_menu;
 mod project_replace;
 #[path = "project_review.rs"]
 mod project_review;
+#[path = "project_save_status.rs"]
+mod project_save_status;
 #[path = "project_search.rs"]
 mod project_search;
 use std::{
     fs::File,
     io::{self, Read, Write},
-    sync::mpsc,
+    sync::{Arc, mpsc},
     thread,
 };
 use windows_sys::Win32::UI::Controls::EM_SETREADONLY;
@@ -36,7 +38,7 @@ const SAVE_TIMER: usize = 7001;
 enum Request {
     Save(Zeroizing<String>),
     SaveContinue {
-        text: Zeroizing<String>,
+        text: Arc<Zeroizing<String>>,
         next_revision: u64,
     },
     Compare(Zeroizing<String>),
@@ -53,7 +55,7 @@ enum Reply {
     Canceled,
     Committed,
     Continued {
-        text: Zeroizing<String>,
+        text: Arc<Zeroizing<String>>,
         revision: u64,
     },
     Conflict,
@@ -468,14 +470,11 @@ pub(super) fn display(
             ..Default::default()
         };
         require(RegisterClassW(&desc) != 0, "register project window")?;
-        let window_title = format!(
-            "{title} · Revision {revision} – {}",
-            if edit_mode {
-                "Bearbeiten"
-            } else {
-                "Schreibgeschützt"
-            }
-        );
+        let window_title = if edit_mode {
+            format!("Szene · Revision {revision} · Gespeichert – Bearbeiten")
+        } else {
+            format!("{title} · Revision {revision} – Schreibgeschützt")
+        };
         let hwnd = CreateWindowExW(
             WS_EX_CONTROLPARENT,
             class.as_ptr(),
@@ -642,6 +641,7 @@ pub(super) fn display(
         // wrapping a long paragraph can exceed the authenticated surface deadline.
         require(project_menu::install(hwnd, edit_mode), "install scene menu")?;
         project_autosave::stop(hwnd);
+        project_autosave::retry(hwnd, false);
         project_menu::refresh(hwnd);
         SendMessageW(hwnd, WM_SIZE, 0, 0);
         let field = GetDlgItem(hwnd, EDIT);
@@ -691,7 +691,7 @@ pub(super) fn display(
             return reply.write_all(&[0]);
         }
         let channel = Channel::new(input, reply)?;
-        edit_loop(hwnd, field, title, revision, text, channel)
+        edit_loop(hwnd, field, revision, text, channel)
     }
 }
 
@@ -833,13 +833,15 @@ unsafe fn dispatch(hwnd: HWND, msg: &MSG) {
 unsafe fn edit_loop(
     hwnd: HWND,
     field: HWND,
-    title: &str,
     mut revision: u64,
     text: &str,
     channel: Channel,
 ) -> io::Result<()> {
     unsafe {
-        let mut saved: Option<Zeroizing<String>> = None;
+        let mut saved: Option<Arc<Zeroizing<String>>> = None;
+        let mut submitted: Option<Arc<Zeroizing<String>>> = None;
+        let mut previous_title = None;
+        let mut update_title = true;
         let mut pending = false;
         let mut pending_continue = false;
         let mut background_pending = false;
@@ -849,6 +851,24 @@ unsafe fn edit_loop(
         let mut review: Option<project_review::Review> = None;
         let mut confirming = false;
         let committed = loop {
+            if project_save_status::take_changed() || update_title {
+                use project_save_status::Phase;
+                let phase = if !available {
+                    if compare_available {
+                        Phase::Conflict
+                    } else {
+                        Phase::Unknown
+                    }
+                } else if pending {
+                    Phase::Pending(submitted.as_ref().map(|s| s.as_str()))
+                } else if project_autosave::retry_required() {
+                    Phase::Failed
+                } else {
+                    Phase::Idle(saved.as_ref().map_or(text, |s| s.as_str()))
+                };
+                project_save_status::render(hwnd, revision, phase, &mut previous_title);
+                update_title = false;
+            }
             // Give an explicit close/save priority over a due follow-up autosave.
             let message = if !pending && let Some(action) = deferred.take() {
                 MSG {
@@ -860,6 +880,9 @@ unsafe fn edit_loop(
             } else {
                 next_message()?
             };
+            if message.hwnd == hwnd && message.message == project_save_status::REFRESH {
+                continue;
+            }
             if message.hwnd == hwnd
                 && message.message == WM_TIMER
                 && message.wParam == SAVE_TIMER
@@ -873,9 +896,11 @@ unsafe fn edit_loop(
                     }
                 };
                 KillTimer(hwnd, SAVE_TIMER);
+                submitted = None;
+                update_title = true;
                 let background = std::mem::take(&mut background_pending);
                 if matches!(&outcome, Err(_) | Ok(Reply::Failed | Reply::Conflict)) {
-                    project_autosave::stop(hwnd);
+                    project_autosave::retry(hwnd, true);
                     // A queued close still asks about the draft. A failed write must
                     // not be retried before the user has seen its result.
                     if deferred != Some(CLOSE as usize) {
@@ -897,14 +922,11 @@ unsafe fn edit_loop(
                     }) => {
                         saved = Some(text);
                         revision = confirmed;
-                        SetWindowTextW(
-                            hwnd,
-                            wide(format!("{title} · Revision {revision} – Bearbeiten")).as_ptr(),
-                        );
+                        project_autosave::retry(hwnd, false);
                         if background {
-                            "Zwischenstand automatisch gespeichert."
+                            "Automatischer Zwischenstand bestätigt."
                         } else {
-                            "Zwischenstand gespeichert."
+                            "Zwischenstand bestätigt."
                         }
                     }
                     Ok(Reply::Conflict) => {
@@ -1058,7 +1080,9 @@ unsafe fn edit_loop(
                     (Request::Compare(draft), "Vergleich wird geladen …")
                 } else if continuing {
                     if draft.as_str() == baseline {
-                        status(hwnd, "Keine Änderungen zu speichern.");
+                        if !project_autosave::retry_required() {
+                            status(hwnd, "Keine Änderungen zu speichern.");
+                        }
                         continue;
                     }
                     let Some(next_revision) = revision.checked_add(1) else {
@@ -1074,9 +1098,11 @@ unsafe fn edit_loop(
                         SendMessageW(hwnd, WM_SIZE, 0, 0);
                         continue;
                     };
+                    let text = Arc::new(draft);
+                    submitted = Some(Arc::clone(&text));
                     (
                         Request::SaveContinue {
-                            text: draft,
+                            text,
                             next_revision,
                         },
                         if automatic {
@@ -1089,13 +1115,15 @@ unsafe fn edit_loop(
                     (Request::Save(draft), "Wird gespeichert …")
                 };
                 pending = start_request(hwnd, field, &channel, command, status, automatic);
+                update_title = true;
                 background_pending = pending && automatic;
                 if continuing && pending && !automatic {
                     pending_continue = true;
                     EnableWindow(hwnd, 0);
                 }
                 if !pending {
-                    project_autosave::stop(hwnd);
+                    submitted = None;
+                    project_autosave::retry(hwnd, true);
                     review = None;
                     SetWindowTextW(
                         GetDlgItem(hwnd, STATUS),

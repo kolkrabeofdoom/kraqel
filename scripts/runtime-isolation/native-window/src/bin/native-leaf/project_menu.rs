@@ -59,7 +59,7 @@ pub(super) unsafe fn refresh(hwnd: HWND) {
         enable_menu_command(
             hwnd,
             project_autosave::TOGGLE,
-            editable && IsWindowEnabled(save) != 0,
+            editable && IsWindowEnabled(save) != 0 && !project_autosave::retry_required(),
         );
         CheckMenuItem(
             menu,
