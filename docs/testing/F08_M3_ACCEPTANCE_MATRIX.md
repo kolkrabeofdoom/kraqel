@@ -2,6 +2,12 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Tastenkürzel im installierten Prosaeditor
+
+Im Kandidaten `155509ff5e06` markierte Strg+A den gesamten mehrabsätzigen Unicode-Text im fokussierten Szenenfeld. Im Fokusmodus löste Strg+S bei 65.537 UTF-8-Bytes die Größenwarnung aus und erhielt den Entwurf. Nach dem Kürzen speicherte dasselbe Kürzel genau 65.536 Bytes als Revision 1. Nach dem Desktopneustart stimmten der schreibgeschützt angezeigte Text und der bytegenau geprüfte SQLite-Inhalt. Testprofil und Installation wurden bereinigt.
+
+Der Prüfläufer adressierte Windows-Tastennachrichten mit synchronisiertem Strg-Zustand direkt an das gebundene Szenenfeld. Die erste ETW-Messung endete vor der Tastensequenz, weil der Prüfläufer den Vordergrund des Fensters nicht bestätigen konnte. Der vollständige Bedienlauf wurde anschließend ohne ETW ausgeführt.
+
 ## Wortzahl, Speichergrenze und Fokusmodus im installierten Prosaeditor
 
 Im Kandidaten `eb7eec27a369` stimmten Wortzahl und UTF-8-Budget bei leerem Text, Umlauten, Emoji und Windows-Zeilenumbrüchen. F11 und Escape erhielten Text, Auswahlposition und Eingabefokus. Bei 65.537 Bytes warnte der Editor beim Speichern und hielt den Entwurf vollständig offen. Nach dem Kürzen auf genau 65.536 Bytes wurde Revision 1 gespeichert. Nach einem vollständigen Desktopneustart zeigte das schreibgeschützte Szenenfenster den gesamten Text. Ein separater Vergleich bestätigte den Inhalt der synthetischen SQLite-Szene bytegenau.
