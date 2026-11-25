@@ -585,6 +585,10 @@ fn install_editor_menu(hwnd: HWND, plain: bool) -> bool {
     } else {
         &formatted[..]
     };
+    install_menu_groups(hwnd, groups)
+}
+
+fn install_menu_groups(hwnd: HWND, groups: &[(&str, &[(usize, &str)])]) -> bool {
     unsafe {
         let bar = CreateMenu();
         if bar.is_null() {

@@ -4,6 +4,8 @@ use super::*;
 mod project_close;
 #[path = "project_dialog.rs"]
 mod project_dialog;
+#[path = "project_menu.rs"]
+mod project_menu;
 #[path = "project_replace.rs"]
 mod project_replace;
 #[path = "project_review.rs"]
@@ -214,6 +216,7 @@ unsafe fn toggle_focus(hwnd: HWND) {
         if !enabled {
             project_metrics::update(hwnd, METRICS);
         }
+        project_menu::refresh(hwnd);
         SendMessageW(hwnd, WM_SIZE, 0, 0);
         SetFocus(GetDlgItem(hwnd, EDIT));
     }
@@ -222,6 +225,20 @@ unsafe fn toggle_focus(hwnd: HWND) {
 unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> LRESULT {
     unsafe {
         match msg {
+            WM_INITMENU if w == GetMenu(hwnd) as usize => {
+                project_menu::refresh(hwnd);
+                0
+            }
+            WM_COMMAND if l == 0 && w == SELECT_PARAGRAPH => {
+                let field = GetDlgItem(hwnd, EDIT);
+                SetFocus(field);
+                SendMessageW(field, EM_SETSEL, 0, -1);
+                0
+            }
+            WM_COMMAND if l == 0 && w == project_menu::SEARCH_MENU => {
+                project_search::open(hwnd, false, false);
+                0
+            }
             WM_CLOSE => {
                 PostMessageW(hwnd, REQUEST, CLOSE as usize, 0);
                 0
@@ -244,7 +261,9 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) 
                 0
             }
             WM_COMMAND if w == project_replace::OPEN as usize => {
-                project_search::open(hwnd, true, true);
+                if l != 0 || GetWindowLongW(GetDlgItem(hwnd, EDIT), GWL_STYLE) & ES_READONLY == 0 {
+                    project_search::open(hwnd, true, l != 0);
+                }
                 0
             }
             WM_COMMAND if w == project_replace::APPLY as usize => {
@@ -563,6 +582,8 @@ pub(super) fn display(
         }
         // Lay out the wrapping EDIT before loading prose. At its initial one-pixel width,
         // wrapping a long paragraph can exceed the authenticated surface deadline.
+        require(project_menu::install(hwnd, edit_mode), "install scene menu")?;
+        project_menu::refresh(hwnd);
         SendMessageW(hwnd, WM_SIZE, 0, 0);
         let field = GetDlgItem(hwnd, EDIT);
         // Apply the UTF-8 storage limit at submission. During editing allow a longer
@@ -626,7 +647,30 @@ fn next_message() -> io::Result<MSG> {
 unsafe fn dispatch(hwnd: HWND, msg: &MSG) {
     unsafe {
         let repeated = msg.lParam & (1 << 30) != 0;
-        if msg.message == WM_KEYDOWN && (msg.hwnd == hwnd || IsChild(hwnd, msg.hwnd) != 0) {
+        let own_control = msg.hwnd == hwnd || IsChild(hwnd, msg.hwnd) != 0;
+        // The dialog manager also handles child mnemonics (e.g. Such&begriff).
+        // Give the native menu its top-level access keys first.
+        if own_control
+            && msg.message == WM_SYSKEYDOWN
+            && msg.lParam & (1 << 29) != 0
+            && [VK_CONTROL, VK_SHIFT, VK_LWIN, VK_RWIN]
+                .iter()
+                .all(|key| GetKeyState(i32::from(*key)) >= 0)
+            && (msg.wParam == usize::from(VK_D)
+                || msg.wParam == usize::from(VK_B)
+                || (msg.wParam == usize::from(VK_A) && !GetDlgItem(hwnd, FOCUS).is_null()))
+        {
+            if !repeated {
+                SendMessageW(
+                    hwnd,
+                    WM_SYSCOMMAND,
+                    SC_KEYMENU as usize,
+                    (msg.wParam as u8).to_ascii_lowercase() as isize,
+                );
+            }
+            return;
+        }
+        if msg.message == WM_KEYDOWN && own_control {
             let field = GetDlgItem(hwnd, EDIT);
             let save = GetDlgItem(hwnd, SAVE);
             let key = msg.wParam;
@@ -679,7 +723,7 @@ unsafe fn dispatch(hwnd: HWND, msg: &MSG) {
             }
             if ctrl_only && key == usize::from(VK_A) && msg.hwnd == field && GetFocus() == field {
                 if !repeated {
-                    SendMessageW(field, EM_SETSEL, 0, -1);
+                    SendMessageW(hwnd, WM_COMMAND, SELECT_PARAGRAPH, 0);
                 }
                 return;
             }
@@ -803,6 +847,7 @@ unsafe fn edit_loop(hwnd: HWND, field: HWND, text: &str, channel: Channel) -> io
                 SendMessageW(field, EM_SETREADONLY, 0, 0);
                 EnableWindow(GetDlgItem(hwnd, project_replace::APPLY), 1);
                 EnableWindow(GetDlgItem(hwnd, project_replace::ALL), 1);
+                project_menu::refresh(hwnd);
                 SetWindowTextW(GetDlgItem(hwnd, STATUS), wide(status).as_ptr());
                 SendMessageW(hwnd, WM_SIZE, 0, 0);
                 SetFocus(field);
@@ -878,6 +923,7 @@ unsafe fn start_request(
         SendMessageW(field, EM_SETREADONLY, 1, 0);
         EnableWindow(GetDlgItem(hwnd, project_replace::APPLY), 0);
         EnableWindow(GetDlgItem(hwnd, project_replace::ALL), 0);
+        project_menu::refresh(hwnd);
         SetWindowTextW(GetDlgItem(hwnd, STATUS), wide(status).as_ptr());
         SendMessageW(hwnd, WM_SIZE, 0, 0);
         true
