@@ -2,6 +2,14 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Reihenfolge und Kapitelwechsel im installierten Win32-Desktop
+
+Im installierten Kandidaten `daec7364a865` wurde ein Kapitel über die fokussierte Schaltfläche per Leertaste nach oben verschoben. Zwei Kapitel enthielten zunächst je eine gleichnamige Szene. Die bearbeitete Szene wurde an das Ende des anderen Kapitels verschoben, blieb dort ausgewählt und ließ sich anschließend nach oben und wieder nach unten bewegen.
+
+Nach vollständigem Desktopneustart stimmten Kapitelreihenfolge, Dokumentkennungen, Kapitelzuordnung, Positionen und beide schreibgeschützten Textansichten. Die unberührte Szene war leer auf Revision 0. Die verschobene Szene enthielt beide gespeicherten Absätze auf Revision 1. Die Inhaltsprüfsummen beider Dokumente waren vor und nach den Verschiebungen identisch.
+
+Eine gemeinsame ETW-Spur erfasste im ersten Desktopprozessbaum eine Fensterrolle und einen Datendienst, beim Wiederöffnen zwei Paare. In beiden Prozessbäumen wurden null Netzereignisse einschließlich Loopback und keine WebView2-Prozesse beobachtet. Vier von vier Positivkontrollen wurden erkannt, ohne verlorene Ereignisse oder Puffer. Testinstallation, synthetisches Profil und Rohaufzeichnung wurden entfernt. Installer-SHA-256: `ecac6e742eae2c70d50f27c53bb72089ebd57d149b778eee455d821797adecbb`.
+
 ## Kapitel und Szenen im installierten Win32-Desktop
 
 Im installierten Kandidaten `1f3806824b7a` wurden ein weiteres Kapitel und eine zweite Szene angelegt. Beide Kapitel enthielten anschließend je eine „Szene 1“. Beim Umbenennen blieb die Kennung des Kapitels erhalten. Nach Abbruch einer weiteren Kapitelanlage blieb das gewählte Kapitel markiert. Der Katalog enthielt weiterhin zwei Kapitel und zwei Szenen.
