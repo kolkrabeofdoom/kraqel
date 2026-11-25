@@ -2,6 +2,14 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Kapitel und Szenen im installierten Win32-Desktop
+
+Im installierten Kandidaten `1f3806824b7a` wurden ein weiteres Kapitel und eine zweite Szene angelegt. Beide Kapitel enthielten anschließend je eine „Szene 1“. Beim Umbenennen blieb die Kennung des Kapitels erhalten. Nach Abbruch einer weiteren Kapitelanlage blieb das gewählte Kapitel markiert. Der Katalog enthielt weiterhin zwei Kapitel und zwei Szenen.
+
+Nur die Szene im zweiten Kapitel wurde bearbeitet und anschließend umbenannt. Ihre Inhaltsprüfsumme und Textrevision blieben beim Umbenennen erhalten. Nach vollständigem Desktopneustart zeigte das erste Lesefenster die leere Szene auf Revision 0, das zweite die exakten zwei gespeicherten Absätze auf Revision 1. Die Prüfung der lokalen Datenbank bestätigte beide ursprünglichen Szenenkennungen und Kapitelzuordnungen.
+
+Eine kalibrierte ETW-Aufzeichnung erfasste beim ersten Desktopstart ein Paar aus Fensterrolle und Datendienst und beim zweiten Start zwei Paare. In beiden Prozessbäumen wurden null Netzereignisse einschließlich Loopback und keine WebView2-Prozesse beobachtet. Die Messung erfasste alle vier TCP-/UDP-Kontrollen über IPv4/IPv6, ohne verlorene Ereignisse oder Puffer. Testinstallation, synthetisches Profil und Rohaufzeichnung wurden entfernt. Installer-SHA-256: `2b237fca58e02df3af7f43687a86dcfaab5fa38244695442bec89f7fb14778e5`.
+
 ## Native Projektanlage und direkte Bearbeitung im Installer
 
 Der installierte Windows-Kandidat `abaca29bec34` startete mit einem leeren synthetischen Profil. Über **Projekt anlegen** entstand ein Projekt mit **Kapitel 1** und **Szene 1**. **Bearbeiten** öffnete die leere Szene direkt. Nach dem Speichern zweier Absätze und einem vollständigen Desktopneustart zeigte **Lesen** den exakten Text schreibgeschützt an. Die separate SQLite-Abfrage bestätigte beide Absatzknoten auf Revision 1.
