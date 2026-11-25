@@ -7,6 +7,84 @@ pub(super) const NEXT: i32 = 213;
 const BAR: [i32; 4] = [SEARCH_LABEL, SEARCH, PREVIOUS, NEXT];
 const SELECTION_QUERY_LIMIT: usize = 256;
 
+thread_local! {
+    static WHOLE_WORDS: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+pub(super) fn whole_words() -> bool {
+    WHOLE_WORDS.get()
+}
+
+pub(super) fn set_whole_words(enabled: bool) {
+    WHOLE_WORDS.set(enabled);
+    project_replace::MATCH.set(None);
+}
+
+fn word_char(ch: char) -> bool {
+    ch.is_alphanumeric() || unicode_ident::is_xid_continue(ch)
+}
+
+fn bounded(before: Option<char>, after: Option<char>) -> bool {
+    !before.is_some_and(word_char) && !after.is_some_and(word_char)
+}
+
+// Only the two adjacent scalars are needed, including possible surrogate pairs.
+pub(super) fn selected_boundary(scene: &[u16], start: usize, end: usize) -> bool {
+    if !whole_words() {
+        return true;
+    }
+    let before = &scene[..start];
+    let after = &scene[end..];
+    let previous = before.last().and_then(|last| {
+        let width = if (0xdc00..=0xdfff).contains(last) {
+            2
+        } else {
+            1
+        };
+        let tail = before.get(before.len().checked_sub(width)?..)?;
+        char::decode_utf16(tail.iter().copied()).next()?.ok()
+    });
+    let next = char::decode_utf16(after.iter().copied())
+        .next()
+        .and_then(Result::ok);
+    bounded(previous, next)
+}
+
+// Accepted matches are disjoint. A rejected partial match may overlap a later
+// whole match (for example "a a" in "xa a a").
+pub(super) fn hits<'a>(
+    scene: &'a str,
+    query: &'a str,
+    whole: bool,
+) -> impl Iterator<Item = std::ops::Range<usize>> + 'a {
+    let mut base = 0;
+    let mut candidates = scene.match_indices(query);
+    std::iter::from_fn(move || {
+        if query.is_empty() {
+            return None;
+        }
+        loop {
+            let (relative, matched) = candidates.next()?;
+            let start = base + relative;
+            let end = start + matched.len();
+            if !whole
+                || bounded(
+                    scene[..start].chars().next_back(),
+                    scene[end..].chars().next(),
+                )
+            {
+                return Some(start..end);
+            }
+            // Resume at the next possible left boundary, which may lie inside the rejected range.
+            let (offset, separator) = scene[start..]
+                .char_indices()
+                .find(|(_, ch)| !word_char(*ch))?;
+            base = start + offset + separator.len_utf8();
+            candidates = scene[base..].match_indices(query);
+        }
+    })
+}
+
 pub(super) unsafe fn visible(hwnd: HWND) -> bool {
     unsafe { IsWindowVisible(GetDlgItem(hwnd, SEARCH)) != 0 }
 }
@@ -51,6 +129,7 @@ unsafe fn seed_from_selection(hwnd: HWND, field: HWND) {
         }
         // units() retains capacity for the trailing NUL, even at the end of the scene.
         // Keep the full allocation length so Zeroizing clears the whole scene on drop.
+        let replaceable = selected_boundary(&scene, start, end);
         if end == scene.len() {
             scene.push(0);
         } else {
@@ -58,6 +137,7 @@ unsafe fn seed_from_selection(hwnd: HWND, field: HWND) {
         }
         let query = GetDlgItem(hwnd, SEARCH);
         if SetWindowTextW(query, scene[start..].as_ptr()) != 0
+            && replaceable
             && !GetDlgItem(hwnd, project_replace::APPLY).is_null()
             && project_metrics::units(query, SELECTION_QUERY_LIMIT)
                 .is_some_and(|actual| actual.as_slice() == &scene[start..end])
@@ -154,7 +234,14 @@ pub(super) unsafe fn find(hwnd: HWND, backwards: bool) {
         let mut count = 0;
         let mut selected = None;
         let mut wrapped = None;
-        for (a, b) in utf16_hits(&content, &query) {
+        let mut previous_byte = 0;
+        let mut previous_unit = 0;
+        let query_units = query.encode_utf16().count();
+        for range in hits(&content, &query, whole_words()) {
+            let a = previous_unit + content[previous_byte..range.start].encode_utf16().count();
+            let b = a + query_units;
+            previous_byte = range.end;
+            previous_unit = b;
             count += 1;
             let hit = (count, a, b);
             if backwards {

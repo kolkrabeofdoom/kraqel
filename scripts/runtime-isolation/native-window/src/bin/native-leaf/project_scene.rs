@@ -293,6 +293,12 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) 
                 SendMessageW(field, EM_SETSEL, 0, -1);
                 0
             }
+            WM_COMMAND if l == 0 && w == project_menu::WHOLE_WORDS => {
+                project_search::set_whole_words(!project_search::whole_words());
+                SetDlgItemTextW(hwnd, LABEL, wide("&Szenentext").as_ptr());
+                project_menu::refresh(hwnd);
+                0
+            }
             WM_COMMAND if l == 0 && w == project_menu::SEARCH_MENU => {
                 project_search::open(hwnd, false, false);
                 0

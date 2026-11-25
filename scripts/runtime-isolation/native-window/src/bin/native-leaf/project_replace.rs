@@ -31,6 +31,7 @@ pub(super) unsafe fn show(hwnd: HWND, open: bool) {
 }
 
 struct Replacement {
+    whole: bool,
     scene: Zeroizing<String>,
     query: Zeroizing<String>,
     value: Zeroizing<String>,
@@ -40,6 +41,7 @@ impl Replacement {
     unsafe fn read(hwnd: HWND) -> Option<Self> {
         unsafe {
             Some(Self {
+                whole: project_search::whole_words(),
                 scene: project_search::text(GetDlgItem(hwnd, EDIT))?,
                 query: project_search::text(GetDlgItem(hwnd, SEARCH))?,
                 value: project_search::text(GetDlgItem(hwnd, REPLACEMENT))?,
@@ -49,15 +51,17 @@ impl Replacement {
 
     unsafe fn current(&self, hwnd: HWND) -> bool {
         unsafe {
-            [
-                (EDIT, &self.scene),
-                (SEARCH, &self.query),
-                (REPLACEMENT, &self.value),
-            ]
-            .into_iter()
-            .all(|(id, expected)| {
-                project_search::text(GetDlgItem(hwnd, id)).is_some_and(|actual| actual == *expected)
-            })
+            self.whole == project_search::whole_words()
+                && [
+                    (EDIT, &self.scene),
+                    (SEARCH, &self.query),
+                    (REPLACEMENT, &self.value),
+                ]
+                .into_iter()
+                .all(|(id, expected)| {
+                    project_search::text(GetDlgItem(hwnd, id))
+                        .is_some_and(|actual| actual == *expected)
+                })
         }
     }
 
@@ -74,12 +78,13 @@ impl Replacement {
 
     fn render(&self, length: usize) -> Zeroizing<Vec<u16>> {
         let mut result = Zeroizing::new(Vec::with_capacity(length + 1));
-        let mut parts = self.scene.split(self.query.as_str());
-        result.extend(parts.next().unwrap_or_default().encode_utf16());
-        for part in parts {
+        let mut end = 0;
+        for range in project_search::hits(&self.scene, &self.query, self.whole) {
+            result.extend(self.scene[end..range.start].encode_utf16());
             result.extend(self.value.encode_utf16());
-            result.extend(part.encode_utf16());
+            end = range.end;
         }
+        result.extend(self.scene[end..].encode_utf16());
         result.push(0);
         result
     }
@@ -90,8 +95,28 @@ mod tests {
     use super::*;
 
     #[test]
+    fn whole_word_replacement_preserves_partial_and_combining_matches() {
+        let plan = Replacement {
+            whole: true,
+            scene: Zeroizing::new("xa a a, a a_ äa a, a a\u{301} 🪶a a!".into()),
+            query: Zeroizing::new("a a".into()),
+            value: Zeroizing::new("ß".into()),
+        };
+        let count = project_search::hits(&plan.scene, &plan.query, true).count();
+        assert_eq!(count, 2);
+        let size = plan.size(count).unwrap();
+        let result = plan.render(size);
+        assert_eq!(result.len(), size + 1);
+        assert_eq!(
+            String::from_utf16(&result[..size]).unwrap(),
+            "xa ß, a a_ äa a, a a\u{301} 🪶ß!"
+        );
+    }
+
+    #[test]
     fn bulk_size_checks_the_expanded_utf16_before_allocation() {
         let mut plan = Replacement {
+            whole: false,
             scene: Zeroizing::new("a".repeat(4096)),
             query: Zeroizing::new("a".into()),
             value: Zeroizing::new("🪶".repeat(512)),
@@ -127,7 +152,7 @@ pub(super) unsafe fn apply_all(hwnd: HWND) {
             if plan.value.chars().any(|c| c.is_control() && c != '\t') {
                 return "&Szenentext · Ersatztext prüfen";
             }
-            let count = plan.scene.matches(plan.query.as_str()).count();
+            let count = project_search::hits(&plan.scene, &plan.query, plan.whole).count();
             if count == 0 {
                 return "&Szenentext · Kein Treffer";
             }
@@ -195,7 +220,9 @@ pub(super) unsafe fn apply(hwnd: HWND) {
             let Some(query) = project_metrics::units(GetDlgItem(hwnd, SEARCH), limit) else {
                 return stale;
             };
-            if scene.get(start..end) != Some(query.as_slice()) {
+            if scene.get(start..end) != Some(query.as_slice())
+                || !project_search::selected_boundary(&scene, start, end)
+            {
                 return stale;
             }
             let Some(mut value) = project_metrics::units(replacement, limit) else {

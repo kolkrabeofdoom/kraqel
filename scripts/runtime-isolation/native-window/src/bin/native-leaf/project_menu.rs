@@ -3,8 +3,10 @@ use super::*;
 
 pub(super) const SEARCH_MENU: usize = 217;
 pub(super) const CONTINUE: usize = 218;
+pub(super) const WHOLE_WORDS: usize = 220;
 
 pub(super) fn install(hwnd: HWND, edit_mode: bool) -> bool {
+    project_search::set_whole_words(false);
     let file = [
         (SAVE as usize, "&Speichern\tStrg+S"),
         (CONTINUE, "Speichern und &weiterschreiben\tStrg+Enter"),
@@ -14,6 +16,7 @@ pub(super) fn install(hwnd: HWND, edit_mode: bool) -> bool {
     let edit = [
         (SELECT_PARAGRAPH, "&Alles auswählen\tStrg+A"),
         (SEARCH_MENU, "&Suchen …\tStrg+F"),
+        (WHOLE_WORDS, "Nur &ganze Wörter"),
         (project_search::NEXT as usize, "&Nächster Treffer\tF3"),
         (
             project_search::PREVIOUS as usize,
@@ -46,8 +49,21 @@ pub(super) fn install(hwnd: HWND, edit_mode: bool) -> bool {
 pub(super) unsafe fn refresh(hwnd: HWND) {
     unsafe {
         let menu = GetMenu(hwnd);
+        if menu.is_null() {
+            return;
+        }
+        CheckMenuItem(
+            menu,
+            WHOLE_WORDS as u32,
+            MF_BYCOMMAND
+                | if project_search::whole_words() {
+                    MF_CHECKED
+                } else {
+                    MF_UNCHECKED
+                },
+        );
         let save = GetDlgItem(hwnd, SAVE);
-        if menu.is_null() || save.is_null() {
+        if save.is_null() {
             return;
         }
         let editable = GetWindowLongW(GetDlgItem(hwnd, EDIT), GWL_STYLE) & ES_READONLY == 0;

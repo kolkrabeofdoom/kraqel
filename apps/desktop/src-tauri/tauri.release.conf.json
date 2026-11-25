@@ -3,6 +3,10 @@
   "bundle": {
     "active": true,
     "targets": ["nsis"],
+    "resources": {
+      "../../../docs/licenses/unicode-ident-MIT.txt": "licenses/unicode-ident-MIT.txt",
+      "../../../docs/licenses/unicode-ident-UNICODE.txt": "licenses/unicode-ident-UNICODE.txt"
+    },
     "createUpdaterArtifacts": false,
     "useLocalToolsDir": true,
     "windows": {
