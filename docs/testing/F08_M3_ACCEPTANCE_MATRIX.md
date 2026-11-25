@@ -2,6 +2,12 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Einzelnen Treffer im Szenenentwurf ersetzen
+
+Im installierten Kandidaten `cc27c0c1fc37` öffnete Strg+H die Ersetzzeile des Editors. Bei abweichender Auswahl blieb der Entwurf erhalten. Bei gültiger Auswahl änderte „Treffer ersetzen“ nur den ersten von drei Unicode-Treffern. Rückgängig stellte den vollständigen Ausgangstext wieder her. Nach erneutem Ersetzen blieb die SQLite-Szene bis zum ausdrücklichen Strg+S auf Revision 0. Anschließend stimmten die Absätze auf Revision 1 und der für die Suche normalisierte Klartext. Nach dem Desktopneustart zeigte der Leser den vollständigen Text schreibgeschützt an. Die Ersetzbedienelemente waren dort nicht vorhanden.
+
+Der kombinierte Bedien- und ETW-Lauf verwendete ausschließlich eine synthetische Szene. Bearbeiten und Wiederlesen wurden in getrennten Desktopstarts erfasst. In beiden Prozessbäumen waren je ein Desktop, eine Fensterrolle und ein Datendienst zugeordnet. Je Baum wurden null Netzwerkereignisse einschließlich Loopback beobachtet. Alle vier Positivkontrollen wurden erkannt, ohne verlorene Ereignisse, Puffer oder Zuordnungslücken. Testinstallation, synthetisches Profil und Rohspur wurden bereinigt. SHA-256 des Installers: `c289c906559b105ee50fa8790c44f4509781f515aa1cdcd27b0cc2a452037da9`.
+
 ## Lokale Szenensuche im installierten Editor und Leser
 
 Im Kandidaten `63d3aca5cebe` öffnete Strg+F die Suche im Fokusmodus des Editors und im schreibgeschützten Leser. Der synthetische Text enthielt drei gleiche Unicode-Treffer in zwei Absätzen. F3, Umschalt+F3 und erneut F3 markierten den ersten, den letzten und wieder den ersten Treffer. Die ausgewählten UTF-16-Bereiche stimmten einschließlich der Windows-Zeilenumbrüche. Bei einem fehlenden Begriff erschien „Kein Treffer“. Esc schloss die Suche, gab den Fokus an die Szene zurück und erhielt im Editor den zuvor gewählten Fokusmodus.
