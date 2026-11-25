@@ -1,5 +1,7 @@
 //! Single-use product window. Only the owning, authenticated reply pipe receives the result.
 use super::*;
+#[path = "project_autosave.rs"]
+mod project_autosave;
 #[path = "project_close.rs"]
 mod project_close;
 #[path = "project_dialog.rs"]
@@ -219,6 +221,13 @@ fn changed_text(hwnd: HWND) -> Option<String> {
     project_metrics::draft(unsafe { GetDlgItem(hwnd, EDIT) })
 }
 
+unsafe fn status(hwnd: HWND, label: &str) {
+    unsafe {
+        SetDlgItemTextW(hwnd, STATUS, wide(label).as_ptr());
+        SendMessageW(hwnd, WM_SIZE, 0, 0);
+    }
+}
+
 unsafe fn focus_mode(hwnd: HWND) -> bool {
     unsafe { GetWindowLongPtrW(hwnd, GWLP_USERDATA) != 0 }
 }
@@ -258,6 +267,16 @@ unsafe fn toggle_focus(hwnd: HWND) {
 unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> LRESULT {
     unsafe {
         match msg {
+            WM_COMMAND if w == project_autosave::TOGGLE && l == 0 => {
+                let save = GetDlgItem(hwnd, SAVE);
+                if !save.is_null()
+                    && IsWindowEnabled(save) != 0
+                    && GetWindowLongW(GetDlgItem(hwnd, EDIT), GWL_STYLE) & ES_READONLY == 0
+                {
+                    project_autosave::toggle(hwnd);
+                }
+                0
+            }
             WM_COMMAND if l == 0 && matches!(w, UNDO | REDO) => {
                 project_history::step(GetDlgItem(hwnd, EDIT), w == REDO);
                 0
@@ -622,6 +641,7 @@ pub(super) fn display(
         // Lay out the wrapping EDIT before loading prose. At its initial one-pixel width,
         // wrapping a long paragraph can exceed the authenticated surface deadline.
         require(project_menu::install(hwnd, edit_mode), "install scene menu")?;
+        project_autosave::stop(hwnd);
         project_menu::refresh(hwnd);
         SendMessageW(hwnd, WM_SIZE, 0, 0);
         let field = GetDlgItem(hwnd, EDIT);
@@ -822,12 +842,24 @@ unsafe fn edit_loop(
         let mut saved: Option<Zeroizing<String>> = None;
         let mut pending = false;
         let mut pending_continue = false;
+        let mut background_pending = false;
+        let mut deferred = None;
         let mut available = true;
         let mut compare_available = false;
         let mut review: Option<project_review::Review> = None;
         let mut confirming = false;
         let committed = loop {
-            let message = next_message()?;
+            // Give an explicit close/save priority over a due follow-up autosave.
+            let message = if !pending && let Some(action) = deferred.take() {
+                MSG {
+                    hwnd,
+                    message: REQUEST,
+                    wParam: action,
+                    ..Default::default()
+                }
+            } else {
+                next_message()?
+            };
             if message.hwnd == hwnd
                 && message.message == WM_TIMER
                 && message.wParam == SAVE_TIMER
@@ -841,6 +873,15 @@ unsafe fn edit_loop(
                     }
                 };
                 KillTimer(hwnd, SAVE_TIMER);
+                let background = std::mem::take(&mut background_pending);
+                if matches!(&outcome, Err(_) | Ok(Reply::Failed | Reply::Conflict)) {
+                    project_autosave::stop(hwnd);
+                    // A queued close still asks about the draft. A failed write must
+                    // not be retried before the user has seen its result.
+                    if deferred != Some(CLOSE as usize) {
+                        deferred = None;
+                    }
+                }
                 if matches!(outcome, Ok(Reply::Committed)) {
                     break true;
                 }
@@ -860,7 +901,11 @@ unsafe fn edit_loop(
                             hwnd,
                             wide(format!("{title} · Revision {revision} – Bearbeiten")).as_ptr(),
                         );
-                        "Zwischenstand gespeichert."
+                        if background {
+                            "Zwischenstand automatisch gespeichert."
+                        } else {
+                            "Zwischenstand gespeichert."
+                        }
                     }
                     Ok(Reply::Conflict) => {
                         available = false;
@@ -888,6 +933,7 @@ unsafe fn edit_loop(
                                 &channel,
                                 command,
                                 "Auswahl wird gespeichert …",
+                                false,
                             ) {
                                 pending = true;
                                 confirming = true;
@@ -901,6 +947,7 @@ unsafe fn edit_loop(
                                 &channel,
                                 Request::CancelReview(generation),
                                 "Vergleich wird geschlossen …",
+                                false,
                             ) {
                                 pending = true;
                                 continue;
@@ -929,23 +976,51 @@ unsafe fn edit_loop(
                 if !available {
                     EnableWindow(GetDlgItem(hwnd, SAVE), 0);
                 }
-                SendMessageW(field, EM_SETREADONLY, 0, 0);
-                EnableWindow(GetDlgItem(hwnd, project_replace::APPLY), 1);
-                EnableWindow(GetDlgItem(hwnd, project_replace::ALL), 1);
+                if !background {
+                    SendMessageW(field, EM_SETREADONLY, 0, 0);
+                    EnableWindow(GetDlgItem(hwnd, project_replace::APPLY), 1);
+                    EnableWindow(GetDlgItem(hwnd, project_replace::ALL), 1);
+                    SetFocus(field);
+                }
                 project_menu::refresh(hwnd);
                 SetWindowTextW(GetDlgItem(hwnd, STATUS), wide(status).as_ptr());
                 SendMessageW(hwnd, WM_SIZE, 0, 0);
-                SetFocus(field);
+                if deferred.is_none() {
+                    project_autosave::resume(hwnd);
+                }
                 continue;
             }
-            if message.hwnd == hwnd && message.message == REQUEST {
+            let automatic = message.hwnd == hwnd
+                && message.message == WM_TIMER
+                && message.wParam == project_autosave::TIMER;
+            if automatic && !project_autosave::due(hwnd, pending) {
+                continue;
+            }
+            if automatic || (message.hwnd == hwnd && message.message == REQUEST) {
                 if pending {
+                    if background_pending {
+                        let id = message.wParam;
+                        let close = id == CLOSE as usize || id == IDCANCEL as usize;
+                        if close || (id == SAVE as usize && deferred != Some(CLOSE as usize)) {
+                            deferred = Some(if close { CLOSE as usize } else { id });
+                        } else if id == project_menu::CONTINUE && deferred.is_none() {
+                            deferred = Some(id);
+                        }
+                    }
                     continue;
                 }
                 let close = message.wParam == CLOSE as usize || message.wParam == IDCANCEL as usize;
-                let continuing = message.wParam == project_menu::CONTINUE;
+                let continuing = automatic || message.wParam == project_menu::CONTINUE;
                 let baseline = saved.as_ref().map_or(text, |s| s.as_str());
                 let draft = changed_text(hwnd).map(Zeroizing::new);
+                if message.wParam == SAVE as usize
+                    && saved.is_some()
+                    && available
+                    && draft.as_ref().is_some_and(|s| s.as_str() == baseline)
+                {
+                    // The latest write is already durable, including a queued Strg+S.
+                    break false;
+                }
                 if close {
                     if draft.as_deref().map(String::as_str) == Some(baseline) {
                         break false;
@@ -954,6 +1029,7 @@ unsafe fn edit_loop(
                         project_close::Choice::Discard => break false,
                         project_close::Choice::Continue => {
                             SetFocus(field);
+                            project_autosave::changed(hwnd);
                             continue;
                         }
                         project_close::Choice::Save => {}
@@ -966,6 +1042,13 @@ unsafe fn edit_loop(
                     continue;
                 }
                 let Some(draft) = draft else {
+                    if automatic {
+                        status(
+                            hwnd,
+                            "Automatisches Speichern wartet auf einen gültigen Entwurf.",
+                        );
+                        continue;
+                    }
                     MessageBoxW(hwnd, wide("Der Entwurf enthält ungültigen Text oder überschreitet die Grenze von 64 KiB UTF-8.").as_ptr(), wide("Speichern").as_ptr(), MB_OK | MB_ICONWARNING);
                     SetFocus(field);
                     continue;
@@ -975,15 +1058,12 @@ unsafe fn edit_loop(
                     (Request::Compare(draft), "Vergleich wird geladen …")
                 } else if continuing {
                     if draft.as_str() == baseline {
-                        SetWindowTextW(
-                            GetDlgItem(hwnd, STATUS),
-                            wide("Keine Änderungen zu speichern.").as_ptr(),
-                        );
-                        SendMessageW(hwnd, WM_SIZE, 0, 0);
+                        status(hwnd, "Keine Änderungen zu speichern.");
                         continue;
                     }
                     let Some(next_revision) = revision.checked_add(1) else {
                         available = false;
+                        project_autosave::stop(hwnd);
                         EnableWindow(GetDlgItem(hwnd, SAVE), 0);
                         project_menu::refresh(hwnd);
                         SetWindowTextW(
@@ -999,17 +1079,23 @@ unsafe fn edit_loop(
                             text: draft,
                             next_revision,
                         },
-                        "Zwischenstand wird gespeichert …",
+                        if automatic {
+                            "Automatisches Speichern läuft …"
+                        } else {
+                            "Zwischenstand wird gespeichert …"
+                        },
                     )
                 } else {
                     (Request::Save(draft), "Wird gespeichert …")
                 };
-                pending = start_request(hwnd, field, &channel, command, status);
-                if continuing && pending {
+                pending = start_request(hwnd, field, &channel, command, status, automatic);
+                background_pending = pending && automatic;
+                if continuing && pending && !automatic {
                     pending_continue = true;
                     EnableWindow(hwnd, 0);
                 }
                 if !pending {
+                    project_autosave::stop(hwnd);
                     review = None;
                     SetWindowTextW(
                         GetDlgItem(hwnd, STATUS),
@@ -1032,6 +1118,7 @@ unsafe fn start_request(
     channel: &Channel,
     command: Request,
     status: &str,
+    background: bool,
 ) -> bool {
     unsafe {
         if SetTimer(hwnd, SAVE_TIMER, 100, None) == 0 {
@@ -1041,9 +1128,11 @@ unsafe fn start_request(
             KillTimer(hwnd, SAVE_TIMER);
             return false;
         }
-        SendMessageW(field, EM_SETREADONLY, 1, 0);
-        EnableWindow(GetDlgItem(hwnd, project_replace::APPLY), 0);
-        EnableWindow(GetDlgItem(hwnd, project_replace::ALL), 0);
+        if !background {
+            SendMessageW(field, EM_SETREADONLY, 1, 0);
+            EnableWindow(GetDlgItem(hwnd, project_replace::APPLY), 0);
+            EnableWindow(GetDlgItem(hwnd, project_replace::ALL), 0);
+        }
         project_menu::refresh(hwnd);
         SetWindowTextW(GetDlgItem(hwnd, STATUS), wide(status).as_ptr());
         SendMessageW(hwnd, WM_SIZE, 0, 0);

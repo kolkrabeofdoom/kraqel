@@ -8,6 +8,7 @@ pub(super) fn install(hwnd: HWND, edit_mode: bool) -> bool {
     let file = [
         (SAVE as usize, "&Speichern\tStrg+S"),
         (CONTINUE, "Speichern und &weiterschreiben\tStrg+Enter"),
+        (project_autosave::TOGGLE, "&Automatisch speichern"),
         (CLOSE as usize, "S&chließen\tAlt+F4"),
     ];
     let edit = [
@@ -38,7 +39,7 @@ pub(super) fn install(hwnd: HWND, edit_mode: bool) -> bool {
             ],
         )
     } else {
-        install_menu_groups(hwnd, &[("&Datei", &file[2..]), ("&Bearbeiten", &edit)])
+        install_menu_groups(hwnd, &[("&Datei", &file[3..]), ("&Bearbeiten", &edit)])
     }
 }
 
@@ -55,6 +56,21 @@ pub(super) unsafe fn refresh(hwnd: HWND) {
         enable_menu_command(hwnd, REDO, editable && project_history::available(true));
         enable_menu_command(hwnd, SAVE as usize, editable && IsWindowEnabled(save) != 0);
         enable_menu_command(hwnd, CONTINUE, editable && IsWindowEnabled(save) != 0);
+        enable_menu_command(
+            hwnd,
+            project_autosave::TOGGLE,
+            editable && IsWindowEnabled(save) != 0,
+        );
+        CheckMenuItem(
+            menu,
+            project_autosave::TOGGLE as u32,
+            MF_BYCOMMAND
+                | if project_autosave::enabled() {
+                    MF_CHECKED
+                } else {
+                    MF_UNCHECKED
+                },
+        );
         enable_menu_command(hwnd, CLOSE as usize, editable);
         enable_menu_command(hwnd, project_replace::OPEN as usize, editable);
         enable_menu_command(
