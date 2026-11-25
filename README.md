@@ -572,10 +572,12 @@ Screenreader-Ausgabe, echte Exportdateien und Betriebssystemintegration benötig
 Nachweise. Aussagegrenzen gehören zur Testdokumentation – denn ein grüner Haken ist kein
 metaphysischer Wahrheitsbeweis.
 
-Der [Drehbuchformatierungsvertrag](docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md) liegt
-fachlich freigegeben vor; die Funktion ist noch nicht umgesetzt. Die
-[F08-/M3-Abnahmematrix](docs/testing/F08_M3_ACCEPTANCE_MATRIX.md) ordnet alle einschlägigen
-Kriterien den vorhandenen Nachweisen und offenen Gesamtprüfungen zu.
+Im Entwicklungszweig lassen sich Szenen ausdrücklich in Drehbuchszenen umwandeln. Sechs Absatzrollen
+bleiben beim Speichern und Wiederöffnen erhalten. Unter **Export → Drehbuch als A4-PDF** wählst du
+die zu druckenden Szenen einzeln aus. Ab dem ersten Speichern einer Drehbuchszene benötigt das
+Projekt den neuen Desktop. Die öffentliche Alpha 7 verwendet für Prosa weiterhin Schema 6.
+[Formatvertrag](docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md) ·
+[Prüfstand und Grenzen](docs/testing/F08_M3_ACCEPTANCE_MATRIX.md)
 
 ## Repositorystruktur
 

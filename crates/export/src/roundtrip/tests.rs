@@ -335,7 +335,7 @@ fn rejects_unknown_content_relationships_and_mime_spoofing() {
 #[test]
 fn rejects_duplicate_and_removed_empty_title_markers() {
     let bytes = write_docx_roundtrip(&sample()).unwrap();
-    let records = inventory::records(&sample());
+    let records = inventory::records(&sample()).unwrap();
     let empty = records
         .iter()
         .find(|r| r.node.role == Role::ChapterTitle && r.runs.as_ref().is_some_and(Vec::is_empty))

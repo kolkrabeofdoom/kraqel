@@ -175,6 +175,7 @@ impl Layout {
         for (index, block) in blocks.iter().enumerate() {
             let lead = if index == 0 { prefix } else { "" };
             match block {
+                Block::Screenplay(..) => return Err(IllustratedError::Invalid),
                 Block::Paragraph(runs) => self.paragraph(runs, 11.0, indent, lead, 0)?,
                 Block::Heading(_, runs) => self.paragraph(runs, 13.0, indent, lead, 1)?,
                 Block::Quote(children) => self.blocks(children, depth + 1, &format!("{lead}› "))?,

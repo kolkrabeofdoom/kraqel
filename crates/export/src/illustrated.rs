@@ -172,6 +172,12 @@ pub fn prepare(
     if selection.is_empty() || selection.len() > 200 {
         return Err(invalid());
     }
+    if documents
+        .iter()
+        .any(|doc| doc.content.version != kraqel_domain::EDITOR_DOCUMENT_VERSION)
+    {
+        return Err(invalid());
+    }
     validate_source_budget(project, documents)?;
     let manuscript =
         Manuscript::from_export_documents(project, documents).map_err(|_| invalid())?;

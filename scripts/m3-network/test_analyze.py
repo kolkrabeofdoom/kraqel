@@ -55,6 +55,14 @@ class AnalysisTests(unittest.TestCase):
         self.assertTrue(result["measurementValid"])
         self.assertEqual(result["result"], "no-non-loopback-traffic-observed")
 
+    def test_native_home_requires_a_desktop_root_without_webview(self):
+        self.start(10, 200, 1, "kraqel-desktop.exe")
+        self.stop(12, 200)
+        self.result()
+        self.assertTrue(analyze(self.path, (200,), self.ready, "native-home")["measurementValid"])
+        result = analyze(self.path, (100,), self.ready, "native-home")
+        self.assertIn("unexpected-webview2-process-tree", result["measurementProblems"])
+
     def test_native_control_requires_every_exact_root_even_without_a_gui(self):
         self.start(10, 200, 1, "kraqel-isolation-probe.exe")
         self.stop(11, 200)

@@ -1,0 +1,14 @@
+#pragma code_page(65001)
+#include <winuser.h>
+401 DIALOGEX 0, 0, 310, 188
+STYLE DS_SHELLFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "KRAQEL – Projektübersicht"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT "&Lokale Projekte", 101, 10, 9, 290, 12
+    LISTBOX 102, 10, 23, 290, 80, LBS_NOTIFY | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP | WS_BORDER
+    LTEXT "Über die Projektverwaltung kannst du Projekte anlegen, importieren oder löschen. Beim Öffnen eines Projekts oder der Verwaltung startet WebView2 und kann Netzwerkverbindungen herstellen.", -1, 10, 112, 290, 34
+    DEFPUSHBUTTON "Projekt &öffnen", IDOK, 10, 160, 74, 17
+    PUSHBUTTON "Projekt&verwaltung öffnen", 103, 90, 160, 119, 17
+    PUSHBUTTON "&Schließen", IDCANCEL, 236, 160, 64, 17
+END

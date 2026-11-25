@@ -55,5 +55,8 @@ fn main() {
             build.join(target).join("release").display()
         );
     }
-    tauri_build::build();
+    let windows =
+        tauri_build::WindowsAttributes::new().append_rc_content(include_str!("project-picker.rc"));
+    tauri_build::try_build(tauri_build::Attributes::new().windows_attributes(windows))
+        .expect("build desktop resources");
 }

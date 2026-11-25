@@ -4177,6 +4177,61 @@ fn map_credential_error(request_id: uuid::Uuid, error: CredentialError) -> Comma
     }
 }
 
+struct StartupProject(Option<ProjectId>);
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn startup_project(
+    state: State<'_, StartupProject>,
+    request: CommandRequest<ApplicationStatusRequest>,
+) -> Result<CommandResponse<Option<ProjectId>>, CommandError> {
+    require_current_contract(&request)?;
+    Ok(CommandResponse::current(request.request_id, state.0))
+}
+
+#[cfg(windows)]
+fn open_native_start(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    use kraqel_native_start::Choice;
+
+    let chosen = if std::env::args_os()
+        .skip(1)
+        .any(|arg| arg == "--projektverwaltung")
+    {
+        None
+    } else {
+        let state = app.state::<AppState>();
+        let projects =
+            ProjectManager::new(&state.project_root).and_then(|manager| manager.list_projects());
+        let names = projects.as_ref().ok().map(|items| {
+            items
+                .iter()
+                .map(|project| project.name.clone())
+                .collect::<Vec<_>>()
+        });
+        match kraqel_native_start::choose(names.as_deref())? {
+            Choice::Close => {
+                app.handle().exit(0);
+                return Ok(());
+            }
+            Choice::Management => None,
+            Choice::Project(index) => Some(projects?[index].id),
+        }
+    };
+    app.manage(StartupProject(chosen));
+    let config = app
+        .config()
+        .app
+        .windows
+        .iter()
+        .find(|w| w.label == "main")
+        .ok_or("Die Konfiguration für das Hauptfenster fehlt.")?;
+    tauri::WebviewWindowBuilder::from_config(app.handle(), config)?.build()?;
+    Ok(())
+}
+
 fn setup_local_state(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let project_root = app.path().app_local_data_dir()?.join("projects");
     fs::create_dir_all(&project_root)?;
@@ -4186,6 +4241,10 @@ fn setup_local_state(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Err
         project_root,
         ai_releases: Mutex::new(HashMap::new()),
     });
+    #[cfg(windows)]
+    open_native_start(app)?;
+    #[cfg(not(windows))]
+    app.manage(StartupProject(None));
     Ok(())
 }
 
@@ -4200,11 +4259,21 @@ fn setup_local_state(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Err
     reason = "Alle freigegebenen Tauri-Commands stehen in einer prüfbaren Registrierungsliste."
 )]
 pub fn run() {
+    let context = tauri::generate_context!();
+    #[cfg(windows)]
+    let context = {
+        let mut context = context;
+        for window in &mut context.config_mut().app.windows {
+            window.create = false;
+        }
+        context
+    };
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(setup_local_state)
         .invoke_handler(tauri::generate_handler![
             application_status,
+            startup_project,
             validate_project_name,
             list_projects,
             create_project,
@@ -4311,7 +4380,7 @@ pub fn run() {
             get_version_control_diff,
             commit_project_snapshot
         ])
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("KRAQEL konnte nicht gestartet werden");
 }
 

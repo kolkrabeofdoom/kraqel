@@ -111,6 +111,13 @@ impl Manuscript {
                 return Err(DocxRoundtripError);
             }
             preflight.text(&document.node.title)?;
+            if ordinary_export
+                && document.node.kind == DocumentKind::Scene
+                && document.content.version == kraqel_domain::SCREENPLAY_DOCUMENT_VERSION
+            {
+                // The dedicated parser validates the complete v2 grammar during tree construction.
+                continue;
+            }
             editor_shape(
                 &document.content.document,
                 &mut editor_nodes,
@@ -143,6 +150,9 @@ fn blocks(
         .map(|block| {
             budget.node(depth)?;
             Ok(match block {
+                Block::Screenplay(role, runs) if budget.ordinary_export => {
+                    Block::Screenplay(*role, inlines(runs, budget)?)
+                }
                 Block::Paragraph(runs) => Block::Paragraph(inlines(runs, budget)?),
                 Block::Heading(level, runs) if (1..=6).contains(level) => {
                     Block::Heading(*level, inlines(runs, budget)?)
@@ -150,7 +160,9 @@ fn blocks(
                 Block::Quote(children) if !children.is_empty() => {
                     Block::Quote(blocks(children, depth + 1, budget)?)
                 }
-                Block::Heading(_, _) | Block::Quote(_) => return Err(DocxRoundtripError),
+                Block::Screenplay(..) | Block::Heading(_, _) | Block::Quote(_) => {
+                    return Err(DocxRoundtripError);
+                }
                 Block::BulletList(items) | Block::OrderedList(items) => {
                     if items.is_empty() {
                         return Err(DocxRoundtripError);
@@ -224,6 +236,7 @@ impl Scene {
 }
 fn editor_blocks(blocks: &[Block]) -> Vec<Value> {
     blocks.iter().map(|block| match block {
+        Block::Screenplay(role,runs) => json!({"type":"screenplayBlock","attrs":{"role":role},"content":editor_inlines(runs)}),
         Block::Paragraph(runs) => json!({"type":"paragraph", "content":editor_inlines(runs)}),
         Block::Heading(level,runs) => json!({"type":"heading", "attrs":{"level":level}, "content":editor_inlines(runs)}),
         Block::Quote(children) => json!({"type":"blockquote", "content":editor_blocks(children)}),

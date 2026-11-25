@@ -72,7 +72,9 @@ export function Exports({
       <h2 id="export-heading">Manuskript exportieren</h2>
       <p>
         Kapitel, Szenen, Überschriften, Absätze, Listen, Zitate sowie fett und kursiv gesetzter Text
-        werden übernommen. Dateien entstehen ausschließlich im Projektordner <code>exports</code>.
+        werden übernommen. Markdown, HTML und das gewöhnliche DOCX geben auch Drehbuchrollen aus.
+        Für den Druck von Drehbuchszenen wähle unten „Drehbuch als A4-PDF“. Die Dateien liegen im
+        Projektordner <code>exports</code>.
       </p>
       <button
         type="button"

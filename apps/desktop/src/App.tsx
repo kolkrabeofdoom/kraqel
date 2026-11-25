@@ -9,6 +9,7 @@ import {
   KraqelCommandError,
   listProjects,
   openWorkspace,
+  startupProject,
   type ProjectOverview,
   type Workspace,
 } from "./commands";
@@ -19,7 +20,7 @@ export function App() {
   const [projects, setProjects] = useState<readonly ProjectOverview[]>([]);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [name, setName] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<ProjectOverview["id"] | null>(null);
 
@@ -59,7 +60,30 @@ export function App() {
   };
 
   useEffect(() => {
-    void refreshProjects();
+    let active = true;
+    async function initialize() {
+      try {
+        const [items, selected] = await Promise.all([listProjects(), startupProject()]);
+        if (!active) return;
+        setProjects(items);
+        if (selected) {
+          try {
+            const current = await openWorkspace(selected);
+            if (active) setWorkspace(current);
+          } catch {
+            if (active) setError("Das ausgewählte Projekt konnte nicht geöffnet werden.");
+          }
+        }
+      } catch {
+        if (active) setError("Die lokalen Projekte konnten nicht gelesen werden.");
+      } finally {
+        if (active) setBusy(false);
+      }
+    }
+    void initialize();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const submitProject = async (event: FormEvent<HTMLFormElement>) => {

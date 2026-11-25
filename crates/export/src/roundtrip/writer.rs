@@ -81,7 +81,7 @@ pub(super) fn properties(nodes: Vec<inventory::Node>) -> Result<(String, String)
 }
 
 pub(super) fn write(manuscript: &Manuscript) -> Result<Vec<u8>, ()> {
-    let records = inventory::records(manuscript);
+    let records = inventory::records(manuscript)?;
     let nodes = records.iter().map(|r| r.node.clone()).collect::<Vec<_>>();
     inventory::topology(&nodes)?;
     let (props, digest) = properties(nodes)?;

@@ -17,6 +17,7 @@ tauri-build = { version = "2", features = [] }
 isolation-ui-test = ["dep:kraqel-isolation-test-adapter"]
 
 [target.'cfg(windows)'.dependencies]
+kraqel-native-start = { path = "../native-start" }
 kraqel-archiv = { path = "../../../crates/portable-archive" }
 tempfile = "3"
 tokio = { version = "1", features = ["time"] }

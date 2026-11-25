@@ -2,6 +2,12 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](data-format/screenplay-v2.md)
 
+## Windows-Entwicklungsstand vom 25. November
+
+Der reguläre Windows-Start zeigt zuerst einen nativen Dialog mit der lokalen Projektliste. Ein Projekt auswählen und **Projekt öffnen** drücken oder über **Projektverwaltung öffnen** zur bisherigen Startseite wechseln. Beide Aktionen starten den WebView2-Desktop. Für Anlegen, Import und Löschen steht dort die gewohnte Verwaltung bereit. **Schließen** beendet die native Übersicht. Die veröffentlichte Alpha 7 hat noch den bisherigen Einstieg.
+
+Der installierte Drehbuchkandidat `aca30d0ae0d9` bestand den Bedienlauf bis zum Wiederöffnen und A4-Export. Im neueren Stand kann das gesamte Manuskript einschließlich Drehbuchrollen auch als Markdown, HTML und gewöhnliches DOCX ausgegeben werden. Die DOCX-Austauschfunktion v1 bleibt auf Prosa beschränkt. [Abnahme mit Word und LibreOffice](testing/F08_M3_ACCEPTANCE_MATRIX.md)
+
 ## Wiedereinstieg nach dem 24. November 2026
 
 Auf dem Entwicklungszweig `feat/kq-069-live-file-selection` mit `git pull --ff-only` beginnen.

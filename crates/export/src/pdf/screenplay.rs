@@ -2,12 +2,10 @@
 use super::{Canvas, Fonts, MAX_LINES, MAX_PACKAGE, PdfParseErrorSeverity, PdfSaveOptions};
 use crate::{
     ExportError, ExportFormat, ExportResult, ExportSourceDocument, Inline, atomic_write,
-    parse_inlines, prepare_export_directory,
+    prepare_export_directory,
+    screenplay::{Paragraph, paragraphs},
 };
-use kraqel_domain::{
-    DocumentKind, EntityId, Project, SCREENPLAY_DOCUMENT_VERSION, ScreenplayRole as Role,
-    screenplay::validate_sequence,
-};
+use kraqel_domain::{DocumentKind, EntityId, Project, ScreenplayRole as Role};
 use std::{
     collections::{HashMap, HashSet},
     path::Path,
@@ -36,35 +34,6 @@ const LIMIT: ExportError =
 const FONT_ERROR: ExportError = ExportError::InvalidDocument(
     "Der Text enthält Zeichen außerhalb des unterstützten Drehbuch-Schriftprofils.",
 );
-
-struct Paragraph {
-    role: Role,
-    runs: Vec<Inline>,
-}
-
-fn paragraphs(scene: &ExportSourceDocument) -> Result<Vec<Paragraph>> {
-    if scene.content.version != SCREENPLAY_DOCUMENT_VERSION || !scene.content.is_valid() {
-        return Err(INVALID_SELECTION);
-    }
-    let nodes = crate::array(
-        scene.content.document.get("content"),
-        "Die Drehbuchszene ist ungültig.",
-    )?;
-    let mut blocks = Vec::with_capacity(nodes.len());
-    let mut sequence = Vec::with_capacity(nodes.len());
-    for node in nodes {
-        let role: Role =
-            serde_json::from_value(node["attrs"]["role"].clone()).map_err(|_| INVALID_SELECTION)?;
-        let runs = parse_inlines(node.get("content"))?;
-        let has_text = runs
-            .iter()
-            .any(|r| matches!(r,Inline::Text{text,..} if !text.trim().is_empty()));
-        sequence.push((role, has_text));
-        blocks.push(Paragraph { role, runs });
-    }
-    validate_sequence(&sequence).map_err(ExportError::InvalidDocument)?;
-    Ok(blocks)
-}
 
 fn selected<'a>(
     project: &Project,
@@ -346,7 +315,7 @@ pub fn export_screenplay_pdf(
 ) -> Result<ExportResult> {
     let mut layout = Layout::new()?;
     for scene in selected(project, documents, ids)? {
-        layout.scene(&paragraphs(scene)?)?;
+        layout.scene(&paragraphs(&scene.content)?)?;
     }
     let bytes = layout.render()?;
     let output = prepare_export_directory(directory)?;
@@ -401,7 +370,7 @@ mod tests {
             ),
             block("transition", "SCHNITT AUF:"),
         ]);
-        docs[1].content.version = SCREENPLAY_DOCUMENT_VERSION;
+        docs[1].content.version = kraqel_domain::SCREENPLAY_DOCUMENT_VERSION;
         docs[1].content.document = json!({"type":"doc","content":blocks});
         let ids = [docs[1].node.id];
         let result = export_screenplay_pdf(root.path(), &project, &docs, &ids).unwrap();

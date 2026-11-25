@@ -143,6 +143,8 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       )
         throw new Error("Unerwartete Archivauswahl");
       return "received";
+    case "startup_project":
+      return null;
     case "list_projects":
       return state.projects.map(({ project }) => ({ id: project.id, name: project.name }));
     case "delete_project": {

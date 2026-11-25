@@ -223,6 +223,10 @@ export async function validateProjectName(name: string): Promise<ProjectNameVali
   return response.data;
 }
 
+export async function startupProject(): Promise<ProjectId | null> {
+  return (await callCommand<Record<string, never>, ProjectId | null>("startup_project", {})).data;
+}
+
 export async function listProjects(): Promise<readonly ProjectOverview[]> {
   const response = await callCommand<Record<string, never>, readonly ProjectOverview[]>(
     "list_projects",

@@ -2786,6 +2786,7 @@ dependencies = [
  "kraqel-git-service",
  "kraqel-isolation-probe",
  "kraqel-isolation-test-adapter",
+ "kraqel-native-start",
  "kraqel-storage",
  "serde",
  "serde_json",
@@ -2877,6 +2878,13 @@ dependencies = [
  "sha2 0.10.9",
  "tempfile",
  "uuid",
+]
+
+[[package]]
+name = "kraqel-native-start"
+version = "0.1.0"
+dependencies = [
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

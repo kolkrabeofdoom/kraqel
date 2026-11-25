@@ -81,9 +81,9 @@ def root_image_bindings(records):
 
 
 def analyze(path, root_pids, ready, mode="desktop", root_images=None):
-    if mode not in ("desktop", "exchange", "isolation-ui", "broker-ui", "native-control", "p3-handoff"):
+    if mode not in ("desktop", "native-home", "exchange", "isolation-ui", "broker-ui", "native-control", "p3-handoff"):
         raise ValueError("Unknown bounded measurement mode")
-    root_image = "kraqel-desktop.exe" if mode == "desktop" else "kraqel-isolation-probe.exe"
+    root_image = "kraqel-desktop.exe" if mode in ("desktop", "native-home") else "kraqel-isolation-probe.exe"
     if mode == "p3-handoff":
         root_image = "python.exe"
     if root_images is not None:
@@ -158,6 +158,8 @@ def analyze(path, root_pids, ready, mode="desktop", root_images=None):
         problems.append("ambiguous-root-pid-reuse")
     if mode == "desktop" and not any(process.image == "msedgewebview2.exe" for process in own_processes):
         problems.append("missing-webview2-process-tree")
+    if mode == "native-home" and any(process.image == "msedgewebview2.exe" for process in own_processes):
+        problems.append("unexpected-webview2-process-tree")
     if mode == "exchange" and any(not any(process.image == root_image and process.parent == root_pid and process.pid != root_pid for process in own_processes) for root_pid in root_pids):
         problems.append("missing-exchange-worker")
     if mode == "isolation-ui" and any(not any(process.image == "kraqel-desktop.exe" and process.parent == root_pid for process in own_processes) or not any(process.image == "msedgewebview2.exe" and process.root_pid == root_pid for process in own_processes) for root_pid in root_pids):
@@ -223,7 +225,7 @@ def main():
     parser.add_argument("ready_json", type=Path)
     parser.add_argument("--root-pid", type=int, action="append", required=True)
     parser.add_argument("--root-map", type=Path, help="Private JSON list of exact pid/image bindings; native-control only")
-    parser.add_argument("--mode", choices=("desktop", "exchange", "isolation-ui", "broker-ui", "native-control", "p3-handoff"), default="desktop")
+    parser.add_argument("--mode", choices=("desktop", "native-home", "exchange", "isolation-ui", "broker-ui", "native-control", "p3-handoff"), default="desktop")
     args = parser.parse_args()
     ready = json.loads(args.ready_json.read_text(encoding="utf-8-sig"))
     bindings = json.loads(args.root_map.read_text(encoding="utf-8-sig")) if args.root_map else None

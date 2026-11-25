@@ -50,8 +50,8 @@ Aktuell im Repository und verifiziert:
 - **Workspaces:** pnpm-Monorepo für TypeScript, Cargo-Workspace für Rust.
 - **Verträge:** versionierte Request-/Response-Hüllen, UUID-Typen und bereinigte IPC-Fehler in Rust
   und TypeScript.
-- **Persistenz:** SQLite-Migrationsstand 6 mit Fremdschlüsseln, FTS5, Medienmetadaten, visuellen
-  Profilen, Stilvorlagen und Bildprompt-Entwürfen im `kraqel-storage`-Crate; sicherer
+- **Persistenz:** SQLite-Schema 6 für reine Prosa, Schema 7 ab dem ersten Speichern einer Drehbuchszene. Beide verwenden Fremdschlüssel, FTS5, Medienmetadaten, visuelle
+  Profile, Stilvorlagen und Bildprompt-Entwürfe im `kraqel-storage`-Crate; sicherer
   Projektlebenszyklus mit Datenbank- und Assetbackup.
 - **Story-Bibel:** typisierte Figuren, Orte, Fraktionen und Gegenstände, freie Eigenschaften,
   gerichtete Relationen, Unicode-Suche, Szenen-Rückverweise und atomare Dubletten-Zusammenführung
@@ -64,13 +64,13 @@ Aktuell im Repository und verifiziert:
   Alle internen Git-Prozesse setzen `core.longpaths=true` ausschließlich pro Aufruf, damit
   SHA-256-Assets auch unter langen Windows-App-Datenpfaden stagebar bleiben.
 - **Manuelle Fassungswahl unter Windows:** Volltexte zweier Projektfassungen dürfen im Versionsdialog nur nach nativer Bestätigung über den isolierten Vergleich angezeigt werden. Die WebView erhält Status, Prüfsummen und Ordnerkennung der freigegebenen Kopie. Auch Git liefert dem Versionsdialog ausschließlich Änderungszahlen und Dateipfade. Die Produktrollen werden beim Windows-Build eingebettet. Eine externe Wahl wird unmittelbar vor Veröffentlichung der Kopie gegen die geprüften Revisionen und Inhalte abgeglichen. [Bedienung](README.md#szenenstände-auf-zwei-rechnern-vergleichen)
-- **Archivimport:** streng begrenzte Snapshot-v3-ZIP-Archive werden vollständig in Rust geprüft und
+- **Archivimport:** streng begrenzte Snapshot-v3-/v4-ZIP-Archive werden vollständig in Rust geprüft und
   erst danach als neues Projekt mit neuer UUID atomar veröffentlicht. Die Oberfläche bietet sowohl
   die offline eingebettete Beispielvorlage als auch eine native Auswahl für `.kraqel`- und
   ZIP-Dateien. Pfad und Archivbytes bleiben vollständig in Rust und werden nicht über IPC an React
   gegeben.
 - **Archivexport:** Ein nativer Speicherdialog veröffentlicht einen unmittelbar zuvor erzeugten und
-  geprüften Snapshot v3 als deterministisches `.kraqel`-Archiv. Zielpfad und Archivbytes bleiben in
+  geprüften Snapshot (v3 für Prosa, v4 bei Drehbuchrollen) als deterministisches `.kraqel`-Archiv. Zielpfad und Archivbytes bleiben in
   Rust; React erhält nur Dateiname, Größe und Snapshotzusammenfassung.
 - **Projektlöschung:** Die Startseite trennt Öffnen und Löschen. Erst eine zweite sichtbare
   Bestätigung löst den Rust-Command aus; Rust verlangt zusätzlich ein Bestätigungsflag und prüft

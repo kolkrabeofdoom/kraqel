@@ -159,10 +159,11 @@ fn emit_blocks(
     offset: usize,
     quote: usize,
     numbering: Option<usize>,
-) {
+) -> Result<(), ()> {
     for (position, block) in source.iter().enumerate() {
         let num = if position == 0 { numbering } else { None };
         match block {
+            Block::Screenplay(..) => return Err(()),
             Block::Paragraph(runs) => {
                 push(
                     records,
@@ -203,7 +204,7 @@ fn emit_blocks(
                     None,
                     quote,
                 );
-                emit_blocks(records, children, index, 0, quote + 1, None);
+                emit_blocks(records, children, index, 0, quote + 1, None)?;
             }
             Block::BulletList(items) | Block::OrderedList(items) => {
                 let role = if matches!(block, Block::BulletList(_)) {
@@ -222,13 +223,14 @@ fn emit_blocks(
                 );
                 for (position, item) in items.iter().enumerate() {
                     let index = push(records, Role::Item, Some(list), position, None, None, quote);
-                    emit_blocks(records, item, index, 0, quote, Some(list + 1));
+                    emit_blocks(records, item, index, 0, quote, Some(list + 1))?;
                 }
             }
         }
     }
+    Ok(())
 }
-pub(super) fn records(manuscript: &Manuscript) -> Vec<Record> {
+pub(super) fn records(manuscript: &Manuscript) -> Result<Vec<Record>, ()> {
     let mut output = Vec::new();
     let root = push(&mut output, Role::Manuscript, None, 0, None, None, 0);
     title(&mut output, Role::ProjectTitle, root, &manuscript.title);
@@ -254,10 +256,10 @@ pub(super) fn records(manuscript: &Manuscript) -> Vec<Record> {
                 0,
             );
             title(&mut output, Role::SceneTitle, s, &scene.title);
-            emit_blocks(&mut output, &scene.blocks, s, 1, 0, None);
+            emit_blocks(&mut output, &scene.blocks, s, 1, 0, None)?;
         }
     }
-    output
+    Ok(output)
 }
 
 pub(super) fn payload(nodes: Vec<Node>) -> Result<(String, Header), ()> {
