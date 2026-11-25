@@ -2,6 +2,12 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Native Projektanlage und direkte Bearbeitung im Installer
+
+Der installierte Windows-Kandidat `abaca29bec34` startete mit einem leeren synthetischen Profil. Über **Projekt anlegen** entstand ein Projekt mit **Kapitel 1** und **Szene 1**. **Bearbeiten** öffnete die leere Szene direkt. Nach dem Speichern zweier Absätze und einem vollständigen Desktopneustart zeigte **Lesen** den exakten Text schreibgeschützt an. Die separate SQLite-Abfrage bestätigte beide Absatzknoten auf Revision 1.
+
+Die gemeinsame ETW-Spur erfasste je Desktopstart genau eine Fensterrolle und einen Datendienst. In beiden Prozessbäumen wurden null Netzereignisse einschließlich Loopback und keine WebView2-Prozesse beobachtet. Alle vier positiven TCP-/UDP-Kontrollen über IPv4/IPv6 wurden erkannt, ohne Ereignis- oder Pufferverlust. Die Messung erfasst die ausgeübten nativen Wege. Installer-SHA-256: `fcf46560be8d7e9684df5d110baa33db9a8960dd696edcb27c4a3900a14acee3`.
+
 ## Installiertes Schreiben mit Wiederöffnen · 25. November 2026
 
 Im installierten Kandidaten `e24c9c959069` wurde eine synthetische Prosaszene gelesen, ausdrücklich zum Bearbeiten geöffnet und mit zwei Absätzen gespeichert. Nach dem Beenden und einem neuen Desktopstart zeigte das schreibgeschützte Fenster beide Absätze exakt wieder an. SQLite bestätigte beide Absatzknoten auf Revision 1.
