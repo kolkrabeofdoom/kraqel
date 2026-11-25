@@ -2,6 +2,12 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Unabhängige Szenen- und Kapitelfassungen
+
+Die native Bedienprobe lief mit dem Windows-Releaseprogramm zum Commit `c8279c7c2753` und einem eigenen synthetischen Projekt. Eine Szene wurde zunächst im selben Kapitel kopiert. Die Kapitelkopie mit zwei Szenen wurde einmal abgebrochen und anschließend bestätigt. Danach wurde eine Szene ins andere Kapitel kopiert, nur diese Variante bearbeitet und gespeichert. Nach vollständigem Prozessneustart zeigten drei getrennte Leseöffnungen die erwarteten Texte. SQLite enthielt sieben Gliederungseinträge. Die ursprüngliche Szene hatte Revision 1, die entsprechende Szene der Kapitelkopie Revision 0 und die eigenständig bearbeitete Variante Revision 1. Das Prüfprofil wurde entfernt.
+
+Zwei gezielte SQLite-Tests belegen den Erhalt kanonischer formatierter Prosa und von Drehbuchrollen, neue Kennungen, Szenenreihenfolge und Volltextindex. Ein inzwischen geändertes Ziel oder eine veraltete Kindrevision blockierte die Kopie. Beim Fehler nach Beginn einer Kapitelkopie enthielt die Gliederung anschließend keinen Teileintrag.
+
 ## Schreibweisen bei Szenensuche und Ersatz
 
 Leser und Editor wurden mit „Raben Rabe rabe RABE Rabe_2.“ geöffnet. Die native Bedienprobe fand für „Rabe“ zunächst drei Treffer, nach Abschalten von **Groß-/Kleinschreibung beachten** fünf, mit zusätzlicher Ganzwortsuche drei. Nach dem Umschalten war die vorherige Markierung für Einzelersatz gesperrt. Der Editor ersetzte das ausgewählte kleingeschriebene Wort einzeln und auf ausdrückliche Bestätigung alle drei selbständigen Schreibweisen. „Raben“ und „Rabe_2“ blieben erhalten. Rückgängig stellte jeweils den Ausgangstext her. Beide Fenster schlossen regulär. Die Probe lief am kompilierten nativen Testziel. Der Unicode-Regressionstest bestätigt außerdem, dass als Ersatz eingegebenes „k“ die Originaltreffer „K“, „K“ und „k“ einheitlich wiedergibt.

@@ -35,6 +35,7 @@ const DOWN: i32 = 112;
 const MOVE: i32 = 113;
 const REMOVE: i32 = 114;
 const COPY: i32 = 117;
+const POSITION: i32 = 119;
 
 pub enum Choice {
     Close,
@@ -89,6 +90,7 @@ pub enum OutlineChoice {
     Create(Option<usize>),
     Rename(usize),
     Copy(usize),
+    Position(usize),
     Open(usize),
     Edit(usize),
     Up(usize),
@@ -103,6 +105,7 @@ impl OutlineChoice {
             Self::Back => None,
             Self::Create(index) => index,
             Self::Copy(i)
+            | Self::Position(i)
             | Self::Rename(i)
             | Self::Open(i)
             | Self::Edit(i)
@@ -164,24 +167,37 @@ pub fn choose_destination(names: &[String], current: usize) -> io::Result<Option
 
 /// Select a destination for a scene copy, with its current chapter preselected.
 pub fn choose_copy_destination(names: &[String], current: usize) -> io::Result<Option<usize>> {
+    choose_numbered_target(409, names, current)
+}
+
+/// The selected index is the final position within the displayed siblings.
+pub fn choose_position(names: &[String], current: usize) -> io::Result<Option<usize>> {
+    choose_numbered_target(411, names, current)
+}
+
+fn choose_numbered_target(
+    resource: u16,
+    names: &[String],
+    current: usize,
+) -> io::Result<Option<usize>> {
     if current >= names.len() {
-        return Err(io::Error::other("Das aktuelle Kapitel fehlt."));
+        return Err(io::Error::other("Der ausgewählte Eintrag fehlt."));
     }
-    let destinations: Vec<_> = names
+    let numbered: Vec<_> = names
         .iter()
         .enumerate()
         .map(|(i, name)| format!("{}. {name}", i + 1))
         .collect();
     match list_result(
-        409,
-        &destinations,
-        "Es gibt kein Zielkapitel.",
+        resource,
+        &numbered,
+        "Keine Einträge vorhanden.",
         Some(current),
         false,
     )? {
         None => Ok(None),
         Some((IDOK, Some(index))) => Ok(Some(index)),
-        _ => Err(io::Error::other("Ungültiges Zielkapitel.")),
+        _ => Err(io::Error::other("Ungültige Zielauswahl.")),
     }
 }
 
@@ -195,6 +211,7 @@ fn choose_outline(
     match list_result(resource, names, empty, selected, has_other_chapters)? {
         None => Ok(OutlineChoice::Back),
         Some((NEW_DOCUMENT, index)) => Ok(OutlineChoice::Create(index)),
+        Some((POSITION, Some(index))) if names.len() > 1 => Ok(OutlineChoice::Position(index)),
         Some((COPY, Some(index))) => Ok(OutlineChoice::Copy(index)),
         Some((RENAME, Some(index))) => Ok(OutlineChoice::Rename(index)),
         Some((REMOVE, Some(index))) => Ok(OutlineChoice::Remove(index)),
@@ -248,6 +265,7 @@ fn list_result(
 unsafe fn update_outline_buttons(hwnd: HWND, index: Option<usize>, entries: &Entries<'_>) {
     for (id, enabled) in [
         (COPY, index.is_some()),
+        (POSITION, index.is_some() && entries.names.len() > 1),
         (UP, index.is_some_and(|i| i > 0)),
         (DOWN, index.is_some_and(|i| i + 1 < entries.names.len())),
         (MOVE, index.is_some() && entries.has_other_chapters),
@@ -332,7 +350,7 @@ unsafe extern "system" fn handle(hwnd: HWND, message: u32, action: WPARAM, data:
                     }
                     LIST if notification == LBN_DBLCLK => IDOK,
                     IDOK | BROWSE | EDIT_SCENE | MANAGE | NEW_PROJECT | NEW_DOCUMENT | RENAME
-                    | UP | DOWN | MOVE | REMOVE | COPY
+                    | UP | DOWN | MOVE | REMOVE | COPY | POSITION
                         if !GetDlgItem(hwnd, id).is_null() =>
                     {
                         id

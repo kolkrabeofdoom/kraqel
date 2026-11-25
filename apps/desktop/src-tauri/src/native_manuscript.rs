@@ -4,7 +4,8 @@ use kraqel_domain::EntityId;
 use kraqel_isolation_transport::{SceneOutcome, SceneRequest, SceneSaveStatus};
 use kraqel_native_start::{
     OutlineChoice, SceneAction, ask_copy_title, ask_document_title, choose_chapter,
-    choose_copy_destination, choose_destination, choose_scene, confirm_removal, notify,
+    choose_copy_destination, choose_destination, choose_position, choose_scene, confirm_removal,
+    notify,
 };
 use kraqel_storage::document_repository::{
     DeletePreview, DocumentError, OutlineMove, is_valid_document_title,
@@ -206,9 +207,13 @@ pub(super) fn browse(home: &Path, manager: &ProjectManager, project: ProjectId) 
                     }
                 }
             }
-            OutlineChoice::Up(_) | OutlineChoice::Down(_) | OutlineChoice::Move(_) => {
+            OutlineChoice::Up(_)
+            | OutlineChoice::Down(_)
+            | OutlineChoice::Move(_)
+            | OutlineChoice::Position(_) => {
                 let id = node.ok_or("Dokumentauswahl fehlt.")?.id;
-                let Some(direction) = choose_move(&choice, &chapters, chapter_index)? else {
+                let Some(direction) = choose_move(&choice, &names, &chapters, chapter_index)?
+                else {
                     continue;
                 };
                 let mut opened = manager.open_project(project.to_string())?;
@@ -372,10 +377,14 @@ fn deletion_details(preview: &DeletePreview) -> String {
 
 fn choose_move(
     choice: &OutlineChoice,
+    siblings: &[String],
     chapters: &[&DocumentNode],
     current: Option<usize>,
 ) -> Result<Option<OutlineMove>> {
     match choice {
+        OutlineChoice::Position(index) => {
+            Ok(choose_position(siblings, *index)?.map(OutlineMove::AtIndex))
+        }
         OutlineChoice::Up(_) => Ok(Some(OutlineMove::Earlier)),
         OutlineChoice::Down(_) => Ok(Some(OutlineMove::Later)),
         OutlineChoice::Move(_) => {

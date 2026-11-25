@@ -26,6 +26,8 @@ pub(crate) const MAX_EDITOR_DOCUMENT_BYTES: usize = 5 * 1024 * 1024;
 pub enum OutlineMove {
     Earlier,
     Later,
+    /// Final zero-based position in the selected list of siblings.
+    AtIndex(usize),
     AppendToChapter(EntityId),
 }
 
@@ -684,7 +686,7 @@ impl<'database> DocumentRepository<'database> {
                 }
                 compact_siblings(&transaction, project_id, Some(parent))?;
             }
-            OutlineMove::Earlier | OutlineMove::Later => {
+            OutlineMove::Earlier | OutlineMove::Later | OutlineMove::AtIndex(_) => {
                 let mut siblings: Vec<_> = current
                     .iter()
                     .filter(|n| n.parent_id == node.parent_id)
@@ -694,12 +696,19 @@ impl<'database> DocumentRepository<'database> {
                     .iter()
                     .position(|id| *id == selected)
                     .ok_or(DocumentError::NotFound)?;
-                let adjacent = match direction {
+                let target = match direction {
                     OutlineMove::Earlier => index.checked_sub(1),
-                    _ => index.checked_add(1).filter(|n| *n < siblings.len()),
+                    OutlineMove::AtIndex(target) => Some(target),
+                    _ => index.checked_add(1),
                 }
+                .filter(|target| *target < siblings.len())
                 .ok_or(DocumentError::InvalidInput)?;
-                siblings.swap(index, adjacent);
+                if index == target {
+                    transaction.commit()?;
+                    return Ok(());
+                }
+                siblings.remove(index);
+                siblings.insert(target, selected);
                 write_order(
                     &transaction,
                     project_id,
@@ -1338,6 +1347,7 @@ mod tests {
             .unwrap();
         for movement in [
             super::OutlineMove::Later,
+            super::OutlineMove::AtIndex(0),
             super::OutlineMove::AppendToChapter(second_chapter.id),
         ] {
             assert!(matches!(
@@ -1417,6 +1427,33 @@ mod tests {
         assert_eq!(remaining.len(), 1);
         assert_eq!(remaining[0].id, second_chapter.id);
         assert_eq!(remaining[0].position, 0);
+
+        let middle = repository
+            .create(project.id, None, DocumentKind::Chapter, "Mitte")
+            .unwrap();
+        let last = repository
+            .create(project.id, None, DocumentKind::Chapter, "Ende")
+            .unwrap();
+        let outline = repository.list(project.id).unwrap();
+        let move_first = |repo: &mut DocumentRepository<'_>, index| {
+            repo.move_in_outline(
+                project.id,
+                &outline,
+                second_chapter.id,
+                super::OutlineMove::AtIndex(index),
+            )
+        };
+        assert!(matches!(
+            move_first(&mut repository, 3),
+            Err(DocumentError::InvalidInput)
+        ));
+        move_first(&mut repository, 0).unwrap();
+        move_first(&mut repository, 2).unwrap();
+        let nodes = repository.list(project.id).unwrap();
+        assert_eq!(
+            nodes.iter().map(|n| (n.id, n.position)).collect::<Vec<_>>(),
+            [(middle.id, 0), (last.id, 1), (second_chapter.id, 2)]
+        );
     }
 
     #[test]
