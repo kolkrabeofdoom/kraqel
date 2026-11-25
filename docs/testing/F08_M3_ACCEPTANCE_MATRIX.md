@@ -2,6 +2,14 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Ungespeicherter Entwurf und Speicherbestätigung im installierten Desktop
+
+Im installierten Kandidaten `db3184d7b200` schlossen unveränderte und vollständig zurückgenommene Texte direkt. Bei einem geänderten Entwurf öffneten X und Alt+F4 die Schließabfrage. **Weiterschreiben** hatte Fokus und Vorgabe. Enter kehrte in den Entwurf zurück. **Verwerfen** ließ Inhalt und Revision 0 der gespeicherten Szene unverändert.
+
+Eine zweite Schreibverbindung blockierte die synthetische SQLite-Datenbank. Der fehlgeschlagene Speicherversuch erhielt den vollständigen Text im selben Editfenster. Nach dem Lösen der Sperre bestätigte **Speichern** dort beide Absätze auf Revision 1. Ein weiterer kontrollierter Schreibzug änderte die Szene während einer neuen Editiersitzung auf Revision 2. Der Konflikt hielt den lokalen Entwurf im selben Fenster bearbeitbar. Beide Speicheraktionen der veralteten Sitzung waren gesperrt. Nach ausdrücklichem Verwerfen und einem Desktopneustart stimmten Text und Revision 2 der zwischenzeitlich gespeicherten Fassung.
+
+Eine gemeinsame kalibrierte ETW-Aufzeichnung erfasste beim ersten Desktopstart fünf Paare aus Fensterrolle und Datendienst, beim zweiten ein Paar. Beide Prozessbäume zeigten null Netzereignisse einschließlich Loopback und keine WebView2-Prozesse. Alle vier Positivkontrollen wurden erkannt, ohne verlorene Ereignisse oder Puffer. Der erste Messversuch war wegen uneindeutiger Dialogzuordnung im Prüfläufer verworfen worden. Die gültige Wiederholung prüfte zusätzlich Fensterthread, Prozess, Eigentümerfenster und Fokus des aktiven Dialogs. Testinstallation, synthetisches Profil und Rohaufzeichnung wurden entfernt. Installer-SHA-256: `96c9c4aba9a6c51b9e97f971d79c003b448f1bc1eeed2e3f180b696ef7df75b3`.
+
 ## Geschütztes Entfernen im installierten Win32-Desktop
 
 Im Kandidaten `30329182c440` öffnete Entf in der fokussierten Liste die schreibgeschützte Vorschau zur ausgewählten Szene und ihrem Kapitel. **Abbrechen** hatte den Fokus und war die Standardschaltfläche. Enter ließ alle vier Dokumente bestehen. Die ausdrückliche Bestätigung entfernte genau die gewählte Szene. Eine weitere Vorschau führte das gewählte Kapitel und dessen eine verbliebene Kindszene auf. Die Bestätigung entfernte beide. Nach vollständigem Desktopneustart enthielt die gleichnamige Szene im anderen Kapitel ihre beiden Absätze auf Revision 1. Ihre Dokumentkennung, Kapitelzuordnung und Inhaltsprüfsumme waren unverändert.
