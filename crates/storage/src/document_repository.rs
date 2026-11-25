@@ -530,13 +530,44 @@ impl<'database> DocumentRepository<'database> {
         expected_title: &str,
         title: &str,
     ) -> Result<DocumentNode, DocumentError> {
+        self.rename_checked(project_id, document_id, expected_title, None, title)
+    }
+
+    /// Renames the displayed node only while its title and place in the project tree still match.
+    ///
+    /// # Errors
+    /// Returns a conflict if another operation renamed or moved the selected node.
+    pub fn rename_selected(
+        &mut self,
+        selected: &DocumentNode,
+        title: &str,
+    ) -> Result<DocumentNode, DocumentError> {
+        self.rename_checked(
+            selected.project_id,
+            selected.id,
+            &selected.title,
+            Some((selected.kind, selected.parent_id)),
+            title,
+        )
+    }
+
+    fn rename_checked(
+        &mut self,
+        project_id: ProjectId,
+        document_id: EntityId,
+        expected_title: &str,
+        location: Option<(DocumentKind, Option<EntityId>)>,
+        title: &str,
+    ) -> Result<DocumentNode, DocumentError> {
         validate_imported_title(expected_title)?;
         validate_title(title)?;
         let title = title.trim();
         let timestamp = current_timestamp()?;
         let transaction = self.database.transaction()?;
         let mut node = load_node(&transaction, project_id, document_id)?;
-        if node.title != expected_title {
+        if node.title != expected_title
+            || location.is_some_and(|p| p != (node.kind, node.parent_id))
+        {
             return Err(DocumentError::RevisionConflict);
         }
         let changed = transaction.execute(
@@ -827,9 +858,14 @@ fn validate_project_and_parent(
     }
 }
 
+/// Whether a newly entered chapter or scene title fits the repository.
+#[must_use]
+pub fn is_valid_document_title(title: &str) -> bool {
+    (1..=240).contains(&title.trim().chars().count())
+}
+
 fn validate_title(title: &str) -> Result<(), DocumentError> {
-    let length = title.trim().chars().count();
-    if (1..=240).contains(&length) {
+    if is_valid_document_title(title) {
         Ok(())
     } else {
         Err(DocumentError::InvalidInput)
@@ -1060,8 +1096,16 @@ mod tests {
             )
             .expect("scene should be created");
 
+        let stale_location = kraqel_domain::DocumentNode {
+            parent_id: Some(second_chapter.id),
+            ..first_scene.clone()
+        };
+        assert!(matches!(
+            repository.rename_selected(&stale_location, "Ankunft"),
+            Err(DocumentError::RevisionConflict)
+        ));
         let renamed = repository
-            .rename(project.id, first_scene.id, "Szene 1", "Ankunft")
+            .rename_selected(&first_scene, "Ankunft")
             .expect("current title should rename");
         assert_eq!(renamed.title, "Ankunft");
         assert_eq!(renamed.revision, first_scene.revision);

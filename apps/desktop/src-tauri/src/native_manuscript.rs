@@ -1,6 +1,10 @@
 //! Native metadata navigation. The separate authenticated roles own the manuscript control.
 use super::{DocumentKind, DocumentNode, DocumentRepository, ProjectId, ProjectManager};
-use kraqel_native_start::{SceneAction, choose_chapter, choose_scene, notify};
+use kraqel_domain::EntityId;
+use kraqel_native_start::{
+    OutlineChoice, SceneAction, ask_document_title, choose_chapter, choose_scene, notify,
+};
+use kraqel_storage::document_repository::is_valid_document_title;
 use kraqel_storage::native_scene::{NativeScene, SceneReadGrant};
 use std::{error::Error, path::Path};
 use zeroize::Zeroizing;
@@ -10,14 +14,10 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 fn children(
     manager: &ProjectManager,
     project: ProjectId,
-    parent: Option<kraqel_domain::EntityId>,
+    parent: Option<EntityId>,
+    kind: DocumentKind,
 ) -> Result<Vec<DocumentNode>> {
     let mut opened = manager.open_project(project.to_string())?;
-    let kind = if parent.is_some() {
-        DocumentKind::Scene
-    } else {
-        DocumentKind::Chapter
-    };
     Ok(DocumentRepository::new(opened.database_mut())
         .list(project)?
         .into_iter()
@@ -100,21 +100,81 @@ fn show(
 }
 
 pub(super) fn browse(home: &Path, manager: &ProjectManager, project: ProjectId) -> Result<()> {
+    browse_level(home, manager, project, None)
+}
+
+fn browse_level(
+    home: &Path,
+    manager: &ProjectManager,
+    project: ProjectId,
+    parent: Option<EntityId>,
+) -> Result<()> {
+    let (kind, label) = if parent.is_some() {
+        (DocumentKind::Scene, "Szene")
+    } else {
+        (DocumentKind::Chapter, "Kapitel")
+    };
+    let mut selected = None;
     loop {
-        let chapters = children(manager, project, None)?;
-        let Some(index) = choose_chapter(&titles(&chapters))? else {
-            return Ok(());
+        let nodes = children(manager, project, parent, kind)?;
+        let names = titles(&nodes);
+        let index = nodes.iter().position(|node| Some(node.id) == selected);
+        let choice = match kind {
+            DocumentKind::Chapter => choose_chapter(&names, index)?,
+            DocumentKind::Scene => choose_scene(&names, index)?,
         };
-        loop {
-            let scenes = children(manager, project, Some(chapters[index].id))?;
-            let Some((index, action)) = choose_scene(&titles(&scenes))? else {
-                break;
-            };
-            if show(home, manager, &scenes[index], action).is_err() {
-                notify(
-                    "Die gebundene Szenensitzung konnte nicht abgeschlossen werden. Bitte prüfe die aktuelle Auswahl.",
-                );
+        let selected_index = match choice {
+            OutlineChoice::Back => None,
+            OutlineChoice::Create(index) => index,
+            OutlineChoice::Rename(i) | OutlineChoice::Open(i) | OutlineChoice::Edit(i) => Some(i),
+        };
+        let node = selected_index
+            .map(|i| nodes.get(i).ok_or("Ungültige Dokumentauswahl."))
+            .transpose()?;
+        selected = node.map(|n| n.id);
+        match choice {
+            OutlineChoice::Create(_) | OutlineChoice::Rename(_) => {
+                let rename = matches!(choice, OutlineChoice::Rename(_));
+                let current = node.filter(|_| rename);
+                let Some(title) = ask_document_title(
+                    label,
+                    current.map(|n| n.title.as_str()),
+                    is_valid_document_title,
+                )?
+                else {
+                    continue;
+                };
+                let mut opened = manager.open_project(project.to_string())?;
+                let mut repository = DocumentRepository::new(opened.database_mut());
+                let changed = match current {
+                    Some(n) => repository.rename_selected(n, &title),
+                    None => repository.create(project, parent, kind, &title),
+                };
+                match changed {
+                    Ok(n) => selected = Some(n.id),
+                    Err(_) => notify(
+                        "Die Änderung konnte nicht gespeichert werden. Bitte prüfe die aktualisierte Auswahl.",
+                    ),
+                }
             }
+            OutlineChoice::Open(_) | OutlineChoice::Edit(_) => {
+                let node = node.ok_or("Dokumentauswahl fehlt.")?;
+                if node.kind == DocumentKind::Chapter {
+                    browse_level(home, manager, project, Some(node.id))?;
+                } else {
+                    let action = if matches!(choice, OutlineChoice::Edit(_)) {
+                        SceneAction::Edit
+                    } else {
+                        SceneAction::Read
+                    };
+                    if show(home, manager, node, action).is_err() {
+                        notify(
+                            "Die gebundene Szenensitzung konnte nicht abgeschlossen werden. Bitte prüfe die aktuelle Auswahl.",
+                        );
+                    }
+                }
+            }
+            OutlineChoice::Back => return Ok(()),
         }
     }
 }

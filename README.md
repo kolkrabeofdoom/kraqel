@@ -572,7 +572,7 @@ Screenreader-Ausgabe, echte Exportdateien und Betriebssystemintegration benötig
 Nachweise. Aussagegrenzen gehören zur Testdokumentation – denn ein grüner Haken ist kein
 metaphysischer Wahrheitsbeweis.
 
-Auf der nativen Windows-Startseite des Entwicklungsstands erstellt **Projekt anlegen** ein lokales Projekt mit Kapitel und erster Szene. Für bestehende Projekte führt **Manuskript öffnen** zur Kapitelauswahl. In der Szenenliste kannst du direkt lesen oder einfache Prosa bearbeiten und speichern. Formatierte Szenen lassen sich schreibgeschützt lesen. **Im Studio öffnen** startet WebView2. [Bedienung und Grenzen](docs/WORKSTATION_HANDOFF.md#ein-manuskript-nativ-lesen-und-bearbeiten)
+Auf der nativen Windows-Startseite des Entwicklungsstands erstellt **Projekt anlegen** ein lokales Projekt mit Kapitel und erster Szene. Für bestehende Projekte führt **Manuskript öffnen** zur Kapitelauswahl. In der Kapitelauswahl kannst du weitere Kapitel anlegen oder umbenennen. Öffne ein Kapitel, um darin Szenen anzulegen oder umzubenennen. In der Szenenliste kannst du direkt lesen oder einfache Prosa bearbeiten und speichern. Formatierte Szenen lassen sich schreibgeschützt lesen. **Im Studio öffnen** startet WebView2. [Bedienung und Grenzen](docs/WORKSTATION_HANDOFF.md#ein-manuskript-nativ-lesen-und-bearbeiten)
 
 Im Entwicklungszweig lassen sich Szenen ausdrücklich in Drehbuchszenen umwandeln. Sechs Absatzrollen
 bleiben beim Speichern und Wiederöffnen erhalten. Unter **Export → Drehbuch als A4-PDF** wählst du

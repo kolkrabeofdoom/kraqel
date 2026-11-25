@@ -2,7 +2,7 @@
 #![cfg(windows)]
 
 mod project_name;
-pub use project_name::ask_project_name;
+pub use project_name::{ask_document_title, ask_project_name};
 
 use std::{io, ptr};
 use windows_sys::Win32::{
@@ -11,9 +11,9 @@ use windows_sys::Win32::{
     UI::{
         Input::KeyboardAndMouse::EnableWindow,
         WindowsAndMessaging::{
-            DialogBoxParamW, EndDialog, GetDlgItem, IDCANCEL, IDOK, LB_ADDSTRING, LB_GETCURSEL,
-            LB_SETCURSEL, LBN_DBLCLK, SendDlgItemMessageW, SetDlgItemTextW, WM_CLOSE, WM_COMMAND,
-            WM_INITDIALOG,
+            DialogBoxParamW, EndDialog, GWLP_USERDATA, GetDlgItem, GetWindowLongPtrW, IDCANCEL,
+            IDOK, LB_ADDSTRING, LB_GETCURSEL, LB_SETCURSEL, LBN_DBLCLK, SendDlgItemMessageW,
+            SetDlgItemTextW, SetWindowLongPtrW, WM_CLOSE, WM_COMMAND, WM_INITDIALOG,
         },
     },
 };
@@ -24,7 +24,9 @@ const LIST: i32 = 102;
 const MANAGE: i32 = 103;
 const BROWSE: i32 = 104;
 const EDIT_SCENE: i32 = 105;
-const SELECTED: isize = 10;
+const NEW_PROJECT: i32 = 106;
+const NEW_DOCUMENT: i32 = 109;
+const RENAME: i32 = 110;
 
 pub enum Choice {
     Close,
@@ -37,6 +39,8 @@ pub enum Choice {
 struct Entries<'a> {
     names: &'a [String],
     empty_label: &'a str,
+    selected: Option<usize>,
+    command: Option<(i32, Option<usize>)>,
 }
 
 fn wide(text: &str) -> Vec<u16> {
@@ -55,22 +59,13 @@ pub fn choose(names: Option<&[String]>) -> io::Result<Choice> {
         "Auf diesem Rechner sind noch keine lokalen Projekte angelegt."
     };
     let names = names.unwrap_or_default();
-    let result = list_result(DIALOG, names, empty)?;
-    match result {
-        0 => Ok(Choice::Close),
-        1 => Ok(Choice::Management),
-        2 => Ok(Choice::Create),
-        n if n >= SELECTED => {
-            let (index, secondary) = selected_index(n, names.len())?;
-            Ok(if !secondary {
-                Choice::Project(index)
-            } else {
-                Choice::Manuscript(index)
-            })
-        }
-        _ => Err(io::Error::other(
-            "Die native Projektliste konnte nicht angezeigt werden.",
-        )),
+    match list_result(DIALOG, names, empty, None)? {
+        None => Ok(Choice::Close),
+        Some((MANAGE, _)) => Ok(Choice::Management),
+        Some((NEW_PROJECT, _)) => Ok(Choice::Create),
+        Some((IDOK, Some(index))) => Ok(Choice::Project(index)),
+        Some((BROWSE, Some(index))) => Ok(Choice::Manuscript(index)),
+        _ => Err(io::Error::other("Ungültige Projektauswahl.")),
     }
 }
 
@@ -80,65 +75,74 @@ pub enum SceneAction {
     Edit,
 }
 
-pub fn choose_chapter(names: &[String]) -> io::Result<Option<usize>> {
-    match list_result(402, names, "Dieses Projekt enthält keine Kapitel.")? {
-        0 => Ok(None),
-        value => match selected_index(value, names.len())? {
-            (index, false) => Ok(Some(index)),
-            _ => Err(io::Error::other("Ungültige Kapitelauswahl.")),
-        },
+pub enum OutlineChoice {
+    Back,
+    Create(Option<usize>),
+    Rename(usize),
+    Open(usize),
+    Edit(usize),
+}
+
+pub fn choose_chapter(names: &[String], selected: Option<usize>) -> io::Result<OutlineChoice> {
+    choose_outline(
+        402,
+        names,
+        "Dieses Projekt enthält keine Kapitel.",
+        selected,
+    )
+}
+
+pub fn choose_scene(names: &[String], selected: Option<usize>) -> io::Result<OutlineChoice> {
+    choose_outline(403, names, "Dieses Kapitel enthält keine Szenen.", selected)
+}
+
+fn choose_outline(
+    resource: u16,
+    names: &[String],
+    empty: &str,
+    selected: Option<usize>,
+) -> io::Result<OutlineChoice> {
+    match list_result(resource, names, empty, selected)? {
+        None => Ok(OutlineChoice::Back),
+        Some((NEW_DOCUMENT, index)) => Ok(OutlineChoice::Create(index)),
+        Some((RENAME, Some(index))) => Ok(OutlineChoice::Rename(index)),
+        Some((IDOK, Some(index))) => Ok(OutlineChoice::Open(index)),
+        Some((EDIT_SCENE, Some(index))) if resource == 403 => Ok(OutlineChoice::Edit(index)),
+        _ => Err(io::Error::other("Ungültige Manuskriptauswahl.")),
     }
 }
 
-pub fn choose_scene(names: &[String]) -> io::Result<Option<(usize, SceneAction)>> {
-    match list_result(403, names, "Dieses Kapitel enthält keine Szenen.")? {
-        0 => Ok(None),
-        value => {
-            let (index, edit) = selected_index(value, names.len())?;
-            Ok(Some((
-                index,
-                if edit {
-                    SceneAction::Edit
-                } else {
-                    SceneAction::Read
-                },
-            )))
-        }
-    }
-}
+type ListCommand = Option<(i32, Option<usize>)>;
 
-fn selected_index(value: isize, count: usize) -> io::Result<(usize, bool)> {
-    let selection = value
-        .checked_sub(SELECTED)
-        .and_then(|n| usize::try_from(n).ok())
-        .ok_or_else(|| io::Error::other("Ungültige Auswahl."))?;
-    let index = selection / 2;
-    if index >= count {
-        return Err(io::Error::other("Ungültige Auswahl."));
-    }
-    Ok((index, !selection.is_multiple_of(2)))
-}
-
-fn list_result(resource: u16, names: &[String], empty: &str) -> io::Result<isize> {
-    let entries = Entries {
+fn list_result(
+    resource: u16,
+    names: &[String],
+    empty: &str,
+    selected: Option<usize>,
+) -> io::Result<ListCommand> {
+    let mut entries = Entries {
         names,
         empty_label: empty,
+        selected,
+        command: None,
     };
-    // The current executable owns the dialog resource. DialogBoxParamW is synchronous.
-    // Its WM_INITDIALOG handler reads entries only before this stack frame returns.
+    // The callback may borrow entries for the duration of this synchronous modal dialog.
     let result = unsafe {
         DialogBoxParamW(
             GetModuleHandleW(ptr::null()),
             usize::from(resource) as *const u16,
             ptr::null_mut(),
             Some(handle),
-            (&raw const entries) as LPARAM,
+            (&raw mut entries) as LPARAM,
         )
     };
-    if result == -1 {
-        Err(io::Error::last_os_error())
-    } else {
-        Ok(result)
+    match result {
+        0 => Ok(None),
+        1 if entries.command.is_some() => Ok(entries.command),
+        -1 => Err(io::Error::last_os_error()),
+        _ => Err(io::Error::other(
+            "Die native Auswahlliste konnte nicht angezeigt werden.",
+        )),
     }
 }
 
@@ -147,6 +151,7 @@ unsafe extern "system" fn handle(hwnd: HWND, message: u32, action: WPARAM, data:
     unsafe {
         match message {
             WM_INITDIALOG => {
+                SetWindowLongPtrW(hwnd, GWLP_USERDATA, data);
                 let entries = &*(data as *const Entries<'_>);
                 for (i, name) in entries.names.iter().enumerate() {
                     let name = wide(name);
@@ -159,7 +164,7 @@ unsafe extern "system" fn handle(hwnd: HWND, message: u32, action: WPARAM, data:
                 }
                 if entries.names.is_empty() {
                     SetDlgItemTextW(hwnd, CAPTION, wide(entries.empty_label).as_ptr());
-                    for id in [BROWSE, EDIT_SCENE] {
+                    for id in [BROWSE, EDIT_SCENE, RENAME] {
                         let button = GetDlgItem(hwnd, id);
                         if !button.is_null() {
                             EnableWindow(button, 0);
@@ -167,7 +172,11 @@ unsafe extern "system" fn handle(hwnd: HWND, message: u32, action: WPARAM, data:
                     }
                     EnableWindow(GetDlgItem(hwnd, IDOK), 0);
                 } else {
-                    SendDlgItemMessageW(hwnd, LIST, LB_SETCURSEL, 0, 0);
+                    let index = entries
+                        .selected
+                        .filter(|i| *i < entries.names.len())
+                        .unwrap_or(0);
+                    SendDlgItemMessageW(hwnd, LIST, LB_SETCURSEL, index, 0);
                 }
                 1
             }
@@ -178,21 +187,30 @@ unsafe extern "system" fn handle(hwnd: HWND, message: u32, action: WPARAM, data:
             WM_COMMAND => {
                 let id = (action & 0xffff) as i32;
                 let notification = (action >> 16) as u32;
-                let secondary =
-                    matches!(id, BROWSE | EDIT_SCENE) && !GetDlgItem(hwnd, id).is_null();
-                if id == IDOK || secondary || (id == LIST && notification == LBN_DBLCLK) {
-                    let index = SendDlgItemMessageW(hwnd, LIST, LB_GETCURSEL, 0, 0);
-                    if index >= 0 {
-                        EndDialog(hwnd, SELECTED + index * 2 + isize::from(secondary));
-                    }
-                } else if id == 106 {
-                    EndDialog(hwnd, 2);
-                } else if id == MANAGE {
-                    EndDialog(hwnd, 1);
-                } else if id == IDCANCEL {
+                if id == IDCANCEL {
                     EndDialog(hwnd, 0);
-                } else {
+                    return 1;
+                }
+                let command = match id {
+                    LIST if notification == LBN_DBLCLK => IDOK,
+                    IDOK | BROWSE | EDIT_SCENE | MANAGE | NEW_PROJECT | NEW_DOCUMENT | RENAME
+                        if !GetDlgItem(hwnd, id).is_null() =>
+                    {
+                        id
+                    }
+                    _ => return 0,
+                };
+                let entries = GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut Entries<'_>;
+                if entries.is_null() {
                     return 0;
+                }
+                let entry_count = (&*entries).names.len();
+                let index = usize::try_from(SendDlgItemMessageW(hwnd, LIST, LB_GETCURSEL, 0, 0))
+                    .ok()
+                    .filter(|i| *i < entry_count);
+                if index.is_some() || matches!(command, NEW_DOCUMENT | NEW_PROJECT | MANAGE) {
+                    (*entries).command = Some((command, index));
+                    EndDialog(hwnd, 1);
                 }
                 1
             }
