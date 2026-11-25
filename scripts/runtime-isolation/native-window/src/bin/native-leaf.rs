@@ -3738,6 +3738,7 @@ fn main() {
                     .ok_or(std::io::Error::other("project scene"))?;
                 let (title, text) = scene(left)?;
                 project_scene::display(
+                    input,
                     output,
                     &title,
                     &text,

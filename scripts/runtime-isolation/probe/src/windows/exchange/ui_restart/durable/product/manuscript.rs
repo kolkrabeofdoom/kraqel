@@ -2,6 +2,16 @@
 use super::*;
 use kraqel_storage::project_manager::{ReviewChoice, ReviewedScene, SceneMergeSelection};
 
+/// Result of a write attempt against the original revision and exact source document.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum SceneSaveStatus {
+    Committed,
+    Conflict,
+    Failed,
+}
+
+pub(super) type SceneWriter<'a> = &'a mut dyn FnMut(&str) -> SceneSaveStatus;
+
 /// Runs a read-only selection against an ordered and verified pair.
 /// Only a confirmed choice after both roles have exited can escape the private channel.
 pub fn open_review(
@@ -73,13 +83,14 @@ fn compare(
     pair: [&ReviewedScene; 2],
     [service, window]: [&[u8]; 2],
 ) -> Result<ReviewChoice> {
-    let (choice, _) = run_pair(
+    let choice = run_pair(
         parent,
         project,
         context,
         pair,
         [service, window],
         crate::window_receipt::MANUSCRIPT_COMPARE,
+        None,
     )?;
     match choice {
         0 => Ok(ReviewChoice::Cancel),
@@ -97,11 +108,11 @@ pub fn open_project_scene(
     scene: kraqel_domain::EntityId,
     revision: u64,
     text: &str,
-    editable: bool,
+    save: Option<SceneWriter<'_>>,
     images: [&[u8]; 2],
-) -> std::io::Result<Option<String>> {
+) -> std::io::Result<bool> {
     use crate::window_receipt::{PROJECT_SCENE_EDIT, PROJECT_SCENE_READ};
-    let argument = if editable {
+    let argument = if save.is_some() {
         PROJECT_SCENE_EDIT
     } else {
         PROJECT_SCENE_READ
@@ -126,9 +137,17 @@ pub fn open_project_scene(
         text: argument.into(),
         revision: i64::from(revision),
     };
-    let (_, result) = run_pair(parent, project, &context, [&left, &right], images, argument)
-        .map_err(|failure| std::io::Error::other(failure.stage))?;
-    Ok(result)
+    let decision = run_pair(
+        parent,
+        project,
+        &context,
+        [&left, &right],
+        images,
+        argument,
+        save,
+    )
+    .map_err(|failure| std::io::Error::other(failure.stage))?;
+    Ok(decision == 1)
 }
 fn run_pair(
     parent: &Path,
@@ -137,7 +156,8 @@ fn run_pair(
     pair: [&ReviewedScene; 2],
     [service, window]: [&[u8]; 2],
     argument: &'static str,
-) -> Result<(u8, Option<String>)> {
+    save: Option<SceneWriter<'_>>,
+) -> Result<u8> {
     let mut row = Zeroizing::new(Vec::new());
     row.extend_from_slice(project.as_uuid().as_bytes());
     row.extend_from_slice(&context.subject);
@@ -263,6 +283,7 @@ fn run_pair(
         &row,
         true,
         Some(argument),
+        save,
         || Ok(()),
     )?;
     store.append_with_checked_context(actor, store.state.head, Action::EndWin32Window { begin })?;

@@ -181,7 +181,7 @@ pub(super) fn serve(
                 [2] => true,
                 _ => return Err(invalid("p3-delivery-start")),
             };
-            let (choice, _) = win32_binding::deliver_p3(
+            let choice = win32_binding::deliver_p3(
                 &mut store,
                 &root,
                 &image,
@@ -189,6 +189,7 @@ pub(super) fn serve(
                 binding,
                 &row,
                 interactive,
+                None,
                 None,
                 || {
                     io("p3-visible", output.write_all(b"VISIBLE\n"))?;

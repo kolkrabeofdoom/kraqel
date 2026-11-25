@@ -1,9 +1,82 @@
 //! Single-use product window. Only the owning, authenticated reply pipe receives the result.
 use super::*;
+#[path = "project_close.rs"]
+mod project_close;
 use std::{
     fs::File,
-    io::{self, Write},
+    io::{self, Read, Write},
+    sync::mpsc,
+    thread,
 };
+use windows_sys::Win32::UI::Controls::EM_SETREADONLY;
+use zeroize::Zeroizing;
+
+const STATUS: i32 = 204;
+const REQUEST: u32 = WM_APP + 40;
+const SAVE_TIMER: usize = 7001;
+
+enum Request {
+    Save(Zeroizing<String>),
+    Close,
+}
+
+struct Channel {
+    request: mpsc::Sender<Request>,
+    acknowledgement: mpsc::Receiver<io::Result<u8>>,
+    worker: thread::JoinHandle<io::Result<()>>,
+}
+
+impl Channel {
+    fn new(mut input: File, mut output: File) -> io::Result<Self> {
+        let (request, requests) = mpsc::channel();
+        let (acks, acknowledgement) = mpsc::channel();
+        let worker = thread::Builder::new()
+            .name("scene-save".into())
+            .spawn(move || {
+                while let Ok(action) = requests.recv() {
+                    match action {
+                        Request::Close => return output.write_all(&[0]),
+                        Request::Save(text) => {
+                            let result = (|| -> io::Result<u8> {
+                                output.write_all(&[1])?;
+                                output.write_all(&(text.len() as u32).to_le_bytes())?;
+                                output.write_all(text.as_bytes())?;
+                                let mut ack = [0];
+                                input.read_exact(&mut ack)?;
+                                match ack[0] {
+                                    window_receipt::SAVE_ACK_COMMITTED
+                                    | window_receipt::SAVE_ACK_CONFLICT
+                                    | window_receipt::SAVE_ACK_FAILED => Ok(ack[0]),
+                                    _ => Err(io::Error::other("invalid save acknowledgement")),
+                                }
+                            })();
+                            let finished =
+                                matches!(result, Ok(window_receipt::SAVE_ACK_COMMITTED) | Err(_));
+                            if acks.send(result).is_err() || finished {
+                                break;
+                            }
+                        }
+                    }
+                }
+                Ok(())
+            })?;
+        Ok(Self {
+            request,
+            acknowledgement,
+            worker,
+        })
+    }
+
+    fn finish(self, committed: bool) -> io::Result<()> {
+        if !committed {
+            let _ = self.request.send(Request::Close);
+        }
+        drop(self.request);
+        self.worker
+            .join()
+            .map_err(|_| io::Error::other("scene channel failed"))?
+    }
+}
 
 unsafe extern "system" fn scene_input(
     hwnd: HWND,
@@ -48,19 +121,12 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) 
     unsafe {
         match msg {
             WM_CLOSE => {
-                PostQuitMessage(0);
+                PostMessageW(hwnd, REQUEST, CLOSE as usize, 0);
                 0
             }
-            WM_COMMAND if w == CLOSE as usize || w == IDCANCEL as usize => {
-                PostQuitMessage(0);
-                0
-            }
-            WM_COMMAND if w == SAVE as usize && !GetDlgItem(hwnd, SAVE).is_null() => {
-                if changed_text(hwnd).is_some() {
-                    PostQuitMessage(1);
-                } else {
-                    MessageBoxW(hwnd, wide("Der Entwurf enthält ungültigen Text oder überschreitet die Grenze von 64 KiB UTF-8.").as_ptr(),wide("Speichern").as_ptr(), MB_OK | MB_ICONWARNING);
-                }
+            WM_COMMAND if matches!(w, id if id == CLOSE as usize || id == IDCANCEL as usize || id == SAVE as usize) =>
+            {
+                PostMessageW(hwnd, REQUEST, w, 0);
                 0
             }
             WM_SIZE => {
@@ -71,6 +137,11 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) 
                 let button = scale(105, dpi);
                 let height = scale(26, dpi);
                 let bottom = rect.bottom - margin - height;
+                let status_height = if GetDlgItem(hwnd, STATUS).is_null() {
+                    0
+                } else {
+                    height * 2
+                };
                 for (id, x, y, width, h) in [
                     (LABEL, margin, margin, rect.right - margin * 2, height),
                     (
@@ -78,7 +149,14 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) 
                         margin,
                         margin + height,
                         rect.right - margin * 2,
-                        bottom - margin * 2 - height,
+                        bottom - margin * 2 - height - status_height,
+                    ),
+                    (
+                        STATUS,
+                        margin,
+                        bottom - status_height,
+                        rect.right - 2 * margin,
+                        status_height,
                     ),
                     (
                         SAVE,
@@ -101,7 +179,13 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) 
     }
 }
 
-pub(super) fn display(mut reply: File, title: &str, text: &str, edit_mode: bool) -> io::Result<()> {
+pub(super) fn display(
+    input: File,
+    mut reply: File,
+    title: &str,
+    text: &str,
+    edit_mode: bool,
+) -> io::Result<()> {
     unsafe {
         let instance = GetModuleHandleW(null());
         let class = wide("KRAQEL.Synthetic.Edit");
@@ -148,6 +232,7 @@ pub(super) fn display(mut reply: File, title: &str, text: &str, edit_mode: bool)
         for (id, kind, label, control_style) in [
             (LABEL, "STATIC", "&Szenentext", SS_LEFT),
             (EDIT, "EDIT", "", style),
+            (STATUS, "STATIC", "", SS_LEFT),
             (
                 SAVE,
                 "BUTTON",
@@ -165,7 +250,7 @@ pub(super) fn display(mut reply: File, title: &str, text: &str, edit_mode: bool)
                 WS_TABSTOP | BS_PUSHBUTTON as u32,
             ),
         ] {
-            if id == SAVE && !edit_mode {
+            if matches!(id, SAVE | STATUS) && !edit_mode {
                 continue;
             }
             let child = CreateWindowExW(
@@ -207,31 +292,136 @@ pub(super) fn display(mut reply: File, title: &str, text: &str, edit_mode: bool)
         ShowWindow(hwnd, SW_SHOW);
         SetFocus(field);
         reply.write_all(&(hwnd as usize as u64).to_le_bytes())?;
-        let mut message = MSG::default();
-        loop {
-            let result = GetMessageW(&mut message, null_mut(), 0, 0);
-            require(result >= 0, "project window loop")?;
-            if result == 0 {
-                break;
+        if !edit_mode {
+            loop {
+                let message = next_message()?;
+                if message.hwnd == hwnd
+                    && message.message == REQUEST
+                    && matches!(message.wParam as i32, CLOSE | IDCANCEL)
+                {
+                    break;
+                }
+                dispatch(hwnd, &message);
             }
-            if IsDialogMessageW(hwnd, &message) == 0 {
-                TranslateMessage(&message);
-                DispatchMessageW(&message);
-            }
+            require(DestroyWindow(hwnd) != 0, "close project reader")?;
+            return reply.write_all(&[0]);
         }
-        let accepted = match message.wParam {
-            0 => None,
-            1 if edit_mode => {
-                Some(changed_text(hwnd).ok_or(io::Error::other("invalid scene draft"))?)
+        let channel = Channel::new(input, reply)?;
+        edit_loop(hwnd, field, text, channel)
+    }
+}
+
+fn next_message() -> io::Result<MSG> {
+    let mut msg = MSG::default();
+    require(
+        unsafe { GetMessageW(&mut msg, null_mut(), 0, 0) } > 0,
+        "project window loop",
+    )?;
+    Ok(msg)
+}
+
+unsafe fn dispatch(hwnd: HWND, msg: &MSG) {
+    unsafe {
+        if IsDialogMessageW(hwnd, msg) == 0 {
+            TranslateMessage(msg);
+            DispatchMessageW(msg);
+        }
+    }
+}
+
+unsafe fn edit_loop(hwnd: HWND, field: HWND, text: &str, channel: Channel) -> io::Result<()> {
+    unsafe {
+        let mut pending = false;
+        let mut available = true;
+        let committed = loop {
+            let message = next_message()?;
+            if message.hwnd == hwnd
+                && message.message == WM_TIMER
+                && message.wParam == SAVE_TIMER
+                && pending
+            {
+                let outcome = match channel.acknowledgement.try_recv() {
+                    Ok(outcome) => outcome,
+                    Err(mpsc::TryRecvError::Empty) => continue,
+                    Err(mpsc::TryRecvError::Disconnected) => {
+                        Err(io::Error::other("scene channel ended"))
+                    }
+                };
+                KillTimer(hwnd, SAVE_TIMER);
+                if matches!(outcome, Ok(window_receipt::SAVE_ACK_COMMITTED)) {
+                    break true;
+                }
+                pending = false;
+                let status = match outcome {
+                    Ok(window_receipt::SAVE_ACK_CONFLICT) => {
+                        available = false;
+                        "Die Szene wurde zwischenzeitlich geändert. Der Entwurf bleibt hier bearbeitbar. Speichern ist für diese Sitzung gesperrt."
+                    }
+                    Ok(window_receipt::SAVE_ACK_FAILED) => {
+                        "Das Speichern ist fehlgeschlagen. Der Entwurf bleibt offen."
+                    }
+                    _ => {
+                        available = false;
+                        "Die Speicherbestätigung fehlt. Der Entwurf bleibt offen."
+                    }
+                };
+                if !available {
+                    EnableWindow(GetDlgItem(hwnd, SAVE), 0);
+                }
+                SendMessageW(field, EM_SETREADONLY, 0, 0);
+                SetWindowTextW(GetDlgItem(hwnd, STATUS), wide(status).as_ptr());
+                SetFocus(field);
+                continue;
             }
-            _ => return Err(io::Error::other("unexpected scene result")),
+            if message.hwnd == hwnd && message.message == REQUEST {
+                if pending {
+                    continue;
+                }
+                let close = message.wParam == CLOSE as usize || message.wParam == IDCANCEL as usize;
+                let draft = changed_text(hwnd).map(Zeroizing::new);
+                if close {
+                    if draft.as_deref().map(String::as_str) == Some(text) {
+                        break false;
+                    }
+                    match project_close::choose(hwnd, available) {
+                        project_close::Choice::Discard => break false,
+                        project_close::Choice::Continue => {
+                            SetFocus(field);
+                            continue;
+                        }
+                        project_close::Choice::Save => {}
+                    }
+                }
+                if !available || (!close && message.wParam != SAVE as usize) {
+                    continue;
+                }
+                let Some(draft) = draft else {
+                    MessageBoxW(hwnd, wide("Der Entwurf enthält ungültigen Text oder überschreitet die Grenze von 64 KiB UTF-8.").as_ptr(), wide("Speichern").as_ptr(), MB_OK | MB_ICONWARNING);
+                    SetFocus(field);
+                    continue;
+                };
+                if SetTimer(hwnd, SAVE_TIMER, 100, None) == 0
+                    || channel.request.send(Request::Save(draft)).is_err()
+                {
+                    KillTimer(hwnd, SAVE_TIMER);
+                    SetWindowTextW(
+                        GetDlgItem(hwnd, STATUS),
+                        wide("Das Speichern ist fehlgeschlagen. Der Entwurf bleibt offen.")
+                            .as_ptr(),
+                    );
+                    continue;
+                }
+                pending = true;
+                SendMessageW(field, EM_SETREADONLY, 1, 0);
+                SetWindowTextW(
+                    GetDlgItem(hwnd, STATUS),
+                    wide("Wird gespeichert …").as_ptr(),
+                );
+                continue;
+            }
+            dispatch(hwnd, &message);
         };
         require(DestroyWindow(hwnd) != 0, "close project window")?;
-        reply.write_all(&[u8::from(accepted.is_some())])?;
-        if let Some(content) = accepted {
-            reply.write_all(&(content.len() as u32).to_le_bytes())?;
-            reply.write_all(content.as_bytes())?;
-        }
-        Ok(())
+        channel.finish(committed)
     }
 }

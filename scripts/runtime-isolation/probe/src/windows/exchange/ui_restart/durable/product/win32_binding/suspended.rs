@@ -60,11 +60,11 @@ pub(in super::super) fn deliver_p3(
     row: &[u8],
     interactive: bool,
     product_argument: Option<&'static str>,
+    save: Option<manuscript::SceneWriter<'_>>,
     visible: impl FnOnce() -> Result<()>,
-) -> Result<(u8, Option<String>)> {
+) -> Result<u8> {
     use crate::window_receipt as protocol;
     let mut choice = 0;
-    let mut edited = None;
     use windows_sys::Win32::Storage::FileSystem::{FILE_READ_DATA, FILE_WRITE_DATA, SYNCHRONIZE};
     let argument = if let Some(argument) = product_argument {
         argument
@@ -99,7 +99,8 @@ pub(in super::super) fn deliver_p3(
                 "p3-window-binding",
                 to_ui.write_all(&protocol::p3_receipt(row)),
             )?;
-            drop(to_ui);
+            // Only the edit protocol consumes a commit receipt after opening the surface.
+            let acknowledgement = (argument == protocol::PROJECT_SCENE_EDIT).then_some(to_ui);
             with_role(
                 store,
                 root,
@@ -133,17 +134,9 @@ pub(in super::super) fn deliver_p3(
             if interactive {
                 visible()?;
             }
-            // The isolated editor writes its draft before exiting. Drain its private response
-            // pipe while it is alive so a draft larger than the pipe buffer cannot deadlock.
-            if argument == protocol::PROJECT_SCENE_EDIT {
-                use std::io::Read;
-                let mut decision = [0];
-                io("scene-edit-decision", reply.read_exact(&mut decision))?;
-                match decision[0] {
-                    0 => {}
-                    1 => edited = Some(read_edited_scene(&mut reply)?),
-                    _ => return Err(invalid("scene-edit-decision")),
-                }
+            if let Some(mut acknowledgement) = acknowledgement {
+                let save = save.ok_or(invalid("scene-edit-missing-grant"))?;
+                choice = serve_edit(&mut reply, &mut acknowledgement, save)?;
             }
             bootstrap::wait_for_close(ui, hwnd, interactive)?;
             if argument != protocol::P3_READ && argument != protocol::PROJECT_SCENE_EDIT {
@@ -161,7 +154,46 @@ pub(in super::super) fn deliver_p3(
             Ok(())
         },
     )?;
-    Ok((choice, edited))
+    Ok(choice)
+}
+
+// Keep the authenticated window and both package pins until commit or explicit discard.
+fn serve_edit(
+    reply: &mut fs::File,
+    acknowledgement: &mut fs::File,
+    save: manuscript::SceneWriter<'_>,
+) -> Result<u8> {
+    use crate::window_receipt::{SAVE_ACK_COMMITTED, SAVE_ACK_CONFLICT, SAVE_ACK_FAILED};
+    use manuscript::SceneSaveStatus;
+    use std::io::Read;
+
+    let mut conflicted = false;
+    loop {
+        let mut decision = [0];
+        io("scene-edit-decision", reply.read_exact(&mut decision))?;
+        match decision[0] {
+            0 => return Ok(0),
+            1 => {
+                let draft = Zeroizing::new(read_edited_scene(reply)?);
+                let status = if conflicted {
+                    SceneSaveStatus::Conflict
+                } else {
+                    save(&draft)
+                };
+                let receipt = match status {
+                    SceneSaveStatus::Committed => SAVE_ACK_COMMITTED,
+                    SceneSaveStatus::Conflict => SAVE_ACK_CONFLICT,
+                    SceneSaveStatus::Failed => SAVE_ACK_FAILED,
+                };
+                io("scene-edit-ack", acknowledgement.write_all(&[receipt]))?;
+                if status == SceneSaveStatus::Committed {
+                    return Ok(1);
+                }
+                conflicted = status == SceneSaveStatus::Conflict;
+            }
+            _ => return Err(invalid("scene-edit-decision")),
+        }
+    }
 }
 
 fn read_edited_scene(reply: &mut fs::File) -> Result<String> {
