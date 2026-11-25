@@ -2,6 +2,14 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Native Manuskriptauszüge und Exportverlauf
+
+Die aus dem unsignierten Installer `0af9bd27cf55` extrahierte Desktop-EXE lief zweimal mit einem isolierten synthetischen Projekt. Der Verlauf war zunächst leer. Nach Ablehnung der Bestätigung entstand keine Datei. Zwei Markdown-Exporte derselben Szene hatten verschiedene Namen und identischen Inhalt. Die Nachbarszenen fehlten wie vorgesehen. Kapitel-HTML und Manuskript-DOCX wurden inhaltlich geprüft, die PDF-Datei strukturell. Nach dem Neustart stimmten Zielordner, alle fünf Dateinamen und Größen. Die fünf Prüfsummen blieben gleich. Das Prüfprofil und die extrahierte EXE wurden entfernt.
+
+Der SQLite-Test prüfte die Revision bei gleichzeitigem Schreiben und die Begrenzung auf ausgewählte Inhalte. Ein Windows-Verzeichnistest bestätigte, dass ein umgeleiteter Exportordner (Junction) weder zur Ausgabe noch zur Auflistung zugelassen wurde. Der gezielte PDF-Test belegte die A4-Ausgabe für eine ausdrücklich ausgewählte Drehbuchszene. Kapitel- und Manuskript-PDFs mit Drehbuchanteilen bleiben gesperrt.
+
+SHA-256 des Installers: `608086783077e9cf980a207a90b4f18b4f046d037a19194080f99b8b0178a869`.
+
 ## Kapitel und Szenen direkt einordnen
 
 Die aus dem finalen Windows-Installer `3801e1e089b8` extrahierte Desktop-EXE öffnete ein synthetisches Projekt. Bei nur einem Kapitel war die Platzwahl deaktiviert. Die Liste zeigte den aktuellen Platz als Vorauswahl. Abbrechen behielt den bisherigen Stand bei. Ein Kapitel rückte von Platz 3 auf 1 und eine Szene von Platz 1 auf 3. In beiden Fällen blieb der verschobene Eintrag markiert. Nach einem vollständigen Desktopneustart stimmten beide dreiteiligen Reihenfolgen. Der erweiterte SQLite-Ordnungstest bestätigte auch die Sperre bei veralteter Gliederung, die Bereichsprüfung und den unveränderten Zustand bei Wahl des bisherigen Platzes. Das Prüfprofil und die extrahierte EXE wurden entfernt.
