@@ -2,6 +2,12 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Absatzunterschiede im nativen Konfliktvergleich
+
+Die synthetische Szene im installierten Kandidaten `c30187a585b4` umfasste sechs Absätze mit Unterschieden an den Positionen 2, 4 und 6. Der Vergleich öffnete bei Absatz 2 und zeigte Unterschied 1 von 3 an. F7 führte über 4 und 6 zurück zu 2, Umschalt+F7 von 2 zurück zu 6. F6 wechselte zwischen den beiden Fassungen. Beim Navigieren blieben Entwurf und Gesamtvorschau unverändert. Auch nach der Quellwahl lag die Datenbank noch auf Revision 1. Erst die ausdrückliche Bestätigung speicherte Absatz 2 aus der gespeicherten Fassung sowie die Absätze 4 und 6 aus dem Entwurf als Revision 2. Nach dem Desktopneustart stimmten die sechs Absätze im Leser, der kanonische Inhalt und der Suchindex.
+
+Die kalibrierte ETW-Messung erfasste beim Vergleichen und Wiederlesen je einen Desktop, eine Fensterrolle und einen Datendienst. In beiden Prozessbäumen wurden null Netzwerkereignisse einschließlich Loopback beobachtet. Alle vier Positivkontrollen wurden erkannt, ohne Verluste oder Zuordnungslücken. Testinstallation, synthetisches Profil und Rohspur wurden bereinigt. SHA-256 des Installers: `1c63b29fbd1b8760e1ba8d375db036bd57d4e45e27a1473200aa4c9b3dff8497`.
+
 ## Speicherstatus, ausdrücklicher Wiederholungsversuch und Revisionskonflikt
 
 Im installierten Kandidaten `64c1fe30857d` zeigte der Fenstertitel nach Tippen, Rückgängig und Wiederholen an, ob der sichtbare Entwurf dem bestätigten Stand entsprach. Der Änderungsstatus war auch im Fokusmodus sichtbar. Eine SQLite-Schreibsperre bis zum Timeout löste einen Speicherfehler aus. Der Entwurf blieb offen. Autosave war ausgeschaltet und bis zum manuellen Erfolg gesperrt. Nach Freigabe der Sperre und einer weiteren Schreibpause lag die Szene weiter auf Revision 0. Erst Strg+Enter speicherte Revision 1.
