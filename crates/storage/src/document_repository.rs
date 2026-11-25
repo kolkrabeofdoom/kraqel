@@ -268,6 +268,62 @@ impl<'database> DocumentRepository<'database> {
         })
     }
 
+    /// Reads only the confirmed document bodies from one SQLite snapshot. A scene's
+    /// parent contributes its heading metadata, never its editor contents.
+    ///
+    /// # Errors
+    /// Refuses a project name, selected subtree or revision that changed since confirmation.
+    pub fn load_export_snapshot(
+        &self,
+        project: ProjectId,
+        project_name: &str,
+        expected: &[DocumentNode],
+        heading_only: Option<EntityId>,
+        select: impl FnOnce(&[DocumentNode]) -> Option<Vec<DocumentNode>>,
+    ) -> Result<Vec<EditorDocument>, DocumentError> {
+        let tx = self.database.connection().unchecked_transaction()?;
+        let project_matches: bool = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM project WHERE id = ?1 AND name = ?2)",
+            params![project.to_string(), project_name],
+            |r| r.get(0),
+        )?;
+        let outline = list_nodes(&tx, project)?;
+        if !project_matches || select(&outline).as_deref() != Some(expected) {
+            return Err(DocumentError::RevisionConflict);
+        }
+        let mut contents = Vec::with_capacity(expected.len());
+        {
+            let mut body = tx.prepare(
+                "SELECT content_json FROM document WHERE project_id = ?1 AND id = ?2
+                 AND length(CAST(content_json AS BLOB)) <= ?3",
+            )?;
+            let limit = i64::try_from(MAX_EDITOR_DOCUMENT_BYTES)
+                .map_err(|_| DocumentError::InvalidInput)?;
+            for node in expected {
+                if Some(node.id) == heading_only {
+                    if node.kind != DocumentKind::Chapter || node.parent_id.is_some() {
+                        return Err(DocumentError::InvalidParent);
+                    }
+                    contents.push(empty_editor_document());
+                } else {
+                    let json: String = body
+                        .query_row(
+                            params![project.to_string(), node.id.to_string(), limit],
+                            |r| r.get(0),
+                        )
+                        .optional()?
+                        .ok_or(DocumentError::InvalidStoredData)?;
+                    let document = serde_json::from_str(&json)
+                        .map_err(|_| DocumentError::InvalidStoredData)?;
+                    validate_content(&document).map_err(|_| DocumentError::InvalidStoredData)?;
+                    contents.push(document);
+                }
+            }
+        }
+        tx.commit()?;
+        Ok(contents)
+    }
+
     /// Erstellt ein Kapitel oder eine Szene an der letzten stabilen Geschwisterposition.
     ///
     /// # Errors
@@ -1090,6 +1146,70 @@ mod tests {
 
     use super::{DocumentError, DocumentRepository};
     use crate::project_manager::ProjectManager;
+
+    #[test]
+    fn export_selection_reads_confirmed_bodies_from_one_snapshot() {
+        let root = tempdir().unwrap();
+        let manager = ProjectManager::new(root.path()).unwrap();
+        let project = project();
+        let mut opened = manager.create_project("projekt", &project).unwrap();
+        let mut repo = DocumentRepository::new(opened.database_mut());
+        let chapter = repo
+            .create(project.id, None, DocumentKind::Chapter, "Kapitel")
+            .unwrap();
+        let approved = content("Bestätigt");
+        let scene = repo
+            .create_scene_with_content(project.id, chapter.id, "Auswahl", &approved)
+            .unwrap();
+        let sibling = repo
+            .create_scene_with_content(project.id, chapter.id, "Andere Szene", &content("Privat"))
+            .unwrap();
+        let mut second = manager.open_project("projekt").unwrap();
+        // Invalid bodies outside the authorized set must not even be deserialized.
+        second
+            .database()
+            .connection()
+            .execute(
+                "UPDATE document SET content_json='{}' WHERE id IN (?1, ?2)",
+                params![chapter.id.to_string(), sibling.id.to_string()],
+            )
+            .unwrap();
+        let expected = vec![chapter.clone(), scene.clone()];
+        let select = |outline: &[kraqel_domain::DocumentNode]| {
+            Some(
+                outline
+                    .iter()
+                    .filter(|n| n.id == chapter.id || n.id == scene.id)
+                    .cloned()
+                    .collect(),
+            )
+        };
+        let bodies = repo
+            .load_export_snapshot(
+                project.id,
+                &project.name,
+                &expected,
+                Some(chapter.id),
+                |outline| {
+                    DocumentRepository::new(second.database_mut())
+                        .save_scene(project.id, scene.id, scene.revision, &content("Später"))
+                        .unwrap();
+                    select(outline)
+                },
+            )
+            .unwrap();
+        assert_eq!(bodies, [super::empty_editor_document(), approved]);
+        assert!(matches!(
+            repo.load_export_snapshot(
+                project.id,
+                &project.name,
+                &expected,
+                Some(chapter.id),
+                select
+            ),
+            Err(DocumentError::RevisionConflict)
+        ));
+    }
 
     #[test]
     fn duplicates_manuscript_with_new_ids_ordered_content_and_search_index() {

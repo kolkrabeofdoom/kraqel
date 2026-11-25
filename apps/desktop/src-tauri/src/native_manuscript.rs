@@ -14,6 +14,8 @@ use kraqel_storage::native_scene::{NativeScene, SceneEditGrant, SceneReadGrant};
 use std::{error::Error, path::Path};
 use zeroize::Zeroizing;
 
+mod export;
+
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 fn titles(documents: &[&DocumentNode]) -> Vec<String> {
@@ -124,10 +126,14 @@ fn latest(repository: &DocumentRepository<'_>, scene: &DocumentNode) -> SceneSav
 }
 
 pub(super) fn browse(home: &Path, manager: &ProjectManager, project: ProjectId) -> Result<()> {
+    // Keep the catalog's directory identities bound from navigation through export publication.
+    let _root_guard = kraqel_export::pin_excerpt_project(manager.root())?;
+    let _project_guard =
+        kraqel_export::pin_excerpt_project(&manager.root().join(project.to_string()))?;
     let mut parent: Option<EntityId> = None;
     let mut selected = None;
     loop {
-        let outline = list_outline(manager, project)?;
+        let (project_name, outline) = list_outline(manager, project)?;
         let chapters: Vec<_> = outline
             .iter()
             .filter(|n| n.kind == DocumentKind::Chapter && n.parent_id.is_none())
@@ -161,6 +167,28 @@ pub(super) fn browse(home: &Path, manager: &ProjectManager, project: ProjectId) 
             .transpose()?;
         selected = node.map(|n| n.id);
         match choice {
+            OutlineChoice::Export(_) => {
+                if let Err(error) =
+                    export::choose(manager, project, &project_name, &outline, node, parent)
+                {
+                    if matches!(
+                        error.downcast_ref::<DocumentError>(),
+                        Some(DocumentError::RevisionConflict)
+                    ) {
+                        notify(
+                            "Der bestätigte Manuskriptstand hat sich geändert. Bitte den Export aus der aktuellen Gliederung erneut wählen.",
+                        );
+                    } else if let Some(kraqel_export::ExportError::InvalidDocument(message)) =
+                        error.downcast_ref::<kraqel_export::ExportError>()
+                    {
+                        notify(message);
+                    } else {
+                        notify(
+                            "Der Export konnte nicht erstellt werden. Bitte prüfe die Auswahl und den lokalen Exportordner.",
+                        );
+                    }
+                }
+            }
             OutlineChoice::Copy(_) => {
                 let source = node.ok_or("Dokumentauswahl fehlt.")?;
                 match copy_document(manager, source, &outline, &chapters, chapter_index, label) {
@@ -324,9 +352,20 @@ fn change_title(
     }
 }
 
-fn list_outline(manager: &ProjectManager, project: ProjectId) -> Result<Vec<DocumentNode>> {
+fn list_outline(
+    manager: &ProjectManager,
+    project: ProjectId,
+) -> Result<(String, Vec<DocumentNode>)> {
     let mut opened = manager.open_project(project.to_string())?;
-    Ok(DocumentRepository::new(opened.database_mut()).list(project)?)
+    let name = opened.database().connection().query_row(
+        "SELECT name FROM project WHERE id = ?1",
+        [project.to_string()],
+        |row| row.get(0),
+    )?;
+    Ok((
+        name,
+        DocumentRepository::new(opened.database_mut()).list(project)?,
+    ))
 }
 
 fn remove_document(manager: &ProjectManager, node: &DocumentNode) -> Result<()> {

@@ -1,6 +1,10 @@
 //! Validierter, lokaler Manuskriptexport in portable Formate.
 
 mod docx_scene;
+mod excerpt_file;
+pub use excerpt_file::{ExcerptFile, list_excerpt_files, pin_excerpt_project};
+mod excerpt;
+pub use excerpt::{ExportScope, export_excerpt};
 pub mod illustrated;
 mod manuscript;
 mod pdf;

@@ -3,6 +3,10 @@
 
 mod project_name;
 pub use project_name::{ask_copy_title, ask_document_title, ask_project_name};
+mod export;
+pub use export::{
+    NativeExportChoice, NativeExportFormat, choose_export, confirm_export, show_export_history,
+};
 mod deletion;
 pub use deletion::confirm_removal;
 
@@ -36,6 +40,7 @@ const MOVE: i32 = 113;
 const REMOVE: i32 = 114;
 const COPY: i32 = 117;
 const POSITION: i32 = 119;
+const EXPORT: i32 = 120;
 
 pub enum Choice {
     Close,
@@ -88,6 +93,7 @@ pub enum SceneAction {
 pub enum OutlineChoice {
     Back,
     Create(Option<usize>),
+    Export(Option<usize>),
     Rename(usize),
     Copy(usize),
     Position(usize),
@@ -103,7 +109,7 @@ impl OutlineChoice {
     pub fn selected_index(&self) -> Option<usize> {
         match *self {
             Self::Back => None,
-            Self::Create(index) => index,
+            Self::Create(index) | Self::Export(index) => index,
             Self::Copy(i)
             | Self::Position(i)
             | Self::Rename(i)
@@ -210,6 +216,7 @@ fn choose_outline(
 ) -> io::Result<OutlineChoice> {
     match list_result(resource, names, empty, selected, has_other_chapters)? {
         None => Ok(OutlineChoice::Back),
+        Some((EXPORT, index)) => Ok(OutlineChoice::Export(index)),
         Some((NEW_DOCUMENT, index)) => Ok(OutlineChoice::Create(index)),
         Some((POSITION, Some(index))) if names.len() > 1 => Ok(OutlineChoice::Position(index)),
         Some((COPY, Some(index))) => Ok(OutlineChoice::Copy(index)),
@@ -350,14 +357,16 @@ unsafe extern "system" fn handle(hwnd: HWND, message: u32, action: WPARAM, data:
                     }
                     LIST if notification == LBN_DBLCLK => IDOK,
                     IDOK | BROWSE | EDIT_SCENE | MANAGE | NEW_PROJECT | NEW_DOCUMENT | RENAME
-                    | UP | DOWN | MOVE | REMOVE | COPY | POSITION
+                    | UP | DOWN | MOVE | REMOVE | COPY | POSITION | EXPORT
                         if !GetDlgItem(hwnd, id).is_null() =>
                     {
                         id
                     }
                     _ => return 0,
                 };
-                if index.is_some() || matches!(command, NEW_DOCUMENT | NEW_PROJECT | MANAGE) {
+                if index.is_some()
+                    || matches!(command, NEW_DOCUMENT | NEW_PROJECT | MANAGE | EXPORT)
+                {
                     (*entries).command = Some((command, index));
                     EndDialog(hwnd, 1);
                 }

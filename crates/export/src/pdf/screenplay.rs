@@ -313,11 +313,7 @@ pub fn export_screenplay_pdf(
     documents: &[ExportSourceDocument],
     ids: &[EntityId],
 ) -> Result<ExportResult> {
-    let mut layout = Layout::new()?;
-    for scene in selected(project, documents, ids)? {
-        layout.scene(&paragraphs(&scene.content)?)?;
-    }
-    let bytes = layout.render()?;
+    let bytes = render_selected(project, documents, ids)?;
     let output = prepare_export_directory(directory)?;
     atomic_write(&output, "drehbuch.pdf", &bytes)?;
     Ok(ExportResult {
@@ -325,6 +321,18 @@ pub fn export_screenplay_pdf(
         file_name: "drehbuch.pdf".to_owned(),
         byte_count: bytes.len() as u64,
     })
+}
+
+pub(crate) fn render_selected(
+    project: &Project,
+    documents: &[ExportSourceDocument],
+    ids: &[EntityId],
+) -> Result<Vec<u8>> {
+    let mut layout = Layout::new()?;
+    for scene in selected(project, documents, ids)? {
+        layout.scene(&paragraphs(&scene.content)?)?;
+    }
+    layout.render()
 }
 
 #[cfg(test)]
