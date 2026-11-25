@@ -1428,31 +1428,34 @@ mod tests {
         assert_eq!(remaining[0].id, second_chapter.id);
         assert_eq!(remaining[0].position, 0);
 
+        check_direct_position(&mut repository, project.id, second_chapter.id);
+    }
+
+    fn check_direct_position(
+        repository: &mut DocumentRepository<'_>,
+        project: ProjectId,
+        first: kraqel_domain::EntityId,
+    ) {
         let middle = repository
-            .create(project.id, None, DocumentKind::Chapter, "Mitte")
+            .create(project, None, DocumentKind::Chapter, "Mitte")
             .unwrap();
         let last = repository
-            .create(project.id, None, DocumentKind::Chapter, "Ende")
+            .create(project, None, DocumentKind::Chapter, "Ende")
             .unwrap();
-        let outline = repository.list(project.id).unwrap();
+        let outline = repository.list(project).unwrap();
         let move_first = |repo: &mut DocumentRepository<'_>, index| {
-            repo.move_in_outline(
-                project.id,
-                &outline,
-                second_chapter.id,
-                super::OutlineMove::AtIndex(index),
-            )
+            repo.move_in_outline(project, &outline, first, super::OutlineMove::AtIndex(index))
         };
         assert!(matches!(
-            move_first(&mut repository, 3),
+            move_first(repository, 3),
             Err(DocumentError::InvalidInput)
         ));
-        move_first(&mut repository, 0).unwrap();
-        move_first(&mut repository, 2).unwrap();
-        let nodes = repository.list(project.id).unwrap();
+        move_first(repository, 0).unwrap();
+        move_first(repository, 2).unwrap();
+        let nodes = repository.list(project).unwrap();
         assert_eq!(
             nodes.iter().map(|n| (n.id, n.position)).collect::<Vec<_>>(),
-            [(middle.id, 0), (last.id, 1), (second_chapter.id, 2)]
+            [(middle.id, 0), (last.id, 1), (first, 2)]
         );
     }
 
