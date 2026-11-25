@@ -1613,7 +1613,7 @@ mod tests {
 
     #[test]
     fn native_scene_grants_preserve_structure_and_refuse_stale_revisions() {
-        use crate::native_scene::SceneReadGrant;
+        use crate::native_scene::{SceneEditGrant, SceneReadGrant};
         let root = tempdir().unwrap();
         let manager = ProjectManager::new(root.path()).unwrap();
         let project = project();
@@ -1660,6 +1660,18 @@ mod tests {
             )
             .unwrap();
         let mut repository = DocumentRepository::new(reopened.database_mut());
+        assert!(SceneReadGrant::latest_prose(project.id, scene.id, &repository).is_err());
+        assert!(matches!(
+            SceneEditGrant::save_reviewed(
+                &mut repository,
+                project.id,
+                scene.id,
+                node.revision,
+                "Kolkrabe",
+                "Auswahl",
+            ),
+            Err(DocumentError::RevisionConflict)
+        ));
         assert!(matches!(
             edit.save(&mut repository, "überschreiben"),
             Err(DocumentError::RevisionConflict)

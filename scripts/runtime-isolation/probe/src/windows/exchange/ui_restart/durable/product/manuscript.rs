@@ -2,15 +2,29 @@
 use super::*;
 use kraqel_storage::project_manager::{ReviewChoice, ReviewedScene, SceneMergeSelection};
 
-/// Result of a write attempt against the original revision and exact source document.
-#[derive(Clone, Copy, PartialEq, Eq)]
+/// Operations scoped to the project and scene selected before the authenticated session.
+pub enum SceneRequest<'a> {
+    Save(&'a str),
+    ReadLatest,
+    Confirm {
+        revision: u64,
+        reviewed: &'a str,
+        merged: &'a str,
+    },
+}
+
+/// Result from the trusted project store.
 pub enum SceneSaveStatus {
     Committed,
     Conflict,
     Failed,
+    Review {
+        revision: u64,
+        text: Zeroizing<String>,
+    },
 }
 
-pub(super) type SceneWriter<'a> = &'a mut dyn FnMut(&str) -> SceneSaveStatus;
+pub(super) type SceneWriter<'a> = &'a mut dyn FnMut(SceneRequest<'_>) -> SceneSaveStatus;
 
 /// Runs a read-only selection against an ordered and verified pair.
 /// Only a confirmed choice after both roles have exited can escape the private channel.

@@ -1,7 +1,7 @@
 //! Native metadata navigation. The separate authenticated roles own the manuscript control.
 use super::{DocumentKind, DocumentNode, DocumentRepository, ProjectId, ProjectManager};
 use kraqel_domain::EntityId;
-use kraqel_isolation_transport::SceneSaveStatus;
+use kraqel_isolation_transport::{SceneRequest, SceneSaveStatus};
 use kraqel_native_start::{
     OutlineChoice, SceneAction, ask_document_title, choose_chapter, choose_destination,
     choose_scene, confirm_removal, notify,
@@ -9,7 +9,7 @@ use kraqel_native_start::{
 use kraqel_storage::document_repository::{
     DeletePreview, DocumentError, OutlineMove, is_valid_document_title,
 };
-use kraqel_storage::native_scene::{NativeScene, SceneReadGrant};
+use kraqel_storage::native_scene::{NativeScene, SceneEditGrant, SceneReadGrant};
 use std::{error::Error, path::Path};
 use zeroize::Zeroizing;
 
@@ -28,7 +28,7 @@ fn isolated(
     home: &Path,
     scene: &DocumentNode,
     text: &str,
-    save: Option<&mut dyn FnMut(&str) -> SceneSaveStatus>,
+    save: Option<&mut dyn FnMut(SceneRequest<'_>) -> SceneSaveStatus>,
 ) -> Result<bool> {
     let images: [&[u8]; 2] = [
         include_bytes!(concat!(env!("KRAQEL_REVIEW_IMAGES"), "/pipe-service.exe")),
@@ -56,22 +56,44 @@ fn show(
     let text = Zeroizing::new(text);
     if action == SceneAction::Read {
         if isolated(home, scene, &text, None)? {
-            return Err("UngÃ¼ltige Antwort auf die Lesefreigabe.".into());
+            return Err("Ungültige Antwort auf die Lesefreigabe.".into());
         }
         return Ok(());
     }
     if edit.is_none() {
         notify(
-            "Diese Szene enthÃ¤lt Formatierungen oder eine Dokumentstruktur, die sich im nativen Texteditor nur lesen lÃ¤sst. WÃ¤hle â€žLesenâ€œ fÃ¼r die Textansicht.",
+            "Diese Szene enthält Formatierungen oder eine Dokumentstruktur, die sich im nativen Texteditor nur lesen lässt. Wähle „Lesen“ für die Textansicht.",
         );
         return Ok(());
     }
     let mut grant = edit;
-    let mut save = |draft: &str| {
+    let mut save = |request: SceneRequest<'_>| {
         let Ok(mut opened) = manager.open_project(scene.project_id.to_string()) else {
             return SceneSaveStatus::Failed;
         };
         let mut repository = DocumentRepository::new(opened.database_mut());
+        let draft = match request {
+            SceneRequest::Save(draft) => draft,
+            SceneRequest::ReadLatest => return latest(&repository, scene),
+            SceneRequest::Confirm {
+                revision,
+                reviewed,
+                merged,
+            } => {
+                return match SceneEditGrant::save_reviewed(
+                    &mut repository,
+                    scene.project_id,
+                    scene.id,
+                    revision,
+                    reviewed,
+                    merged,
+                ) {
+                    Ok(_) => SceneSaveStatus::Committed,
+                    Err(DocumentError::RevisionConflict) => latest(&repository, scene),
+                    Err(_) => SceneSaveStatus::Failed,
+                };
+            }
+        };
         let result = (|| {
             let bound = if let Some(original) = grant.take() {
                 original
@@ -98,6 +120,16 @@ fn show(
         notify("Die Szene wurde gespeichert.");
     }
     Ok(())
+}
+
+fn latest(repository: &DocumentRepository<'_>, scene: &DocumentNode) -> SceneSaveStatus {
+    match SceneReadGrant::latest_prose(scene.project_id, scene.id, repository) {
+        Ok((revision, text)) => SceneSaveStatus::Review {
+            revision,
+            text: Zeroizing::new(text),
+        },
+        Err(_) => SceneSaveStatus::Failed,
+    }
 }
 
 pub(super) fn browse(home: &Path, manager: &ProjectManager, project: ProjectId) -> Result<()> {
@@ -134,14 +166,14 @@ pub(super) fn browse(home: &Path, manager: &ProjectManager, project: ProjectId) 
         };
         let node = choice
             .selected_index()
-            .map(|i| nodes.get(i).copied().ok_or("UngÃ¼ltige Dokumentauswahl."))
+            .map(|i| nodes.get(i).copied().ok_or("Ungültige Dokumentauswahl."))
             .transpose()?;
         selected = node.map(|n| n.id);
         match choice {
             OutlineChoice::Remove(_) => {
                 if remove_document(manager, node.ok_or("Dokumentauswahl fehlt.")?).is_err() {
                     notify(
-                        "Der Vorgang konnte nicht bestÃ¤tigt werden. Bitte prÃ¼fe die aktualisierte Gliederung und Ã¶ffne bei Bedarf eine neue LÃ¶schvorschau.",
+                        "Der Vorgang konnte nicht bestätigt werden. Bitte prüfe die aktualisierte Gliederung und öffne bei Bedarf eine neue Löschvorschau.",
                     );
                 }
             }
@@ -166,7 +198,7 @@ pub(super) fn browse(home: &Path, manager: &ProjectManager, project: ProjectId) 
                     };
                     if show(home, manager, node, action).is_err() {
                         notify(
-                            "Die gebundene Szenensitzung konnte nicht abgeschlossen werden. Bitte prÃ¼fe die aktuelle Auswahl.",
+                            "Die gebundene Szenensitzung konnte nicht abgeschlossen werden. Bitte prüfe die aktuelle Auswahl.",
                         );
                     }
                 }
@@ -186,7 +218,7 @@ pub(super) fn browse(home: &Path, manager: &ProjectManager, project: ProjectId) 
                         }
                     }
                     Err(_) => notify(
-                        "Der Eintrag wurde nicht verschoben. Bitte prÃ¼fe die aktualisierte Gliederung.",
+                        "Der Eintrag wurde nicht verschoben. Bitte prüfe die aktualisierte Gliederung.",
                     ),
                 }
             }
@@ -226,7 +258,7 @@ fn change_title(
         Ok(Some(node))
     } else {
         notify(
-            "Die Ã„nderung konnte nicht gespeichert werden. Bitte prÃ¼fe die aktualisierte Auswahl.",
+            "Die Änderung konnte nicht gespeichert werden. Bitte prüfe die aktualisierte Auswahl.",
         );
         Ok(None)
     }
@@ -258,7 +290,7 @@ fn deletion_details(preview: &DeletePreview) -> String {
     }
     let mut lines = Vec::new();
     if let Some(parent) = preview.parent() {
-        lines.push(format!("ZugehÃ¶riges {}", entry(parent)));
+        lines.push(format!("Zugehöriges {}", entry(parent)));
     }
     lines.push(entry(preview.selected()));
     if preview.selected().kind == DocumentKind::Chapter {
@@ -266,12 +298,12 @@ fn deletion_details(preview: &DeletePreview) -> String {
         lines.extend(preview.children().iter().map(entry));
     }
     for (label, count) in [
-        "Story-Bibel-VerknÃ¼pfungen",
+        "Story-Bibel-Verknüpfungen",
         "Plotkarten",
-        "EreignisverknÃ¼pfungen",
-        "MedienverknÃ¼pfungen",
-        "Bildprompt-EntwÃ¼rfe",
-        "Profilzuordnungen der Bildprompt-EntwÃ¼rfe",
+        "Ereignisverknüpfungen",
+        "Medienverknüpfungen",
+        "Bildprompt-Entwürfe",
+        "Profilzuordnungen der Bildprompt-Entwürfe",
     ]
     .into_iter()
     .zip(preview.related_counts())
@@ -301,6 +333,6 @@ fn choose_move(
                 chapters.get(target).ok_or("Kapitel fehlt.")?.id,
             )))
         }
-        _ => Err("UngÃ¼ltige Verschiebeaktion.".into()),
+        _ => Err("Ungültige Verschiebeaktion.".into()),
     }
 }

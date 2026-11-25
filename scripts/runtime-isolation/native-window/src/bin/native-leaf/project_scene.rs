@@ -2,6 +2,10 @@
 use super::*;
 #[path = "project_close.rs"]
 mod project_close;
+#[path = "project_dialog.rs"]
+mod project_dialog;
+#[path = "project_review.rs"]
+mod project_review;
 use std::{
     fs::File,
     io::{self, Read, Write},
@@ -12,17 +16,100 @@ use windows_sys::Win32::UI::Controls::EM_SETREADONLY;
 use zeroize::Zeroizing;
 
 const STATUS: i32 = 204;
+const COMPARE: i32 = 205;
 const REQUEST: u32 = WM_APP + 40;
 const SAVE_TIMER: usize = 7001;
 
 enum Request {
     Save(Zeroizing<String>),
+    Compare(Zeroizing<String>),
+    CancelReview(u64),
+    Confirm {
+        generation: u64,
+        revision: u64,
+        choices: Vec<u8>,
+    },
     Close,
+}
+
+enum Reply {
+    Canceled,
+    Committed,
+    Conflict,
+    Failed,
+    Review {
+        generation: u64,
+        revision: u64,
+        text: Zeroizing<String>,
+    },
+}
+
+fn exchange(input: &mut File, output: &mut File, request: Request) -> io::Result<Reply> {
+    let reviewing = matches!(request, Request::Compare(_) | Request::Confirm { .. });
+    let comparing = matches!(request, Request::Compare(_));
+    let canceling = matches!(request, Request::CancelReview(_));
+    match request {
+        Request::Save(text) | Request::Compare(text) => {
+            output.write_all(&[if comparing {
+                window_receipt::SCENE_COMPARE
+            } else {
+                1
+            }])?;
+            output.write_all(&(text.len() as u32).to_le_bytes())?;
+            output.write_all(text.as_bytes())?;
+        }
+        Request::Confirm {
+            generation,
+            revision,
+            choices,
+        } => {
+            output.write_all(&[window_receipt::SCENE_CONFIRM])?;
+            output.write_all(&generation.to_le_bytes())?;
+            output.write_all(&revision.to_le_bytes())?;
+            output.write_all(&(choices.len() as u32).to_le_bytes())?;
+            output.write_all(&choices)?;
+        }
+        Request::CancelReview(generation) => {
+            output.write_all(&[window_receipt::SCENE_CANCEL_REVIEW])?;
+            output.write_all(&generation.to_le_bytes())?;
+        }
+        Request::Close => return Err(io::Error::other("unexpected close")),
+    }
+    let mut ack = [0];
+    input.read_exact(&mut ack)?;
+    match ack[0] {
+        window_receipt::SAVE_ACK_COMMITTED if !comparing && !canceling => Ok(Reply::Committed),
+        window_receipt::SAVE_ACK_CONFLICT if !reviewing && !canceling => Ok(Reply::Conflict),
+        window_receipt::SAVE_ACK_CANCELED if canceling => Ok(Reply::Canceled),
+        window_receipt::SAVE_ACK_FAILED => Ok(Reply::Failed),
+        window_receipt::SAVE_ACK_REVIEW if reviewing => {
+            let mut generation = [0; 8];
+            let mut revision = [0; 8];
+            let mut length = [0; 4];
+            input.read_exact(&mut generation)?;
+            input.read_exact(&mut revision)?;
+            input.read_exact(&mut length)?;
+            let length = u32::from_le_bytes(length) as usize;
+            require(length <= PROJECT_EDIT_BYTES, "invalid review length")?;
+            let mut bytes = vec![0; length];
+            input.read_exact(&mut bytes)?;
+            let text = Zeroizing::new(
+                String::from_utf8(bytes).map_err(|_| io::Error::other("invalid review text"))?,
+            );
+            require(!text.contains(['\r', '\0']), "invalid review text")?;
+            Ok(Reply::Review {
+                generation: u64::from_le_bytes(generation),
+                revision: u64::from_le_bytes(revision),
+                text,
+            })
+        }
+        _ => Err(io::Error::other("invalid scene acknowledgement")),
+    }
 }
 
 struct Channel {
     request: mpsc::Sender<Request>,
-    acknowledgement: mpsc::Receiver<io::Result<u8>>,
+    acknowledgement: mpsc::Receiver<io::Result<Reply>>,
     worker: thread::JoinHandle<io::Result<()>>,
 }
 
@@ -36,22 +123,9 @@ impl Channel {
                 while let Ok(action) = requests.recv() {
                     match action {
                         Request::Close => return output.write_all(&[0]),
-                        Request::Save(text) => {
-                            let result = (|| -> io::Result<u8> {
-                                output.write_all(&[1])?;
-                                output.write_all(&(text.len() as u32).to_le_bytes())?;
-                                output.write_all(text.as_bytes())?;
-                                let mut ack = [0];
-                                input.read_exact(&mut ack)?;
-                                match ack[0] {
-                                    window_receipt::SAVE_ACK_COMMITTED
-                                    | window_receipt::SAVE_ACK_CONFLICT
-                                    | window_receipt::SAVE_ACK_FAILED => Ok(ack[0]),
-                                    _ => Err(io::Error::other("invalid save acknowledgement")),
-                                }
-                            })();
-                            let finished =
-                                matches!(result, Ok(window_receipt::SAVE_ACK_COMMITTED) | Err(_));
+                        request => {
+                            let result = exchange(&mut input, &mut output, request);
+                            let finished = matches!(result, Ok(Reply::Committed) | Err(_));
                             if acks.send(result).is_err() || finished {
                                 break;
                             }
@@ -124,7 +198,7 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) 
                 PostMessageW(hwnd, REQUEST, CLOSE as usize, 0);
                 0
             }
-            WM_COMMAND if matches!(w, id if id == CLOSE as usize || id == IDCANCEL as usize || id == SAVE as usize) =>
+            WM_COMMAND if matches!(w, id if id == CLOSE as usize || id == IDCANCEL as usize || id == SAVE as usize || id == COMPARE as usize) =>
             {
                 PostMessageW(hwnd, REQUEST, w, 0);
                 0
@@ -165,6 +239,7 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) 
                         button,
                         height,
                     ),
+                    (COMPARE, margin, bottom, scale(184, dpi), height),
                     (CLOSE, rect.right - margin - button, bottom, button, height),
                 ] {
                     let child = GetDlgItem(hwnd, id);
@@ -234,6 +309,12 @@ pub(super) fn display(
             (EDIT, "EDIT", "", style),
             (STATUS, "STATIC", "", SS_LEFT),
             (
+                COMPARE,
+                "BUTTON",
+                "Fassungen &vergleichen",
+                WS_TABSTOP | BS_PUSHBUTTON as u32,
+            ),
+            (
                 SAVE,
                 "BUTTON",
                 "&Speichern",
@@ -250,14 +331,14 @@ pub(super) fn display(
                 WS_TABSTOP | BS_PUSHBUTTON as u32,
             ),
         ] {
-            if matches!(id, SAVE | STATUS) && !edit_mode {
+            if matches!(id, SAVE | STATUS | COMPARE) && !edit_mode {
                 continue;
             }
             let child = CreateWindowExW(
                 0,
                 wide(kind).as_ptr(),
                 wide(label).as_ptr(),
-                WS_CHILD | WS_VISIBLE | control_style,
+                WS_CHILD | (if id == COMPARE { 0 } else { WS_VISIBLE }) | control_style,
                 0,
                 0,
                 1,
@@ -333,6 +414,9 @@ unsafe fn edit_loop(hwnd: HWND, field: HWND, text: &str, channel: Channel) -> io
     unsafe {
         let mut pending = false;
         let mut available = true;
+        let mut compare_available = false;
+        let mut review: Option<project_review::Review> = None;
+        let mut confirming = false;
         let committed = loop {
             let message = next_message()?;
             if message.hwnd == hwnd
@@ -348,23 +432,75 @@ unsafe fn edit_loop(hwnd: HWND, field: HWND, text: &str, channel: Channel) -> io
                     }
                 };
                 KillTimer(hwnd, SAVE_TIMER);
-                if matches!(outcome, Ok(window_receipt::SAVE_ACK_COMMITTED)) {
+                if matches!(outcome, Ok(Reply::Committed)) {
                     break true;
                 }
                 pending = false;
                 let status = match outcome {
-                    Ok(window_receipt::SAVE_ACK_CONFLICT) => {
+                    Ok(Reply::Conflict) => {
                         available = false;
-                        "Die Szene wurde zwischenzeitlich geändert. Der Entwurf bleibt hier bearbeitbar. Speichern ist für diese Sitzung gesperrt."
+                        compare_available = true;
+                        ShowWindow(GetDlgItem(hwnd, COMPARE), SW_SHOW);
+                        "Die Szene wurde zwischenzeitlich geändert. Du kannst die Fassungen vergleichen."
                     }
-                    Ok(window_receipt::SAVE_ACK_FAILED) => {
+                    Ok(Reply::Review {
+                        generation,
+                        revision,
+                        text: remote,
+                    }) => {
+                        let selection = review
+                            .as_mut()
+                            .ok_or(io::Error::other("unexpected comparison"))?;
+                        if selection.choose(hwnd, &remote, revision, confirming) {
+                            let command = Request::Confirm {
+                                generation,
+                                revision,
+                                choices: selection.choices.clone(),
+                            };
+                            if start_request(
+                                hwnd,
+                                field,
+                                &channel,
+                                command,
+                                "Auswahl wird gespeichert …",
+                            ) {
+                                pending = true;
+                                confirming = true;
+                                continue;
+                            }
+                            "Die Auswahl konnte nicht gesendet werden. Der Entwurf bleibt offen."
+                        } else {
+                            if start_request(
+                                hwnd,
+                                field,
+                                &channel,
+                                Request::CancelReview(generation),
+                                "Vergleich wird geschlossen …",
+                            ) {
+                                pending = true;
+                                continue;
+                            }
+                            "Der Vergleich wurde geschlossen. Der Entwurf bleibt offen."
+                        }
+                    }
+                    Ok(Reply::Canceled) => {
+                        "Vergleich geschlossen. Der lokale Entwurf bleibt erhalten."
+                    }
+                    Ok(Reply::Failed) if review.is_some() => {
+                        "Der Vergleich konnte nicht abgeschlossen werden. Bitte die Fassungen erneut vergleichen."
+                    }
+                    Ok(Reply::Failed) => {
                         "Das Speichern ist fehlgeschlagen. Der Entwurf bleibt offen."
                     }
                     _ => {
                         available = false;
+                        compare_available = false;
+                        EnableWindow(GetDlgItem(hwnd, COMPARE), 0);
                         "Die Speicherbestätigung fehlt. Der Entwurf bleibt offen."
                     }
                 };
+                review = None;
+                confirming = false;
                 if !available {
                     EnableWindow(GetDlgItem(hwnd, SAVE), 0);
                 }
@@ -392,7 +528,8 @@ unsafe fn edit_loop(hwnd: HWND, field: HWND, text: &str, channel: Channel) -> io
                         project_close::Choice::Save => {}
                     }
                 }
-                if !available || (!close && message.wParam != SAVE as usize) {
+                let compare = message.wParam == COMPARE as usize && compare_available;
+                if !compare && (!available || (!close && message.wParam != SAVE as usize)) {
                     continue;
                 }
                 let Some(draft) = draft else {
@@ -400,28 +537,46 @@ unsafe fn edit_loop(hwnd: HWND, field: HWND, text: &str, channel: Channel) -> io
                     SetFocus(field);
                     continue;
                 };
-                if SetTimer(hwnd, SAVE_TIMER, 100, None) == 0
-                    || channel.request.send(Request::Save(draft)).is_err()
-                {
-                    KillTimer(hwnd, SAVE_TIMER);
+                let (command, status) = if compare {
+                    review = Some(project_review::Review::new(draft.clone()));
+                    (Request::Compare(draft), "Vergleich wird geladen …")
+                } else {
+                    (Request::Save(draft), "Wird gespeichert …")
+                };
+                pending = start_request(hwnd, field, &channel, command, status);
+                if !pending {
+                    review = None;
                     SetWindowTextW(
                         GetDlgItem(hwnd, STATUS),
-                        wide("Das Speichern ist fehlgeschlagen. Der Entwurf bleibt offen.")
-                            .as_ptr(),
+                        wide("Die Anfrage ist fehlgeschlagen. Der Entwurf bleibt offen.").as_ptr(),
                     );
-                    continue;
                 }
-                pending = true;
-                SendMessageW(field, EM_SETREADONLY, 1, 0);
-                SetWindowTextW(
-                    GetDlgItem(hwnd, STATUS),
-                    wide("Wird gespeichert …").as_ptr(),
-                );
                 continue;
             }
             dispatch(hwnd, &message);
         };
         require(DestroyWindow(hwnd) != 0, "close project window")?;
         channel.finish(committed)
+    }
+}
+
+unsafe fn start_request(
+    hwnd: HWND,
+    field: HWND,
+    channel: &Channel,
+    command: Request,
+    status: &str,
+) -> bool {
+    unsafe {
+        if SetTimer(hwnd, SAVE_TIMER, 100, None) == 0 {
+            return false;
+        }
+        if channel.request.send(command).is_err() {
+            KillTimer(hwnd, SAVE_TIMER);
+            return false;
+        }
+        SendMessageW(field, EM_SETREADONLY, 1, 0);
+        SetWindowTextW(GetDlgItem(hwnd, STATUS), wide(status).as_ptr());
+        true
     }
 }

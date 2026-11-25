@@ -1,6 +1,7 @@
 //! Native window identity gate and optional receipt-only resume.
 use super::*;
 mod bootstrap;
+mod edit;
 mod scene;
 pub(super) use scene::read_scene;
 
@@ -136,7 +137,7 @@ pub(in super::super) fn deliver_p3(
             }
             if let Some(mut acknowledgement) = acknowledgement {
                 let save = save.ok_or(invalid("scene-edit-missing-grant"))?;
-                choice = serve_edit(&mut reply, &mut acknowledgement, save)?;
+                choice = edit::serve_edit(&mut reply, &mut acknowledgement, save)?;
             }
             bootstrap::wait_for_close(ui, hwnd, interactive)?;
             if argument != protocol::P3_READ && argument != protocol::PROJECT_SCENE_EDIT {
@@ -155,98 +156,6 @@ pub(in super::super) fn deliver_p3(
         },
     )?;
     Ok(choice)
-}
-
-// Keep the authenticated window and both package pins until commit or explicit discard.
-fn serve_edit(
-    reply: &mut fs::File,
-    acknowledgement: &mut fs::File,
-    save: manuscript::SceneWriter<'_>,
-) -> Result<u8> {
-    use crate::window_receipt::{SAVE_ACK_COMMITTED, SAVE_ACK_CONFLICT, SAVE_ACK_FAILED};
-    use manuscript::SceneSaveStatus;
-    use std::io::Read;
-
-    let mut conflicted = false;
-    loop {
-        let mut decision = [0];
-        io("scene-edit-decision", reply.read_exact(&mut decision))?;
-        match decision[0] {
-            0 => return Ok(0),
-            1 => {
-                let draft = Zeroizing::new(read_edited_scene(reply)?);
-                let status = if conflicted {
-                    SceneSaveStatus::Conflict
-                } else {
-                    save(&draft)
-                };
-                let receipt = match status {
-                    SceneSaveStatus::Committed => SAVE_ACK_COMMITTED,
-                    SceneSaveStatus::Conflict => SAVE_ACK_CONFLICT,
-                    SceneSaveStatus::Failed => SAVE_ACK_FAILED,
-                };
-                io("scene-edit-ack", acknowledgement.write_all(&[receipt]))?;
-                if status == SceneSaveStatus::Committed {
-                    return Ok(1);
-                }
-                conflicted = status == SceneSaveStatus::Conflict;
-            }
-            _ => return Err(invalid("scene-edit-decision")),
-        }
-    }
-}
-
-fn read_edited_scene(reply: &mut fs::File) -> Result<String> {
-    use std::{
-        io::Read,
-        time::{Duration, Instant},
-    };
-    use windows_sys::Win32::System::Pipes::PeekNamedPipe;
-
-    let deadline = Instant::now() + Duration::from_secs(15);
-    let mut fill = |mut target: &mut [u8]| -> Result<()> {
-        while !target.is_empty() {
-            if Instant::now() >= deadline {
-                return Err(invalid("scene-edit-timeout"));
-            }
-            let mut count = 0;
-            check(
-                unsafe {
-                    PeekNamedPipe(
-                        reply.as_raw_handle(),
-                        null_mut(),
-                        0,
-                        null_mut(),
-                        &mut count,
-                        null_mut(),
-                    )
-                },
-                "scene-edit-pipe",
-            )?;
-            if count == 0 {
-                std::thread::sleep(Duration::from_millis(5));
-                continue;
-            }
-            let bytes = target.len().min(count as usize);
-            let (chunk, remaining) = target.split_at_mut(bytes);
-            io("scene-edit-bytes", reply.read_exact(chunk))?;
-            target = remaining;
-        }
-        Ok(())
-    };
-    let mut length = [0; 4];
-    fill(&mut length)?;
-    let size = u32::from_le_bytes(length) as usize;
-    if size > 64 * 1024 {
-        return Err(invalid("scene-edit-length"));
-    }
-    let mut bytes = vec![0; size];
-    fill(&mut bytes)?;
-    let text = String::from_utf8(bytes).map_err(|_| invalid("scene-edit-utf8"))?;
-    if text.contains(['\0', '\r']) {
-        return Err(invalid("scene-edit-text"));
-    }
-    Ok(text)
 }
 
 fn with_role(

@@ -1,5 +1,5 @@
 //! Local, single-use scene grants issued from the selected catalog row.
-use crate::document_repository::{DocumentError, DocumentRepository, SaveGuard};
+use crate::document_repository::{DocumentError, DocumentRepository, SaveGuard, StoredDocument};
 use kraqel_domain::{
     DocumentKind, DocumentNode, EDITOR_DOCUMENT_VERSION, EditorDocument, EntityId, ProjectId,
 };
@@ -48,13 +48,29 @@ impl SceneReadGrant {
         if source.node.kind != DocumentKind::Scene || source.node.revision != self.revision {
             return Err(DocumentError::RevisionConflict);
         }
-        let mut text = String::new();
-        append_view(&source.content.document, &mut text)?;
-        if !displayable(&text) {
+        self.project_source(source)
+    }
+
+    /// Loads only the current version of the explicitly requested scene from the selected project.
+    ///
+    /// # Errors
+    /// Rejects missing scenes, wrong document kinds and documents outside the native text limit.
+    pub fn latest_prose(
+        project: ProjectId,
+        scene: EntityId,
+        repository: &DocumentRepository<'_>,
+    ) -> Result<(u64, String), DocumentError> {
+        let source = repository.load(project, scene)?;
+        let grant = Self::from_node(&source.node)?;
+        let (text, editable) = project_text(&source.content)?;
+        if !editable {
             return Err(DocumentError::InvalidInput);
         }
-        let editable = source.content.version == EDITOR_DOCUMENT_VERSION
-            && text_document(&text) == source.content;
+        Ok((grant.revision, text))
+    }
+
+    fn project_source(self, source: StoredDocument) -> Result<NativeScene, DocumentError> {
+        let (text, editable) = project_text(&source.content)?;
         let edit = editable.then_some(SceneEditGrant {
             binding: self,
             original: source.content,
@@ -64,6 +80,33 @@ impl SceneReadGrant {
 }
 
 impl SceneEditGrant {
+    /// Issues a fresh one-shot grant only for the exact canonical prose and revision reviewed.
+    ///
+    /// # Errors
+    /// A later revision or changed source blocks the write, including changes during commit.
+    pub fn save_reviewed(
+        repository: &mut DocumentRepository<'_>,
+        project: ProjectId,
+        scene: EntityId,
+        revision: u64,
+        reviewed: &str,
+        merged: &str,
+    ) -> Result<u64, DocumentError> {
+        let fresh = SceneReadGrant {
+            project,
+            scene,
+            revision,
+        }
+        .read(repository)?;
+        if fresh.text != reviewed {
+            return Err(DocumentError::RevisionConflict);
+        }
+        fresh
+            .edit
+            .ok_or(DocumentError::RevisionConflict)?
+            .save(repository, merged)
+    }
+
     /// # Errors
     /// Rejects unsupported text or changes to the exact bound scene, revision or original structure.
     pub fn save(
@@ -82,6 +125,16 @@ impl SceneEditGrant {
             SaveGuard::ExactProse(&self.original),
         )
     }
+}
+
+fn project_text(content: &EditorDocument) -> Result<(String, bool), DocumentError> {
+    let mut text = String::new();
+    append_view(&content.document, &mut text)?;
+    if !displayable(&text) {
+        return Err(DocumentError::InvalidInput);
+    }
+    let editable = content.version == EDITOR_DOCUMENT_VERSION && text_document(&text) == *content;
+    Ok((text, editable))
 }
 
 fn displayable(text: &str) -> bool {

@@ -45,31 +45,8 @@ unsafe extern "system" fn handle(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
 }
 
 pub(super) fn choose(owner: HWND, available: bool) -> Choice {
-    // DialogBoxIndirectParamW requires a DWORD-aligned, UTF-16 DLGTEMPLATE.
-    let style = WS_POPUP
-        | WS_CAPTION
-        | WS_SYSMENU
-        | DS_MODALFRAME as u32
-        | DS_SETFONT as u32
-        | DS_CENTER as u32;
-    let mut words = vec![
-        style as u16,
-        (style >> 16) as u16,
-        0,
-        0,
-        4,
-        0,
-        0,
-        300,
-        86,
-        0,
-        0,
-    ];
-    words.extend(wide("KRAQEL – Ungespeicherter Entwurf"));
-    words.push(9);
-    words.extend(wide("Segoe UI"));
     let button = WS_CHILD | WS_VISIBLE | WS_TABSTOP;
-    for (id, class, x, y, width, height, style, label) in [
+    let controls = [
         (
             0xffff,
             0x82,
@@ -92,30 +69,8 @@ pub(super) fn choose(owner: HWND, available: bool) -> Choice {
         ),
         (STORE, 0x80, 121, 55, 80, 19, button, "&Speichern"),
         (DROP_DRAFT, 0x80, 210, 55, 80, 19, button, "&Verwerfen"),
-    ] {
-        if !words.len().is_multiple_of(2) {
-            words.push(0);
-        }
-        words.extend([
-            style as u16,
-            (style >> 16) as u16,
-            0,
-            0,
-            x,
-            y,
-            width,
-            height,
-            id,
-            0xffff,
-            class,
-        ]);
-        words.extend(wide(label));
-        words.push(0);
-    }
-    let template: Vec<u32> = words
-        .chunks(2)
-        .map(|w| u32::from(w[0]) | (u32::from(*w.get(1).unwrap_or(&0)) << 16))
-        .collect();
+    ];
+    let template = project_dialog::template("KRAQEL – Ungespeicherter Entwurf", 300, 86, &controls);
     let choice = unsafe {
         DialogBoxIndirectParamW(
             GetModuleHandleW(null()),
