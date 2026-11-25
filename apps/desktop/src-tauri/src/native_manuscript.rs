@@ -3,9 +3,9 @@ use super::{DocumentKind, DocumentNode, DocumentRepository, ProjectId, ProjectMa
 use kraqel_domain::EntityId;
 use kraqel_native_start::{
     OutlineChoice, SceneAction, ask_document_title, choose_chapter, choose_destination,
-    choose_scene, notify,
+    choose_scene, confirm_removal, notify,
 };
-use kraqel_storage::document_repository::{OutlineMove, is_valid_document_title};
+use kraqel_storage::document_repository::{DeletePreview, OutlineMove, is_valid_document_title};
 use kraqel_storage::native_scene::{NativeScene, SceneReadGrant};
 use std::{error::Error, path::Path};
 use zeroize::Zeroizing;
@@ -118,21 +118,19 @@ pub(super) fn browse(home: &Path, manager: &ProjectManager, project: ProjectId) 
             DocumentKind::Chapter => choose_chapter(&names, index)?,
             DocumentKind::Scene => choose_scene(&names, index, chapters.len() > 1)?,
         };
-        let selected_index = match choice {
-            OutlineChoice::Back => None,
-            OutlineChoice::Create(index) => index,
-            OutlineChoice::Rename(i)
-            | OutlineChoice::Open(i)
-            | OutlineChoice::Edit(i)
-            | OutlineChoice::Up(i)
-            | OutlineChoice::Down(i)
-            | OutlineChoice::Move(i) => Some(i),
-        };
-        let node = selected_index
+        let node = choice
+            .selected_index()
             .map(|i| nodes.get(i).copied().ok_or("Ungültige Dokumentauswahl."))
             .transpose()?;
         selected = node.map(|n| n.id);
         match choice {
+            OutlineChoice::Remove(_) => {
+                if remove_document(manager, node.ok_or("Dokumentauswahl fehlt.")?).is_err() {
+                    notify(
+                        "Der Vorgang konnte nicht bestätigt werden. Bitte prüfe die aktualisierte Gliederung und öffne bei Bedarf eine neue Löschvorschau.",
+                    );
+                }
+            }
             OutlineChoice::Create(_) | OutlineChoice::Rename(_) => {
                 let rename = matches!(choice, OutlineChoice::Rename(_));
                 let current = node.filter(|_| rename);
@@ -223,6 +221,52 @@ fn change_title(
 fn list_outline(manager: &ProjectManager, project: ProjectId) -> Result<Vec<DocumentNode>> {
     let mut opened = manager.open_project(project.to_string())?;
     Ok(DocumentRepository::new(opened.database_mut()).list(project)?)
+}
+
+fn remove_document(manager: &ProjectManager, node: &DocumentNode) -> Result<()> {
+    let mut project = manager.open_project(node.project_id.to_string())?;
+    let mut repository = DocumentRepository::new(project.database_mut());
+    let preview = repository.preview_delete(node)?;
+    if confirm_removal(&deletion_details(&preview))? {
+        repository.confirm_delete(&preview)?;
+    }
+    Ok(())
+}
+
+fn deletion_details(preview: &DeletePreview) -> String {
+    fn entry(node: &DocumentNode) -> String {
+        let kind = match node.kind {
+            DocumentKind::Chapter => "Kapitel",
+            DocumentKind::Scene => "Szene",
+        };
+        // Quote titles to keep imported newlines and control characters inside a single entry.
+        format!("{kind} {}: {:?}", u64::from(node.position) + 1, node.title)
+    }
+    let mut lines = Vec::new();
+    if let Some(parent) = preview.parent() {
+        lines.push(format!("Zugehöriges {}", entry(parent)));
+    }
+    lines.push(entry(preview.selected()));
+    if preview.selected().kind == DocumentKind::Chapter {
+        lines.push(format!("Enthaltene Szenen ({})", preview.children().len()));
+        lines.extend(preview.children().iter().map(entry));
+    }
+    for (label, count) in [
+        "Story-Bibel-Verknüpfungen",
+        "Plotkarten",
+        "Ereignisverknüpfungen",
+        "Medienverknüpfungen",
+        "Bildprompt-Entwürfe",
+        "Profilzuordnungen der Bildprompt-Entwürfe",
+    ]
+    .into_iter()
+    .zip(preview.related_counts())
+    {
+        if count > 0 {
+            lines.push(format!("{label}: {count}"));
+        }
+    }
+    lines.join("\r\n")
 }
 
 fn choose_move(

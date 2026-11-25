@@ -15,6 +15,9 @@ use serde_json::{Value, json};
 
 use crate::{Database, StorageError};
 
+mod deletion;
+pub use deletion::DeletePreview;
+
 pub(crate) const MAX_EDITOR_DOCUMENT_BYTES: usize = 5 * 1024 * 1024;
 
 /// Requested change to a reviewed native project outline.
@@ -749,23 +752,26 @@ impl<'database> DocumentRepository<'database> {
         if children != expected_child_ids {
             return Err(DocumentError::RevisionConflict);
         }
-        let changed = transaction.execute(
-            "DELETE FROM document
-             WHERE project_id = ?1 AND id = ?2 AND title = ?3 AND revision = ?4",
-            params![
-                project_id.to_string(),
-                document_id.to_string(),
-                expected_title,
-                i64::try_from(expected_revision).map_err(|_| DocumentError::InvalidInput)?
-            ],
-        )?;
-        if changed != 1 {
-            return Err(DocumentError::RevisionConflict);
-        }
-        compact_siblings(&transaction, project_id, node.parent_id)?;
+        delete_node(&transaction, &node)?;
         transaction.commit()?;
         Ok(())
     }
+}
+
+fn delete_node(transaction: &Transaction<'_>, node: &DocumentNode) -> Result<(), DocumentError> {
+    let changed = transaction.execute(
+        "DELETE FROM document WHERE project_id = ?1 AND id = ?2 AND title = ?3 AND revision = ?4",
+        params![
+            node.project_id.to_string(),
+            node.id.to_string(),
+            node.title,
+            i64::try_from(node.revision).map_err(|_| DocumentError::InvalidInput)?
+        ],
+    )?;
+    if changed != 1 {
+        return Err(DocumentError::RevisionConflict);
+    }
+    compact_siblings(transaction, node.project_id, node.parent_id)
 }
 
 struct RawDocumentNode {
@@ -1459,8 +1465,47 @@ mod tests {
             )
             .expect("prompt profile fixture");
 
-        DocumentRepository::new(opened.database_mut())
-            .delete(project.id, scene.id, "Szene", 0, &[])
+        let chapter = DocumentRepository::new(opened.database_mut())
+            .list(project.id)
+            .unwrap()
+            .into_iter()
+            .find(|n| n.id == scene.parent_id.unwrap())
+            .unwrap();
+        let mut repository = DocumentRepository::new(opened.database_mut());
+        let chapter_preview = repository.preview_delete(&chapter).unwrap();
+        assert_eq!(chapter_preview.children(), std::slice::from_ref(&scene));
+        assert_eq!(chapter_preview.related_counts(), [1; 6]);
+        // A changed dependent row must not be deleted using stale, numerically identical counts.
+        repository
+            .database
+            .connection()
+            .execute(
+                "UPDATE image_prompt_draft SET prompt_text='Neuer Entwurf' WHERE id=?1",
+                [draft.to_string()],
+            )
+            .unwrap();
+        assert!(matches!(
+            repository.confirm_delete(&chapter_preview),
+            Err(DocumentError::RevisionConflict)
+        ));
+        let chapter_preview = repository.preview_delete(&chapter).unwrap();
+        repository
+            .database
+            .connection()
+            .execute(
+                "UPDATE document SET revision=1 WHERE id=?1",
+                [scene.id.to_string()],
+            )
+            .unwrap();
+        assert!(matches!(
+            repository.confirm_delete(&chapter_preview),
+            Err(DocumentError::RevisionConflict)
+        ));
+        let current = repository.load(project.id, scene.id).unwrap().node;
+        let preview = repository.preview_delete(&current).unwrap();
+        assert_eq!(preview.parent(), Some(&chapter));
+        repository
+            .confirm_delete(&preview)
             .expect("current scene should delete");
 
         for table in [
@@ -1469,6 +1514,7 @@ mod tests {
             "event_document_link",
             "asset_link",
             "image_prompt_draft",
+            "image_prompt_draft_profile",
         ] {
             let count: i64 = opened
                 .database()

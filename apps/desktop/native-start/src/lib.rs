@@ -3,18 +3,20 @@
 
 mod project_name;
 pub use project_name::{ask_document_title, ask_project_name};
+mod deletion;
+pub use deletion::confirm_removal;
 
 use std::{io, ptr};
 use windows_sys::Win32::{
     Foundation::{HWND, LPARAM, WPARAM},
     System::LibraryLoader::GetModuleHandleW,
     UI::{
-        Input::KeyboardAndMouse::EnableWindow,
+        Input::KeyboardAndMouse::{EnableWindow, VK_DELETE},
         WindowsAndMessaging::{
             DialogBoxParamW, EndDialog, GWLP_USERDATA, GetDlgItem, GetWindowLongPtrW, IDCANCEL,
             IDOK, LB_ADDSTRING, LB_GETCURSEL, LB_SETCURSEL, LBN_DBLCLK, LBN_SELCHANGE,
-            SendDlgItemMessageW, SetDlgItemTextW, SetWindowLongPtrW, WM_CLOSE, WM_COMMAND,
-            WM_INITDIALOG,
+            SendDlgItemMessageW, SendMessageW, SetDlgItemTextW, SetWindowLongPtrW, WM_CLOSE,
+            WM_COMMAND, WM_INITDIALOG, WM_VKEYTOITEM,
         },
     },
 };
@@ -31,6 +33,7 @@ const RENAME: i32 = 110;
 const UP: i32 = 111;
 const DOWN: i32 = 112;
 const MOVE: i32 = 113;
+const REMOVE: i32 = 114;
 
 pub enum Choice {
     Close,
@@ -89,6 +92,23 @@ pub enum OutlineChoice {
     Up(usize),
     Down(usize),
     Move(usize),
+    Remove(usize),
+}
+
+impl OutlineChoice {
+    pub fn selected_index(&self) -> Option<usize> {
+        match *self {
+            Self::Back => None,
+            Self::Create(index) => index,
+            Self::Rename(i)
+            | Self::Open(i)
+            | Self::Edit(i)
+            | Self::Up(i)
+            | Self::Down(i)
+            | Self::Move(i)
+            | Self::Remove(i) => Some(i),
+        }
+    }
 }
 
 pub fn choose_chapter(names: &[String], selected: Option<usize>) -> io::Result<OutlineChoice> {
@@ -150,6 +170,7 @@ fn choose_outline(
         None => Ok(OutlineChoice::Back),
         Some((NEW_DOCUMENT, index)) => Ok(OutlineChoice::Create(index)),
         Some((RENAME, Some(index))) => Ok(OutlineChoice::Rename(index)),
+        Some((REMOVE, Some(index))) => Ok(OutlineChoice::Remove(index)),
         Some((IDOK, Some(index))) => Ok(OutlineChoice::Open(index)),
         Some((EDIT_SCENE, Some(index))) if resource == 403 => Ok(OutlineChoice::Edit(index)),
         Some((UP, Some(index))) if index > 0 => Ok(OutlineChoice::Up(index)),
@@ -236,7 +257,7 @@ unsafe extern "system" fn handle(hwnd: HWND, message: u32, action: WPARAM, data:
                     SendDlgItemMessageW(hwnd, LIST, LB_SETCURSEL, index, 0);
                 } else {
                     SetDlgItemTextW(hwnd, CAPTION, wide(entries.empty_label).as_ptr());
-                    for id in [BROWSE, EDIT_SCENE, RENAME] {
+                    for id in [BROWSE, EDIT_SCENE, RENAME, REMOVE] {
                         let button = GetDlgItem(hwnd, id);
                         if !button.is_null() {
                             EnableWindow(button, 0);
@@ -246,6 +267,16 @@ unsafe extern "system" fn handle(hwnd: HWND, message: u32, action: WPARAM, data:
                 }
                 update_move_buttons(hwnd, selected, entries);
                 1
+            }
+            WM_VKEYTOITEM => {
+                if (action & 0xffff) == usize::from(VK_DELETE)
+                    && data as HWND == GetDlgItem(hwnd, LIST)
+                    && !GetDlgItem(hwnd, REMOVE).is_null()
+                {
+                    SendMessageW(hwnd, WM_COMMAND, REMOVE as WPARAM, 0);
+                    return -2;
+                }
+                -1
             }
             WM_CLOSE => {
                 EndDialog(hwnd, 0);
@@ -273,7 +304,7 @@ unsafe extern "system" fn handle(hwnd: HWND, message: u32, action: WPARAM, data:
                     }
                     LIST if notification == LBN_DBLCLK => IDOK,
                     IDOK | BROWSE | EDIT_SCENE | MANAGE | NEW_PROJECT | NEW_DOCUMENT | RENAME
-                    | UP | DOWN | MOVE
+                    | UP | DOWN | MOVE | REMOVE
                         if !GetDlgItem(hwnd, id).is_null() =>
                     {
                         id
