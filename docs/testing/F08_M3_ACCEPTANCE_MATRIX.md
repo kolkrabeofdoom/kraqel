@@ -2,6 +2,12 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Alle Treffer in einer Prosaszene ersetzen
+
+Im installierten Kandidaten `eff5ce03a2c7` meldete der Bestätigungsdialog drei Treffer im synthetischen Entwurf. Nein war vorausgewählt und erhielt den Text. Nach Ja waren alle drei Unicode-Treffer in zwei Absätzen ersetzt. Ein einziges Rückgängig stellte den vollständigen Ausgangstext wieder her. Nach erneutem Ersetzen blieb die SQLite-Szene bis zum ausdrücklichen Speichern auf Revision 0. Nach Strg+S enthielt Revision 1 die erwarteten Absätze und den passenden Suchindex. Der schreibgeschützte Leser zeigte den gespeicherten Text nach dem Neustart an und bot keine Ersetzfunktion an.
+
+Der gemeinsame Bedien- und ETW-Lauf erfasste beim Bearbeiten und Wiederlesen jeweils einen Desktop, eine Fensterrolle und einen Datendienst. Beide zugeordneten Prozessbäume zeigten null Netzwerkereignisse einschließlich Loopback. Alle vier Positivkontrollen wurden erkannt, ohne Verluste oder Zuordnungslücken. Testinstallation, synthetisches Profil und Rohspur wurden bereinigt. Ein gezielter Modelltest prüfte die zulässige UTF-16-Ergebnislänge am Eingabelimit vor der Speicherreservierung. SHA-256 des Installers: `bb943fb69f5c26faf39e9521aa8414f7be36a02bd1adcc90ada113eacabe6135`.
+
 ## Einzelnen Treffer im Szenenentwurf ersetzen
 
 Im installierten Kandidaten `cc27c0c1fc37` öffnete Strg+H die Ersetzzeile des Editors. Bei abweichender Auswahl blieb der Entwurf erhalten. Bei gültiger Auswahl änderte „Treffer ersetzen“ nur den ersten von drei Unicode-Treffern. Rückgängig stellte den vollständigen Ausgangstext wieder her. Nach erneutem Ersetzen blieb die SQLite-Szene bis zum ausdrücklichen Strg+S auf Revision 0. Anschließend stimmten die Absätze auf Revision 1 und der für die Suche normalisierte Klartext. Nach dem Desktopneustart zeigte der Leser den vollständigen Text schreibgeschützt an. Die Ersetzbedienelemente waren dort nicht vorhanden.
