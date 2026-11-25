@@ -2,6 +2,14 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Wortzahl, Speichergrenze und Fokusmodus im installierten Prosaeditor
+
+Im Kandidaten `eb7eec27a369` stimmten Wortzahl und UTF-8-Budget bei leerem Text, Umlauten, Emoji und Windows-Zeilenumbrüchen. F11 und Escape erhielten Text, Auswahlposition und Eingabefokus. Bei 65.537 Bytes warnte der Editor beim Speichern und hielt den Entwurf vollständig offen. Nach dem Kürzen auf genau 65.536 Bytes wurde Revision 1 gespeichert. Nach einem vollständigen Desktopneustart zeigte das schreibgeschützte Szenenfenster den gesamten Text. Ein separater Vergleich bestätigte den Inhalt der synthetischen SQLite-Szene bytegenau.
+
+Die Wiederöffnung am Grenzwert deckte im Vorgänger einen Fehler auf. Das native Textfeld berechnete den Zeilenumbruch vor der ersten Größenanpassung und überschritt die Startfrist. Der geprüfte Kandidat setzt die Feldgröße vor dem Einfügen des Textes. Zwei synthetische Prüfprofile des Vorgängers blieben nach dem fehlenden Endebeleg gesperrt.
+
+In der kalibrierten ETW-Spur waren beiden Desktopstarts jeweils eine Fensterrolle und ein Datendienst zugeordnet. Beide Prozessbäume hatten einschließlich Loopback null Netzereignisse. Alle vier Positivkontrollen wurden erkannt. Es gab keine verlorenen Ereignisse oder Puffer. Testinstallation, Erfolgsprofil und Rohaufzeichnung wurden entfernt. SHA-256 des geprüften Installers ist `314be1ba82c943913d0ca5fed61b48154fd3d918d807796846e0428f49845e6a`.
+
 ## Revisionskonflikt mit absatzweiser Auswahl im installierten Desktop
 
 Im installierten Kandidaten `41bc9f03f02d` erschien die gespeicherte Gegenfassung erst auf ausdrücklichen Aufruf. Das Abbrechen des Vergleichs erhielt beide lokalen Absätze im selben bearbeitbaren Fenster und ließ die gespeicherte Revision 1 bestehen. Beim erneuten Vergleich wurde für Position 1 der lokale Absatz und für Position 2 der gespeicherte Absatz gewählt.
