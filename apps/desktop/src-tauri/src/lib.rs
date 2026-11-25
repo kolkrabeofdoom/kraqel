@@ -63,6 +63,8 @@ mod illustrated_export;
 mod item_review;
 #[cfg(test)]
 mod m3_acceptance;
+#[cfg(windows)]
+mod native_manuscript;
 
 const AI_RELEASE_LIFETIME: Duration = Duration::from_secs(10 * 60);
 const MAX_TEXT_IMPORT_BYTES: usize = 2 * 1024 * 1024;
@@ -4203,21 +4205,43 @@ fn open_native_start(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>>
         None
     } else {
         let state = app.state::<AppState>();
-        let projects =
-            ProjectManager::new(&state.project_root).and_then(|manager| manager.list_projects());
-        let names = projects.as_ref().ok().map(|items| {
-            items
-                .iter()
-                .map(|project| project.name.clone())
-                .collect::<Vec<_>>()
-        });
-        match kraqel_native_start::choose(names.as_deref())? {
-            Choice::Close => {
-                app.handle().exit(0);
-                return Ok(());
+        loop {
+            let manager = ProjectManager::new(&state.project_root);
+            let projects = manager.as_ref().ok().and_then(|db| db.list_projects().ok());
+            let names = projects.as_ref().map(|items| {
+                items
+                    .iter()
+                    .map(|project| project.name.clone())
+                    .collect::<Vec<_>>()
+            });
+            match kraqel_native_start::choose(names.as_deref())? {
+                Choice::Close => {
+                    app.handle().exit(0);
+                    return Ok(());
+                }
+                Choice::Management => break None,
+                Choice::Project(index) => {
+                    break Some(
+                        projects
+                            .as_ref()
+                            .and_then(|p| p.get(index))
+                            .ok_or("Projekt fehlt.")?
+                            .id,
+                    );
+                }
+                Choice::Manuscript(index) => {
+                    let home = state.project_root.parent().ok_or("Projektkatalog fehlt.")?;
+                    let project = projects
+                        .as_ref()
+                        .and_then(|p| p.get(index))
+                        .ok_or("Projekt fehlt.")?;
+                    if native_manuscript::browse(home, &manager?, project.id).is_err() {
+                        kraqel_native_start::notify(
+                            "Die Manuskriptübersicht konnte nicht geöffnet werden.",
+                        );
+                    }
+                }
             }
-            Choice::Management => None,
-            Choice::Project(index) => Some(projects?[index].id),
         }
     };
     app.manage(StartupProject(chosen));

@@ -121,6 +121,8 @@ pub const P3_LEN: usize = 36 + P3_CONTENT.len();
 
 pub const P3_COMPARE: &str = "--managed-p3-comparison-v2";
 pub const MANUSCRIPT_COMPARE: &str = "--managed-manuscript-comparison-v1";
+pub const PROJECT_SCENE_READ: &str = "--managed-project-scene-read-v1";
+pub const PROJECT_SCENE_EDIT: &str = "--managed-project-scene-edit-v1";
 const MAX_PAIR: usize = 2 * 1024 * 1024;
 
 pub fn p3_comparison(argument: Option<&str>) -> Option<bool> {

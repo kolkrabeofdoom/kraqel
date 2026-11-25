@@ -63,6 +63,18 @@ class AnalysisTests(unittest.TestCase):
         result = analyze(self.path, (100,), self.ready, "native-home")
         self.assertIn("unexpected-webview2-process-tree", result["measurementProblems"])
 
+    def test_native_scene_requires_both_roles_in_the_same_desktop_tree(self):
+        self.start(10, 200, 1, "kraqel-desktop.exe")
+        self.start(11, 201, 200, "native-leaf.exe")
+        self.stop(14, 201)
+        self.stop(15, 200)
+        self.result()
+        self.assertFalse(analyze(self.path, (200,), self.ready, "native-scene")["measurementValid"])
+        self.start(12, 202, 200, "pipe-service.exe")
+        self.stop(13, 202)
+        self.result()
+        self.assertTrue(analyze(self.path, (200,), self.ready, "native-scene")["measurementValid"])
+
     def test_native_control_requires_every_exact_root_even_without_a_gui(self):
         self.start(10, 200, 1, "kraqel-isolation-probe.exe")
         self.stop(11, 200)

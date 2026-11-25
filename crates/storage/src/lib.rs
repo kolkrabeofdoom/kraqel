@@ -8,6 +8,7 @@ use rusqlite::{Connection, Transaction, TransactionBehavior};
 pub mod continuity_repository;
 pub mod document_repository;
 pub mod media_repository;
+pub mod native_scene;
 pub mod project_manager;
 pub mod prompt_repository;
 pub mod story_bible_repository;

@@ -168,10 +168,18 @@ pub fn verify_leaf() -> io::Result<()> {
     }
 }
 
-/// The product role accepts exactly one operation; the research role retains its fixture whitelist.
+/// The product executable accepts its named operations; research retains the fixture whitelist.
 pub fn role_comparison(argument: Option<&str>) -> Option<bool> {
     if cfg!(feature = "manuscript-window") {
-        (argument == Some(window_receipt::MANUSCRIPT_COMPARE)).then_some(true)
+        matches!(
+            argument,
+            Some(
+                window_receipt::MANUSCRIPT_COMPARE
+                    | window_receipt::PROJECT_SCENE_READ
+                    | window_receipt::PROJECT_SCENE_EDIT
+            )
+        )
+        .then_some(true)
     } else {
         window_receipt::p3_comparison(argument)
     }
@@ -199,3 +207,27 @@ pub fn valid_role_row(row: &[u8], comparison: bool) -> bool {
         && valid(left)
         && valid(right)
 }
+
+/// Both authenticated roles check the requested operation inside the bound frame.
+pub fn valid_role_operation(row: &[u8], comparison: bool, argument: Option<&str>) -> bool {
+    if !valid_role_row(row, comparison) {
+        return false;
+    }
+    let Some(mode @ (window_receipt::PROJECT_SCENE_READ | window_receipt::PROJECT_SCENE_EDIT)) =
+        argument
+    else {
+        return true;
+    };
+    let Some((left, right)) = window_receipt::pair_parts(row) else {
+        return false;
+    };
+    let Some(text) = left.get(4..).and_then(|s| s.strip_prefix(b"Szene\0")) else {
+        return false;
+    };
+    right.get(..4) == left.get(..4)
+        && right.get(4..).and_then(|s| s.strip_prefix(b"Auftrag\0")) == Some(mode.as_bytes())
+        && !text.contains(&b'\r')
+        && (mode != window_receipt::PROJECT_SCENE_EDIT || text.len() <= PROJECT_EDIT_BYTES)
+}
+
+pub const PROJECT_EDIT_BYTES: usize = 64 * 1024;

@@ -22,7 +22,7 @@ pub fn open_review(
         manifest: &plan.manifest,
         scope: [plan.base.as_bytes(), plan.incoming.as_bytes()].concat(),
     };
-    review(parent, project, &context, [left, right], [service, window])
+    compare(parent, project, &context, [left, right], [service, window])
         .map_err(|failure| std::io::Error::other(failure.stage))
 }
 
@@ -62,17 +62,82 @@ pub fn open_item_review(
         text: incoming,
         revision: 1,
     };
-    review(parent, project, &context, [&left, &right], images)
+    compare(parent, project, &context, [&left, &right], images)
         .map_err(|failure| std::io::Error::other(failure.stage))
 }
 
-fn review(
+fn compare(
     parent: &Path,
     project: kraqel_domain::ProjectId,
     context: &PairContext<'_>,
     pair: [&ReviewedScene; 2],
     [service, window]: [&[u8]; 2],
 ) -> Result<ReviewChoice> {
+    let (choice, _) = run_pair(
+        parent,
+        project,
+        context,
+        pair,
+        [service, window],
+        crate::window_receipt::MANUSCRIPT_COMPARE,
+    )?;
+    match choice {
+        0 => Ok(ReviewChoice::Cancel),
+        1 => Ok(ReviewChoice::Local),
+        2 => Ok(ReviewChoice::Incoming),
+        _ => Err(invalid("review-choice")),
+    }
+}
+
+/// Opens one authenticated isolated read or edit window. The full revision and mode bind
+/// the session even though the legacy comparison frame has a 32-bit revision field.
+pub fn open_project_scene(
+    parent: &Path,
+    project: kraqel_domain::ProjectId,
+    scene: kraqel_domain::EntityId,
+    revision: u64,
+    text: &str,
+    editable: bool,
+    images: [&[u8]; 2],
+) -> std::io::Result<Option<String>> {
+    use crate::window_receipt::{PROJECT_SCENE_EDIT, PROJECT_SCENE_READ};
+    let argument = if editable {
+        PROJECT_SCENE_EDIT
+    } else {
+        PROJECT_SCENE_READ
+    };
+    let scope = serde_json::to_vec(&(argument, project, scene, revision))?;
+    let digest = format!("{:x}", Sha256::digest(text.as_bytes()));
+    let anchor = format!("{:x}", Sha256::digest(&scope));
+    let context = PairContext {
+        subject: *scene.as_uuid().as_bytes(),
+        local: &digest,
+        manifest: &anchor,
+        scope,
+    };
+    let revision = u32::try_from(revision).map_err(|_| std::io::Error::other("scene-revision"))?;
+    let left = ReviewedScene {
+        title: "Szene".into(),
+        text: text.to_owned(),
+        revision: i64::from(revision),
+    };
+    let right = ReviewedScene {
+        title: "Auftrag".into(),
+        text: argument.into(),
+        revision: i64::from(revision),
+    };
+    let (_, result) = run_pair(parent, project, &context, [&left, &right], images, argument)
+        .map_err(|failure| std::io::Error::other(failure.stage))?;
+    Ok(result)
+}
+fn run_pair(
+    parent: &Path,
+    project: kraqel_domain::ProjectId,
+    context: &PairContext<'_>,
+    pair: [&ReviewedScene; 2],
+    [service, window]: [&[u8]; 2],
+    argument: &'static str,
+) -> Result<(u8, Option<String>)> {
     let mut row = Zeroizing::new(Vec::new());
     row.extend_from_slice(project.as_uuid().as_bytes());
     row.extend_from_slice(&context.subject);
@@ -197,18 +262,13 @@ fn review(
         binding,
         &row,
         true,
-        true,
+        Some(argument),
         || Ok(()),
     )?;
     store.append_with_checked_context(actor, store.state.head, Action::EndWin32Window { begin })?;
     drop((store, service, window));
     retire(&active)?;
-    match choice {
-        0 => Ok(ReviewChoice::Cancel),
-        1 => Ok(ReviewChoice::Local),
-        2 => Ok(ReviewChoice::Incoming),
-        _ => Err(invalid("review-choice")),
-    }
+    Ok(choice)
 }
 
 fn retire(path: &Path) -> Result<()> {

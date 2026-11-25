@@ -8,6 +8,14 @@ Der reguläre Windows-Start zeigt zuerst einen nativen Dialog mit der lokalen Pr
 
 Der installierte Drehbuchkandidat `aca30d0ae0d9` bestand den Bedienlauf bis zum Wiederöffnen und A4-Export. Im neueren Stand kann das gesamte Manuskript einschließlich Drehbuchrollen auch als Markdown, HTML und gewöhnliches DOCX ausgegeben werden. Die DOCX-Austauschfunktion v1 bleibt auf Prosa beschränkt. [Abnahme mit Word und LibreOffice](testing/F08_M3_ACCEPTANCE_MATRIX.md)
 
+## Ein Manuskript nativ lesen und bearbeiten
+
+1. Auf der nativen Windows-Startseite ein lokales Projekt wählen und **Manuskript nativ lesen** auslösen. Kapitel und Szene wählen. Im isolierten Fenster erscheint der Szenentext zunächst schreibgeschützt.
+2. Das Lesefenster schließen. Bei unverändert abbildbarer Prosa **Bearbeiten** wählen. Der Starter prüft die Szene erneut und öffnet eine neue gebundene Fenstersitzung. **Speichern** bestätigt den Entwurf, **Abbrechen** verwirft ihn.
+3. Zum Wiederöffnen dieselbe Szene auswählen. Mehrere unformatierte Absätze und Leerzeilen werden unterstützt. Die Textgrenze beträgt 64 KiB UTF-8. Markierungen, Listen, Überschriften, Drehbuchrollen und sonstige nicht exakt rückwandelbare Dokumentstrukturen erhalten eine schreibgeschützte Textansicht. Für ihre Bearbeitung ist weiterhin das Studio vorgesehen.
+
+Die lokale Datenbank bleibt im vertrauenswürdigen Desktop-Speicherdienst. Die beiden isolierten Rollen erhalten nur die ausgewählte Szene über private Pipes. Beim Speichern prüft eine SQLite-Transaktion die gebundene Revision und das ursprüngliche Dokument. Ein konkurrierender Stand bleibt erhalten.
+
 ## Wiedereinstieg nach dem 24. November 2026
 
 Auf dem Entwicklungszweig `feat/kq-069-live-file-selection` mit `git pull --ff-only` beginnen.

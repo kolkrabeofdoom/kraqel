@@ -38,7 +38,11 @@ fn main() {
                 let mut to_window = kraqel_window_probe::managed_scene::p3_pipe(&mut input)?;
                 let row = protocol::read_p3(&mut input, comparison)?;
                 kraqel_window_probe::require(
-                    kraqel_window_probe::valid_role_row(&row, comparison),
+                    kraqel_window_probe::valid_role_operation(
+                        &row,
+                        comparison,
+                        arg.as_deref().and_then(|a| a.to_str()),
+                    ),
                     "P3 row",
                 )?;
                 protocol::write_p3(&mut to_window, comparison, &row)?;

@@ -2,7 +2,7 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](docs/data-format/screenplay-v2.md)
 
-Im Windows-Entwicklungsstand führt der reguläre Start in eine native Projektübersicht. Beim Öffnen eines Projekts oder der Verwaltung startet das bisherige Studio mit WebView2. Der Drehbuch-Schreibablauf wurde im installierten Vorgänger geprüft. Der aktuelle Manuskriptexport berücksichtigt Drehbuchrollen in Markdown, HTML und DOCX. Word und LibreOffice behielten beim Speichern alle sechs verwendeten Rollenstile. [Prüfstand und Geltungsbereich](docs/testing/F08_M3_ACCEPTANCE_MATRIX.md)
+Im Windows-Entwicklungsstand führt der reguläre Start in eine native Projektübersicht. „Manuskript nativ lesen“ öffnet die Szenenauswahl mit anschließendem isoliertem Lese- oder Editfenster für einfache Prosa. „Projekt öffnen“ und „Projektverwaltung öffnen“ starten das bisherige Studio mit WebView2. Der Drehbuch-Schreibablauf wurde im installierten Vorgänger geprüft. Der aktuelle Manuskriptexport berücksichtigt Drehbuchrollen in Markdown, HTML und DOCX. Word und LibreOffice behielten beim Speichern alle sechs verwendeten Rollenstile. [Prüfstand und Geltungsbereich](docs/testing/F08_M3_ACCEPTANCE_MATRIX.md)
 
 ## Verwalteter Win32-Szeneneditor · 24. November 2026
 

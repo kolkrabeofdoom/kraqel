@@ -59,14 +59,15 @@ pub(in super::super) fn deliver_p3(
     binding: [u8; 32],
     row: &[u8],
     interactive: bool,
-    manuscript: bool,
+    product_argument: Option<&'static str>,
     visible: impl FnOnce() -> Result<()>,
-) -> Result<u8> {
+) -> Result<(u8, Option<String>)> {
     use crate::window_receipt as protocol;
     let mut choice = 0;
+    let mut edited = None;
     use windows_sys::Win32::Storage::FileSystem::{FILE_READ_DATA, FILE_WRITE_DATA, SYNCHRONIZE};
-    let argument = if manuscript {
-        crate::window_receipt::MANUSCRIPT_COMPARE
+    let argument = if let Some(argument) = product_argument {
+        argument
     } else if row.len() != protocol::P3_LEN {
         protocol::P3_COMPARE
     } else {
@@ -132,12 +133,27 @@ pub(in super::super) fn deliver_p3(
             if interactive {
                 visible()?;
             }
+            // The isolated editor writes its draft before exiting. Drain its private response
+            // pipe while it is alive so a draft larger than the pipe buffer cannot deadlock.
+            if argument == protocol::PROJECT_SCENE_EDIT {
+                use std::io::Read;
+                let mut decision = [0];
+                io("scene-edit-decision", reply.read_exact(&mut decision))?;
+                match decision[0] {
+                    0 => {}
+                    1 => edited = Some(read_edited_scene(&mut reply)?),
+                    _ => return Err(invalid("scene-edit-decision")),
+                }
+            }
             bootstrap::wait_for_close(ui, hwnd, interactive)?;
-            if argument != protocol::P3_READ {
+            if argument != protocol::P3_READ && argument != protocol::PROJECT_SCENE_EDIT {
                 use std::io::Read;
                 let mut decision = [0u8];
                 io("p3-window-choice", reply.read_exact(&mut decision))?;
-                if decision[0] > 2 || (!interactive && decision[0] != 0) {
+                if decision[0] > 2
+                    || ((!interactive || argument == protocol::PROJECT_SCENE_READ)
+                        && decision[0] != 0)
+                {
                     return Err(invalid("p3-window-choice"));
                 }
                 choice = decision[0];
@@ -145,7 +161,60 @@ pub(in super::super) fn deliver_p3(
             Ok(())
         },
     )?;
-    Ok(choice)
+    Ok((choice, edited))
+}
+
+fn read_edited_scene(reply: &mut fs::File) -> Result<String> {
+    use std::{
+        io::Read,
+        time::{Duration, Instant},
+    };
+    use windows_sys::Win32::System::Pipes::PeekNamedPipe;
+
+    let deadline = Instant::now() + Duration::from_secs(15);
+    let mut fill = |mut target: &mut [u8]| -> Result<()> {
+        while !target.is_empty() {
+            if Instant::now() >= deadline {
+                return Err(invalid("scene-edit-timeout"));
+            }
+            let mut count = 0;
+            check(
+                unsafe {
+                    PeekNamedPipe(
+                        reply.as_raw_handle(),
+                        null_mut(),
+                        0,
+                        null_mut(),
+                        &mut count,
+                        null_mut(),
+                    )
+                },
+                "scene-edit-pipe",
+            )?;
+            if count == 0 {
+                std::thread::sleep(Duration::from_millis(5));
+                continue;
+            }
+            let bytes = target.len().min(count as usize);
+            let (chunk, remaining) = target.split_at_mut(bytes);
+            io("scene-edit-bytes", reply.read_exact(chunk))?;
+            target = remaining;
+        }
+        Ok(())
+    };
+    let mut length = [0; 4];
+    fill(&mut length)?;
+    let size = u32::from_le_bytes(length) as usize;
+    if size > 64 * 1024 {
+        return Err(invalid("scene-edit-length"));
+    }
+    let mut bytes = vec![0; size];
+    fill(&mut bytes)?;
+    let text = String::from_utf8(bytes).map_err(|_| invalid("scene-edit-utf8"))?;
+    if text.contains(['\0', '\r']) {
+        return Err(invalid("scene-edit-text"));
+    }
+    Ok(text)
 }
 
 fn with_role(
@@ -161,8 +230,12 @@ fn with_role(
     let data = name == "pipe-service.exe";
     let role = if data { "data" } else { "ui" };
     let begin = if crate::window_receipt::p3_comparison(Some(argument)).is_some()
-        || argument == crate::window_receipt::MANUSCRIPT_COMPARE
-    {
+        || matches!(
+            argument,
+            crate::window_receipt::MANUSCRIPT_COMPARE
+                | crate::window_receipt::PROJECT_SCENE_READ
+                | crate::window_receipt::PROJECT_SCENE_EDIT
+        ) {
         let begin = store
             .state
             .p3_pipe_begin

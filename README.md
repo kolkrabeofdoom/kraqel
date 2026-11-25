@@ -572,6 +572,12 @@ Screenreader-Ausgabe, echte Exportdateien und Betriebssystemintegration benötig
 Nachweise. Aussagegrenzen gehören zur Testdokumentation – denn ein grüner Haken ist kein
 metaphysischer Wahrheitsbeweis.
 
+Im Windows-Entwicklungszweig führt **Manuskript nativ lesen** von der Projektübersicht über
+Kapitel und Szene zum isolierten Textfenster. Nach dem Lesen kannst du einfache, unformatierte
+Absätze ausdrücklich bearbeiten und speichern. Formatierte Szenen und Drehbuchszenen öffnen sich
+als schreibgeschützte Textansicht. Der bisherige Einstieg **Projekt öffnen** führt weiterhin
+ins Studio mit WebView2. [Bedienung und Grenzen](docs/WORKSTATION_HANDOFF.md#ein-manuskript-nativ-lesen-und-bearbeiten)
+
 Im Entwicklungszweig lassen sich Szenen ausdrücklich in Drehbuchszenen umwandeln. Sechs Absatzrollen
 bleiben beim Speichern und Wiederöffnen erhalten. Unter **Export → Drehbuch als A4-PDF** wählst du
 die zu druckenden Szenen einzeln aus. Ab dem ersten Speichern einer Drehbuchszene benötigt das

@@ -107,6 +107,13 @@ impl From<StorageError> for DocumentError {
     }
 }
 
+#[derive(Clone, Copy)]
+pub(crate) enum SaveGuard<'a> {
+    Any,
+    Prose,
+    ExactProse(&'a EditorDocument),
+}
+
 /// Repository über einer bereits verwalteten Projektdatenbank.
 pub struct DocumentRepository<'database> {
     database: &'database mut Database,
@@ -407,7 +414,13 @@ impl<'database> DocumentRepository<'database> {
         expected_revision: u64,
         content: &EditorDocument,
     ) -> Result<u64, DocumentError> {
-        self.save_content(project_id, document_id, expected_revision, content, false)
+        self.save_content(
+            project_id,
+            document_id,
+            expected_revision,
+            content,
+            SaveGuard::Any,
+        )
     }
 
     /// V1-Schreibzug. Auch eine gültige Prosa-Anfrage darf keine vorhandene v2-Szene ersetzen.
@@ -424,16 +437,22 @@ impl<'database> DocumentRepository<'database> {
         if content.version != EDITOR_DOCUMENT_VERSION {
             return Err(DocumentError::InvalidInput);
         }
-        self.save_content(project_id, document_id, expected_revision, content, true)
+        self.save_content(
+            project_id,
+            document_id,
+            expected_revision,
+            content,
+            SaveGuard::Prose,
+        )
     }
 
-    fn save_content(
+    pub(crate) fn save_content(
         &mut self,
         project_id: ProjectId,
         document_id: EntityId,
         expected_revision: u64,
         content: &EditorDocument,
-        prose_only: bool,
+        guard: SaveGuard<'_>,
     ) -> Result<u64, DocumentError> {
         validate_content(content)?;
         let content_json =
@@ -447,6 +466,19 @@ impl<'database> DocumentRepository<'database> {
             .ok_or(DocumentError::InvalidInput)?;
         let timestamp = current_timestamp()?;
         let transaction = self.database.transaction()?;
+        if let SaveGuard::ExactProse(expected) = guard {
+            let stored: Option<String> = transaction.query_row(
+                "SELECT content_json FROM document WHERE project_id = ?1 AND id = ?2 AND revision = ?3 AND kind = 'scene'",
+                params![project_id.to_string(), document_id.to_string(), i64::try_from(expected_revision).map_err(|_| DocumentError::InvalidInput)?],
+                |row| row.get(0),
+            ).optional()?;
+            let stored: EditorDocument =
+                serde_json::from_str(stored.as_deref().ok_or(DocumentError::RevisionConflict)?)
+                    .map_err(|_| DocumentError::InvalidStoredData)?;
+            if &stored != expected {
+                return Err(DocumentError::RevisionConflict);
+            }
+        }
         crate::require_editor_schema(&transaction, content.version)?;
         let changed = transaction.execute(
             "UPDATE document
@@ -461,7 +493,7 @@ impl<'database> DocumentRepository<'database> {
                 project_id.to_string(),
                 document_id.to_string(),
                 i64::try_from(expected_revision).map_err(|_| DocumentError::InvalidInput)?,
-                prose_only
+                !matches!(guard, SaveGuard::Any)
             ],
         )?;
         if changed == 0 {
@@ -1348,6 +1380,68 @@ mod tests {
             .delete(project.id, chapter.id, "", 0, &[scene.id])
             .unwrap();
         assert_eq!(repository.list(project.id).unwrap(), []);
+    }
+
+    #[test]
+    fn native_scene_grants_preserve_structure_and_refuse_stale_revisions() {
+        use crate::native_scene::SceneReadGrant;
+        let root = tempdir().unwrap();
+        let manager = ProjectManager::new(root.path()).unwrap();
+        let project = project();
+        let mut opened = manager.create_project("projekt", &project).unwrap();
+        let mut repository = DocumentRepository::new(opened.database_mut());
+        let chapter = repository
+            .create(project.id, None, DocumentKind::Chapter, "Kapitel")
+            .unwrap();
+        assert!(SceneReadGrant::from_node(&chapter).is_err());
+        let scene = repository
+            .create_scene_with_content(project.id, chapter.id, "Szene", &content("Vorher"))
+            .unwrap();
+        let grant = || SceneReadGrant::from_node(&scene).unwrap();
+        let first = grant().read(&repository).unwrap().edit.unwrap();
+        let stale = grant().read(&repository).unwrap().edit.unwrap();
+        assert_eq!(first.save(&mut repository, "Kolkrabe\n\nΔ").unwrap(), 1);
+        assert!(matches!(
+            stale.save(&mut repository, "veraltet"),
+            Err(DocumentError::RevisionConflict)
+        ));
+        assert!(matches!(
+            grant().read(&repository),
+            Err(DocumentError::RevisionConflict)
+        ));
+        drop(opened);
+        let mut reopened = manager.open_project("projekt").unwrap();
+        let repository = DocumentRepository::new(reopened.database_mut());
+        let node = repository.load(project.id, scene.id).unwrap().node;
+        let snapshot = SceneReadGrant::from_node(&node)
+            .unwrap()
+            .read(&repository)
+            .unwrap();
+        assert_eq!(snapshot.text, "Kolkrabe\n\nΔ");
+        // A restored/imported copy may present the same IDs and revision with different markup.
+        let edit = snapshot.edit.unwrap();
+        let mut rich = content("Kolkrabe");
+        rich.document["content"][0]["content"][0]["marks"] = json!([{"type":"bold"}]);
+        reopened
+            .database()
+            .connection()
+            .execute(
+                "UPDATE document SET content_json=?1 WHERE id=?2",
+                params![serde_json::to_string(&rich).unwrap(), scene.id.to_string()],
+            )
+            .unwrap();
+        let mut repository = DocumentRepository::new(reopened.database_mut());
+        assert!(matches!(
+            edit.save(&mut repository, "überschreiben"),
+            Err(DocumentError::RevisionConflict)
+        ));
+        let snapshot = SceneReadGrant::from_node(&node)
+            .unwrap()
+            .read(&repository)
+            .unwrap();
+        assert_eq!(snapshot.text, "Kolkrabe");
+        assert!(snapshot.edit.is_none());
+        assert_eq!(repository.load(project.id, scene.id).unwrap().content, rich);
     }
 
     fn project() -> Project {

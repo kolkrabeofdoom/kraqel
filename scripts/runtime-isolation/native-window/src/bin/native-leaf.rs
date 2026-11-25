@@ -1,6 +1,9 @@
 #![windows_subsystem = "windows"]
 #[path = "native-leaf/paragraph_comparison.rs"]
 mod paragraph_comparison;
+#[cfg(feature = "manuscript-window")]
+#[path = "native-leaf/project_scene.rs"]
+mod project_scene;
 use kraqel_native_scene_model::MAX_PARAGRAPH_UTF16;
 use kraqel_window_probe::*;
 use std::ptr::{null, null_mut};
@@ -3711,8 +3714,11 @@ fn main() {
             input.read_exact(&mut expected)?;
             let row = window_receipt::read_p3(&mut from_service, comparison)?;
             require(
-                kraqel_window_probe::valid_role_row(&row, comparison)
-                    && window_receipt::p3_receipt(&row) == expected,
+                kraqel_window_probe::valid_role_operation(
+                    &row,
+                    comparison,
+                    arg.as_deref().and_then(|a| a.to_str()),
+                ) && window_receipt::p3_receipt(&row) == expected,
                 "P3 binding",
             )?;
             let scene = |bytes: &[u8]| -> std::io::Result<(String, String)> {
@@ -3723,6 +3729,22 @@ fn main() {
                     .ok_or(std::io::Error::other("P3 scene"))?;
                 Ok((format!("{title} · Revision {revision}"), text.to_owned()))
             };
+            #[cfg(feature = "manuscript-window")]
+            if let Some(
+                mode @ (window_receipt::PROJECT_SCENE_READ | window_receipt::PROJECT_SCENE_EDIT),
+            ) = arg.as_deref().and_then(|a| a.to_str())
+            {
+                let (left, _) = window_receipt::pair_parts(&row)
+                    .ok_or(std::io::Error::other("project scene"))?;
+                let (title, text) = scene(left)?;
+                project_scene::display(
+                    output,
+                    &title,
+                    &text,
+                    mode == window_receipt::PROJECT_SCENE_EDIT,
+                )?;
+                return Ok(40);
+            }
             let (heading, text) = if comparison {
                 let (left, right) = window_receipt::pair_parts(&row)
                     .ok_or(std::io::Error::other("comparison lengths"))?;
