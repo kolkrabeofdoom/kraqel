@@ -2,6 +2,10 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Direkter Absatzsprung im Fassungsvergleich
+
+Im kompilierten Win32-Dialog wurde bei drei synthetischen Absätzen die Quelle für Absatz 1 gewechselt. Strg+G fokussierte das Nummernfeld. Die Eingabe 4 mit Enter zeigte den gültigen Bereich an und erhielt Position und Feldfokus. Die Eingabe 3 und die Sprungschaltfläche zeigten beide Fassungen von Absatz 3 mit Fokus links. Die Gesamtvorschau blieb gleich. Rückgängig nahm anschließend die vorherige Quellwahl zurück. Die Probe bediente die nativen Steuerelemente über Win32-Nachrichten.
+
 ## Speichergrenze der Absatzmischung
 
 Die lokale Win32-Dialogprobe zum Quellstand 3a80dc7 verwendete synthetische Absätze mit Umlauten und Absatzwechseln. Bei 65.536 UTF-8-Bytes war die Auswahl speicherbar. Nach dem Quellenwechsel auf 65.537 Bytes zeigte die Vorschau die Überschreitung um ein Byte. Auch ein direkt ausgelöster Speicherbefehl ließ den Dialog offen. Rückgängig stellte die ursprüngliche Mischung wieder her und die ausdrückliche Bestätigung schloss den Dialog erfolgreich. Geprüft wurde der native Dialog im Testziel. Die letzte Installer- und ETW-Abnahme gehört zum unten genannten Vorgänger.

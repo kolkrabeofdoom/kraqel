@@ -20,6 +20,8 @@ const ALL_REMOTE: u16 = 224;
 const UNDO_CHOICE: u16 = 225;
 const REDO_CHOICE: u16 = 226;
 const PREVIEW_LABEL: i32 = 227;
+const POSITION: i32 = 228;
+const JUMP: u16 = 229;
 
 // A dialog owns its selection history. A new revision only carries over the
 // currently selected sources; no action from the old revision can be replayed.
@@ -218,8 +220,29 @@ impl Review {
                 button,
                 "Nächster Unterschied (F7)",
             ),
-            (PREVIEW_LABEL as u16, 0x82, 8, 196, 380, 12, label, ""),
-            (MERGED as u16, 0x81, 8, 209, 383, 58, read, ""),
+            (
+                0xffff,
+                0x82,
+                8,
+                197,
+                120,
+                12,
+                label,
+                "Absatznummer (Strg+G)",
+            ),
+            (
+                POSITION as u16,
+                0x81,
+                132,
+                194,
+                53,
+                16,
+                button | WS_BORDER | ES_NUMBER as u32 | ES_AUTOHSCROLL as u32,
+                "",
+            ),
+            (JUMP, 0x80, 203, 194, 188, 17, button, "Zum Absatz springen"),
+            (PREVIEW_LABEL as u16, 0x82, 8, 215, 380, 12, label, ""),
+            (MERGED as u16, 0x81, 8, 228, 383, 39, read, ""),
             (
                 BACK,
                 0x80,
@@ -331,7 +354,9 @@ impl Dialog<'_> {
             if focus == redo && self.history.redo.is_empty() && !self.history.undo.is_empty() {
                 SetFocus(undo);
             }
+            let position = (self.pos + 1).to_string();
             for (id, text) in [
+                (POSITION, position.as_str()),
                 (INFO, status.as_str()),
                 (LOCAL, self.local.get(self.pos).copied().unwrap_or("")),
                 (REMOTE, self.remote.get(self.pos).copied().unwrap_or("")),
@@ -405,7 +430,13 @@ unsafe extern "system" fn keys(
         let shift = GetKeyState(i32::from(VK_SHIFT)) < 0;
         let history = ctrl && !shift && (w == usize::from(VK_Z) || w == usize::from(VK_Y));
         let navigation = !ctrl && (w == usize::from(VK_F6) || w == usize::from(VK_F7));
-        if !(history || navigation)
+        let go_to = ctrl && !shift && w == usize::from(VK_G);
+        let number_field = GetDlgCtrlID(control) == POSITION;
+        let jump = number_field && !ctrl && !shift && w == usize::from(VK_RETURN);
+        if msg == WM_CHAR && (w == 7 || jump) {
+            return 0;
+        }
+        if !(history || navigation || go_to || jump)
             || [VK_MENU, VK_LWIN, VK_RWIN]
                 .iter()
                 .any(|key| GetKeyState(i32::from(*key)) < 0)
@@ -420,7 +451,11 @@ unsafe extern "system" fn keys(
         }
         if l & (1 << 30) == 0 {
             let hwnd = GetParent(control);
-            if w == usize::from(VK_F6) {
+            if go_to {
+                let field = GetDlgItem(hwnd, POSITION);
+                SetFocus(field);
+                SendMessageW(field, EM_SETSEL, 0, -1);
+            } else if w == usize::from(VK_F6) {
                 SetFocus(GetDlgItem(
                     hwnd,
                     if GetFocus() == GetDlgItem(hwnd, LOCAL) {
@@ -430,7 +465,9 @@ unsafe extern "system" fn keys(
                     },
                 ));
             } else {
-                let id = if history {
+                let id = if jump {
+                    JUMP
+                } else if history {
                     if w == usize::from(VK_Z) {
                         UNDO_CHOICE
                     } else {
@@ -455,19 +492,30 @@ unsafe extern "system" fn handle(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
     unsafe {
         if msg == WM_INITDIALOG {
             SetWindowLongPtrW(hwnd, GWLP_USERDATA, l);
-            for id in [LOCAL, REMOTE, MERGED] {
+            for id in [LOCAL, REMOTE, MERGED, POSITION] {
                 let h = GetDlgItem(hwnd, id);
                 if windows_sys::Win32::UI::Shell::SetWindowSubclass(h, Some(scene_input), 1, 0) == 0
                 {
                     EndDialog(hwnd, 0);
                     return 0;
                 }
-                SendMessageW(h, EM_SETLIMITTEXT, 4 * PROJECT_EDIT_BYTES, 0);
+                SendMessageW(
+                    h,
+                    EM_SETLIMITTEXT,
+                    if id == POSITION {
+                        32
+                    } else {
+                        4 * PROJECT_EDIT_BYTES
+                    },
+                    0,
+                );
             }
             for id in [
                 LOCAL,
                 REMOTE,
                 MERGED,
+                POSITION,
+                JUMP.into(),
                 PREV.into(),
                 NEXT.into(),
                 USE_LOCAL.into(),
@@ -521,6 +569,34 @@ unsafe extern "system" fn handle(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
         }
         let dialog = &mut *ptr;
         match id {
+            JUMP => {
+                let field = GetDlgItem(hwnd, POSITION);
+                let mut digits = [0u16; 34];
+                let count =
+                    GetDlgItemTextW(hwnd, POSITION, digits.as_mut_ptr(), digits.len() as i32)
+                        as usize;
+                let position = digits[..count].iter().try_fold(0usize, |number, &digit| {
+                    let digit = digit.checked_sub(u16::from(b'0')).filter(|&d| d <= 9)?;
+                    number.checked_mul(10)?.checked_add(usize::from(digit))
+                });
+                let Some(position) = position
+                    .filter(|p| (1..=dialog.choices.len()).contains(p) && count < digits.len() - 1)
+                else {
+                    set_text(
+                        hwnd,
+                        INFO,
+                        &format!(
+                            "Gib eine Absatznummer von 1 bis {} ein.",
+                            dialog.choices.len()
+                        ),
+                    );
+                    SetFocus(field);
+                    SendMessageW(field, EM_SETSEL, 0, -1);
+                    return 1;
+                };
+                dialog.pos = position - 1;
+                SetFocus(GetDlgItem(hwnd, LOCAL));
+            }
             PREV => dialog.pos = dialog.pos.saturating_sub(1),
             NEXT => dialog.pos = (dialog.pos + 1).min(dialog.choices.len() - 1),
             DIFF_PREV | DIFF_NEXT => {
