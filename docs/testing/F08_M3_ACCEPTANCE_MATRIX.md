@@ -2,6 +2,12 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Speichern und im selben Szenenfenster weiterschreiben
+
+Im installierten Kandidaten `62ac9104ce0d` speicherte Strg+Enter im Szenenfeld die erste Änderung als Revision 1. Prozess, Fenster, Fokus, Textauswahl und der Rückgängig-Verlauf blieben erhalten. Der erneute Menübefehl ohne Textänderung meldete „Keine Änderungen zu speichern“ und erzeugte keine Revision. Nach Rückgängig und einer weiteren Eingabe blieb SQLite auf dem bestätigten Zwischenstand, bis Strg+S den neuen Entwurf als Revision 2 speicherte. Nach dem Desktopneustart stimmten der schreibgeschützte Text, der kanonische Inhalt und der Suchindex. Im Leser fehlte der Menübefehl zum Zwischenspeichern.
+
+Der gezielte Speichertest prüfte zwei aufeinanderfolgende Schreibzüge und einen konkurrierenden Commit. Der danach versuchte Schreibzug unter der alten Bindung wurde abgewiesen, die Fremdfassung blieb erhalten. Der kombinierte Bedien- und ETW-Lauf mit synthetischem Text erfasste beim Bearbeiten und Wiederlesen je einen Desktop, eine Fensterrolle und einen Datendienst. Beide Prozessbäume zeigten null Netzwerkereignisse einschließlich Loopback. Vier von vier Positivkontrollen wurden erkannt, ohne Verluste oder Zuordnungslücken. Testinstallation, synthetisches Profil und Rohspur wurden bereinigt. SHA-256 des Installers: `a8e82a9a5b8a0df11d06993bf79ee71b08ac6dc6e31d1408290f5e1865dade2a`.
+
 ## Mehrstufiger Bearbeitungsverlauf im nativen Szenenfenster
 
 Im installierten Kandidaten `b7dd0426e81a` wurden eine markierte Emoji-Stelle überschrieben und ein weiterer Unicode-Treffer ersetzt. Zweimal Rückgängig über Strg+Z und das Menü stellte die jeweiligen Texte und die ursprünglichen Auswahlen wieder her. Zweimal Wiederholen über Strg+Y und das Menü stellte beide Änderungen samt Einfügemarken wieder her. Eine neue Eingabe nach der Rücknahme verwarf den Wiederholen-Zweig. Der Menüpunkt war deaktiviert und Strg+Y ließ den neuen Entwurf unverändert. Bis Strg+S blieb die Datenbank auf Revision 0. Nach dem Neustart stimmten Text, Suchindex und Revision 1. Der Leser bot keine Menübefehle für den Schreibverlauf.
