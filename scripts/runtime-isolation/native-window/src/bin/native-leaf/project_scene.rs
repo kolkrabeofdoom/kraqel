@@ -236,11 +236,15 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) 
                 0
             }
             WM_COMMAND if w == project_search::OPEN as usize => {
-                project_search::show(hwnd, !project_search::visible(hwnd));
+                if project_search::visible(hwnd) {
+                    project_search::show(hwnd, false);
+                } else {
+                    project_search::open(hwnd, false, true);
+                }
                 0
             }
             WM_COMMAND if w == project_replace::OPEN as usize => {
-                project_replace::show(hwnd, true);
+                project_search::open(hwnd, true, true);
                 0
             }
             WM_COMMAND if w == project_replace::APPLY as usize => {
@@ -463,13 +467,13 @@ pub(super) fn display(
             (
                 project_replace::APPLY,
                 "BUTTON",
-                "Treffer e&rsetzen",
+                "E&rsetzen (Enter)",
                 WS_TABSTOP | BS_PUSHBUTTON as u32,
             ),
             (
                 project_replace::ALL,
                 "BUTTON",
-                "Alle ersetzen …",
+                "Alle (Strg+Enter) …",
                 WS_TABSTOP | BS_PUSHBUTTON as u32,
             ),
             (METRICS, "STATIC", "", SS_LEFT),
@@ -634,13 +638,26 @@ unsafe fn dispatch(hwnd: HWND, msg: &MSG) {
             let ctrl_only = ctrl && !shift && plain;
             if ctrl_only && key == usize::from(VK_H) {
                 if !repeated {
-                    project_replace::show(hwnd, true);
+                    project_search::open(hwnd, true, false);
                 }
                 return;
             }
             if ctrl_only && key == usize::from(VK_F) {
                 if !repeated {
-                    project_search::show(hwnd, true);
+                    project_search::open(hwnd, false, false);
+                }
+                return;
+            }
+            let replacement = GetDlgItem(hwnd, REPLACEMENT);
+            if key == usize::from(VK_RETURN) && !replacement.is_null() && msg.hwnd == replacement {
+                if !repeated && plain && !shift && GetFocus() == replacement {
+                    if ctrl {
+                        project_replace::apply_all(hwnd);
+                    } else {
+                        project_replace::apply(hwnd);
+                    }
+                    // Repeats from a held Enter stay in this field instead of editing prose.
+                    SetFocus(replacement);
                 }
                 return;
             }

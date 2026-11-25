@@ -5,9 +5,69 @@ pub(super) const OPEN: i32 = 211;
 pub(super) const PREVIOUS: i32 = 212;
 pub(super) const NEXT: i32 = 213;
 const BAR: [i32; 4] = [SEARCH_LABEL, SEARCH, PREVIOUS, NEXT];
+const SELECTION_QUERY_LIMIT: usize = 256;
 
 pub(super) unsafe fn visible(hwnd: HWND) -> bool {
     unsafe { IsWindowVisible(GetDlgItem(hwnd, SEARCH)) != 0 }
+}
+
+// Only an explicit search/replace entry may adopt selected manuscript text.
+// F3 and layout/focus changes must keep the existing query.
+pub(super) unsafe fn open(hwnd: HWND, replace: bool, from_button: bool) {
+    unsafe {
+        if replace && GetDlgItem(hwnd, REPLACEMENT).is_null() {
+            return;
+        }
+        let field = GetDlgItem(hwnd, EDIT);
+        // A real click sets focus on the opening button before BN_CLICKED.
+        if from_button || GetFocus() == field {
+            seed_from_selection(hwnd, field);
+        }
+        if replace {
+            project_replace::show(hwnd, true);
+        } else {
+            show(hwnd, true);
+        }
+    }
+}
+
+unsafe fn seed_from_selection(hwnd: HWND, field: HWND) {
+    unsafe {
+        let range @ (start, end) = selection(field);
+        if start >= end || end - start > SELECTION_QUERY_LIMIT {
+            return;
+        }
+        let Some(mut scene) = project_metrics::units(field, project_metrics::EDIT_UNIT_LIMIT)
+        else {
+            return;
+        };
+        let Some(selected) = scene.get(start..end) else {
+            return;
+        };
+        if char::decode_utf16(selected.iter().copied()).any(|c| {
+            !matches!(c, Ok(ch) if (!ch.is_control() || ch == '\t') && !matches!(ch, '\u{2028}' | '\u{2029}'))
+        }) {
+            return;
+        }
+        // units() retains capacity for the trailing NUL, even at the end of the scene.
+        // Keep the full allocation length so Zeroizing clears the whole scene on drop.
+        if end == scene.len() {
+            scene.push(0);
+        } else {
+            scene[end] = 0;
+        }
+        let query = GetDlgItem(hwnd, SEARCH);
+        if SetWindowTextW(query, scene[start..].as_ptr()) != 0
+            && !GetDlgItem(hwnd, project_replace::APPLY).is_null()
+            && project_metrics::units(query, SELECTION_QUERY_LIMIT)
+                .is_some_and(|actual| actual.as_slice() == &scene[start..end])
+            && selection(field) == range
+        {
+            // EN_CHANGE invalidates the previous match synchronously. Only the checked
+            // range can authorize an explicit single replacement, which rechecks it again.
+            project_replace::MATCH.set(Some(range));
+        }
+    }
 }
 
 pub(super) unsafe fn show(hwnd: HWND, open: bool) {
