@@ -2,6 +2,19 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Regulärer Windows-Start am 25. November 2026
+
+**Q-01/Q-02 für den Desktop weiterhin nicht bestanden.** Beim Start ohne geöffnetes Manuskript wurden in beiden Prozessbäumen WebView2-Transportereignisse zu öffentlichen Zielen erfasst.
+
+| Installierter Stand | Öffentliche Ziele | Privat oder link-lokal | Loopback | Außerhalb Loopback gesamt |
+| --- | ---: | ---: | ---: | ---: |
+| Alpha 7, `a9a3a673ff14` | 83 | 4 | 6 | 87 |
+| Drehbuchkandidat, `aca30d0ae0d9` | 97 | 4 | 6 | 101 |
+
+Je ein regulärer Start, eigenes leeres Projekt- und WebView-Profil, 30 Sekunden bei geöffnetem Fenster, danach reguläres Schließen. Beide EXE-Dateien stimmten mit dem Inhalt ihres geprüften Installers überein. SHA-256 des Kandidaten: `30173318109346a9748bd658e2493f39cf50688d7f16fa86669cd843e94a9860`. Gemeinsame ETW-Erfassung mit getrennter Auswertung je Start-PID über `scripts/m3-network/analyze.py`. Je ein Desktopprozess und sechs WebView2-Prozesse mit vollständigem Ende. Vier von vier lokalen IPv4-/IPv6-TCP-/UDP-Kontrollen erkannt, keine Ereignis- oder Pufferverluste, keine ungeklärten Zuordnungen. Alle gezählten Netzereignisse im jeweiligen Baum stammen von WebView2.
+
+Die Zähler beschreiben Transportereignisse. Übertragene Inhalte und Vorgänge außerhalb des Prozessbaums lassen sich daraus nicht bestimmen. Aus einem Start pro Stand lässt sich keine Ursache für den Mengenunterschied ableiten. Beim ersten Versuch stoppte die Binärprüfung vor dem zweiten Programmstart. Für die Tabelle wurde ausschließlich die vollständige Wiederholung verwendet. Testinstallationen, Profile und Rohaufzeichnung wurden nach der Auswertung entfernt.
+
 **Drehbuchprüfung am 25. November 2026**
 
 | Bereich | Nachweis und verbleibende Grenze |
