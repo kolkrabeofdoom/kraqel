@@ -2,7 +2,7 @@
 #![cfg(windows)]
 
 mod project_name;
-pub use project_name::{ask_document_title, ask_project_name};
+pub use project_name::{ask_copy_title, ask_document_title, ask_project_name};
 mod deletion;
 pub use deletion::confirm_removal;
 
@@ -34,6 +34,7 @@ const UP: i32 = 111;
 const DOWN: i32 = 112;
 const MOVE: i32 = 113;
 const REMOVE: i32 = 114;
+const COPY: i32 = 117;
 
 pub enum Choice {
     Close,
@@ -87,6 +88,7 @@ pub enum OutlineChoice {
     Back,
     Create(Option<usize>),
     Rename(usize),
+    Copy(usize),
     Open(usize),
     Edit(usize),
     Up(usize),
@@ -100,7 +102,8 @@ impl OutlineChoice {
         match *self {
             Self::Back => None,
             Self::Create(index) => index,
-            Self::Rename(i)
+            Self::Copy(i)
+            | Self::Rename(i)
             | Self::Open(i)
             | Self::Edit(i)
             | Self::Up(i)
@@ -159,6 +162,29 @@ pub fn choose_destination(names: &[String], current: usize) -> io::Result<Option
     }
 }
 
+/// Select a destination for a scene copy, with its current chapter preselected.
+pub fn choose_copy_destination(names: &[String], current: usize) -> io::Result<Option<usize>> {
+    if current >= names.len() {
+        return Err(io::Error::other("Das aktuelle Kapitel fehlt."));
+    }
+    let destinations: Vec<_> = names
+        .iter()
+        .enumerate()
+        .map(|(i, name)| format!("{}. {name}", i + 1))
+        .collect();
+    match list_result(
+        409,
+        &destinations,
+        "Es gibt kein Zielkapitel.",
+        Some(current),
+        false,
+    )? {
+        None => Ok(None),
+        Some((IDOK, Some(index))) => Ok(Some(index)),
+        _ => Err(io::Error::other("Ungültiges Zielkapitel.")),
+    }
+}
+
 fn choose_outline(
     resource: u16,
     names: &[String],
@@ -169,6 +195,7 @@ fn choose_outline(
     match list_result(resource, names, empty, selected, has_other_chapters)? {
         None => Ok(OutlineChoice::Back),
         Some((NEW_DOCUMENT, index)) => Ok(OutlineChoice::Create(index)),
+        Some((COPY, Some(index))) => Ok(OutlineChoice::Copy(index)),
         Some((RENAME, Some(index))) => Ok(OutlineChoice::Rename(index)),
         Some((REMOVE, Some(index))) => Ok(OutlineChoice::Remove(index)),
         Some((IDOK, Some(index))) => Ok(OutlineChoice::Open(index)),
@@ -218,8 +245,9 @@ fn list_result(
     }
 }
 
-unsafe fn update_move_buttons(hwnd: HWND, index: Option<usize>, entries: &Entries<'_>) {
+unsafe fn update_outline_buttons(hwnd: HWND, index: Option<usize>, entries: &Entries<'_>) {
     for (id, enabled) in [
+        (COPY, index.is_some()),
         (UP, index.is_some_and(|i| i > 0)),
         (DOWN, index.is_some_and(|i| i + 1 < entries.names.len())),
         (MOVE, index.is_some() && entries.has_other_chapters),
@@ -265,7 +293,7 @@ unsafe extern "system" fn handle(hwnd: HWND, message: u32, action: WPARAM, data:
                     }
                     EnableWindow(GetDlgItem(hwnd, IDOK), 0);
                 }
-                update_move_buttons(hwnd, selected, entries);
+                update_outline_buttons(hwnd, selected, entries);
                 1
             }
             WM_VKEYTOITEM => {
@@ -299,12 +327,12 @@ unsafe extern "system" fn handle(hwnd: HWND, message: u32, action: WPARAM, data:
                     .filter(|i| *i < entry_count);
                 let command = match id {
                     LIST if notification == LBN_SELCHANGE => {
-                        update_move_buttons(hwnd, index, &*entries);
+                        update_outline_buttons(hwnd, index, &*entries);
                         return 1;
                     }
                     LIST if notification == LBN_DBLCLK => IDOK,
                     IDOK | BROWSE | EDIT_SCENE | MANAGE | NEW_PROJECT | NEW_DOCUMENT | RENAME
-                    | UP | DOWN | MOVE | REMOVE
+                    | UP | DOWN | MOVE | REMOVE | COPY
                         if !GetDlgItem(hwnd, id).is_null() =>
                     {
                         id

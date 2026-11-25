@@ -3,8 +3,8 @@ use super::{DocumentKind, DocumentNode, DocumentRepository, ProjectId, ProjectMa
 use kraqel_domain::EntityId;
 use kraqel_isolation_transport::{SceneOutcome, SceneRequest, SceneSaveStatus};
 use kraqel_native_start::{
-    OutlineChoice, SceneAction, ask_document_title, choose_chapter, choose_destination,
-    choose_scene, confirm_removal, notify,
+    OutlineChoice, SceneAction, ask_copy_title, ask_document_title, choose_chapter,
+    choose_copy_destination, choose_destination, choose_scene, confirm_removal, notify,
 };
 use kraqel_storage::document_repository::{
     DeletePreview, DocumentError, OutlineMove, is_valid_document_title,
@@ -160,6 +160,19 @@ pub(super) fn browse(home: &Path, manager: &ProjectManager, project: ProjectId) 
             .transpose()?;
         selected = node.map(|n| n.id);
         match choice {
+            OutlineChoice::Copy(_) => {
+                let source = node.ok_or("Dokumentauswahl fehlt.")?;
+                match copy_document(manager, source, &outline, &chapters, chapter_index, label) {
+                    Ok(Some(copy)) => {
+                        parent = copy.parent_id;
+                        selected = Some(copy.id);
+                    }
+                    Ok(None) => {}
+                    Err(_) => notify(
+                        "Die Kopie konnte nicht angelegt werden. Bitte prüfe die aktualisierte Gliederung und wähle Quelle und Ziel erneut.",
+                    ),
+                }
+            }
             OutlineChoice::Remove(_) => {
                 if remove_document(manager, node.ok_or("Dokumentauswahl fehlt.")?).is_err() {
                     notify(
@@ -220,6 +233,58 @@ pub(super) fn browse(home: &Path, manager: &ProjectManager, project: ProjectId) 
             }
         }
     }
+}
+
+fn copy_document(
+    manager: &ProjectManager,
+    source: &DocumentNode,
+    outline: &[DocumentNode],
+    chapters: &[&DocumentNode],
+    chapter_index: Option<usize>,
+    label: &'static str,
+) -> Result<Option<DocumentNode>> {
+    let (children, destination) = match source.kind {
+        DocumentKind::Chapter => (
+            outline
+                .iter()
+                .filter(|n| n.parent_id == Some(source.id))
+                .collect::<Vec<_>>(),
+            None,
+        ),
+        DocumentKind::Scene => {
+            let Some(index) =
+                choose_copy_destination(&titles(chapters), chapter_index.ok_or("Kapitel fehlt.")?)?
+            else {
+                return Ok(None);
+            };
+            (
+                vec![],
+                Some(*chapters.get(index).ok_or("Zielkapitel fehlt.")?),
+            )
+        }
+    };
+    let suggested = format!("Kopie von {:.230}", source.title.trim());
+    let scope = match destination {
+        Some(target) => format!(
+            "Zielkapitel {}: {:?}",
+            u64::from(target.position) + 1,
+            target.title
+        ),
+        None if children.len() == 1 => "Kapitel mit 1 Szene".to_owned(),
+        None => format!("Kapitel mit {} Szenen", children.len()),
+    };
+    let Some(title) = ask_copy_title(label, &suggested, &scope, is_valid_document_title)? else {
+        return Ok(None);
+    };
+    // Pass the displayed selection and subtree into the transactional recheck.
+    let mut opened = manager.open_project(source.project_id.to_string())?;
+    let mut repository = DocumentRepository::new(opened.database_mut());
+    Ok(Some(repository.duplicate_manuscript(
+        source,
+        &children,
+        destination,
+        &title,
+    )?))
 }
 
 fn change_title(

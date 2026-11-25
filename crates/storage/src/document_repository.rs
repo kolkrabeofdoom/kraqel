@@ -15,6 +15,7 @@ use serde_json::{Value, json};
 
 use crate::{Database, StorageError};
 
+mod copying;
 mod deletion;
 pub use deletion::DeletePreview;
 
@@ -1080,6 +1081,113 @@ mod tests {
 
     use super::{DocumentError, DocumentRepository};
     use crate::project_manager::ProjectManager;
+
+    #[test]
+    fn duplicates_manuscript_with_new_ids_ordered_content_and_search_index() {
+        let root = tempdir().unwrap();
+        let manager = ProjectManager::new(root.path()).unwrap();
+        let project = project();
+        let mut opened = manager.create_project("projekt", &project).unwrap();
+        let mut repo = DocumentRepository::new(opened.database_mut());
+        let chapter = repo
+            .create(project.id, None, DocumentKind::Chapter, "Kapitel")
+            .unwrap();
+        let mut prose = content("Federkiel");
+        prose.document["content"][0]["content"][0]["marks"] = json!([{"type":"bold"}]);
+        let scene = repo
+            .create_scene_with_content(project.id, chapter.id, "Prosa", &prose)
+            .unwrap();
+        let screenplay = EditorDocument {
+            version: kraqel_domain::SCREENPLAY_DOCUMENT_VERSION,
+            document: json!({"type":"doc","content":[{"type":"screenplayBlock","attrs":{"role":"action"},
+                "content":[{"type":"text","text":"Zugbrücke"}]}]}),
+        };
+        let script = repo
+            .create_scene_with_content(project.id, chapter.id, "Film", &screenplay)
+            .unwrap();
+
+        let copy = repo
+            .duplicate_manuscript(&chapter, &[&scene, &script], None, "Variante")
+            .unwrap();
+        assert_ne!(copy.id, chapter.id);
+        assert_eq!((copy.position, copy.revision), (1, 0));
+        let tree = repo.list(project.id).unwrap();
+        let children: Vec<_> = tree
+            .iter()
+            .filter(|n| n.parent_id == Some(copy.id))
+            .collect();
+        assert_eq!(children.len(), 2);
+        for (child, original) in children.iter().zip([&scene, &script]) {
+            assert_ne!(child.id, original.id);
+            assert_eq!(
+                (&child.title, child.position, child.revision),
+                (&original.title, original.position, 0)
+            );
+            let template = repo.load(project.id, original.id).unwrap();
+            assert_eq!(
+                repo.load(project.id, child.id).unwrap().content,
+                template.content
+            );
+        }
+        let extra = repo
+            .duplicate_manuscript(&scene, &[], Some(&copy), "Neue Szene")
+            .unwrap();
+        assert_eq!((extra.parent_id, extra.position), (Some(copy.id), 2));
+        assert_eq!(repo.load(project.id, extra.id).unwrap().content, prose);
+        repo.save_scene(project.id, extra.id, 0, &content("Eigenständig"))
+            .unwrap();
+        assert_eq!(repo.load(project.id, scene.id).unwrap().content, prose);
+        let count: i64 = opened
+            .database_mut()
+            .connection()
+            .query_row(
+                "SELECT count(*) FROM document_fts WHERE document_fts MATCH 'Federkiel'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 2);
+    }
+
+    #[test]
+    fn duplicate_manuscript_rolls_back_partial_chapter_and_rejects_stale_destination() {
+        let root = tempdir().unwrap();
+        let manager = ProjectManager::new(root.path()).unwrap();
+        let project = project();
+        let mut opened = manager.create_project("projekt", &project).unwrap();
+        let mut repo = DocumentRepository::new(opened.database_mut());
+        let chapter = repo
+            .create(project.id, None, DocumentKind::Chapter, "Entwurf")
+            .unwrap();
+        let first = repo
+            .create(project.id, Some(chapter.id), DocumentKind::Scene, "Erste")
+            .unwrap();
+        let last = repo
+            .create(project.id, Some(chapter.id), DocumentKind::Scene, "Zweite")
+            .unwrap();
+        let target = repo
+            .create(project.id, None, DocumentKind::Chapter, "Ziel")
+            .unwrap();
+        repo.save_scene(project.id, last.id, 0, &content("Neuer Stand"))
+            .unwrap();
+        repo.rename_selected(&target, "Anderes Ziel").unwrap();
+        let before = repo.list(project.id).unwrap();
+
+        // The first scene has already been inserted when the second revision check fails.
+        assert!(matches!(
+            repo.duplicate_manuscript(&chapter, &[&first, &last], None, "Kopie"),
+            Err(DocumentError::RevisionConflict)
+        ));
+        assert!(matches!(
+            repo.duplicate_manuscript(&chapter, &[&first], None, "Kopie"),
+            Err(DocumentError::RevisionConflict)
+        ));
+        assert!(matches!(
+            repo.duplicate_manuscript(&first, &[], Some(&target), "Kopie"),
+            Err(DocumentError::RevisionConflict)
+        ));
+        assert_eq!(repo.list(project.id).unwrap(), before);
+    }
 
     #[test]
     fn creates_scene_and_imported_content_in_one_repository_operation() {

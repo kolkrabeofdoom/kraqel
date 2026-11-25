@@ -39,6 +39,7 @@ BEGIN
     PUSHBUTTON "&Entfernen …", 114, 200, 124, 100, 17
     PUSHBUTTON "Nach &oben", 111, 10, 147, 92, 17
     PUSHBUTTON "Nach u&nten", 112, 108, 147, 86, 17
+    PUSHBUTTON "Ko&pieren …", 117, 200, 147, 100, 17
     DEFPUSHBUTTON "&Szenen anzeigen", IDOK, 134, 170, 96, 17
     PUSHBUTTON "&Zurück", IDCANCEL, 236, 170, 64, 17
 END
@@ -56,7 +57,8 @@ BEGIN
     PUSHBUTTON "Nach &oben", 111, 10, 147, 92, 17
     PUSHBUTTON "Nach u&nten", 112, 108, 147, 86, 17
     PUSHBUTTON "In &Kapitel verschieben …", 113, 200, 147, 106, 17
-    DEFPUSHBUTTON "&Lesen", IDOK, 72, 170, 74, 17
+    PUSHBUTTON "Ko&pieren …", 117, 10, 170, 66, 17
+    DEFPUSHBUTTON "&Lesen", IDOK, 82, 170, 64, 17
     PUSHBUTTON "&Bearbeiten", 105, 152, 170, 84, 17
     PUSHBUTTON "&Zurück", IDCANCEL, 242, 170, 64, 17
 END
@@ -94,4 +96,30 @@ BEGIN
     EDITTEXT 115, 10, 39, 322, 115, ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL | WS_TABSTOP
     DEFPUSHBUTTON "&Abbrechen", IDCANCEL, 136, 164, 80, 18
     PUSHBUTTON "&Dauerhaft entfernen", 116, 222, 164, 110, 18
+END
+
+409 DIALOGEX 0, 0, 310, 156
+STYLE DS_SHELLFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "KRAQEL – Ziel der Szenenkopie"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT "Die Kopie wird am Ende des gewählten &Kapitels eingefügt.", 101, 10, 9, 290, 18
+    LISTBOX 102, 10, 29, 290, 92, LBS_NOTIFY | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP | WS_BORDER
+    DEFPUSHBUTTON "&Weiter", IDOK, 140, 129, 78, 17
+    PUSHBUTTON "&Abbrechen", IDCANCEL, 224, 129, 76, 17
+END
+
+410 DIALOGEX 0, 0, 322, 153
+STYLE DS_SHELLFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "KRAQEL – Manuskript kopieren"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT "&Titel der Kopie", -1, 10, 8, 302, 11
+    EDITTEXT 107, 10, 21, 302, 16, ES_AUTOHSCROLL | WS_TABSTOP
+    LTEXT "Umfang und Ziel", -1, 10, 40, 302, 10
+    EDITTEXT 118, 10, 50, 302, 15, ES_AUTOHSCROLL | ES_READONLY | WS_TABSTOP
+    LTEXT "Die Kopie enthält den Manuskripttext samt Formatierung. Bei einem Kapitel werden alle zugehörigen Szenen mitkopiert. Verknüpfungen, Planungsdaten und Versionsverlauf bleiben beim Original.", -1, 10, 67, 302, 38
+    LTEXT "", 108, 10, 108, 302, 13
+    DEFPUSHBUTTON "&Kopie anlegen", IDOK, 145, 128, 91, 17
+    PUSHBUTTON "&Abbrechen", IDCANCEL, 242, 128, 70, 17
 END
