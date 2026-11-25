@@ -2,6 +2,12 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Lokales Autosave mit Folgeeingabe und Schließanforderung
+
+Im installierten Kandidaten `65e46b7e9237` war Autosave zunächst aus. Nach 900 ms Schreibpause lag die synthetische Szene weiterhin auf Revision 0. Nach dem Einschalten wurde der automatische Schreibzug 728 ms nach der Eingabe beobachtet. Eine kurzzeitige SQLite-Schreibsperre verzögerte die Bestätigung. Währenddessen nahm das Szenenfeld ein weiteres Zeichen an. Der Schließwunsch wartete auf die Bestätigung. Als die Schließabfrage erschien, enthielt Revision 1 ausschließlich den zuerst gesendeten Stand. Nach Weiterschreiben wurde im selben Fenster die Folgeeingabe als Revision 2 gespeichert. Eine weitere Pause ohne Änderung erzeugte keine Revision.
+
+Nach dem Ausschalten blieb eine neue Eingabe bis Strg+S lokal. Nach dem Neustart stimmten der schreibgeschützte Text, der Suchindex und Revision 3. Der Leser bot keinen Autosave-Befehl an. Ein gezielter Zeitgebertest prüfte veraltete und wiederholte Zeitgeberereignisse. Der gemeinsame Bedien- und ETW-Lauf erfasste bei beiden Desktopstarts je eine Fensterrolle und einen Datendienst. Beide KRAQEL-Prozessbäume zeigten null Netzwerkereignisse einschließlich Loopback. Alle vier Positivkontrollen wurden erkannt, ohne Verluste oder Zuordnungslücken. Testinstallation, synthetisches Profil und Rohspur wurden bereinigt. SHA-256 des Installers: `1cbf93196bf042e6e196d66c01d392c8bf294b54705f763d3c76f7d65e6b5d0c`.
+
 ## Speichern und im selben Szenenfenster weiterschreiben
 
 Im installierten Kandidaten `62ac9104ce0d` speicherte Strg+Enter im Szenenfeld die erste Änderung als Revision 1. Prozess, Fenster, Fokus, Textauswahl und der Rückgängig-Verlauf blieben erhalten. Der erneute Menübefehl ohne Textänderung meldete „Keine Änderungen zu speichern“ und erzeugte keine Revision. Nach Rückgängig und einer weiteren Eingabe blieb SQLite auf dem bestätigten Zwischenstand, bis Strg+S den neuen Entwurf als Revision 2 speicherte. Nach dem Desktopneustart stimmten der schreibgeschützte Text, der kanonische Inhalt und der Suchindex. Im Leser fehlte der Menübefehl zum Zwischenspeichern.
