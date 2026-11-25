@@ -2,6 +2,12 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Gesamtfassung wählen und Absatzentscheidungen zurücknehmen
+
+Im installierten Kandidaten `1e89f10bf482` wurden beide Gesamtfassungen als Ausgangswahl geprüft. Die Vorschau folgte auch den anschließenden Einzelentscheidungen, Strg+Z und Strg+Y. Eine neue Quellwahl nach Rücknahme verwarf den alten Wiederholen-Zweig. Während der Auswahl schrieb eine zweite Verbindung Revision 2 der synthetischen Szene. Die erste Bestätigung öffnete daraufhin den Vergleich mit der neuen Basis. Die bisherigen Positionsentscheidungen und der lokale Entwurf blieben erhalten. Die Vorschau zeigte den aktualisierten gespeicherten Absatz. Die alten Auswahlschritte ließen sich auf der neuen Basis weder zurücknehmen noch wiederholen.
+
+SQLite blieb bis zur erneuten ausdrücklichen Bestätigung auf Revision 2. Nach dem Speichern und Neustart stimmten der gemischte Text mit sechs Absätzen, der Suchindex und Revision 3. Der kombinierte Bedien- und ETW-Lauf erfasste bei beiden Desktopstarts je eine Fensterrolle und einen Datendienst. Beide Prozessbäume zeigten null Netzwerkereignisse einschließlich Loopback. Alle vier Positivkontrollen wurden erkannt, ohne Verluste oder Zuordnungslücken. Testinstallation, synthetisches Profil und Rohspur wurden bereinigt. SHA-256 des Installers: `771fe5feef27bcdb45c5389336d9c8ef7db3f33371e0fcd928825335da548c04`.
+
 ## Absatzunterschiede im nativen Konfliktvergleich
 
 Die synthetische Szene im installierten Kandidaten `c30187a585b4` umfasste sechs Absätze mit Unterschieden an den Positionen 2, 4 und 6. Der Vergleich öffnete bei Absatz 2 und zeigte Unterschied 1 von 3 an. F7 führte über 4 und 6 zurück zu 2, Umschalt+F7 von 2 zurück zu 6. F6 wechselte zwischen den beiden Fassungen. Beim Navigieren blieben Entwurf und Gesamtvorschau unverändert. Auch nach der Quellwahl lag die Datenbank noch auf Revision 1. Erst die ausdrückliche Bestätigung speicherte Absatz 2 aus der gespeicherten Fassung sowie die Absätze 4 und 6 aus dem Entwurf als Revision 2. Nach dem Desktopneustart stimmten die sechs Absätze im Leser, der kanonische Inhalt und der Suchindex.
