@@ -443,6 +443,9 @@ pub(super) fn display(
                 0,
             );
         }
+        // Lay out the wrapping EDIT before loading prose. At its initial one-pixel width,
+        // wrapping a long paragraph can exceed the authenticated surface deadline.
+        SendMessageW(hwnd, WM_SIZE, 0, 0);
         let field = GetDlgItem(hwnd, EDIT);
         require(
             windows_sys::Win32::UI::Shell::SetWindowSubclass(field, Some(scene_input), 1, 0) != 0,
@@ -459,7 +462,6 @@ pub(super) fn display(
         if edit_mode {
             project_metrics::update(hwnd, METRICS);
         }
-        SendMessageW(hwnd, WM_SIZE, 0, 0);
         ShowWindow(hwnd, SW_SHOW);
         SetFocus(field);
         reply.write_all(&(hwnd as usize as u64).to_le_bytes())?;
