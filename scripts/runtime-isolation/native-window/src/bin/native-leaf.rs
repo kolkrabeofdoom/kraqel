@@ -297,6 +297,18 @@ fn open_search_field(hwnd: HWND, target: i32, use_selection: bool) {
     }
 }
 
+fn utf16_hits<'a>(text: &'a str, query: &'a str) -> impl Iterator<Item = (usize, usize)> + 'a {
+    let mut byte = 0;
+    let mut end = 0;
+    let length = query.encode_utf16().count();
+    text.match_indices(query).map(move |(offset, matched)| {
+        let start = end + text[byte..offset].encode_utf16().count();
+        end = start + length;
+        byte = offset + matched.len();
+        (start, end)
+    })
+}
+
 fn find_in_scene(hwnd: HWND, backwards: bool) {
     unsafe {
         set_focus_mode(hwnd, false);
@@ -339,12 +351,7 @@ fn find_in_scene(hwnd: HWND, backwards: bool) {
                 };
                 anchor = Some((id, pos as usize));
             }
-            let mut byte = 0;
-            let mut end = 0;
-            for (offset, matched) in text.match_indices(&query) {
-                let start = end + text[byte..offset].encode_utf16().count();
-                end = start + matched.encode_utf16().count();
-                byte = offset + matched.len();
+            for (start, end) in utf16_hits(&text, &query) {
                 hits.push((id, start, end));
             }
         }

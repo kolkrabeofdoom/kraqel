@@ -6,6 +6,8 @@ mod project_close;
 mod project_dialog;
 #[path = "project_review.rs"]
 mod project_review;
+#[path = "project_search.rs"]
+mod project_search;
 use std::{
     fs::File,
     io::{self, Read, Write},
@@ -231,7 +233,24 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) 
                 toggle_focus(hwnd);
                 0
             }
+            WM_COMMAND if w == project_search::OPEN as usize => {
+                project_search::show(hwnd, !project_search::visible(hwnd));
+                0
+            }
+            WM_COMMAND
+                if w == project_search::NEXT as usize || w == project_search::PREVIOUS as usize =>
+            {
+                project_search::find(hwnd, w == project_search::PREVIOUS as usize);
+                0
+            }
+            WM_COMMAND if (w & 0xffff) == SEARCH as usize && (w >> 16) == EN_CHANGE as usize => {
+                SetDlgItemTextW(hwnd, LABEL, wide("&Szenentext").as_ptr());
+                0
+            }
             WM_COMMAND if (w & 0xffff) == EDIT as usize && (w >> 16) == EN_CHANGE as usize => {
+                if project_search::visible(hwnd) {
+                    SetDlgItemTextW(hwnd, LABEL, wide("&Szenentext").as_ptr());
+                }
                 if !GetDlgItem(hwnd, METRICS).is_null() && !focus_mode(hwnd) {
                     if SetTimer(hwnd, METRICS_TIMER, 120, None) == 0 {
                         project_metrics::update(hwnd, METRICS);
@@ -250,7 +269,7 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) 
                 let min = &mut *(l as *mut MINMAXINFO);
                 let dpi = GetDpiForWindow(hwnd);
                 min.ptMinTrackSize.x = scale(365, dpi);
-                min.ptMinTrackSize.y = scale(330, dpi);
+                min.ptMinTrackSize.y = scale(385, dpi);
                 0
             }
             WM_SIZE => {
@@ -317,8 +336,7 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) 
                         );
                     }
                 }
-                MoveWindow(GetDlgItem(hwnd, LABEL), margin, margin, width, height, 1);
-                let top = margin + height;
+                let top = project_search::layout(hwnd, dpi, width, margin, gap, height);
                 MoveWindow(
                     GetDlgItem(hwnd, EDIT),
                     margin,
@@ -387,6 +405,31 @@ pub(super) fn display(
         for (id, kind, label, control_style) in [
             (LABEL, "STATIC", "&Szenentext", SS_LEFT),
             (EDIT, "EDIT", "", style),
+            (
+                project_search::OPEN,
+                "BUTTON",
+                "S&uchen (Strg+F)",
+                WS_TABSTOP | BS_PUSHBUTTON as u32,
+            ),
+            (SEARCH_LABEL, "STATIC", "Such&begriff", SS_LEFT),
+            (
+                SEARCH,
+                "EDIT",
+                "",
+                WS_TABSTOP | WS_BORDER | ES_AUTOHSCROLL as u32,
+            ),
+            (
+                project_search::PREVIOUS,
+                "BUTTON",
+                "&Zurück",
+                WS_TABSTOP | BS_PUSHBUTTON as u32,
+            ),
+            (
+                project_search::NEXT,
+                "BUTTON",
+                "&Weiter",
+                WS_TABSTOP | BS_PUSHBUTTON as u32,
+            ),
             (METRICS, "STATIC", "", SS_LEFT),
             (STATUS, "STATIC", "", SS_LEFT),
             (
@@ -425,7 +468,20 @@ pub(super) fn display(
                 0,
                 wide(kind).as_ptr(),
                 wide(label).as_ptr(),
-                WS_CHILD | (if id == COMPARE { 0 } else { WS_VISIBLE }) | control_style,
+                WS_CHILD
+                    | (if matches!(
+                        id,
+                        COMPARE
+                            | SEARCH
+                            | SEARCH_LABEL
+                            | project_search::PREVIOUS
+                            | project_search::NEXT
+                    ) {
+                        0
+                    } else {
+                        WS_VISIBLE
+                    })
+                    | control_style,
                 0,
                 0,
                 1,
@@ -447,10 +503,15 @@ pub(super) fn display(
         // wrapping a long paragraph can exceed the authenticated surface deadline.
         SendMessageW(hwnd, WM_SIZE, 0, 0);
         let field = GetDlgItem(hwnd, EDIT);
-        require(
-            windows_sys::Win32::UI::Shell::SetWindowSubclass(field, Some(scene_input), 1, 0) != 0,
-            "protect project text",
-        )?;
+        let query = GetDlgItem(hwnd, SEARCH);
+        for control in [field, query] {
+            require(
+                windows_sys::Win32::UI::Shell::SetWindowSubclass(control, Some(scene_input), 1, 0)
+                    != 0,
+                "protect project text",
+            )?;
+        }
+        SendMessageW(query, EM_SETLIMITTEXT, project_metrics::EDIT_UNIT_LIMIT, 0);
         // Validate UTF-8 size at submission. Allow editing beyond the save limit so
         // a long draft can be shortened explicitly, without saving a truncated prefix.
         SendMessageW(field, EM_SETLIMITTEXT, project_metrics::EDIT_UNIT_LIMIT, 0);
@@ -500,10 +561,34 @@ unsafe fn dispatch(hwnd: HWND, msg: &MSG) {
             let field = GetDlgItem(hwnd, EDIT);
             let save = GetDlgItem(hwnd, SAVE);
             let key = msg.wParam;
-            let ctrl_only = GetKeyState(i32::from(VK_CONTROL)) < 0
-                && [VK_MENU, VK_SHIFT, VK_LWIN, VK_RWIN]
-                    .iter()
-                    .all(|modifier| GetKeyState(i32::from(*modifier)) >= 0);
+            let ctrl = GetKeyState(i32::from(VK_CONTROL)) < 0;
+            let shift = GetKeyState(i32::from(VK_SHIFT)) < 0;
+            let plain = [VK_MENU, VK_LWIN, VK_RWIN]
+                .iter()
+                .all(|modifier| GetKeyState(i32::from(*modifier)) >= 0);
+            let ctrl_only = ctrl && !shift && plain;
+            if ctrl_only && key == usize::from(VK_F) {
+                if !repeated {
+                    project_search::show(hwnd, true);
+                }
+                return;
+            }
+            if plain
+                && !ctrl
+                && (key == usize::from(VK_F3)
+                    || (key == usize::from(VK_RETURN) && msg.hwnd == GetDlgItem(hwnd, SEARCH)))
+            {
+                if !repeated {
+                    project_search::find(hwnd, shift);
+                }
+                return;
+            }
+            if key == usize::from(VK_ESCAPE) && (project_search::visible(hwnd) || repeated) {
+                if !repeated {
+                    project_search::show(hwnd, false);
+                }
+                return;
+            }
             if ctrl_only && key == usize::from(VK_A) && msg.hwnd == field && GetFocus() == field {
                 if !repeated {
                     SendMessageW(field, EM_SETSEL, 0, -1);

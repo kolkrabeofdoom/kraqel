@@ -4,7 +4,7 @@ pub(super) fn word_separator(c: char) -> bool {
 }
 
 #[cfg(feature = "manuscript-window")]
-pub(super) use product::{EDIT_UNIT_LIMIT, draft, update};
+pub(super) use product::{EDIT_UNIT_LIMIT, draft, units, update};
 
 #[cfg(feature = "manuscript-window")]
 mod product {
@@ -43,7 +43,7 @@ mod product {
         Some(metrics)
     }
 
-    fn units(field: HWND, limit: usize) -> Option<Zeroizing<Vec<u16>>> {
+    pub(in super::super) fn units(field: HWND, limit: usize) -> Option<Zeroizing<Vec<u16>>> {
         unsafe {
             if field.is_null() {
                 return None;
