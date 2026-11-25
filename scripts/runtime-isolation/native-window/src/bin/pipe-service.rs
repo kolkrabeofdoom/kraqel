@@ -1,3 +1,5 @@
+#![cfg_attr(all(windows, feature = "manuscript-window"), windows_subsystem = "windows")]
+
 use kraqel_window_probe::bootstrap::{Endpoint, Role};
 #[used]
 #[unsafe(link_section = ".kqspan")]

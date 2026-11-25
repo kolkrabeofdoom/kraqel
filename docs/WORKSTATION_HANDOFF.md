@@ -16,6 +16,10 @@ Der installierte Drehbuchkandidat `aca30d0ae0d9` bestand den Bedienlauf bis zum 
 
 Die lokale Datenbank bleibt im vertrauenswürdigen Desktop-Speicherdienst. Die beiden isolierten Rollen erhalten nur die ausgewählte Szene über private Pipes. Beim Speichern prüft eine SQLite-Transaktion die gebundene Revision und das ursprüngliche Dokument. Ein konkurrierender Stand bleibt erhalten.
 
+**Bedienabnahme vom 25. November.** Im echten Windows-Debug-Build öffnete sich die ausgewählte Szene eines eigens angelegten Projekts mit Leseschutz und dem erwarteten Text auf Revision 0. Nach ausdrücklicher Bearbeitungsfreigabe, Speichern zweier Absätze, regulärem Beenden und einem neuen Prozess zeigte eine frische Lesesitzung beide Absätze exakt wieder an. SQLite bestätigte Editordokument v1 und Revision 1. Der Speichertest verwarf außerdem eine veraltete Revision sowie ein bei gleicher Revision zwischenzeitlich geändertes Originaldokument.
+
+Beim ersten abgebrochenen UI-Prüflauf wurde der Starter bei offenem Lesefenster beendet. Im Windows-Paketverzeichnis blieb ein temporäres UI-AppContainer-Profil. Seine Kontrollablage war bereits entfernt; ohne generationsgebundenen Beleg bleibt das Profil unangetastet. Der reguläre Folgelauf hinterließ kein weiteres Profil. Die Prüfhilfen behalten künftig bei unbestätigtem Sitzungsende die Kontrollablage zurück.
+
 ## Wiedereinstieg nach dem 24. November 2026
 
 Auf dem Entwicklungszweig `feat/kq-069-live-file-selection` mit `git pull --ff-only` beginnen.
