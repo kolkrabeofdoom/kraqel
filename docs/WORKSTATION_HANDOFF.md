@@ -13,9 +13,16 @@ Release-Dateien und der portable Archivhelfer wurden zum Tagesabschluss abgeglic
 Der gebaute Desktop übernahm das geschlossene Demoprojekt mit 22 inhaltlich identischen
 SQLite-Tabellen und 42 bytegleichen Bild- und Vorschaudateien. Nach einem Neustart öffnete sich
 die Kopie. Die separate Archivwahl ließ sich mit der Passphrase wiederherstellen und enthielt
-genau die ausgewählte Zusatzdatei. Der nächste sinnvolle Abnahmeschritt ist ein Update der
-installierten Alpha 6 mit dem Ordnerimport-Installer. Dabei den Startmenüeintrag und ein bereits
-vorhandenes Projekt prüfen. Danach über die Veröffentlichung dieses Kandidaten entscheiden.
+genau die ausgewählte Zusatzdatei.
+
+**Upgrade-Abnahme am 25. November 2026 bestanden.** Im getrennten Windows-Testprofil öffnete
+dieselbe Startmenüverknüpfung nach dem Update von Alpha 6 auf `a9a3a673ff14` das vorhandene
+Demoprojekt mit derselben UUID bis zur Projektansicht. Auf der Startseite war **Projektordner
+auswählen** sichtbar, fokussierbar und aktiviert. Beide Desktopprogramme verwendeten das
+Windows-GUI-Subsystem. Testinstallation, Registrierung, Verknüpfungen und Testprofil wurden
+bereinigt. Der geprüfte Installer hat SHA-256
+`85c4f09e8e24ae4f82946a69d8d67f4f540f7af087ea2fe2ef90c2e07c905bdd`.
+Der Kandidat ist zur Veröffentlichung als Alpha 7 empfohlen. Die öffentliche Freigabe steht aus.
 
 ## Einen vorhandenen Windows-Projektordner übernehmen
 
