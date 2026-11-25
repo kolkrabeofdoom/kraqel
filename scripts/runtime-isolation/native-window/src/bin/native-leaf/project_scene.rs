@@ -4,6 +4,8 @@ use super::*;
 mod project_close;
 #[path = "project_dialog.rs"]
 mod project_dialog;
+#[path = "project_history.rs"]
+mod project_history;
 #[path = "project_menu.rs"]
 mod project_menu;
 #[path = "project_replace.rs"]
@@ -178,7 +180,7 @@ unsafe extern "system" fn scene_input(
         ) {
             return 0;
         }
-        windows_sys::Win32::UI::Shell::DefSubclassProc(hwnd, msg, w, l)
+        project_history::dispatch(hwnd, msg, w, l)
     }
 }
 
@@ -225,6 +227,10 @@ unsafe fn toggle_focus(hwnd: HWND) {
 unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> LRESULT {
     unsafe {
         match msg {
+            WM_COMMAND if l == 0 && matches!(w, UNDO | REDO) => {
+                project_history::step(GetDlgItem(hwnd, EDIT), w == REDO);
+                0
+            }
             WM_INITMENU if w == GetMenu(hwnd) as usize => {
                 project_menu::refresh(hwnd);
                 0
@@ -286,6 +292,7 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) 
                 0
             }
             WM_COMMAND if (w & 0xffff) == EDIT as usize && (w >> 16) == EN_CHANGE as usize => {
+                project_history::changed();
                 project_replace::MATCH.set(None);
                 if project_search::visible(hwnd) {
                     SetDlgItemTextW(hwnd, LABEL, wide("&Szenentext").as_ptr());
@@ -613,6 +620,7 @@ pub(super) fn display(
         if edit_mode {
             project_metrics::update(hwnd, METRICS);
         }
+        let _history = edit_mode.then(|| project_history::start(field));
         ShowWindow(hwnd, SW_SHOW);
         SetFocus(field);
         reply.write_all(&(hwnd as usize as u64).to_le_bytes())?;
@@ -680,6 +688,16 @@ unsafe fn dispatch(hwnd: HWND, msg: &MSG) {
                 .iter()
                 .all(|modifier| GetKeyState(i32::from(*modifier)) >= 0);
             let ctrl_only = ctrl && !shift && plain;
+            if ctrl_only
+                && matches!(key, k if k == usize::from(VK_Z) || k == usize::from(VK_Y))
+                && msg.hwnd == field
+                && GetFocus() == field
+            {
+                if !repeated && !save.is_null() {
+                    project_history::step(field, key == usize::from(VK_Y));
+                }
+                return;
+            }
             if ctrl_only && key == usize::from(VK_H) {
                 if !repeated {
                     project_search::open(hwnd, true, false);

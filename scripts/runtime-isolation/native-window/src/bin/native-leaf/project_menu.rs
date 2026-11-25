@@ -18,7 +18,11 @@ pub(super) fn install(hwnd: HWND, edit_mode: bool) -> bool {
         ),
     ];
     if edit_mode {
-        let mut commands = edit.to_vec();
+        let mut commands = vec![
+            (UNDO, "&Rückgängig\tStrg+Z"),
+            (REDO, "&Wiederholen\tStrg+Y"),
+        ];
+        commands.extend(edit);
         commands.extend([
             (project_replace::OPEN as usize, "&Ersetzen …\tStrg+H"),
             (COMPARE as usize, "&Fassungen vergleichen …"),
@@ -45,6 +49,8 @@ pub(super) unsafe fn refresh(hwnd: HWND) {
         }
         let editable = GetWindowLongW(GetDlgItem(hwnd, EDIT), GWL_STYLE) & ES_READONLY == 0;
         let compare = GetDlgItem(hwnd, COMPARE);
+        enable_menu_command(hwnd, UNDO, editable && project_history::available(false));
+        enable_menu_command(hwnd, REDO, editable && project_history::available(true));
         enable_menu_command(hwnd, SAVE as usize, editable && IsWindowEnabled(save) != 0);
         enable_menu_command(hwnd, CLOSE as usize, editable);
         enable_menu_command(hwnd, project_replace::OPEN as usize, editable);

@@ -154,8 +154,11 @@ pub(super) unsafe fn apply_all(hwnd: HWND) {
             }
             let result = plan.render(length);
             SetFocus(field);
-            SendMessageW(field, EM_SETSEL, 0, -1);
-            SendMessageW(field, EM_REPLACESEL, 1, result.as_ptr() as isize);
+            // Keep the user's selection from before the implementation selects all.
+            project_history::observe(field, false, || {
+                SendMessageW(field, EM_SETSEL, 0, -1);
+                SendMessageW(field, EM_REPLACESEL, 0, result.as_ptr() as isize);
+            });
             MATCH.set(None);
             if GetWindowTextLengthW(field) as usize != length
                 || project_search::selection(field) != (length, length)
@@ -211,7 +214,7 @@ pub(super) unsafe fn apply(hwnd: HWND) {
             let caret = start + value.len();
             value.push(0);
             SetFocus(field);
-            SendMessageW(field, EM_REPLACESEL, 1, value.as_ptr() as isize);
+            SendMessageW(field, EM_REPLACESEL, 0, value.as_ptr() as isize);
             MATCH.set(None);
             if GetWindowTextLengthW(field) as usize != new_length
                 || project_search::selection(field) != (caret, caret)
