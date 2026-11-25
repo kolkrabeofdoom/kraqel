@@ -16,6 +16,7 @@ probe-stop-mid-snapshot = []
 [dependencies]
 rusqlite = {version = "=0.39.0", features=["bundled","serialize"]}
 kraqel-native-scene-model = { path = "../native-scene-model" }
+unicase = "=2.10.0"
 getrandom = "=0.4.3"
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.154"

@@ -2,6 +2,10 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Schreibweisen bei Szenensuche und Ersatz
+
+Leser und Editor wurden mit „Raben Rabe rabe RABE Rabe_2.“ geöffnet. Die native Bedienprobe fand für „Rabe“ zunächst drei Treffer, nach Abschalten von **Groß-/Kleinschreibung beachten** fünf, mit zusätzlicher Ganzwortsuche drei. Nach dem Umschalten war die vorherige Markierung für Einzelersatz gesperrt. Der Editor ersetzte das ausgewählte kleingeschriebene Wort einzeln und auf ausdrückliche Bestätigung alle drei selbständigen Schreibweisen. „Raben“ und „Rabe_2“ blieben erhalten. Rückgängig stellte jeweils den Ausgangstext her. Beide Fenster schlossen regulär. Die Probe lief am kompilierten nativen Testziel. Der Unicode-Regressionstest bestätigt außerdem, dass als Ersatz eingegebenes „k“ die Originaltreffer „K“, „K“ und „k“ einheitlich wiedergibt.
+
 ## Ganze Wörter in der nativen Szenensuche
 
 Die native Fensterprobe zum Quellstand `aa8b8ac684e2` öffnete Leser und Editor mit „Raben Rabe Rabe_2 Rabe.“. Beide starteten mit Teilwortsuche und fanden „Rabe“ viermal. Mit **Nur ganze Wörter** gab es zwei Treffer, der erste lag im UTF-16-Bereich 6 bis 10. Nach dem Moduswechsel wies der Editor den zuvor markierten Teiltreffer beim Ersetzen zurück. Einzelersatz änderte ein ganzes Wort, der bestätigte Gesamtersatz beide. Rückgängig stellte jeweils den ursprünglichen Text wieder her. Beide Fenster schlossen regulär. Ein gezielter Regressionstest deckt zusätzlich kombinierende Zeichen und einen überlappenden gültigen Treffer nach einem verworfenen Teiltreffer ab.

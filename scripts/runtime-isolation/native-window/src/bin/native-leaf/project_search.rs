@@ -8,6 +8,7 @@ const BAR: [i32; 4] = [SEARCH_LABEL, SEARCH, PREVIOUS, NEXT];
 const SELECTION_QUERY_LIMIT: usize = 256;
 
 thread_local! {
+    static CASE_SENSITIVE: std::cell::Cell<bool> = const { std::cell::Cell::new(true) };
     static WHOLE_WORDS: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
@@ -18,6 +19,42 @@ pub(super) fn whole_words() -> bool {
 pub(super) fn set_whole_words(enabled: bool) {
     WHOLE_WORDS.set(enabled);
     project_replace::MATCH.set(None);
+}
+
+pub(super) fn case_sensitive() -> bool {
+    CASE_SENSITIVE.get()
+}
+
+pub(super) fn set_case_sensitive(enabled: bool) {
+    CASE_SENSITIVE.set(enabled);
+    project_replace::MATCH.set(None);
+}
+
+// Compare one scalar on each side. Never expand one source character into
+// multiple searchable positions (for example, ß into two s characters).
+fn same_char(a: char, b: char, sensitive: bool) -> bool {
+    if sensitive || a == b {
+        return a == b;
+    }
+    if a.is_ascii() && b.is_ascii() {
+        return a.eq_ignore_ascii_case(&b);
+    }
+    unicase::eq::<str>(a.encode_utf8(&mut [0; 4]), b.encode_utf8(&mut [0; 4]))
+}
+
+pub(super) fn selected_matches(actual: &[u16], query: &[u16]) -> bool {
+    if case_sensitive() {
+        return actual == query;
+    }
+    let mut actual = char::decode_utf16(actual.iter().copied());
+    let mut query = char::decode_utf16(query.iter().copied());
+    loop {
+        match (actual.next(), query.next()) {
+            (None, None) => return true,
+            (Some(Ok(a)), Some(Ok(b))) if same_char(a, b, false) => {}
+            _ => return false,
+        }
+    }
 }
 
 fn word_char(ch: char) -> bool {
@@ -52,38 +89,61 @@ pub(super) fn selected_boundary(scene: &[u16], start: usize, end: usize) -> bool
     matches!((previous, next), (Ok(left), Ok(right)) if bounded(left, right))
 }
 
-// Accepted matches are disjoint. A rejected partial match may overlap a later
-// whole match (for example "a a" in "xa a a").
+// KMP scans the original scalars once. A ring of byte offsets recovers each
+// original match without keeping another copy of the manuscript.
 pub(super) fn hits<'a>(
     scene: &'a str,
-    query: &'a str,
+    query: &str,
     whole: bool,
+    sensitive: bool,
 ) -> impl Iterator<Item = std::ops::Range<usize>> + 'a {
-    let mut base = 0;
-    let mut candidates = scene.match_indices(query);
+    let mut pattern = Zeroizing::new(Vec::with_capacity(query.chars().count()));
+    pattern.extend(query.chars());
+    let mut prefix = Zeroizing::new(vec![0usize; pattern.len()]);
+    let mut matched = 0;
+    for i in 1..pattern.len() {
+        while matched > 0 && !same_char(pattern[i], pattern[matched], sensitive) {
+            matched = prefix[matched - 1];
+        }
+        if same_char(pattern[i], pattern[matched], sensitive) {
+            matched += 1;
+        }
+        prefix[i] = matched;
+    }
+    let mut offsets = vec![0usize; pattern.len()];
+    let mut slot = 0;
+    let mut chars = scene.char_indices();
+    matched = 0;
     std::iter::from_fn(move || {
-        if query.is_empty() {
+        if pattern.is_empty() {
             return None;
         }
-        loop {
-            let (relative, matched) = candidates.next()?;
-            let start = base + relative;
-            let end = start + matched.len();
-            if !whole
-                || bounded(
-                    scene[..start].chars().next_back(),
-                    scene[end..].chars().next(),
-                )
-            {
-                return Some(start..end);
+        for (offset, ch) in chars.by_ref() {
+            offsets[slot] = offset;
+            slot = (slot + 1) % pattern.len();
+            while matched > 0 && !same_char(ch, pattern[matched], sensitive) {
+                matched = prefix[matched - 1];
             }
-            // Resume at the next possible left boundary, which may lie inside the rejected range.
-            let (offset, separator) = scene[start..]
-                .char_indices()
-                .find(|(_, ch)| !word_char(*ch))?;
-            base = start + offset + separator.len_utf8();
-            candidates = scene[base..].match_indices(query);
+            if same_char(ch, pattern[matched], sensitive) {
+                matched += 1;
+            }
+            if matched == pattern.len() {
+                let start = offsets[slot];
+                let end = offset + ch.len_utf8();
+                if !whole
+                    || bounded(
+                        scene[..start].chars().next_back(),
+                        scene[end..].chars().next(),
+                    )
+                {
+                    matched = 0;
+                    return Some(start..end);
+                }
+                // Rejected partial matches may overlap a later accepted match.
+                matched = prefix[matched - 1];
+            }
         }
+        None
     })
 }
 
@@ -238,10 +298,9 @@ pub(super) unsafe fn find(hwnd: HWND, backwards: bool) {
         let mut wrapped = None;
         let mut previous_byte = 0;
         let mut previous_unit = 0;
-        let query_units = query.encode_utf16().count();
-        for range in hits(&content, &query, whole_words()) {
+        for range in hits(&content, &query, whole_words(), case_sensitive()) {
             let a = previous_unit + content[previous_byte..range.start].encode_utf16().count();
-            let b = a + query_units;
+            let b = a + content[range.clone()].encode_utf16().count();
             previous_byte = range.end;
             previous_unit = b;
             count += 1;

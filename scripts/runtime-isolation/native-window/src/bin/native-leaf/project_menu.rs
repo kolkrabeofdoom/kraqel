@@ -4,9 +4,11 @@ use super::*;
 pub(super) const SEARCH_MENU: usize = 217;
 pub(super) const CONTINUE: usize = 218;
 pub(super) const WHOLE_WORDS: usize = 220;
+pub(super) const CASE_SENSITIVE: usize = 221;
 
 pub(super) fn install(hwnd: HWND, edit_mode: bool) -> bool {
     project_search::set_whole_words(false);
+    project_search::set_case_sensitive(true);
     let file = [
         (SAVE as usize, "&Speichern\tStrg+S"),
         (CONTINUE, "Speichern und &weiterschreiben\tStrg+Enter"),
@@ -17,6 +19,7 @@ pub(super) fn install(hwnd: HWND, edit_mode: bool) -> bool {
         (SELECT_PARAGRAPH, "&Alles auswählen\tStrg+A"),
         (SEARCH_MENU, "&Suchen …\tStrg+F"),
         (WHOLE_WORDS, "Nur &ganze Wörter"),
+        (CASE_SENSITIVE, "Groß-/&Kleinschreibung beachten"),
         (project_search::NEXT as usize, "&Nächster Treffer\tF3"),
         (
             project_search::PREVIOUS as usize,
@@ -52,16 +55,16 @@ pub(super) unsafe fn refresh(hwnd: HWND) {
         if menu.is_null() {
             return;
         }
-        CheckMenuItem(
-            menu,
-            WHOLE_WORDS as u32,
-            MF_BYCOMMAND
-                | if project_search::whole_words() {
-                    MF_CHECKED
-                } else {
-                    MF_UNCHECKED
-                },
-        );
+        for (command, checked) in [
+            (WHOLE_WORDS, project_search::whole_words()),
+            (CASE_SENSITIVE, project_search::case_sensitive()),
+        ] {
+            CheckMenuItem(
+                menu,
+                command as u32,
+                MF_BYCOMMAND | if checked { MF_CHECKED } else { MF_UNCHECKED },
+            );
+        }
         let save = GetDlgItem(hwnd, SAVE);
         if save.is_null() {
             return;

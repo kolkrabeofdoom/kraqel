@@ -293,8 +293,15 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) 
                 SendMessageW(field, EM_SETSEL, 0, -1);
                 0
             }
-            WM_COMMAND if l == 0 && w == project_menu::WHOLE_WORDS => {
-                project_search::set_whole_words(!project_search::whole_words());
+            WM_COMMAND
+                if l == 0
+                    && matches!(w, project_menu::WHOLE_WORDS | project_menu::CASE_SENSITIVE) =>
+            {
+                if w == project_menu::CASE_SENSITIVE {
+                    project_search::set_case_sensitive(!project_search::case_sensitive());
+                } else {
+                    project_search::set_whole_words(!project_search::whole_words());
+                }
                 SetDlgItemTextW(hwnd, LABEL, wide("&Szenentext").as_ptr());
                 project_menu::refresh(hwnd);
                 0
