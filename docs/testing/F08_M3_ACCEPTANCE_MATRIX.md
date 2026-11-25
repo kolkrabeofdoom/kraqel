@@ -2,6 +2,12 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Kapitel und Szenen direkt einordnen
+
+Die aus dem finalen Windows-Installer `3801e1e089b8` extrahierte Desktop-EXE öffnete ein synthetisches Projekt. Bei nur einem Kapitel war die Platzwahl deaktiviert. Die Liste zeigte den aktuellen Platz als Vorauswahl. Abbrechen behielt den bisherigen Stand bei. Ein Kapitel rückte von Platz 3 auf 1 und eine Szene von Platz 1 auf 3. In beiden Fällen blieb der verschobene Eintrag markiert. Nach einem vollständigen Desktopneustart stimmten beide dreiteiligen Reihenfolgen. Der erweiterte SQLite-Ordnungstest bestätigte auch die Sperre bei veralteter Gliederung, die Bereichsprüfung und den unveränderten Zustand bei Wahl des bisherigen Platzes. Das Prüfprofil und die extrahierte EXE wurden entfernt.
+
+Der unsignierte Installer enthält auch die unten geprüften Kopierabläufe und die kombinierbaren Suchoptionen. SHA-256: `a6f96bab046bdf2fb10305635132bea46e5fb53edc20e7d31ab07546f63376f5`.
+
 ## Unabhängige Szenen- und Kapitelfassungen
 
 Die native Bedienprobe lief mit dem Windows-Releaseprogramm zum Commit `c8279c7c2753` und einem eigenen synthetischen Projekt. Eine Szene wurde zunächst im selben Kapitel kopiert. Die Kapitelkopie mit zwei Szenen wurde einmal abgebrochen und anschließend bestätigt. Danach wurde eine Szene ins andere Kapitel kopiert, nur diese Variante bearbeitet und gespeichert. Nach vollständigem Prozessneustart zeigten drei getrennte Leseöffnungen die erwarteten Texte. SQLite enthielt sieben Gliederungseinträge. Die ursprüngliche Szene hatte Revision 1, die entsprechende Szene der Kapitelkopie Revision 0 und die eigenständig bearbeitete Variante Revision 1. Das Prüfprofil wurde entfernt.
