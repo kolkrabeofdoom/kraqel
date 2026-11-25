@@ -2,6 +2,12 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Markierte Stellen suchen und per Tastatur ersetzen
+
+Im installierten Kandidaten `445d32fa7a9d` übernahm Strg+F eine manuell markierte einzeilige Unicode-Stelle im Editor und im schreibgeschützten Leser als Suchbegriff. Bei einer anschließenden mehrzeiligen Auswahl blieb in beiden Fenstern der bisherige Begriff erhalten. Strg+H übernahm im Editor die markierte Stelle anstelle des bisherigen Suchbegriffs und fokussierte das Ersatzfeld. Enter ersetzte ohne vorherige Treffernavigation genau diese Stelle und ließ den Fokus im Ersatzfeld. Strg+Enter öffnete für die zwei verbliebenen Treffer den Bestätigungsdialog mit Nein als Vorgabe.
+
+Die SQLite-Szene blieb bis Strg+S auf Revision 0. Nach dem Neustart stimmten der vollständige Text im Leser, Revision 1 und der normalisierte Suchindex. Der gemeinsame Bedien- und ETW-Lauf nutzte ein synthetisches Manuskript. Beide Desktopstarts waren mit je einer Fensterrolle und einem Datendienst vollständig zugeordnet. In beiden Prozessbäumen wurden null Netzwerkereignisse einschließlich Loopback beobachtet. Vier von vier Positivkontrollen wurden erkannt, ohne Verluste oder Zuordnungslücken. Testinstallation, synthetisches Profil und Rohspur wurden bereinigt. SHA-256 des Installers: `1ec1b54e2e9f97ff8ed96b5bbaef9bf669eabbad2dec84963e248608bf0064ae`.
+
 ## Alle Treffer in einer Prosaszene ersetzen
 
 Im installierten Kandidaten `eff5ce03a2c7` meldete der Bestätigungsdialog drei Treffer im synthetischen Entwurf. Nein war vorausgewählt und erhielt den Text. Nach Ja waren alle drei Unicode-Treffer in zwei Absätzen ersetzt. Ein einziges Rückgängig stellte den vollständigen Ausgangstext wieder her. Nach erneutem Ersetzen blieb die SQLite-Szene bis zum ausdrücklichen Speichern auf Revision 0. Nach Strg+S enthielt Revision 1 die erwarteten Absätze und den passenden Suchindex. Der schreibgeschützte Leser zeigte den gespeicherten Text nach dem Neustart an und bot keine Ersetzfunktion an.
