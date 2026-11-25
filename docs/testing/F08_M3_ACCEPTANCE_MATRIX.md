@@ -2,6 +2,12 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Lokale Szenensuche im installierten Editor und Leser
+
+Im Kandidaten `63d3aca5cebe` öffnete Strg+F die Suche im Fokusmodus des Editors und im schreibgeschützten Leser. Der synthetische Text enthielt drei gleiche Unicode-Treffer in zwei Absätzen. F3, Umschalt+F3 und erneut F3 markierten den ersten, den letzten und wieder den ersten Treffer. Die ausgewählten UTF-16-Bereiche stimmten einschließlich der Windows-Zeilenumbrüche. Bei einem fehlenden Begriff erschien „Kein Treffer“. Esc schloss die Suche, gab den Fokus an die Szene zurück und erhielt im Editor den zuvor gewählten Fokusmodus.
+
+Beide Fenster schlossen ohne Speicherabfrage. Klartext, Prüfsumme des gespeicherten JSON-Inhalts und Revision 0 stimmten vor und nach der Suche überein. Die Bedienprüfung verwendete zielgebundene Windows-Tastenmeldungen. Testinstallation und synthetisches Profil wurden bereinigt. Für diesen Build liegt keine neue ETW-Netzmessung vor. SHA-256 des Installers: `1a147901b4c797c0e952439b7af0c8aecefc926d75eb805401861f842040b88b`.
+
 ## Tastenkürzel im installierten Prosaeditor
 
 Im Kandidaten `155509ff5e06` markierte Strg+A den gesamten mehrabsätzigen Unicode-Text im fokussierten Szenenfeld. Im Fokusmodus löste Strg+S bei 65.537 UTF-8-Bytes die Größenwarnung aus und erhielt den Entwurf. Nach dem Kürzen speicherte dasselbe Kürzel genau 65.536 Bytes als Revision 1. Nach dem Desktopneustart stimmten der schreibgeschützt angezeigte Text und der bytegenau geprüfte SQLite-Inhalt. Testprofil und Installation wurden bereinigt.
