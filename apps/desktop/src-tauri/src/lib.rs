@@ -200,6 +200,13 @@ struct ExportProjectRequest {
     format: ExportFormat,
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ScreenplayPdfRequest {
+    project_id: String,
+    scene_ids: Vec<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct AiContextRequest {
@@ -876,6 +883,9 @@ fn load_document(
 ) -> Result<CommandResponse<StoredDocumentResponse>, CommandError> {
     require_current_contract(&request)?;
     let data = load_document_impl(&state, request.request_id, request.payload)?;
+    if data.content.version != EDITOR_DOCUMENT_VERSION {
+        return Err(CommandError::unsupported_contract(request.request_id));
+    }
     Ok(CommandResponse::current(request.request_id, data))
 }
 
@@ -891,6 +901,47 @@ fn save_document(
     require_current_contract(&request)?;
     let data = save_document_impl(&state, request.request_id, request.payload)?;
     Ok(CommandResponse::current(request.request_id, data))
+}
+
+fn editor_v2<T, U>(
+    request: CommandRequest<T>,
+    run: impl FnOnce(T) -> Result<U, CommandError>,
+) -> Result<CommandResponse<U>, CommandError> {
+    let id = request.request_id;
+    let data = if request.contract_version == 2 {
+        run(request.payload)
+    } else {
+        Err(CommandError::unsupported_contract(id))
+    }
+    .map_err(|error| CommandError {
+        contract_version: 2,
+        ..error
+    })?;
+    Ok(CommandResponse {
+        contract_version: 2,
+        request_id: id,
+        data,
+    })
+}
+
+#[tauri::command]
+async fn load_editor_scene(
+    state: State<'_, AppState>,
+    request: CommandRequest<DocumentRequest>,
+) -> Result<CommandResponse<StoredDocumentResponse>, CommandError> {
+    let id = request.request_id;
+    editor_v2(request, |payload| load_document_impl(&state, id, payload))
+}
+
+#[tauri::command]
+async fn save_editor_scene(
+    state: State<'_, AppState>,
+    request: CommandRequest<SaveDocumentRequest>,
+) -> Result<CommandResponse<SaveDocumentResponse>, CommandError> {
+    let id = request.request_id;
+    editor_v2(request, |payload| {
+        persist_scene(&state, id, payload, SceneWriter::RoleAware)
+    })
 }
 
 #[tauri::command]
@@ -947,6 +998,27 @@ fn export_manuscript(
     require_current_contract(&request)?;
     let data = export_manuscript_impl(&state, request.request_id, &request.payload)?;
     Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+async fn export_screenplay_pdf(
+    state: State<'_, AppState>,
+    request: CommandRequest<ScreenplayPdfRequest>,
+) -> Result<CommandResponse<ExportResult>, CommandError> {
+    require_current_contract(&request)?;
+    let id = request.request_id;
+    let selection = parse_entity_ids(id, &request.payload.scene_ids)?;
+    let manager = manager(&state, id)?;
+    let project = parse_project_id(id, &request.payload.project_id)?;
+    let data = tauri::async_runtime::spawn_blocking(move || {
+        let (directory, project, docs) =
+            manuscript_source(&manager, id, project, Some(&selection))?;
+        kraqel_export::export_screenplay_pdf(&directory, &project, &docs, &selection)
+            .map_err(|e| map_export_error(id, &e))
+    })
+    .await
+    .map_err(|_| CommandError::internal(id))??;
+    Ok(CommandResponse::current(id, data))
 }
 
 #[tauri::command]
@@ -2806,20 +2878,47 @@ fn save_document_impl(
             "Die Editor-Dokumentversion wird nicht unterstützt.",
         ));
     }
+    persist_scene(state, request_id, request, SceneWriter::Prose)
+}
+
+#[derive(Clone, Copy)]
+enum SceneWriter {
+    Prose,
+    RoleAware,
+}
+
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "DTO wird an der Servicegrenze übernommen"
+)]
+fn persist_scene(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: SaveDocumentRequest,
+    writer: SceneWriter,
+) -> Result<SaveDocumentResponse, CommandError> {
     let project_id = parse_project_id(request_id, &request.project_id)?;
     let document_id = parse_entity_id(request_id, &request.document_id)?;
     let manager = manager(state, request_id)?;
     let mut opened = manager
         .open_project(project_id.to_string())
         .map_err(|error| map_project_error(request_id, &error))?;
-    let revision = DocumentRepository::new(opened.database_mut())
-        .save_scene(
+    let mut repository = DocumentRepository::new(opened.database_mut());
+    let revision = match writer {
+        SceneWriter::Prose => repository.save_prose_scene(
             project_id,
             document_id,
             request.expected_revision,
             &request.content,
-        )
-        .map_err(|error| map_document_error(request_id, &error))?;
+        ),
+        SceneWriter::RoleAware => repository.save_scene(
+            project_id,
+            document_id,
+            request.expected_revision,
+            &request.content,
+        ),
+    }
+    .map_err(|error| map_document_error(request_id, &error))?;
     Ok(SaveDocumentResponse { revision })
 }
 
@@ -2921,6 +3020,22 @@ fn export_manuscript_mode_impl(
 ) -> Result<ExportResult, CommandError> {
     let project_id = parse_project_id(request_id, &request.project_id)?;
     let manager = manager(state, request_id)?;
+    let (project_directory, project, documents) =
+        manuscript_source(&manager, request_id, project_id, None)?;
+    if roundtrip {
+        kraqel_export::export_project_roundtrip(&project_directory, &project, &documents)
+    } else {
+        export_project(&project_directory, &project, &documents, request.format)
+    }
+    .map_err(|error| map_export_error(request_id, &error))
+}
+
+fn manuscript_source(
+    manager: &ProjectManager,
+    request_id: uuid::Uuid,
+    project_id: ProjectId,
+    selection: Option<&[EntityId]>,
+) -> Result<(PathBuf, Project, Vec<ExportSourceDocument>), CommandError> {
     let mut opened = manager
         .open_project(project_id.to_string())
         .map_err(|error| map_project_error(request_id, &error))?;
@@ -2940,10 +3055,19 @@ fn export_manuscript_mode_impl(
     };
     let project_directory = opened.directory().to_path_buf();
     let repository = DocumentRepository::new(opened.database_mut());
+    let selected = selection.map(|ids| {
+        ids.iter()
+            .copied()
+            .collect::<std::collections::HashSet<_>>()
+    });
     let documents = repository
         .list(project_id)
         .map_err(|error| map_document_error(request_id, &error))?
         .into_iter()
+        .filter(|node| {
+            node.kind == DocumentKind::Chapter
+                || selected.as_ref().is_none_or(|ids| ids.contains(&node.id))
+        })
         .map(|node| {
             repository
                 .load(project_id, node.id)
@@ -2954,12 +3078,7 @@ fn export_manuscript_mode_impl(
                 .map_err(|error| map_document_error(request_id, &error))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    if roundtrip {
-        kraqel_export::export_project_roundtrip(&project_directory, &project, &documents)
-    } else {
-        export_project(&project_directory, &project, &documents, request.format)
-    }
-    .map_err(|error| map_export_error(request_id, &error))
+    Ok((project_directory, project, documents))
 }
 
 fn resolve_export_directory(
@@ -4101,10 +4220,13 @@ pub fn run() {
             import_docx_document,
             load_document,
             save_document,
+            load_editor_scene,
+            save_editor_scene,
             rename_document,
             reorder_documents,
             delete_document,
             export_manuscript,
+            export_screenplay_pdf,
             open_export_directory,
             list_ollama_models,
             list_cloud_provider_statuses,
@@ -4540,6 +4662,73 @@ mod tests {
 
         assert_eq!(error.code, CommandErrorCode::UnsupportedContractVersion);
         assert!(!error.retryable);
+    }
+
+    #[test]
+    fn role_aware_commands_reopen_scene_and_print_selected_content() {
+        let root = tempdir().unwrap();
+        let state = AppState {
+            project_root: root.path().to_path_buf(),
+            ai_releases: Mutex::new(HashMap::new()),
+        };
+        let workspace = create_project_impl(
+            &state,
+            REQUEST_ID,
+            CreateProjectRequest {
+                name: "Fensterprobe".into(),
+            },
+        )
+        .unwrap();
+        let project_id = workspace.project.id;
+        let scene = workspace
+            .documents
+            .iter()
+            .find(|node| node.kind == kraqel_domain::DocumentKind::Scene)
+            .unwrap();
+        let content = EditorDocument {
+            version: kraqel_domain::SCREENPLAY_DOCUMENT_VERSION,
+            document: json!({"type":"doc","content":[
+                {"type":"screenplayBlock","attrs":{"role":"sceneHeading"},"content":[{"type":"text","text":"INNEN. ARCHIV – TAG"}]},
+                {"type":"screenplayBlock","attrs":{"role":"action"},"content":[{"type":"text","text":"Ein Kolkrabe klappt das Buch zu."}]},
+                {"type":"screenplayBlock","attrs":{"role":"character"},"content":[{"type":"text","text":"KOLKRABE"}]},
+                {"type":"screenplayBlock","attrs":{"role":"dialogue"},"content":[{"type":"text","text":"Morgen ist auch noch Dienstag."}]}
+            ]}),
+        };
+        let request = CommandRequest {
+            contract_version: 2,
+            request_id: REQUEST_ID,
+            payload: SaveDocumentRequest {
+                project_id: project_id.to_string(),
+                document_id: scene.id.to_string(),
+                expected_revision: 0,
+                content: content.clone(),
+            },
+        };
+        let saved = super::editor_v2(request, |p| {
+            super::persist_scene(&state, REQUEST_ID, p, super::SceneWriter::RoleAware)
+        })
+        .unwrap();
+        assert_eq!((saved.contract_version, saved.data.revision), (2, 1));
+        let reopened = load_document_impl(
+            &state,
+            REQUEST_ID,
+            DocumentRequest {
+                project_id: project_id.to_string(),
+                document_id: scene.id.to_string(),
+            },
+        )
+        .unwrap();
+        assert_eq!(reopened.content, content);
+        let manager = super::manager(&state, REQUEST_ID).unwrap();
+        let (dir, project, documents) =
+            super::manuscript_source(&manager, REQUEST_ID, project_id, Some(&[scene.id])).unwrap();
+        let pdf =
+            kraqel_export::export_screenplay_pdf(&dir, &project, &documents, &[scene.id]).unwrap();
+        assert!(
+            fs::read(dir.join("exports").join(pdf.file_name))
+                .unwrap()
+                .starts_with(b"%PDF-")
+        );
     }
 
     #[test]

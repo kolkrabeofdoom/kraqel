@@ -1,7 +1,9 @@
 # Drehbuchformatierung: fachlich freigegebener Vertrag v1
 
+Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
+
 Stand: 15. November 2026 · KQ-066 / Issue #129 · **Am 15. November 2026 vom Projektinitiator
-fachlich freigegeben; noch nicht implementiert.** Codebasis:
+fachlich freigegeben (damaliger Stand).** Codebasis:
 `4679c893e021c44ff9b471cac0783458e7640f2b` (PR #128 grün zusammengeführt).
 
 ## 1. Quelle und fachliche Freigabe

@@ -290,7 +290,7 @@ describe("typed Tauri commands", () => {
 
   it("sends versioned editor content with an optimistic revision", async () => {
     mockedInvoke.mockResolvedValue({
-      contractVersion: COMMAND_CONTRACT_VERSION,
+      contractVersion: 2,
       requestId,
       data: { revision: 8 },
     });
@@ -302,9 +302,9 @@ describe("typed Tauri commands", () => {
     };
 
     await expect(saveDocument(projectId, documentId, 7, content)).resolves.toBe(8);
-    expect(mockedInvoke).toHaveBeenCalledWith("save_document", {
+    expect(mockedInvoke).toHaveBeenCalledWith("save_editor_scene", {
       request: {
-        contractVersion: COMMAND_CONTRACT_VERSION,
+        contractVersion: 2,
         requestId,
         payload: { projectId, documentId, expectedRevision: 7, content },
       },

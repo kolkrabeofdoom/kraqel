@@ -1,5 +1,7 @@
 # Entwicklungsstatus
 
+Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](data-format/screenplay-v2.md)
+
 ### Direkte Übernahme bestehender Windows-Projektordner
 
 Die veröffentlichte Alpha 7 bindet die lokale Bestandsaufnahme an die reguläre Startseite an.

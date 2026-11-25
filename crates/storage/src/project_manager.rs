@@ -41,7 +41,9 @@ use kraqel_domain::{CURRENT_SCHEMA_VERSION, Project, is_valid_project_name};
 use rusqlite::{Connection, MAIN_DB, OpenFlags, params};
 use sha2::{Digest as _, Sha256};
 
-use crate::{CURRENT_DATABASE_VERSION, Database, StorageError};
+#[cfg(test)]
+use crate::CURRENT_DATABASE_VERSION;
+use crate::{Database, StorageError};
 
 /// Name der autoritativen Datenbank innerhalb eines Projektverzeichnisses.
 pub const DATABASE_FILE_NAME: &str = "kraqel.sqlite3";
@@ -925,7 +927,7 @@ fn verify_restore_source(path: &Path) -> Result<(), ProjectError> {
     let version: u32 = connection
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .map_err(|_| ProjectError::InvalidDatabase)?;
-    if !(1..=CURRENT_DATABASE_VERSION.0).contains(&version) {
+    if !(1..=crate::SCREENPLAY_DATABASE_VERSION.0).contains(&version) {
         return Err(ProjectError::InvalidDatabase);
     }
     let required: u32 = connection
@@ -959,7 +961,7 @@ fn verify_restore_source(path: &Path) -> Result<(), ProjectError> {
         2 => 15,
         3 => 20,
         4 => 25,
-        5 | 6 => 32,
+        5..=7 => 32,
         _ => return Err(ProjectError::InvalidDatabase),
     };
     if required == expected {
@@ -979,7 +981,7 @@ fn verify_connection(connection: &Connection) -> Result<(), ProjectError> {
     let version: u32 = connection
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .map_err(|_| ProjectError::InvalidDatabase)?;
-    if version != CURRENT_DATABASE_VERSION.0 {
+    if !crate::supported_current_schema(version) {
         return Err(ProjectError::InvalidDatabase);
     }
 

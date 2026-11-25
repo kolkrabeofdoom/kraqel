@@ -41,7 +41,7 @@ impl Scene {
         )?)
     }
 
-    fn validate(&self) -> Result<(), ProjectError> {
+    fn validate(&self) -> Result<u16, ProjectError> {
         if self.content.len() > MAX_EDITOR_DOCUMENT_BYTES
             || self.revision < 0
             || self.revision > i64::MAX - 2
@@ -53,7 +53,7 @@ impl Scene {
         if plain_text(&doc) != self.text {
             return Err(ProjectError::InvalidDatabase);
         }
-        Ok(())
+        Ok(doc.version)
     }
 }
 
@@ -291,7 +291,7 @@ impl Activation {
             } else {
                 old
             };
-            next.validate()?;
+            crate::require_editor_schema(tx, next.validate()?)?;
             let changed = tx.execute(
                 "UPDATE document SET title=?1,content_json=?2,plain_text=?3,revision=revision+1,
                  updated_at='unix:' || unixepoch() WHERE project_id=?4 AND id=?5 AND kind='scene' AND revision=?6",

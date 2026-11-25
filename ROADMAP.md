@@ -1,5 +1,7 @@
 # Roadmap
 
+Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](docs/data-format/screenplay-v2.md)
+
 ## Verwalteter Win32-Szeneneditor · 24. November 2026
 
 Der Wiederanlauf der synthetischen Szenenübernahme ist für die geprüften Prozessabbrüche abgeschlossen. Der ausdrückliche Wiederanlauf darf genau einen authentisierten Übernahmeeintrag samt gegebenenfalls vorbereitetem Kontrollkopf bestätigen. Die Bindung an Starter, Szene, Revision und Snapshot gilt auch nach dem zweiten Abbruch. [Abnahme und Grenzen](docs/architecture/decisions/0036-native-win32-ui-role-evaluation.md#wiederanlauf-nach-abbruch-der-szenenübernahme)

@@ -29,11 +29,18 @@ pub(super) fn validate_source(
     reference: &Connection,
     id: ProjectId,
 ) -> Result<(), ProjectError> {
-    if schema(source)? != schema(reference)?
-        || source.pragma_query_value(None, "user_version", |r| r.get::<_, u32>(0))?
-            != CURRENT_DATABASE_VERSION.0
-    {
+    let version = source.pragma_query_value(None, "user_version", |r| r.get::<_, u32>(0))?;
+    if schema(source)? != schema(reference)? || !crate::supported_current_schema(version) {
         return Err(ProjectError::InvalidDatabase);
+    }
+    if version == crate::CURRENT_DATABASE_VERSION.0 {
+        let underdeclared: bool = source.query_row(
+            "SELECT EXISTS(SELECT 1 FROM document WHERE json_extract(content_json, '$.version') >= 2)",
+            [], |row| row.get(0),
+        )?;
+        if underdeclared {
+            return Err(ProjectError::InvalidDatabase);
+        }
     }
     let ids: Vec<String> = source
         .prepare("SELECT id FROM project")?
@@ -52,6 +59,11 @@ pub(super) fn rebuild(source: &Connection, id: ProjectId) -> Result<Database, Pr
         .execute_batch("PRAGMA temp_store=MEMORY")?;
     validate_source(source, fresh.connection(), id)?;
     let target = fresh.transaction()?;
+    if source.pragma_query_value(None, "user_version", |r| r.get::<_, u32>(0))?
+        == crate::SCREENPLAY_DATABASE_VERSION.0
+    {
+        crate::require_editor_schema(&target, kraqel_domain::SCREENPLAY_DOCUMENT_VERSION)?;
+    }
     target.execute_batch("PRAGMA defer_foreign_keys=ON")?;
     let mut tables = target.prepare(
         "SELECT s.name FROM sqlite_schema s JOIN pragma_table_list p

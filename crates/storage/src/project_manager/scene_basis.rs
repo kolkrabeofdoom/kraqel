@@ -77,13 +77,13 @@ fn filename(digest: &str) -> String {
 
 impl Basis {
     pub(super) fn from_db(db: &Connection, id: ProjectId) -> Result<Self, ProjectError> {
-        if db.pragma_query_value(None, "user_version", |r| r.get::<_, u32>(0))?
-            != CURRENT_DATABASE_VERSION.0
-            || db
-                .prepare("SELECT id FROM project LIMIT 2")?
-                .query_map([], |r| r.get::<_, String>(0))?
-                .collect::<Result<Vec<_>, _>>()?
-                != [id.to_string()]
+        if !crate::supported_current_schema(
+            db.pragma_query_value(None, "user_version", |r| r.get::<_, u32>(0))?,
+        ) || db
+            .prepare("SELECT id FROM project LIMIT 2")?
+            .query_map([], |r| r.get::<_, String>(0))?
+            .collect::<Result<Vec<_>, _>>()?
+            != [id.to_string()]
         {
             return Err(ProjectError::InvalidDatabase);
         }

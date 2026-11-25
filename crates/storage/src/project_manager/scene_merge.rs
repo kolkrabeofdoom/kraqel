@@ -176,6 +176,7 @@ impl SceneMergeSelection {
             let document =
                 serde_json::from_str(&content).map_err(|_| ProjectError::InvalidDatabase)?;
             validate_content(&document).map_err(|_| ProjectError::InvalidDatabase)?;
+            crate::require_editor_schema(&tx, document.version)?;
             if plain_text(&document) != text {
                 return Err(ProjectError::InvalidDatabase);
             }

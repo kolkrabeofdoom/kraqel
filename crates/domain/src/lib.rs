@@ -10,6 +10,10 @@ pub const CURRENT_SCHEMA_VERSION: SchemaVersion = SchemaVersion(1);
 
 /// Aktuelle Version des gespeicherten Tiptap-Dokumentvertrags.
 pub const EDITOR_DOCUMENT_VERSION: u16 = 1;
+/// Exklusives Szenenformat für explizit gewählte Drehbuchrollen.
+pub const SCREENPLAY_DOCUMENT_VERSION: u16 = 2;
+pub mod screenplay;
+pub use screenplay::ScreenplayRole;
 
 /// Aktuelle Version des Command-Vertrags zwischen UI und Rust.
 pub const COMMAND_CONTRACT_VERSION: u16 = 1;
@@ -435,7 +439,7 @@ pub struct DocumentNode {
 
 /// Versionierter, in `SQLite` gespeicherter Tiptap-Dokumentinhalt.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EditorDocument {
     /// Version des Editor-Datenvertrags.
     pub version: u16,

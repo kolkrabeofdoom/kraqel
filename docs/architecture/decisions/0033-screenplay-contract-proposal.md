@@ -30,6 +30,9 @@ ab. „Vollständig“ bezeichnet die Kriterienerfassung, nicht den bestandenen 
 
 ## Folgen und Entscheidungstor
 
+Der [versionierte Speicher- und Snapshotvertrag](../../data-format/screenplay-v2.md) konkretisiert
+die Grammatik der Implementierungsstufe und den Schutz von Bestandsprojekten.
+
 Die Vertragsstufe KQ-066 änderte ausschließlich Dokumentation. SQLite 6, Editor-Dokument v1, Command
 v1, Snapshot v3 und DOCX-Manuskriptaustausch v1 bleiben unverändert. Die sechs Rollen, A4-Maße,
 Schriftauswahlprüfung, Druckauswahl und Ausschlüsse sind durch die explizite Nutzerfreigabe am 15.

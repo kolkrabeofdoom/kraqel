@@ -130,7 +130,7 @@ export function App() {
       if (imported) setWorkspace(imported);
     } catch {
       setError(
-        "Das Projektarchiv konnte nicht importiert werden. Unterstützt werden gültige Snapshot-v3-Archive bis 128 MiB.",
+        "Das Projektarchiv konnte nicht importiert werden. Unterstützt werden gültige Snapshot-Archive der Versionen 3 und 4 bis 128 MiB.",
       );
     } finally {
       setBusy(false);
@@ -227,8 +227,8 @@ export function App() {
           <span className="eyebrow">Vorhandenes Projekt</span>
           <h2 id="import-project-heading">Projektarchiv importieren</h2>
           <p>
-            Eine Snapshot-v3-Datei sicher als neue lokale Projektkopie öffnen. Das Quellarchiv
-            bleibt unverändert.
+            Ein Snapshot-Archiv der Version 3 oder 4 sicher als neue lokale Projektkopie öffnen. Das
+            Quellarchiv bleibt unverändert.
           </p>
           <button type="button" disabled={busy} onClick={() => void importSnapshot()}>
             Projektarchiv auswählen

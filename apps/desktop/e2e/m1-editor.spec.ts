@@ -4,6 +4,58 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.clear());
 });
 
+test("Drehbuchrollen bleiben nach Autosave und Wiederöffnen über die Tastatur bearbeitbar", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByLabel("Projektname").fill("Drehbuchprobe");
+  await page.getByRole("button", { name: "Projekt anlegen" }).click();
+  const editor = page.getByRole("textbox", { name: "Text von Szene 1" });
+  await editor.fill("Am frühen Abend");
+  await page.getByRole("button", { name: "In Drehbuch umwandeln …" }).click();
+  await expect(page.getByLabel("Rolle für Absatz 1")).toHaveValue("sceneHeading");
+  await page.getByRole("button", { name: "Umwandlung bestätigen" }).click();
+  await expect(editor.locator("[data-kraqel-role=sceneHeading]")).toHaveText("Am frühen Abend");
+  await editor.press("Control+End");
+  const roles = [
+    ["action", "Es klopft."],
+    ["character", "Sam"],
+    ["parenthetical", "(leise)"],
+    ["dialogue", "Wer ist da?"],
+    ["transition", "Schwarzblende"],
+  ] as const;
+  for (const [role, text] of roles) {
+    await page.keyboard.press("Enter");
+    await page.getByRole("combobox", { name: "Absatzrolle", exact: true }).selectOption(role);
+    await page.getByRole("button", { name: "Rolle anwenden" }).press("Enter");
+    await expect(editor).toBeFocused();
+    await page.keyboard.insertText(text);
+  }
+  await page.getByRole("button", { name: "Projektübersicht" }).click();
+  await page.getByRole("button", { name: /Drehbuchprobe.*Öffnen/u }).click();
+  for (const [role, text] of roles)
+    await expect(editor.locator(`[data-kraqel-role="${role}"]`)).toHaveText(text);
+  await editor.press("Control+a");
+  const multi = page.getByRole("combobox", { name: "Absatzrolle", exact: true });
+  await expect(multi).toHaveValue("");
+  await multi.selectOption("action");
+  await page.getByRole("button", { name: "Rolle anwenden" }).press("Enter");
+  await expect(editor.locator("[data-kraqel-role=action]")).toHaveCount(6);
+  await page.getByRole("button", { name: "Rückgängig" }).click();
+  await expect(editor.locator("[data-kraqel-role=dialogue]")).toHaveText("Wer ist da?");
+  await page.getByRole("button", { name: "In Prosa umwandeln …" }).click();
+  await page.getByRole("button", { name: "Umwandlung bestätigen" }).click();
+  await expect(editor.locator("[data-kraqel-role]")).toHaveCount(0);
+  await page.getByRole("button", { name: "Rückgängig" }).click();
+  await expect(editor.locator("[data-kraqel-role]")).toHaveCount(6);
+  await page.getByRole("button", { name: "Export", exact: true }).click();
+  const print = page.getByRole("button", { name: "Drehbuch-PDF erzeugen" });
+  await expect(print).toBeDisabled();
+  await page.getByRole("group", { name: "Drehbuchszenen auswählen" }).getByRole("checkbox").check();
+  await print.click();
+  await expect(page.getByRole("status")).toContainText("drehbuch.pdf");
+});
+
 test("Projekt, Autosave und Dokumentbaum bleiben über Wiederöffnen konsistent", async ({
   page,
 }) => {

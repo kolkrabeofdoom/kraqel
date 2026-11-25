@@ -1,5 +1,6 @@
 //! Bounded PDF layout with embedded fonts, explicit glyph coverage and measured advances.
 mod fonts;
+pub(super) mod screenplay;
 use crate::{
     Block, Inline, Manuscript,
     illustrated::{IllustratedError, MAX_PACKAGE, Manifest},
@@ -273,9 +274,12 @@ struct Canvas {
 }
 impl Canvas {
     fn new(title: &str) -> Result<Self> {
+        Self::with_fonts(title, fonts::DATA)
+    }
+    fn with_fonts(title: &str, data_set: [&'static [u8]; 4]) -> Result<Self> {
         let mut document = PdfDocument::new(title);
         let mut fonts = Vec::new();
-        for data in fonts::DATA {
+        for data in data_set {
             let font = ParsedFont::from_bytes(data, 0, &mut Vec::new())
                 .ok_or(IllustratedError::Invalid)?;
             fonts.push(document.add_font(&font));

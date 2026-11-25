@@ -1,9 +1,11 @@
 import { IllustratedExport } from "./IllustratedExport";
-import type { ProjectId } from "@kraqel/domain";
+import type { DocumentNode, EntityId, ProjectId } from "@kraqel/domain";
+import { buildDocumentTree } from "@kraqel/editor";
 import { useState } from "react";
 import {
   exportManuscript,
   exportRoundtripManuscript,
+  exportScreenplayPdf,
   openExportDirectory,
   type ExportFormat,
   type ExportResult,
@@ -16,25 +18,36 @@ const formats: readonly { format: ExportFormat; label: string; description: stri
   { format: "pdf", label: "PDF", description: "Für Weitergabe und Ausdruck" },
 ];
 
-export function Exports({ projectId }: { readonly projectId: ProjectId }) {
-  const [busy, setBusy] = useState<ExportFormat | "roundtrip" | null>(null);
+export function Exports({
+  projectId,
+  documents,
+}: {
+  readonly projectId: ProjectId;
+  readonly documents: readonly DocumentNode[];
+}) {
+  const [busy, setBusy] = useState<ExportFormat | "roundtrip" | "screenplay" | null>(null);
+  const [sceneIds, setSceneIds] = useState<EntityId[]>([]);
   const [openingDirectory, setOpeningDirectory] = useState(false);
   const [result, setResult] = useState<ExportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const run = async (format: ExportFormat | "roundtrip") => {
+  const run = async (format: ExportFormat | "roundtrip" | "screenplay") => {
     setBusy(format);
     setError(null);
     setResult(null);
     try {
       setResult(
-        await (format === "roundtrip"
-          ? exportRoundtripManuscript(projectId)
-          : exportManuscript(projectId, format)),
+        await (format === "screenplay"
+          ? exportScreenplayPdf(projectId, sceneIds)
+          : format === "roundtrip"
+            ? exportRoundtripManuscript(projectId)
+            : exportManuscript(projectId, format)),
       );
     } catch {
       setError(
-        "Der Export ist gescheitert. Prüfe Formatierungen und bei PDF auch den unterstützten Zeichenumfang und die Layoutgrenzen.",
+        format === "screenplay"
+          ? "Drehbuch-PDF konnte nicht erzeugt werden. Wähle ausschließlich Drehbuchszenen. Prüfe Szenenkopf, Dialogfolge, Zeichen und Seitenlayout."
+          : "Der Export ist gescheitert. Prüfe Formatierungen und bei PDF auch den unterstützten Zeichenumfang und die Layoutgrenzen.",
       );
     } finally {
       setBusy(null);
@@ -80,6 +93,42 @@ export function Exports({ projectId }: { readonly projectId: ProjectId }) {
           </article>
         ))}
       </div>
+      <article>
+        <h3>Drehbuch als A4-PDF</h3>
+        <fieldset disabled={busy !== null}>
+          <legend>Drehbuchszenen auswählen</legend>
+          {buildDocumentTree(documents).flatMap((chapter) =>
+            chapter.children.map((scene) => (
+              <label key={scene.id}>
+                <input
+                  type="checkbox"
+                  checked={sceneIds.includes(scene.id)}
+                  onChange={(event) =>
+                    setSceneIds(
+                      event.target.checked
+                        ? [...sceneIds, scene.id]
+                        : sceneIds.filter((id) => id !== scene.id),
+                    )
+                  }
+                />
+                {chapter.title || "Ohne Kapiteltitel"} · {scene.title || "Ohne Szenentitel"}
+              </label>
+            )),
+          )}
+        </fieldset>
+        <p>
+          {sceneIds.length} Szenen ausgewählt. Gedruckt werden ihre Rollenabsätze in
+          Baumreihenfolge. Projekt-, Kapitel- und Szenentitel, Bilder und alle übrigen Szenen
+          bleiben außerhalb der Ausgabe.
+        </p>
+        <button
+          type="button"
+          disabled={busy !== null || sceneIds.length === 0}
+          onClick={() => void run("screenplay")}
+        >
+          Drehbuch-PDF erzeugen
+        </button>
+      </article>
       <article>
         <h3>DOCX zum Wiederimport</h3>
         <p>

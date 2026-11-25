@@ -80,7 +80,7 @@ pub struct SnapshotSummary {
     pub byte_count: u64,
 }
 
-/// Ergebnis eines portablen, gepackten Snapshot-v3-Exports.
+/// Ergebnis eines portablen, gepackten Snapshot-Exports (v3/v4).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SnapshotArchiveResult {
@@ -240,7 +240,7 @@ impl<'project> GitService<'project> {
         destination: &Path,
     ) -> Result<SnapshotArchiveResult, GitServiceError> {
         let snapshot = self.create_snapshot(database, project_id)?;
-        if snapshot.format_version != 3 {
+        if !matches!(snapshot.format_version, 3 | 4) {
             return Err(GitServiceError::InvalidSnapshot);
         }
         let bytes = build_snapshot_archive(&self.project_directory.join(SNAPSHOT_DIRECTORY))?;
@@ -281,6 +281,16 @@ impl<'project> GitService<'project> {
                 let value: Value = serde_json::from_slice(&fs::read(path)?)
                     .map_err(|_| GitServiceError::InvalidSnapshot)?;
                 validate_json_file(name, &value)?;
+                if name == "documents.json" {
+                    let documents = value["documents"]
+                        .as_array()
+                        .ok_or(GitServiceError::InvalidSnapshot)?;
+                    if document_snapshot_version(documents, true)? == 4
+                        && manifest.format_version < 4
+                    {
+                        return Err(GitServiceError::InvalidSnapshot);
+                    }
+                }
             }
         }
         validate_snapshot_assets(&root, &manifest.assets)?;
@@ -459,6 +469,12 @@ impl<'project> GitService<'project> {
                 }))
             },
         )?;
+        let format_version = document_snapshot_version(
+            documents
+                .as_array()
+                .ok_or(GitServiceError::InvalidSnapshot)?,
+            true,
+        )?;
         let entities = query_json_rows(
             connection,
             "SELECT id, kind, name, properties_json FROM entity WHERE project_id = ?1 ORDER BY kind, name, id",
@@ -587,21 +603,18 @@ impl<'project> GitService<'project> {
             root.join("prompt-drafts.json"),
             &json!({"kind": "imagePromptDrafts", "drafts": prompt_drafts}),
         )?;
-        fs::write(
-            root.join("schema.json"),
-            include_bytes!("../../../docs/data-format/snapshot-v3.schema.json"),
-        )?;
+        fs::write(root.join("schema.json"), snapshot_schema(format_version)?)?;
         let assets = write_snapshot_assets(connection, &project_id_text, project_directory, root)?;
         let manifest = Manifest {
             format: "kraqel-project-snapshot".to_owned(),
-            format_version: 3,
+            format_version,
             project: ManifestProject {
                 id: project_id,
                 name,
                 schema_version,
                 settings: serde_json::from_str(&settings)?,
             },
-            files: expected_manifest_files(3)?,
+            files: expected_manifest_files(format_version)?,
             assets,
         };
         write_json(root.join("manifest.json"), &manifest)?;
@@ -927,11 +940,60 @@ struct ManifestProject {
     settings: Value,
 }
 
+fn snapshot_schema(version: u16) -> Result<&'static [u8], GitServiceError> {
+    match version {
+        3 => Ok(include_bytes!(
+            "../../../docs/data-format/snapshot-v3.schema.json"
+        )),
+        4 => Ok(include_bytes!(
+            "../../../docs/data-format/snapshot-v4.schema.json"
+        )),
+        _ => Err(GitServiceError::InvalidSnapshot),
+    }
+}
+
+fn document_snapshot_version(
+    documents: &[Value],
+    allow_legacy_empty: bool,
+) -> Result<u16, GitServiceError> {
+    let mut version = 3;
+    let mut legacy_empty = false;
+    for row in documents {
+        if allow_legacy_empty
+            && row["content"]
+                .as_object()
+                .is_some_and(serde_json::Map::is_empty)
+        {
+            // Historical Git snapshots could include the empty SQL default. Preserve read/write support for those v1–v3 trees.
+            legacy_empty = true;
+            continue;
+        }
+        let editor: kraqel_domain::EditorDocument = serde_json::from_value(row["content"].clone())
+            .map_err(|_| GitServiceError::InvalidSnapshot)?;
+        if !editor.is_valid() {
+            return Err(GitServiceError::InvalidSnapshot);
+        }
+        if editor.version == kraqel_domain::SCREENPLAY_DOCUMENT_VERSION {
+            if row["kind"].as_str() != Some("scene")
+                || row["plainText"].as_str()
+                    != Some(kraqel_storage::document_repository::plain_text(&editor).as_str())
+            {
+                return Err(GitServiceError::InvalidSnapshot);
+            }
+            version = 4;
+        }
+    }
+    if version == 4 && legacy_empty {
+        return Err(GitServiceError::InvalidSnapshot);
+    }
+    Ok(version)
+}
+
 fn expected_manifest_files(format_version: u16) -> Result<Vec<String>, GitServiceError> {
     let files: &[&str] = match format_version {
         1 => &SNAPSHOT_FILES_V1,
         2 => &SNAPSHOT_FILES_V2,
-        3 => &SNAPSHOT_FILES_V3,
+        3 | 4 => &SNAPSHOT_FILES_V3,
         _ => return Err(GitServiceError::InvalidSnapshot),
     };
     Ok(files.iter().map(ToString::to_string).collect())
@@ -1703,6 +1765,76 @@ mod tests {
             .expect("exported archive should import");
         assert_ne!(imported.project_id, id);
         assert_eq!(imported.document_count, 1);
+    }
+
+    #[test]
+    fn screenplay_snapshot_roundtrip_preserves_roles_and_version_barriers() {
+        use kraqel_domain::{DocumentKind, EditorDocument, SCREENPLAY_DOCUMENT_VERSION};
+        use kraqel_storage::document_repository::DocumentRepository;
+        use kraqel_storage::{CURRENT_DATABASE_VERSION, SCREENPLAY_DATABASE_VERSION};
+        use serde_json::json;
+
+        let (root, id) = fixture();
+        let manager = ProjectManager::new(root.path()).unwrap();
+        let mut opened = manager.open_project(id.to_string()).unwrap();
+        assert_eq!(
+            opened.database().schema_version().unwrap(),
+            CURRENT_DATABASE_VERSION
+        );
+        let content = EditorDocument {
+            version: SCREENPLAY_DOCUMENT_VERSION,
+            document: json!({"type":"doc","content":[
+                {"type":"screenplayBlock","attrs":{"role":"sceneHeading"},"content":[{"type":"text","text":"Äußeres Tor"}]},
+                {"type":"screenplayBlock","attrs":{"role":"action"},"content":[{"type":"text","text":"Rabe","marks":[{"type":"italic"}]},{"type":"hardBreak"},{"type":"text","text":"wartet."}]},
+                {"type":"screenplayBlock","attrs":{"role":"character"}}
+            ]}),
+        };
+        let mut repository = DocumentRepository::new(opened.database_mut());
+        let chapter = repository.list(id).unwrap().remove(0);
+        let scene = repository
+            .create(id, Some(chapter.id), DocumentKind::Scene, "Tor")
+            .unwrap();
+        let prose = repository.load(id, scene.id).unwrap().content;
+        assert_eq!(repository.save_scene(id, scene.id, 0, &content).unwrap(), 1);
+        assert!(
+            repository
+                .save_prose_scene(id, scene.id, 1, &prose)
+                .is_err()
+        );
+        assert_eq!(
+            opened.database().schema_version().unwrap(),
+            SCREENPLAY_DATABASE_VERSION
+        );
+        drop(opened);
+        let opened = manager.open_project(id.to_string()).unwrap();
+        let service = GitService::new(opened.directory());
+        let destination = root.path().join("drehbuch.kraqel");
+        let result = service
+            .export_snapshot_archive(opened.database(), id, &destination)
+            .unwrap();
+        assert_eq!(result.snapshot.format_version, 4);
+        let (mut restored, summary) =
+            import_snapshot_archive(&manager, &fs::read(destination).unwrap()).unwrap();
+        assert_eq!(
+            restored.database().schema_version().unwrap(),
+            SCREENPLAY_DATABASE_VERSION
+        );
+        let loaded = DocumentRepository::new(restored.database_mut())
+            .load(summary.project_id, scene.id)
+            .unwrap();
+        assert_eq!(loaded.node.revision, 1);
+        assert_eq!(loaded.content, content);
+        assert!(loaded.plain_text.contains("Rabe"));
+
+        let manifest = opened.directory().join("snapshot/manifest.json");
+        let mut altered: serde_json::Value =
+            serde_json::from_slice(&fs::read(&manifest).unwrap()).unwrap();
+        altered["formatVersion"] = json!(3);
+        fs::write(&manifest, serde_json::to_vec(&altered).unwrap()).unwrap();
+        assert!(matches!(
+            service.validate_snapshot(id),
+            Err(GitServiceError::InvalidSnapshot)
+        ));
     }
 
     #[test]

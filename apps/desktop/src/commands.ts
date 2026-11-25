@@ -42,19 +42,19 @@ export type CommandErrorCode =
   "INVALID_REQUEST" | "UNSUPPORTED_CONTRACT_VERSION" | "CONFLICT" | "INTERNAL";
 
 export interface CommandRequest<T> {
-  readonly contractVersion: typeof COMMAND_CONTRACT_VERSION;
+  readonly contractVersion: 1 | 2;
   readonly requestId: Uuid;
   readonly payload: T;
 }
 
 export interface CommandResponse<T> {
-  readonly contractVersion: typeof COMMAND_CONTRACT_VERSION;
+  readonly contractVersion: 1 | 2;
   readonly requestId: Uuid;
   readonly data: T;
 }
 
 export interface CommandErrorContract {
-  readonly contractVersion: typeof COMMAND_CONTRACT_VERSION;
+  readonly contractVersion: 1 | 2;
   readonly requestId: Uuid;
   readonly code: CommandErrorCode;
   readonly message: string;
@@ -317,7 +317,7 @@ export async function loadDocument(
   const response = await callCommand<
     { readonly projectId: ProjectId; readonly documentId: EntityId },
     StoredDocument
-  >("load_document", { projectId, documentId });
+  >("load_editor_scene", { projectId, documentId }, 2);
   return response.data;
 }
 
@@ -335,7 +335,7 @@ export async function saveDocument(
       readonly content: EditorDocument;
     },
     { readonly revision: number }
-  >("save_document", { projectId, documentId, expectedRevision, content });
+  >("save_editor_scene", { projectId, documentId, expectedRevision, content }, 2);
   return response.data.revision;
 }
 
@@ -366,6 +366,14 @@ export async function exportManuscript(
       ExportResult
     >("export_manuscript", { projectId, format })
   ).data;
+}
+
+export async function exportScreenplayPdf(
+  projectId: ProjectId,
+  sceneIds: EntityId[],
+): Promise<ExportResult> {
+  const payload = { projectId, sceneIds };
+  return (await callCommand<typeof payload, ExportResult>("export_screenplay_pdf", payload)).data;
 }
 
 export async function openExportDirectory(projectId: ProjectId): Promise<void> {
@@ -1298,17 +1306,18 @@ export async function commitProjectSnapshot(
 async function callCommand<TPayload, TData>(
   command: string,
   payload: TPayload,
+  contractVersion: 1 | 2 = COMMAND_CONTRACT_VERSION,
 ): Promise<CommandResponse<TData>> {
   const requestId = newRequestId();
   const request: CommandRequest<TPayload> = {
-    contractVersion: COMMAND_CONTRACT_VERSION,
+    contractVersion,
     requestId,
     payload,
   };
 
   try {
     const response = await invoke<CommandResponse<TData>>(command, { request });
-    if (!isCommandResponse(response, requestId)) {
+    if (!isCommandResponse(response, requestId, contractVersion)) {
       throw internalContractError(requestId);
     }
     return response;
@@ -1316,7 +1325,7 @@ async function callCommand<TPayload, TData>(
     if (error instanceof KraqelCommandError) {
       throw error;
     }
-    if (isCommandErrorContract(error, requestId)) {
+    if (isCommandErrorContract(error, requestId, contractVersion)) {
       throw new KraqelCommandError(error);
     }
     throw internalContractError(requestId);
@@ -1331,15 +1340,23 @@ function newRequestId(): Uuid {
   return requestId;
 }
 
-function isCommandResponse<T>(value: unknown, requestId: Uuid): value is CommandResponse<T> {
+function isCommandResponse<T>(
+  value: unknown,
+  requestId: Uuid,
+  contractVersion: 1 | 2 = COMMAND_CONTRACT_VERSION,
+): value is CommandResponse<T> {
   if (!isRecord(value)) return false;
-  return value.contractVersion === COMMAND_CONTRACT_VERSION && value.requestId === requestId;
+  return value.contractVersion === contractVersion && value.requestId === requestId;
 }
 
-function isCommandErrorContract(value: unknown, requestId: Uuid): value is CommandErrorContract {
+function isCommandErrorContract(
+  value: unknown,
+  requestId: Uuid,
+  contractVersion: 1 | 2 = COMMAND_CONTRACT_VERSION,
+): value is CommandErrorContract {
   if (!isRecord(value)) return false;
   return (
-    value.contractVersion === COMMAND_CONTRACT_VERSION &&
+    value.contractVersion === contractVersion &&
     value.requestId === requestId &&
     isCommandErrorCode(value.code) &&
     typeof value.message === "string" &&

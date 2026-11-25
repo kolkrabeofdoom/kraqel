@@ -37,6 +37,23 @@ describe("editor document contract", () => {
   });
 });
 
+it("keeps role-bearing scenes versioned and rejects mixed or unknown nodes", () => {
+  const action = { type: "screenplayBlock", attrs: { role: "action" } };
+  const doc = (version: number, ...content: unknown[]) => ({
+    version,
+    document: { type: "doc", content },
+  });
+  expect(isEditorDocument(doc(2, action))).toBe(true);
+  expect(isEditorDocument(doc(1, action))).toBe(false);
+  expect(isEditorDocument(doc(2, action, { type: "paragraph" }))).toBe(false);
+  expect(isEditorDocument(doc(2, { ...action, attrs: { role: "mystery" } }))).toBe(false);
+  expect(
+    isEditorDocument(
+      doc(2, { ...action, content: [{ type: "text", text: "a", marks: [{ type: "link" }] }] }),
+    ),
+  ).toBe(false);
+});
+
 describe("document tree", () => {
   it("sorts siblings by position and stable id", () => {
     const nodes: DocumentNode[] = [

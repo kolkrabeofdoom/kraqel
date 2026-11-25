@@ -1634,6 +1634,49 @@ button.scene-button.active {
   margin-top: 0;
 }
 
+.screenplay-controls,
+.screenplay-roles {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.screenplay-controls {
+  padding: 0.5rem 0.75rem;
+  border-inline: 1px solid rgba(50, 87, 84, 0.2);
+}
+.screenplay-controls section,
+.screenplay-controls p {
+  flex-basis: 100%;
+}
+.screenplay-controls ol {
+  max-height: 18rem;
+  overflow: auto;
+}
+.screenplay-controls li {
+  overflow-wrap: anywhere;
+  padding-block: 0.25rem;
+}
+.screenplay-controls li > span {
+  display: block;
+}
+.ProseMirror [data-kraqel-role] {
+  font-family: ui-monospace, monospace;
+  white-space: pre-wrap;
+}
+.ProseMirror [data-kraqel-role="character"] {
+  margin-inline-start: 35%;
+}
+.ProseMirror [data-kraqel-role="parenthetical"] {
+  margin-inline: 26% 16%;
+}
+.ProseMirror [data-kraqel-role="dialogue"] {
+  margin-inline: 16%;
+}
+.ProseMirror [data-kraqel-role="transition"] {
+  text-align: right;
+}
+
 @media (max-width: 760px) {
   .project-grid,
   .workspace-grid,

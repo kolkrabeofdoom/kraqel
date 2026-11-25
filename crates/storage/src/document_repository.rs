@@ -165,6 +165,7 @@ impl<'database> DocumentRepository<'database> {
                 }
                 validate_imported_title(title)?;
                 validate_content(content)?;
+                crate::require_editor_schema(&transaction, content.version)?;
                 let json =
                     serde_json::to_string(content).map_err(|_| DocumentError::InvalidInput)?;
                 if json.len() > MAX_EDITOR_DOCUMENT_BYTES {
@@ -348,6 +349,7 @@ impl<'database> DocumentRepository<'database> {
         let plain_text = plain_text(content);
         let timestamp = current_timestamp()?;
         let transaction = self.database.transaction()?;
+        crate::require_editor_schema(&transaction, content.version)?;
         validate_project_and_parent(
             &transaction,
             project_id,
@@ -405,6 +407,34 @@ impl<'database> DocumentRepository<'database> {
         expected_revision: u64,
         content: &EditorDocument,
     ) -> Result<u64, DocumentError> {
+        self.save_content(project_id, document_id, expected_revision, content, false)
+    }
+
+    /// V1-Schreibzug. Auch eine gültige Prosa-Anfrage darf keine vorhandene v2-Szene ersetzen.
+    ///
+    /// # Errors
+    /// Lehnt unzulässigen Bestand, Revision oder Inhalt atomar ab.
+    pub fn save_prose_scene(
+        &mut self,
+        project_id: ProjectId,
+        document_id: EntityId,
+        expected_revision: u64,
+        content: &EditorDocument,
+    ) -> Result<u64, DocumentError> {
+        if content.version != EDITOR_DOCUMENT_VERSION {
+            return Err(DocumentError::InvalidInput);
+        }
+        self.save_content(project_id, document_id, expected_revision, content, true)
+    }
+
+    fn save_content(
+        &mut self,
+        project_id: ProjectId,
+        document_id: EntityId,
+        expected_revision: u64,
+        content: &EditorDocument,
+        prose_only: bool,
+    ) -> Result<u64, DocumentError> {
         validate_content(content)?;
         let content_json =
             serde_json::to_string(content).map_err(|_| DocumentError::InvalidInput)?;
@@ -417,10 +447,12 @@ impl<'database> DocumentRepository<'database> {
             .ok_or(DocumentError::InvalidInput)?;
         let timestamp = current_timestamp()?;
         let transaction = self.database.transaction()?;
+        crate::require_editor_schema(&transaction, content.version)?;
         let changed = transaction.execute(
             "UPDATE document
              SET content_json = ?1, plain_text = ?2, revision = ?3, updated_at = ?4
-             WHERE project_id = ?5 AND id = ?6 AND kind = 'scene' AND revision = ?7",
+             WHERE project_id = ?5 AND id = ?6 AND kind = 'scene' AND revision = ?7
+             AND (NOT ?8 OR json_extract(content_json,'$.version') = 1)",
             params![
                 content_json,
                 plain_text,
@@ -428,7 +460,8 @@ impl<'database> DocumentRepository<'database> {
                 timestamp,
                 project_id.to_string(),
                 document_id.to_string(),
-                i64::try_from(expected_revision).map_err(|_| DocumentError::InvalidInput)?
+                i64::try_from(expected_revision).map_err(|_| DocumentError::InvalidInput)?,
+                prose_only
             ],
         )?;
         if changed == 0 {
@@ -780,13 +813,7 @@ fn validate_imported_title(title: &str) -> Result<(), DocumentError> {
 }
 
 pub(crate) fn validate_content(content: &EditorDocument) -> Result<(), DocumentError> {
-    if content.version != EDITOR_DOCUMENT_VERSION
-        || content.document.get("type").and_then(Value::as_str) != Some("doc")
-        || content
-            .document
-            .get("content")
-            .is_some_and(|value| !value.is_array())
-    {
+    if !content.is_valid() {
         return Err(DocumentError::InvalidInput);
     }
     Ok(())
@@ -799,7 +826,9 @@ fn empty_editor_document() -> EditorDocument {
     }
 }
 
-pub(crate) fn plain_text(content: &EditorDocument) -> String {
+/// Leitet den durchsuchbaren Text aus der gespeicherten Szene ab.
+#[must_use]
+pub fn plain_text(content: &EditorDocument) -> String {
     let mut fragments = Vec::new();
     collect_text(&content.document, &mut fragments);
     fragments

@@ -18,7 +18,10 @@ impl Fonts {
             .fold(0.0, f32::max)
     }
     pub(super) fn new() -> Result<Self, IllustratedError> {
-        let faces = DATA
+        Self::from_data(DATA)
+    }
+    pub(super) fn from_data(data: [&'static [u8]; 4]) -> Result<Self, IllustratedError> {
+        let faces = data
             .iter()
             .map(|data| ttf_parser::Face::parse(data, 0).map_err(|_| IllustratedError::Invalid))
             .collect::<Result<Vec<_>, _>>()?;

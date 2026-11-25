@@ -6,6 +6,7 @@ mod manuscript;
 mod pdf;
 mod render;
 mod roundtrip;
+pub use pdf::screenplay::export_screenplay_pdf;
 
 pub use roundtrip::{
     DocxRoundtripError, read_docx_roundtrip, read_docx_roundtrip_file, write_docx_roundtrip,

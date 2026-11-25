@@ -106,16 +106,18 @@ export class Channel<T> {
 export async function invoke<T>(command: string, args: InvokeArgs = {}): Promise<T> {
   if (command.startsWith("isolation_test_")) return (await isolationCommand(command)) as T;
   const request = args.request;
-  if (!request || request.contractVersion !== 1) throw new Error("Invalid E2E command request");
+  const version = ["save_editor_scene", "load_editor_scene"].includes(command) ? 2 : 1;
+  if (!request || request.contractVersion !== version)
+    throw new Error("Invalid E2E command request");
 
-  if (command === "save_document" && localStorage.getItem(FAIL_NEXT_SAVE_KEY) === "1") {
+  if (command === "save_editor_scene" && localStorage.getItem(FAIL_NEXT_SAVE_KEY) === "1") {
     localStorage.removeItem(FAIL_NEXT_SAVE_KEY);
     throw new Error("Controlled E2E save failure");
   }
 
   const data = execute(command, request.payload);
   return {
-    contractVersion: 1,
+    contractVersion: version,
     requestId: request.requestId,
     data,
   } as T;
@@ -361,11 +363,11 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       writeState(state);
       return node;
     }
-    case "load_document": {
+    case "load_editor_scene": {
       const current = findStoredDocument(findProject(state, payload.projectId), payload.documentId);
       return structuredClone(current);
     }
-    case "save_document": {
+    case "save_editor_scene": {
       const current = findStoredDocument(findProject(state, payload.projectId), payload.documentId);
       if (current.node.revision !== payload.expectedRevision) throw new Error("Revision conflict");
       current.content = structuredClone(payload.content) as EditorDocument;
@@ -933,6 +935,17 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
     }
     case "export_manuscript":
       return manuscriptExportResult(findProject(state, payload.projectId), payload.format);
+    case "export_screenplay_pdf": {
+      const project = findProject(state, payload.projectId);
+      if (
+        !Array.isArray(payload.sceneIds) ||
+        payload.sceneIds.length === 0 ||
+        payload.sceneIds.some((id) => findStoredDocument(project, id).content.version !== 2)
+      ) {
+        throw new Error("Reine Drehbuchszene auswählen.");
+      }
+      return { ...manuscriptExportResult(project, "pdf"), fileName: "drehbuch.pdf" };
+    }
     case "open_export_directory":
       findProject(state, payload.projectId);
       return null;
