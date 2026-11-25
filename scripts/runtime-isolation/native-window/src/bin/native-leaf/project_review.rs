@@ -13,6 +13,8 @@ const USE_REMOTE: u16 = 217;
 const COMMIT: u16 = 218;
 const BACK: u16 = 219;
 const MERGED: i32 = 220;
+const DIFF_PREV: u16 = 221;
+const DIFF_NEXT: u16 = 222;
 
 pub(super) struct Review {
     pub draft: Zeroizing<String>,
@@ -33,11 +35,18 @@ impl Review {
         let local: Vec<_> = self.draft.split('\n').collect();
         let remote: Vec<_> = remote.split('\n').collect();
         let rows = local.len().max(remote.len());
+        let differences: Vec<_> = (0..rows)
+            .filter(|&i| local.get(i) != remote.get(i))
+            .collect();
+        if !refreshed {
+            self.position = differences.first().copied().unwrap_or(0);
+        }
         self.choices.resize(rows, 0);
         self.position = self.position.min(rows - 1);
         let mut dialog = Dialog {
             local,
             remote,
+            differences,
             revision,
             refreshed,
             choices: &mut self.choices,
@@ -47,8 +56,8 @@ impl Review {
         let label = WS_CHILD | WS_VISIBLE;
         let read = button | WS_BORDER | WS_VSCROLL | ES_MULTILINE as u32 | ES_READONLY as u32;
         let controls = [
-            (INFO as u16, 0x82, 8, 6, 388, 31, label, ""),
-            (0xffff, 0x82, 8, 39, 185, 12, label, "Lokaler &Entwurf"),
+            (INFO as u16, 0x82, 8, 6, 388, 32, label, ""),
+            (0xffff, 0x82, 8, 39, 185, 12, label, "Lokaler &Entwurf (F6)"),
             (LOCAL as u16, 0x81, 8, 52, 188, 52, read, ""),
             (
                 0xffff,
@@ -58,7 +67,7 @@ impl Review {
                 188,
                 12,
                 label,
-                "Gespeicherter &Absatz",
+                "Gespeicherter &Absatz (F6)",
             ),
             (REMOTE as u16, 0x81, 203, 52, 188, 52, read, ""),
             (USE_LOCAL, 0x80, 8, 107, 150, 17, button, "&Entwurf wählen"),
@@ -75,21 +84,41 @@ impl Review {
             (PREV, 0x80, 8, 129, 85, 17, button, "&Vorheriger Absatz"),
             (NEXT, 0x80, 99, 129, 85, 17, button, "&Nächster Absatz"),
             (
+                DIFF_PREV,
+                0x80,
+                8,
+                151,
+                188,
+                17,
+                button,
+                "Voriger Unterschied (Umschalt+F7)",
+            ),
+            (
+                DIFF_NEXT,
+                0x80,
+                203,
+                151,
+                188,
+                17,
+                button,
+                "Nächster Unterschied (F7)",
+            ),
+            (
                 0xffff,
                 0x82,
                 8,
-                151,
+                174,
                 380,
                 12,
                 label,
                 "Vollständige &Auswahl zum Speichern",
             ),
-            (MERGED as u16, 0x81, 8, 164, 383, 58, read, ""),
+            (MERGED as u16, 0x81, 8, 187, 383, 58, read, ""),
             (
                 BACK,
                 0x80,
                 124,
-                228,
+                251,
                 126,
                 18,
                 button | BS_DEFPUSHBUTTON as u32,
@@ -99,7 +128,7 @@ impl Review {
                 COMMIT,
                 0x80,
                 257,
-                228,
+                251,
                 134,
                 18,
                 button,
@@ -107,7 +136,7 @@ impl Review {
             ),
         ];
         let template =
-            project_dialog::template("KRAQEL – Fassungen vergleichen", 399, 253, &controls);
+            project_dialog::template("KRAQEL – Fassungen vergleichen", 399, 276, &controls);
         let result = unsafe {
             DialogBoxIndirectParamW(
                 GetModuleHandleW(null()),
@@ -125,6 +154,7 @@ impl Review {
 struct Dialog<'a> {
     local: Vec<&'a str>,
     remote: Vec<&'a str>,
+    differences: Vec<usize>,
     revision: u64,
     refreshed: bool,
     choices: &'a mut [u8],
@@ -132,7 +162,7 @@ struct Dialog<'a> {
 }
 
 impl Dialog<'_> {
-    fn render(&self, hwnd: HWND) -> bool {
+    fn render(&self, hwnd: HWND, update_preview: bool) -> bool {
         let side = |lines: &[&str]| match lines.get(self.pos) {
             None => "fehlt",
             Some(&"") => "leer",
@@ -148,42 +178,28 @@ impl Dialog<'_> {
         } else {
             ""
         };
+        let difference = match self.differences.binary_search(&self.pos) {
+            Ok(index) => format!("Unterschied {} von {}", index + 1, self.differences.len()),
+            Err(_) => format!(
+                "Absätze gleich · Unterschiede insgesamt: {}",
+                self.differences.len()
+            ),
+        };
         let status = format!(
-            "{hint}Revision {} · Absatzposition {} von {} · Auswahl: {source}. Entwurf: {}, gespeichert: {}.",
+            "{hint}Revision {} · Absatzposition {} von {} · {difference} · Auswahl: {source}. Entwurf: {}, gespeichert: {}.",
             self.revision,
             self.pos + 1,
             self.choices.len(),
             side(&self.local),
             side(&self.remote)
         );
-        let preview = Zeroizing::new(
-            self.choices
-                .iter()
-                .enumerate()
-                .filter_map(|(i, choice)| {
-                    (if *choice == 0 {
-                        &self.local
-                    } else {
-                        &self.remote
-                    })
-                    .get(i)
-                    .copied()
-                })
-                .collect::<Vec<_>>()
-                .join("\n"),
-        );
         unsafe {
             for (id, text) in [
                 (INFO, status.as_str()),
                 (LOCAL, self.local.get(self.pos).copied().unwrap_or("")),
                 (REMOTE, self.remote.get(self.pos).copied().unwrap_or("")),
-                (MERGED, preview.as_str()),
             ] {
-                let display = Zeroizing::new(wide(text.replace('\n', "\r\n")));
-                if SetDlgItemTextW(hwnd, id, display.as_ptr()) == 0
-                    || usize::try_from(GetWindowTextLengthW(GetDlgItem(hwnd, id))).ok()
-                        != Some(display.len() - 1)
-                {
+                if !set_text(hwnd, id, text) {
                     return false;
                 }
             }
@@ -192,12 +208,105 @@ impl Dialog<'_> {
                 GetDlgItem(hwnd, NEXT.into()),
                 i32::from(self.pos + 1 < self.choices.len()),
             );
-            EnableWindow(
-                GetDlgItem(hwnd, COMMIT.into()),
-                i32::from(preview.len() <= PROJECT_EDIT_BYTES),
-            );
+            for id in [DIFF_PREV, DIFF_NEXT] {
+                EnableWindow(
+                    GetDlgItem(hwnd, id.into()),
+                    i32::from(!self.differences.is_empty()),
+                );
+            }
+            if update_preview {
+                let preview = Zeroizing::new(
+                    self.choices
+                        .iter()
+                        .enumerate()
+                        .filter_map(|(i, choice)| {
+                            (if *choice == 0 {
+                                &self.local
+                            } else {
+                                &self.remote
+                            })
+                            .get(i)
+                            .copied()
+                        })
+                        .collect::<Vec<_>>()
+                        .join("\n"),
+                );
+                if !set_text(hwnd, MERGED, &preview) {
+                    return false;
+                }
+                EnableWindow(
+                    GetDlgItem(hwnd, COMMIT.into()),
+                    i32::from(preview.len() <= PROJECT_EDIT_BYTES),
+                );
+            }
         }
         true
+    }
+}
+
+unsafe fn set_text(hwnd: HWND, id: i32, text: &str) -> bool {
+    let length = text.encode_utf16().count() + text.bytes().filter(|b| *b == b'\n').count();
+    let mut display = Zeroizing::new(Vec::with_capacity(length + 1));
+    for unit in text.encode_utf16() {
+        if unit == 10 {
+            display.push(13);
+        }
+        display.push(unit);
+    }
+    display.push(0);
+    unsafe {
+        SetDlgItemTextW(hwnd, id, display.as_ptr()) != 0
+            && usize::try_from(GetWindowTextLengthW(GetDlgItem(hwnd, id))).ok() == Some(length)
+    }
+}
+
+unsafe extern "system" fn keys(
+    control: HWND,
+    msg: u32,
+    w: WPARAM,
+    l: LPARAM,
+    _: usize,
+    _: usize,
+) -> LRESULT {
+    unsafe {
+        let native = || windows_sys::Win32::UI::Shell::DefSubclassProc(control, msg, w, l);
+        if w != usize::from(VK_F6) && w != usize::from(VK_F7) {
+            return native();
+        }
+        if msg == WM_GETDLGCODE && l != 0 {
+            return native() | DLGC_WANTMESSAGE as isize;
+        }
+        if msg != WM_KEYDOWN
+            || [VK_CONTROL, VK_MENU, VK_LWIN, VK_RWIN]
+                .iter()
+                .any(|key| GetKeyState(i32::from(*key)) < 0)
+        {
+            return native();
+        }
+        if l & (1 << 30) == 0 {
+            let hwnd = GetParent(control);
+            if w == usize::from(VK_F6) {
+                SetFocus(GetDlgItem(
+                    hwnd,
+                    if GetFocus() == GetDlgItem(hwnd, LOCAL) {
+                        REMOTE
+                    } else {
+                        LOCAL
+                    },
+                ));
+            } else {
+                let id = if GetKeyState(i32::from(VK_SHIFT)) < 0 {
+                    DIFF_PREV
+                } else {
+                    DIFF_NEXT
+                };
+                let button = GetDlgItem(hwnd, id.into());
+                if IsWindowEnabled(button) != 0 {
+                    SendMessageW(hwnd, WM_COMMAND, id.into(), button as isize);
+                }
+            }
+        }
+        0
     }
 }
 
@@ -214,7 +323,31 @@ unsafe extern "system" fn handle(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 }
                 SendMessageW(h, EM_SETLIMITTEXT, 4 * PROJECT_EDIT_BYTES, 0);
             }
-            if !(&*(l as *const Dialog<'_>)).render(hwnd) {
+            for id in [
+                LOCAL,
+                REMOTE,
+                MERGED,
+                PREV.into(),
+                NEXT.into(),
+                USE_LOCAL.into(),
+                USE_REMOTE.into(),
+                DIFF_PREV.into(),
+                DIFF_NEXT.into(),
+                BACK.into(),
+                COMMIT.into(),
+            ] {
+                if windows_sys::Win32::UI::Shell::SetWindowSubclass(
+                    GetDlgItem(hwnd, id),
+                    Some(keys),
+                    2,
+                    0,
+                ) == 0
+                {
+                    EndDialog(hwnd, 0);
+                    return 0;
+                }
+            }
+            if !(&*(l as *const Dialog<'_>)).render(hwnd, true) {
                 EndDialog(hwnd, 0);
                 return 0;
             }
@@ -245,6 +378,20 @@ unsafe extern "system" fn handle(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
         match id {
             PREV => dialog.pos = dialog.pos.saturating_sub(1),
             NEXT => dialog.pos = (dialog.pos + 1).min(dialog.choices.len() - 1),
+            DIFF_PREV | DIFF_NEXT => {
+                let ds = &dialog.differences;
+                if ds.is_empty() {
+                    return 1;
+                }
+                let index = if id == DIFF_PREV {
+                    ds.partition_point(|p| *p < dialog.pos)
+                        .checked_sub(1)
+                        .unwrap_or(ds.len() - 1)
+                } else {
+                    ds.partition_point(|p| *p <= dialog.pos) % ds.len()
+                };
+                dialog.pos = ds[index];
+            }
             USE_LOCAL => dialog.choices[dialog.pos] = 0,
             USE_REMOTE => dialog.choices[dialog.pos] = 1,
             COMMIT => {
@@ -253,7 +400,7 @@ unsafe extern "system" fn handle(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
             }
             _ => return 0,
         }
-        if !dialog.render(hwnd) {
+        if !dialog.render(hwnd, matches!(id, USE_LOCAL | USE_REMOTE)) {
             EndDialog(hwnd, 0);
         }
         1

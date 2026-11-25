@@ -22,6 +22,19 @@ Die [zielgebundene synthetische Veröffentlichung](docs/data-format/product-star
 
 Der [synthetische BP4b-Datenkanal](docs/data-format/native-win32-bp4-channel-v1-draft.md#abschluss-des-synthetischen-datenkanals) ist abgeschlossen. C4b bis C4d sind für das schreibgeschützte synthetische Win32-Fenster abgeschlossen. Der verwaltete Starter bindet Paket und Prozessgeneration unter Kontrollsperre und gibt das Fenster nach bestätigtem Bootstrap frei. Nach Starterabbruch blockiert der offene Sitzungsbeleg die nächste Fenstererzeugung. Die [bytegebundene C4d-Abnahme](docs/architecture/decisions/0036-native-win32-ui-role-evaluation.md#c4d-abschluss-für-den-synthetischen-vorschaupfad) enthält Paketidentität, Sicherheitsnachweise und Freigabeumfang. Der neue Einstieg `broker-store open-win32-scene <Kontrollkopf>` zeigt nach beiden Bootstrap-Quittungen genau eine vom isolierten Datendienst gelesene Szene A schreibgeschützt an. Der ETW-Netzvergleich erfasste im Referenzlauf und beim einmaligen Szenenabruf je null Netzwerkereignisse im KRAQEL-Prozessbaum. Nur im Szenenlauf startete der Datendienst. Der anschließende verwaltete Prüflauf `check-win32-scene-denied-save` bestätigte `DENIED` für einen gültigen Speicherversuch und unveränderten Text auf Revision 0 beim erneuten Lesen unter derselben Bindung. Unter eigener Edit-Bindung bestätigte `check-win32-scene-edit-conflict` die erste Speicherung, `CONFLICT` für den veralteten Schreibversuch und den gespeicherten Text auf Revision 1 im Arbeitsspeicher. Der dauerhafte Prüfpfad `save-win32-scene` und `read-saved-win32-scene` bestätigte nach Prozessneustart Text und Revision 1 im isolierten SQLite-Abbild; veränderte Dateibytes sperren das Wiederöffnen vor dem Rollenstart. Produktdaten und WebView2 bleiben gesperrt.
 
+## Grobe Fortschrittseinschätzung · 25. November 2026
+
+Für den aktuellen Entwicklungszweig schätzen wir den Gesamtstand einschließlich M6/Version 0.2 auf **rund 72 %**, mit einer plausiblen Spanne von **67–77 %**. Ausgangspunkt ist die Einschätzung vom 17. November (65 %). Den Ausschlag geben die produktive Übernahme und Wiederherstellung von Arbeitskopien, die Veröffentlichung von Alpha 7 und die seither im Windows-Installer belegten Schreib- und Exportabläufe. Die Schätzung gewichtet umgesetzte Arbeitsblöcke und offene Abnahmerisiken. Die Tageswerte sind nachträglich geschätzte Größenordnungen.
+
+| Tag (November 2026, Berlin) | Geschätzter Gesamtstand | Belegter Fortschritt |
+| --- | --- | --- |
+| 21.–22. | ca. 66 % | Auf dem Entwicklungszweig keine neuen Commits seit der Übergabe vom 20. |
+| 23. | ca. 67 % | Verwalteter synthetischer Editor mit Autosave, Konfliktbearbeitung und Inline-Formatierung. |
+| 24. | ca. 70 % | Arbeitskopien, selektive Übernahme und Rücknahme sowie geschützte Zusatzarchive. |
+| 25. | ca. 72 % | Alpha 7 veröffentlicht. Auf dem Entwicklungszweig zusätzlich native Manuskriptbearbeitung, Autosave, Konfliktvergleich und Drehbuchexport. |
+
+Offen bleiben unter anderem die vollständige Produktisolation, die Abnahme mit realen KI-Providern, der physische Zweitrechnertest und die für M6 geplante Bild- und Kartenfunktionalität. [Abnahmeumfang des Entwicklungszweigs](docs/testing/F08_M3_ACCEPTANCE_MATRIX.md)
+
 ## Grobe Fortschrittseinschätzung · 17. November 2026
 
 **Gesamtprojekt einschließlich M6/Version 0.2: ungefähr 65 %, plausible Spanne 60–70 %.** Der
