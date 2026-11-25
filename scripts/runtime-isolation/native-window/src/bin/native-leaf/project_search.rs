@@ -12,6 +12,10 @@ pub(super) unsafe fn visible(hwnd: HWND) -> bool {
 
 pub(super) unsafe fn show(hwnd: HWND, open: bool) {
     unsafe {
+        if !open {
+            project_replace::MATCH.set(None);
+            project_replace::show(hwnd, false);
+        }
         for id in BAR {
             ShowWindow(GetDlgItem(hwnd, id), if open { SW_SHOWNA } else { SW_HIDE });
         }
@@ -45,8 +49,22 @@ fn text(field: HWND) -> Option<Zeroizing<String>> {
     Some(result)
 }
 
+pub(super) unsafe fn selection(field: HWND) -> (usize, usize) {
+    let (mut start, mut end) = (0u32, 0u32);
+    unsafe {
+        SendMessageW(
+            field,
+            EM_GETSEL,
+            (&mut start as *mut u32) as usize,
+            (&mut end as *mut u32) as isize,
+        );
+    }
+    (start as usize, end as usize)
+}
+
 pub(super) unsafe fn find(hwnd: HWND, backwards: bool) {
     unsafe {
+        project_replace::MATCH.set(None);
         if !visible(hwnd) {
             show(hwnd, true);
         }
@@ -72,13 +90,7 @@ pub(super) unsafe fn find(hwnd: HWND, backwards: bool) {
             );
             return;
         };
-        let (mut start, mut end) = (0u32, 0u32);
-        SendMessageW(
-            field,
-            EM_GETSEL,
-            (&mut start as *mut u32) as usize,
-            (&mut end as *mut u32) as isize,
-        );
+        let (start, end) = selection(field);
         let mut count = 0;
         let mut selected = None;
         let mut wrapped = None;
@@ -87,12 +99,12 @@ pub(super) unsafe fn find(hwnd: HWND, backwards: bool) {
             let hit = (count, a, b);
             if backwards {
                 wrapped = Some(hit);
-                if b <= start as usize {
+                if b <= start {
                     selected = Some(hit);
                 }
             } else {
                 wrapped.get_or_insert(hit);
-                if a >= end as usize {
+                if a >= end {
                     selected.get_or_insert(hit);
                 }
             }
@@ -100,6 +112,9 @@ pub(super) unsafe fn find(hwnd: HWND, backwards: bool) {
         if let Some((number, a, b)) = selected.or(wrapped) {
             SetFocus(field);
             SendMessageW(field, EM_SETSEL, a, b as isize);
+            if !GetDlgItem(hwnd, project_replace::APPLY).is_null() {
+                project_replace::MATCH.set(Some((a, b)));
+            }
             SendMessageW(
                 field,
                 windows_sys::Win32::UI::Controls::EM_SCROLLCARET,
@@ -160,6 +175,18 @@ pub(super) unsafe fn layout(
                 x += w + gap;
             }
             top += height + gap;
+            if IsWindowVisible(GetDlgItem(hwnd, REPLACEMENT)) != 0 {
+                let mut x = margin;
+                for (id, w) in [
+                    (REPLACEMENT_LABEL, label),
+                    (REPLACEMENT, input),
+                    (project_replace::APPLY, 2 * nav + gap),
+                ] {
+                    MoveWindow(GetDlgItem(hwnd, id), x, top, w, height, 1);
+                    x += w + gap;
+                }
+                top += height + gap;
+            }
         }
         top
     }

@@ -4,6 +4,8 @@ use super::*;
 mod project_close;
 #[path = "project_dialog.rs"]
 mod project_dialog;
+#[path = "project_replace.rs"]
+mod project_replace;
 #[path = "project_review.rs"]
 mod project_review;
 #[path = "project_search.rs"]
@@ -237,6 +239,14 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) 
                 project_search::show(hwnd, !project_search::visible(hwnd));
                 0
             }
+            WM_COMMAND if w == project_replace::OPEN as usize => {
+                project_replace::show(hwnd, true);
+                0
+            }
+            WM_COMMAND if w == project_replace::APPLY as usize => {
+                project_replace::apply(hwnd);
+                0
+            }
             WM_COMMAND
                 if w == project_search::NEXT as usize || w == project_search::PREVIOUS as usize =>
             {
@@ -244,10 +254,12 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) 
                 0
             }
             WM_COMMAND if (w & 0xffff) == SEARCH as usize && (w >> 16) == EN_CHANGE as usize => {
+                project_replace::MATCH.set(None);
                 SetDlgItemTextW(hwnd, LABEL, wide("&Szenentext").as_ptr());
                 0
             }
             WM_COMMAND if (w & 0xffff) == EDIT as usize && (w >> 16) == EN_CHANGE as usize => {
+                project_replace::MATCH.set(None);
                 if project_search::visible(hwnd) {
                     SetDlgItemTextW(hwnd, LABEL, wide("&Szenentext").as_ptr());
                 }
@@ -269,7 +281,7 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) 
                 let min = &mut *(l as *mut MINMAXINFO);
                 let dpi = GetDpiForWindow(hwnd);
                 min.ptMinTrackSize.x = scale(365, dpi);
-                min.ptMinTrackSize.y = scale(385, dpi);
+                min.ptMinTrackSize.y = scale(420, dpi);
                 0
             }
             WM_SIZE => {
@@ -290,6 +302,7 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) 
                     (CLOSE, 92, true),
                     (SAVE, 96, editor && !focused),
                     (FOCUS, 158, editor),
+                    (project_replace::OPEN, 140, editor),
                     (COMPARE, 176, comparing),
                 ] {
                     if !shown {
@@ -430,6 +443,25 @@ pub(super) fn display(
                 "&Weiter",
                 WS_TABSTOP | BS_PUSHBUTTON as u32,
             ),
+            (
+                project_replace::OPEN,
+                "BUTTON",
+                "Ersetzen (Strg+H)",
+                WS_TABSTOP | BS_PUSHBUTTON as u32,
+            ),
+            (REPLACEMENT_LABEL, "STATIC", "&Ersatztext", SS_LEFT),
+            (
+                REPLACEMENT,
+                "EDIT",
+                "",
+                WS_TABSTOP | WS_BORDER | ES_AUTOHSCROLL as u32,
+            ),
+            (
+                project_replace::APPLY,
+                "BUTTON",
+                "Treffer e&rsetzen",
+                WS_TABSTOP | BS_PUSHBUTTON as u32,
+            ),
             (METRICS, "STATIC", "", SS_LEFT),
             (STATUS, "STATIC", "", SS_LEFT),
             (
@@ -461,7 +493,18 @@ pub(super) fn display(
                 WS_TABSTOP | BS_PUSHBUTTON as u32,
             ),
         ] {
-            if matches!(id, SAVE | STATUS | COMPARE | METRICS | FOCUS) && !edit_mode {
+            if matches!(
+                id,
+                SAVE | STATUS
+                    | COMPARE
+                    | METRICS
+                    | FOCUS
+                    | REPLACEMENT
+                    | REPLACEMENT_LABEL
+                    | project_replace::OPEN
+                    | project_replace::APPLY
+            ) && !edit_mode
+            {
                 continue;
             }
             let child = CreateWindowExW(
@@ -474,6 +517,9 @@ pub(super) fn display(
                         COMPARE
                             | SEARCH
                             | SEARCH_LABEL
+                            | REPLACEMENT
+                            | REPLACEMENT_LABEL
+                            | project_replace::APPLY
                             | project_search::PREVIOUS
                             | project_search::NEXT
                     ) {
@@ -503,18 +549,25 @@ pub(super) fn display(
         // wrapping a long paragraph can exceed the authenticated surface deadline.
         SendMessageW(hwnd, WM_SIZE, 0, 0);
         let field = GetDlgItem(hwnd, EDIT);
-        let query = GetDlgItem(hwnd, SEARCH);
-        for control in [field, query] {
+        // Apply the UTF-8 storage limit at submission. During editing allow a longer
+        // draft to be shortened explicitly, without submitting a truncated prefix.
+        for id in [EDIT, SEARCH, REPLACEMENT] {
+            let control = GetDlgItem(hwnd, id);
+            if control.is_null() {
+                continue;
+            }
             require(
                 windows_sys::Win32::UI::Shell::SetWindowSubclass(control, Some(scene_input), 1, 0)
                     != 0,
                 "protect project text",
             )?;
+            SendMessageW(
+                control,
+                EM_SETLIMITTEXT,
+                project_metrics::EDIT_UNIT_LIMIT,
+                0,
+            );
         }
-        SendMessageW(query, EM_SETLIMITTEXT, project_metrics::EDIT_UNIT_LIMIT, 0);
-        // Validate UTF-8 size at submission. Allow editing beyond the save limit so
-        // a long draft can be shortened explicitly, without saving a truncated prefix.
-        SendMessageW(field, EM_SETLIMITTEXT, project_metrics::EDIT_UNIT_LIMIT, 0);
         require(
             SetWindowTextW(field, wide(text.replace('\n', "\r\n")).as_ptr()) != 0
                 && matches_preview_text(hwnd, text),
@@ -567,6 +620,12 @@ unsafe fn dispatch(hwnd: HWND, msg: &MSG) {
                 .iter()
                 .all(|modifier| GetKeyState(i32::from(*modifier)) >= 0);
             let ctrl_only = ctrl && !shift && plain;
+            if ctrl_only && key == usize::from(VK_H) {
+                if !repeated {
+                    project_replace::show(hwnd, true);
+                }
+                return;
+            }
             if ctrl_only && key == usize::from(VK_F) {
                 if !repeated {
                     project_search::show(hwnd, true);
@@ -713,6 +772,7 @@ unsafe fn edit_loop(hwnd: HWND, field: HWND, text: &str, channel: Channel) -> io
                     EnableWindow(GetDlgItem(hwnd, SAVE), 0);
                 }
                 SendMessageW(field, EM_SETREADONLY, 0, 0);
+                EnableWindow(GetDlgItem(hwnd, project_replace::APPLY), 1);
                 SetWindowTextW(GetDlgItem(hwnd, STATUS), wide(status).as_ptr());
                 SendMessageW(hwnd, WM_SIZE, 0, 0);
                 SetFocus(field);
@@ -786,6 +846,7 @@ unsafe fn start_request(
             return false;
         }
         SendMessageW(field, EM_SETREADONLY, 1, 0);
+        EnableWindow(GetDlgItem(hwnd, project_replace::APPLY), 0);
         SetWindowTextW(GetDlgItem(hwnd, STATUS), wide(status).as_ptr());
         SendMessageW(hwnd, WM_SIZE, 0, 0);
         true
