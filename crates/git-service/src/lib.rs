@@ -278,16 +278,22 @@ impl<'project> GitService<'project> {
                 .extension()
                 .is_some_and(|extension| extension.eq_ignore_ascii_case("json"))
             {
-                let value: Value = serde_json::from_slice(&fs::read(path)?)
+                let bytes = fs::read(path)?;
+                if name == "schema.json"
+                    && manifest.format_version >= 3
+                    && bytes != snapshot_schema(manifest.format_version)?
+                {
+                    return Err(GitServiceError::InvalidSnapshot);
+                }
+                let value: Value = serde_json::from_slice(&bytes)
                     .map_err(|_| GitServiceError::InvalidSnapshot)?;
                 validate_json_file(name, &value)?;
                 if name == "documents.json" {
                     let documents = value["documents"]
                         .as_array()
                         .ok_or(GitServiceError::InvalidSnapshot)?;
-                    if document_snapshot_version(documents, true)? == 4
-                        && manifest.format_version < 4
-                    {
+                    if (document_snapshot_version(documents, true)? == 4)
+                        != (manifest.format_version == 4) {
                         return Err(GitServiceError::InvalidSnapshot);
                     }
                 }
@@ -1806,6 +1812,14 @@ mod tests {
             SCREENPLAY_DATABASE_VERSION
         );
         drop(opened);
+        manager.backup_project(id.to_string(), "rollen").unwrap();
+        let backup = manager
+            .restore_backup(id.to_string(), "rollen", "restored-backup")
+            .unwrap();
+        assert_eq!(
+            backup.database().schema_version().unwrap(),
+            SCREENPLAY_DATABASE_VERSION
+        );
         let opened = manager.open_project(id.to_string()).unwrap();
         let service = GitService::new(opened.directory());
         let destination = root.path().join("drehbuch.kraqel");

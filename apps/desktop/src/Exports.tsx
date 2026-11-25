@@ -95,7 +95,7 @@ export function Exports({
       </div>
       <article>
         <h3>Drehbuch als A4-PDF</h3>
-        <fieldset disabled={busy !== null}>
+        <fieldset className="checkbox-grid" disabled={busy !== null}>
           <legend>Drehbuchszenen auswählen</legend>
           {buildDocumentTree(documents).flatMap((chapter) =>
             chapter.children.map((scene) => (
