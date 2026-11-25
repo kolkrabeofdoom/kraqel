@@ -2,6 +2,14 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Revisionskonflikt mit absatzweiser Auswahl im installierten Desktop
+
+Im installierten Kandidaten `41bc9f03f02d` erschien die gespeicherte Gegenfassung erst auf ausdrücklichen Aufruf. Das Abbrechen des Vergleichs erhielt beide lokalen Absätze im selben bearbeitbaren Fenster und ließ die gespeicherte Revision 1 bestehen. Beim erneuten Vergleich wurde für Position 1 der lokale Absatz und für Position 2 der gespeicherte Absatz gewählt.
+
+Ein zweiter kontrollierter Schreibzug änderte die Vergleichsbasis vor dem Speichern. Die erste Bestätigung führte zur neuen Vorschau auf Revision 2. Sie behielt beide Quellenentscheidungen und zeigte den inzwischen geänderten zweiten Absatz. SQLite blieb bis zur erneuten ausdrücklichen Bestätigung auf Revision 2. Nach dem Speichern und einem vollständigen Desktopneustart stimmten die Szenenkennung, beide Absätze und die Inhaltsprüfsumme auf Revision 3. Separate gezielte Prüfungen decken unterschiedliche Absatzanzahlen, tatsächlich leere Absätze, ungültige Auswahlen und einen Formatwechsel bei unveränderter Revisionsnummer ab.
+
+In der gemeinsamen kalibrierten ETW-Spur wurden je Desktopstart genau eine Fensterrolle und ein Datendienst erfasst. Beide Prozessbäume zeigten null Netzereignisse einschließlich Loopback und keine WebView2-Prozesse. Vier von vier Positivkontrollen wurden erkannt, ohne verlorene Ereignisse oder Puffer. Testinstallation, synthetisches Profil und Rohaufzeichnung wurden entfernt. Installer-SHA-256: `ff4129953733a9d96457fb89d17321551e9f484344a5f48a25e9daed81a8f200`.
+
 ## Ungespeicherter Entwurf und Speicherbestätigung im installierten Desktop
 
 Im installierten Kandidaten `db3184d7b200` schlossen unveränderte und vollständig zurückgenommene Texte direkt. Bei einem geänderten Entwurf öffneten X und Alt+F4 die Schließabfrage. **Weiterschreiben** hatte Fokus und Vorgabe. Enter kehrte in den Entwurf zurück. **Verwerfen** ließ Inhalt und Revision 0 der gespeicherten Szene unverändert.
