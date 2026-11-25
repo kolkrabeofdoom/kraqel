@@ -356,9 +356,35 @@ fn derived_profile(begin: [u8; 32], data: bool) -> Result<Profile> {
 }
 
 pub(super) fn packages_folder() -> Result<(PathBuf, (u64, [u8; 16]), Vec<fs::File>)> {
-    let path =
-        PathBuf::from(std::env::var_os("LOCALAPPDATA").ok_or(invalid("p3-profile-local-data"))?)
-            .join("Packages");
+    use std::os::windows::ffi::OsStringExt;
+    use windows_sys::Win32::System::Environment::ExpandEnvironmentStringsForUserW;
+    // AppContainer profiles belong to the Windows account. A redirected desktop
+    // project directory must never redefine the trusted parent for profile removal.
+    let mut raw = null_mut();
+    check(
+        unsafe { OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY | TOKEN_DUPLICATE, &mut raw) },
+        "p3-profile-account-token",
+    )?;
+    let token = Handle(raw);
+    let name = wide("%LOCALAPPDATA%");
+    let mut buf = vec![0u16; 32768];
+    check(
+        unsafe {
+            ExpandEnvironmentStringsForUserW(
+                token.0,
+                name.as_ptr(),
+                buf.as_mut_ptr(),
+                buf.len() as u32,
+            )
+        },
+        "p3-profile-account-path",
+    )?;
+    let len = buf
+        .iter()
+        .position(|c| *c == 0)
+        .ok_or(invalid("p3-profile-account-path"))?;
+    let base = PathBuf::from(std::ffi::OsString::from_wide(&buf[..len]));
+    let path = local_path(&base.join("Packages"))?;
     let pins = pin_directories(&path)?;
     let id = secure_fs::file_id(pins.last().ok_or(invalid("p3-packages-pin"))?)?;
     Ok((path, id, pins))
