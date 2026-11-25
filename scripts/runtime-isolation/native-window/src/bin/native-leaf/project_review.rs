@@ -19,6 +19,7 @@ const ALL_LOCAL: u16 = 223;
 const ALL_REMOTE: u16 = 224;
 const UNDO_CHOICE: u16 = 225;
 const REDO_CHOICE: u16 = 226;
+const PREVIEW_LABEL: i32 = 227;
 
 // A dialog owns its selection history. A new revision only carries over the
 // currently selected sources; no action from the old revision can be replayed.
@@ -60,7 +61,26 @@ impl ChoiceHistory {
 
 #[cfg(test)]
 mod tests {
-    use super::ChoiceHistory;
+    use super::{ChoiceHistory, Dialog, PROJECT_EDIT_BYTES};
+
+    #[test]
+    fn mixed_preview_counts_utf8_and_only_present_paragraph_separators() {
+        let prefix = "ä".repeat((PROJECT_EDIT_BYTES - 2) / 2);
+        let mut choices = vec![0, 1, 1];
+        let dialog = Dialog {
+            local: vec![&prefix, "", ""],
+            remote: vec!["", "a"],
+            differences: vec![],
+            revision: 1,
+            refreshed: false,
+            choices: &mut choices,
+            history: ChoiceHistory::default(),
+            pos: 0,
+        };
+        assert_eq!(dialog.preview().len(), PROJECT_EDIT_BYTES);
+        dialog.choices[2] = 0;
+        assert_eq!(dialog.preview().len(), PROJECT_EDIT_BYTES + 1);
+    }
 
     #[test]
     fn bulk_undo_restores_mixed_sources_and_a_noop_keeps_redo() {
@@ -198,16 +218,7 @@ impl Review {
                 button,
                 "Nächster Unterschied (F7)",
             ),
-            (
-                0xffff,
-                0x82,
-                8,
-                196,
-                380,
-                12,
-                label,
-                "Vollständige &Auswahl zum Speichern",
-            ),
+            (PREVIEW_LABEL as u16, 0x82, 8, 196, 380, 12, label, ""),
             (MERGED as u16, 0x81, 8, 209, 383, 58, read, ""),
             (
                 BACK,
@@ -258,6 +269,25 @@ struct Dialog<'a> {
 }
 
 impl Dialog<'_> {
+    fn preview(&self) -> Zeroizing<String> {
+        Zeroizing::new(
+            self.choices
+                .iter()
+                .enumerate()
+                .filter_map(|(i, side)| {
+                    (if *side == 0 {
+                        &self.local
+                    } else {
+                        &self.remote
+                    })
+                    .get(i)
+                    .copied()
+                })
+                .collect::<Vec<_>>()
+                .join("\n"),
+        )
+    }
+
     fn render(&self, hwnd: HWND, update_preview: bool) -> bool {
         let side = |lines: &[&str]| match lines.get(self.pos) {
             None => "fehlt",
@@ -322,23 +352,17 @@ impl Dialog<'_> {
                 );
             }
             if update_preview {
-                let preview = Zeroizing::new(
-                    self.choices
-                        .iter()
-                        .enumerate()
-                        .filter_map(|(i, choice)| {
-                            (if *choice == 0 {
-                                &self.local
-                            } else {
-                                &self.remote
-                            })
-                            .get(i)
-                            .copied()
-                        })
-                        .collect::<Vec<_>>()
-                        .join("\n"),
-                );
-                if !set_text(hwnd, MERGED, &preview) {
+                let preview = self.preview();
+                let bytes = preview.len();
+                let caption = if bytes > PROJECT_EDIT_BYTES {
+                    format!(
+                        "&Auswahl: {bytes} UTF-8-Bytes · {} Byte zu viel zum Speichern",
+                        bytes - PROJECT_EDIT_BYTES
+                    )
+                } else {
+                    format!("Vollständige &Auswahl: {bytes} von {PROJECT_EDIT_BYTES} UTF-8-Bytes")
+                };
+                if !set_text(hwnd, MERGED, &preview) || !set_text(hwnd, PREVIEW_LABEL, &caption) {
                     return false;
                 }
                 EnableWindow(
@@ -533,7 +557,9 @@ unsafe extern "system" fn handle(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 }
             }
             COMMIT => {
-                EndDialog(hwnd, 1);
+                if dialog.preview().len() <= PROJECT_EDIT_BYTES {
+                    EndDialog(hwnd, 1);
+                }
                 return 1;
             }
             _ => return 0,
