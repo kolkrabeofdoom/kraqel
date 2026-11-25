@@ -2,6 +2,19 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Native Windows-Projektübersicht · 25. November 2026
+
+Der installierte Kandidat `66b0ff0e103f` zeigte beim regulären Start die native Projektübersicht. Fenster und Verwaltungsschaltfläche wurden anhand von Prozess-ID, Titel und Steuerelement identifiziert. Je ein Start mit frischem leerem Profil, 30 Sekunden sichtbares Fenster und reguläres Schließen. Der separate Bedienlauf im Debug-Build bestätigte zusätzlich Projektanlage, Neustart, Auswahl des vorhandenen Projekts per Enter und Rückkehr aus dem Editor in die Verwaltung.
+
+| Installierter Stand | Desktop / WebView2-Prozesse | Netzereignisse außerhalb von Loopback | Loopback |
+| --- | ---: | ---: | ---: |
+| Direkter Vorgänger `aca30d0ae0d9` | 1 / 6 | 52 (48 öffentlich, 4 privat oder link-lokal) | 6 |
+| Native Projektübersicht `66b0ff0e103f` | 1 / 0 | 0 | 0 |
+
+Beide EXE-Dateien wurden mit ihrem Installerinhalt abgeglichen. SHA-256 des neuen Installers: `fd85f92fa93bfb5597cc1caab7723bb1ecb9536732db3ed4bca16beebbdfc22b`. Die gemeinsame ETW-Aufzeichnung wurde je Prozessbaum getrennt ausgewertet (Modi `desktop` und `native-home`). Vier von vier lokalen IPv4-/IPv6-TCP-/UDP-Kontrollen, null verlorene Ereignisse oder Puffer und vollständige Prozessenden. Der erste Versuch wurde wegen uneindeutiger Fensterzuordnung vor Abschluss verworfen. Testinstallationen, Profile und Rohdaten der Messung wurden entfernt.
+
+**Abgenommen ist der Start bis zum Schließen der nativen Projektübersicht mit leerem Katalog.** Projektöffnung und Verwaltung starten weiterhin WebView2. Für diese Wege, externe Systemdienste und den gesamten Editor lässt sich aus dem Lauf keine Netzwerkfreiheit ableiten. Q-01/Q-02 bleiben für das Gesamtprodukt offen.
+
 ## Regulärer Windows-Start am 25. November 2026
 
 **Q-01/Q-02 für den Desktop weiterhin nicht bestanden.** Beim Start ohne geöffnetes Manuskript wurden in beiden Prozessbäumen WebView2-Transportereignisse zu öffentlichen Zielen erfasst.
