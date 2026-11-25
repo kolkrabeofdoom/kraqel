@@ -15,6 +15,69 @@ const BACK: u16 = 219;
 const MERGED: i32 = 220;
 const DIFF_PREV: u16 = 221;
 const DIFF_NEXT: u16 = 222;
+const ALL_LOCAL: u16 = 223;
+const ALL_REMOTE: u16 = 224;
+const UNDO_CHOICE: u16 = 225;
+const REDO_CHOICE: u16 = 226;
+
+// A dialog owns its selection history. A new revision only carries over the
+// currently selected sources; no action from the old revision can be replayed.
+#[derive(Default)]
+struct ChoiceHistory {
+    undo: std::collections::VecDeque<Vec<u8>>,
+    redo: Vec<Vec<u8>>,
+}
+
+impl ChoiceHistory {
+    fn choose(&mut self, choices: &mut [u8], at: std::ops::Range<usize>, side: u8) -> bool {
+        if choices[at.clone()].iter().all(|selected| *selected == side) {
+            return false;
+        }
+        self.redo.clear();
+        if self.undo.len() == 16 {
+            self.undo.pop_front();
+        }
+        self.undo.push_back(choices.to_vec());
+        choices[at].fill(side);
+        true
+    }
+
+    fn step(&mut self, choices: &mut Vec<u8>, redo: bool) -> bool {
+        if redo {
+            let Some(next) = self.redo.pop() else {
+                return false;
+            };
+            self.undo.push_back(std::mem::replace(choices, next));
+        } else {
+            let Some(previous) = self.undo.pop_back() else {
+                return false;
+            };
+            self.redo.push(std::mem::replace(choices, previous));
+        }
+        true
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ChoiceHistory;
+
+    #[test]
+    fn bulk_undo_restores_mixed_sources_and_a_noop_keeps_redo() {
+        let mut h = ChoiceHistory::default();
+        let mut sides = vec![0, 1, 0];
+        assert!(h.choose(&mut sides, 0..3, 1));
+        assert!(h.step(&mut sides, false));
+        assert_eq!(sides, [0, 1, 0]);
+        assert!(!h.choose(&mut sides, 1..2, 1));
+        assert!(h.step(&mut sides, true));
+        assert_eq!(sides, [1, 1, 1]);
+        assert!(h.step(&mut sides, false));
+        assert!(h.choose(&mut sides, 0..1, 1));
+        assert!(!h.step(&mut sides, true));
+        assert_eq!(sides, [1, 1, 0]);
+    }
+}
 
 pub(super) struct Review {
     pub draft: Zeroizing<String>,
@@ -51,6 +114,7 @@ impl Review {
             refreshed,
             choices: &mut self.choices,
             pos: self.position,
+            history: ChoiceHistory::default(),
         };
         let button = WS_CHILD | WS_VISIBLE | WS_TABSTOP;
         let label = WS_CHILD | WS_VISIBLE;
@@ -81,13 +145,44 @@ impl Review {
                 button,
                 "&Gespeicherten Absatz wählen",
             ),
-            (PREV, 0x80, 8, 129, 85, 17, button, "&Vorheriger Absatz"),
-            (NEXT, 0x80, 99, 129, 85, 17, button, "&Nächster Absatz"),
+            (ALL_LOCAL, 0x80, 8, 129, 188, 17, button, "Alle aus Entwurf"),
+            (
+                ALL_REMOTE,
+                0x80,
+                203,
+                129,
+                188,
+                17,
+                button,
+                "Alle aus gespeicherter Fassung",
+            ),
+            (PREV, 0x80, 8, 151, 85, 17, button, "&Vorheriger Absatz"),
+            (NEXT, 0x80, 99, 151, 85, 17, button, "&Nächster Absatz"),
+            (
+                UNDO_CHOICE,
+                0x80,
+                203,
+                151,
+                91,
+                17,
+                button,
+                "Rückgängig (Strg+Z)",
+            ),
+            (
+                REDO_CHOICE,
+                0x80,
+                299,
+                151,
+                92,
+                17,
+                button,
+                "Wiederholen (Strg+Y)",
+            ),
             (
                 DIFF_PREV,
                 0x80,
                 8,
-                151,
+                173,
                 188,
                 17,
                 button,
@@ -97,7 +192,7 @@ impl Review {
                 DIFF_NEXT,
                 0x80,
                 203,
-                151,
+                173,
                 188,
                 17,
                 button,
@@ -107,18 +202,18 @@ impl Review {
                 0xffff,
                 0x82,
                 8,
-                174,
+                196,
                 380,
                 12,
                 label,
                 "Vollständige &Auswahl zum Speichern",
             ),
-            (MERGED as u16, 0x81, 8, 187, 383, 58, read, ""),
+            (MERGED as u16, 0x81, 8, 209, 383, 58, read, ""),
             (
                 BACK,
                 0x80,
                 124,
-                251,
+                273,
                 126,
                 18,
                 button | BS_DEFPUSHBUTTON as u32,
@@ -128,7 +223,7 @@ impl Review {
                 COMMIT,
                 0x80,
                 257,
-                251,
+                273,
                 134,
                 18,
                 button,
@@ -136,7 +231,7 @@ impl Review {
             ),
         ];
         let template =
-            project_dialog::template("KRAQEL – Fassungen vergleichen", 399, 276, &controls);
+            project_dialog::template("KRAQEL – Fassungen vergleichen", 399, 298, &controls);
         let result = unsafe {
             DialogBoxIndirectParamW(
                 GetModuleHandleW(null()),
@@ -157,7 +252,8 @@ struct Dialog<'a> {
     differences: Vec<usize>,
     revision: u64,
     refreshed: bool,
-    choices: &'a mut [u8],
+    choices: &'a mut Vec<u8>,
+    history: ChoiceHistory,
     pos: usize,
 }
 
@@ -194,6 +290,17 @@ impl Dialog<'_> {
             side(&self.remote)
         );
         unsafe {
+            let focus = GetFocus();
+            let undo = GetDlgItem(hwnd, UNDO_CHOICE.into());
+            let redo = GetDlgItem(hwnd, REDO_CHOICE.into());
+            EnableWindow(undo, i32::from(!self.history.undo.is_empty()));
+            EnableWindow(redo, i32::from(!self.history.redo.is_empty()));
+            if focus == undo && self.history.undo.is_empty() && !self.history.redo.is_empty() {
+                SetFocus(redo);
+            }
+            if focus == redo && self.history.redo.is_empty() && !self.history.undo.is_empty() {
+                SetFocus(undo);
+            }
             for (id, text) in [
                 (INFO, status.as_str()),
                 (LOCAL, self.local.get(self.pos).copied().unwrap_or("")),
@@ -270,17 +377,21 @@ unsafe extern "system" fn keys(
 ) -> LRESULT {
     unsafe {
         let native = || windows_sys::Win32::UI::Shell::DefSubclassProc(control, msg, w, l);
-        if w != usize::from(VK_F6) && w != usize::from(VK_F7) {
+        let ctrl = GetKeyState(i32::from(VK_CONTROL)) < 0;
+        let shift = GetKeyState(i32::from(VK_SHIFT)) < 0;
+        let history = ctrl && !shift && (w == usize::from(VK_Z) || w == usize::from(VK_Y));
+        let navigation = !ctrl && (w == usize::from(VK_F6) || w == usize::from(VK_F7));
+        if !(history || navigation)
+            || [VK_MENU, VK_LWIN, VK_RWIN]
+                .iter()
+                .any(|key| GetKeyState(i32::from(*key)) < 0)
+        {
             return native();
         }
         if msg == WM_GETDLGCODE && l != 0 {
             return native() | DLGC_WANTMESSAGE as isize;
         }
-        if msg != WM_KEYDOWN
-            || [VK_CONTROL, VK_MENU, VK_LWIN, VK_RWIN]
-                .iter()
-                .any(|key| GetKeyState(i32::from(*key)) < 0)
-        {
+        if msg != WM_KEYDOWN {
             return native();
         }
         if l & (1 << 30) == 0 {
@@ -295,7 +406,13 @@ unsafe extern "system" fn keys(
                     },
                 ));
             } else {
-                let id = if GetKeyState(i32::from(VK_SHIFT)) < 0 {
+                let id = if history {
+                    if w == usize::from(VK_Z) {
+                        UNDO_CHOICE
+                    } else {
+                        REDO_CHOICE
+                    }
+                } else if shift {
                     DIFF_PREV
                 } else {
                     DIFF_NEXT
@@ -331,6 +448,10 @@ unsafe extern "system" fn handle(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 NEXT.into(),
                 USE_LOCAL.into(),
                 USE_REMOTE.into(),
+                ALL_LOCAL.into(),
+                ALL_REMOTE.into(),
+                UNDO_CHOICE.into(),
+                REDO_CHOICE.into(),
                 DIFF_PREV.into(),
                 DIFF_NEXT.into(),
                 BACK.into(),
@@ -392,15 +513,38 @@ unsafe extern "system" fn handle(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 };
                 dialog.pos = ds[index];
             }
-            USE_LOCAL => dialog.choices[dialog.pos] = 0,
-            USE_REMOTE => dialog.choices[dialog.pos] = 1,
+            USE_LOCAL | USE_REMOTE | ALL_LOCAL | ALL_REMOTE => {
+                let range = if matches!(id, ALL_LOCAL | ALL_REMOTE) {
+                    0..dialog.choices.len()
+                } else {
+                    dialog.pos..dialog.pos + 1
+                };
+                if !dialog.history.choose(
+                    dialog.choices,
+                    range,
+                    u8::from(matches!(id, USE_REMOTE | ALL_REMOTE)),
+                ) {
+                    return 1;
+                }
+            }
+            UNDO_CHOICE | REDO_CHOICE => {
+                if !dialog.history.step(dialog.choices, id == REDO_CHOICE) {
+                    return 1;
+                }
+            }
             COMMIT => {
                 EndDialog(hwnd, 1);
                 return 1;
             }
             _ => return 0,
         }
-        if !dialog.render(hwnd, matches!(id, USE_LOCAL | USE_REMOTE)) {
+        if !dialog.render(
+            hwnd,
+            matches!(
+                id,
+                USE_LOCAL | USE_REMOTE | ALL_LOCAL | ALL_REMOTE | UNDO_CHOICE | REDO_CHOICE
+            ),
+        ) {
             EndDialog(hwnd, 0);
         }
         1
