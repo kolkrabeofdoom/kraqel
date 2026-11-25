@@ -496,16 +496,35 @@ fn next_message() -> io::Result<MSG> {
 unsafe fn dispatch(hwnd: HWND, msg: &MSG) {
     unsafe {
         let repeated = msg.lParam & (1 << 30) != 0;
-        if msg.message == WM_KEYDOWN
-            && (msg.hwnd == hwnd || IsChild(hwnd, msg.hwnd) != 0)
-            && !GetDlgItem(hwnd, FOCUS).is_null()
-            && (msg.wParam == VK_F11 as usize
-                || (msg.wParam == VK_ESCAPE as usize && (focus_mode(hwnd) || repeated)))
-        {
-            if !repeated {
-                toggle_focus(hwnd);
+        if msg.message == WM_KEYDOWN && (msg.hwnd == hwnd || IsChild(hwnd, msg.hwnd) != 0) {
+            let field = GetDlgItem(hwnd, EDIT);
+            let save = GetDlgItem(hwnd, SAVE);
+            let key = msg.wParam;
+            let ctrl_only = GetKeyState(i32::from(VK_CONTROL)) < 0
+                && [VK_MENU, VK_SHIFT, VK_LWIN, VK_RWIN]
+                    .iter()
+                    .all(|modifier| GetKeyState(i32::from(*modifier)) >= 0);
+            if ctrl_only && key == usize::from(VK_A) && msg.hwnd == field && GetFocus() == field {
+                if !repeated {
+                    SendMessageW(field, EM_SETSEL, 0, -1);
+                }
+                return;
             }
-            return;
+            if ctrl_only && key == usize::from(VK_S) {
+                if !repeated && !save.is_null() && IsWindowEnabled(save) != 0 {
+                    PostMessageW(hwnd, REQUEST, SAVE as usize, 0);
+                }
+                return;
+            }
+            if !save.is_null()
+                && (key == usize::from(VK_F11)
+                    || (key == usize::from(VK_ESCAPE) && (focus_mode(hwnd) || repeated)))
+            {
+                if !repeated {
+                    toggle_focus(hwnd);
+                }
+                return;
+            }
         }
         if IsDialogMessageW(hwnd, msg) == 0 {
             TranslateMessage(msg);
