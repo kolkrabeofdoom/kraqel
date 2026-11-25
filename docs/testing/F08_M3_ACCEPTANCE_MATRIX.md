@@ -2,6 +2,10 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Ganze Wörter in der nativen Szenensuche
+
+Die native Fensterprobe zum Quellstand `aa8b8ac684e2` öffnete Leser und Editor mit „Raben Rabe Rabe_2 Rabe.“. Beide starteten mit Teilwortsuche und fanden „Rabe“ viermal. Mit **Nur ganze Wörter** gab es zwei Treffer, der erste lag im UTF-16-Bereich 6 bis 10. Nach dem Moduswechsel wies der Editor den zuvor markierten Teiltreffer beim Ersetzen zurück. Einzelersatz änderte ein ganzes Wort, der bestätigte Gesamtersatz beide. Rückgängig stellte jeweils den ursprünglichen Text wieder her. Beide Fenster schlossen regulär. Ein gezielter Regressionstest deckt zusätzlich kombinierende Zeichen und einen überlappenden gültigen Treffer nach einem verworfenen Teiltreffer ab.
+
 ## Direkter Absatzsprung im Fassungsvergleich
 
 Im kompilierten Win32-Dialog wurde bei drei synthetischen Absätzen die Quelle für Absatz 1 gewechselt. Strg+G fokussierte das Nummernfeld. Die Eingabe 4 mit Enter zeigte den gültigen Bereich an und erhielt Position und Feldfokus. Die Eingabe 3 und die Sprungschaltfläche zeigten beide Fassungen von Absatz 3 mit Fokus links. Die Gesamtvorschau blieb gleich. Rückgängig nahm anschließend die vorherige Quellwahl zurück. Die Probe bediente die nativen Steuerelemente über Win32-Nachrichten.

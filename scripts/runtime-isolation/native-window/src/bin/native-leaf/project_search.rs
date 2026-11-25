@@ -35,19 +35,21 @@ pub(super) fn selected_boundary(scene: &[u16], start: usize, end: usize) -> bool
     }
     let before = &scene[..start];
     let after = &scene[end..];
-    let previous = before.last().and_then(|last| {
-        let width = if (0xdc00..=0xdfff).contains(last) {
-            2
-        } else {
-            1
-        };
-        let tail = before.get(before.len().checked_sub(width)?..)?;
-        char::decode_utf16(tail.iter().copied()).next()?.ok()
-    });
-    let next = char::decode_utf16(after.iter().copied())
+    // Treating a malformed UTF-16 neighbor as a boundary would authorize a
+    // replacement that the UTF-8 search path cannot produce.
+    let width = if before.last().is_some_and(|c| (0xdc00..=0xdfff).contains(c)) {
+        if before.len() < 2 || !(0xd800..=0xdbff).contains(&before[before.len() - 2]) {
+            return false;
+        }
+        2
+    } else {
+        before.len().min(1)
+    };
+    let previous = char::decode_utf16(before[before.len() - width..].iter().copied())
         .next()
-        .and_then(Result::ok);
-    bounded(previous, next)
+        .transpose();
+    let next = char::decode_utf16(after.iter().copied()).next().transpose();
+    matches!((previous, next), (Ok(left), Ok(right)) if bounded(left, right))
 }
 
 // Accepted matches are disjoint. A rejected partial match may overlap a later
