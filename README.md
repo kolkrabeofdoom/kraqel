@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/kolkrabeofdoom/kraqel/actions/workflows/ci.yml"><img src="https://github.com/kolkrabeofdoom/kraqel/actions/workflows/ci.yml/badge.svg" alt="CI-Status"></a>
-  <a href="https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.4"><img src="https://img.shields.io/badge/Release-0.1.0--alpha.4-c1121f" alt="Aktuelles Release: 0.1.0 Alpha 4"></a>
+  <a href="https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.7"><img src="https://img.shields.io/badge/Release-0.1.0--alpha.7-c1121f" alt="Aktuelles Release: 0.1.0 Alpha 7"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/Lizenz-GPL--3.0--or--later-663399" alt="Lizenz: GPL 3.0 oder später"></a>
   <img src="https://img.shields.io/badge/Plattform-Windows%20x64-0f6cbd" alt="Primärplattform: Windows x64">
   <img src="https://img.shields.io/badge/Prinzip-Offline%20first-287271" alt="Prinzip: Offline first">
@@ -30,14 +30,14 @@ pauschale Zusage vollständiger Netzstille der Desktop-App. Die Laufzeitgrenze w
 Q-01/Q-02 bleiben offen. Microsoft beschreibt die eigene Diagnosedatenerfassung unter
 [Daten und Datenschutz in WebView2](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/data-privacy).
 
-> [!WARNING] **Aktueller Stand: 0.1.0 Alpha 4.** KRAQEL ist ein frühes, öffentliches Prerelease und
+> [!WARNING] **Aktueller Stand: 0.1.0 Alpha 7.** KRAQEL ist ein frühes, öffentliches Prerelease und
 > noch nicht produktionsreif. Arbeite ausschließlich mit aktuellen Sicherungen und niemals mit dem
 > einzigen Exemplar eines Manuskripts. Der Drache kennt inzwischen Undo, aber die Brandschutzordnung
 > nur vom Hörensagen.
 
 ## Inhaltsverzeichnis
 
-- [Alpha 4 herunterladen](#alpha-4-herunterladen)
+- [Alpha 7 herunterladen](#alpha-7-herunterladen)
 - [Wofür KRAQEL gedacht ist](#wofür-kraqel-gedacht-ist)
 - [Grundsätze](#grundsätze)
 - [Funktionsumfang](#funktionsumfang)
@@ -54,39 +54,44 @@ Q-01/Q-02 bleiben offen. Microsoft beschreibt die eigene Diagnosedatenerfassung 
 - [Mitwirken](#mitwirken)
 - [Lizenz und Inhalte](#lizenz-und-inhalte)
 
-## Alpha 4 herunterladen
+## Alpha 7 herunterladen
 
 ### Fertiges Windows-Setup
 
 Das aktuelle öffentliche Prerelease ist
-**[KRAQEL 0.1.0 Alpha 4](https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.4)**. Es
-richtet sich an testende Personen auf Windows x64 und enthält drei gemeinsam zu prüfende Dateien:
+**[KRAQEL 0.1.0 Alpha 7](https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.7)**. Es
+richtet sich an testende Personen auf Windows x64. Über **Projektordner auswählen** lässt sich ein
+geschlossenes lokales Projekt auf der Startseite prüfen und nach ausdrücklicher Bestätigung als
+Arbeitskopie übernehmen. Für ausgewählte Zusatzdateien steht ein separates, passphrasengeschütztes
+Archiv zur Verfügung. Der portable Archivhelfer für die spätere Wiederherstellung liegt im
+optionalen Rechnerwechsel-ZIP.
+[Anleitung zum Ordnerimport in Alpha 7](https://github.com/kolkrabeofdoom/kraqel/blob/v0.1.0-alpha.7/docs/WORKSTATION_HANDOFF.md#einen-vorhandenen-windows-projektordner-übernehmen)
 
-Alpha 4 ergänzt den bewusst bestätigten, atomaren Merge doppelter Story-Bibel-Einträge samt
-Eigenschaften, Referenzen und visuellen Profilen. Der Ablauf wurde zusätzlich in der echten
-Windows-Tauri-App manuell geprüft.
+| Datei                                                                                                                                                                  | Zweck                                                             |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| [`KRAQEL_0.1.0_windows-x64-setup.exe`](https://github.com/kolkrabeofdoom/kraqel/releases/download/v0.1.0-alpha.7/KRAQEL_0.1.0_windows-x64-setup.exe)                   | Unsigniertes NSIS-Setup für das aktuelle Benutzer*innenkonto      |
+| [`KRAQEL_0.1.0_windows-x64-SHA256SUMS.txt`](https://github.com/kolkrabeofdoom/kraqel/releases/download/v0.1.0-alpha.7/KRAQEL_0.1.0_windows-x64-SHA256SUMS.txt)         | Veröffentlichte SHA-256-Prüfsumme                                 |
+| [`KRAQEL_0.1.0_windows-x64-build.json`](https://github.com/kolkrabeofdoom/kraqel/releases/download/v0.1.0-alpha.7/KRAQEL_0.1.0_windows-x64-build.json)                 | Maschinenlesbares Buildmanifest mit Quellcommit und Werkzeugdaten |
+| [`KRAQEL_0.1.0_windows-x64-rechnerwechsel.zip`](https://github.com/kolkrabeofdoom/kraqel/releases/download/v0.1.0-alpha.7/KRAQEL_0.1.0_windows-x64-rechnerwechsel.zip) | Optionaler portabler Archivhelfer mit Anleitung und Prüfsumme     |
 
-| Datei                                                                                                                                                          | Zweck                                                             |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| [`KRAQEL_0.1.0_windows-x64-setup.exe`](https://github.com/kolkrabeofdoom/kraqel/releases/download/v0.1.0-alpha.4/KRAQEL_0.1.0_windows-x64-setup.exe)           | Unsigniertes NSIS-Setup für das aktuelle Benutzer*innenkonto      |
-| [`KRAQEL_0.1.0_windows-x64-SHA256SUMS.txt`](https://github.com/kolkrabeofdoom/kraqel/releases/download/v0.1.0-alpha.4/KRAQEL_0.1.0_windows-x64-SHA256SUMS.txt) | Veröffentlichte SHA-256-Prüfsumme                                 |
-| [`KRAQEL_0.1.0_windows-x64-build.json`](https://github.com/kolkrabeofdoom/kraqel/releases/download/v0.1.0-alpha.4/KRAQEL_0.1.0_windows-x64-build.json)         | Maschinenlesbares Buildmanifest mit Quellcommit und Werkzeugdaten |
-
-Das Setup ist 233.977.179 Byte beziehungsweise rund 223,14 MiB groß. Es enthält den
+Das Setup ist 319.439.741 Byte beziehungsweise rund 304,64 MiB groß. Es enthält den
 WebView2-Offlineinstaller, damit die Installation nicht erst zur Laufzeit eine Browserkomponente aus
 dem Netz nachladen muss. Der zugehörige Quellstand ist Commit
-[`24ceb3c627f94ac6e54f8d11b95a201a8e806eed`](https://github.com/kolkrabeofdoom/kraqel/commit/24ceb3c627f94ac6e54f8d11b95a201a8e806eed).
+[`a9a3a673ff143dc1cd5de0a125826d1e6a41f95d`](https://github.com/kolkrabeofdoom/kraqel/commit/a9a3a673ff143dc1cd5de0a125826d1e6a41f95d).
 
 Erwartete SHA-256-Prüfsumme des Setups:
 
 ```text
-0e6d578d1dfb48e8ecfe6c8be04be3f593f83eff43756f829d30ebad761fb6be
+85c4f09e8e24ae4f82946a69d8d67f4f540f7af087ea2fe2ef90c2e07c905bdd
 ```
+
+Das optionale Rechnerwechsel-ZIP umfasst 411.678 Byte. Sein SHA-256 lautet
+`20e53fa2d040005ded009697f0a566398905ad2858f8744e058988ddb787404c`.
 
 Unter PowerShell lässt sich der Download so prüfen:
 
 ```powershell
-$expected = "0e6d578d1dfb48e8ecfe6c8be04be3f593f83eff43756f829d30ebad761fb6be"
+$expected = "85c4f09e8e24ae4f82946a69d8d67f4f540f7af087ea2fe2ef90c2e07c905bdd"
 $actual = (Get-FileHash .\KRAQEL_0.1.0_windows-x64-setup.exe -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($actual -ne $expected) { throw "Die Prüfsumme stimmt nicht. Setup nicht starten." }
 "SHA-256 stimmt: $actual"
@@ -94,7 +99,7 @@ if ($actual -ne $expected) { throw "Die Prüfsumme stimmt nicht. Setup nicht sta
 
 ### Unsigned- und SmartScreen-Hinweis
 
-Alpha 4 ist bewusst **nicht mit einem kommerziellen Authenticode-Zertifikat signiert**. Windows kann
+Alpha 7 ist bewusst **nicht mit einem kommerziellen Authenticode-Zertifikat signiert**. Windows kann
 deshalb eine SmartScreen-Warnung anzeigen oder die herausgebende Stelle als unbekannt bezeichnen.
 Das ist für dieses Release erwartbar, aber kein Freibrief für unbekannte Dateien:
 
@@ -111,14 +116,12 @@ Veröffentlichungskanal. Das ausführliche Verfahren steht unter
 
 ### Was beim Release bereits geprüft wurde
 
-- Build aus einem sauberen, dokumentierten Git-Commit.
-- Genau ein unsigniertes Windows-x64-NSIS-Setup; kein MSI, Updater oder ARM64-Paket.
-- Buildmanifest und Prüfsummendatei stimmen mit dem Setup überein.
-- Entwurfsassets wurden von GitHub zurückgeladen und in einem isolierten Ziel installiert,
-  registriert und wieder deinstalliert.
-- Die später öffentlich heruntergeladenen drei Dateien sind bytegenau identisch mit dem lokalen
-  Build und dem geprüften Entwurf.
-- Windows- und Ubuntu-CI bestanden die Qualitätskette und jeweils 16 Browser-E2E-Abläufe.
+- Nach dem Update von Alpha 6 öffnete die vorhandene Startmenüverknüpfung im isolierten
+  Windows-Profil das Demoprojekt mit derselben Kennung.
+- Die per Ordnerauswahl übernommene Beispielkopie ließ sich nach einem Neustart öffnen. Alle 22
+  SQLite-Tabellen und 42 Bild- und Vorschaudateien stimmten mit der Quelle überein.
+- Der portable Archivhelfer stellte die ausgewählte Zusatzdatei mit der zugehörigen Passphrase
+  wieder her.
 
 Noch offen ist die vollständige manuelle Abnahme von SmartScreen, interaktivem Erststart,
 Projektpersistenz und Deinstallation auf einem unabhängigen Zweitrechner oder einer Clean-VM.
@@ -302,7 +305,7 @@ des KRAQEL-Programmcodes zu unterscheiden.
 
 ## Was noch nicht fertig ist
 
-KRAQEL 0.1.0 Alpha 4 ist ein Entwicklungsstand, keine verschämt als „Beta“ verkleidete
+KRAQEL 0.1.0 Alpha 7 ist ein Entwicklungsstand, keine verschämt als „Beta“ verkleidete
 Fertigbehauptung. Insbesondere fehlen oder bleiben offen:
 
 - externe Windows-Abnahme von SmartScreen, Erststart, Persistenz und Deinstallation,
@@ -562,7 +565,7 @@ Kriterien den vorhandenen Nachweisen und offenen Gesamtprüfungen zu.
 | M2       | Story-Bibel, Plotboard, Timeline             | Technischer Mindestumfang mit getrennten E2E-Abläufen umgesetzt                                            |
 | M3       | Git, Import/Export, Medien, visuelle Profile | Teilweise umgesetzt; Snapshot-, Text- und DOCX-Szenenimport sowie begrenzter Manuskriptroundtrip vorhanden |
 | M4       | Text-KI, Kontinuität, Prompt-Entwürfe        | Technischer 0.1-Umfang weitgehend vorhanden; reale Providerabnahme und Bildausführung fehlen               |
-| M5       | Windows-Release 0.1                          | Alpha 4 veröffentlicht; unabhängige Windows-Abnahme noch offen                                             |
+| M5       | Windows-Release 0.1                          | Alpha 7 veröffentlicht; unabhängige Windows-Abnahme noch offen                                             |
 | M6 / 0.2 | Bildgenerierung, Varianten, Karten           | Nicht begonnen und ausdrücklich außerhalb von 0.1                                                          |
 
 Die maßgebliche, faktenbasierte Übergabe steht in
