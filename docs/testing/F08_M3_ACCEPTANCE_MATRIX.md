@@ -2,6 +2,12 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Installierter nativer Szenenlesepfad · 25. November 2026
+
+Im frisch installierten Kandidaten `e24c9c959069` wurde ein synthetisches Projekt über Projekt, Kapitel und Szene geöffnet. Der sichtbare Text und der Leseschutz des Win32-Steuerelements wurden geprüft. Anschließend wurden Lesefenster und Desktop regulär geschlossen. Die installierte Programmdatei stimmte mit dem Installerinhalt überein. Installer-SHA-256: `096ed45d9fe870d928ca9bffc53eda9de8e87383de0fa767c23a5182e3e817af`.
+
+Die ETW-Auswertung im Modus `native-scene` erfasste genau einen Desktop, eine Fensterrolle und einen Datendienst. Für diesen Prozessbaum wurden keine Transportereignisse erfasst, auch keine über Loopback. Alle vier positiven Kontrollen wurden erkannt. Verlorene Ereignisse, verlorene Puffer und nicht zuordenbare Netzereignisse: jeweils null. Dieser Nachweis gilt für den ausgeübten Leseweg. Der separate Schreib- und Wiederöffnungslauf ist in der [Arbeitsübergabe](../WORKSTATION_HANDOFF.md#ein-manuskript-nativ-lesen-und-bearbeiten) dokumentiert. Das WebView2-Studio und externe Systemdienste liegen außerhalb dieses Messumfangs.
+
 ## Native Windows-Projektübersicht · 25. November 2026
 
 Der installierte Kandidat `66b0ff0e103f` zeigte beim regulären Start die native Projektübersicht. Fenster und Verwaltungsschaltfläche wurden anhand von Prozess-ID, Titel und Steuerelement identifiziert. Je ein Start mit frischem leerem Profil, 30 Sekunden sichtbares Fenster und reguläres Schließen. Der separate Bedienlauf im Debug-Build bestätigte zusätzlich Projektanlage, Neustart, Auswahl des vorhandenen Projekts per Enter und Rückkehr aus dem Editor in die Verwaltung.

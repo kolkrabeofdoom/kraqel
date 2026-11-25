@@ -18,6 +18,8 @@ Die lokale Datenbank bleibt im vertrauenswürdigen Desktop-Speicherdienst. Die b
 
 **Bedienabnahme vom 25. November.** Im echten Windows-Debug-Build öffnete sich die ausgewählte Szene eines eigens angelegten Projekts mit Leseschutz und dem erwarteten Text auf Revision 0. Nach ausdrücklicher Bearbeitungsfreigabe, Speichern zweier Absätze, regulärem Beenden und einem neuen Prozess zeigte eine frische Lesesitzung beide Absätze exakt wieder an. SQLite bestätigte Editordokument v1 und Revision 1. Der Speichertest verwarf außerdem eine veraltete Revision sowie ein bei gleicher Revision zwischenzeitlich geändertes Originaldokument.
 
+Der optimierte Windows-Desktop aus 24c9c959069 bestand denselben Bedienlauf. Nach einem neuen Desktopprozess zeigte das schreibgeschützte Fenster beide bearbeiteten Absätze wieder an. Die direkte SQLite-Prüfung bestätigte beide Absatzknoten und Revision 1. Im Vorläufer scheiterte der Start des isolierten Datendienstes vor dessen Bootstrap-Bestätigung. Der ausgelieferte Manuskriptdatendienst ist jetzt als konsolenloses Windows-Programm gebaut und verwendet die ausdrücklich vererbten Pipes. Die reguläre Startfrist beträgt weiterhin fünf Sekunden.
+
 Beim ersten abgebrochenen UI-Prüflauf wurde der Starter bei offenem Lesefenster beendet. Im Windows-Paketverzeichnis blieb ein temporäres UI-AppContainer-Profil. Seine Kontrollablage war bereits entfernt; ohne generationsgebundenen Beleg bleibt das Profil unangetastet. Der reguläre Folgelauf hinterließ kein weiteres Profil. Die Prüfhilfen behalten künftig bei unbestätigtem Sitzungsende die Kontrollablage zurück.
 
 ## Wiedereinstieg nach dem 24. November 2026
