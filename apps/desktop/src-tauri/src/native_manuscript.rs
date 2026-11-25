@@ -2,30 +2,17 @@
 use super::{DocumentKind, DocumentNode, DocumentRepository, ProjectId, ProjectManager};
 use kraqel_domain::EntityId;
 use kraqel_native_start::{
-    OutlineChoice, SceneAction, ask_document_title, choose_chapter, choose_scene, notify,
+    OutlineChoice, SceneAction, ask_document_title, choose_chapter, choose_destination,
+    choose_scene, notify,
 };
-use kraqel_storage::document_repository::is_valid_document_title;
+use kraqel_storage::document_repository::{OutlineMove, is_valid_document_title};
 use kraqel_storage::native_scene::{NativeScene, SceneReadGrant};
 use std::{error::Error, path::Path};
 use zeroize::Zeroizing;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
-fn children(
-    manager: &ProjectManager,
-    project: ProjectId,
-    parent: Option<EntityId>,
-    kind: DocumentKind,
-) -> Result<Vec<DocumentNode>> {
-    let mut opened = manager.open_project(project.to_string())?;
-    Ok(DocumentRepository::new(opened.database_mut())
-        .list(project)?
-        .into_iter()
-        .filter(|doc| doc.parent_id == parent && doc.kind == kind)
-        .collect())
-}
-
-fn titles(documents: &[DocumentNode]) -> Vec<String> {
+fn titles(documents: &[&DocumentNode]) -> Vec<String> {
     documents.iter().map(|doc| doc.title.clone()).collect()
 }
 
@@ -100,67 +87,65 @@ fn show(
 }
 
 pub(super) fn browse(home: &Path, manager: &ProjectManager, project: ProjectId) -> Result<()> {
-    browse_level(home, manager, project, None)
-}
-
-fn browse_level(
-    home: &Path,
-    manager: &ProjectManager,
-    project: ProjectId,
-    parent: Option<EntityId>,
-) -> Result<()> {
-    let (kind, label) = if parent.is_some() {
-        (DocumentKind::Scene, "Szene")
-    } else {
-        (DocumentKind::Chapter, "Kapitel")
-    };
+    let mut parent: Option<EntityId> = None;
     let mut selected = None;
     loop {
-        let nodes = children(manager, project, parent, kind)?;
+        let outline = list_outline(manager, project)?;
+        let chapters: Vec<_> = outline
+            .iter()
+            .filter(|n| n.kind == DocumentKind::Chapter && n.parent_id.is_none())
+            .collect();
+        let chapter_index = chapters.iter().position(|n| Some(n.id) == parent);
+        if parent.is_some() && chapter_index.is_none() {
+            parent = None;
+            selected = None;
+        }
+        let (kind, label, nodes) = if parent.is_some() {
+            (
+                DocumentKind::Scene,
+                "Szene",
+                outline
+                    .iter()
+                    .filter(|n| n.kind == DocumentKind::Scene && n.parent_id == parent)
+                    .collect::<Vec<_>>(),
+            )
+        } else {
+            (DocumentKind::Chapter, "Kapitel", chapters.clone())
+        };
         let names = titles(&nodes);
         let index = nodes.iter().position(|node| Some(node.id) == selected);
         let choice = match kind {
             DocumentKind::Chapter => choose_chapter(&names, index)?,
-            DocumentKind::Scene => choose_scene(&names, index)?,
+            DocumentKind::Scene => choose_scene(&names, index, chapters.len() > 1)?,
         };
         let selected_index = match choice {
             OutlineChoice::Back => None,
             OutlineChoice::Create(index) => index,
-            OutlineChoice::Rename(i) | OutlineChoice::Open(i) | OutlineChoice::Edit(i) => Some(i),
+            OutlineChoice::Rename(i)
+            | OutlineChoice::Open(i)
+            | OutlineChoice::Edit(i)
+            | OutlineChoice::Up(i)
+            | OutlineChoice::Down(i)
+            | OutlineChoice::Move(i) => Some(i),
         };
         let node = selected_index
-            .map(|i| nodes.get(i).ok_or("Ungültige Dokumentauswahl."))
+            .map(|i| nodes.get(i).copied().ok_or("Ungültige Dokumentauswahl."))
             .transpose()?;
         selected = node.map(|n| n.id);
         match choice {
             OutlineChoice::Create(_) | OutlineChoice::Rename(_) => {
                 let rename = matches!(choice, OutlineChoice::Rename(_));
                 let current = node.filter(|_| rename);
-                let Some(title) = ask_document_title(
-                    label,
-                    current.map(|n| n.title.as_str()),
-                    is_valid_document_title,
-                )?
-                else {
-                    continue;
-                };
-                let mut opened = manager.open_project(project.to_string())?;
-                let mut repository = DocumentRepository::new(opened.database_mut());
-                let changed = match current {
-                    Some(n) => repository.rename_selected(n, &title),
-                    None => repository.create(project, parent, kind, &title),
-                };
-                match changed {
-                    Ok(n) => selected = Some(n.id),
-                    Err(_) => notify(
-                        "Die Änderung konnte nicht gespeichert werden. Bitte prüfe die aktualisierte Auswahl.",
-                    ),
+                if let Some(changed) = change_title(manager, project, parent, kind, label, current)?
+                {
+                    selected = Some(changed.id);
                 }
             }
             OutlineChoice::Open(_) | OutlineChoice::Edit(_) => {
                 let node = node.ok_or("Dokumentauswahl fehlt.")?;
                 if node.kind == DocumentKind::Chapter {
-                    browse_level(home, manager, project, Some(node.id))?;
+                    parent = Some(node.id);
+                    selected = None;
                 } else {
                     let action = if matches!(choice, OutlineChoice::Edit(_)) {
                         SceneAction::Edit
@@ -174,7 +159,90 @@ fn browse_level(
                     }
                 }
             }
-            OutlineChoice::Back => return Ok(()),
+            OutlineChoice::Up(_) | OutlineChoice::Down(_) | OutlineChoice::Move(_) => {
+                let id = node.ok_or("Dokumentauswahl fehlt.")?.id;
+                let Some(direction) = choose_move(&choice, &chapters, chapter_index)? else {
+                    continue;
+                };
+                let mut opened = manager.open_project(project.to_string())?;
+                match DocumentRepository::new(opened.database_mut())
+                    .move_in_outline(project, &outline, id, direction)
+                {
+                    Ok(()) => {
+                        if let OutlineMove::AppendToChapter(target) = direction {
+                            parent = Some(target);
+                        }
+                    }
+                    Err(_) => notify(
+                        "Der Eintrag wurde nicht verschoben. Bitte prüfe die aktualisierte Gliederung.",
+                    ),
+                }
+            }
+            OutlineChoice::Back => {
+                if parent.is_none() {
+                    return Ok(());
+                }
+                selected = parent.take();
+            }
         }
+    }
+}
+
+fn change_title(
+    manager: &ProjectManager,
+    project: ProjectId,
+    parent: Option<EntityId>,
+    kind: DocumentKind,
+    label: &'static str,
+    current: Option<&DocumentNode>,
+) -> Result<Option<DocumentNode>> {
+    let Some(title) = ask_document_title(
+        label,
+        current.map(|n| n.title.as_str()),
+        is_valid_document_title,
+    )?
+    else {
+        return Ok(None);
+    };
+    let mut opened = manager.open_project(project.to_string())?;
+    let mut repository = DocumentRepository::new(opened.database_mut());
+    let changed = match current {
+        Some(n) => repository.rename_selected(n, &title),
+        None => repository.create(project, parent, kind, &title),
+    };
+    if let Ok(node) = changed {
+        Ok(Some(node))
+    } else {
+        notify(
+            "Die Änderung konnte nicht gespeichert werden. Bitte prüfe die aktualisierte Auswahl.",
+        );
+        Ok(None)
+    }
+}
+
+fn list_outline(manager: &ProjectManager, project: ProjectId) -> Result<Vec<DocumentNode>> {
+    let mut opened = manager.open_project(project.to_string())?;
+    Ok(DocumentRepository::new(opened.database_mut()).list(project)?)
+}
+
+fn choose_move(
+    choice: &OutlineChoice,
+    chapters: &[&DocumentNode],
+    current: Option<usize>,
+) -> Result<Option<OutlineMove>> {
+    match choice {
+        OutlineChoice::Up(_) => Ok(Some(OutlineMove::Earlier)),
+        OutlineChoice::Down(_) => Ok(Some(OutlineMove::Later)),
+        OutlineChoice::Move(_) => {
+            let Some(target) =
+                choose_destination(&titles(chapters), current.ok_or("Kapitel fehlt.")?)?
+            else {
+                return Ok(None);
+            };
+            Ok(Some(OutlineMove::AppendToChapter(
+                chapters.get(target).ok_or("Kapitel fehlt.")?.id,
+            )))
+        }
+        _ => Err("Ungültige Verschiebeaktion.".into()),
     }
 }

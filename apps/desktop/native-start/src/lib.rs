@@ -12,8 +12,9 @@ use windows_sys::Win32::{
         Input::KeyboardAndMouse::EnableWindow,
         WindowsAndMessaging::{
             DialogBoxParamW, EndDialog, GWLP_USERDATA, GetDlgItem, GetWindowLongPtrW, IDCANCEL,
-            IDOK, LB_ADDSTRING, LB_GETCURSEL, LB_SETCURSEL, LBN_DBLCLK, SendDlgItemMessageW,
-            SetDlgItemTextW, SetWindowLongPtrW, WM_CLOSE, WM_COMMAND, WM_INITDIALOG,
+            IDOK, LB_ADDSTRING, LB_GETCURSEL, LB_SETCURSEL, LBN_DBLCLK, LBN_SELCHANGE,
+            SendDlgItemMessageW, SetDlgItemTextW, SetWindowLongPtrW, WM_CLOSE, WM_COMMAND,
+            WM_INITDIALOG,
         },
     },
 };
@@ -27,6 +28,9 @@ const EDIT_SCENE: i32 = 105;
 const NEW_PROJECT: i32 = 106;
 const NEW_DOCUMENT: i32 = 109;
 const RENAME: i32 = 110;
+const UP: i32 = 111;
+const DOWN: i32 = 112;
+const MOVE: i32 = 113;
 
 pub enum Choice {
     Close,
@@ -40,6 +44,7 @@ struct Entries<'a> {
     names: &'a [String],
     empty_label: &'a str,
     selected: Option<usize>,
+    has_other_chapters: bool,
     command: Option<(i32, Option<usize>)>,
 }
 
@@ -59,7 +64,7 @@ pub fn choose(names: Option<&[String]>) -> io::Result<Choice> {
         "Auf diesem Rechner sind noch keine lokalen Projekte angelegt."
     };
     let names = names.unwrap_or_default();
-    match list_result(DIALOG, names, empty, None)? {
+    match list_result(DIALOG, names, empty, None, false)? {
         None => Ok(Choice::Close),
         Some((MANAGE, _)) => Ok(Choice::Management),
         Some((NEW_PROJECT, _)) => Ok(Choice::Create),
@@ -81,6 +86,9 @@ pub enum OutlineChoice {
     Rename(usize),
     Open(usize),
     Edit(usize),
+    Up(usize),
+    Down(usize),
+    Move(usize),
 }
 
 pub fn choose_chapter(names: &[String], selected: Option<usize>) -> io::Result<OutlineChoice> {
@@ -89,11 +97,46 @@ pub fn choose_chapter(names: &[String], selected: Option<usize>) -> io::Result<O
         names,
         "Dieses Projekt enthält keine Kapitel.",
         selected,
+        false,
     )
 }
 
-pub fn choose_scene(names: &[String], selected: Option<usize>) -> io::Result<OutlineChoice> {
-    choose_outline(403, names, "Dieses Kapitel enthält keine Szenen.", selected)
+pub fn choose_scene(
+    names: &[String],
+    selected: Option<usize>,
+    has_other_chapters: bool,
+) -> io::Result<OutlineChoice> {
+    choose_outline(
+        403,
+        names,
+        "Dieses Kapitel enthält keine Szenen.",
+        selected,
+        has_other_chapters,
+    )
+}
+
+/// Returns a position in the original chapter list, including the omitted current chapter.
+pub fn choose_destination(names: &[String], current: usize) -> io::Result<Option<usize>> {
+    if current >= names.len() {
+        return Err(io::Error::other("Das aktuelle Kapitel fehlt."));
+    }
+    let destinations: Vec<_> = names
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| *i != current)
+        .map(|(i, name)| format!("{}. {name}", i + 1))
+        .collect();
+    match list_result(
+        407,
+        &destinations,
+        "Es gibt kein anderes Kapitel.",
+        None,
+        false,
+    )? {
+        None => Ok(None),
+        Some((IDOK, Some(i))) => Ok(Some(if i < current { i } else { i + 1 })),
+        _ => Err(io::Error::other("Ungültiges Zielkapitel.")),
+    }
 }
 
 fn choose_outline(
@@ -101,13 +144,19 @@ fn choose_outline(
     names: &[String],
     empty: &str,
     selected: Option<usize>,
+    has_other_chapters: bool,
 ) -> io::Result<OutlineChoice> {
-    match list_result(resource, names, empty, selected)? {
+    match list_result(resource, names, empty, selected, has_other_chapters)? {
         None => Ok(OutlineChoice::Back),
         Some((NEW_DOCUMENT, index)) => Ok(OutlineChoice::Create(index)),
         Some((RENAME, Some(index))) => Ok(OutlineChoice::Rename(index)),
         Some((IDOK, Some(index))) => Ok(OutlineChoice::Open(index)),
         Some((EDIT_SCENE, Some(index))) if resource == 403 => Ok(OutlineChoice::Edit(index)),
+        Some((UP, Some(index))) if index > 0 => Ok(OutlineChoice::Up(index)),
+        Some((DOWN, Some(index))) if index + 1 < names.len() => Ok(OutlineChoice::Down(index)),
+        Some((MOVE, Some(index))) if resource == 403 && has_other_chapters => {
+            Ok(OutlineChoice::Move(index))
+        }
         _ => Err(io::Error::other("Ungültige Manuskriptauswahl.")),
     }
 }
@@ -119,11 +168,13 @@ fn list_result(
     names: &[String],
     empty: &str,
     selected: Option<usize>,
+    has_other_chapters: bool,
 ) -> io::Result<ListCommand> {
     let mut entries = Entries {
         names,
         empty_label: empty,
         selected,
+        has_other_chapters,
         command: None,
     };
     // The callback may borrow entries for the duration of this synchronous modal dialog.
@@ -146,6 +197,21 @@ fn list_result(
     }
 }
 
+unsafe fn update_move_buttons(hwnd: HWND, index: Option<usize>, entries: &Entries<'_>) {
+    for (id, enabled) in [
+        (UP, index.is_some_and(|i| i > 0)),
+        (DOWN, index.is_some_and(|i| i + 1 < entries.names.len())),
+        (MOVE, index.is_some() && entries.has_other_chapters),
+    ] {
+        unsafe {
+            let button = GetDlgItem(hwnd, id);
+            if !button.is_null() {
+                EnableWindow(button, i32::from(enabled));
+            }
+        }
+    }
+}
+
 unsafe extern "system" fn handle(hwnd: HWND, message: u32, action: WPARAM, data: LPARAM) -> isize {
     // hwnd and control handles are valid only during synchronous dialog dispatch.
     unsafe {
@@ -162,7 +228,13 @@ unsafe extern "system" fn handle(hwnd: HWND, message: u32, action: WPARAM, data:
                         return 1;
                     }
                 }
-                if entries.names.is_empty() {
+                let selected = entries
+                    .selected
+                    .filter(|i| *i < entries.names.len())
+                    .or_else(|| (!entries.names.is_empty()).then_some(0));
+                if let Some(index) = selected {
+                    SendDlgItemMessageW(hwnd, LIST, LB_SETCURSEL, index, 0);
+                } else {
                     SetDlgItemTextW(hwnd, CAPTION, wide(entries.empty_label).as_ptr());
                     for id in [BROWSE, EDIT_SCENE, RENAME] {
                         let button = GetDlgItem(hwnd, id);
@@ -171,13 +243,8 @@ unsafe extern "system" fn handle(hwnd: HWND, message: u32, action: WPARAM, data:
                         }
                     }
                     EnableWindow(GetDlgItem(hwnd, IDOK), 0);
-                } else {
-                    let index = entries
-                        .selected
-                        .filter(|i| *i < entries.names.len())
-                        .unwrap_or(0);
-                    SendDlgItemMessageW(hwnd, LIST, LB_SETCURSEL, index, 0);
                 }
+                update_move_buttons(hwnd, selected, entries);
                 1
             }
             WM_CLOSE => {
@@ -191,15 +258,6 @@ unsafe extern "system" fn handle(hwnd: HWND, message: u32, action: WPARAM, data:
                     EndDialog(hwnd, 0);
                     return 1;
                 }
-                let command = match id {
-                    LIST if notification == LBN_DBLCLK => IDOK,
-                    IDOK | BROWSE | EDIT_SCENE | MANAGE | NEW_PROJECT | NEW_DOCUMENT | RENAME
-                        if !GetDlgItem(hwnd, id).is_null() =>
-                    {
-                        id
-                    }
-                    _ => return 0,
-                };
                 let entries = GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut Entries<'_>;
                 if entries.is_null() {
                     return 0;
@@ -208,6 +266,20 @@ unsafe extern "system" fn handle(hwnd: HWND, message: u32, action: WPARAM, data:
                 let index = usize::try_from(SendDlgItemMessageW(hwnd, LIST, LB_GETCURSEL, 0, 0))
                     .ok()
                     .filter(|i| *i < entry_count);
+                let command = match id {
+                    LIST if notification == LBN_SELCHANGE => {
+                        update_move_buttons(hwnd, index, &*entries);
+                        return 1;
+                    }
+                    LIST if notification == LBN_DBLCLK => IDOK,
+                    IDOK | BROWSE | EDIT_SCENE | MANAGE | NEW_PROJECT | NEW_DOCUMENT | RENAME
+                    | UP | DOWN | MOVE
+                        if !GetDlgItem(hwnd, id).is_null() =>
+                    {
+                        id
+                    }
+                    _ => return 0,
+                };
                 if index.is_some() || matches!(command, NEW_DOCUMENT | NEW_PROJECT | MANAGE) {
                     (*entries).command = Some((command, index));
                     EndDialog(hwnd, 1);

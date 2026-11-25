@@ -10,12 +10,20 @@ use std::{
 use kraqel_domain::{
     DocumentKind, DocumentNode, EDITOR_DOCUMENT_VERSION, EditorDocument, EntityId, ProjectId,
 };
-use rusqlite::{OptionalExtension, Transaction, params};
+use rusqlite::{Connection, OptionalExtension, Transaction, params};
 use serde_json::{Value, json};
 
 use crate::{Database, StorageError};
 
 pub(crate) const MAX_EDITOR_DOCUMENT_BYTES: usize = 5 * 1024 * 1024;
+
+/// Requested change to a reviewed native project outline.
+#[derive(Clone, Copy)]
+pub enum OutlineMove {
+    Earlier,
+    Later,
+    AppendToChapter(EntityId),
+}
 
 /// Vollständiger gespeicherter Dokumentstand.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -203,29 +211,7 @@ impl<'database> DocumentRepository<'database> {
     ///
     /// Liefert einen Fehler bei SQLite-Problemen oder ungültigen gespeicherten Werten.
     pub fn list(&self, project_id: ProjectId) -> Result<Vec<DocumentNode>, DocumentError> {
-        let mut statement = self.database.connection().prepare(
-            "SELECT id, project_id, parent_id, kind, title, position, revision
-             FROM document
-             WHERE project_id = ?1
-             ORDER BY parent_id IS NOT NULL, parent_id, position, id",
-        )?;
-        let rows = statement.query_map([project_id.to_string()], |row| {
-            Ok(RawDocumentNode {
-                id: row.get(0)?,
-                project_id: row.get(1)?,
-                parent_id: row.get(2)?,
-                kind: row.get(3)?,
-                title: row.get(4)?,
-                position: row.get(5)?,
-                revision: row.get(6)?,
-            })
-        })?;
-
-        rows.map(|row| {
-            row.map_err(DocumentError::from)
-                .and_then(RawDocumentNode::parse)
-        })
-        .collect()
+        list_nodes(self.database.connection(), project_id)
     }
 
     /// Lädt einen vollständigen Kapitel- oder Szenenstand.
@@ -622,18 +608,102 @@ impl<'database> DocumentRepository<'database> {
         if current != expected_order {
             return Err(DocumentError::RevisionConflict);
         }
-        for (position, id) in ordered_ids.iter().enumerate() {
-            transaction.execute(
-                "UPDATE document SET position = ?1, updated_at = ?2
-                 WHERE project_id = ?3 AND id = ?4 AND parent_id IS ?5",
-                params![
-                    i64::try_from(position).map_err(|_| DocumentError::InvalidInput)?,
-                    timestamp,
-                    project_id.to_string(),
-                    id.to_string(),
-                    parent_id.map(|value| value.to_string())
-                ],
-            )?;
+        write_order(&transaction, project_id, parent_id, ordered_ids, &timestamp)?;
+        transaction.commit()?;
+        Ok(())
+    }
+
+    /// Moves a document only if the reviewed outline still matches inside the write transaction.
+    /// Text-only edits do not invalidate structural decisions.
+    ///
+    /// # Errors
+    /// Rejects stale outlines, invalid destinations and movement beyond a list boundary.
+    pub fn move_in_outline(
+        &mut self,
+        project_id: ProjectId,
+        expected: &[DocumentNode],
+        selected: EntityId,
+        direction: OutlineMove,
+    ) -> Result<(), DocumentError> {
+        let transaction = self.database.transaction()?;
+        let current = list_nodes(&transaction, project_id)?;
+        let structure = |a: &DocumentNode, b: &DocumentNode| {
+            a.project_id == b.project_id
+                && a.id == b.id
+                && a.kind == b.kind
+                && a.parent_id == b.parent_id
+                && a.position == b.position
+                && a.title == b.title
+        };
+        if current.len() != expected.len()
+            || !current.iter().zip(expected).all(|(a, b)| structure(a, b))
+        {
+            return Err(DocumentError::RevisionConflict);
+        }
+        let node = current
+            .iter()
+            .find(|n| n.id == selected)
+            .ok_or(DocumentError::NotFound)?;
+        let timestamp = current_timestamp()?;
+        match direction {
+            OutlineMove::AppendToChapter(target) => {
+                let parent = node.parent_id.ok_or(DocumentError::InvalidParent)?;
+                if node.kind != DocumentKind::Scene || parent == target {
+                    return Err(DocumentError::InvalidParent);
+                }
+                validate_reorder_parent(&transaction, project_id, Some(target))?;
+                let position = match current
+                    .iter()
+                    .filter(|n| n.parent_id == Some(target))
+                    .map(|n| n.position)
+                    .max()
+                {
+                    Some(last) => last
+                        .checked_add(1)
+                        .ok_or(DocumentError::InvalidStoredData)?,
+                    None => 0,
+                };
+                let changed = transaction.execute(
+                    "UPDATE document SET parent_id = ?1, position = ?2, updated_at = ?3
+                     WHERE project_id = ?4 AND id = ?5 AND parent_id = ?6",
+                    params![
+                        target.to_string(),
+                        position,
+                        timestamp,
+                        project_id.to_string(),
+                        selected.to_string(),
+                        parent.to_string()
+                    ],
+                )?;
+                if changed != 1 {
+                    return Err(DocumentError::RevisionConflict);
+                }
+                compact_siblings(&transaction, project_id, Some(parent))?;
+            }
+            OutlineMove::Earlier | OutlineMove::Later => {
+                let mut siblings: Vec<_> = current
+                    .iter()
+                    .filter(|n| n.parent_id == node.parent_id)
+                    .map(|n| n.id)
+                    .collect();
+                let index = siblings
+                    .iter()
+                    .position(|id| *id == selected)
+                    .ok_or(DocumentError::NotFound)?;
+                let adjacent = match direction {
+                    OutlineMove::Earlier => index.checked_sub(1),
+                    _ => index.checked_add(1).filter(|n| *n < siblings.len()),
+                }
+                .ok_or(DocumentError::InvalidInput)?;
+                siblings.swap(index, adjacent);
+                write_order(
+                    &transaction,
+                    project_id,
+                    node.parent_id,
+                    &siblings,
+                    &timestamp,
+                )?;
+            }
         }
         transaction.commit()?;
         Ok(())
@@ -728,6 +798,35 @@ impl RawDocumentNode {
     }
 }
 
+fn list_nodes(
+    connection: &Connection,
+    project_id: ProjectId,
+) -> Result<Vec<DocumentNode>, DocumentError> {
+    let mut statement = connection.prepare(
+        "SELECT id, project_id, parent_id, kind, title, position, revision
+             FROM document
+             WHERE project_id = ?1
+             ORDER BY parent_id IS NOT NULL, parent_id, position, id",
+    )?;
+    let rows = statement.query_map([project_id.to_string()], |row| {
+        Ok(RawDocumentNode {
+            id: row.get(0)?,
+            project_id: row.get(1)?,
+            parent_id: row.get(2)?,
+            kind: row.get(3)?,
+            title: row.get(4)?,
+            position: row.get(5)?,
+            revision: row.get(6)?,
+        })
+    })?;
+
+    rows.map(|row| {
+        row.map_err(DocumentError::from)
+            .and_then(RawDocumentNode::parse)
+    })
+    .collect()
+}
+
 fn load_node(
     transaction: &Transaction<'_>,
     project_id: ProjectId,
@@ -753,6 +852,29 @@ fn load_node(
         .optional()?
         .ok_or(DocumentError::NotFound)?
         .parse()
+}
+
+fn write_order(
+    transaction: &Transaction<'_>,
+    project_id: ProjectId,
+    parent_id: Option<EntityId>,
+    ordered_ids: &[EntityId],
+    timestamp: &str,
+) -> Result<(), DocumentError> {
+    for (position, id) in ordered_ids.iter().enumerate() {
+        transaction.execute(
+            "UPDATE document SET position = ?1, updated_at = ?2
+                 WHERE project_id = ?3 AND id = ?4 AND parent_id IS ?5",
+            params![
+                i64::try_from(position).map_err(|_| DocumentError::InvalidInput)?,
+                timestamp,
+                project_id.to_string(),
+                id.to_string(),
+                parent_id.map(|value| value.to_string())
+            ],
+        )?;
+    }
+    Ok(())
 }
 
 fn sibling_ids(
@@ -1096,6 +1218,23 @@ mod tests {
             )
             .expect("scene should be created");
 
+        let outline = repository.list(project.id).unwrap();
+        repository
+            .rename(project.id, second_chapter.id, "Kapitel 2", "Ziel")
+            .unwrap();
+        for movement in [
+            super::OutlineMove::Later,
+            super::OutlineMove::AppendToChapter(second_chapter.id),
+        ] {
+            assert!(matches!(
+                repository.move_in_outline(project.id, &outline, first_scene.id, movement),
+                Err(DocumentError::RevisionConflict)
+            ));
+        }
+        assert_eq!(
+            repository.load(project.id, first_scene.id).unwrap().node,
+            first_scene
+        );
         let stale_location = kraqel_domain::DocumentNode {
             parent_id: Some(second_chapter.id),
             ..first_scene.clone()
