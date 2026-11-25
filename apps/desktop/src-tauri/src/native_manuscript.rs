@@ -1,6 +1,6 @@
 //! Native metadata navigation. The separate authenticated roles own the manuscript control.
 use super::{DocumentKind, DocumentNode, DocumentRepository, ProjectId, ProjectManager};
-use kraqel_native_start::{ManuscriptLevel, choose_document, confirm_edit, notify};
+use kraqel_native_start::{SceneAction, choose_chapter, choose_scene, notify};
 use kraqel_storage::native_scene::{NativeScene, SceneReadGrant};
 use std::{error::Error, path::Path};
 use zeroize::Zeroizing;
@@ -25,9 +25,8 @@ fn children(
         .collect())
 }
 
-fn pick(level: ManuscriptLevel, documents: &[DocumentNode]) -> Result<Option<&DocumentNode>> {
-    let names: Vec<_> = documents.iter().map(|doc| doc.title.clone()).collect();
-    Ok(choose_document(level, &names)?.and_then(|index| documents.get(index)))
+fn titles(documents: &[DocumentNode]) -> Vec<String> {
+    documents.iter().map(|doc| doc.title.clone()).collect()
 }
 
 fn read(manager: &ProjectManager, scene: &DocumentNode) -> Result<NativeScene> {
@@ -56,32 +55,28 @@ fn isolated(
     )?)
 }
 
-fn show(home: &Path, manager: &ProjectManager, scene: &DocumentNode) -> Result<()> {
-    let viewed = {
-        let NativeScene { text, edit } = read(manager, scene)?;
-        let text = Zeroizing::new(text);
-        if edit.is_none() {
-            notify(
-                "Diese Szene öffnet sich als schreibgeschützte Textansicht. Ihre Formatierung bleibt im Projekt erhalten.",
-            );
-        }
+fn show(
+    home: &Path,
+    manager: &ProjectManager,
+    scene: &DocumentNode,
+    action: SceneAction,
+) -> Result<()> {
+    // Read only after explicit selection, rechecking its project, scene ID and catalog revision.
+    let NativeScene { text, edit } = read(manager, scene)?;
+    let text = Zeroizing::new(text);
+    if action == SceneAction::Read {
         if isolated(home, scene, &text, false)?.is_some() {
             return Err("Ungültige Antwort auf die Lesefreigabe.".into());
         }
-        if edit.is_none() || !confirm_edit()? {
-            return Ok(());
-        }
-        text
-    };
-
-    // Revalidate the exact presented revision after the explicit edit decision.
-    let NativeScene { text, edit } = read(manager, scene)?;
-    if text.as_str() != viewed.as_str() {
-        return Err("Die angezeigte Fassung hat sich geändert.".into());
+        return Ok(());
     }
-    drop(viewed);
-    let grant = edit.ok_or("Die Szene lässt sich in dieser Ansicht nur lesen.")?;
-    let Some(draft) = isolated(home, scene, &Zeroizing::new(text), true)? else {
+    let Some(grant) = edit else {
+        notify(
+            "Diese Szene enthält Formatierungen oder eine Dokumentstruktur, die sich im nativen Texteditor nur lesen lässt. Wähle „Lesen“ für die Textansicht.",
+        );
+        return Ok(());
+    };
+    let Some(draft) = isolated(home, scene, &text, true)? else {
         return Ok(());
     };
     let draft = Zeroizing::new(draft);
@@ -107,15 +102,15 @@ fn show(home: &Path, manager: &ProjectManager, scene: &DocumentNode) -> Result<(
 pub(super) fn browse(home: &Path, manager: &ProjectManager, project: ProjectId) -> Result<()> {
     loop {
         let chapters = children(manager, project, None)?;
-        let Some(chapter) = pick(ManuscriptLevel::Chapters, &chapters)? else {
+        let Some(index) = choose_chapter(&titles(&chapters))? else {
             return Ok(());
         };
         loop {
-            let scenes = children(manager, project, Some(chapter.id))?;
-            let Some(scene) = pick(ManuscriptLevel::Scenes, &scenes)? else {
+            let scenes = children(manager, project, Some(chapters[index].id))?;
+            let Some((index, action)) = choose_scene(&titles(&scenes))? else {
                 break;
             };
-            if show(home, manager, scene).is_err() {
+            if show(home, manager, &scenes[index], action).is_err() {
                 notify(
                     "Die gebundene Szenensitzung konnte nicht abgeschlossen werden. Bitte prüfe die aktuelle Auswahl.",
                 );

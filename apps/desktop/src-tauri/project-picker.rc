@@ -1,17 +1,30 @@
 #pragma code_page(65001)
 #include <winuser.h>
-401 DIALOGEX 0, 0, 372, 188
+401 DIALOGEX 0, 0, 372, 210
 STYLE DS_SHELLFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "KRAQEL – Projektübersicht"
 FONT 9, "Segoe UI"
 BEGIN
     LTEXT "&Lokale Projekte", 101, 10, 9, 352, 12
     LISTBOX 102, 10, 23, 352, 80, LBS_NOTIFY | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP | WS_BORDER
-    LTEXT "Manuskript nativ lesen öffnet die lokale Kapitel- und Szenenauswahl. Studio und Projektverwaltung starten WebView2 und können Netzwerkverbindungen herstellen.", -1, 10, 112, 352, 34
+    LTEXT "Die native Manuskriptauswahl und Projektanlage arbeiten lokal. Studio und Projektverwaltung starten WebView2 und können Netzwerkverbindungen herstellen.", -1, 10, 112, 352, 30
     DEFPUSHBUTTON "Im &Studio öffnen", IDOK, 10, 160, 72, 17
-    PUSHBUTTON "Manuskript &nativ lesen", 104, 87, 160, 96, 17
+    PUSHBUTTON "&Manuskript öffnen", 104, 87, 160, 96, 17
     PUSHBUTTON "Projekt&verwaltung öffnen", 103, 188, 160, 104, 17
-    PUSHBUTTON "&Schließen", IDCANCEL, 298, 160, 64, 17
+    PUSHBUTTON "Projekt &anlegen", 106, 10, 183, 96, 17
+    PUSHBUTTON "&Schließen", IDCANCEL, 298, 183, 64, 17
+END
+
+405 DIALOGEX 0, 0, 302, 101
+STYLE DS_SHELLFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "KRAQEL – Projekt anlegen"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT "Projekt&name", -1, 10, 8, 282, 11
+    EDITTEXT 107, 10, 21, 282, 16, ES_AUTOHSCROLL | WS_TABSTOP
+    LTEXT "Das Projekt beginnt mit einem Kapitel und einer leeren Szene.", 108, 10, 45, 282, 25
+    DEFPUSHBUTTON "Projekt &anlegen", IDOK, 121, 75, 95, 17
+    PUSHBUTTON "A&bbrechen", IDCANCEL, 222, 75, 70, 17
 END
 
 402 DIALOGEX 0, 0, 310, 157
@@ -32,16 +45,7 @@ FONT 9, "Segoe UI"
 BEGIN
     LTEXT "&Szenen", 101, 10, 9, 290, 12
     LISTBOX 102, 10, 24, 290, 94, LBS_NOTIFY | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP | WS_BORDER
-    DEFPUSHBUTTON "Szene isoliert &lesen", IDOK, 116, 130, 114, 17
+    DEFPUSHBUTTON "&Lesen", IDOK, 66, 130, 74, 17
+    PUSHBUTTON "&Bearbeiten", 105, 146, 130, 84, 17
     PUSHBUTTON "&Zurück", IDCANCEL, 236, 130, 64, 17
-END
-
-404 DIALOGEX 0, 0, 284, 73
-STYLE DS_SHELLFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "KRAQEL – Szenenbearbeitung"
-FONT 9, "Segoe UI"
-BEGIN
-    LTEXT "Diese Prosaszene lässt sich im isolierten Fenster bearbeiten. Gespeichert wird erst bei ausdrücklichem Speichern.", -1, 10, 8, 264, 30
-    DEFPUSHBUTTON "Zur &Szenenauswahl", IDCANCEL, 67, 47, 105, 17
-    PUSHBUTTON "&Bearbeiten", 105, 178, 47, 96, 17
 END

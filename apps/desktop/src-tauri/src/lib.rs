@@ -2435,19 +2435,20 @@ fn create_project_impl(
         schema_version: CURRENT_SCHEMA_VERSION,
     };
     let manager = manager(state, request_id)?;
-    let mut opened = manager
-        .create_project(project.id.to_string(), &project)
+    let mut documents = Vec::with_capacity(2);
+    manager
+        .create_project_with_initializer(project.id.to_string(), &project, |database, _| {
+            let mut repository = DocumentRepository::new(database);
+            let chapter = repository
+                .create(project.id, None, DocumentKind::Chapter, "Kapitel 1")
+                .map_err(|_| ProjectError::InvalidDatabase)?;
+            let scene = repository
+                .create(project.id, Some(chapter.id), DocumentKind::Scene, "Szene 1")
+                .map_err(|_| ProjectError::InvalidDatabase)?;
+            documents.extend([chapter, scene]);
+            Ok(())
+        })
         .map_err(|error| map_project_error(request_id, &error))?;
-    let mut repository = DocumentRepository::new(opened.database_mut());
-    let chapter = repository
-        .create(project.id, None, DocumentKind::Chapter, "Kapitel 1")
-        .map_err(|error| map_document_error(request_id, &error))?;
-    repository
-        .create(project.id, Some(chapter.id), DocumentKind::Scene, "Szene 1")
-        .map_err(|error| map_document_error(request_id, &error))?;
-    let documents = repository
-        .list(project.id)
-        .map_err(|error| map_document_error(request_id, &error))?;
     Ok(WorkspaceResponse { project, documents })
 }
 
@@ -4220,6 +4221,38 @@ fn open_native_start(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>>
                     return Ok(());
                 }
                 Choice::Management => break None,
+                Choice::Create => {
+                    if projects.is_none() {
+                        kraqel_native_start::notify(
+                            "Der lokale Projektkatalog ist nicht verfügbar.",
+                        );
+                        continue;
+                    }
+                    let Some(name) = kraqel_native_start::ask_project_name(is_valid_project_name)?
+                    else {
+                        continue;
+                    };
+                    match create_project_impl(
+                        &state,
+                        uuid::Uuid::new_v4(),
+                        CreateProjectRequest { name },
+                    ) {
+                        Ok(workspace) => {
+                            let home =
+                                state.project_root.parent().ok_or("Projektkatalog fehlt.")?;
+                            if native_manuscript::browse(home, &manager?, workspace.project.id)
+                                .is_err()
+                            {
+                                kraqel_native_start::notify(
+                                    "Das Projekt wurde angelegt. Die Manuskriptübersicht konnte nicht geöffnet werden.",
+                                );
+                            }
+                        }
+                        Err(_) => kraqel_native_start::notify(
+                            "Die Projektanlage konnte nicht abgeschlossen werden.",
+                        ),
+                    }
+                }
                 Choice::Project(index) => {
                     break Some(
                         projects

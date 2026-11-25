@@ -74,6 +74,13 @@ class AnalysisTests(unittest.TestCase):
         self.stop(13, 202)
         self.result()
         self.assertTrue(analyze(self.path, (200,), self.ready, "native-scene")["measurementValid"])
+        self.assertFalse(analyze(self.path, (200,), self.ready, "native-scene", scene_sessions=2)["measurementValid"])
+        self.start(13, 203, 200, "native-leaf.exe")
+        self.start(13, 204, 200, "pipe-service.exe")
+        self.stop(14, 203)
+        self.stop(14, 204)
+        self.result()
+        self.assertTrue(analyze(self.path, (200,), self.ready, "native-scene", scene_sessions=2)["measurementValid"])
 
     def test_native_control_requires_every_exact_root_even_without_a_gui(self):
         self.start(10, 200, 1, "kraqel-isolation-probe.exe")

@@ -4,21 +4,21 @@ Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt 
 
 ## Windows-Entwicklungsstand vom 25. November
 
-Der reguläre Windows-Start zeigt zuerst einen nativen Dialog mit der lokalen Projektliste. Ein Projekt auswählen und **Projekt öffnen** drücken oder über **Projektverwaltung öffnen** zur bisherigen Startseite wechseln. Beide Aktionen starten den WebView2-Desktop. Für Anlegen, Import und Löschen steht dort die gewohnte Verwaltung bereit. **Schließen** beendet die native Übersicht. Die veröffentlichte Alpha 7 hat noch den bisherigen Einstieg.
+Der reguläre Windows-Start zeigt die lokale Projektliste. **Projekt anlegen** erstellt ein neues Projekt und führt direkt zur Kapitelauswahl. **Manuskript öffnen** führt für ein ausgewähltes Projekt dorthin. **Im Studio öffnen** und **Projektverwaltung öffnen** starten den bisherigen Desktop mit WebView2, etwa für den Import oder das Löschen eines Projekts. Die veröffentlichte Alpha 7 hat noch den bisherigen Einstieg.
 
 Der installierte Drehbuchkandidat `aca30d0ae0d9` bestand den Bedienlauf bis zum Wiederöffnen und A4-Export. Im neueren Stand kann das gesamte Manuskript einschließlich Drehbuchrollen auch als Markdown, HTML und gewöhnliches DOCX ausgegeben werden. Die DOCX-Austauschfunktion v1 bleibt auf Prosa beschränkt. [Abnahme mit Word und LibreOffice](testing/F08_M3_ACCEPTANCE_MATRIX.md)
 
 ## Ein Manuskript nativ lesen und bearbeiten
 
-1. Auf der nativen Windows-Startseite ein lokales Projekt wählen und **Manuskript nativ lesen** auslösen. Kapitel und Szene wählen. Im isolierten Fenster erscheint der Szenentext zunächst schreibgeschützt.
-2. Das Lesefenster schließen. Bei unverändert abbildbarer Prosa **Bearbeiten** wählen. Der Starter prüft die Szene erneut und öffnet eine neue gebundene Fenstersitzung. **Speichern** bestätigt den Entwurf, **Abbrechen** verwirft ihn.
+1. **Projekt anlegen** wählen, den Projektnamen eingeben und bestätigen. Das neue Projekt enthält **Kapitel 1** und **Szene 1**. Für ein bestehendes Projekt dessen Namen auswählen und **Manuskript öffnen** drücken.
+2. Das Kapitel öffnen und in der Szenenauswahl **Lesen** oder **Bearbeiten** wählen. Lesen öffnet ein schreibgeschütztes Fenster. Bearbeiten öffnet für einfache Prosa direkt den isolierten Editor. **Speichern** bestätigt den Entwurf, **Abbrechen** verwirft ihn.
 3. Zum Wiederöffnen dieselbe Szene auswählen. Mehrere unformatierte Absätze und Leerzeilen werden unterstützt. Die Textgrenze beträgt 64 KiB UTF-8. Markierungen, Listen, Überschriften, Drehbuchrollen und sonstige nicht exakt rückwandelbare Dokumentstrukturen erhalten eine schreibgeschützte Textansicht. Für ihre Bearbeitung ist weiterhin das Studio vorgesehen.
 
 Die lokale Datenbank bleibt im vertrauenswürdigen Desktop-Speicherdienst. Die beiden isolierten Rollen erhalten nur die ausgewählte Szene über private Pipes. Beim Speichern prüft eine SQLite-Transaktion die gebundene Revision und das ursprüngliche Dokument. Ein konkurrierender Stand bleibt erhalten.
 
 **Bedienabnahme vom 25. November.** Im echten Windows-Debug-Build öffnete sich die ausgewählte Szene eines eigens angelegten Projekts mit Leseschutz und dem erwarteten Text auf Revision 0. Nach ausdrücklicher Bearbeitungsfreigabe, Speichern zweier Absätze, regulärem Beenden und einem neuen Prozess zeigte eine frische Lesesitzung beide Absätze exakt wieder an. SQLite bestätigte Editordokument v1 und Revision 1. Der Speichertest verwarf außerdem eine veraltete Revision sowie ein bei gleicher Revision zwischenzeitlich geändertes Originaldokument.
 
-Der optimierte Windows-Desktop aus 24c9c959069 bestand denselben Bedienlauf. Nach einem neuen Desktopprozess zeigte das schreibgeschützte Fenster beide bearbeiteten Absätze wieder an. Die direkte SQLite-Prüfung bestätigte beide Absatzknoten und Revision 1. Im Vorläufer scheiterte der Start des isolierten Datendienstes vor dessen Bootstrap-Bestätigung. Der ausgelieferte Manuskriptdatendienst ist jetzt als konsolenloses Windows-Programm gebaut und verwendet die ausdrücklich vererbten Pipes. Die reguläre Startfrist beträgt weiterhin fünf Sekunden.
+Der optimierte Windows-Desktop aus `e24c9c959069` bestand denselben Bedienlauf. Nach einem neuen Desktopprozess zeigte das schreibgeschützte Fenster beide bearbeiteten Absätze wieder an. Die direkte SQLite-Prüfung bestätigte beide Absatzknoten und Revision 1. Im Vorläufer scheiterte der Start des isolierten Datendienstes vor dessen Bootstrap-Bestätigung. Der ausgelieferte Manuskriptdatendienst ist jetzt als konsolenloses Windows-Programm gebaut und verwendet die ausdrücklich vererbten Pipes. Die reguläre Startfrist beträgt weiterhin fünf Sekunden.
 
 Beim ersten abgebrochenen UI-Prüflauf wurde der Starter bei offenem Lesefenster beendet. Im Windows-Paketverzeichnis blieb ein temporäres UI-AppContainer-Profil. Seine Kontrollablage war bereits entfernt; ohne generationsgebundenen Beleg bleibt das Profil unangetastet. Der reguläre Folgelauf hinterließ kein weiteres Profil. Die Prüfhilfen behalten künftig bei unbestätigtem Sitzungsende die Kontrollablage zurück.
 

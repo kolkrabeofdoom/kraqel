@@ -80,7 +80,9 @@ def root_image_bindings(records):
     return bindings
 
 
-def analyze(path, root_pids, ready, mode="desktop", root_images=None):
+def analyze(path, root_pids, ready, mode="desktop", root_images=None, scene_sessions=1):
+    if scene_sessions < 1 or (mode != "native-scene" and scene_sessions != 1):
+        raise ValueError("A positive scene session count requires native-scene mode")
     if mode not in ("desktop", "native-home", "native-scene", "exchange", "isolation-ui", "broker-ui", "native-control", "p3-handoff"):
         raise ValueError("Unknown bounded measurement mode")
     root_image = "kraqel-desktop.exe" if mode in ("desktop", "native-home", "native-scene") else "kraqel-isolation-probe.exe"
@@ -163,7 +165,7 @@ def analyze(path, root_pids, ready, mode="desktop", root_images=None):
     if mode == "native-scene":
         for pid in root_pids:
             children = Counter(p.image for p in own_processes if p.parent == pid and p.root_pid == pid)
-            if children["native-leaf.exe"] != 1 or children["pipe-service.exe"] != 1:
+            if children["native-leaf.exe"] != scene_sessions or children["pipe-service.exe"] != scene_sessions:
                 problems.append("missing-or-repeated-scene-role")
                 break
     if mode == "exchange" and any(not any(process.image == root_image and process.parent == root_pid and process.pid != root_pid for process in own_processes) for root_pid in root_pids):
@@ -232,12 +234,13 @@ def main():
     parser.add_argument("--root-pid", type=int, action="append", required=True)
     parser.add_argument("--root-map", type=Path, help="Private JSON list of exact pid/image bindings; native-control only")
     parser.add_argument("--mode", choices=("desktop", "native-home", "native-scene", "exchange", "isolation-ui", "broker-ui", "native-control", "p3-handoff"), default="desktop")
+    parser.add_argument("--scene-sessions", type=int, default=1, help="Expected authenticated scene sessions per native-scene desktop root")
     args = parser.parse_args()
     ready = json.loads(args.ready_json.read_text(encoding="utf-8-sig"))
     bindings = json.loads(args.root_map.read_text(encoding="utf-8-sig")) if args.root_map else None
     if args.root_map:
         root_image_bindings(bindings)
-    result = analyze(args.trace_xml, args.root_pid, ready, args.mode, bindings)
+    result = analyze(args.trace_xml, args.root_pid, ready, args.mode, bindings, args.scene_sessions)
     print(json.dumps(result, indent=2))
     return 0 if result["measurementValid"] and not result["nonLoopbackEvents"] else 1
 
