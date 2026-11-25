@@ -3,8 +3,8 @@
 ## Wiedereinstieg nach dem 24. November 2026
 
 Auf dem Entwicklungszweig `feat/kq-069-live-file-selection` mit `git pull --ff-only` beginnen.
-Die öffentliche [Alpha 6](https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.6)
-trägt den Tag auf `a202aca3cd43`. Der neuere Windows-Prüfkandidat mit Ordnerimport stammt aus
+Die vorherige [Alpha 6](https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.6)
+trägt den Tag auf `a202aca3cd43`. Die öffentliche [Alpha 7](https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.7) mit Ordnerimport stammt aus
 `a9a3a673ff14`. Auf dem Buildrechner liegen Installer und Prüfsummendatei unter
 `artifacts/release/0.1.0/windows-x64/a9a3a673ff14/`, Archivhelfer und Anleitung unter
 `Rechnerwechsel/` daneben. Die lokalen Installer-Prüfsummen beider Stände, die drei öffentlichen
@@ -22,11 +22,11 @@ auswählen** sichtbar, fokussierbar und aktiviert. Beide Desktopprogramme verwen
 Windows-GUI-Subsystem. Testinstallation, Registrierung, Verknüpfungen und Testprofil wurden
 bereinigt. Der geprüfte Installer hat SHA-256
 `85c4f09e8e24ae4f82946a69d8d67f4f540f7af087ea2fe2ef90c2e07c905bdd`.
-Der Kandidat ist zur Veröffentlichung als Alpha 7 empfohlen. Die öffentliche Freigabe steht aus.
+Der unveränderte Installer wurde als Alpha 7 veröffentlicht. Das separate Rechnerwechsel-Paket enthält den portablen Archivhelfer für die Wiederherstellung.
 
 ## Einen vorhandenen Windows-Projektordner übernehmen
 
-Im Entwicklungsstand nach Alpha 6 auf der Startseite **Projektordner auswählen** öffnen. Den
+Ab Alpha 7 auf der Startseite **Projektordner auswählen** öffnen. Den
 geschlossenen lokalen Projektordner mit seiner ursprünglichen UUID als Namen auswählen. Die Vorschau
 zeigt die Anzahl der Dokumente und Bilder sowie die Dateianzahl jeder Zusatzgruppe. Projektpfade,
 Dateinamen und Passphrase bleiben im nativen Teil der Anwendung.

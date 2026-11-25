@@ -2,7 +2,7 @@
 
 ### Direkte Übernahme bestehender Windows-Projektordner
 
-Der Entwicklungsstand nach Alpha 6 bindet die lokale Bestandsaufnahme an die reguläre Startseite an.
+Die veröffentlichte Alpha 7 bindet die lokale Bestandsaufnahme an die reguläre Startseite an.
 Der native Import erstellt für eine freie Projektkennung eine separate Arbeitskopie aus bestätigten
 Datenbankinhalten und referenzierten Medien. Ein lokales Änderungsereignis und gebundene
 Dateihandles sichern die Erfassung. Der optionale Archivpfad verschlüsselt ausdrücklich gewählte
