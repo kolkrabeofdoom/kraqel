@@ -2,6 +2,12 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Mehrstufiger Bearbeitungsverlauf im nativen Szenenfenster
+
+Im installierten Kandidaten `b7dd0426e81a` wurden eine markierte Emoji-Stelle überschrieben und ein weiterer Unicode-Treffer ersetzt. Zweimal Rückgängig über Strg+Z und das Menü stellte die jeweiligen Texte und die ursprünglichen Auswahlen wieder her. Zweimal Wiederholen über Strg+Y und das Menü stellte beide Änderungen samt Einfügemarken wieder her. Eine neue Eingabe nach der Rücknahme verwarf den Wiederholen-Zweig. Der Menüpunkt war deaktiviert und Strg+Y ließ den neuen Entwurf unverändert. Bis Strg+S blieb die Datenbank auf Revision 0. Nach dem Neustart stimmten Text, Suchindex und Revision 1. Der Leser bot keine Menübefehle für den Schreibverlauf.
+
+Eine gezielte Regression prüfte unvollständige UTF-16-Zeichen und den Neubeginn des Verlaufs nach Überschreiten seines Textpufferbudgets. Der gemeinsame Bedien- und ETW-Lauf mit synthetischem Text erfasste bei beiden Desktopstarts je eine Fensterrolle und einen Datendienst. Beide KRAQEL-Prozessbäume hatten null Netzwerkereignisse einschließlich Loopback. Alle vier Positivkontrollen wurden erkannt, ohne Verluste oder Zuordnungslücken. Testinstallation, synthetisches Profil und Rohspur wurden bereinigt. SHA-256 des Installers: `24133df438446139ead9d1c2cf72029e67dd388eb197f2ea42d9c683bebf7874`.
+
 ## Native Szenenmenüs im Editor und Leser
 
 Beim installierten Kandidaten `e7a44897c58f` wurden die Menüeinträge samt Befehlskennungen und Beschriftungen direkt an den nativen Fenstern geprüft. Der Editor bot Datei, Bearbeiten und Ansicht, der Leser Datei und Bearbeiten mit Lesefunktionen. Der Fassungsvergleich war vor einem Konflikt gesperrt. Der Menühaken für den Fokusmodus folgte dem Ein- und Ausschalten der Schreibansicht. Eine an das Fenster adressierte Alt+B-Tastenmeldung öffnete das native Bearbeiten-Menü. Die Zugriffstaste S öffnete dort die Suche.
