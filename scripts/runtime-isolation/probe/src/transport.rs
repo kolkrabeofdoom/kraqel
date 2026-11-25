@@ -584,7 +584,7 @@ mod windows;
 
 #[cfg(all(windows, feature = "desktop-review"))]
 pub use windows::exchange::ui_restart::durable::product::manuscript::{
-    SceneRequest, SceneSaveStatus, open_item_review, open_project_scene, open_review,
+    SceneOutcome, SceneRequest, SceneSaveStatus, open_item_review, open_project_scene, open_review,
 };
 
 #[cfg(all(windows, feature = "desktop-review"))]

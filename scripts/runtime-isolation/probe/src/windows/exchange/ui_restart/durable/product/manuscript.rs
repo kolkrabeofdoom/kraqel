@@ -15,7 +15,7 @@ pub enum SceneRequest<'a> {
 
 /// Result from the trusted project store.
 pub enum SceneSaveStatus {
-    Committed,
+    Committed(u64),
     Conflict,
     Failed,
     Review {
@@ -114,6 +114,14 @@ fn compare(
     }
 }
 
+/// End of the authenticated scene session. Closing never commits pending text.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum SceneOutcome {
+    Closed,
+    SavedAndClosed,
+    ClosedAfterCheckpoint,
+}
+
 /// Opens one authenticated isolated read or edit window. The full revision and mode bind
 /// the session even though the legacy comparison frame has a 32-bit revision field.
 pub fn open_project_scene(
@@ -124,7 +132,7 @@ pub fn open_project_scene(
     text: &str,
     save: Option<SceneWriter<'_>>,
     images: [&[u8]; 2],
-) -> std::io::Result<bool> {
+) -> std::io::Result<SceneOutcome> {
     use crate::window_receipt::{PROJECT_SCENE_EDIT, PROJECT_SCENE_READ};
     let argument = if save.is_some() {
         PROJECT_SCENE_EDIT
@@ -161,7 +169,12 @@ pub fn open_project_scene(
         save,
     )
     .map_err(|failure| std::io::Error::other(failure.stage))?;
-    Ok(decision == 1)
+    match decision {
+        0 => Ok(SceneOutcome::Closed),
+        1 if argument == PROJECT_SCENE_EDIT => Ok(SceneOutcome::SavedAndClosed),
+        2 if argument == PROJECT_SCENE_EDIT => Ok(SceneOutcome::ClosedAfterCheckpoint),
+        _ => Err(std::io::Error::other("scene-session-result")),
+    }
 }
 fn run_pair(
     parent: &Path,

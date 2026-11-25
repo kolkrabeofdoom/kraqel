@@ -151,6 +151,7 @@ pub(super) fn serve_edit(
     acknowledgement: &mut fs::File,
     save: SceneWriter<'_>,
 ) -> Result<u8> {
+    let mut saved_in_session = false;
     let mut conflicted = false;
     let mut review: Option<Review> = None;
     let mut generation = 0_u64;
@@ -160,8 +161,8 @@ pub(super) fn serve_edit(
         let mut frame = Frame::new(reply);
         let mut local = None;
         let result = match decision[0] {
-            0 => return Ok(0),
-            1 => {
+            0 => return Ok(if saved_in_session { 2 } else { 0 }),
+            1 | wire::SCENE_SAVE_CONTINUE => {
                 let draft = frame.text()?;
                 if conflicted {
                     SceneSaveStatus::Conflict
@@ -208,7 +209,15 @@ pub(super) fn serve_edit(
             _ => return Err(invalid("scene-edit-decision")),
         };
         let byte = match result {
-            SceneSaveStatus::Committed => wire::SAVE_ACK_COMMITTED,
+            SceneSaveStatus::Committed(revision) if decision[0] == wire::SCENE_SAVE_CONTINUE => {
+                let mut receipt = [0; 9];
+                receipt[0] = wire::SAVE_ACK_CONTINUED;
+                receipt[1..].copy_from_slice(&revision.to_le_bytes());
+                io("scene-edit-continued", acknowledgement.write_all(&receipt))?;
+                saved_in_session = true;
+                continue;
+            }
+            SceneSaveStatus::Committed(_) => wire::SAVE_ACK_COMMITTED,
             SceneSaveStatus::Conflict => {
                 conflicted = true;
                 wire::SAVE_ACK_CONFLICT

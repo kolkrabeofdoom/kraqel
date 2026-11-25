@@ -1,7 +1,7 @@
 //! Native metadata navigation. The separate authenticated roles own the manuscript control.
 use super::{DocumentKind, DocumentNode, DocumentRepository, ProjectId, ProjectManager};
 use kraqel_domain::EntityId;
-use kraqel_isolation_transport::{SceneRequest, SceneSaveStatus};
+use kraqel_isolation_transport::{SceneOutcome, SceneRequest, SceneSaveStatus};
 use kraqel_native_start::{
     OutlineChoice, SceneAction, ask_document_title, choose_chapter, choose_destination,
     choose_scene, confirm_removal, notify,
@@ -29,7 +29,7 @@ fn isolated(
     scene: &DocumentNode,
     text: &str,
     save: Option<&mut dyn FnMut(SceneRequest<'_>) -> SceneSaveStatus>,
-) -> Result<bool> {
+) -> Result<SceneOutcome> {
     let images: [&[u8]; 2] = [
         include_bytes!(concat!(env!("KRAQEL_REVIEW_IMAGES"), "/pipe-service.exe")),
         include_bytes!(concat!(env!("KRAQEL_REVIEW_IMAGES"), "/native-leaf.exe")),
@@ -55,18 +55,18 @@ fn show(
     let NativeScene { text, edit } = read(manager, scene)?;
     let text = Zeroizing::new(text);
     if action == SceneAction::Read {
-        if isolated(home, scene, &text, None)? {
+        if isolated(home, scene, &text, None)? != SceneOutcome::Closed {
             return Err("Ungültige Antwort auf die Lesefreigabe.".into());
         }
         return Ok(());
     }
-    if edit.is_none() {
+    let Some(grant) = edit else {
         notify(
             "Diese Szene enthält Formatierungen oder eine Dokumentstruktur, die sich im nativen Texteditor nur lesen lässt. Wähle „Lesen“ für die Textansicht.",
         );
         return Ok(());
-    }
-    let mut grant = edit;
+    };
+    let mut session = grant.into_session();
     let mut save = |request: SceneRequest<'_>| {
         let Ok(mut opened) = manager.open_project(scene.project_id.to_string()) else {
             return SceneSaveStatus::Failed;
@@ -88,36 +88,26 @@ fn show(
                     reviewed,
                     merged,
                 ) {
-                    Ok(_) => SceneSaveStatus::Committed,
+                    Ok(revision) => SceneSaveStatus::Committed(revision),
                     Err(DocumentError::RevisionConflict) => latest(&repository, scene),
                     Err(_) => SceneSaveStatus::Failed,
                 };
             }
         };
-        let result = (|| {
-            let bound = if let Some(original) = grant.take() {
-                original
-            } else {
-                // A retry needs a fresh one-shot grant to the same canonical prose,
-                // revision and ID. A newer document can never become its write base.
-                let fresh = SceneReadGrant::from_node(scene)?.read(&repository)?;
-                if *Zeroizing::new(fresh.text) != *text {
-                    return Err(DocumentError::RevisionConflict);
-                }
-                fresh.edit.ok_or(DocumentError::RevisionConflict)?
-            };
-            bound.save(&mut repository, draft)
-        })();
-        match result {
-            Ok(_) => SceneSaveStatus::Committed,
+        match session.save(&mut repository, draft) {
+            Ok(revision) => SceneSaveStatus::Committed(revision),
             Err(DocumentError::RevisionConflict | DocumentError::NotFound) => {
                 SceneSaveStatus::Conflict
             }
             Err(_) => SceneSaveStatus::Failed,
         }
     };
-    if isolated(home, scene, &text, Some(&mut save))? {
-        notify("Die Szene wurde gespeichert.");
+    match isolated(home, scene, &text, Some(&mut save))? {
+        SceneOutcome::SavedAndClosed => notify("Die Szene wurde gespeichert."),
+        SceneOutcome::ClosedAfterCheckpoint => {
+            notify("Der zuletzt bestätigte Zwischenstand wurde gespeichert.")
+        }
+        SceneOutcome::Closed => {}
     }
     Ok(())
 }

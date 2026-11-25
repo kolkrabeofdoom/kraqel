@@ -33,6 +33,10 @@ const SAVE_TIMER: usize = 7001;
 
 enum Request {
     Save(Zeroizing<String>),
+    SaveContinue {
+        text: Zeroizing<String>,
+        next_revision: u64,
+    },
     Compare(Zeroizing<String>),
     CancelReview(u64),
     Confirm {
@@ -46,6 +50,10 @@ enum Request {
 enum Reply {
     Canceled,
     Committed,
+    Continued {
+        text: Zeroizing<String>,
+        revision: u64,
+    },
     Conflict,
     Failed,
     Review {
@@ -59,6 +67,7 @@ fn exchange(input: &mut File, output: &mut File, request: Request) -> io::Result
     let reviewing = matches!(request, Request::Compare(_) | Request::Confirm { .. });
     let comparing = matches!(request, Request::Compare(_));
     let canceling = matches!(request, Request::CancelReview(_));
+    let mut continuation = None;
     match request {
         Request::Save(text) | Request::Compare(text) => {
             output.write_all(&[if comparing {
@@ -68,6 +77,15 @@ fn exchange(input: &mut File, output: &mut File, request: Request) -> io::Result
             }])?;
             output.write_all(&(text.len() as u32).to_le_bytes())?;
             output.write_all(text.as_bytes())?;
+        }
+        Request::SaveContinue {
+            text,
+            next_revision,
+        } => {
+            output.write_all(&[window_receipt::SCENE_SAVE_CONTINUE])?;
+            output.write_all(&(text.len() as u32).to_le_bytes())?;
+            output.write_all(text.as_bytes())?;
+            continuation = Some((text, next_revision));
         }
         Request::Confirm {
             generation,
@@ -89,7 +107,20 @@ fn exchange(input: &mut File, output: &mut File, request: Request) -> io::Result
     let mut ack = [0];
     input.read_exact(&mut ack)?;
     match ack[0] {
-        window_receipt::SAVE_ACK_COMMITTED if !comparing && !canceling => Ok(Reply::Committed),
+        window_receipt::SAVE_ACK_COMMITTED
+            if !comparing && !canceling && continuation.is_none() =>
+        {
+            Ok(Reply::Committed)
+        }
+        window_receipt::SAVE_ACK_CONTINUED => {
+            let (text, expected) =
+                continuation.ok_or(io::Error::other("unexpected continuation acknowledgement"))?;
+            let mut bytes = [0; 8];
+            input.read_exact(&mut bytes)?;
+            let revision = u64::from_le_bytes(bytes);
+            require(revision == expected, "invalid continuation revision")?;
+            Ok(Reply::Continued { text, revision })
+        }
         window_receipt::SAVE_ACK_CONFLICT if !reviewing && !canceling => Ok(Reply::Conflict),
         window_receipt::SAVE_ACK_CANCELED if canceling => Ok(Reply::Canceled),
         window_receipt::SAVE_ACK_FAILED => Ok(Reply::Failed),
@@ -249,7 +280,7 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) 
                 PostMessageW(hwnd, REQUEST, CLOSE as usize, 0);
                 0
             }
-            WM_COMMAND if matches!(w, id if id == CLOSE as usize || id == IDCANCEL as usize || id == SAVE as usize || id == COMPARE as usize) =>
+            WM_COMMAND if matches!(w, id if id == CLOSE as usize || id == IDCANCEL as usize || id == SAVE as usize || id == project_menu::CONTINUE || id == COMPARE as usize) =>
             {
                 PostMessageW(hwnd, REQUEST, w, 0);
                 0
@@ -403,6 +434,7 @@ pub(super) fn display(
     input: File,
     mut reply: File,
     title: &str,
+    revision: u64,
     text: &str,
     edit_mode: bool,
 ) -> io::Result<()> {
@@ -417,8 +449,8 @@ pub(super) fn display(
             ..Default::default()
         };
         require(RegisterClassW(&desc) != 0, "register project window")?;
-        let title = format!(
-            "{title} – {}",
+        let window_title = format!(
+            "{title} · Revision {revision} – {}",
             if edit_mode {
                 "Bearbeiten"
             } else {
@@ -428,7 +460,7 @@ pub(super) fn display(
         let hwnd = CreateWindowExW(
             WS_EX_CONTROLPARENT,
             class.as_ptr(),
-            wide(title).as_ptr(),
+            wide(window_title).as_ptr(),
             WS_OVERLAPPEDWINDOW,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
@@ -639,7 +671,7 @@ pub(super) fn display(
             return reply.write_all(&[0]);
         }
         let channel = Channel::new(input, reply)?;
-        edit_loop(hwnd, field, text, channel)
+        edit_loop(hwnd, field, title, revision, text, channel)
     }
 }
 
@@ -688,6 +720,16 @@ unsafe fn dispatch(hwnd: HWND, msg: &MSG) {
                 .iter()
                 .all(|modifier| GetKeyState(i32::from(*modifier)) >= 0);
             let ctrl_only = ctrl && !shift && plain;
+            if ctrl_only
+                && key == usize::from(VK_RETURN)
+                && msg.hwnd == field
+                && GetFocus() == field
+            {
+                if !repeated && !save.is_null() && IsWindowEnabled(save) != 0 {
+                    PostMessageW(hwnd, REQUEST, project_menu::CONTINUE, 0);
+                }
+                return;
+            }
             if ctrl_only
                 && matches!(key, k if k == usize::from(VK_Z) || k == usize::from(VK_Y))
                 && msg.hwnd == field
@@ -768,9 +810,18 @@ unsafe fn dispatch(hwnd: HWND, msg: &MSG) {
     }
 }
 
-unsafe fn edit_loop(hwnd: HWND, field: HWND, text: &str, channel: Channel) -> io::Result<()> {
+unsafe fn edit_loop(
+    hwnd: HWND,
+    field: HWND,
+    title: &str,
+    mut revision: u64,
+    text: &str,
+    channel: Channel,
+) -> io::Result<()> {
     unsafe {
+        let mut saved: Option<Zeroizing<String>> = None;
         let mut pending = false;
+        let mut pending_continue = false;
         let mut available = true;
         let mut compare_available = false;
         let mut review: Option<project_review::Review> = None;
@@ -794,7 +845,23 @@ unsafe fn edit_loop(hwnd: HWND, field: HWND, text: &str, channel: Channel) -> io
                     break true;
                 }
                 pending = false;
+                if pending_continue {
+                    EnableWindow(hwnd, 1);
+                    pending_continue = false;
+                }
                 let status = match outcome {
+                    Ok(Reply::Continued {
+                        text,
+                        revision: confirmed,
+                    }) => {
+                        saved = Some(text);
+                        revision = confirmed;
+                        SetWindowTextW(
+                            hwnd,
+                            wide(format!("{title} · Revision {revision} – Bearbeiten")).as_ptr(),
+                        );
+                        "Zwischenstand gespeichert."
+                    }
                     Ok(Reply::Conflict) => {
                         available = false;
                         compare_available = true;
@@ -876,9 +943,11 @@ unsafe fn edit_loop(hwnd: HWND, field: HWND, text: &str, channel: Channel) -> io
                     continue;
                 }
                 let close = message.wParam == CLOSE as usize || message.wParam == IDCANCEL as usize;
+                let continuing = message.wParam == project_menu::CONTINUE;
+                let baseline = saved.as_ref().map_or(text, |s| s.as_str());
                 let draft = changed_text(hwnd).map(Zeroizing::new);
                 if close {
-                    if draft.as_deref().map(String::as_str) == Some(text) {
+                    if draft.as_deref().map(String::as_str) == Some(baseline) {
                         break false;
                     }
                     match project_close::choose(hwnd, available) {
@@ -891,7 +960,9 @@ unsafe fn edit_loop(hwnd: HWND, field: HWND, text: &str, channel: Channel) -> io
                     }
                 }
                 let compare = message.wParam == COMPARE as usize && compare_available;
-                if !compare && (!available || (!close && message.wParam != SAVE as usize)) {
+                if !compare
+                    && (!available || (!close && !continuing && message.wParam != SAVE as usize))
+                {
                     continue;
                 }
                 let Some(draft) = draft else {
@@ -902,10 +973,42 @@ unsafe fn edit_loop(hwnd: HWND, field: HWND, text: &str, channel: Channel) -> io
                 let (command, status) = if compare {
                     review = Some(project_review::Review::new(draft.clone()));
                     (Request::Compare(draft), "Vergleich wird geladen …")
+                } else if continuing {
+                    if draft.as_str() == baseline {
+                        SetWindowTextW(
+                            GetDlgItem(hwnd, STATUS),
+                            wide("Keine Änderungen zu speichern.").as_ptr(),
+                        );
+                        SendMessageW(hwnd, WM_SIZE, 0, 0);
+                        continue;
+                    }
+                    let Some(next_revision) = revision.checked_add(1) else {
+                        available = false;
+                        EnableWindow(GetDlgItem(hwnd, SAVE), 0);
+                        project_menu::refresh(hwnd);
+                        SetWindowTextW(
+                            GetDlgItem(hwnd, STATUS),
+                            wide("Das Revisionslimit ist erreicht. Der Entwurf bleibt offen.")
+                                .as_ptr(),
+                        );
+                        SendMessageW(hwnd, WM_SIZE, 0, 0);
+                        continue;
+                    };
+                    (
+                        Request::SaveContinue {
+                            text: draft,
+                            next_revision,
+                        },
+                        "Zwischenstand wird gespeichert …",
+                    )
                 } else {
                     (Request::Save(draft), "Wird gespeichert …")
                 };
                 pending = start_request(hwnd, field, &channel, command, status);
+                if continuing && pending {
+                    pending_continue = true;
+                    EnableWindow(hwnd, 0);
+                }
                 if !pending {
                     review = None;
                     SetWindowTextW(

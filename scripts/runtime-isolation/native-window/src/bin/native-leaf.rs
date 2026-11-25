@@ -3734,13 +3734,13 @@ fn main() {
                 ) && window_receipt::p3_receipt(&row) == expected,
                 "P3 binding",
             )?;
-            let scene = |bytes: &[u8]| -> std::io::Result<(String, String)> {
+            let scene = |bytes: &[u8]| -> std::io::Result<(String, u32, String)> {
                 let revision = u32::from_le_bytes(bytes[..4].try_into().unwrap());
                 let (title, text) = std::str::from_utf8(&bytes[4..])
                     .ok()
                     .and_then(|s| s.split_once('\0'))
                     .ok_or(std::io::Error::other("P3 scene"))?;
-                Ok((format!("{title} · Revision {revision}"), text.to_owned()))
+                Ok((title.to_owned(), revision, text.to_owned()))
             };
             #[cfg(feature = "manuscript-window")]
             if let Some(
@@ -3749,11 +3749,12 @@ fn main() {
             {
                 let (left, _) = window_receipt::pair_parts(&row)
                     .ok_or(std::io::Error::other("project scene"))?;
-                let (title, text) = scene(left)?;
+                let (title, revision, text) = scene(left)?;
                 project_scene::display(
                     input,
                     output,
                     &title,
+                    u64::from(revision),
                     &text,
                     mode == window_receipt::PROJECT_SCENE_EDIT,
                 )?;
@@ -3762,8 +3763,10 @@ fn main() {
             let (heading, text) = if comparison {
                 let (left, right) = window_receipt::pair_parts(&row)
                     .ok_or(std::io::Error::other("comparison lengths"))?;
-                let (first, a) = scene(left)?;
-                let (second, b) = scene(right)?;
+                let (first, first_revision, a) = scene(left)?;
+                let (second, second_revision, b) = scene(right)?;
+                let first = format!("{first} · Revision {first_revision}");
+                let second = format!("{second} · Revision {second_revision}");
                 #[cfg(feature = "manuscript-window")]
                 {
                     let local = format!("{first}\n{a}");
@@ -3776,7 +3779,8 @@ fn main() {
                     format!("Lokal · {first}\n{a}\n\nAnderer Rechner · {second}\n{b}"),
                 )
             } else {
-                scene(&row[32..])?
+                let (title, revision, text) = scene(&row[32..])?;
+                (format!("{title} · Revision {revision}"), text)
             };
             let mut decision = if comparison {
                 REVIEWED_SIDE.set(Some(0));

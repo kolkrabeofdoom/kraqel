@@ -1627,9 +1627,27 @@ mod tests {
             .create_scene_with_content(project.id, chapter.id, "Szene", &content("Vorher"))
             .unwrap();
         let grant = || SceneReadGrant::from_node(&scene).unwrap();
-        let first = grant().read(&repository).unwrap().edit.unwrap();
+        let mut first = grant()
+            .read(&repository)
+            .unwrap()
+            .edit
+            .unwrap()
+            .into_session();
         let stale = grant().read(&repository).unwrap().edit.unwrap();
-        assert_eq!(first.save(&mut repository, "Kolkrabe\n\nΔ").unwrap(), 1);
+        assert_eq!(first.save(&mut repository, "Zwischenstand").unwrap(), 1);
+        assert_eq!(first.save(&mut repository, "Kolkrabe\n\nΔ").unwrap(), 2);
+        let competing_node = repository.load(project.id, scene.id).unwrap().node;
+        let confirmed = SceneReadGrant::from_node(&competing_node)
+            .unwrap()
+            .read(&repository)
+            .unwrap();
+        assert_eq!(confirmed.text, "Kolkrabe\n\nΔ");
+        let competing = confirmed.edit.unwrap();
+        assert_eq!(competing.save(&mut repository, "Dritter Stand").unwrap(), 3);
+        assert!(matches!(
+            first.save(&mut repository, "Veralteter Folgezug"),
+            Err(DocumentError::RevisionConflict)
+        ));
         assert!(matches!(
             stale.save(&mut repository, "veraltet"),
             Err(DocumentError::RevisionConflict)
@@ -1646,7 +1664,7 @@ mod tests {
             .unwrap()
             .read(&repository)
             .unwrap();
-        assert_eq!(snapshot.text, "Kolkrabe\n\nΔ");
+        assert_eq!(snapshot.text, "Dritter Stand");
         // A restored/imported copy may present the same IDs and revision with different markup.
         let edit = snapshot.edit.unwrap();
         let mut rich = content("Kolkrabe");

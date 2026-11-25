@@ -27,6 +27,26 @@ pub struct SceneEditGrant {
     original: EditorDocument,
 }
 
+/// Exclusive to one open editor. A confirmed SQLite transaction supplies the next exact base.
+pub struct SceneEditSession(SceneEditGrant);
+
+impl SceneEditSession {
+    /// Saves against the session's last confirmed revision and exact canonical document.
+    ///
+    /// # Errors
+    /// If the compare-and-swap fails, the binding stays at its previous version.
+    pub fn save(
+        &mut self,
+        repository: &mut DocumentRepository<'_>,
+        text: &str,
+    ) -> Result<u64, DocumentError> {
+        let (revision, original) = self.0.commit(repository, text)?;
+        self.0.binding.revision = revision;
+        self.0.original = original;
+        Ok(revision)
+    }
+}
+
 impl SceneReadGrant {
     /// # Errors
     /// Chapters cannot receive a scene grant.
@@ -80,6 +100,12 @@ impl SceneReadGrant {
 }
 
 impl SceneEditGrant {
+    /// Consume the initial one-shot grant for this authenticated edit session.
+    #[must_use]
+    pub fn into_session(self) -> SceneEditSession {
+        SceneEditSession(self)
+    }
+
     /// Issues a fresh one-shot grant only for the exact canonical prose and revision reviewed.
     ///
     /// # Errors
@@ -114,16 +140,26 @@ impl SceneEditGrant {
         repository: &mut DocumentRepository<'_>,
         text: &str,
     ) -> Result<u64, DocumentError> {
+        self.commit(repository, text).map(|(revision, _)| revision)
+    }
+
+    fn commit(
+        &self,
+        repository: &mut DocumentRepository<'_>,
+        text: &str,
+    ) -> Result<(u64, EditorDocument), DocumentError> {
         if !displayable(text) {
             return Err(DocumentError::InvalidInput);
         }
-        repository.save_content(
+        let document = text_document(text);
+        let revision = repository.save_content(
             self.binding.project,
             self.binding.scene,
             self.binding.revision,
-            &text_document(text),
+            &document,
             SaveGuard::ExactProse(&self.original),
-        )
+        )?;
+        Ok((revision, document))
     }
 }
 

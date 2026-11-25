@@ -2,10 +2,12 @@
 use super::*;
 
 pub(super) const SEARCH_MENU: usize = 217;
+pub(super) const CONTINUE: usize = 218;
 
 pub(super) fn install(hwnd: HWND, edit_mode: bool) -> bool {
     let file = [
         (SAVE as usize, "&Speichern\tStrg+S"),
+        (CONTINUE, "Speichern und &weiterschreiben\tStrg+Enter"),
         (CLOSE as usize, "S&chließen\tAlt+F4"),
     ];
     let edit = [
@@ -36,7 +38,7 @@ pub(super) fn install(hwnd: HWND, edit_mode: bool) -> bool {
             ],
         )
     } else {
-        install_menu_groups(hwnd, &[("&Datei", &file[1..]), ("&Bearbeiten", &edit)])
+        install_menu_groups(hwnd, &[("&Datei", &file[2..]), ("&Bearbeiten", &edit)])
     }
 }
 
@@ -52,6 +54,7 @@ pub(super) unsafe fn refresh(hwnd: HWND) {
         enable_menu_command(hwnd, UNDO, editable && project_history::available(false));
         enable_menu_command(hwnd, REDO, editable && project_history::available(true));
         enable_menu_command(hwnd, SAVE as usize, editable && IsWindowEnabled(save) != 0);
+        enable_menu_command(hwnd, CONTINUE, editable && IsWindowEnabled(save) != 0);
         enable_menu_command(hwnd, CLOSE as usize, editable);
         enable_menu_command(hwnd, project_replace::OPEN as usize, editable);
         enable_menu_command(
