@@ -1,6 +1,8 @@
 #![windows_subsystem = "windows"]
 #[path = "native-leaf/paragraph_comparison.rs"]
 mod paragraph_comparison;
+#[path = "native-leaf/project_metrics.rs"]
+mod project_metrics;
 #[cfg(feature = "manuscript-window")]
 #[path = "native-leaf/project_scene.rs"]
 mod project_scene;
@@ -1098,7 +1100,7 @@ fn update_word_count(hwnd: HWND, text: Option<&str>, show_budget: bool) {
     let label = text.map_or_else(String::new, |text| {
         // Match countWords in packages/editor, including ECMAScript's whitespace exceptions.
         let count = text
-            .split(|c: char| (c.is_whitespace() && c != '\u{85}') || c == '\u{feff}')
+            .split(project_metrics::word_separator)
             .filter(|word| !word.is_empty())
             .count();
         let words = if count == 1 {

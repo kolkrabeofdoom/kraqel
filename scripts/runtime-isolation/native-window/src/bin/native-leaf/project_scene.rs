@@ -17,6 +17,9 @@ use zeroize::Zeroizing;
 
 const STATUS: i32 = 204;
 const COMPARE: i32 = 205;
+const METRICS: i32 = 206;
+const FOCUS: i32 = 210;
+const METRICS_TIMER: usize = 7002;
 const REQUEST: u32 = WM_APP + 40;
 const SAVE_TIMER: usize = 7001;
 
@@ -174,20 +177,41 @@ unsafe extern "system" fn scene_input(
 }
 
 fn changed_text(hwnd: HWND) -> Option<String> {
+    project_metrics::draft(unsafe { GetDlgItem(hwnd, EDIT) })
+}
+
+unsafe fn focus_mode(hwnd: HWND) -> bool {
+    unsafe { GetWindowLongPtrW(hwnd, GWLP_USERDATA) != 0 }
+}
+
+unsafe fn toggle_focus(hwnd: HWND) {
     unsafe {
-        let edit = GetDlgItem(hwnd, EDIT);
-        let units = usize::try_from(GetWindowTextLengthW(edit)).ok()?;
-        if units > 2 * PROJECT_EDIT_BYTES {
-            return None;
+        let button = GetDlgItem(hwnd, FOCUS);
+        if button.is_null() {
+            return;
         }
-        let mut buf = vec![0u16; units + 1];
-        SetLastError(0);
-        let read = GetWindowTextW(edit, buf.as_mut_ptr(), buf.len() as i32) as usize;
-        if read != units || (read == 0 && GetLastError() != 0) {
-            return None;
+        let enabled = !focus_mode(hwnd);
+        SetWindowLongPtrW(hwnd, GWLP_USERDATA, isize::from(enabled));
+        SetWindowTextW(
+            button,
+            wide(if enabled {
+                "&Fokusmodus verlassen"
+            } else {
+                "&Fokusmodus (F11)"
+            })
+            .as_ptr(),
+        );
+        for id in [SAVE, METRICS] {
+            ShowWindow(
+                GetDlgItem(hwnd, id),
+                if enabled { SW_HIDE } else { SW_SHOW },
+            );
         }
-        let value = String::from_utf16(&buf[..read]).ok()?.replace("\r\n", "\n");
-        (value.len() <= PROJECT_EDIT_BYTES && !value.contains(['\0', '\r'])).then_some(value)
+        if !enabled {
+            project_metrics::update(hwnd, METRICS);
+        }
+        SendMessageW(hwnd, WM_SIZE, 0, 0);
+        SetFocus(GetDlgItem(hwnd, EDIT));
     }
 }
 
@@ -203,50 +227,106 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) 
                 PostMessageW(hwnd, REQUEST, w, 0);
                 0
             }
+            WM_COMMAND if w == FOCUS as usize => {
+                toggle_focus(hwnd);
+                0
+            }
+            WM_COMMAND if (w & 0xffff) == EDIT as usize && (w >> 16) == EN_CHANGE as usize => {
+                if !GetDlgItem(hwnd, METRICS).is_null() && !focus_mode(hwnd) {
+                    if SetTimer(hwnd, METRICS_TIMER, 120, None) == 0 {
+                        project_metrics::update(hwnd, METRICS);
+                    }
+                }
+                0
+            }
+            WM_TIMER if w == METRICS_TIMER => {
+                KillTimer(hwnd, METRICS_TIMER);
+                if !focus_mode(hwnd) {
+                    project_metrics::update(hwnd, METRICS);
+                }
+                0
+            }
+            WM_GETMINMAXINFO => {
+                let min = &mut *(l as *mut MINMAXINFO);
+                let dpi = GetDpiForWindow(hwnd);
+                min.ptMinTrackSize.x = scale(365, dpi);
+                min.ptMinTrackSize.y = scale(330, dpi);
+                0
+            }
             WM_SIZE => {
                 let dpi = GetDpiForWindow(hwnd);
                 let mut rect = RECT::default();
                 GetClientRect(hwnd, &mut rect);
                 let margin = scale(12, dpi);
-                let button = scale(105, dpi);
-                let height = scale(26, dpi);
-                let bottom = rect.bottom - margin - height;
-                let status_height = if GetDlgItem(hwnd, STATUS).is_null() {
-                    0
-                } else {
-                    height * 2
-                };
-                for (id, x, y, width, h) in [
-                    (LABEL, margin, margin, rect.right - margin * 2, height),
-                    (
-                        EDIT,
-                        margin,
-                        margin + height,
-                        rect.right - margin * 2,
-                        bottom - margin * 2 - height - status_height,
-                    ),
-                    (
-                        STATUS,
-                        margin,
-                        bottom - status_height,
-                        rect.right - 2 * margin,
-                        status_height,
-                    ),
-                    (
-                        SAVE,
-                        rect.right - margin * 2 - 2 * button,
-                        bottom,
-                        button,
-                        height,
-                    ),
-                    (COMPARE, margin, bottom, scale(184, dpi), height),
-                    (CLOSE, rect.right - margin - button, bottom, button, height),
+                let gap = scale(6, dpi);
+                let height = scale(28, dpi);
+                let width = rect.right - 2 * margin;
+                let editor = !GetDlgItem(hwnd, FOCUS).is_null();
+                let focused = focus_mode(hwnd);
+                let compare = GetDlgItem(hwnd, COMPARE);
+                let comparing = !compare.is_null() && IsWindowVisible(compare) != 0;
+                let mut bottom = rect.bottom - margin - height;
+                let mut right = rect.right - margin;
+                for (id, logical_width, shown) in [
+                    (CLOSE, 92, true),
+                    (SAVE, 96, editor && !focused),
+                    (FOCUS, 158, editor),
+                    (COMPARE, 176, comparing),
                 ] {
-                    let child = GetDlgItem(hwnd, id);
-                    if !child.is_null() {
-                        MoveWindow(child, x.max(0), y.max(0), width.max(1), h.max(1), 1);
+                    if !shown {
+                        continue;
+                    }
+                    let w = scale(logical_width, dpi);
+                    if right - w < margin {
+                        bottom -= height + gap;
+                        right = rect.right - margin;
+                    }
+                    right -= w;
+                    MoveWindow(GetDlgItem(hwnd, id), right, bottom, w, height, 1);
+                    right -= gap;
+                }
+                if editor {
+                    let status_height = if GetWindowTextLengthW(GetDlgItem(hwnd, STATUS)) > 0 {
+                        2 * height
+                    } else {
+                        0
+                    };
+                    bottom -= status_height;
+                    MoveWindow(
+                        GetDlgItem(hwnd, STATUS),
+                        margin,
+                        bottom,
+                        width,
+                        status_height,
+                        1,
+                    );
+                    if !focused {
+                        let metrics_height = if width < scale(500, dpi) {
+                            2 * height
+                        } else {
+                            height
+                        };
+                        bottom -= metrics_height;
+                        MoveWindow(
+                            GetDlgItem(hwnd, METRICS),
+                            margin,
+                            bottom,
+                            width,
+                            metrics_height,
+                            1,
+                        );
                     }
                 }
+                MoveWindow(GetDlgItem(hwnd, LABEL), margin, margin, width, height, 1);
+                let top = margin + height;
+                MoveWindow(
+                    GetDlgItem(hwnd, EDIT),
+                    margin,
+                    top,
+                    width,
+                    (bottom - gap - top).max(1),
+                    1,
+                );
                 0
             }
             _ => DefWindowProcW(hwnd, msg, w, l),
@@ -307,11 +387,18 @@ pub(super) fn display(
         for (id, kind, label, control_style) in [
             (LABEL, "STATIC", "&Szenentext", SS_LEFT),
             (EDIT, "EDIT", "", style),
+            (METRICS, "STATIC", "", SS_LEFT),
             (STATUS, "STATIC", "", SS_LEFT),
             (
                 COMPARE,
                 "BUTTON",
                 "Fassungen &vergleichen",
+                WS_TABSTOP | BS_PUSHBUTTON as u32,
+            ),
+            (
+                FOCUS,
+                "BUTTON",
+                "&Fokusmodus (F11)",
                 WS_TABSTOP | BS_PUSHBUTTON as u32,
             ),
             (
@@ -331,7 +418,7 @@ pub(super) fn display(
                 WS_TABSTOP | BS_PUSHBUTTON as u32,
             ),
         ] {
-            if matches!(id, SAVE | STATUS | COMPARE) && !edit_mode {
+            if matches!(id, SAVE | STATUS | COMPARE | METRICS | FOCUS) && !edit_mode {
                 continue;
             }
             let child = CreateWindowExW(
@@ -363,12 +450,15 @@ pub(super) fn display(
         )?;
         // Validate UTF-8 size at submission. Allow editing beyond the save limit so
         // a long draft can be shortened explicitly, without saving a truncated prefix.
-        SendMessageW(field, EM_SETLIMITTEXT, 4 * 1024 * 1024, 0);
+        SendMessageW(field, EM_SETLIMITTEXT, project_metrics::EDIT_UNIT_LIMIT, 0);
         require(
             SetWindowTextW(field, wide(text.replace('\n', "\r\n")).as_ptr()) != 0
                 && matches_preview_text(hwnd, text),
             "project scene readback",
         )?;
+        if edit_mode {
+            project_metrics::update(hwnd, METRICS);
+        }
         SendMessageW(hwnd, WM_SIZE, 0, 0);
         ShowWindow(hwnd, SW_SHOW);
         SetFocus(field);
@@ -403,6 +493,18 @@ fn next_message() -> io::Result<MSG> {
 
 unsafe fn dispatch(hwnd: HWND, msg: &MSG) {
     unsafe {
+        let repeated = msg.lParam & (1 << 30) != 0;
+        if msg.message == WM_KEYDOWN
+            && (msg.hwnd == hwnd || IsChild(hwnd, msg.hwnd) != 0)
+            && !GetDlgItem(hwnd, FOCUS).is_null()
+            && (msg.wParam == VK_F11 as usize
+                || (msg.wParam == VK_ESCAPE as usize && (focus_mode(hwnd) || repeated)))
+        {
+            if !repeated {
+                toggle_focus(hwnd);
+            }
+            return;
+        }
         if IsDialogMessageW(hwnd, msg) == 0 {
             TranslateMessage(msg);
             DispatchMessageW(msg);
@@ -506,6 +608,7 @@ unsafe fn edit_loop(hwnd: HWND, field: HWND, text: &str, channel: Channel) -> io
                 }
                 SendMessageW(field, EM_SETREADONLY, 0, 0);
                 SetWindowTextW(GetDlgItem(hwnd, STATUS), wide(status).as_ptr());
+                SendMessageW(hwnd, WM_SIZE, 0, 0);
                 SetFocus(field);
                 continue;
             }
@@ -550,6 +653,7 @@ unsafe fn edit_loop(hwnd: HWND, field: HWND, text: &str, channel: Channel) -> io
                         GetDlgItem(hwnd, STATUS),
                         wide("Die Anfrage ist fehlgeschlagen. Der Entwurf bleibt offen.").as_ptr(),
                     );
+                    SendMessageW(hwnd, WM_SIZE, 0, 0);
                 }
                 continue;
             }
@@ -577,6 +681,7 @@ unsafe fn start_request(
         }
         SendMessageW(field, EM_SETREADONLY, 1, 0);
         SetWindowTextW(GetDlgItem(hwnd, STATUS), wide(status).as_ptr());
+        SendMessageW(hwnd, WM_SIZE, 0, 0);
         true
     }
 }
