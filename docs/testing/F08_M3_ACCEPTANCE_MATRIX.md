@@ -2,6 +2,12 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Native Szenenmenüs im Editor und Leser
+
+Beim installierten Kandidaten `e7a44897c58f` wurden die Menüeinträge samt Befehlskennungen und Beschriftungen direkt an den nativen Fenstern geprüft. Der Editor bot Datei, Bearbeiten und Ansicht, der Leser Datei und Bearbeiten mit Lesefunktionen. Der Fassungsvergleich war vor einem Konflikt gesperrt. Der Menühaken für den Fokusmodus folgte dem Ein- und Ausschalten der Schreibansicht. Eine an das Fenster adressierte Alt+B-Tastenmeldung öffnete das native Bearbeiten-Menü. Die Zugriffstaste S öffnete dort die Suche.
+
+Der Prüfläufer löste Speichern im Editor und Schließen im Leser anhand der geprüften Menükennungen über WM_COMMAND aus. Nach dem Neustart stimmten der schreibgeschützte Szenentext, der Suchindex und Revision 1. Der gemeinsame Bedien- und ETW-Lauf mit einem synthetischen Manuskript erfasste in beiden Prozessbäumen je einen Desktop, eine Fensterrolle und einen Datendienst. Es wurden jeweils null Netzwerkereignisse einschließlich Loopback beobachtet. Alle vier Positivkontrollen wurden erkannt, ohne Verluste oder Zuordnungslücken. Testinstallation, synthetisches Profil und Rohspur wurden bereinigt. SHA-256 des Installers: `8a95a3aecfb1969e53efc6aff1bfcc2e0023fcc8bb9431b7f4ccf62d553f7530`.
+
 ## Markierte Stellen suchen und per Tastatur ersetzen
 
 Im installierten Kandidaten `445d32fa7a9d` übernahm Strg+F eine manuell markierte einzeilige Unicode-Stelle im Editor und im schreibgeschützten Leser als Suchbegriff. Bei einer anschließenden mehrzeiligen Auswahl blieb in beiden Fenstern der bisherige Begriff erhalten. Strg+H übernahm im Editor die markierte Stelle anstelle des bisherigen Suchbegriffs und fokussierte das Ersatzfeld. Enter ersetzte ohne vorherige Treffernavigation genau diese Stelle und ließ den Fokus im Ersatzfeld. Strg+Enter öffnete für die zwei verbliebenen Treffer den Bestätigungsdialog mit Nein als Vorgabe.
