@@ -143,7 +143,7 @@ Der bisherige Prosa-PDF-Pfad und DOCX-Manuskriptaustausch v1 dürfen neue Rollen
 abflachen; solche Aufträge scheitern vor Veröffentlichung. Markdown/HTML und gewöhnliches DOCX
 dürfen nach ihrer v2-Erweiterung Prosa- und Drehbuchszenen gemeinsam mit erhaltener Baumstruktur
 ausgeben. Der vorgeschlagene A4-Drehbuch-Druckmodus bleibt dagegen auf explizit gewählte reine
-Drehbuchszenen beschränkt. Eine gemischte PDF-Gesamtausgabe ist nicht Teil von Stufe 1.
+Drehbuchszenen beschränkt. Eine gemischte PDF-Gesamtausgabe ist nicht Teil von Stufe 1. Die spätere Erweiterung des gewöhnlichen Manuskriptdrucks ist im [Datenformat](../data-format/screenplay-v2.md#pdf-ausgaben) beschrieben.
 
 Markdown verwendet exakt die sichtbaren deutschen Rollennamen aus §3 als `**Rollenname**`; Text und
 Fett/Kursiv werden wie im bestehenden Renderer maskiert, harte Umbrüche mit zwei Leerzeichen vor LF

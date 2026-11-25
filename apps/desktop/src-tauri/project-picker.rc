@@ -148,7 +148,7 @@ BEGIN
     LISTBOX 121, 10, 22, 340, 42, LBS_NOINTEGRALHEIGHT | WS_HSCROLL | WS_VSCROLL | WS_TABSTOP | WS_BORDER
     LTEXT "Datei&format", -1, 10, 70, 340, 12
     LISTBOX 122, 10, 84, 340, 50, LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP | WS_BORDER
-    LTEXT "Für ein Drehbuch-PDF wähle eine einzelne Szene. Für ganze Kapitel und Manuskripte mit Drehbuchszenen stehen Markdown, HTML und DOCX zur Verfügung.", -1, 10, 140, 340, 34
+    LTEXT "Kapitel- und Manuskript-PDFs enthalten Gliederungstitel, Prosa und Drehbuchrollen. Für einen reinen A4-Rollenauszug wähle eine einzelne Drehbuchszene.", -1, 10, 140, 340, 34
     PUSHBUTTON "&Vorhandene Ausgaben …", 123, 10, 182, 140, 17
     DEFPUSHBUTTON "&Weiter", IDOK, 196, 182, 74, 17
     PUSHBUTTON "&Abbrechen", IDCANCEL, 276, 182, 74, 17

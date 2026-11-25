@@ -29,6 +29,7 @@ enum Item {
     Line(Line),
     Gap(f32),
     FigureEnd,
+    Screenplay(std::ops::Range<usize>),
     Image {
         key: String,
         width: f32,
@@ -42,6 +43,7 @@ struct Layout {
     lines: usize,
     text_bytes: usize,
     image_bytes: u64,
+    screenplay: Option<screenplay::Layout>,
 }
 impl Layout {
     fn new() -> Result<Self> {
@@ -51,6 +53,7 @@ impl Layout {
             lines: 0,
             text_bytes: 0,
             image_bytes: 0,
+            screenplay: None,
         })
     }
     fn push_line(&mut self, chars: Vec<(char, usize)>, size: f32, indent: f32) -> Result<()> {
@@ -193,6 +196,33 @@ impl Layout {
         }
         Ok(())
     }
+    fn screenplay(&mut self, blocks: &[Block]) -> Result<()> {
+        let roles = blocks
+            .iter()
+            .map(|block| match block {
+                Block::Screenplay(role, runs) => Ok((*role, runs.as_slice())),
+                _ => Err(IllustratedError::Invalid),
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let layout = match &mut self.screenplay {
+            Some(layout) => layout,
+            slot @ None => {
+                slot.insert(screenplay::Layout::new().map_err(|_| IllustratedError::Invalid)?)
+            }
+        };
+        let previous_bytes = layout.text_bytes();
+        let rows = layout
+            .scene(&roles)
+            .map_err(|_| IllustratedError::Invalid)?;
+        self.lines += rows.len();
+        self.text_bytes += layout.text_bytes() - previous_bytes;
+        if self.lines > MAX_LINES || self.text_bytes > 8 * 1024 * 1024 {
+            return Err(IllustratedError::Invalid);
+        }
+        self.items.push(Item::Screenplay(rows));
+        Ok(())
+    }
+
     fn figures(&mut self, manifest: &Manifest, c: usize, s: usize) -> Result<()> {
         for placement in manifest
             .placements
@@ -222,8 +252,12 @@ impl Layout {
                 self.plain(caption, 10.0, 0)?;
             }
             let mut texts = self.items.split_off(start);
-            let text_height: text_height::Height = text_height::Height::of(&texts);
-            let maximum = (TOP - BOTTOM - text_height.0 - 16.0).min(540.0);
+            let text_height = texts.iter().try_fold(0.0, |height, item| match item {
+                Item::Line(line) => Ok(height + line.size * 1.4),
+                Item::Gap(gap) => Ok(height + gap),
+                _ => Err(IllustratedError::Invalid),
+            })?;
+            let maximum = (TOP - BOTTOM - text_height - 16.0).min(540.0);
             if maximum <= 0.0 {
                 return Err(IllustratedError::Invalid);
             }
@@ -246,30 +280,10 @@ impl Layout {
     }
 }
 
-// All figure lines and their image are planned as one page-bounded group.
-mod text_height {
-    use super::Item;
-    pub(super) struct Height(pub f32);
-    impl Height {
-        pub(super) fn of(items: &[Item]) -> Self {
-            Self(
-                items
-                    .iter()
-                    .map(|i| match i {
-                        Item::Line(l) => l.size * 1.4,
-                        Item::Gap(g) => *g,
-                        Item::Image { height, .. } => *height + 8.0,
-                        Item::FigureEnd => 10.0,
-                    })
-                    .sum(),
-            )
-        }
-    }
-}
-
 struct Canvas {
     document: PdfDocument,
     ops: Vec<Op>,
+    remaining_styled_runs: Option<usize>,
     fonts: Vec<FontId>,
     y: f32,
 }
@@ -278,19 +292,25 @@ impl Canvas {
         Self::with_fonts(title, fonts::DATA)
     }
     fn with_fonts(title: &str, data_set: [&'static [u8]; 4]) -> Result<Self> {
-        let mut document = PdfDocument::new(title);
-        let mut fonts = Vec::new();
+        let mut canvas = Self {
+            document: PdfDocument::new(title),
+            ops: Vec::new(),
+            remaining_styled_runs: None,
+            fonts: Vec::new(),
+            y: TOP,
+        };
+        canvas.add_fonts(data_set)?;
+        Ok(canvas)
+    }
+
+    fn add_fonts(&mut self, data_set: [&'static [u8]; 4]) -> Result<usize> {
+        let offset = self.fonts.len();
         for data in data_set {
             let font = ParsedFont::from_bytes(data, 0, &mut Vec::new())
                 .ok_or(IllustratedError::Invalid)?;
-            fonts.push(document.add_font(&font));
+            self.fonts.push(self.document.add_font(&font));
         }
-        Ok(Self {
-            document,
-            ops: Vec::new(),
-            fonts,
-            y: TOP,
-        })
+        Ok(offset)
     }
 
     fn finish_page(&mut self) {
@@ -301,7 +321,10 @@ impl Canvas {
         ));
     }
 
-    fn write_run(&mut self, text: String, size: f32, x: f32, y: f32, style: usize) {
+    fn write_run(&mut self, text: String, size: f32, x: f32, y: f32, style: usize) -> Result<()> {
+        if let Some(remaining) = &mut self.remaining_styled_runs {
+            *remaining = remaining.checked_sub(1).ok_or(IllustratedError::Invalid)?;
+        }
         self.ops.extend([
             Op::StartTextSection,
             Op::SetTextCursor {
@@ -316,6 +339,7 @@ impl Canvas {
             },
             Op::EndTextSection,
         ]);
+        Ok(())
     }
     fn room(&mut self, height: f32) -> Result<()> {
         if height > TOP - BOTTOM {
@@ -344,14 +368,14 @@ impl Canvas {
                     .collect::<Result<Vec<_>>>()?
                     .iter()
                     .sum::<f32>();
-                self.write_run(std::mem::take(&mut current), line.size, x, baseline, style);
+                self.write_run(std::mem::take(&mut current), line.size, x, baseline, style)?;
                 x += advance;
             }
             style = *s;
             current.push(*c);
         }
         if !current.is_empty() {
-            self.write_run(current, line.size, x, baseline, style);
+            self.write_run(current, line.size, x, baseline, style)?;
         }
         self.y -= line.size * 1.4;
         Ok(())
@@ -393,7 +417,11 @@ fn plan(manuscript: &Manuscript, manifest: Option<&Manifest>) -> Result<Layout> 
         layout.plain(&chapter.title, 17.0, 1)?;
         for (s, scene) in chapter.scenes.iter().enumerate() {
             layout.plain(&scene.title, 14.0, 1)?;
-            layout.blocks(&scene.blocks, 0, "")?;
+            if manifest.is_none() && matches!(scene.blocks.first(), Some(Block::Screenplay(..))) {
+                layout.screenplay(&scene.blocks)?;
+            } else {
+                layout.blocks(&scene.blocks, 0, "")?;
+            }
             if let Some(manifest) = manifest {
                 layout.figures(manifest, c, s)?;
             }
@@ -409,24 +437,39 @@ fn render(
 ) -> Result<Vec<u8>> {
     let layout = plan(manuscript, manifest)?;
     let mut canvas = Canvas::new(&manuscript.title)?;
+    let script_fonts = layout
+        .screenplay
+        .as_ref()
+        .map(|_| canvas.add_fonts(screenplay::FONTS))
+        .transpose()?;
+    if script_fonts.is_some() {
+        canvas.remaining_styled_runs = Some(screenplay::MAX_STYLED_RUNS);
+    }
     for (n, item) in layout.items.iter().enumerate() {
         match item {
             Item::Line(line) => canvas.line(line, &layout.fonts)?,
             Item::Gap(gap) => canvas.y -= gap,
             Item::FigureEnd => canvas.y -= 10.0,
+            Item::Screenplay(rows) => {
+                layout
+                    .screenplay
+                    .as_ref()
+                    .ok_or(IllustratedError::Invalid)?
+                    .draw(
+                        &mut canvas,
+                        rows.clone(),
+                        script_fonts.ok_or(IllustratedError::Invalid)?,
+                    )
+                    .map_err(|_| IllustratedError::Invalid)?;
+            }
             Item::Image { key, width, height } => {
-                let following: Vec<_> = layout.items[n + 1..]
-                    .iter()
-                    .take_while(|i| !matches!(i, Item::Image { .. }))
-                    .collect();
-                // Figure descriptions are followed by a 10 pt separator; stop at that separator.
+                // The figure plan keeps its image and following description on one page.
                 let mut total = *height + 8.0;
-                for next in following {
+                for next in &layout.items[n + 1..] {
                     match next {
                         Item::Line(l) => total += l.size * 1.4,
-                        Item::FigureEnd => break,
                         Item::Gap(g) => total += g,
-                        Item::Image { .. } => {}
+                        Item::FigureEnd | Item::Image { .. } | Item::Screenplay(_) => break,
                     }
                 }
                 canvas.room(total)?;

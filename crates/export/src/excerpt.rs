@@ -103,19 +103,11 @@ fn render_selection(
     documents: &[ExportSourceDocument],
     format: ExportFormat,
 ) -> Result<Vec<u8>, ExportError> {
-    if format == ExportFormat::Pdf
+    if let (ExportFormat::Pdf, ExportScope::Scene(id)) = (format, scope)
         && documents.iter().any(|doc| {
-            doc.node.kind == DocumentKind::Scene
-                && doc.content.version == kraqel_domain::SCREENPLAY_DOCUMENT_VERSION
+            doc.node.id == id && doc.content.version == kraqel_domain::SCREENPLAY_DOCUMENT_VERSION
         })
     {
-        // The A4 profile prints scene blocks, without catalog headings. A chapter
-        // or manuscript request also includes its outline, including empty chapters.
-        let ExportScope::Scene(id) = scope else {
-            return Err(ExportError::InvalidDocument(
-                "Ein Drehbuch-PDF benötigt eine einzelne Szene. Für Kapitel und Manuskripte mit Drehbuchszenen stehen Markdown, HTML und DOCX zur Verfügung.",
-            ));
-        };
         return crate::pdf::screenplay::render_selected(project, documents, &[id]);
     }
     let manuscript = Manuscript::from_export_documents(project, documents).map_err(|_| {
@@ -225,7 +217,7 @@ mod tests {
         assert!(!html.contains("Fremder Szenentitel"));
     }
     #[test]
-    fn screenplay_pdf_requires_an_explicit_single_scene() {
+    fn screenplay_excerpt_selects_structured_or_roles_only_pdf() {
         let (project, mut docs) = crate::tests::fixture();
         let prose = docs[1].clone();
         let scene = docs[1].node.id;
@@ -240,16 +232,25 @@ mod tests {
         };
         let root = tempfile::tempdir().unwrap();
         let nodes: Vec<_> = docs.iter().map(|doc| doc.node.clone()).collect();
+        let result = export_excerpt(
+            root.path(),
+            &project,
+            ExportScope::Chapter(nodes[0].id),
+            &nodes,
+            &docs,
+            ExportFormat::Pdf,
+        )
+        .unwrap();
+        let extracted = |file: String| {
+            let pdf = lopdf::Document::load(root.path().join("exports").join(file)).unwrap();
+            pdf.extract_text(&pdf.get_pages().into_keys().collect::<Vec<_>>())
+                .unwrap()
+        };
+        let chapter = extracted(result.file_name);
         assert!(
-            export_excerpt(
-                root.path(),
-                &project,
-                ExportScope::Chapter(nodes[0].id),
-                &nodes,
-                &docs,
-                ExportFormat::Pdf
-            )
-            .is_err()
+            chapter.contains("Ankunft")
+                && chapter.contains("Ruf im Nebel")
+                && chapter.contains("ARCHIV")
         );
         let mut sibling = prose;
         sibling.node.id = EntityId::new();
@@ -257,6 +258,19 @@ mod tests {
         let mut mixed = docs.clone();
         mixed.push(sibling);
         let full: Vec<_> = mixed.iter().map(|doc| doc.node.clone()).collect();
+        let full_pdf = export_excerpt(
+            root.path(),
+            &project,
+            ExportScope::Manuscript,
+            &full,
+            &mixed,
+            ExportFormat::Pdf,
+        )
+        .unwrap();
+        let full_text = extracted(full_pdf.file_name);
+        assert!(full_text.contains("ARCHIV") && full_text.contains("Niemals eine Krähe."));
+        assert!(!chapter.contains("Niemals eine Krähe."));
+        mixed[1].content.document["content"][0]["attrs"]["role"] = serde_json::json!("dialogue");
         assert!(
             export_excerpt(
                 root.path(),
@@ -268,7 +282,12 @@ mod tests {
             )
             .is_err()
         );
-        assert!(!root.path().join("exports").exists());
+        assert_eq!(
+            std::fs::read_dir(root.path().join("exports"))
+                .unwrap()
+                .count(),
+            2
+        );
 
         let pdf = export_excerpt(
             root.path(),
@@ -282,6 +301,8 @@ mod tests {
         let path = root.path().join("exports").join(pdf.file_name);
         let parsed = lopdf::Document::load(path).unwrap();
         assert_eq!(parsed.get_pages().len(), 1);
-        assert!(parsed.extract_text(&[1]).unwrap().contains("ARCHIV"));
+        let roles = parsed.extract_text(&[1]).unwrap();
+        assert!(roles.contains("ARCHIV"));
+        assert!(!roles.contains("Ankunft") && !roles.contains("Ruf im Nebel"));
     }
 }

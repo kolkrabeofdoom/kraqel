@@ -71,7 +71,7 @@ pub fn confirm_export(scope: &str, format: NativeExportFormat, single_scene: boo
             "\r\n\r\nBei einer Drehbuchszene enthält die A4-Ausgabe ausschließlich die Rollenabsätze. Projekt-, Kapitel- und Szenentitel entfallen."
         }
         (NativeExportFormat::Pdf, false) => {
-            "\r\n\r\nFür diesen Umfang ist PDF nur bei reinen Prosatexten verfügbar."
+            "\r\n\r\nDie Ausgabe enthält die Gliederungstitel und die ausgewählten Texte in Manuskriptreihenfolge. Drehbuchszenen werden mit ihren Absatzrollen gesetzt."
         }
         _ => "",
     };

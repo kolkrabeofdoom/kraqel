@@ -4893,7 +4893,49 @@ mod tests {
             super::export_selected_screenplay(&manager, REQUEST_ID, project_id, ids)
         };
         let chapter = scene.parent_id.unwrap();
+        let prose = create_document_impl(
+            &state,
+            REQUEST_ID,
+            CreateDocumentRequest {
+                project_id: project_id.to_string(),
+                parent_id: Some(chapter.to_string()),
+                kind: DocumentKind::Scene,
+                title: "Nachwort".into(),
+            },
+        )
+        .unwrap();
+        save_document_impl(
+            &state,
+            REQUEST_ID,
+            SaveDocumentRequest {
+                project_id: project_id.to_string(),
+                document_id: prose.id.to_string(),
+                expected_revision: 0,
+                content: EditorDocument {
+                    version: EDITOR_DOCUMENT_VERSION,
+                    document: json!({"type":"doc","content":[{"type":"paragraph","content":[
+                        {"type":"text","text":"Der Archivschlüssel liegt bereit."}
+                    ]}]}),
+                },
+            },
+        )
+        .unwrap();
+        let manuscript = || {
+            export_manuscript_impl(
+                &state,
+                REQUEST_ID,
+                &ExportProjectRequest {
+                    project_id: project_id.to_string(),
+                    format: ExportFormat::Pdf,
+                },
+            )
+        };
+        let whole = manuscript().unwrap();
+        assert_eq!(whole.file_name, "manuskript.pdf");
         let opened = manager.open_project(project_id.to_string()).unwrap();
+        let manuscript_path = opened.directory().join("exports").join(whole.file_name);
+        let original = fs::read(&manuscript_path).unwrap();
+        assert!(original.starts_with(b"%PDF-"));
         let path = opened.directory().join("exports").join("drehbuch.pdf");
         // A chapter supplies ordering metadata; its body has no place in a selected scene PDF.
         opened
@@ -4905,6 +4947,8 @@ mod tests {
             )
             .unwrap();
         drop(opened);
+        assert!(manuscript().is_err());
+        assert_eq!(fs::read(manuscript_path).unwrap(), original);
         assert!(export(&[]).is_err());
         assert!(!path.exists());
         let pdf = export(&[scene.id]).unwrap();

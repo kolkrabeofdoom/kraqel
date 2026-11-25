@@ -2,6 +2,12 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Kapitel- und Manuskriptdruck mit Prosa und Drehbuch
+
+Beim Export eines synthetischen Manuskripts entstanden zwei A4-Seiten. Beide wurden mit Poppler vollständig gerastert und visuell geprüft. Auf Seite 1 folgen auf Projekt-, Kapitel- und Szenentitel formatierte Prosa, Liste, Zitat und die erste Drehbuchszene mit ihrem Gliederungstitel. Die Handlung läuft über den Seitenwechsel. Seite 2 enthält die restlichen Handlungszeilen, Figur, Klammeranweisung, typografisch ausgezeichneten Dialog und rechtsbündigen Übergang. Anschließend folgen das nächste Kapitel, der nächste Szenentitel und der abschließende Prosatext. Das PDF wurde zusätzlich maschinell rückgelesen.
+
+Der native Exportpfad wurde mit Kapitel-, Manuskript- und Einzelszenenauswahl geprüft. Die Einzelszene enthielt nur die Rollenabsätze. Im Desktop-Integrationstest erzeugte der gewöhnliche Studio-Export die gemischte Gesamt-PDF. Nach Beschädigung eines benötigten Kapitelinhalts scheiterte der Gesamtdruck. Die vorhandene Ausgabe blieb bytegleich und der gezielte Rollenexport der intakten Szene gelang. Die Belege gelten für die Textausgabe.
+
 ## Ausgewählte Drehbuchszenen drucken (DB-05, DB-06 und DB-08)
 
 Der bestehende QA-Generator schreibt mit dem produktiven Renderer eine A4-Probe mit allen sechs Rollen. Poppler rasterte die ganze Seite. Bei der Sichtprüfung waren Szenenkopf, Figur, Klammeranweisung, beide Dialogzeilen und Übergang vollständig lesbar. Die unabhängige Messung mit pdfplumber ergab 595,276 × 841,890 pt und durchgängig 12 pt Schriftgröße. Szenenkopf und Handlung beginnen bei 30 mm, Figur bei 85 mm, Klammeranweisung bei 70 mm und Dialog bei 55 mm vom linken Papierrand. Der Übergang endet bei 185 mm. Die Grundlinien liegen im Dialogblock 14 pt auseinander, an den gemessenen Absatzgrenzen 26 pt. Die Messung gilt für diese synthetische Ausgabe.

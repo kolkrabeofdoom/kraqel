@@ -15,7 +15,7 @@ const formats: readonly { format: ExportFormat; label: string; description: stri
   { format: "markdown", label: "Markdown", description: "Portabel und gut versionierbar" },
   { format: "html", label: "HTML", description: "Eigenständig im Browser lesbar" },
   { format: "docx", label: "DOCX", description: "Für Office-Programme und Lektor*innen" },
-  { format: "pdf", label: "PDF", description: "Für Weitergabe und Ausdruck" },
+  { format: "pdf", label: "PDF", description: "Gesamtes Manuskript mit Gliederungstiteln" },
 ];
 
 export function Exports({
@@ -72,9 +72,9 @@ export function Exports({
       <h2 id="export-heading">Manuskript exportieren</h2>
       <p>
         Kapitel, Szenen, Überschriften, Absätze, Listen, Zitate sowie fett und kursiv gesetzter Text
-        werden übernommen. Markdown, HTML und das gewöhnliche DOCX geben auch Drehbuchrollen aus.
-        Für den Druck von Drehbuchszenen wähle unten „Drehbuch als A4-PDF“. Die Dateien liegen im
-        Projektordner <code>exports</code>.
+        werden übernommen. Markdown, HTML, DOCX und PDF geben auch Drehbuchrollen aus. Für einen
+        reinen Rollenauszug wähle unter „Drehbuch als A4-PDF“ die gewünschten Szenen. Alle Ausgaben
+        liegen im Projektordner <code>exports</code>.
       </p>
       <button
         type="button"

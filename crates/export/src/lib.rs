@@ -607,6 +607,29 @@ mod tests {
         (project, documents)
     }
 
+    fn paginated_mixed_fixture() -> (Project, Vec<ExportSourceDocument>) {
+        let (project, mut docs) = mixed_fixture();
+        let beats = (1..=50)
+            .map(|n| format!("Schritt {n:02}."))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let script = docs.last_mut().unwrap().content.document["content"]
+            .as_array_mut()
+            .unwrap();
+        script.insert(2, json!({"type":"screenplayBlock","attrs":{"role":"action"},"content":[{"type":"text","text":beats}]}));
+        let mut chapter = docs[0].clone();
+        chapter.node.id = EntityId::new();
+        chapter.node.title = "Nachklang".into();
+        chapter.node.position = 1;
+        let mut scene = docs[1].clone();
+        scene.node.id = EntityId::new();
+        scene.node.parent_id = Some(chapter.node.id);
+        scene.node.title = "Abreise".into();
+        scene.content.document = json!({"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Das Archiv schließt."}]}]});
+        docs.extend([chapter, scene]);
+        (project, docs)
+    }
+
     #[test]
     fn mixed_screenplay_preserves_roles_without_entering_prose_only_profiles() {
         let (project, documents) = mixed_fixture();
@@ -644,7 +667,38 @@ mod tests {
         );
         assert!(document.contains("Ruf im Nebel"));
         assert!(document.contains("Die Rückseite der Karte"));
-        assert!(render::render(&manuscript, ExportFormat::Pdf).is_err());
+        let (project, documents) = paginated_mixed_fixture();
+        let directory = tempdir().unwrap();
+        let result =
+            export_project(directory.path(), &project, &documents, ExportFormat::Pdf).unwrap();
+        let parsed =
+            lopdf::Document::load(directory.path().join("exports").join(result.file_name)).unwrap();
+        let pages: Vec<_> = parsed.get_pages().into_keys().collect();
+        assert!(pages.len() > 1);
+        let extracted = parsed.extract_text(&pages).unwrap();
+        let mut rest = extracted.as_str();
+        for expected in [
+            project.name.as_str(),
+            "Ankunft",
+            "Ruf im Nebel",
+            "Niemals eine Krähe.",
+            "Die Rückseite der Karte",
+            "INT. STADTARCHIV",
+            "Schritt 01.",
+            "Schritt 50.",
+            "Mira",
+            "(liest leise)",
+            "Der Zug wartet.",
+            "Schnitt auf:",
+            "Nachklang",
+            "Abreise",
+            "Das Archiv schließt.",
+        ] {
+            rest = rest
+                .split_once(expected)
+                .unwrap_or_else(|| panic!("missing or out of order: {expected}"))
+                .1;
+        }
         assert!(Manuscript::from_documents(&project, &documents).is_err());
         assert!(write_docx_roundtrip(&manuscript).is_err());
         assert!(read_docx_roundtrip(&docx).is_err());
@@ -696,6 +750,9 @@ mod tests {
         let (project, documents) = mixed_fixture();
         let selection = [documents.last().expect("screenplay scene").node.id];
         export_screenplay_pdf(&directory, &project, &documents, &selection).expect("A4 layout QA");
+        let (mixed_project, mixed_docs) = paginated_mixed_fixture();
+        export_project(&directory, &mixed_project, &mixed_docs, ExportFormat::Pdf)
+            .expect("mixed manuscript PDF QA");
         for format in [
             ExportFormat::Markdown,
             ExportFormat::Html,

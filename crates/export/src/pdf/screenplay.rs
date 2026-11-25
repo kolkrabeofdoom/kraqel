@@ -2,8 +2,7 @@
 use super::{Canvas, Fonts, MAX_LINES, MAX_PACKAGE, PdfParseErrorSeverity, PdfSaveOptions};
 use crate::{
     ExportError, ExportFormat, ExportResult, ExportSourceDocument, Inline, atomic_write,
-    prepare_export_directory,
-    screenplay::{Paragraph, paragraphs},
+    prepare_export_directory, screenplay::paragraphs,
 };
 use kraqel_domain::{DocumentKind, EntityId, Project, ScreenplayRole as Role};
 use std::{
@@ -11,7 +10,7 @@ use std::{
     path::Path,
 };
 
-const FONTS: [&[u8]; 4] = [
+pub(super) const FONTS: [&[u8]; 4] = [
     include_bytes!("../../fonts/jetbrains-mono/JetBrainsMono-Regular.ttf"),
     include_bytes!("../../fonts/jetbrains-mono/JetBrainsMono-Bold.ttf"),
     include_bytes!("../../fonts/jetbrains-mono/JetBrainsMono-Italic.ttf"),
@@ -24,6 +23,7 @@ const PAGE_HEIGHT: f32 = TOP - BOTTOM;
 const SIZE: f32 = 12.0;
 const LEADING: f32 = 14.0;
 const SPACE: f32 = 12.0;
+pub(super) const MAX_STYLED_RUNS: usize = 250_000;
 const MAX_TEXT: usize = 8 * 1024 * 1024;
 type Result<T> = std::result::Result<T, ExportError>;
 const INVALID_SELECTION: ExportError = ExportError::InvalidDocument(
@@ -96,7 +96,7 @@ struct Row {
     prefer_next: bool,
 }
 
-struct Layout {
+pub(super) struct Layout {
     fonts: Fonts,
     rows: Vec<Row>,
     text_bytes: usize,
@@ -104,7 +104,7 @@ struct Layout {
 }
 
 impl Layout {
-    fn new() -> Result<Self> {
+    pub(super) fn new() -> Result<Self> {
         let fonts = Fonts::from_data(FONTS).map_err(|_| FONT_ERROR)?;
         let cell = fonts.advance('M', 0, SIZE).map_err(|_| FONT_ERROR)?;
         Ok(Self {
@@ -136,15 +136,15 @@ impl Layout {
         Ok(())
     }
 
-    fn paragraph(&mut self, p: &Paragraph) -> Result<()> {
-        let width = match p.role {
+    fn paragraph(&mut self, role: Role, runs: &[Inline]) -> Result<()> {
+        let width = match role {
             Role::Character => 100.0,
             Role::Parenthetical => 90.0,
             Role::Dialogue => 105.0,
             _ => 155.0,
         } * MM;
         let mut line: Vec<(char, usize)> = Vec::new();
-        for run in &p.runs {
+        for run in runs {
             let (text, style) = match run {
                 Inline::HardBreak => ("\n", 0),
                 Inline::Text { text, bold, italic } => {
@@ -159,7 +159,7 @@ impl Layout {
             let normalized = self.fonts.normalized(text, style).map_err(|_| FONT_ERROR)?;
             for c in normalized.chars() {
                 if c == '\n' {
-                    self.row(std::mem::take(&mut line), p.role)?;
+                    self.row(std::mem::take(&mut line), role)?;
                     continue;
                 }
                 if (self.fonts.advance(c, style, SIZE).map_err(|_| FONT_ERROR)? - self.cell).abs()
@@ -173,36 +173,40 @@ impl Layout {
                         .rposition(|(ch, _)| *ch == ' ')
                         .map_or(line.len(), |i| i + 1);
                     let rest = line.split_off(cut);
-                    self.row(std::mem::replace(&mut line, rest), p.role)?;
+                    self.row(std::mem::replace(&mut line, rest), role)?;
                 }
                 line.push((c, style));
             }
         }
-        self.row(line, p.role)
+        self.row(line, role)
     }
 
-    fn scene(&mut self, blocks: &[Paragraph]) -> Result<()> {
+    pub(super) fn text_bytes(&self) -> usize {
+        self.text_bytes
+    }
+
+    pub(super) fn scene(&mut self, blocks: &[(Role, &[Inline])]) -> Result<std::ops::Range<usize>> {
+        let first_row = self.rows.len();
         let mut spans = Vec::with_capacity(blocks.len());
-        for (idx, block) in blocks.iter().enumerate() {
+        for (idx, &(role, runs)) in blocks.iter().enumerate() {
             let start = self.rows.len();
-            self.paragraph(block)?;
+            self.paragraph(role, runs)?;
             let end = self.rows.len();
             if end - start >= 2 {
                 self.rows[end - 2].prefer_next = true;
             }
-            let next = blocks.get(idx + 1).map(|p| p.role);
-            let in_dialogue = matches!(
-                block.role,
-                Role::Character | Role::Parenthetical | Role::Dialogue
-            ) && matches!(next, Some(Role::Parenthetical | Role::Dialogue));
+            let next = blocks.get(idx + 1).map(|p| p.0);
+            let in_dialogue =
+                matches!(role, Role::Character | Role::Parenthetical | Role::Dialogue)
+                    && matches!(next, Some(Role::Parenthetical | Role::Dialogue));
             if !in_dialogue {
                 self.rows[end - 1].after = SPACE;
             }
             spans.push(start..end);
         }
-        for (idx, block) in blocks.iter().enumerate() {
+        for (idx, &(role, _)) in blocks.iter().enumerate() {
             let span = &spans[idx];
-            let keep_until = match block.role {
+            let keep_until = match role {
                 Role::SceneHeading => {
                     let mut until = span.end;
                     let mut following = 0;
@@ -220,7 +224,7 @@ impl Layout {
                 Role::Character | Role::Parenthetical => {
                     let dialogue = if blocks
                         .get(idx + 1)
-                        .is_some_and(|b| b.role == Role::Parenthetical)
+                        .is_some_and(|b| b.0 == Role::Parenthetical)
                     {
                         idx + 2
                     } else {
@@ -230,7 +234,7 @@ impl Layout {
                         // Two dialogue lines can belong to separate consecutive paragraphs.
                         let end = if blocks
                             .get(dialogue + 1)
-                            .is_some_and(|b| b.role == Role::Dialogue)
+                            .is_some_and(|b| b.0 == Role::Dialogue)
                         {
                             spans[dialogue + 1].end
                         } else {
@@ -247,15 +251,18 @@ impl Layout {
                 row.keep_next = true;
             }
         }
-        Ok(())
+        Ok(first_row..self.rows.len())
     }
 
-    fn render(&self) -> Result<Vec<u8>> {
-        let mut canvas = Canvas::with_fonts("KRAQEL – Drehbuch", FONTS).map_err(|_| FONT_ERROR)?;
-        let mut y = TOP;
-        let mut start = 0;
-        let mut styled_runs = 0;
-        while start < self.rows.len() {
+    pub(super) fn draw(
+        &self,
+        canvas: &mut Canvas,
+        rows: std::ops::Range<usize>,
+        font_offset: usize,
+    ) -> Result<()> {
+        let mut y = canvas.y.min(TOP);
+        let mut start = rows.start;
+        while start < rows.end {
             let mut last = start;
             while self.rows[last].keep_next {
                 last += 1;
@@ -284,18 +291,30 @@ impl Layout {
             for row in group {
                 let mut x = row.left;
                 for run in row.chars.chunk_by(|a, b| a.1 == b.1) {
-                    styled_runs += 1;
-                    if styled_runs > 250_000 {
-                        return Err(LIMIT);
-                    }
                     let text = run.iter().map(|(c, _)| *c).collect();
-                    canvas.write_run(text, SIZE, x, y - self.fonts.ascent(SIZE), run[0].1);
+                    canvas
+                        .write_run(
+                            text,
+                            SIZE,
+                            x,
+                            y - self.fonts.ascent(SIZE),
+                            font_offset + run[0].1,
+                        )
+                        .map_err(|_| LIMIT)?;
                     x += cells(run.len())? * self.cell;
                 }
                 y -= LEADING + row.after;
             }
             start = last + 1;
         }
+        canvas.y = y;
+        Ok(())
+    }
+
+    fn render(&self) -> Result<Vec<u8>> {
+        let mut canvas = Canvas::with_fonts("KRAQEL – Drehbuch", FONTS).map_err(|_| FONT_ERROR)?;
+        canvas.remaining_styled_runs = Some(MAX_STYLED_RUNS);
+        self.draw(&mut canvas, 0..self.rows.len(), 0)?;
         canvas.finish_page();
         let mut warnings = Vec::new();
         let bytes = canvas
@@ -339,7 +358,12 @@ pub(crate) fn render_selected(
 ) -> Result<Vec<u8>> {
     let mut layout = Layout::new()?;
     for scene in selected(project, documents, ids)? {
-        layout.scene(&paragraphs(&scene.content)?)?;
+        let paragraphs = paragraphs(&scene.content)?;
+        let blocks: Vec<_> = paragraphs
+            .iter()
+            .map(|p| (p.role, p.runs.as_slice()))
+            .collect();
+        layout.scene(&blocks)?;
     }
     layout.render()
 }
