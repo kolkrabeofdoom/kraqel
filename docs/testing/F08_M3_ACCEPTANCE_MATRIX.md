@@ -2,6 +2,14 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Geschütztes Entfernen im installierten Win32-Desktop
+
+Im Kandidaten `30329182c440` öffnete Entf in der fokussierten Liste die schreibgeschützte Vorschau zur ausgewählten Szene und ihrem Kapitel. **Abbrechen** hatte den Fokus und war die Standardschaltfläche. Enter ließ alle vier Dokumente bestehen. Die ausdrückliche Bestätigung entfernte genau die gewählte Szene. Eine weitere Vorschau führte das gewählte Kapitel und dessen eine verbliebene Kindszene auf. Die Bestätigung entfernte beide. Nach vollständigem Desktopneustart enthielt die gleichnamige Szene im anderen Kapitel ihre beiden Absätze auf Revision 1. Ihre Dokumentkennung, Kapitelzuordnung und Inhaltsprüfsumme waren unverändert.
+
+Der SQLite-Test mit sechs betroffenen Zusatzgruppen erfasste die tatsächlich mitgelöschten Daten. Nach einer Änderung des Bildprompt-Texts bei gleicher Kennung und Anzahl wurde die Bestätigung abgewiesen. Eine neue Textrevision einer Kindszene sperrte das Entfernen des Kapitels. Eine frische Vorschau erlaubte anschließend das gezielte Entfernen der Szene.
+
+Die gemeinsame ETW-Aufzeichnung erfasste bei beiden Desktopstarts je eine Fensterrolle und einen Datendienst. Beide Prozessbäume zeigten null Netzereignisse einschließlich Loopback und keine WebView2-Prozesse. Alle vier TCP-/UDP-Kontrollen über IPv4/IPv6 wurden erkannt, ohne verlorene Ereignisse oder Puffer. Testinstallation, synthetisches Profil und Rohaufzeichnung wurden entfernt. Installer-SHA-256: `4b3a1f35085af3ed0cfa8ee43a6802da6f0822a3210b35ddec775dd2f67b053f`.
+
 ## Reihenfolge und Kapitelwechsel im installierten Win32-Desktop
 
 Im installierten Kandidaten `daec7364a865` wurde ein Kapitel über die fokussierte Schaltfläche per Leertaste nach oben verschoben. Zwei Kapitel enthielten zunächst je eine gleichnamige Szene. Die bearbeitete Szene wurde an das Ende des anderen Kapitels verschoben, blieb dort ausgewählt und ließ sich anschließend nach oben und wieder nach unten bewegen.
