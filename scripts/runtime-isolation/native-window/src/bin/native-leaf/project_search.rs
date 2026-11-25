@@ -40,7 +40,7 @@ pub(super) unsafe fn show(hwnd: HWND, open: bool) {
 }
 
 // Reserve once so conversion never frees a partial plaintext buffer.
-fn text(field: HWND) -> Option<Zeroizing<String>> {
+pub(super) fn text(field: HWND) -> Option<Zeroizing<String>> {
     let units = project_metrics::units(field, project_metrics::EDIT_UNIT_LIMIT)?;
     let mut result = Zeroizing::new(String::with_capacity(units.len() * 3));
     for ch in char::decode_utf16(units.iter().copied()) {
@@ -176,12 +176,24 @@ pub(super) unsafe fn layout(
             }
             top += height + gap;
             if IsWindowVisible(GetDlgItem(hwnd, REPLACEMENT)) != 0 {
+                let button = 2 * nav + gap;
+                let wrap = width < scale(520, dpi);
+                let edit_width = if wrap {
+                    width - label - gap
+                } else {
+                    width - label - 2 * button - 3 * gap
+                };
                 let mut x = margin;
                 for (id, w) in [
                     (REPLACEMENT_LABEL, label),
-                    (REPLACEMENT, input),
-                    (project_replace::APPLY, 2 * nav + gap),
+                    (REPLACEMENT, edit_width),
+                    (project_replace::APPLY, button),
+                    (project_replace::ALL, button),
                 ] {
+                    if id == project_replace::APPLY && wrap {
+                        x = margin + width - 2 * button - gap;
+                        top += height + gap;
+                    }
                     MoveWindow(GetDlgItem(hwnd, id), x, top, w, height, 1);
                     x += w + gap;
                 }

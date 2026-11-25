@@ -247,6 +247,10 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, w: WPARAM, l: LPARAM) 
                 project_replace::apply(hwnd);
                 0
             }
+            WM_COMMAND if w == project_replace::ALL as usize => {
+                project_replace::apply_all(hwnd);
+                0
+            }
             WM_COMMAND
                 if w == project_search::NEXT as usize || w == project_search::PREVIOUS as usize =>
             {
@@ -462,6 +466,12 @@ pub(super) fn display(
                 "Treffer e&rsetzen",
                 WS_TABSTOP | BS_PUSHBUTTON as u32,
             ),
+            (
+                project_replace::ALL,
+                "BUTTON",
+                "Alle ersetzen …",
+                WS_TABSTOP | BS_PUSHBUTTON as u32,
+            ),
             (METRICS, "STATIC", "", SS_LEFT),
             (STATUS, "STATIC", "", SS_LEFT),
             (
@@ -503,6 +513,7 @@ pub(super) fn display(
                     | REPLACEMENT_LABEL
                     | project_replace::OPEN
                     | project_replace::APPLY
+                    | project_replace::ALL
             ) && !edit_mode
             {
                 continue;
@@ -520,6 +531,7 @@ pub(super) fn display(
                             | REPLACEMENT
                             | REPLACEMENT_LABEL
                             | project_replace::APPLY
+                            | project_replace::ALL
                             | project_search::PREVIOUS
                             | project_search::NEXT
                     ) {
@@ -773,6 +785,7 @@ unsafe fn edit_loop(hwnd: HWND, field: HWND, text: &str, channel: Channel) -> io
                 }
                 SendMessageW(field, EM_SETREADONLY, 0, 0);
                 EnableWindow(GetDlgItem(hwnd, project_replace::APPLY), 1);
+                EnableWindow(GetDlgItem(hwnd, project_replace::ALL), 1);
                 SetWindowTextW(GetDlgItem(hwnd, STATUS), wide(status).as_ptr());
                 SendMessageW(hwnd, WM_SIZE, 0, 0);
                 SetFocus(field);
@@ -847,6 +860,7 @@ unsafe fn start_request(
         }
         SendMessageW(field, EM_SETREADONLY, 1, 0);
         EnableWindow(GetDlgItem(hwnd, project_replace::APPLY), 0);
+        EnableWindow(GetDlgItem(hwnd, project_replace::ALL), 0);
         SetWindowTextW(GetDlgItem(hwnd, STATUS), wide(status).as_ptr());
         SendMessageW(hwnd, WM_SIZE, 0, 0);
         true
