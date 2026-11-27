@@ -1,4 +1,4 @@
-//! Sicherer, nicht-destruktiver Import portabler Snapshot-v3-Archive.
+//! Sicherer, nicht-destruktiver Import portabler Snapshot-Archive der Versionen 3 und 4.
 
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -8,9 +8,7 @@ use std::{
 };
 
 use kraqel_asset_service::{PreparedImage, prepare_image, store_image};
-use kraqel_domain::{
-    CURRENT_SCHEMA_VERSION, EDITOR_DOCUMENT_VERSION, EditorDocument, EntityId, Project, ProjectId,
-};
+use kraqel_domain::{CURRENT_SCHEMA_VERSION, EntityId, Project, ProjectId};
 use kraqel_storage::{
     Database,
     project_manager::{ManagedProject, ProjectError, ProjectManager},
@@ -107,7 +105,7 @@ struct SnapshotData {
     entity_ids: BTreeSet<String>,
 }
 
-/// Importiert ein begrenztes Snapshot-v3-ZIP stets als neues, atomar veröffentlichtes Projekt.
+/// Importiert ein begrenztes Snapshot-ZIP (v3/v4) stets als neues, atomar veröffentlichtes Projekt.
 ///
 /// # Errors
 /// Liefert einen datenarmen Fehler, wenn Archiv, Inhalte, Referenzen oder Bilder ungültig sind oder
@@ -172,7 +170,7 @@ where
 /// # Errors
 /// Liefert einen datenarmen Fehler, wenn der ausgewählte Pfad kein unverknüpftes reguläres File
 /// ist, sich während des Lesens ändert, die Größenbegrenzung verletzt oder kein gültiges
-/// Snapshot-v3-Archiv enthält.
+/// Snapshot-Archiv (v3/v4) enthält.
 pub fn import_snapshot_archive_file(
     manager: &ProjectManager,
     path: &Path,
@@ -209,7 +207,7 @@ fn parse_snapshot(archive: &[u8]) -> Result<SnapshotData, GitServiceError> {
     let files = read_archive(archive)?;
     let manifest: ImportManifest = parse_json_file(&files, "manifest.json")?;
     if manifest.format != "kraqel-project-snapshot"
-        || manifest.format_version != 3
+        || !matches!(manifest.format_version, 3 | 4)
         || manifest.project.schema_version != CURRENT_SCHEMA_VERSION.0
         || canonical_project_id(&manifest.project.id).is_none()
         || !valid_name(&manifest.project.name, 120)
@@ -219,9 +217,7 @@ fn parse_snapshot(archive: &[u8]) -> Result<SnapshotData, GitServiceError> {
         return Err(GitServiceError::InvalidSnapshot);
     }
     if files.get("schema.json").map(Vec::as_slice)
-        != Some(include_bytes!(
-            "../../../docs/data-format/snapshot-v3.schema.json"
-        ))
+        != Some(super::snapshot_schema(manifest.format_version)?)
     {
         return Err(GitServiceError::InvalidSnapshot);
     }
@@ -230,6 +226,9 @@ fn parse_snapshot(archive: &[u8]) -> Result<SnapshotData, GitServiceError> {
     let documents_root: Value = parse_json_file(&files, "documents.json")?;
     require_kind(&documents_root, "documents", &["kind", "documents"])?;
     let documents = require_array_field(&documents_root, "documents")?.clone();
+    if super::document_snapshot_version(&documents, false)? != manifest.format_version {
+        return Err(GitServiceError::InvalidSnapshot);
+    }
     let document_ids = validate_documents(&documents)?;
 
     let story: Value = parse_json_file(&files, "story-bible.json")?;
@@ -405,18 +404,6 @@ fn validate_documents(documents: &[Value]) -> Result<BTreeSet<String>, GitServic
             || unsigned(object, "position").is_none()
             || unsigned(object, "revision").is_none()
             || object.get("plainText").and_then(Value::as_str).is_none()
-        {
-            return Err(GitServiceError::InvalidSnapshot);
-        }
-        let editor: EditorDocument = serde_json::from_value(
-            object
-                .get("content")
-                .cloned()
-                .ok_or(GitServiceError::InvalidSnapshot)?,
-        )
-        .map_err(|_| GitServiceError::InvalidSnapshot)?;
-        if editor.version != EDITOR_DOCUMENT_VERSION
-            || editor.document.get("type").and_then(Value::as_str) != Some("doc")
         {
             return Err(GitServiceError::InvalidSnapshot);
         }
@@ -847,6 +834,12 @@ fn populate_project(
     }
 
     let transaction = database.transaction()?;
+    if data.manifest.format_version == 4 {
+        kraqel_storage::require_editor_schema(
+            &transaction,
+            kraqel_domain::SCREENPLAY_DOCUMENT_VERSION,
+        )?;
+    }
     insert_documents(&transaction, &project, &data.documents)?;
     insert_story(&transaction, &project, &data.story)?;
     insert_plotboard(&transaction, &project, &data.plotboard)?;

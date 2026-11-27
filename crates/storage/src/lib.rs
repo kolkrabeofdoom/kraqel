@@ -8,6 +8,7 @@ use rusqlite::{Connection, Transaction, TransactionBehavior};
 pub mod continuity_repository;
 pub mod document_repository;
 pub mod media_repository;
+pub mod native_scene;
 pub mod project_manager;
 pub mod prompt_repository;
 pub mod story_bible_repository;
@@ -19,8 +20,35 @@ const STRUCTURE_SCHEMA: &str = include_str!("../migrations/0002_plotboard_timeli
 const MEDIA_SCHEMA: &str = include_str!("../migrations/0003_media_library.sql");
 const VISUAL_SCHEMA: &str = include_str!("../migrations/0004_visual_profiles.sql");
 const PROMPT_SCHEMA: &str = include_str!("../migrations/0005_image_prompt_drafts.sql");
-/// Aktueller interner SQLite-Migrationsstand.
+/// SQLite-Basisschema für neue Projekte und Projekte mit reinen Prosadaten.
 pub const CURRENT_DATABASE_VERSION: SchemaVersion = SchemaVersion(6);
+/// Mindestleseversion nach dem ersten Speichern einer Drehbuchszene.
+pub const SCREENPLAY_DATABASE_VERSION: SchemaVersion = SchemaVersion(7);
+
+pub(crate) fn supported_current_schema(version: u32) -> bool {
+    version == CURRENT_DATABASE_VERSION.0 || version == SCREENPLAY_DATABASE_VERSION.0
+}
+
+/// Bindet den ersten Drehbuchinhalt in derselben Schreibtransaktion an Schema 7.
+///
+/// # Errors
+/// Liefert den SQLite-Fehler beim Setzen des Versionsmarkers.
+pub fn require_editor_schema(
+    transaction: &Transaction<'_>,
+    editor_version: u16,
+) -> rusqlite::Result<()> {
+    if editor_version == kraqel_domain::SCREENPLAY_DOCUMENT_VERSION {
+        let current =
+            transaction.pragma_query_value(None, "user_version", |r| r.get::<_, u32>(0))?;
+        if current == CURRENT_DATABASE_VERSION.0 {
+            transaction
+                .execute_batch(include_str!("../migrations/0007_screenplay_capability.sql"))?;
+        } else if current != SCREENPLAY_DATABASE_VERSION.0 {
+            return Err(rusqlite::Error::InvalidQuery);
+        }
+    }
+    Ok(())
+}
 const BUSY_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Von der Speicherschicht gemeldete Fehler.
@@ -133,13 +161,13 @@ impl Database {
     fn migrate(&mut self) -> Result<(), StorageError> {
         let found = self.schema_version()?;
 
-        if found > CURRENT_DATABASE_VERSION {
+        if found > SCREENPLAY_DATABASE_VERSION {
             return Err(StorageError::FutureSchema {
                 found,
-                supported: CURRENT_DATABASE_VERSION,
+                supported: SCREENPLAY_DATABASE_VERSION,
             });
         }
-        if found == CURRENT_DATABASE_VERSION {
+        if supported_current_schema(found.0) {
             return Ok(());
         }
         let mut version = found;
@@ -346,7 +374,7 @@ mod tests {
         let path = directory.path().join("future.sqlite3");
         let connection = Connection::open(&path).expect("database should open");
         connection
-            .pragma_update(None, "user_version", 7)
+            .pragma_update(None, "user_version", 8)
             .expect("future version should be set");
         drop(connection);
 
@@ -356,8 +384,8 @@ mod tests {
         assert!(matches!(
             error,
             StorageError::FutureSchema {
-                found: SchemaVersion(7),
-                supported: SchemaVersion(6)
+                found: SchemaVersion(8),
+                supported: SchemaVersion(7)
             }
         ));
 
@@ -365,7 +393,7 @@ mod tests {
         let version: u32 = connection
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .expect("version should remain readable");
-        assert_eq!(version, 7);
+        assert_eq!(version, 8);
     }
 
     #[test]

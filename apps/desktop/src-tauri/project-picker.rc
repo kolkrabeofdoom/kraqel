@@ -1,0 +1,167 @@
+#pragma code_page(65001)
+#include <winuser.h>
+401 DIALOGEX 0, 0, 372, 210
+STYLE DS_SHELLFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "KRAQEL – Projektübersicht"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT "&Lokale Projekte", 101, 10, 9, 352, 12
+    LISTBOX 102, 10, 23, 352, 80, LBS_NOTIFY | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP | WS_BORDER
+    LTEXT "Die native Manuskriptauswahl und Projektanlage arbeiten lokal. Studio und Projektverwaltung starten WebView2 und können Netzwerkverbindungen herstellen.", -1, 10, 112, 352, 30
+    DEFPUSHBUTTON "Im &Studio öffnen", IDOK, 10, 160, 72, 17
+    PUSHBUTTON "&Manuskript öffnen", 104, 87, 160, 96, 17
+    PUSHBUTTON "Projekt&verwaltung öffnen", 103, 188, 160, 104, 17
+    PUSHBUTTON "Projekt &anlegen", 106, 10, 183, 96, 17
+    PUSHBUTTON "&Schließen", IDCANCEL, 298, 183, 64, 17
+END
+
+405 DIALOGEX 0, 0, 302, 101
+STYLE DS_SHELLFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "KRAQEL – Projekt anlegen"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT "Projekt&name", -1, 10, 8, 282, 11
+    EDITTEXT 107, 10, 21, 282, 16, ES_AUTOHSCROLL | WS_TABSTOP
+    LTEXT "Das Projekt beginnt mit einem Kapitel und einer leeren Szene.", 108, 10, 45, 282, 25
+    DEFPUSHBUTTON "Projekt &anlegen", IDOK, 121, 75, 95, 17
+    PUSHBUTTON "A&bbrechen", IDCANCEL, 222, 75, 70, 17
+END
+
+402 DIALOGEX 0, 0, 310, 218
+STYLE DS_SHELLFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "KRAQEL – Kapitelauswahl"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT "&Kapitel", 101, 10, 9, 290, 12
+    LISTBOX 102, 10, 24, 290, 94, LBS_NOTIFY | LBS_WANTKEYBOARDINPUT | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP | WS_BORDER
+    PUSHBUTTON "Kapitel &anlegen", 109, 10, 124, 92, 17
+    PUSHBUTTON "&Umbenennen", 110, 108, 124, 86, 17
+    PUSHBUTTON "&Entfernen …", 114, 200, 124, 100, 17
+    PUSHBUTTON "Nach &oben", 111, 10, 147, 92, 17
+    PUSHBUTTON "Nach u&nten", 112, 108, 147, 86, 17
+    PUSHBUTTON "Ko&pieren …", 117, 200, 147, 100, 17
+    PUSHBUTTON "An Pos&ition …", 119, 10, 170, 92, 17
+    PUSHBUTTON "E&xportieren …", 120, 108, 170, 86, 17
+    DEFPUSHBUTTON "&Szenen anzeigen", IDOK, 134, 191, 96, 17
+    PUSHBUTTON "&Zurück", IDCANCEL, 236, 191, 64, 17
+END
+
+403 DIALOGEX 0, 0, 316, 218
+STYLE DS_SHELLFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "KRAQEL – Szenenauswahl"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT "&Szenen", 101, 10, 9, 296, 12
+    LISTBOX 102, 10, 24, 296, 94, LBS_NOTIFY | LBS_WANTKEYBOARDINPUT | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP | WS_BORDER
+    PUSHBUTTON "Szene &anlegen", 109, 10, 124, 92, 17
+    PUSHBUTTON "&Umbenennen", 110, 108, 124, 86, 17
+    PUSHBUTTON "&Entfernen …", 114, 200, 124, 100, 17
+    PUSHBUTTON "Nach &oben", 111, 10, 147, 92, 17
+    PUSHBUTTON "Nach u&nten", 112, 108, 147, 86, 17
+    PUSHBUTTON "In &Kapitel verschieben …", 113, 200, 147, 106, 17
+    PUSHBUTTON "Ko&pieren …", 117, 10, 170, 92, 17
+    PUSHBUTTON "An Pos&ition …", 119, 108, 170, 86, 17
+    PUSHBUTTON "E&xportieren …", 120, 200, 170, 106, 17
+    DEFPUSHBUTTON "&Lesen", IDOK, 82, 191, 64, 17
+    PUSHBUTTON "&Bearbeiten", 105, 152, 191, 84, 17
+    PUSHBUTTON "&Zurück", IDCANCEL, 242, 191, 64, 17
+END
+
+407 DIALOGEX 0, 0, 310, 156
+STYLE DS_SHELLFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "KRAQEL – Zielkapitel wählen"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT "Die Szene wird am Ende des gewählten &Kapitels eingefügt.", 101, 10, 9, 290, 18
+    LISTBOX 102, 10, 29, 290, 92, LBS_NOTIFY | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP | WS_BORDER
+    DEFPUSHBUTTON "&Verschieben", IDOK, 140, 129, 78, 17
+    PUSHBUTTON "&Abbrechen", IDCANCEL, 224, 129, 76, 17
+END
+
+406 DIALOGEX 0, 0, 302, 94
+STYLE DS_SHELLFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "KRAQEL – Titel"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT "&Titel", -1, 10, 8, 282, 11
+    EDITTEXT 107, 10, 21, 282, 16, ES_AUTOHSCROLL | WS_TABSTOP
+    LTEXT "", 108, 10, 41, 282, 21
+    DEFPUSHBUTTON "&Übernehmen", IDOK, 121, 67, 95, 17
+    PUSHBUTTON "&Abbrechen", IDCANCEL, 222, 67, 70, 17
+END
+
+408 DIALOGEX 0, 0, 342, 190
+STYLE DS_SHELLFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "KRAQEL – Entfernen prüfen"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT "Diese Einträge werden dauerhaft aus dem Projekt entfernt.", -1, 10, 9, 322, 13
+    LTEXT "&Betroffene Einträge", -1, 10, 26, 322, 12
+    EDITTEXT 115, 10, 39, 322, 115, ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON "&Abbrechen", IDCANCEL, 136, 164, 80, 18
+    PUSHBUTTON "&Dauerhaft entfernen", 116, 222, 164, 110, 18
+END
+
+409 DIALOGEX 0, 0, 310, 156
+STYLE DS_SHELLFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "KRAQEL – Ziel der Szenenkopie"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT "Die Kopie wird am Ende des gewählten &Kapitels eingefügt.", 101, 10, 9, 290, 18
+    LISTBOX 102, 10, 29, 290, 92, LBS_NOTIFY | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP | WS_BORDER
+    DEFPUSHBUTTON "&Weiter", IDOK, 140, 129, 78, 17
+    PUSHBUTTON "&Abbrechen", IDCANCEL, 224, 129, 76, 17
+END
+
+410 DIALOGEX 0, 0, 322, 153
+STYLE DS_SHELLFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "KRAQEL – Manuskript kopieren"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT "&Titel der Kopie", -1, 10, 8, 302, 11
+    EDITTEXT 107, 10, 21, 302, 16, ES_AUTOHSCROLL | WS_TABSTOP
+    LTEXT "Umfang und Ziel", -1, 10, 40, 302, 10
+    EDITTEXT 118, 10, 50, 302, 15, ES_AUTOHSCROLL | ES_READONLY | WS_TABSTOP
+    LTEXT "Die Kopie enthält den Manuskripttext samt Formatierung. Bei einem Kapitel werden alle zugehörigen Szenen mitkopiert. Verknüpfungen, Planungsdaten und Versionsverlauf bleiben beim Original.", -1, 10, 67, 302, 38
+    LTEXT "", 108, 10, 108, 302, 13
+    DEFPUSHBUTTON "&Kopie anlegen", IDOK, 145, 128, 91, 17
+    PUSHBUTTON "&Abbrechen", IDCANCEL, 242, 128, 70, 17
+END
+
+411 DIALOGEX 0, 0, 310, 159
+STYLE DS_SHELLFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "KRAQEL – Position wählen"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT "Welche &Position soll der ausgewählte Eintrag am Ende einnehmen?", 101, 10, 9, 290, 20
+    LISTBOX 102, 10, 31, 290, 92, LBS_NOTIFY | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP | WS_BORDER
+    DEFPUSHBUTTON "&Verschieben", IDOK, 140, 132, 78, 17
+    PUSHBUTTON "&Abbrechen", IDCANCEL, 224, 132, 76, 17
+END
+
+412 DIALOGEX 0, 0, 360, 207
+STYLE DS_SHELLFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "KRAQEL – Manuskript exportieren"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT "&Umfang", -1, 10, 8, 340, 12
+    LISTBOX 121, 10, 22, 340, 42, LBS_NOINTEGRALHEIGHT | WS_HSCROLL | WS_VSCROLL | WS_TABSTOP | WS_BORDER
+    LTEXT "Datei&format", -1, 10, 70, 340, 12
+    LISTBOX 122, 10, 84, 340, 50, LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP | WS_BORDER
+    LTEXT "Kapitel- und Manuskript-PDFs enthalten Gliederungstitel, Prosa und Drehbuchrollen. Für einen reinen A4-Rollenauszug wähle eine einzelne Drehbuchszene.", -1, 10, 140, 340, 34
+    PUSHBUTTON "&Vorhandene Ausgaben …", 123, 10, 182, 140, 17
+    DEFPUSHBUTTON "&Weiter", IDOK, 196, 182, 74, 17
+    PUSHBUTTON "&Abbrechen", IDCANCEL, 276, 182, 74, 17
+END
+
+413 DIALOGEX 0, 0, 420, 215
+STYLE DS_SHELLFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "KRAQEL – Vorhandene Ausgaben"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT "Ausgaben aus der nativen Gliederung – &Dateiname und Größe", 126, 10, 8, 400, 14
+    LISTBOX 124, 10, 24, 400, 117, LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP | WS_BORDER
+    LTEXT "&Speicherort im Projekt", -1, 10, 149, 400, 11
+    EDITTEXT 125, 10, 162, 400, 17, ES_AUTOHSCROLL | ES_READONLY | WS_TABSTOP
+    DEFPUSHBUTTON "&Zurück", IDOK, 330, 188, 80, 17
+END

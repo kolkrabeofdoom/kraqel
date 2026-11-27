@@ -1,11 +1,12 @@
 use crate::docx_scene::Element;
 use crate::{Block, Inline, Manuscript};
+use kraqel_domain::ScreenplayRole;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(super) const PROPERTY: &str = "KRAQEL.Manuscript.v1";
-pub(super) const PREFIX: &str = "kqm1";
+pub(super) const PROPERTY_V2: &str = "KRAQEL.Manuscript.v2";
 pub(super) const CP: &str =
     "http://schemas.openxmlformats.org/officeDocument/2006/custom-properties";
 pub(super) const VT: &str = "http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes";
@@ -20,6 +21,13 @@ pub(super) enum Role {
     Chapter,
     ChapterTitle,
     Scene,
+    Screenplay,
+    ScHeading,
+    ScAction,
+    ScCharacter,
+    ScParenthetical,
+    ScDialogue,
+    ScTransition,
     SceneTitle,
     Paragraph,
     Heading1,
@@ -41,6 +49,13 @@ impl Role {
             Self::Chapter => "chapter",
             Self::ChapterTitle => "chapter-title",
             Self::Scene => "scene",
+            Self::Screenplay => "screenplay",
+            Self::ScHeading => "sc-heading",
+            Self::ScAction => "sc-action",
+            Self::ScCharacter => "sc-character",
+            Self::ScParenthetical => "sc-parenthetical",
+            Self::ScDialogue => "sc-dialogue",
+            Self::ScTransition => "sc-transition",
             Self::SceneTitle => "scene-title",
             Self::Paragraph => "paragraph",
             Self::Heading1 => "heading1",
@@ -67,7 +82,8 @@ impl Role {
         }
     }
     pub(super) fn leaf(self) -> bool {
-        self.heading().is_some()
+        self.screenplay_role().is_some()
+            || self.heading().is_some()
             || matches!(
                 self,
                 Self::ProjectTitle | Self::ChapterTitle | Self::SceneTitle | Self::Paragraph
@@ -80,8 +96,19 @@ impl Role {
                 Self::Paragraph | Self::BulletList | Self::OrderedList | Self::Quote
             )
     }
-    pub(super) fn marker(self, id: &str, digest: &str) -> String {
-        format!("{PREFIX}:{}:{id}:{}", self.token(), &digest[..32])
+    pub(super) fn screenplay_role(self) -> Option<ScreenplayRole> {
+        match self {
+            Self::ScHeading => Some(ScreenplayRole::SceneHeading),
+            Self::ScAction => Some(ScreenplayRole::Action),
+            Self::ScCharacter => Some(ScreenplayRole::Character),
+            Self::ScParenthetical => Some(ScreenplayRole::Parenthetical),
+            Self::ScDialogue => Some(ScreenplayRole::Dialogue),
+            Self::ScTransition => Some(ScreenplayRole::Transition),
+            _ => None,
+        }
+    }
+    pub(super) fn marker(self, version: u32, id: &str, digest: &str) -> String {
+        format!("kqm{version}:{}:{id}:{}", self.token(), &digest[..32])
     }
 }
 
@@ -159,10 +186,29 @@ fn emit_blocks(
     offset: usize,
     quote: usize,
     numbering: Option<usize>,
-) {
+) -> Result<(), ()> {
     for (position, block) in source.iter().enumerate() {
         let num = if position == 0 { numbering } else { None };
         match block {
+            Block::Screenplay(role, runs) => {
+                let role = match role {
+                    ScreenplayRole::SceneHeading => Role::ScHeading,
+                    ScreenplayRole::Action => Role::ScAction,
+                    ScreenplayRole::Character => Role::ScCharacter,
+                    ScreenplayRole::Parenthetical => Role::ScParenthetical,
+                    ScreenplayRole::Dialogue => Role::ScDialogue,
+                    ScreenplayRole::Transition => Role::ScTransition,
+                };
+                push(
+                    records,
+                    role,
+                    Some(parent),
+                    position + offset,
+                    Some(runs.clone()),
+                    None,
+                    quote,
+                );
+            }
             Block::Paragraph(runs) => {
                 push(
                     records,
@@ -203,7 +249,7 @@ fn emit_blocks(
                     None,
                     quote,
                 );
-                emit_blocks(records, children, index, 0, quote + 1, None);
+                emit_blocks(records, children, index, 0, quote + 1, None)?;
             }
             Block::BulletList(items) | Block::OrderedList(items) => {
                 let role = if matches!(block, Block::BulletList(_)) {
@@ -222,13 +268,14 @@ fn emit_blocks(
                 );
                 for (position, item) in items.iter().enumerate() {
                     let index = push(records, Role::Item, Some(list), position, None, None, quote);
-                    emit_blocks(records, item, index, 0, quote, Some(list + 1));
+                    emit_blocks(records, item, index, 0, quote, Some(list + 1))?;
                 }
             }
         }
     }
+    Ok(())
 }
-pub(super) fn records(manuscript: &Manuscript) -> Vec<Record> {
+pub(super) fn records(manuscript: &Manuscript) -> Result<Vec<Record>, ()> {
     let mut output = Vec::new();
     let root = push(&mut output, Role::Manuscript, None, 0, None, None, 0);
     title(&mut output, Role::ProjectTitle, root, &manuscript.title);
@@ -246,7 +293,11 @@ pub(super) fn records(manuscript: &Manuscript) -> Vec<Record> {
         for (position, scene) in chapter.scenes.iter().enumerate() {
             let s = push(
                 &mut output,
-                Role::Scene,
+                if matches!(scene.blocks.first(), Some(Block::Screenplay(..))) {
+                    Role::Screenplay
+                } else {
+                    Role::Scene
+                },
                 Some(c),
                 position + 1,
                 None,
@@ -254,16 +305,25 @@ pub(super) fn records(manuscript: &Manuscript) -> Vec<Record> {
                 0,
             );
             title(&mut output, Role::SceneTitle, s, &scene.title);
-            emit_blocks(&mut output, &scene.blocks, s, 1, 0, None);
+            emit_blocks(&mut output, &scene.blocks, s, 1, 0, None)?;
         }
     }
-    output
+    Ok(output)
+}
+
+pub(super) fn version(nodes: &[Node]) -> u32 {
+    if nodes.iter().any(|node| node.role == Role::Screenplay) {
+        2
+    } else {
+        1
+    }
 }
 
 pub(super) fn payload(nodes: Vec<Node>) -> Result<(String, Header), ()> {
-    let payload = serde_json::to_string(&Inventory { version: 1, nodes }).map_err(|_| ())?;
+    let version = version(&nodes);
+    let payload = serde_json::to_string(&Inventory { version, nodes }).map_err(|_| ())?;
     let header = Header {
-        version: 1,
+        version,
         chunks: payload.len().div_ceil(CHUNK),
         sha256: hash(&payload),
     };
@@ -313,8 +373,16 @@ pub(super) fn read(root: &Element) -> Result<(Inventory, String), ()> {
             return Err(());
         }
     }
-    let header: Header = serde_json::from_str(values.get(PROPERTY).ok_or(())?).map_err(|_| ())?;
-    if header.version != 1
+    let (property, expected_version) = match (
+        values.contains_key(PROPERTY),
+        values.contains_key(PROPERTY_V2),
+    ) {
+        (true, false) => (PROPERTY, 1),
+        (false, true) => (PROPERTY_V2, 2),
+        _ => return Err(()),
+    };
+    let header: Header = serde_json::from_str(values.get(property).ok_or(())?).map_err(|_| ())?;
+    if header.version != expected_version
         || header.chunks == 0
         || header.chunks > 2048
         || header.sha256.len() != 64
@@ -327,7 +395,7 @@ pub(super) fn read(root: &Element) -> Result<(Inventory, String), ()> {
     }
     let mut joined = String::new();
     for index in 1..=header.chunks {
-        let key = format!("{PROPERTY}.{index:04}");
+        let key = format!("{property}.{index:04}");
         let value = values.get(key.as_str()).ok_or(())?;
         if value.is_empty()
             || value.len() > CHUNK
@@ -340,7 +408,7 @@ pub(super) fn read(root: &Element) -> Result<(Inventory, String), ()> {
     }
     if values
         .keys()
-        .filter(|key| key.starts_with(PROPERTY))
+        .filter(|key| key.starts_with("KRAQEL."))
         .count()
         != header.chunks + 1
         || hash(&joined) != header.sha256
@@ -348,7 +416,8 @@ pub(super) fn read(root: &Element) -> Result<(Inventory, String), ()> {
         return Err(());
     }
     let inventory: Inventory = serde_json::from_str(&joined).map_err(|_| ())?;
-    if inventory.version != 1
+    if inventory.version != expected_version
+        || version(&inventory.nodes) != expected_version
         || inventory.nodes.is_empty()
         || inventory.nodes.len() > 4096
         || serde_json::to_string(&inventory).map_err(|_| ())? != joined
@@ -402,10 +471,19 @@ pub(super) fn topology(nodes: &[Node]) -> Result<Vec<Vec<usize>>, ()> {
             }
             Role::Chapter => {
                 roles.first() == Some(&Role::ChapterTitle)
-                    && roles[1..].iter().all(|r| *r == Role::Scene)
+                    && roles[1..]
+                        .iter()
+                        .all(|r| matches!(r, Role::Scene | Role::Screenplay))
             }
             Role::Scene => {
                 roles.first() == Some(&Role::SceneTitle) && roles[1..].iter().all(|r| r.block())
+            }
+            Role::Screenplay => {
+                roles.first() == Some(&Role::SceneTitle)
+                    && roles.len() >= 2
+                    && roles[1..]
+                        .iter()
+                        .all(|role| role.screenplay_role().is_some())
             }
             Role::Item => {
                 roles.first() == Some(&Role::Paragraph) && roles.iter().all(|r| r.block())

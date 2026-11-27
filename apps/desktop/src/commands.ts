@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+import exportHintsText from "../../../crates/export/src/export-hints.txt?raw";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import type {
   AiContextPreview,
@@ -42,33 +44,44 @@ export type CommandErrorCode =
   "INVALID_REQUEST" | "UNSUPPORTED_CONTRACT_VERSION" | "CONFLICT" | "INTERNAL";
 
 export interface CommandRequest<T> {
-  readonly contractVersion: typeof COMMAND_CONTRACT_VERSION;
+  readonly contractVersion: 1 | 2;
   readonly requestId: Uuid;
   readonly payload: T;
 }
 
 export interface CommandResponse<T> {
-  readonly contractVersion: typeof COMMAND_CONTRACT_VERSION;
+  readonly contractVersion: 1 | 2;
   readonly requestId: Uuid;
   readonly data: T;
 }
 
 export interface CommandErrorContract {
-  readonly contractVersion: typeof COMMAND_CONTRACT_VERSION;
+  readonly contractVersion: 1 | 2;
   readonly requestId: Uuid;
   readonly code: CommandErrorCode;
   readonly message: string;
   readonly retryable: boolean;
 }
 
+const exportHints = exportHintsText.trim().split(/\r?\n/u);
+
 export class KraqelCommandError extends Error {
+  readonly exportHint?: string;
   readonly code: CommandErrorCode;
   readonly requestId: Uuid;
   readonly retryable: boolean;
 
-  constructor(error: CommandErrorContract) {
+  constructor(error: CommandErrorContract, command?: string) {
     super(safeMessageFor(error.code));
     this.name = "KraqelCommandError";
+    if (
+      error.code === "INVALID_REQUEST" &&
+      (command === "export_manuscript" ||
+        command === "export_screenplay_pdf" ||
+        command === "export_illustrated_manuscript")
+    ) {
+      this.exportHint = exportHints.find((hint) => hint === error.message);
+    }
     this.code = error.code;
     this.requestId = error.requestId;
     this.retryable = error.retryable;
@@ -223,6 +236,10 @@ export async function validateProjectName(name: string): Promise<ProjectNameVali
   return response.data;
 }
 
+export async function startupProject(): Promise<ProjectId | null> {
+  return (await callCommand<Record<string, never>, ProjectId | null>("startup_project", {})).data;
+}
+
 export async function listProjects(): Promise<readonly ProjectOverview[]> {
   const response = await callCommand<Record<string, never>, readonly ProjectOverview[]>(
     "list_projects",
@@ -317,7 +334,7 @@ export async function loadDocument(
   const response = await callCommand<
     { readonly projectId: ProjectId; readonly documentId: EntityId },
     StoredDocument
-  >("load_document", { projectId, documentId });
+  >("load_editor_scene", { projectId, documentId }, 2);
   return response.data;
 }
 
@@ -335,7 +352,7 @@ export async function saveDocument(
       readonly content: EditorDocument;
     },
     { readonly revision: number }
-  >("save_document", { projectId, documentId, expectedRevision, content });
+  >("save_editor_scene", { projectId, documentId, expectedRevision, content }, 2);
   return response.data.revision;
 }
 
@@ -366,6 +383,14 @@ export async function exportManuscript(
       ExportResult
     >("export_manuscript", { projectId, format })
   ).data;
+}
+
+export async function exportScreenplayPdf(
+  projectId: ProjectId,
+  sceneIds: EntityId[],
+): Promise<ExportResult> {
+  const payload = { projectId, sceneIds };
+  return (await callCommand<typeof payload, ExportResult>("export_screenplay_pdf", payload)).data;
 }
 
 export async function openExportDirectory(projectId: ProjectId): Promise<void> {
@@ -1032,6 +1057,219 @@ export async function createProjectSnapshot(projectId: ProjectId): Promise<Snaps
   ).data;
 }
 
+export interface SceneBasisComparison {
+  readonly localSha256: string;
+  readonly unchanged: number;
+  readonly changes: readonly {
+    readonly sceneId: string;
+    readonly difference: "local" | "incoming" | "bothEqual" | "conflict";
+    readonly baseExists: boolean;
+    readonly deletionEffects?: Partial<
+      Record<"plotCards" | "storyLinks" | "timelineLinks" | "mediaLinks" | "promptDrafts", number>
+    >;
+    readonly localExists: boolean;
+    readonly incomingExists: boolean;
+  }[];
+}
+
+export async function saveSceneBasis(projectId: ProjectId) {
+  return (
+    await callCommand<{ projectId: ProjectId }, { sha256: string; sceneCount: number }>(
+      "save_scene_basis",
+      { projectId },
+    )
+  ).data;
+}
+
+export async function compareSceneBases(projectId: ProjectId, base: string, incoming: string) {
+  return (
+    await callCommand<
+      { projectId: ProjectId; base: string; incoming: string },
+      SceneBasisComparison
+    >("compare_scene_bases", { projectId, base, incoming })
+  ).data;
+}
+
+export interface PreparedHandoff {
+  readonly folder: string;
+  readonly manifestSha256: string;
+  readonly sceneBasisSha256: string;
+}
+
+export interface SceneSelection {
+  base: string;
+  local: string;
+  incoming: string;
+  folder: string;
+  manifest: string;
+  scenes: readonly string[];
+}
+
+export async function secureSceneActivation(
+  projectId: ProjectId,
+  selection: SceneSelection,
+  candidate: PreparedHandoff,
+) {
+  return (
+    await callCommand<
+      { projectId: ProjectId; selection: SceneSelection; candidate: PreparedHandoff },
+      string
+    >("secure_scene_activation", { projectId, selection, candidate })
+  ).data;
+}
+
+export async function switchSceneActivation(projectId: ProjectId, ticket: string, undo: boolean) {
+  return (
+    await callCommand<{ projectId: ProjectId; ticket: string; undo: boolean }, Workspace>(
+      "switch_scene_activation",
+      { projectId, ticket, undo },
+    )
+  ).data;
+}
+
+export async function reviewSceneConflict(projectId: ProjectId, selection: SceneSelection) {
+  return (
+    await callCommand<
+      { projectId: ProjectId; selection: SceneSelection },
+      { choice: "local" | "cancel" } | { choice: "incoming"; candidate: PreparedHandoff }
+    >("review_scene_conflict", { projectId, selection })
+  ).data;
+}
+
+export async function prepareSceneMerge(
+  projectId: ProjectId,
+  selection: SceneSelection,
+): Promise<PreparedHandoff> {
+  return (
+    await callCommand<{ projectId: ProjectId; selection: typeof selection }, PreparedHandoff>(
+      "prepare_scene_merge",
+      { projectId, selection },
+    )
+  ).data;
+}
+
+export type HandoffItemKind =
+  | "mediaAsset"
+  | "storyline"
+  | "timeline"
+  | "entity"
+  | "relation"
+  | "link"
+  | "plotCard"
+  | "event"
+  | "eventDocumentLink"
+  | "eventEntityLink";
+export interface HandoffItemChange {
+  key: { kind: HandoffItemKind; ids: string[] };
+  local: string | null;
+  incoming: string | null;
+}
+export interface HandoffSource {
+  folder: string;
+  manifest: string;
+}
+export interface HandoffItemSelection extends HandoffSource {
+  change: HandoffItemChange;
+}
+export async function listHandoffItems(
+  projectId: ProjectId,
+  source: HandoffSource,
+  kind: HandoffItemKind,
+) {
+  const payload = { projectId, ...source, kind };
+  return (await callCommand<typeof payload, HandoffItemChange[]>("list_handoff_items", payload))
+    .data;
+}
+export async function missingHandoffParent(projectId: ProjectId, selection: HandoffItemSelection) {
+  const payload = { projectId, selection };
+  return (
+    await callCommand<typeof payload, HandoffItemChange["key"] | null>(
+      "missing_handoff_parent",
+      payload,
+    )
+  ).data;
+}
+export async function reviewHandoffItem(projectId: ProjectId, selection: HandoffItemSelection) {
+  const payload = { projectId, selection };
+  return (
+    await callCommand<
+      typeof payload,
+      | { choice: "local" | "cancel" }
+      | { choice: "incoming"; candidate: PreparedHandoff; selection: HandoffItemSelection }
+    >("review_handoff_item", payload)
+  ).data;
+}
+export async function secureHandoffItem(
+  projectId: ProjectId,
+  selection: HandoffItemSelection,
+  candidate: PreparedHandoff,
+) {
+  const payload = { projectId, selection, candidate };
+  return (await callCommand<typeof payload, string>("secure_handoff_item", payload)).data;
+}
+export async function switchHandoffItem(projectId: ProjectId, ticket: string, undo: boolean) {
+  await callCommand<{ projectId: ProjectId; ticket: string; undo: boolean }, null>(
+    "switch_handoff_item",
+    { projectId, ticket, undo },
+  );
+}
+
+export async function compareProjectHandoff(
+  projectId: ProjectId,
+  folder: string,
+  manifestSha256: string,
+  includeMedia: boolean,
+): Promise<string[]> {
+  const payload = { projectId, folder, manifestSha256, includeMedia };
+  return (await callCommand<typeof payload, string[]>("compare_project_handoff", payload)).data;
+}
+
+export async function receiveProjectHandoff(folder: string, manifestSha256: string): Promise<void> {
+  await callCommand<{ folder: string; manifestSha256: string }, null>("receive_project_handoff", {
+    folder,
+    manifestSha256,
+  });
+}
+
+export type ExtraGroup = "backups" | "exports" | "git" | "other";
+export type FolderPreview = {
+  token: string;
+  documents: number;
+  images: number;
+  extras: Record<ExtraGroup, number>;
+};
+
+export async function previewExistingFolder(): Promise<FolderPreview | null> {
+  return (
+    await callCommand<Record<string, never>, FolderPreview | null>("preview_existing_folder", {})
+  ).data;
+}
+
+export async function receiveExistingFolder(token: string, groups: ExtraGroup[]) {
+  const payload = { token, groups };
+  return (
+    await callCommand<
+      typeof payload,
+      "cancel" | "received" | "archiveFailed" | "archiveTargetRejected" | "passphraseFailed"
+    >("receive_existing_folder", payload)
+  ).data;
+}
+
+export async function cancelExistingFolder(token: string) {
+  await callCommand<{ token: string }, null>("cancel_existing_folder", { token });
+}
+
+export async function prepareProjectHandoff(projectId: ProjectId): Promise<PreparedHandoff> {
+  return (
+    await callCommand<{ readonly projectId: ProjectId }, PreparedHandoff>(
+      "prepare_project_handoff",
+      {
+        projectId,
+      },
+    )
+  ).data;
+}
+
 export async function exportProjectArchive(
   projectId: ProjectId,
 ): Promise<ProjectArchiveExportResult | null> {
@@ -1085,17 +1323,18 @@ export async function commitProjectSnapshot(
 async function callCommand<TPayload, TData>(
   command: string,
   payload: TPayload,
+  contractVersion: 1 | 2 = COMMAND_CONTRACT_VERSION,
 ): Promise<CommandResponse<TData>> {
   const requestId = newRequestId();
   const request: CommandRequest<TPayload> = {
-    contractVersion: COMMAND_CONTRACT_VERSION,
+    contractVersion,
     requestId,
     payload,
   };
 
   try {
     const response = await invoke<CommandResponse<TData>>(command, { request });
-    if (!isCommandResponse(response, requestId)) {
+    if (!isCommandResponse(response, requestId, contractVersion)) {
       throw internalContractError(requestId);
     }
     return response;
@@ -1103,8 +1342,8 @@ async function callCommand<TPayload, TData>(
     if (error instanceof KraqelCommandError) {
       throw error;
     }
-    if (isCommandErrorContract(error, requestId)) {
-      throw new KraqelCommandError(error);
+    if (isCommandErrorContract(error, requestId, contractVersion)) {
+      throw new KraqelCommandError(error, command);
     }
     throw internalContractError(requestId);
   }
@@ -1118,15 +1357,23 @@ function newRequestId(): Uuid {
   return requestId;
 }
 
-function isCommandResponse<T>(value: unknown, requestId: Uuid): value is CommandResponse<T> {
+function isCommandResponse<T>(
+  value: unknown,
+  requestId: Uuid,
+  contractVersion: 1 | 2 = COMMAND_CONTRACT_VERSION,
+): value is CommandResponse<T> {
   if (!isRecord(value)) return false;
-  return value.contractVersion === COMMAND_CONTRACT_VERSION && value.requestId === requestId;
+  return value.contractVersion === contractVersion && value.requestId === requestId;
 }
 
-function isCommandErrorContract(value: unknown, requestId: Uuid): value is CommandErrorContract {
+function isCommandErrorContract(
+  value: unknown,
+  requestId: Uuid,
+  contractVersion: 1 | 2 = COMMAND_CONTRACT_VERSION,
+): value is CommandErrorContract {
   if (!isRecord(value)) return false;
   return (
-    value.contractVersion === COMMAND_CONTRACT_VERSION &&
+    value.contractVersion === contractVersion &&
     value.requestId === requestId &&
     isCommandErrorCode(value.code) &&
     typeof value.message === "string" &&

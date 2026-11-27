@@ -174,7 +174,7 @@ async function createSession(url, application) {
   const result = await webdriver(url, "POST", "/session", {
     capabilities: {
       alwaysMatch: {
-        "tauri:options": { application },
+        "tauri:options": { application, args: ["--projektverwaltung"] },
       },
     },
   });

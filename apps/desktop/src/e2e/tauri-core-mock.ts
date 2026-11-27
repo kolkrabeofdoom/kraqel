@@ -106,25 +106,48 @@ export class Channel<T> {
 export async function invoke<T>(command: string, args: InvokeArgs = {}): Promise<T> {
   if (command.startsWith("isolation_test_")) return (await isolationCommand(command)) as T;
   const request = args.request;
-  if (!request || request.contractVersion !== 1) throw new Error("Invalid E2E command request");
+  const version = ["save_editor_scene", "load_editor_scene"].includes(command) ? 2 : 1;
+  if (!request || request.contractVersion !== version)
+    throw new Error("Invalid E2E command request");
 
-  if (command === "save_document" && localStorage.getItem(FAIL_NEXT_SAVE_KEY) === "1") {
+  if (command === "save_editor_scene" && localStorage.getItem(FAIL_NEXT_SAVE_KEY) === "1") {
     localStorage.removeItem(FAIL_NEXT_SAVE_KEY);
     throw new Error("Controlled E2E save failure");
   }
 
-  const data = execute(command, request.payload);
+  const data = execute(command, request);
   return {
-    contractVersion: 1,
+    contractVersion: version,
     requestId: request.requestId,
     data,
   } as T;
 }
 
-function execute(command: string, payload: Record<string, unknown>): unknown {
+function execute(
+  command: string,
+  { payload, requestId, contractVersion }: CommandRequest,
+): unknown {
   const state = readState();
 
   switch (command) {
+    case "cancel_existing_folder":
+      return null;
+    case "preview_existing_folder":
+      return {
+        token: "095c7239-7021-4da1-a3f6-c2bc987f23be",
+        documents: 2,
+        images: 1,
+        extras: { backups: 1, exports: 1, git: 1, other: 0 },
+      };
+    case "receive_existing_folder":
+      if (
+        payload.token !== "095c7239-7021-4da1-a3f6-c2bc987f23be" ||
+        JSON.stringify(payload.groups) !== '["exports"]'
+      )
+        throw new Error("Unerwartete Archivauswahl");
+      return "received";
+    case "startup_project":
+      return null;
     case "list_projects":
       return state.projects.map(({ project }) => ({ id: project.id, name: project.name }));
     case "delete_project": {
@@ -231,6 +254,14 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       const current = findProject(state, payload.projectId);
       if (localStorage.getItem("kraqel-e2e-illustrated-failure") === "1")
         throw new Error("private path decoder details");
+      if (current.documents.some((doc) => doc.content.version === 2)) {
+        throw Object.assign(
+          new Error(
+            "Das Manuskript enthält Drehbuchszenen. Verwende für dieses Manuskript die Textausgabe ohne Szenenbilder.",
+          ),
+          { contractVersion, requestId, code: "INVALID_REQUEST", retryable: false },
+        );
+      }
       const placements = payload.placements as {
         sceneId: EntityId;
         assetId: EntityId;
@@ -345,11 +376,11 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       writeState(state);
       return node;
     }
-    case "load_document": {
+    case "load_editor_scene": {
       const current = findStoredDocument(findProject(state, payload.projectId), payload.documentId);
       return structuredClone(current);
     }
-    case "save_document": {
+    case "save_editor_scene": {
       const current = findStoredDocument(findProject(state, payload.projectId), payload.documentId);
       if (current.node.revision !== payload.expectedRevision) throw new Error("Revision conflict");
       current.content = structuredClone(payload.content) as EditorDocument;
@@ -917,6 +948,17 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
     }
     case "export_manuscript":
       return manuscriptExportResult(findProject(state, payload.projectId), payload.format);
+    case "export_screenplay_pdf": {
+      const project = findProject(state, payload.projectId);
+      if (
+        !Array.isArray(payload.sceneIds) ||
+        payload.sceneIds.length === 0 ||
+        payload.sceneIds.some((id) => findStoredDocument(project, id).content.version !== 2)
+      ) {
+        throw new Error("Reine Drehbuchszene auswählen.");
+      }
+      return { ...manuscriptExportResult(project, "pdf"), fileName: "drehbuch.pdf" };
+    }
     case "open_export_directory":
       findProject(state, payload.projectId);
       return null;
@@ -928,6 +970,176 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       current.versionControl.snapshotFiles = renderSnapshotFiles(current);
       writeState(state);
       return snapshotSummary(current);
+    }
+    case "save_scene_basis": {
+      findProject(state, payload.projectId);
+      return { sha256: "a".repeat(64), sceneCount: 2 };
+    }
+    case "compare_scene_bases": {
+      findProject(state, payload.projectId);
+      if (payload.base !== "a".repeat(64) || payload.incoming !== "b".repeat(64))
+        throw new Error("Unbekannte Basis");
+      return {
+        localSha256: "c".repeat(64),
+        unchanged: 1,
+        changes: [
+          {
+            sceneId: "55555555-5555-4555-8555-555555555555",
+            difference: "conflict",
+            baseExists: true,
+            localExists: true,
+            incomingExists: true,
+          },
+          {
+            sceneId: "11111111-1111-4111-8111-111111111111",
+            difference: "conflict",
+            baseExists: true,
+            localExists: false,
+            incomingExists: true,
+          },
+          {
+            sceneId: "22222222-2222-4222-8222-222222222222",
+            difference: "incoming",
+            baseExists: true,
+            localExists: true,
+            incomingExists: true,
+          },
+          {
+            sceneId: "33333333-3333-4333-8333-333333333333",
+            difference: "incoming",
+            baseExists: true,
+            localExists: true,
+            incomingExists: false,
+          },
+        ],
+      };
+    }
+    case "review_scene_conflict": {
+      const selection = payload.selection as { scenes: string[]; manifest: string; folder: string };
+      if (
+        selection.scenes.join() !== "55555555-5555-4555-8555-555555555555" ||
+        selection.manifest !== "d".repeat(64) ||
+        !selection.folder.startsWith("uebernahme-")
+      )
+        throw new Error("Auswahl ungültig");
+      return { choice: "local" };
+    }
+    case "secure_scene_activation":
+      findProject(state, payload.projectId);
+      return "1".repeat(64);
+    case "switch_scene_activation":
+      if (payload.ticket !== "1".repeat(64)) throw new Error("Ungültiger Beleg");
+      return workspace(findProject(state, payload.projectId));
+    case "prepare_scene_merge": {
+      findProject(state, payload.projectId);
+      const selection = payload.selection as { scenes: string[]; local: string };
+      if (
+        selection.local !== "c".repeat(64) ||
+        selection.scenes.join() !== "22222222-2222-4222-8222-222222222222"
+      )
+        throw new Error("Ungültige Auswahl");
+      return {
+        folder: "uebernahme-ergebnis",
+        manifestSha256: "e".repeat(64),
+        sceneBasisSha256: "f".repeat(64),
+      };
+    }
+    case "list_handoff_items": {
+      findProject(state, payload.projectId);
+      if (payload.folder !== "uebernahme-beispiel" || payload.manifest !== "a".repeat(64))
+        throw new Error("Unbekannter Stand");
+      const ids: Record<string, string> = {
+        mediaAsset: "99999999-9999-4999-8999-999999999999",
+        entity: "66666666-6666-4666-8666-666666666666",
+        event: "77777777-7777-4777-8777-777777777777",
+        timeline: "88888888-8888-4888-8888-888888888888",
+      };
+      const kind = String(payload.kind);
+      if (!ids[kind]) return [];
+      return [
+        {
+          key: { kind, ids: [ids[kind]] },
+          local: kind === "timeline" ? null : (kind === "mediaAsset" ? "d" : "c").repeat(64),
+          incoming: "d".repeat(64),
+        },
+      ];
+    }
+    case "missing_handoff_parent": {
+      findProject(state, payload.projectId);
+      const selection = payload.selection as { change: { key: { kind: string } } };
+      if (selection.change.key.kind !== "event") throw new Error("Ungültige Kindzuordnung");
+      return localStorage.getItem("kraqel-e2e-timeline-active")
+        ? null
+        : { kind: "timeline", ids: ["88888888-8888-4888-8888-888888888888"] };
+    }
+    case "review_handoff_item": {
+      findProject(state, payload.projectId);
+      const selection = payload.selection as {
+        change: { key: { kind: string; ids: string[] }; incoming: string };
+      };
+      if (
+        ![
+          "99999999-9999-4999-8999-999999999999",
+          "66666666-6666-4666-8666-666666666666",
+          "77777777-7777-4777-8777-777777777777",
+          "88888888-8888-4888-8888-888888888888",
+        ].includes(selection.change.key.ids[0] ?? "") ||
+        selection.change.incoming !== "d".repeat(64)
+      )
+        throw new Error("Auswahl ungültig");
+      if (localStorage.getItem("kraqel-e2e-item-stale")) {
+        localStorage.removeItem("kraqel-e2e-item-stale");
+        throw new Error("Auswahl überholt");
+      }
+      return {
+        choice: "incoming",
+        selection:
+          selection.change.key.kind === "mediaAsset"
+            ? {
+                ...selection,
+                change: { ...selection.change, local: "4".repeat(64), incoming: "5".repeat(64) },
+              }
+            : selection,
+        candidate: {
+          folder: "uebernahme-eintrag",
+          manifestSha256: "e".repeat(64),
+          sceneBasisSha256: "f".repeat(64),
+        },
+      };
+    }
+    case "secure_handoff_item": {
+      findProject(state, payload.projectId);
+      const selection = payload.selection as {
+        change: { key: { kind: string }; local: string | null; incoming: string };
+      };
+      if (
+        selection.change.key.kind === "mediaAsset" &&
+        (selection.change.local !== "4".repeat(64) || selection.change.incoming !== "5".repeat(64))
+      )
+        throw new Error("Medienauswahl ohne bestätigte Dateibindung");
+      return (selection.change.key.kind === "timeline" ? "3" : "2").repeat(64);
+    }
+    case "switch_handoff_item":
+      findProject(state, payload.projectId);
+      if (payload.ticket === "3".repeat(64) && !payload.undo)
+        localStorage.setItem("kraqel-e2e-timeline-active", "1");
+      else if (payload.ticket !== "2".repeat(64)) throw new Error("Ungültiger Beleg");
+      return null;
+    case "compare_project_handoff": {
+      findProject(state, payload.projectId);
+      if (payload.folder !== "uebernahme-beispiel" || payload.manifestSha256 !== "a".repeat(64))
+        throw new Error("Ungültige Arbeitskopie");
+      return payload.includeMedia
+        ? ["document", "media_asset", "media_files"]
+        : ["document", "media_asset"];
+    }
+    case "prepare_project_handoff": {
+      findProject(state, payload.projectId);
+      return {
+        folder: "uebernahme-beispiel",
+        manifestSha256: "a".repeat(64),
+        sceneBasisSha256: "b".repeat(64),
+      };
     }
     case "export_project_archive": {
       if (localStorage.getItem("kraqel-e2e-cancel-snapshot-export") === "1") return null;
@@ -1402,28 +1614,7 @@ function renderVersionDiff(current: TestProject): string {
     .map((path) => {
       const before = committed[path];
       const after = snapshot[path];
-      const lines = [`diff --git a/${path} b/${path}`];
-      lines.push(before === undefined ? "--- /dev/null" : `--- a/${path}`);
-      lines.push(after === undefined ? "+++ /dev/null" : `+++ b/${path}`);
-      if (before !== undefined) {
-        lines.push(
-          "@@ -1 +1 @@",
-          ...before
-            .trimEnd()
-            .split("\n")
-            .map((line) => `-${line}`),
-        );
-      }
-      if (after !== undefined) {
-        lines.push(
-          "@@ -1 +1 @@",
-          ...after
-            .trimEnd()
-            .split("\n")
-            .map((line) => `+${line}`),
-        );
-      }
-      return lines.join("\n");
+      return `${after?.split("\n").length ?? 0}\t${before?.split("\n").length ?? 0}\t${path}`;
     })
     .join("\n");
 }

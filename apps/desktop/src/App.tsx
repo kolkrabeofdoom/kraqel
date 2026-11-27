@@ -5,20 +5,51 @@ import {
   deleteProject,
   importSnapshotProject,
   importDocxProject,
+  receiveProjectHandoff,
+  KraqelCommandError,
   listProjects,
   openWorkspace,
+  startupProject,
   type ProjectOverview,
   type Workspace,
 } from "./commands";
 import { EditorWorkspace } from "./EditorWorkspace";
+import { ExistingFolderImport } from "./ExistingFolderImport";
 
 export function App() {
   const [projects, setProjects] = useState<readonly ProjectOverview[]>([]);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [name, setName] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<ProjectOverview["id"] | null>(null);
+
+  const [handoffNotice, setHandoffNotice] = useState("");
+  const receive = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    setBusy(true);
+    setError(null);
+    setHandoffNotice("");
+    try {
+      await receiveProjectHandoff(
+        String(data.get("folder")).trim(),
+        String(data.get("digest")).trim().toLowerCase(),
+      );
+      form.reset();
+      setHandoffNotice("Die Arbeitskopie ist jetzt in der Projektliste verfügbar.");
+      await refreshProjects();
+    } catch (cause) {
+      setError(
+        cause instanceof KraqelCommandError && cause.code === "CONFLICT"
+          ? "Die Projektkennung ist hier bereits belegt. Zum Szenenvergleich öffne das vorhandene Projekt und wähle Werkzeuge → Versionen."
+          : "Empfang fehlgeschlagen. Prüfe den Eingangsordner, die separat bestätigte Prüfsumme und die Vollständigkeit der Arbeitskopie.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const refreshProjects = async () => {
     try {
@@ -29,7 +60,30 @@ export function App() {
   };
 
   useEffect(() => {
-    void refreshProjects();
+    let active = true;
+    async function initialize() {
+      try {
+        const [items, selected] = await Promise.all([listProjects(), startupProject()]);
+        if (!active) return;
+        setProjects(items);
+        if (selected) {
+          try {
+            const current = await openWorkspace(selected);
+            if (active) setWorkspace(current);
+          } catch {
+            if (active) setError("Das ausgewählte Projekt konnte nicht geöffnet werden.");
+          }
+        }
+      } catch {
+        if (active) setError("Die lokalen Projekte konnten nicht gelesen werden.");
+      } finally {
+        if (active) setBusy(false);
+      }
+    }
+    void initialize();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const submitProject = async (event: FormEvent<HTMLFormElement>) => {
@@ -93,6 +147,7 @@ export function App() {
   };
 
   const importSnapshot = async () => {
+    if (busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -100,7 +155,7 @@ export function App() {
       if (imported) setWorkspace(imported);
     } catch {
       setError(
-        "Das Projektarchiv konnte nicht importiert werden. Unterstützt werden gültige Snapshot-v3-Archive bis 128 MiB.",
+        "Das Projektarchiv konnte nicht importiert werden. Unterstützt werden gültige Snapshot-Archive der Versionen 3 und 4 bis 128 MiB.",
       );
     } finally {
       setBusy(false);
@@ -108,6 +163,7 @@ export function App() {
   };
 
   const importManuscript = async () => {
+    if (busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -115,7 +171,7 @@ export function App() {
       if (imported) setWorkspace(imported);
     } catch {
       setError(
-        "Das DOCX-Manuskript konnte nicht importiert werden. Verwende einen KRAQEL-Export zum Wiederimport (v1, höchstens 8 MiB). Die Datei muss vollständig unterstützt sein.",
+        "Das DOCX-Manuskript konnte nicht importiert werden. Prüfe, ob die Datei aus „DOCX zum Wiederimport erzeugen“ stammt und höchstens 8 MiB groß ist. Falls du in Office Absätze oder deren Markierungen entfernt hast, übertrage deine Textänderungen in die vorhandenen Absätze einer frischen Austauschkopie.",
       );
     } finally {
       setBusy(false);
@@ -197,10 +253,10 @@ export function App() {
           <span className="eyebrow">Vorhandenes Projekt</span>
           <h2 id="import-project-heading">Projektarchiv importieren</h2>
           <p>
-            Eine Snapshot-v3-Datei sicher als neue lokale Projektkopie öffnen. Das Quellarchiv
-            bleibt unverändert.
+            Ein Snapshot-Archiv der Version 3 oder 4 sicher als neue lokale Projektkopie öffnen. Das
+            Quellarchiv bleibt unverändert.
           </p>
-          <button type="button" disabled={busy} onClick={() => void importSnapshot()}>
+          <button type="button" aria-disabled={busy} onClick={() => void importSnapshot()}>
             Projektarchiv auswählen
           </button>
           <p className="muted">
@@ -209,24 +265,61 @@ export function App() {
           </p>
         </section>
 
+        {navigator.userAgent.includes("Windows") && (
+          <ExistingFolderImport busy={busy} setBusy={setBusy} refresh={refreshProjects} />
+        )}
+        <section className="project-card" aria-labelledby="receive-heading">
+          <h2 id="receive-heading">Windows-Arbeitskopie empfangen</h2>
+          <p>
+            Lege den vorbereiteten Ordner in{" "}
+            <code>%LOCALAPPDATA%\org.kraqel.desktop\projects\empfang</code> ab. Erstelle den
+            Eingangsordner bei Bedarf.
+          </p>
+          <form onSubmit={(event) => void receive(event)}>
+            <label htmlFor="receive-folder">Ordnername aus der Vorbereitung</label>
+            <input
+              id="receive-folder"
+              name="folder"
+              placeholder="uebernahme-…"
+              required
+              maxLength={47}
+              autoComplete="off"
+            />
+            <label htmlFor="receive-digest">Separat bestätigter SHA-256 des Inventars</label>
+            <input
+              id="receive-digest"
+              name="digest"
+              required
+              pattern="[A-Fa-f0-9]{64}"
+              maxLength={64}
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <button type="submit" disabled={busy}>
+              Als lokales Projekt übernehmen
+            </button>
+          </form>
+          {handoffNotice && <p role="status">{handoffNotice}</p>}
+        </section>
+
         <section className="project-card" aria-labelledby="import-manuscript-heading">
           <span className="eyebrow">Manuskript aus Office</span>
           <h2 id="import-manuscript-heading">KRAQEL-Manuskript aus DOCX</h2>
           <p>
             Importiert einen KRAQEL-Export zum Wiederimport als neues lokales Projekt. Kapitel,
-            Szenen und unterstützte Textformatierungen bleiben erhalten. Vorhandene Projekte und die
-            Quelldatei bleiben unverändert.
+            Szenen, Drehbuchrollen und unterstützte Textformatierungen bleiben erhalten. Vorhandene
+            Projekte und die Quelldatei bleiben unverändert.
           </p>
           <p className="muted">
             Ohne Story-Bibel, Plotboard, Timelines, Medien, Profile, Prompts und Versionsgeschichte.
             Für vollständige Projektkopien verwende das Projektarchiv. Gewöhnliche DOCX-Dateien
             kannst du im Editor als einzelne Szene importieren.
           </p>
-          <button type="button" disabled={busy} onClick={() => void importManuscript()}>
+          <button type="button" aria-disabled={busy} onClick={() => void importManuscript()}>
             Manuskript-DOCX auswählen
           </button>
           <p className="muted">
-            KRAQEL-Manuskript v1, höchstens 8 MiB. Projekttitel 1–120 Zeichen, Kapitel- und
+            KRAQEL-Manuskript v1 oder v2, höchstens 8 MiB. Projekttitel 1–120 Zeichen, Kapitel- und
             Szenentitel bis 240 Zeichen. Textänderungen innerhalb bestehender Absätze sind
             unterstützt; Strukturänderungen in Office können den Wiederimport verhindern.
           </p>

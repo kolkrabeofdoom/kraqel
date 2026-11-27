@@ -14,10 +14,15 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [features]
-isolation-ui-test = ["dep:kraqel-isolation-probe", "dep:kraqel-isolation-test-adapter"]
+isolation-ui-test = ["dep:kraqel-isolation-test-adapter"]
 
 [target.'cfg(windows)'.dependencies]
-kraqel-isolation-probe = { path = "../../../scripts/runtime-isolation/probe", optional = true }
+kraqel-native-start = { path = "../native-start" }
+kraqel-archiv = { path = "../../../crates/portable-archive" }
+tempfile = "3"
+tokio = { version = "1", features = ["time"] }
+winapi-util = "0.1"
+kraqel-isolation-probe = { path = "../../../scripts/runtime-isolation/probe", features = ["desktop-review"] }
 kraqel-isolation-test-adapter = { path = "../isolation-test-adapter", optional = true }
 
 [dependencies]

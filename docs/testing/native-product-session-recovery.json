@@ -1,0 +1,79 @@
+{
+  "formatVersion": 1,
+  "nativePreviewOnly": true,
+  "productionAcceptance": false,
+  "sourceBaseCommit": "b0e6ca618c073febbcbaae086c57721f47a99450",
+  "controllerSha256": "703c50c1cf207b5a6a6e9281111298d768fb6a73618de810e85a4657d67cdd22",
+  "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+  "independentAuditPassed": true,
+  "controlSchema": 3,
+  "controlRecordsPerInstallation": 7,
+  "controllerProcesses": 18,
+  "controllerExitCodes": {
+    "0": 10,
+    "1": 6,
+    "86": 2
+  },
+  "nativeGuiStarts": 6,
+  "controllerCrashes": 2,
+  "authenticatedRecoveries": 4,
+  "explicitReplayEvents": 8,
+  "negativeRecoveries": 6,
+  "actualContainerDenials": 36,
+  "distinctTasks": 2,
+  "distinctLaunches": 6,
+  "legitimateProjectCopies": 1,
+  "profilesRemoved": 2,
+  "normalPreviewStoreUsed": false,
+  "reservedPrivateDataEmpty": true,
+  "networkMeasurement": false,
+  "cases": [
+    {
+      "point": "prepared",
+      "controllerExitCode": 86,
+      "recoveries": 2,
+      "replayEvents": 4,
+      "projectCopies": 0,
+      "profileRemoved": true,
+      "negativeStateUnchanged": true,
+      "keyUnchanged": true
+    },
+    {
+      "point": "completed",
+      "controllerExitCode": 86,
+      "recoveries": 2,
+      "replayEvents": 4,
+      "projectCopies": 1,
+      "profileRemoved": true,
+      "negativeStateUnchanged": true,
+      "keyUnchanged": true
+    }
+  ],
+  "functionalControlCrashRegression": {
+    "formatVersion": 1,
+    "nativePreviewOnly": true,
+    "productionAcceptance": false,
+    "independentAuditPassed": true,
+    "baseBinarySha256": "703c50c1cf207b5a6a6e9281111298d768fb6a73618de810e85a4657d67cdd22",
+    "candidateBinarySha256": "4d66ad6b61d46c2352a7ad2220c0cf53b7b6d6dfddcaf8a441a9b3ba89b4238c",
+    "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+    "crashCases": 28,
+    "controllerCrashes": 28,
+    "blockedCases": 17,
+    "readyCases": 11,
+    "explicitlyReconciledCases": 8,
+    "childProcesses": 162,
+    "childExitCodes": {
+      "0": 76,
+      "1": 58,
+      "86": 28
+    },
+    "macChainsAndHeadStatesVerified": true,
+    "canonicalRootBindingsVerified": true,
+    "keyResets": 0,
+    "actualContainerDenials": 12,
+    "allGuiTestProfilesRemoved": true,
+    "normalPreviewStoreUsed": false,
+    "networkMeasurement": false
+  }
+}

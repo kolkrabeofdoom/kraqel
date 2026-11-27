@@ -115,6 +115,87 @@ fn unpack(bytes: &[u8]) -> BTreeMap<String, Vec<u8>> {
     }
     parts
 }
+
+fn mixed_sample() -> Manuscript {
+    use kraqel_domain::ScreenplayRole::{
+        Action, Character, Dialogue, Parenthetical, SceneHeading, Transition,
+    };
+    let mut model = sample();
+    model.chapters[0].scenes.push(Scene {
+        title: "Drehbuchentwurf".to_owned(),
+        blocks: vec![
+            Block::Screenplay(Action, vec![]),
+            Block::Screenplay(
+                Dialogue,
+                vec![
+                    Inline::Text {
+                        text: "Noch ohne Figur".to_owned(),
+                        bold: true,
+                        italic: true,
+                    },
+                    Inline::HardBreak,
+                    text("Zweite Zeile"),
+                ],
+            ),
+        ],
+    });
+    model.chapters[0].scenes.push(Scene {
+        title: "Abfahrt".to_owned(),
+        blocks: [
+            (SceneHeading, "INT. STELLWERK – MORGEN"),
+            (Action, "Ein Licht blinkt."),
+            (Character, "Mira"),
+            (Parenthetical, "(leise)"),
+            (Dialogue, "Der Zug wartet."),
+            (Transition, "Schnitt auf:"),
+        ]
+        .into_iter()
+        .map(|(role, value)| Block::Screenplay(role, vec![text(value)]))
+        .collect(),
+    });
+    model
+}
+
+fn office_sample() -> Manuscript {
+    if std::env::var_os("KRAQEL_ROUNDTRIP_QA_V2").is_some() {
+        mixed_sample()
+    } else {
+        sample()
+    }
+}
+
+#[test]
+fn draft_roles_survive_exchange_and_conflicting_visible_styles_are_rejected() {
+    let model = mixed_sample().canonicalized().unwrap();
+    let bytes = write_docx_roundtrip(&model).unwrap();
+    assert_eq!(read_docx_roundtrip(&bytes).unwrap(), model);
+    let changed = mutate(&bytes, "word/document.xml", |document| {
+        assert!(document.contains("KQScreenplayDialogue"));
+        document.replace("KQScreenplayDialogue", "KQScreenplayAction")
+    });
+    assert!(read_docx_roundtrip(&changed).is_err());
+    let inherited = mutate(&bytes, "word/styles.xml", |styles| {
+        styles.replace(
+            "</w:styles>",
+            r#"<w:style w:type="paragraph" w:styleId="DerivedDialogue"><w:basedOn w:val="KQScreenplayDialogue"/></w:style></w:styles>"#,
+        )
+    });
+    let inherited = mutate(&inherited, "word/document.xml", |document| {
+        document.replace("KQScreenplayDialogue", "DerivedDialogue")
+    });
+    assert_eq!(read_docx_roundtrip(&inherited).unwrap(), model);
+    let ambiguous = mutate(&inherited, "word/styles.xml", |mut styles| {
+        let start = styles.find(r#"w:styleId="KQScreenplayDialogue""#).unwrap();
+        let base = r#"<w:basedOn w:val="Normal"/>"#;
+        let offset = start + styles[start..].find(base).unwrap();
+        styles.replace_range(
+            offset..offset + base.len(),
+            r#"<w:basedOn w:val="KQScreenplayAction"/>"#,
+        );
+        styles
+    });
+    assert!(read_docx_roundtrip(&ambiguous).is_err());
+}
 fn pack(parts: &BTreeMap<String, Vec<u8>>) -> Vec<u8> {
     let mut zip = zip::ZipWriter::new(Cursor::new(Vec::new()));
     for (name, data) in parts {
@@ -335,7 +416,7 @@ fn rejects_unknown_content_relationships_and_mime_spoofing() {
 #[test]
 fn rejects_duplicate_and_removed_empty_title_markers() {
     let bytes = write_docx_roundtrip(&sample()).unwrap();
-    let records = inventory::records(&sample());
+    let records = inventory::records(&sample()).unwrap();
     let empty = records
         .iter()
         .find(|r| r.node.role == Role::ChapterTitle && r.runs.as_ref().is_some_and(Vec::is_empty))
@@ -390,14 +471,14 @@ fn failed_export_preserves_the_previous_roundtrip_file() {
 fn generate_native_roundtrip_fixture() {
     let path = std::env::var_os("KRAQEL_ROUNDTRIP_QA_FILE")
         .expect("set KRAQEL_ROUNDTRIP_QA_FILE to a test file");
-    std::fs::write(path, write_docx_roundtrip(&sample()).unwrap()).unwrap();
+    std::fs::write(path, write_docx_roundtrip(&office_sample()).unwrap()).unwrap();
 }
 
 #[test]
 #[ignore = "reads an explicitly selected native QA DOCX; no app data is modified"]
 fn verify_native_roundtrip_fixture() {
     let path = std::env::var_os("KRAQEL_ROUNDTRIP_QA_FILE").expect("set KRAQEL_ROUNDTRIP_QA_FILE");
-    let mut expected = sample().canonicalized().unwrap();
+    let mut expected = office_sample().canonicalized().unwrap();
     if let Ok(replacement) = std::env::var("KRAQEL_ROUNDTRIP_QA_EDIT")
         && let Block::Paragraph(runs) = &mut expected.chapters[0].scenes[0].blocks[1]
         && let Inline::Text { text, .. } = &mut runs[0]

@@ -154,7 +154,8 @@ pub(super) fn export(
         )
     };
     run().map_err(|error| match error {
-        IllustratedError::Invalid => CommandError::invalid_request(
+        IllustratedError::ScreenplayUnsupported => CommandError::invalid_request(request_id, illustrated::SCREENPLAY_IMAGE_HINT),
+        IllustratedError::Invalid | IllustratedError::ScreenplayLayout(_) => CommandError::invalid_request(
             request_id,
             "Die Bildauswahl oder Quelldatei ist ungültig oder überschreitet die Exportgrenzen.",
         ),

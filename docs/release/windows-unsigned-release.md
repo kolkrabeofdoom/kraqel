@@ -139,6 +139,20 @@ anschließend auf ausdrückliche Freigabe als Prerelease veröffentlicht. Schrit
 deshalb ist auch `v0.1.0-alpha.4` kein stabiles Release und darf nicht als vollständige M5-Abnahme
 interpretiert werden.
 
+Alpha 5 wurde nach Installation auf einer sauberen Windows-VM, Öffnen des Demoprojekts und
+Sichtprüfung der Dialoge freigegeben. Alpha 6 korrigiert das zusätzliche Konsolenfenster. Beim
+lokalen Update von Alpha 5 auf Alpha 6 öffnete dieselbe Startmenüverknüpfung die bestehende Demo mit
+derselben Projektkennung. Der Rückdownload aller drei Dateien stimmte mit dem freigegebenen Paket
+überein. Installation und Deinstallation des heruntergeladenen Setups wurden separat geprüft.
+[Alpha 6](https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.6)
+
+Für Alpha 7 wurde der zugelassene Ordnerimport-Installer aus Commit `a9a3a673ff14` nach der
+Upgrade-Probe über Alpha 6 unverändert veröffentlicht. Alle vier Dateien wurden von GitHub
+zurückgeladen und anhand ihrer SHA-256-Prüfsummen abgeglichen. Der zurückgeladene Installer bestand
+die isolierte Installation und Deinstallation. Das zusätzliche Rechnerwechsel-ZIP enthält den
+portablen Archivhelfer, die Anleitung und seine Prüfsumme.
+[Alpha 7](https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.7)
+
 Ein lokaler Build ersetzt weder die Clean-VM-Abnahme noch die Prüfung des tatsächlich
 heruntergeladenen GitHub-Artefakts. Hashes sind nützlich, aber sie tragen keine kleinen Roben und
 sprechen keine richterlichen Urteile.

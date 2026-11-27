@@ -1,0 +1,111 @@
+//! Menu commands use the same requests and control state as the scene window.
+use super::*;
+
+pub(super) const SEARCH_MENU: usize = 217;
+pub(super) const CONTINUE: usize = 218;
+pub(super) const WHOLE_WORDS: usize = 220;
+pub(super) const CASE_SENSITIVE: usize = 221;
+
+pub(super) fn install(hwnd: HWND, edit_mode: bool) -> bool {
+    project_search::set_whole_words(false);
+    project_search::set_case_sensitive(true);
+    let file = [
+        (SAVE as usize, "&Speichern\tStrg+S"),
+        (CONTINUE, "Speichern und &weiterschreiben\tStrg+Enter"),
+        (project_autosave::TOGGLE, "&Automatisch speichern"),
+        (CLOSE as usize, "S&chließen\tAlt+F4"),
+    ];
+    let edit = [
+        (SELECT_PARAGRAPH, "&Alles auswählen\tStrg+A"),
+        (SEARCH_MENU, "&Suchen …\tStrg+F"),
+        (WHOLE_WORDS, "Nur &ganze Wörter"),
+        (CASE_SENSITIVE, "Groß-/&Kleinschreibung beachten"),
+        (project_search::NEXT as usize, "&Nächster Treffer\tF3"),
+        (
+            project_search::PREVIOUS as usize,
+            "&Vorheriger Treffer\tUmschalt+F3",
+        ),
+    ];
+    if edit_mode {
+        let mut commands = vec![
+            (UNDO, "&Rückgängig\tStrg+Z"),
+            (REDO, "&Wiederholen\tStrg+Y"),
+        ];
+        commands.extend(edit);
+        commands.extend([
+            (project_replace::OPEN as usize, "&Ersetzen …\tStrg+H"),
+            (COMPARE as usize, "&Fassungen vergleichen …"),
+        ]);
+        install_menu_groups(
+            hwnd,
+            &[
+                ("&Datei", &file),
+                ("&Bearbeiten", &commands),
+                ("&Ansicht", &[(FOCUS as usize, "&Fokusmodus\tF11")]),
+            ],
+        )
+    } else {
+        install_menu_groups(hwnd, &[("&Datei", &file[3..]), ("&Bearbeiten", &edit)])
+    }
+}
+
+pub(super) unsafe fn refresh(hwnd: HWND) {
+    unsafe {
+        let menu = GetMenu(hwnd);
+        if menu.is_null() {
+            return;
+        }
+        for (command, checked) in [
+            (WHOLE_WORDS, project_search::whole_words()),
+            (CASE_SENSITIVE, project_search::case_sensitive()),
+        ] {
+            CheckMenuItem(
+                menu,
+                command as u32,
+                MF_BYCOMMAND | if checked { MF_CHECKED } else { MF_UNCHECKED },
+            );
+        }
+        let save = GetDlgItem(hwnd, SAVE);
+        if save.is_null() {
+            return;
+        }
+        let editable = GetWindowLongW(GetDlgItem(hwnd, EDIT), GWL_STYLE) & ES_READONLY == 0;
+        let compare = GetDlgItem(hwnd, COMPARE);
+        enable_menu_command(hwnd, UNDO, editable && project_history::available(false));
+        enable_menu_command(hwnd, REDO, editable && project_history::available(true));
+        enable_menu_command(hwnd, SAVE as usize, editable && IsWindowEnabled(save) != 0);
+        enable_menu_command(hwnd, CONTINUE, editable && IsWindowEnabled(save) != 0);
+        enable_menu_command(
+            hwnd,
+            project_autosave::TOGGLE,
+            editable && IsWindowEnabled(save) != 0 && !project_autosave::retry_required(),
+        );
+        CheckMenuItem(
+            menu,
+            project_autosave::TOGGLE as u32,
+            MF_BYCOMMAND
+                | if project_autosave::enabled() {
+                    MF_CHECKED
+                } else {
+                    MF_UNCHECKED
+                },
+        );
+        enable_menu_command(hwnd, CLOSE as usize, editable);
+        enable_menu_command(hwnd, project_replace::OPEN as usize, editable);
+        enable_menu_command(
+            hwnd,
+            COMPARE as usize,
+            editable && IsWindowVisible(compare) != 0 && IsWindowEnabled(compare) != 0,
+        );
+        CheckMenuItem(
+            menu,
+            FOCUS as u32,
+            MF_BYCOMMAND
+                | if focus_mode(hwnd) {
+                    MF_CHECKED
+                } else {
+                    MF_UNCHECKED
+                },
+        );
+    }
+}

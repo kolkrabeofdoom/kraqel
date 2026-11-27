@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "date": "2026-11-18",
+  "purpose": "bp3-synthetic-debug-chain-v1",
+  "normalSha256": "56a1b43db1b9488bea8a26e1bb67e92732db15daaa82e576821698a1173e8d61",
+  "testSha256": "e1543737b8a6b84b776b287efe0f7ce6e5b84ee86bc1139587ecc8034354bf89",
+  "cases": [
+    {
+      "case": "denied",
+      "jobProcesses": 1,
+      "outerCreateEvents": 1,
+      "outerExitEvents": 1,
+      "activeAtEnd": 0,
+      "profileRemoved": true,
+      "fixtureRemoved": true,
+      "rootRejectedBeforeUserMode": true,
+      "childHeldAndVerified": false,
+      "childRanOutsideOuterDebugChain": false
+    },
+    {
+      "case": "inherited",
+      "jobProcesses": 4,
+      "outerCreateEvents": 4,
+      "outerExitEvents": 4,
+      "activeAtEnd": 0,
+      "profileRemoved": true,
+      "fixtureRemoved": true,
+      "rootRejectedBeforeUserMode": false,
+      "childHeldAndVerified": true,
+      "childRanOutsideOuterDebugChain": false
+    },
+    {
+      "case": "nested",
+      "jobProcesses": 4,
+      "outerCreateEvents": 2,
+      "outerExitEvents": 2,
+      "activeAtEnd": 0,
+      "profileRemoved": true,
+      "fixtureRemoved": true,
+      "rootRejectedBeforeUserMode": false,
+      "childHeldAndVerified": true,
+      "childRanOutsideOuterDebugChain": true
+    }
+  ],
+  "totalJobProcesses": 9,
+  "syntheticWorkers": 5,
+  "consoleHosts": 4,
+  "outerCreateEvents": 7,
+  "innerCreateReports": 2,
+  "activeTests": 141,
+  "ignoredTests": 7,
+  "networkMeasured": false,
+  "exactModuleBindingProven": false,
+  "webviewRoleBindingProven": false,
+  "bareDebugInheritanceSuitable": false,
+  "runtimeAuthority": false,
+  "dataAuthority": false,
+  "nativeUiAbi": 0
+}

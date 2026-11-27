@@ -12,11 +12,16 @@ test("DOCX-Austausch erklärt Umfang, importiert neue Kopien und behandelt Abbru
   await page.evaluate(() => localStorage.setItem("kraqel-e2e-roundtrip-import", "cancel"));
   await page.keyboard.press("Enter");
   await expect(select).toBeEnabled();
+  await expect(select).toBeFocused();
   await expect(page.locator(".project-list li")).toHaveCount(0);
   await expect(page.getByRole("alert")).toHaveCount(0);
   await page.evaluate(() => localStorage.setItem("kraqel-e2e-roundtrip-import", "error"));
-  await select.click();
-  await expect(page.getByRole("alert")).toContainText("nicht importiert");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("alert")).toContainText("DOCX zum Wiederimport erzeugen");
+  await expect(page.getByRole("alert")).toContainText(
+    "in die vorhandenen Absätze einer frischen Austauschkopie",
+  );
+  await expect(select).toBeFocused();
   await expect(page.getByRole("alert")).not.toContainText("private DOCX");
   await expect(page.locator(".project-list li")).toHaveCount(0);
 
@@ -27,8 +32,10 @@ test("DOCX-Austausch erklärt Umfang, importiert neue Kopien und behandelt Abbru
   await expect(page.getByText("Gespeichert", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Export", exact: true }).click();
   await expect(page.getByRole("button", { name: "DOCX erzeugen", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "DOCX zum Wiederimport erzeugen" }).click();
+  const exportButton = page.getByRole("button", { name: "DOCX zum Wiederimport erzeugen" });
+  await exportButton.press("Enter");
   await expect(page.getByRole("status")).toContainText("manuskript-roundtrip.docx");
+  await expect(exportButton).toBeFocused();
   const axe = await new AxeBuilder({ page }).analyze();
   expect(
     axe.violations.filter(({ impact }) => impact === "serious" || impact === "critical"),

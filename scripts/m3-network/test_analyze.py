@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 import xml.etree.ElementTree as ET
-from analyze import analyze
+from analyze import analyze, root_image_bindings
 
 PROCESS = "Microsoft-Windows-Kernel-Process"
 NETWORK = "Microsoft-Windows-Kernel-Network"
@@ -54,6 +54,113 @@ class AnalysisTests(unittest.TestCase):
         result = self.result()
         self.assertTrue(result["measurementValid"])
         self.assertEqual(result["result"], "no-non-loopback-traffic-observed")
+
+    def test_native_home_requires_a_desktop_root_without_webview(self):
+        self.start(10, 200, 1, "kraqel-desktop.exe")
+        self.stop(12, 200)
+        self.result()
+        self.assertTrue(analyze(self.path, (200,), self.ready, "native-home")["measurementValid"])
+        result = analyze(self.path, (100,), self.ready, "native-home")
+        self.assertIn("unexpected-webview2-process-tree", result["measurementProblems"])
+
+    def test_native_scene_requires_both_roles_in_the_same_desktop_tree(self):
+        self.start(10, 200, 1, "kraqel-desktop.exe")
+        self.start(11, 201, 200, "native-leaf.exe")
+        self.stop(14, 201)
+        self.stop(15, 200)
+        self.result()
+        self.assertFalse(analyze(self.path, (200,), self.ready, "native-scene")["measurementValid"])
+        self.start(12, 202, 200, "pipe-service.exe")
+        self.stop(13, 202)
+        self.result()
+        self.assertTrue(analyze(self.path, (200,), self.ready, "native-scene")["measurementValid"])
+        self.assertFalse(analyze(self.path, (200,), self.ready, "native-scene", scene_sessions=2)["measurementValid"])
+        self.start(13, 203, 200, "native-leaf.exe")
+        self.start(13, 204, 200, "pipe-service.exe")
+        self.stop(14, 203)
+        self.stop(14, 204)
+        self.result()
+        self.assertTrue(analyze(self.path, (200,), self.ready, "native-scene", scene_sessions=2)["measurementValid"])
+
+    def test_native_control_requires_every_exact_root_even_without_a_gui(self):
+        self.start(10, 200, 1, "kraqel-isolation-probe.exe")
+        self.stop(11, 200)
+        self.start(12, 300, 1, "kraqel-isolation-probe.exe")
+        self.stop(13, 300)
+        self.result()
+        self.assertTrue(analyze(self.path, (200, 300), self.ready, "native-control")["measurementValid"])
+        for roots in ((), (200, 301), (100,)):
+            self.assertFalse(analyze(self.path, roots, self.ready, "native-control")["measurementValid"])
+        self.assertFalse(analyze(self.path, (200,), self.ready, "isolation-ui")["measurementValid"])
+        self.assertFalse(analyze(self.path, (200,), self.ready, "broker-ui")["measurementValid"])
+
+    def test_native_control_matches_both_explicit_broker_images(self):
+        image = "a" * 64 + ".exe"
+        self.start(10, 200, 1, "kraqel-isolation-probe.exe")
+        self.stop(11, 200)
+        self.start(12, 300, 1, image)
+        self.stop(13, 300)
+        self.result()
+        bindings = [{"pid": 200, "image": "kraqel-isolation-probe.exe"}, {"pid": 300, "image": image}]
+        result = analyze(self.path, (200, 300), self.ready, "native-control", bindings)
+        self.assertTrue(result["measurementValid"])
+        self.assertEqual(result["explicitRootImageBindings"], 2)
+        self.assertFalse(analyze(self.path, (200, 300), self.ready, "native-control")["measurementValid"])
+        bindings[1]["image"] = "b" * 64 + ".exe"
+        self.assertFalse(analyze(self.path, (200, 300), self.ready, "native-control", bindings)["measurementValid"])
+
+    def test_root_bindings_reject_incomplete_unsafe_or_wrong_mode_maps(self):
+        valid = {"pid": 200, "image": "a" * 64 + ".exe"}
+        for records in (None, {}, [], [valid, valid], [{**valid, "pid": True}], [{**valid, "pid": 0}],
+                        [{**valid, "path": "x"}], [{**valid, "image": "C:/" + valid["image"]}],
+                        [{**valid, "image": "z" * 64 + ".exe"}], [{**valid, "image": "other.exe"}]):
+            with self.subTest(records=records), self.assertRaises(ValueError):
+                root_image_bindings(records)
+        for mode, roots in (("desktop", (200,)), ("broker-ui", (200,)), ("native-control", (200, 300))):
+            with self.subTest(mode=mode, roots=roots), self.assertRaises(ValueError):
+                analyze(self.path, roots, self.ready, mode, [valid])
+
+    def test_hash_named_root_attributes_descendant_public_traffic(self):
+        image = "a" * 64 + ".exe"
+        self.start(10, 200, 1, image)
+        self.start(11, 201, 200, "kraqel-desktop.exe")
+        self.start(12, 202, 201, "msedgewebview2.exe")
+        self.event(13, NETWORK, 10, {"PID": 202, "daddr": "1.1.1.1"})
+        self.stop(14, 202)
+        self.stop(15, 201)
+        self.stop(16, 200)
+        self.result()
+        result = analyze(self.path, (200,), self.ready, "native-control", [{"pid": 200, "image": image}])
+        self.assertTrue(result["measurementValid"])
+        self.assertEqual(result["nonLoopbackEvents"], 1)
+        self.assertEqual(result["result"], "observed-non-loopback-traffic")
+
+    def test_native_control_keeps_controls_loss_and_explicit_lifetime_guards(self):
+        self.start(10, 200, 1, "kraqel-isolation-probe.exe")
+        self.result()
+        self.assertIn("process-tree-not-fully-stopped-within-capture", analyze(self.path, (200,), self.ready, "native-control")["measurementProblems"])
+        self.stop(11, 200)
+        self.ready["controls"][3]["port"] = 20000
+        self.result()
+        self.assertFalse(analyze(self.path, (200,), self.ready, "native-control")["measurementValid"])
+        self.ready["controls"][3]["port"] = 10004
+        self.event(12, "", 0, {"EventsLost": 1, "BuffersLost": 0})
+        self.result()
+        self.assertIn("missing-loss-header-or-lost-events", analyze(self.path, (200,), self.ready, "native-control")["measurementProblems"])
+
+    def test_native_control_attributes_gui_descendants_and_public_traffic(self):
+        self.start(10, 200, 1, "kraqel-isolation-probe.exe")
+        self.start(11, 201, 200, "kraqel-desktop.exe")
+        self.start(12, 202, 201, "msedgewebview2.exe")
+        self.event(13, NETWORK, 10, {"PID": 202, "daddr": "1.1.1.1"})
+        self.stop(14, 202)
+        self.stop(15, 201)
+        self.stop(16, 200)
+        self.result()
+        result = analyze(self.path, (200,), self.ready, "native-control")
+        self.assertTrue(result["measurementValid"])
+        self.assertEqual(result["nonLoopbackEvents"], 1)
+        self.assertEqual(result["result"], "observed-non-loopback-traffic")
 
     def test_ui_mode_requires_a_real_app_and_webview_for_each_controller(self):
         self.start(10, 200, 1, "kraqel-isolation-probe.exe")
@@ -122,6 +229,41 @@ class AnalysisTests(unittest.TestCase):
         self.assertTrue(result["measurementValid"])
         self.assertEqual(result["nonLoopbackEvents"], 1)
         self.assertEqual(result["result"], "observed-non-loopback-traffic")
+
+    def broker_tree(self, worker=True, web=True, complete=True):
+        self.start(10, 200, 1, "kraqel-isolation-probe.exe")
+        if worker:
+            self.start(11, 201, 200, "kraqel-isolation-probe.exe")
+        self.start(12, 202, 201 if worker else 200, "kraqel-desktop.exe")
+        if web:
+            self.start(13, 203, 202, "msedgewebview2.exe")
+            if complete:
+                self.stop(15, 203)
+        self.stop(16, 202)
+        if worker:
+            self.stop(17, 201)
+        self.stop(18, 200)
+        self.result()
+        return analyze(self.path, (200,), self.ready, "broker-ui")
+
+    def test_broker_ui_accepts_nested_fully_ended_gui_and_includes_broker_traffic(self):
+        self.assertTrue(self.broker_tree()["measurementValid"])
+        self.event(14, NETWORK, 12, {"PID": 201, "daddr": "1.1.1.1"})
+        self.result()
+        result = analyze(self.path, (200,), self.ready, "broker-ui")
+        self.assertTrue(result["measurementValid"])
+        self.assertEqual(result["nonLoopbackEvents"], 1)
+
+    def test_broker_ui_rejects_direct_app_without_broker(self):
+        self.assertIn("missing-broker-ui-descendant-tree", self.broker_tree(worker=False)["measurementProblems"])
+
+    def test_broker_ui_rejects_missing_webview(self):
+        self.assertIn("missing-broker-ui-descendant-tree", self.broker_tree(web=False)["measurementProblems"])
+
+    def test_broker_ui_never_waives_process_ends_or_controls(self):
+        self.assertIn("process-tree-not-fully-stopped-within-capture", self.broker_tree(complete=False)["measurementProblems"])
+        self.ready["controls"][3]["port"] = 20000
+        self.assertIn("incomplete-tcp-udp-ipv4-ipv6-positive-controls", analyze(self.path, (200,), self.ready, "broker-ui")["measurementProblems"])
 
     def test_descendant_and_pid_reuse_are_lifetime_bound(self):
         self.start(4, 102, 101, "child.exe")

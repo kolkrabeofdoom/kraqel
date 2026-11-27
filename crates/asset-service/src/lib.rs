@@ -97,6 +97,136 @@ pub fn is_safe_relative_path(path: &Path) -> bool {
             .all(|component| matches!(component, Component::Normal(_)))
 }
 
+fn decode_image(
+    bytes: &[u8],
+    format: ImageFormat,
+    max_edge: u32,
+) -> Result<image::DynamicImage, AssetError> {
+    let (w, h) = ImageReader::with_format(Cursor::new(bytes), format)
+        .into_dimensions()
+        .map_err(|_| AssetError::InvalidImage)?;
+    if w == 0 || h == 0 || w > max_edge || h > max_edge || u64::from(w) * u64::from(h) > MAX_PIXELS
+    {
+        return Err(AssetError::TooLarge);
+    }
+    let mut reader = ImageReader::with_format(Cursor::new(bytes), format);
+    let mut limits = image::Limits::default();
+    limits.max_image_width = Some(max_edge);
+    limits.max_image_height = Some(max_edge);
+    reader.limits(limits);
+    let decoded = reader.decode().map_err(|_| AssetError::InvalidImage)?;
+    if decoded.dimensions() != (w, h) {
+        return Err(AssetError::InvalidImage);
+    }
+    Ok(decoded)
+}
+
+/// Prüft die gebundenen Bildbytes vor einer Übernahme. Akzeptiert die Originalformate
+/// des Imports und gespeicherte PNG-Vorschaubilder bis zur regulären Vorschaugröße.
+///
+/// # Errors
+/// Abweichende Formate, Katalogmaße, überschrittene Grenzen oder unlesbare Bilder sperren die Übernahme.
+pub fn validate_handoff_image(
+    original: &[u8],
+    thumbnail: &[u8],
+    mime: &str,
+    width: u32,
+    height: u32,
+) -> Result<(), AssetError> {
+    if original.is_empty()
+        || original.len() > MAX_ASSET_BYTES
+        || thumbnail.is_empty()
+        || thumbnail.len() > MAX_THUMBNAIL_BYTES
+    {
+        return Err(AssetError::TooLarge);
+    }
+    let format = image::guess_format(original).map_err(|_| AssetError::InvalidImage)?;
+    if format_contract(format)?.0 != mime
+        || image::guess_format(thumbnail).ok() != Some(ImageFormat::Png)
+    {
+        return Err(AssetError::InvalidImage);
+    }
+    require_complete_container(original, format)?;
+    require_complete_container(thumbnail, ImageFormat::Png)?;
+    if decode_image(original, format, MAX_DIMENSION)?.dimensions() != (width, height) {
+        return Err(AssetError::InvalidImage);
+    }
+    decode_image(thumbnail, ImageFormat::Png, THUMBNAIL_EDGE)?;
+    Ok(())
+}
+
+// Some image decoders can produce all pixels from a truncated container.
+fn require_complete_container(bytes: &[u8], format: ImageFormat) -> Result<(), AssetError> {
+    let complete = match format {
+        ImageFormat::Png => {
+            let mut chunks = bytes.get(8..).ok_or(AssetError::InvalidImage)?;
+            loop {
+                let Some(header) = chunks.get(..8) else {
+                    break false;
+                };
+                let len = u32::from_be_bytes(
+                    header[..4]
+                        .try_into()
+                        .map_err(|_| AssetError::InvalidImage)?,
+                ) as usize;
+                let Some(chunk_end) = len.checked_add(12) else {
+                    break false;
+                };
+                let Some(tail) = chunks.get(chunk_end..) else {
+                    break false;
+                };
+                if &header[4..8] == b"IEND" {
+                    break len == 0 && chunks[8..12] == [0xae, 0x42, 0x60, 0x82];
+                }
+                chunks = tail;
+            }
+        }
+        ImageFormat::WebP => bytes
+            .get(4..8)
+            .and_then(|b| b.try_into().ok())
+            .is_some_and(|size| u64::from(u32::from_le_bytes(size)) + 8 <= bytes.len() as u64),
+        ImageFormat::Jpeg => jpeg_scan_has_end(bytes),
+        _ => false,
+    };
+    if complete {
+        Ok(())
+    } else {
+        Err(AssetError::InvalidImage)
+    }
+}
+
+// Skip length-delimited segments: EXIF may contain a complete nested JPEG.
+fn jpeg_scan_has_end(bytes: &[u8]) -> bool {
+    let Some(mut rest) = bytes.strip_prefix(&[0xff, 0xd8]) else {
+        return false;
+    };
+    let mut saw_scan = false;
+    while let Some(offset) = rest.iter().position(|&byte| byte == 0xff) {
+        rest = &rest[offset + 1..];
+        while let Some(tail) = rest.strip_prefix(&[0xff]) {
+            rest = tail;
+        }
+        let Some((&marker, tail)) = rest.split_first() else {
+            break;
+        };
+        rest = tail;
+        match marker {
+            0xd9 => return saw_scan,
+            0x00 | 0x01 | 0xd0..=0xd7 => (),
+            _ => {
+                let [hi, lo, ..] = *rest else { break };
+                let length = usize::from(u16::from_be_bytes([hi, lo]));
+                if length < 2 || length > rest.len() {
+                    break;
+                }
+                saw_scan |= marker == 0xda;
+                rest = &rest[length..];
+            }
+        }
+    }
+    false
+}
+
 /// Validiert Name, Bytegröße, Signatur, Dekodierbarkeit und Abmessungen.
 ///
 /// # Errors
@@ -109,23 +239,8 @@ pub fn prepare_image(original_name: &str, bytes: &[u8]) -> Result<PreparedImage,
     let format = image::guess_format(bytes).map_err(|_| AssetError::UnsupportedFormat)?;
     let (mime_type, extension) = format_contract(format)?;
     require_matching_extension(original_name, format)?;
-    let reader = ImageReader::with_format(Cursor::new(bytes), format);
-    let (width, height) = reader
-        .into_dimensions()
-        .map_err(|_| AssetError::InvalidImage)?;
-    if width == 0
-        || height == 0
-        || width > MAX_DIMENSION
-        || height > MAX_DIMENSION
-        || u64::from(width) * u64::from(height) > MAX_PIXELS
-    {
-        return Err(AssetError::TooLarge);
-    }
-    let decoded =
-        image::load_from_memory_with_format(bytes, format).map_err(|_| AssetError::InvalidImage)?;
-    if decoded.dimensions() != (width, height) {
-        return Err(AssetError::InvalidImage);
-    }
+    let decoded = decode_image(bytes, format, MAX_DIMENSION)?;
+    let (width, height) = decoded.dimensions();
     let thumbnail = decoded.thumbnail(THUMBNAIL_EDGE, THUMBNAIL_EDGE);
     let mut thumbnail_png = Cursor::new(Vec::new());
     thumbnail
@@ -360,8 +475,8 @@ mod tests {
     use tempfile::tempdir;
 
     use super::{
-        AssetError, is_safe_relative_path, prepare_image, read_thumbnail, remove_asset_files,
-        store_image, verify_original,
+        AssetError, is_safe_relative_path, jpeg_scan_has_end, prepare_image, read_thumbnail,
+        remove_asset_files, store_image, validate_handoff_image, verify_original,
     };
     use kraqel_domain::EntityId;
 
@@ -394,6 +509,12 @@ mod tests {
         assert_eq!(prepared.mime_type, "image/png");
         assert_eq!(prepared.checksum.len(), 64);
         assert_eq!(prepared, prepare_image("portrait.png", &bytes).unwrap());
+        validate_handoff_image(&bytes, &prepared.thumbnail_png, "image/png", 8, 6).unwrap();
+        let truncated = &prepared.thumbnail_png[..prepared.thumbnail_png.len() - 1];
+        assert!(validate_handoff_image(&bytes, truncated, "image/png", 8, 6).is_err());
+        assert!(!jpeg_scan_has_end(&[
+            0xff, 0xd8, 0xff, 0xe1, 0, 4, 0xff, 0xd9
+        ]));
         assert!(matches!(
             prepare_image("portrait.jpg", &bytes),
             Err(AssetError::UnsupportedFormat)

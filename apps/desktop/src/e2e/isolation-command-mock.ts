@@ -1,13 +1,39 @@
 // Browser-only UI adapter. Never bundled in a native build; no native transport claims.
-type View = { phase: string; error: string | null; receipt: { documentCount: number } | null };
+type View = {
+  phase: string;
+  error: string | null;
+  receipt: { documentCount: number } | null;
+  recovered?: boolean;
+};
 let current: View = { phase: "ready", error: null, receipt: null };
 let consumed = false;
+const restored = new URLSearchParams(location.search).get("isolationRecovered");
+if (restored === "done" || restored === "interrupted") {
+  consumed = true;
+  current = {
+    phase: restored === "done" ? "done" : "failed",
+    error: restored === "done" ? null : "INTERRUPTED",
+    receipt: restored === "done" ? { documentCount: 2 } : null,
+    recovered: true,
+  };
+}
 let pending: ((value: View) => void) | null = null;
 export async function isolationCommand(command: string): Promise<unknown> {
+  if (command === "isolation_test_focus_probe") return null;
   if (command === "isolation_test_status") return current;
   if (command === "isolation_test_import") {
     if (consumed) throw "ALREADY_CONSUMED";
     consumed = true;
+    if (new URLSearchParams(location.search).get("isolationFailImport") === "1") {
+      current = { phase: "failed", error: "IMPORT_FAILED", receipt: null };
+      return current;
+    }
+    if (new URLSearchParams(location.search).get("isolationDelayImport") === "1") {
+      current = { phase: "running", error: null, receipt: null };
+      await new Promise<void>((resolve) => {
+        window.addEventListener("kraqel-e2e-selection-complete", () => resolve(), { once: true });
+      });
+    }
     current = { phase: "awaiting", error: null, receipt: null };
     return new Promise<View>((resolve) => {
       pending = resolve;

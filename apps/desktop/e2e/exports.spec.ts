@@ -34,7 +34,7 @@ test("Export bietet alle lokalen Manuskriptformate mit Ergebnisbestätigung an",
     ["DOCX", "manuskript.docx"],
     ["PDF", "manuskript.pdf"],
   ] as const) {
-    await page.getByRole("button", { name: `${label} erzeugen` }).click();
+    await page.getByRole("button", { name: `${label} erzeugen`, exact: true }).click();
     await expect(page.getByRole("status")).toContainText(`Export fertig: ${fileName}`);
     await expect(page.getByRole("status")).toContainText(/\([1-9]\d{0,2}(?:\.\d{3})+ Bytes\)/);
   }

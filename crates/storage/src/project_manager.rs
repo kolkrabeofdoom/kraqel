@@ -1,5 +1,32 @@
 //! Sicherer Lebenszyklus lokaler Projektverzeichnisse.
 
+#[cfg(windows)]
+mod existing_folder;
+mod handoff;
+#[cfg(windows)]
+pub use existing_folder::{
+    ExistingExtraCounts, ExistingExtraFile, ExistingExtraGroup, ExistingFolderGuard,
+    ExistingFolderPreview, pin_existing_folder_path, safe_existing_name,
+};
+#[cfg(windows)]
+mod item_activation;
+#[cfg(windows)]
+mod item_handoff;
+#[cfg(windows)]
+mod media_activation;
+#[cfg(windows)]
+pub(super) mod media_handoff;
+#[cfg(windows)]
+pub use item_handoff::{ItemChange, ItemKey, ItemKind, ItemSelection};
+#[cfg(windows)]
+mod handoff_compare;
+mod scene_activation;
+mod scene_basis;
+mod scene_merge;
+pub use handoff::PreparedHandoff;
+pub use scene_basis::{SceneBasisComparison, SceneBasisReceipt};
+pub use scene_merge::{ReviewChoice, ReviewOutcome, ReviewedScene, SceneMergeSelection};
+
 use std::{
     error::Error,
     ffi::OsString,
@@ -14,7 +41,9 @@ use kraqel_domain::{CURRENT_SCHEMA_VERSION, Project, is_valid_project_name};
 use rusqlite::{Connection, MAIN_DB, OpenFlags, params};
 use sha2::{Digest as _, Sha256};
 
-use crate::{CURRENT_DATABASE_VERSION, Database, StorageError};
+#[cfg(test)]
+use crate::CURRENT_DATABASE_VERSION;
+use crate::{Database, StorageError};
 
 /// Name der autoritativen Datenbank innerhalb eines Projektverzeichnisses.
 pub const DATABASE_FILE_NAME: &str = "kraqel.sqlite3";
@@ -205,6 +234,66 @@ impl ProjectManager {
         &self.root
     }
 
+    /// Ermittelt mögliche Bestandsprojekte anhand ihrer UUID-Verzeichnisse und Datenbankdateien.
+    /// Öffnet weder SQLite noch eine Projektdatei. Die Kennungen allein erlauben keine Übernahme.
+    ///
+    /// # Errors
+    ///
+    /// Meldet unklare Verzeichnisse, fehlende Datenbanken und mehrdeutige Kennungen.
+    pub fn existing_project_candidates(
+        &self,
+    ) -> Result<Vec<kraqel_domain::ProjectId>, ProjectError> {
+        #[cfg(windows)]
+        let _root_pin = pin_candidate_directory(&self.root)?;
+        let mut candidates = Vec::new();
+        for (name, id) in self.named_project_directories()? {
+            let directory = self.root.join(name);
+            #[cfg(windows)]
+            let _pin = pin_candidate_directory(&directory)?;
+            #[cfg(not(windows))]
+            validate_directory_metadata(&candidate_attributes(&directory)?)?;
+            let database = candidate_attributes(&directory.join(DATABASE_FILE_NAME))?;
+            if database.file_type().is_symlink() || is_reparse_point(&database) {
+                return Err(ProjectError::SymlinkNotAllowed);
+            }
+            if !database.is_file() {
+                return Err(ProjectError::InvalidDatabase);
+            }
+            candidates.push(id);
+        }
+        candidates.sort_unstable();
+        if candidates.windows(2).any(|pair| pair[0] == pair[1]) {
+            return Err(ProjectError::InvalidDatabase);
+        }
+        Ok(candidates)
+    }
+
+    fn named_project_directories(
+        &self,
+    ) -> Result<Vec<(OsString, kraqel_domain::ProjectId)>, ProjectError> {
+        let entries = fs::read_dir(&self.root).map_err(|source| ProjectError::Io {
+            operation: "Projektwurzel auflisten",
+            source,
+        })?;
+        let mut directories = Vec::new();
+
+        for entry in entries {
+            let entry = entry.map_err(|source| ProjectError::Io {
+                operation: "Projekteintrag lesen",
+                source,
+            })?;
+            let name = entry.file_name();
+            let Some(file_name) = name.to_str() else {
+                continue;
+            };
+            let Some(directory_id) = kraqel_domain::ProjectId::parse(file_name) else {
+                continue;
+            };
+            directories.push((name, directory_id));
+        }
+        Ok(directories)
+    }
+
     /// Listet alle unmittelbar verwalteten Projekte stabil nach Name und UUID.
     ///
     /// # Errors
@@ -212,25 +301,9 @@ impl ProjectManager {
     /// Liefert einen Fehler, wenn ein als Projekt benanntes Verzeichnis unsicher, beschädigt oder
     /// nicht lesbar ist.
     pub fn list_projects(&self) -> Result<Vec<ProjectOverview>, ProjectError> {
-        let entries = fs::read_dir(&self.root).map_err(|source| ProjectError::Io {
-            operation: "Projektwurzel auflisten",
-            source,
-        })?;
         let mut projects = Vec::new();
-
-        for entry in entries {
-            let entry = entry.map_err(|source| ProjectError::Io {
-                operation: "Projekteintrag lesen",
-                source,
-            })?;
-            let file_name = entry.file_name();
-            let Some(file_name) = file_name.to_str() else {
-                continue;
-            };
-            let Some(directory_id) = kraqel_domain::ProjectId::parse(file_name) else {
-                continue;
-            };
-            let opened = self.open_project(Path::new(file_name))?;
+        for (file_name, directory_id) in self.named_project_directories()? {
+            let opened = self.open_project(Path::new(&file_name))?;
             let (stored_id, name): (String, String) = opened.database().connection().query_row(
                 "SELECT id, name FROM project",
                 [],
@@ -657,6 +730,51 @@ fn validate_single_name(name: &str) -> Result<(), ProjectError> {
     }
 }
 
+fn candidate_attributes(path: &Path) -> Result<fs::Metadata, ProjectError> {
+    fs::symlink_metadata(path).map_err(|source| match source.kind() {
+        io::ErrorKind::NotFound => ProjectError::DatabaseMissing,
+        _ => ProjectError::Io {
+            operation: "Bestandseintrag prüfen",
+            source,
+        },
+    })
+}
+
+#[cfg(windows)]
+fn is_reparse_point(metadata: &fs::Metadata) -> bool {
+    use std::os::windows::fs::MetadataExt as _;
+    metadata.file_attributes() & 0x400 != 0
+}
+
+#[cfg(not(windows))]
+fn is_reparse_point(_: &fs::Metadata) -> bool {
+    false
+}
+
+#[cfg(windows)]
+fn pin_candidate_directory(directory: &Path) -> Result<fs::File, ProjectError> {
+    use std::os::windows::fs::OpenOptionsExt as _;
+    // FILE_READ_ATTRIBUTES, no delete sharing, OPEN_REPARSE_POINT | BACKUP_SEMANTICS.
+    let handle = fs::OpenOptions::new()
+        .access_mode(0x80)
+        .share_mode(3)
+        .custom_flags(0x0220_0000)
+        .open(directory)
+        .map_err(|source| ProjectError::Io {
+            operation: "Bestandsordner binden",
+            source,
+        })?;
+    let metadata = handle.metadata().map_err(|source| ProjectError::Io {
+        operation: "Bestandsordner prüfen",
+        source,
+    })?;
+    if is_reparse_point(&metadata) {
+        return Err(ProjectError::SymlinkNotAllowed);
+    }
+    validate_directory_metadata(&metadata)?;
+    Ok(handle)
+}
+
 fn validate_directory_metadata(metadata: &fs::Metadata) -> Result<(), ProjectError> {
     if metadata.file_type().is_symlink() {
         return Err(ProjectError::SymlinkNotAllowed);
@@ -809,7 +927,7 @@ fn verify_restore_source(path: &Path) -> Result<(), ProjectError> {
     let version: u32 = connection
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .map_err(|_| ProjectError::InvalidDatabase)?;
-    if !(1..=CURRENT_DATABASE_VERSION.0).contains(&version) {
+    if !(1..=crate::SCREENPLAY_DATABASE_VERSION.0).contains(&version) {
         return Err(ProjectError::InvalidDatabase);
     }
     let required: u32 = connection
@@ -843,7 +961,7 @@ fn verify_restore_source(path: &Path) -> Result<(), ProjectError> {
         2 => 15,
         3 => 20,
         4 => 25,
-        5 | 6 => 32,
+        5..=7 => 32,
         _ => return Err(ProjectError::InvalidDatabase),
     };
     if required == expected {
@@ -863,7 +981,7 @@ fn verify_connection(connection: &Connection) -> Result<(), ProjectError> {
     let version: u32 = connection
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .map_err(|_| ProjectError::InvalidDatabase)?;
-    if version != CURRENT_DATABASE_VERSION.0 {
+    if !crate::supported_current_schema(version) {
         return Err(ProjectError::InvalidDatabase);
     }
 
@@ -1041,6 +1159,26 @@ mod tests {
     }
 
     #[test]
+    fn discovers_candidates_without_opening_sqlite_or_releasing_incomplete_projects() {
+        let root = tempdir().unwrap();
+        let manager = ProjectManager::new(root.path()).unwrap();
+        let id = ProjectId::new();
+        let directory = root.path().join(id.to_string());
+        fs::create_dir(&directory).unwrap();
+        fs::create_dir(root.path().join("exports")).unwrap();
+        assert!(matches!(
+            manager.existing_project_candidates(),
+            Err(ProjectError::DatabaseMissing)
+        ));
+
+        let database = directory.join(DATABASE_FILE_NAME);
+        fs::write(&database, b"synthetic unopened database").unwrap();
+        assert_eq!(manager.existing_project_candidates().unwrap(), vec![id]);
+        assert_eq!(fs::read(database).unwrap(), b"synthetic unopened database");
+        assert_eq!(fs::read_dir(directory).unwrap().count(), 1);
+    }
+
+    #[test]
     fn deletes_only_a_project_with_matching_directory_and_stored_id() {
         let root = tempdir().expect("temporary root should exist");
         let manager = ProjectManager::new(root.path()).expect("manager should open");
@@ -1192,6 +1330,168 @@ mod tests {
             manager.backup_project("quelle", "stand-1"),
             Err(ProjectError::BackupAlreadyExists)
         ));
+    }
+
+    #[test]
+    fn handoff_rebuilds_the_live_wal_view_and_refuses_partial_media() {
+        let root = tempdir().unwrap();
+        let manager = ProjectManager::new(root.path()).unwrap();
+        let project = project("Übergabe");
+        let id = project.id.to_string();
+        let opened = manager.create_project(&id, &project).unwrap();
+        let source = opened.database().connection();
+        let scene = EntityId::new().to_string();
+        source.execute("INSERT INTO document(id,project_id,kind,title,plain_text,position,created_at,updated_at)
+            VALUES(?1,?2,'scene','Süd','VERWORFENERABSATZ',0,'t','t')", params![scene,id]).unwrap();
+        source
+            .execute_batch("PRAGMA wal_checkpoint(TRUNCATE); PRAGMA wal_autocheckpoint=0")
+            .unwrap();
+        source
+            .execute(
+                "UPDATE document SET plain_text='Hafenlicht',revision=1 WHERE id=?1",
+                [&scene],
+            )
+            .unwrap();
+        let dir = opened.directory();
+        fs::create_dir_all(dir.join("assets/thumbnails")).unwrap();
+        fs::write(dir.join("assets/test.png"), b"Bild").unwrap();
+        fs::write(dir.join("assets/thumbnails/test.png"), b"Vorschau").unwrap();
+        fs::write(dir.join("private.txt"), b"Privat").unwrap();
+        source.execute("INSERT INTO media_asset(id,project_id,kind,relative_path,thumbnail_path,original_name,title,
+            mime_type,checksum,byte_count,width,height,provenance,created_at,updated_at)
+            VALUES(?1,?2,'image','assets/test.png','assets/thumbnails/test.png','test.png','Bild',
+            'image/png',?3,4,1,1,'imported','t','t')",params![EntityId::new().to_string(),id,format!("{:x}",Sha256::digest(b"Bild"))]).unwrap();
+        let receipt = manager.prepare_handoff(project.id).unwrap();
+        let published = dir.join("backups").join(&receipt.folder);
+        assert_eq!(
+            receipt.manifest_sha256,
+            format!(
+                "{:x}",
+                Sha256::digest(fs::read(published.join("uebernahme.json")).unwrap())
+            )
+        );
+        let main = published.join(DATABASE_FILE_NAME);
+        let db = super::open_read_only(&main).unwrap();
+        let row: (String, i64) = db
+            .query_row(
+                "SELECT plain_text,revision FROM document WHERE id=?1",
+                [&scene],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(row, ("Hafenlicht".into(), 1));
+        for (term, expected) in [("Hafenlicht", 1), ("VERWORFENERABSATZ", 0)] {
+            let hits: i64 = db
+                .query_row(
+                    "SELECT count(*) FROM document_fts WHERE document_fts MATCH ?",
+                    [term],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert_eq!(hits, expected);
+        }
+        let old = b"VERWORFENERABSATZ";
+        assert!(
+            fs::read(dir.join(DATABASE_FILE_NAME))
+                .unwrap()
+                .windows(old.len())
+                .any(|s| s == old)
+        );
+        let clean = fs::read(main).unwrap();
+        assert!(!clean.windows(old.len()).any(|s| s == old));
+        assert!(!published.join("private.txt").exists());
+        let manifest: serde_json::Value =
+            serde_json::from_slice(&fs::read(published.join("uebernahme.json")).unwrap()).unwrap();
+        assert_eq!(
+            manifest["files"][DATABASE_FILE_NAME],
+            format!("{:x}", Sha256::digest(&clean))
+        );
+        assert_eq!(
+            fs::read(published.join("assets/thumbnails/test.png")).unwrap(),
+            b"Vorschau"
+        );
+        drop(db);
+        #[cfg(windows)]
+        check_received_handoff(&published, &receipt, &id, &scene, &row);
+        fs::write(dir.join("assets/test.png"), b"Fremd").unwrap();
+        assert!(manager.prepare_handoff(project.id).is_err());
+        assert_eq!(fs::read_dir(dir.join("backups")).unwrap().count(), 1);
+    }
+
+    #[cfg(windows)]
+    fn check_received_handoff(
+        published: &Path,
+        receipt: &super::PreparedHandoff,
+        id: &str,
+        scene: &str,
+        row: &(String, i64),
+    ) {
+        let target_root = tempdir().unwrap();
+        let target = ProjectManager::new(target_root.path()).unwrap();
+        let inbox = target_root.path().join("empfang");
+        fs::create_dir(&inbox).unwrap();
+        let incoming = inbox.join(&receipt.folder);
+        fs::rename(published, &incoming).unwrap();
+        let receive = || target.receive_handoff(&receipt.folder, &receipt.manifest_sha256);
+        let thumb = incoming.join("assets/thumbnails/test.png");
+        fs::write(&thumb, b"modified").unwrap();
+        assert!(receive().is_err());
+        assert_eq!(fs::read_dir(target_root.path()).unwrap().count(), 1);
+        fs::write(&thumb, b"Vorschau").unwrap();
+        fs::write(incoming.join("private.txt"), b"private").unwrap();
+        assert!(
+            target
+                .receive_handoff(&receipt.folder, &"0".repeat(64))
+                .is_err()
+        );
+        receive().unwrap();
+        let received = target.open_project(id).unwrap();
+        assert!(!received.directory().join("private.txt").exists());
+        let received_row: (String, i64) = received
+            .database()
+            .connection()
+            .query_row(
+                "SELECT plain_text,revision FROM document WHERE id=?1",
+                [scene],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(&received_row, row);
+        assert!(matches!(receive(), Err(ProjectError::ProjectAlreadyExists)));
+        let compare = |media| {
+            target.compare_handoff(
+                kraqel_domain::ProjectId::parse(id).unwrap(),
+                &receipt.folder,
+                &receipt.manifest_sha256,
+                media,
+            )
+        };
+        assert!(matches!(
+            target.compare_handoff(
+                kraqel_domain::ProjectId::new(),
+                &receipt.folder,
+                &receipt.manifest_sha256,
+                false
+            ),
+            Err(ProjectError::InvalidProjectMetadata)
+        ));
+        assert_eq!(compare(true).unwrap(), Vec::<String>::new());
+        received
+            .database()
+            .connection()
+            .execute("UPDATE media_asset SET title='privater Testtitel'", [])
+            .unwrap();
+        assert_eq!(compare(false).unwrap(), ["media_asset"]);
+        fs::write(
+            received.directory().join("assets/thumbnails/test.png"),
+            b"local preview",
+        )
+        .unwrap();
+        assert_eq!(compare(true).unwrap(), ["media_asset", "media_files"]);
+        fs::write(&thumb, b"unexpected incoming preview").unwrap();
+        assert!(compare(true).is_err());
+        assert_eq!(compare(false).unwrap(), ["media_asset"]);
+        fs::rename(incoming, published).unwrap();
     }
 
     #[test]

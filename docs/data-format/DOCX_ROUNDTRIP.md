@@ -1,5 +1,8 @@
 # DOCX Manuskriptaustausch v1
 
+Dieses Profil gilt weiterhin für reine Prosamanuskripte. Für ein Manuskript mit mindestens einer
+Drehbuchszene verwendet der Entwicklungszweig das [Austauschprofil v2](DOCX_ROUNDTRIP_V2.md).
+
 KQ-060 / Issue #117 implementiert den nativen Rust-Kern für das begrenzte Produktionsprofil v1. Die
 Repräsentation folgt ADR 0026; ADR 0027 legt Modell, Validierung und Versionsgrenze fest. Ein
 App-Dialog, zwei zusätzliche Command-v1-Aktionen und atomarer Import als neue Projektkopie sind mit

@@ -1,0 +1,282 @@
+{
+  "formatVersion": 1,
+  "nativePreviewOnly": true,
+  "productionAcceptance": false,
+  "programSourceCommit": "bcf2a0bc90519cbf844aef6b81125e9489fe9a66",
+  "controllerSha256": "88f861ab454f598a85c5eabe3b6fdb192c1af1e58ccfedef36db72bae1f4828a",
+  "candidateSha256": "e4791d2954603bcec39030db5682331bbda6b11abed230e9639cd886f8fe92d7",
+  "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+  "analyzerSha256": "7bb898082066f9f1c7efced0383a26e13106b71acdcc0490012b72993150f57c",
+  "measurementValid": true,
+  "positiveControls": {
+    "expected": 8,
+    "observed": 8
+  },
+  "explicitProcessStops": 182,
+  "processLifetimes": {
+    "kraqel-isolation-probe.exe": 54,
+    "conhost.exe": 67,
+    "kraqel-desktop.exe": 8,
+    "msedgewebview2.exe": 48,
+    "e4791d2954603bcec39030db5682331bbda6b11abed230e9639cd886f8fe92d7.exe": 5
+  },
+  "nonLoopbackEvents": 0,
+  "separateLoopbackEvents": 48,
+  "measuredPersistedImportTasks": 4,
+  "measuredLegitimateProjectCopies": 4,
+  "nativeControlRoots": 59,
+  "hashNamedManagedRoots": 5,
+  "actualContainerDenials": 48,
+  "profilesRemoved": 4,
+  "prepareTransitionCrashesMeasured": 3,
+  "diagnosticTestsPassed": 42,
+  "testLevel": "moderate, explicitly requested",
+  "normalPreviewStoreUsed": false,
+  "phases": [
+    {
+      "formatVersion": 1,
+      "measurementMode": "native-control",
+      "measurementValid": true,
+      "measurementProblems": [],
+      "result": "no-non-loopback-traffic-observed",
+      "rootStarts": 15,
+      "explicitRootImageBindings": 15,
+      "processLifetimes": {
+        "kraqel-isolation-probe.exe": 10,
+        "conhost.exe": 17,
+        "kraqel-desktop.exe": 2,
+        "msedgewebview2.exe": 12,
+        "e4791d2954603bcec39030db5682331bbda6b11abed230e9639cd886f8fe92d7.exe": 5
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "unattributableNetworkEvents": 0,
+      "unknownDestinationEvents": 0,
+      "networkEvents": [
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 13,
+          "destinationScope": "loopback",
+          "count": 6
+        },
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 29,
+          "destinationScope": "loopback",
+          "count": 6
+        }
+      ],
+      "nonLoopbackEvents": 0,
+      "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths. Out-of-tree COM/Shell services are not attributed by this process-tree measurement.",
+      "phase": "managed",
+      "captureReadyUtc": "2026-11-17T08:46:04.4320424Z",
+      "convertedUtc": "2026-11-17T08:46:15.2785310Z",
+      "traceStoppedUtc": "2026-11-17T08:46:15.1012033Z",
+      "etlBytes": 1114112,
+      "lifecycleAudit": {
+        "independentLifecycleAuditPassed": true,
+        "rootStarts": 15,
+        "nativeControllersMatched": 15,
+        "appGenerationsMatched": 2,
+        "explicitProcessStops": 46,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 10,
+          "conhost.exe": 17,
+          "kraqel-desktop.exe": 2,
+          "msedgewebview2.exe": 12,
+          "e4791d2954603bcec39030db5682331bbda6b11abed230e9639cd886f8fe92d7.exe": 5
+        },
+        "controllerExitCodes": {
+          "0": 10,
+          "1": 5
+        },
+        "appExitCodes": {
+          "77": 2
+        },
+        "webViewsPerApp": 6
+      },
+      "dataAudit": {
+        "formatVersion": 1,
+        "nativePreviewOnly": true,
+        "productionAcceptance": false,
+        "controllerSha256": "88f861ab454f598a85c5eabe3b6fdb192c1af1e58ccfedef36db72bae1f4828a",
+        "candidateSha256": "e4791d2954603bcec39030db5682331bbda6b11abed230e9639cd886f8fe92d7",
+        "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+        "independentAuditPassed": true,
+        "controlSchema": 4,
+        "packageContractVersion": 1,
+        "childProcesses": 15,
+        "childExitCodes": {
+          "0": 10,
+          "1": 5
+        },
+        "guiStarts": 2,
+        "recoveriesAfterActivation": 1,
+        "actualContainerDenials": 12,
+        "controlRecords": 11,
+        "installationAndKeyPreserved": true,
+        "sessionAndAppBindingPreserved": true,
+        "persistedTasks": 1,
+        "legitimateProjectCopies": 1,
+        "profileRemoved": true,
+        "normalPreviewStoreUsed": false,
+        "networkMeasurement": false,
+        "limits": "Synthetic candidate has identical code plus an overlay, different hash. Metadata compatibility and explicitly approved hash are not publisher authentication or arbitrary release-behavior attestation. Bound App package unchanged.",
+        "programSourceCommit": "bcf2a0bc90519cbf844aef6b81125e9489fe9a66"
+      }
+    },
+    {
+      "formatVersion": 1,
+      "measurementMode": "native-control",
+      "measurementValid": true,
+      "measurementProblems": [],
+      "result": "no-non-loopback-traffic-observed",
+      "rootStarts": 44,
+      "explicitRootImageBindings": 44,
+      "processLifetimes": {
+        "kraqel-isolation-probe.exe": 44,
+        "conhost.exe": 50,
+        "kraqel-desktop.exe": 6,
+        "msedgewebview2.exe": 36
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "unattributableNetworkEvents": 0,
+      "unknownDestinationEvents": 0,
+      "networkEvents": [
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 13,
+          "destinationScope": "loopback",
+          "count": 18
+        },
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 29,
+          "destinationScope": "loopback",
+          "count": 18
+        }
+      ],
+      "nonLoopbackEvents": 0,
+      "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths. Out-of-tree COM/Shell services are not attributed by this process-tree measurement.",
+      "phase": "transitions",
+      "captureReadyUtc": "2026-11-17T08:46:15.3146244Z",
+      "convertedUtc": "2026-11-17T08:46:47.3964768Z",
+      "traceStoppedUtc": "2026-11-17T08:46:47.1670581Z",
+      "etlBytes": 1441792,
+      "lifecycleAudit": {
+        "independentLifecycleAuditPassed": true,
+        "rootStarts": 44,
+        "nativeControllersMatched": 44,
+        "appGenerationsMatched": 6,
+        "explicitProcessStops": 136,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 44,
+          "conhost.exe": 50,
+          "kraqel-desktop.exe": 6,
+          "msedgewebview2.exe": 36
+        },
+        "controllerExitCodes": {
+          "0": 34,
+          "86": 3,
+          "1": 7
+        },
+        "appExitCodes": {
+          "77": 6
+        },
+        "webViewsPerApp": 6
+      },
+      "dataAudit": {
+        "formatVersion": 1,
+        "nativePreviewOnly": true,
+        "productionAcceptance": false,
+        "controllerSha256": "88f861ab454f598a85c5eabe3b6fdb192c1af1e58ccfedef36db72bae1f4828a",
+        "candidateSha256": "e4791d2954603bcec39030db5682331bbda6b11abed230e9639cd886f8fe92d7",
+        "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+        "independentAuditPassed": true,
+        "controlSchema": 4,
+        "nativeCases": 3,
+        "childProcesses": 44,
+        "childExitCodes": {
+          "0": 34,
+          "86": 3,
+          "1": 7
+        },
+        "syntheticForeignActorNegativeStarts": 0,
+        "controllerCrashes": 3,
+        "guiStarts": 6,
+        "actualContainerDenials": 36,
+        "profilesRemoved": 3,
+        "persistedTasks": 3,
+        "legitimateProjectCopies": 3,
+        "helperActiveTestsPassed": 56,
+        "helperClippyPassed": true,
+        "fullWorkspaceCheck": false,
+        "normalPreviewStoreUsed": false,
+        "networkMeasurement": false,
+        "cases": [
+          {
+            "fault": "artifact-removed",
+            "authenticatedAbortRecorded": true,
+            "originalActorPreserved": true,
+            "keyAndBindingPreserved": true,
+            "controlRecords": 13,
+            "guiStarts": 2,
+            "persistedTasks": 1,
+            "legitimateProjectCopies": 1,
+            "replayBlocked": true,
+            "profileRemoved": true,
+            "pendingAtCrash": false,
+            "packagePresentAtCrash": false,
+            "packageBytesAtCrash": null
+          },
+          {
+            "fault": "package-created",
+            "authenticatedAbortRecorded": true,
+            "originalActorPreserved": true,
+            "keyAndBindingPreserved": true,
+            "controlRecords": 13,
+            "guiStarts": 2,
+            "persistedTasks": 1,
+            "legitimateProjectCopies": 1,
+            "replayBlocked": true,
+            "profileRemoved": true,
+            "pendingAtCrash": false,
+            "packagePresentAtCrash": true,
+            "packageBytesAtCrash": 0
+          },
+          {
+            "fault": "prepare-recorded",
+            "authenticatedAbortRecorded": true,
+            "originalActorPreserved": true,
+            "keyAndBindingPreserved": true,
+            "controlRecords": 15,
+            "guiStarts": 2,
+            "persistedTasks": 1,
+            "legitimateProjectCopies": 1,
+            "replayBlocked": true,
+            "profileRemoved": true,
+            "pendingAtCrash": true,
+            "packagePresentAtCrash": true,
+            "packageBytesAtCrash": 0
+          }
+        ],
+        "limits": "Three selected process crashes in authenticated retry, not power-loss or arbitrary first-prepare orphan recovery. No new import authority, no repair of incomplete chains. No candidate execution/activation in this native series. New binaries require own ETW.",
+        "programSourceCommit": "bcf2a0bc90519cbf844aef6b81125e9489fe9a66"
+      }
+    }
+  ],
+  "limits": "Unchanged saved research programs; normal update/recovery reference versus three authenticated retry transition crashes, not a general schema-3 baseline. Synthetic candidate same code plus overlay. No normal product integration, power-loss, first-prepare orphan recovery, HTTP/content/upload or complete external service attribution."
+}

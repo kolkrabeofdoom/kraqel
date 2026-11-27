@@ -10,6 +10,7 @@ members = [
   "crates/export",
   "crates/git-service",
   "crates/storage",
+  "crates/portable-archive",
 ]
 resolver = "2"
 

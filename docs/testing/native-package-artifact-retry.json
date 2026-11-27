@@ -1,0 +1,71 @@
+{
+  "formatVersion": 1,
+  "nativePreviewOnly": true,
+  "productionAcceptance": false,
+  "sourceBaseCommit": "d99d9486ac30665c8f7de0774bb9613f4d36da4e",
+  "controllerSha256": "c10b1c3fe22c1cd33c6ee33f0a1b72a639a00610ed5a1b86f560bcd19532d0bd",
+  "candidateSha256": "285850152b96812cdda8c22ea64164d1018725f28d952aa58042b7d16aa474a9",
+  "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+  "independentAuditPassed": true,
+  "controlSchema": 4,
+  "nativeCases": 3,
+  "safeRepreparations": 3,
+  "staleOrLockedRetriesWithoutMutation": 6,
+  "childProcesses": 57,
+  "childExitCodes": {
+    "0": 30,
+    "86": 2,
+    "1": 25
+  },
+  "syntheticForeignActorNegativeStarts": 3,
+  "controllerCrashes": 2,
+  "guiStarts": 6,
+  "actualContainerDenials": 36,
+  "profilesRemoved": 3,
+  "persistedTasks": 3,
+  "legitimateProjectCopies": 3,
+  "helperActiveTestsPassed": 56,
+  "helperClippyPassed": true,
+  "fullWorkspaceCheck": false,
+  "normalPreviewStoreUsed": false,
+  "networkMeasurement": false,
+  "cases": [
+    {
+      "fault": "partial-copy",
+      "authenticatedAbortRecorded": true,
+      "originalActorPreserved": true,
+      "keyAndBindingPreserved": true,
+      "controlRecords": 13,
+      "guiStarts": 2,
+      "persistedTasks": 1,
+      "legitimateProjectCopies": 1,
+      "replayBlocked": true,
+      "profileRemoved": true
+    },
+    {
+      "fault": "tampered-package",
+      "authenticatedAbortRecorded": true,
+      "originalActorPreserved": true,
+      "keyAndBindingPreserved": true,
+      "controlRecords": 13,
+      "guiStarts": 2,
+      "persistedTasks": 1,
+      "legitimateProjectCopies": 1,
+      "replayBlocked": true,
+      "profileRemoved": true
+    },
+    {
+      "fault": "abort-published",
+      "authenticatedAbortRecorded": true,
+      "originalActorPreserved": true,
+      "keyAndBindingPreserved": true,
+      "controlRecords": 13,
+      "guiStarts": 2,
+      "persistedTasks": 1,
+      "legitimateProjectCopies": 1,
+      "replayBlocked": true,
+      "profileRemoved": true
+    }
+  ],
+  "limits": "Authenticated aborted schema-4 artifacts replaced under the same lease; unknown and activated packages are never swept. No incomplete-chain repair or new import authority. New binaries need their own ETW. Three intentional rejected foreign-actor calls run identical synthetic candidate code; updater does not launch candidate before activation. Earlier ETW covers only its own exercised paths."
+}

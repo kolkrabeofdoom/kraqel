@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { DocumentNode, ProjectId } from "@kraqel/domain";
 import {
+  KraqelCommandError,
   exportIllustratedManuscript,
   listMediaAssets,
   openWorkspace,
@@ -14,6 +15,14 @@ interface Candidate {
   scene: DocumentNode;
   media: MediaAssetView;
 }
+function invalidAltText(text: string) {
+  return !text.trim() || Array.from(text).length > 500;
+}
+
+function invalidCaption(text: string | null) {
+  return Array.from(text ?? "").length > 1200;
+}
+
 export function IllustratedExport({
   projectId,
   disabled,
@@ -27,6 +36,7 @@ export function IllustratedExport({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<IllustratedResult | null>(null);
   const load = async () => {
+    if (busy || disabled) return;
     setBusy(true);
     setError(null);
     setResult(null);
@@ -95,14 +105,16 @@ export function IllustratedExport({
     setResult(null);
   };
   const run = async (format: "markdown" | "html" | "docx" | "pdf") => {
+    if (busy || disabled || invalid) return;
     setBusy(true);
     setError(null);
     setResult(null);
     try {
       setResult(await exportIllustratedManuscript(projectId, format, selection));
-    } catch {
+    } catch (cause) {
       setError(
-        "Das Bildpaket konnte nicht erzeugt werden. Auswahl und Quelldateien müssen gültig und unverändert sein. Prüfe die Grenzen und lade bei Änderungen die Bildauswahl neu.",
+        (cause instanceof KraqelCommandError ? cause.exportHint : undefined) ??
+          "Das Bildpaket konnte nicht erzeugt werden. Auswahl und Quelldateien müssen gültig und unverändert sein. Prüfe die Grenzen und lade bei Änderungen die Bildauswahl neu.",
       );
     } finally {
       setBusy(false);
@@ -112,12 +124,7 @@ export function IllustratedExport({
     selection.length === 0 ||
     selection.length > 200 ||
     new Set(selection.map((p) => p.assetId)).size > 50 ||
-    selection.some(
-      (p) =>
-        !p.altText.trim() ||
-        Array.from(p.altText).length > 500 ||
-        Array.from(p.caption ?? "").length > 1200,
-    );
+    selection.some((p) => invalidAltText(p.altText) || invalidCaption(p.caption));
   return (
     <section aria-labelledby="illustrated-export-heading">
       <h3 id="illustrated-export-heading">Mit Szenenbildern</h3>
@@ -136,7 +143,7 @@ export function IllustratedExport({
         unterstützte Zeichen oder zu große Bildabschnitte führen zum Fehler. Bildbeschreibungen
         erscheinen sichtbar im PDF.
       </p>
-      <button type="button" disabled={busy || disabled} onClick={() => void load()}>
+      <button type="button" aria-disabled={busy || disabled} onClick={() => void load()}>
         {candidates ? "Bildauswahl neu laden" : "Bildauswahl laden"}
       </button>
       {candidates?.length === 0 ? (
@@ -162,6 +169,8 @@ export function IllustratedExport({
                   const item = selection.find(
                     (p) => p.sceneId === sceneId && p.assetId === asset.id,
                   );
+                  const altError = item && invalidAltText(item.altText);
+                  const captionError = item && invalidCaption(item.caption);
                   const position = item ? selected.indexOf(item) : -1;
                   return (
                     <div key={candidate.key} className="illustrated-image">
@@ -191,19 +200,36 @@ export function IllustratedExport({
                           <label>
                             Alternativtext für {asset.title}
                             <input
+                              required
+                              aria-invalid={Boolean(altError)}
+                              aria-describedby={altError ? `alt-error-${candidate.key}` : undefined}
                               value={item.altText}
                               maxLength={1000}
                               onChange={(e) => update(item, { altText: e.target.value })}
                             />
                           </label>
+                          {altError && (
+                            <p id={`alt-error-${candidate.key}`}>
+                              Gib einen Alternativtext mit höchstens 500 Zeichen ein.
+                            </p>
+                          )}
                           <label>
                             Bildunterschrift für {asset.title}
                             <textarea
+                              aria-invalid={Boolean(captionError)}
+                              aria-describedby={
+                                captionError ? `caption-error-${candidate.key}` : undefined
+                              }
                               value={item.caption ?? ""}
                               maxLength={2400}
                               onChange={(e) => update(item, { caption: e.target.value || null })}
                             />
                           </label>
+                          {captionError && (
+                            <p id={`caption-error-${candidate.key}`}>
+                              Kürze die Bildunterschrift auf höchstens 1200 Zeichen.
+                            </p>
+                          )}
                           <p>Bild {position + 1} am Szenenende</p>
                           <button
                             type="button"
@@ -235,7 +261,8 @@ export function IllustratedExport({
           <button
             key={format}
             type="button"
-            disabled={busy || disabled || invalid}
+            disabled={invalid}
+            aria-disabled={busy || disabled || invalid}
             onClick={() => void run(format)}
           >
             {format === "html"

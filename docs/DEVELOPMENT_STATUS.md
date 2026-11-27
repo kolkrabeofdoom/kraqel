@@ -1,5 +1,1415 @@
 # Entwicklungsstatus
 
+**Drehbuchbearbeitung · 27. November 2026.** In der installierten Windows-Fassung aus `df2ee4ca165f`
+behielt eine leere synthetische Szene bei Umwandlung, Rückgängig, Wiederholen und Neustart ihre
+Kennung und Zuordnung. Gespeichert wurde ein einzelner leerer Szenenkopf. Bei zwei ungültigen
+Speicherversuchen blieben im nativen Test Inhalt und Revision erhalten. Für Dialog und
+Klammeranweisung bestätigte eine unabhängige PDF-Messung den Umbruch an der vereinbarten
+160-mm-Grenze mit der Auflösung einer Zeichenzelle. Die drehbuchspezifische Sprachausgabeprüfung ist
+auf Wunsch zurückgestellt.
+[Abnahmestand DB-01 bis DB-08](testing/F08_M3_ACCEPTANCE_MATRIX.md#stand-der-drehbuchkriterien)
+
+**DOCX-Manuskriptaustausch · 27. November 2026:** Der Entwicklungszweig kann gemischte Manuskripte
+im Austauschprofil v2 schreiben und als neue lokale Projektkopie einlesen. Der native Rundlauf
+bestätigte Rollen, leere Absätze, Schriftschnitte, harte Umbrüche und Suchbarkeit nach Wiederöffnen.
+Die in Word und LibreOffice tatsächlich bearbeiteten Testdateien wurden jeweils als neue lokale
+Projektkopie importiert und erneut geöffnet. Auch die frische Windows-Offlineinstallation aus
+`df2ee4ca165f` bestand den Import vom Dateidialog bis zum Wiederöffnen. Der Abgleich der
+gespeicherten Testszene bestätigte alle sechs Rollen. Reine Prosa verwendet weiter v1.
+[Profilvertrag](data-format/DOCX_ROUNDTRIP_V2.md) ·
+[Abnahme und Grenzen](testing/F08_M3_ACCEPTANCE_MATRIX.md#stand-der-drehbuchkriterien)
+
+**Entwicklungswerkzeuge · 27. November 2026:** Ein versionierter Push-Hook startet lokal
+`pnpm check` und sperrt den Push bei Fehlern. `pnpm install` richtet ihn automatisch ein;
+`pnpm hooks:install` aktiviert ihn in bestehenden Checkouts. Fremde Hooks bleiben erhalten.
+[Einrichtung, Prüfumfang und Grenzen](../CONTRIBUTING.md#automatische-prüfung-vor-dem-push)
+
+**Drehbuchdruck · 27. November 2026:** Studio und native Oberfläche verwenden bei bekannten
+Exportfehlern einen gemeinsamen lokalen Hinweiskatalog. Eine fehlende Figurenzeile oder eine zu hohe
+Druckgruppe lässt sich damit gezielt korrigieren. Rollenbearbeitung, Umbruch an der Seitengrenze und
+mehrseitiger Dialog sind mit synthetischen Szenen geprüft.
+[Nachweise je Drehbuchkriterium](testing/F08_M3_ACCEPTANCE_MATRIX.md#stand-der-drehbuchkriterien)
+
+Stand vom 27. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit
+sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte
+Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7
+enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](data-format/screenplay-v2.md)
+
+Die native Windows-Projektübersicht unterstützt die Anlage eines lokalen Projekts mit Kapitel und
+erster Szene. In der nativen Gliederung lassen sich Kapitel und Szenen anlegen, umbenennen und
+umordnen. Eine Szene kann an das Ende eines anderen Kapitels verschoben werden. Eine Manuskriptkopie
+übernimmt einzelne Szenen ins gewählte Zielkapitel oder ein Kapitel mit geordneter Szenenfolge ans
+Projektende. Die Speicherung verwendet eine gemeinsame SQLite-Transaktion. Über die direkte
+Platzwahl lassen sich Varianten in einem Schritt einordnen. Der native Export bindet Szene, Kapitel
+oder Manuskript an die bestätigte Auswahl und liest den Inhalt in einem SQLite-Snapshot. Die
+Ausgabenliste ermittelt Dateinamen und Größen im Projektordner. PDF verwendet bei einer einzelnen
+Drehbuchszene den validierten A4-Drehbuchrenderer. Der Studio-Drehbuchdruck liest die ausgewählten
+Szenentexte aus einem gemeinsamen SQLite-Snapshot. Die zugehörigen Kapitel liefern ausschließlich
+Ordnungsdaten. Die native PDF-Bestätigung weist vorab auf den Ausschluss der Gliederungstitel bei
+einer Drehbuchszene hin. Vor dem Entfernen eines Kapitels oder einer Szene zeigt der Desktop den
+Umfang an und prüft ihn bei der Bestätigung erneut. Über „Manuskript öffnen“ lassen sich vorhandene
+Szenen lesen und einfache Prosaszenen direkt bearbeiten. Die nativen Szenenfenster bieten eine
+rollenabhängige Menüleiste für Datei- und Bearbeitungsaktionen. Der produktive Prosaeditor zeigt
+Wortzahl und UTF-8-Speicherbudget an und bietet einen per F11 umschaltbaren Fokusmodus. Im
+Szenenfeld markiert Strg+A den gesamten Text. Strg+S nutzt auch im Fokusmodus denselben
+revisionsgebundenen Speicherpfad wie die Schaltfläche. Leser und Editor unterstützen die lokale
+Suche im aktuell angezeigten Szenentext. Ganzwortsuche und Beachtung der Groß-/Kleinschreibung
+lassen sich im Fenster unabhängig umschalten. Beide Optionen gelten für Navigation und beide
+Ersatzbefehle. Eine einzeilige Auswahl kann als Suchbegriff übernommen werden. Im Editor ersetzt
+Enter im Ersatzfeld den aktuellen Treffer. Strg+Enter ruft die Bestätigung für den Gesamtersatz auf.
+Für alle Treffer der geöffneten Szene zeigt der Editor die Anzahl an und verlangt eine Bestätigung.
+Der Gesamtersatz bildet einen Bearbeitungsschritt. Der lokale Verlauf des Editors ermöglicht
+mehrstufiges Rückgängig und Wiederholen samt Auswahl. Dafür gilt der bestehende revisionsgebundene
+Speicherpfad. Eine Schließabfrage schützt geänderte Entwürfe. Der Editor hält den Entwurf bis zur
+Speicherbestätigung offen. Beim ausdrücklichen Zwischenspeichern bleibt das Fenster samt
+Bearbeitungsverlauf geöffnet. Der nächste Schreibzug setzt auf der bestätigten Szenenrevision auf.
+Wahlweise speichert der Editor nach 700 ms Schreibpause lokal. Die Einstellung gilt für das
+geöffnete Fenster. Der Speicherstatus unterscheidet den lokalen Entwurf, den laufenden Schreibzug
+und die zuletzt bestätigte Revision auch im Fokusmodus. Bei einem Revisionskonflikt kann die
+aktuelle Prosa ausdrücklich zum absatzweisen Vergleich geladen werden. Im Vergleich lässt sich
+gezielt zu abweichenden Absätzen springen und der Fokus zwischen beiden Fassungen wechseln. Strg+G
+führt über die Absatznummer direkt zur gewünschten Position. Die Quellen lassen sich für alle
+Absätze gemeinsam und danach positionsweise wählen. Die Auswahl kann innerhalb derselben
+Vergleichsbasis zurückgenommen und wiederholt werden. Der Vergleich zeigt das UTF-8-Budget der
+gewählten Mischung und sperrt die Bestätigung bei Überlänge. Eine erneut geänderte Vergleichsbasis
+erfordert eine neue Prüfung und Bestätigung. „Im Studio öffnen“ und „Projektverwaltung öffnen“
+starten den bisherigen Desktop mit WebView2. Der Drehbuch-Schreibablauf wurde im installierten
+Vorgänger geprüft. Der Manuskriptexport berücksichtigt Drehbuchrollen in Markdown, HTML, DOCX und im
+textbasierten PDF. In einem gemischten PDF bleiben Gliederung, Prosa und die sechs Rollen in
+Manuskriptreihenfolge erhalten. Word und LibreOffice behielten beim Speichern alle sechs verwendeten
+Rollenstile. [Prüfstand und Geltungsbereich](testing/F08_M3_ACCEPTANCE_MATRIX.md)
+
+### Direkte Übernahme bestehender Windows-Projektordner
+
+Die veröffentlichte Alpha 7 bindet die lokale Bestandsaufnahme an die reguläre Startseite an. Der
+native Import erstellt für eine freie Projektkennung eine separate Arbeitskopie aus bestätigten
+Datenbankinhalten und referenzierten Medien. Ein lokales Änderungsereignis und gebundene
+Dateihandles sichern die Erfassung. Der optionale Archivpfad verschlüsselt ausdrücklich gewählte
+Zusatzgruppen im portablen age-Format.
+[Bedienung und Grenzen](WORKSTATION_HANDOFF.md#einen-vorhandenen-windows-projektordner-übernehmen)
+
+Im gebauten Windows-Desktop zeigte die Vorschau des geschlossenen Demoprojekts 20 Dokumente und 21
+Bilder. Vor der nativen Bestätigung und nach **Nein** war der frische Zielkatalog leer. Nach neuer
+Auswahl, **Ja** und zweifacher Passphrase ließen sich die Arbeitskopie und ein separates
+verschlüsseltes Archiv anlegen. Die Demo öffnete sich nach Neustart. Der Windows-Speichertest
+bestätigte die Sperre bei einem neu angelegten Eintrag im Quellbaum und die Übernahme eines
+ausschließlich im SQLite-WAL bestätigten Texts. Hauptdatei, WAL und SHM blieben bei dieser Prüfung
+bytegleich.
+
+### P3 · synthetische Bestandskopie
+
+Das Speichermodul erkennt mögliche Bestandsprojekte anhand ihrer Verzeichniskennung und
+Datenbankdatei, ohne SQLite zu öffnen. Der native Prüfpfad verwendet diese Erkennung an einem
+synthetischen Projektkatalog.
+
+Mit `-SelectedPreview` führt die Auswahl eines synthetischen Projekts bis zur schreibgeschützten
+Szene aus der veröffentlichten Kopie. Backups, Exporte, Git-Bestand und weitere Dateien sind einzeln
+anwählbar und standardmäßig abgewählt. Nur ausdrücklich gewählte Gruppen gelangen in ein separates,
+passphrasenverschlüsseltes ZIP im age-Format. Ein lokaler Windows-Lauf prüfte Export und
+Wiederherstellung in einem frischen Verzeichnis mit kopierter EXE, außerdem die Ablehnung einer
+falschen Passphrase und eines gekürzten Archivs. Der separate ETW-Vergleich für den lokalen und den
+portablen Archivhelfer erfasste beim Verschlüsseln und Wiederherstellen keine zugehörigen
+Netzwerkereignisse. Die portable Windows-x64-EXE öffnete das mit dem lokalen Build erzeugte Archiv
+aus dem entpackten Testpaket. Die physische Zweitrechnerprobe steht aus.
+[Bedienung, Abnahme und Geltungsbereich](data-format/product-start-integration-v1-draft.md#bedienbare-p3-übernahme-mit-separatem-zusatzarchiv)
+
+Die Desktop-App bietet im geöffneten Projekt unter **Werkzeuge → Versionen → Lokale Arbeitskopie**
+den Befehl **Übernahme vorbereiten**. Der native Befehl erstellt im lokalen Sicherungsordner eine
+neue Schema-6-Arbeitskopie aus dem bestätigten Stand mit den referenzierten Medien. Eine laufende
+Schreibtransaktion sperrt konkurrierende Datenbankänderungen während der Erfassung. Das
+JSON-Inventar enthält die Projektkennung und Datei-Prüfsummen. Die Oberfläche zeigt den SHA-256 des
+Inventars separat an. Der isolierte Prüfpfad hat eine so vorbereitete synthetische Arbeitskopie nach
+Prüfung des separat übermittelten Inventarhashs schreibgeschützt geöffnet. Eine zweite Vorbereitung
+unter derselben Freigabe wurde abgewiesen. Der Windows-Startbildschirm bietet den erstmaligen
+Empfang aus einem festen lokalen Eingangsordner an. Der Speichertest mit getrennten Projektwurzeln
+bestätigt die Übernahme der Szenenrevision, das Auslassen privater Zusatzdateien und die Sperre bei
+falschem Inventarhash, verändertem Vorschaubild oder belegter Projektkennung. Der gebaute
+Windows-Desktop hat eine über den Versionsdialog vorbereitete Beispielkopie über die Startseite in
+einen leeren Projektkatalog empfangen und geöffnet. Nach Programmende stimmten alle 17
+Anwendungstabellen einschließlich 20 Dokumenten und 21 Medieneinträgen mit der Quelle überein. Die
+SHA-256-Prüfung bestätigte alle 42 Bild- und Vorschaudateien. Beim erneuten Empfang zeigte die
+Startseite den Hinweis auf das vorhandene Projekt und den Versionsdialog. Die Zieldatenbank blieb
+bytegleich. Beide Läufe verwendeten ein eigenes lokales WebView-Profil. Die physische
+Zweitrechnerprobe steht aus.
+[Empfang am Zielrechner](WORKSTATION_HANDOFF.md#vorbereitete-arbeitskopie-erstmals-empfangen)
+[Abnahme und ETW-Geltungsbereich](data-format/product-start-integration-v1-draft.md#vorbereitete-desktop-arbeitskopie-im-isolierten-vorschaufenster)
+[Bedienung und Format](../README.md#übernahme-eines-geöffneten-projekts-vorbereiten)
+
+Bei zwei unabhängig bearbeiteten Fassungen desselben Projekts gilt die bestätigte Entscheidung,
+beide zu erhalten und vor jeder Übernahme einen schreibgeschützten Vergleich anzubieten. Der
+verwaltete Starter bindet die geordneten Inventarhashes, die Szene und beide Rollenprogramme an
+dieselbe Lesesitzung. Der isolierte Datendienst liefert beide Fassungen über eine Pipe an das
+schreibgeschützte Win32-Fenster. Bei vertauschten Hashes verweigerte der Starter den Aufruf. Die
+Originalinventare blieben erhalten. Der lokale ETW-Lauf erfasste für den Vergleich keine
+zugeordneten Netzwerkereignisse. Bei belegter Projektkennung kann der Versionsdialog die Datenbank
+der vorbereiteten Eingangskopie mit einer konsistenten Lesesicht des geöffneten Projekts
+vergleichen. Der Vergleich prüft Inventarhash, Datenbankhash, Kennung und Schema. Er meldet
+ausschließlich die betroffenen Bereiche aus den 17 Anwendungstabellen. Der native Speichertest deckt
+identische Stände und einen geänderten Medientitel ab. Auf ausdrückliche Auswahl vergleicht der
+Dienst zusätzlich die referenzierten Bilder und Vorschaubilder per SHA-256. Eine veränderte lokale
+Vorschau wurde als Unterschied erkannt. Eine manipulierte Vorschau im Eingang sperrte die
+angeforderte Dateiprüfung. Die Bereichausgabe im Versionsdialog wurde mit simulierter IPC geprüft.
+Für Story-Bibel, Beziehungen, Dokumentverknüpfungen, Plotkarten, Timeline-Ereignisse und ihre
+Zuordnungen kann der Windows-Versionsdialog jetzt einzelne Datensätze aus dem Eingang übernehmen.
+Die WebView erhält Typ, stabile Kennungen, Vergleichshashes und Ergebnisbelege. Der vollständige
+Feldvergleich erfordert die native Bestätigung. Eine externe Wahl erstellt eine separate
+Arbeitskopie. Sicherung, Aktivierung und Rücknahme prüfen die gewählte Zeile im geöffneten
+Zielprojekt. Der Browsertest mit simulierter IPC deckt auch die erneute Prüfung bei überholtem Stand
+ab. Separat zeigte ein echter Windows-Rollenlauf eine synthetische Ereignis–Figur-Zuordnung ohne
+lokale Fassung im isolierten Fenster. Nach der bestätigten externen Wahl endeten beide Rollen und
+die aktive Sitzung wurde bereinigt. Der native Speichertest bestätigte für eine geänderte Figur die
+Rücknahme bei erhaltener zweiter Figur und Beziehung. Bei einer neu übernommenen Figur blockierte
+eine später hinzugefügte Beziehung die Rücknahme.
+[Bedienung und Abhängigkeiten](WORKSTATION_HANDOFF.md#einzelne-projekteinträge-übernehmen)
+
+**Einzelne Medien in Windows-Arbeitskopien.** Der Versionsdialog unterstützt Originalbild,
+PNG-Vorschau, Metadaten und Verknüpfungen als gemeinsame Auswahl. Der native Speichertest deckt eine
+abweichende Vorschau bei gleichem Katalogstand, einen Dateiaustausch während der Auswahl und den Weg
+von der bestätigten Fassung über Aktivierung bis zur lokalen Rücknahme ab.
+[Bedienung und Aufbewahrung](WORKSTATION_HANDOFF.md#einzelne-projekteinträge-übernehmen)
+
+**Desktop-Abnahme der Einzelübernahme auf Windows.** Am Stand `16c8f6f` führte der Versionsdialog
+mit echter IPC vom Öffnen eines synthetischen Zielprojekts über beide Fassungen im isolierten
+Fenster zur externen Wahl. Kandidat und Eingang stimmten in allen Anwendungstabellen überein. Nach
+Aktivierung, regulärem Schließen und Wiederöffnen war die externe Figur aktiv. Nach Rücknahme und
+erneutem Öffnen stimmte das Ziel wieder mit dem ursprünglichen lokalen Stand überein. Der Vergleich
+umfasste auch die zweite Figur, die Beziehung und die Eigenschaften. Der Lauf nutzte separate
+Projekt- und WebView-Verzeichnisse.
+
+Handlungsstränge und Zeitachsen lassen sich im Versionsdialog einzeln prüfen, aktivieren und
+zurücknehmen. Fehlt die Voraussetzung für eine gewählte Karte bzw. ein Ereignis, ermittelt der
+Dienst die Kennung aus der gebundenen Eingangsfassung. Die ausdrückliche Wahl und Aktivierung der
+Voraussetzung hat einen eigenen Beleg. Danach lädt der Dialog die ursprüngliche Auswahl erneut. Ein
+nativer Speichertest hat den Ablauf für beide Elternarten sowie die Sperre vor einer kaskadierenden
+Rücknahme geprüft. Ein lokaler Browsertest mit simulierter IPC deckt die Rückkehr zum ursprünglich
+ausgewählten Ereignis ab.
+
+Im ausdrücklich gestarteten isolierten Win32-Vergleich zweier synthetischer Fassungen kann die
+schreibende Person eine Seite auswählen und bestätigen. Der Starter gibt die Entscheidung nach dem
+Ende der Rollen zurück. Das Schließen ohne Wahl und die bestätigte externe Auswahl sind am nativen
+Fenster geprüft. Beide Arbeitskopien blieben dabei erhalten. Der ETW-Vergleich für das neutrale
+Schließen und die bestätigte lokale Wahl erfasste am Stand `f7f0a1a` keine den nativen Rollen
+zugeordneten Netzwerkereignisse. Der v2-Kanal überträgt auch eine längere synthetische Szene bei
+laufendem Leser. Der zugehörige ETW-Lauf mit kurzem und langem Paar erfasste beide Rollen
+einschließlich Steuerung ohne zugeordnete Netzwerkereignisse. Der Windows-Desktop-Quellstand bindet
+den Versionsdialog inzwischen an eine gesondert gebaute Produktrolle für Manuskriptvergleiche an.
+Beide Rollenprogramme werden in die Desktop-EXE eingebettet. Die native Bestätigung geht dem Laden
+der Vergleichstexte voraus. Bei externer Wahl bereitet das Speichermodul eine eigene Arbeitskopie
+vor. Ein separat im Zielprojekt ausgestellter Beleg bindet die spätere Aktivierung an diese Wahl.
+Der Browsertest verwendet simulierte IPC. Ein separater Windows-Lauf hat die eingebetteten Rollen
+mit frei gewählten Testtexten bis zur bestätigten externen Wahl und Sitzungsbereinigung geprüft.
+
+Der vollständige Bedienweg ist auch an der gebauten Windows-Desktop-EXE mit echter IPC und einem
+generierten Manuskript geprüft. Vom Öffnen auf der Startseite bis zur externen Wahl blieb die lokale
+Szene auf Revision 1. Nach Aktivierung war die externe Fassung auf Revision 2 gespeichert, nach
+Rücknahme und Programmende wieder die lokale auf Revision 3. Titel, Klartext und strukturierter
+Editorinhalt wurden jeweils direkt mit den Ausgangsfassungen verglichen.
+[Direktprüfung und Binärstand](data-format/product-start-integration-v1-draft.md#produktpfad-für-die-manuelle-fassungswahl)
+
+Beim Öffnen des Versionsdialogs erhält die WebView für gestagte Snapshotdateien nur
+Git-Zeilenstatistiken und Pfade. Der Szeneneditor lädt den Dokumentinhalt erst wieder beim Wechsel
+zurück zum Manuskript. Der native Git-Test und der Browsertest prüfen, dass die Statistik keinen
+Snapshottext enthält.
+
+Im Desktop-Quellstand ist der lesende Drei-Wege-Vergleich der **Szenenprüfsummen** über den normalen
+Versionsdialog erreichbar. Die gemeinsame Basis und der externe Stand werden anhand der getrennten
+SHA-256-Belege im lokalen Sicherungsordner geprüft. Der lokale Stand und mögliche Löschfolgen
+stammen aus derselben SQLite-Lesetransaktion. Der Speichertest deckt unter anderem Formatänderung,
+Revision ohne Inhaltsänderung, Löschung gegen Bearbeitung, betroffene Plotkarte und verfälschten
+Beleg ab. Der Browser-Bedienlauf nutzt die simulierte IPC. Der native synthetische Lauf verwendet
+zwei Arbeitsverzeichnisse und die echten Speicherbefehle. Im Desktop-Quellstand bereitet die
+ausdrückliche Auswahl einseitig geänderter bestehender Szenen eine eigene logische Arbeitskopie vor.
+Der native Speicherpfad vergleicht Titel und Inhalt über gebundene Szenenhashes, bewahrt die lokalen
+Beziehungen und sperrt Löschungen, echte Konflikte sowie Strukturänderungen. Zwei synthetische
+Projektverzeichnisse und ein Browserlauf mit simulierter IPC sind geprüft. Die ausdrücklich
+bestätigte Aktivierung und Rücknahme im geöffneten Projekt sind mit synthetischen Szenen im nativen
+Speicherpfad und per Browser mit simulierter IPC geprüft. Ein Abbruch vor dem Commit ließ Revision 0
+stehen, ein Abbruch danach Revision 1. Wiederholte Rücknahme endete auf Revision 2. Bei beidseitiger
+Bearbeitung ist die ausdrückliche Wahl einer ganzen Fassung im Windows-Entwicklungsstand umgesetzt.
+Der native Speichertest prüft die Kopie, die Ablehnung einer inzwischen erhöhten Revision, die
+erforderliche lokale Freigabe sowie Aktivierung und Rücknahme.
+[Bedienung und Umfang](../README.md#szenenstände-auf-zwei-rechnern-vergleichen)
+
+Für produktive Übernahmen ist der logische Neuaufbau verbindlich. Im synthetischen P3-Auswahlpfad
+ist er umgesetzt. Die neue SQLite-Datei übernimmt aktuelle Arbeitsdaten und Kennungen. Der Suchindex
+entsteht aus den aktuellen Dokumenten. Die Prüfung deckt den überschriebenen Absatz, den Suchtreffer
+für die aktuelle Fassung, den Zeilenabgleich einschließlich eines gespeicherten Bildprompt-Entwurfs
+und die schreibgeschützte VHDX-Vorschau ab. Die Produktintegration für gewöhnliche Bestandsordner
+ist offen.
+
+Die synthetische P3-Auswahl ermittelt Originalbilder und Vorschaubilder aus der bestätigten
+SQLite-Sicht einschließlich WAL. Vor der Freigabe prüft sie Projektkennung, Schema, Dateibestand,
+Mediengröße, Prüfsumme und Szenenverknüpfung. Die lokale Auswahl und der vollständige VHDX-Lauf
+übernahmen das abweichend benannte Vorschaubild von Süd. Nach Veröffentlichung öffnete sich „Szene B
+· Revision 0“ schreibgeschützt. Ein zusätzliches unbekanntes Asset, eine fehlende referenzierte
+Vorschau und eine zusätzliche SQLite-Tabelle sperrten die Planung. Die installierte Alpha verwendet
+diesen Prüfpfad noch nicht.
+
+Der native P3-Prüfstarter bietet zwei synthetische Projektordner in einem eigenen Win32-Dialog zur
+Auswahl an. Der Auswahlschritt benötigt weder PowerShell noch den Windows-Explorer. Für beide wurde
+geprüft, dass genau die ausgewählte Projekt- und Verzeichnisidentität samt Inventar übernommen
+wurde. Auch bei vertauschten Verzeichnishandles verweigerte die Prüfsteuerung die Erfassung vor der
+Zielanlage. Abbrechen hinterließ ein leeres Ziel. Beim harten Abbruch der Prüfsteuerung schloss sich
+der offene Dialog, beide Ordnerhandles wurden frei und es entstand kein Freigabebeleg. Windows
+entfernte die für den Dialog vorgemerkten synthetischen Quelldateien. Eine zusätzlich angelegte
+Fremddatei blieb erhalten.
+
+Auch die reguläre Bereinigung des interaktiven Quellbestands ist an Dateiidentität und Inhalt
+gebunden. Eine zusätzliche Datei in der gewählten Quelle blockierte die Kopie und blieb erhalten.
+Eine Fremddatei im anderen Projekt blieb bei erfolgreicher Auswahl und beim Abbrechen erhalten. Der
+Austausch eines Bilds nach Bestätigung gegen eine bytegleiche Datei sperrte die Erfassung vor
+Zielanlage. Auch ein neu hinzugefügter NTFS-Datenstrom sperrte die Kopie. Ersatzdatei bzw.
+zusätzlicher Datenstrom blieben beim Aufräumen erhalten.
+
+Der native Prüfstarter bindet den synthetischen Quellordner an den erfassten Kandidaten und dessen
+Inventar. Ein Wiederanlauf mit anderer Quellidentität wurde abgewiesen, der ursprüngliche Kandidat
+bestätigt.
+
+Am beschreibbaren synthetischen NTFS-Ordner führte ein neues Asset im Unterverzeichnis zum Abbruch
+ohne Zielkopie. Die anschließende Erfassung übernahm das Asset und die im WAL bestätigte Szene. Der
+vollständige VHDX-Lauf mit diesem Bestand bestätigte Veröffentlichung, Wiederanlauf, Bereinigung und
+schreibgeschützte Anzeige der Szene im verwalteten Win32-Fenster.
+[Erfassung und Geltungsbereich](data-format/product-start-integration-v1-draft.md#erfassung-eines-beschreibbaren-synthetischen-projektordners)
+
+Für die Kopie eines Projekts von einem vollständig schreibgeschützten synthetischen Quelldatenträger
+sind stabiler Dateibestand, Assetverknüpfungen und Identitätserhalt im Staging geprüft. Der zweite
+Prozess erhielt beim Anlegen neuer Assets im Stamm und im Unterverzeichnis jeweils
+`ERROR_WRITE_PROTECT`. Die Freigabe gewöhnlicher Bestandsordner und die Veröffentlichung einer
+produktiven Arbeitskopie sind offen.
+[Prüfaufbau und Geltungsbereich](data-format/product-start-integration-v1-draft.md#stabiler-dateibestand-auf-einem-synthetischen-quelldatenträger)
+
+Die geprüfte synthetische Kopie lässt sich einmalig an ein gebundenes Testziel veröffentlichen. Nach
+Prozessende vor der Rückmeldung bestätigte der Folgeaufruf denselben Abschluss. Fremdes Ziel,
+frischer Schlüssel und veränderter Zielbestand wurden abgewiesen. Ein regulärer Neustart sperrt
+vorhandene Teilkopien. Im kontrollierten Prüfziel kann derselbe Controller eine ausdrücklich
+angeforderte Fortsetzung anhand authentisierter Dateiidentitäten und aller bisherigen Quellbytes
+zulassen. Ein bereits vollständig bestätigtes Paket ließ sich nach einem zweiten Abbruch vor der
+Umbenennung einmalig veröffentlichen. Unklare Bestände bleiben gesperrt.
+[Nachweis und Grenze der Prüfautorität](data-format/product-start-integration-v1-draft.md#einmalige-veröffentlichung-am-gebundenen-synthetischen-ziel)
+
+Der native Prüfstarter bindet die Entscheidung für eine synthetische Übernahme an das
+Kontrolljournal der Testinstallation. Der Windows-Lauf prüft den Neustart nach dem ersten Kopierbyte
+und nach Veröffentlichung sowie die Ablehnung durch eine zweite Installation. Eine ausdrückliche
+Bereinigungsentscheidung für den gebundenen Teilbestand sperrt die weitere Übernahme auch nach
+Neustart. Die Entfernung lässt sich nach dem geprüften Prozessabbruch anhand der im Journal
+freigegebenen Schritte fortsetzen. Unerwartet fehlende und ausgetauschte Objekte sperren die
+Fortsetzung.
+[Kontrolljournal und Geltungsbereich](data-format/product-start-integration-v1-draft.md#wiederanlauf-mit-installationsgebundenem-kontrolljournal)
+
+Der gezielte P3-Leseaufruf kann die gebundene synthetische Szene aus der bestätigten Kopie im
+Arbeitsspeicher lesen. Die Teilkopie bleibt für diesen Aufruf gesperrt. Der isolierte
+Win32-Datendienst quittiert genau die gebundene Zeile nach bestätigtem Bootstrap. Eine andere
+Szenenkennung wird vor dem Dienststart abgewiesen. Ein Starterabbruch nach dem dauerhaften Beginn
+und vor der Startbestätigung sperrt den folgenden Leseaufruf. Die P3-Fensterrolle empfängt diese
+Zeile über eine nur lesbare Pipe und zeigt den geprüften Klartext im schreibgeschützten nativen
+Eingabefeld an.
+
+Der vollständige VHDX-Lauf bestätigte auch die Abweisung der ausgetauschten Fenster-EXE. Mit
+`-InteractivePreview` bleibt das schreibgeschützte Fenster bis zum Schließen geöffnet. Im lokalen
+Rollenlauf sperrte die Anzeige parallele Leseaufrufe. Nach Starterabbruch endete die Fensterrolle
+und der Wiederanlauf blieb gesperrt. Für neue synthetische Vorschauen ist die Profilbereinigung nach
+einem harten Starterabbruch im lokalen Rollenlauf geprüft. Ein Ersatzverzeichnis blieb erhalten. Das
+ursprüngliche Fensterprofil wurde einmal entfernt und der Szenenneustart blieb gesperrt.
+
+Der vollständige Windows-VHDX-Lauf hat Profilbereinigung und gesperrten Neustart nach dem Abbruch
+bei sichtbarem Fenster bestätigt. Er wurde mit einem ausschließlich im WAL bestätigten Szenentext
+wiederholt. Staging und Fenster erhielten »Text aus der Testkopie.« aus der veröffentlichten Kopie.
+Der Hauptdateihash blieb beim WAL-Commit gleich, das gesamte Quellinventar blieb bis zum Laufende
+unverändert. Ein separater lokaler Leseversuch mit fehlendem SHM-Index wurde vor dem SQLite-Aufruf
+abgewiesen. Bei einem unklaren Laufende erhält die Prüfsteuerung das Kontrolljournal der
+Primärinstallation für die Diagnose.
+
+### PDF-Export
+
+Text- und Bildexport lesen das selbst erzeugte PDF zur Ausgabeprüfung mit `lopdf 0.47.0`. Der
+bestehende Exporttest prüft unter anderem die eingebetteten RGB-Daten, Abmessungen und
+Bildkennungen. Der Schreiber `printpdf 0.12.14` verwendet ebenfalls `lopdf 0.47.0`. Diese ist die
+einzige im Workspace aufgelöste Version. Damit ist die von
+[Dependabot #8](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/8) gemeldete Version
+auf dem Entwicklungsbranch entfernt. Eine illustrierte synthetische Ausgabe wurde unabhängig mit
+Poppler auf allen drei A4-Seiten gerendert.
+
+### Verwalteter Win32-Szeneneditor
+
+**Abnahme und Weiterentwicklung am 24. November 2026.** Die vorhandenen Prozessnachweise schließen
+den Wiederanlauf der synthetischen Szenenübernahme für diesen Umfang ab. Im langen Klartexteditor
+zeigt eine eigene Zeile die Wortzahl des lokalen Entwurfs und die belegten UTF-16-Einheiten
+von 4096. Absatzgrenzen zählen als eine Einheit. F11 blendet Suche, Ersetzen, Zähler und
+Speicherknöpfe aus und vergrößert die Schreibfläche. F11 oder Esc führt zum Entwurf in der normalen
+Ansicht zurück. Der lokale Windows-Lauf bestätigte zwei Wörter und sieben Einheiten für eine Feder
+als Emoji, einen Absatzwechsel und „Rabe“, die gesperrte Speicherung bei 4097 Einheiten und den
+Rückweg aus dem Fokusmodus. Speichern, erneutes Öffnen mit 22 angezeigten Wörtern und
+Weiterschreiben bis Revision 3 wurden an synthetischem Text geprüft.
+
+Der aktualisierte Starter lässt unmarkierte Altpaare nur lesen. Ein gebundenes Altpaar kann unter
+demselben Starter mit `upgrade-win32-package` auf ein geprüftes Schreibpaar wechseln. Der lokale
+Windows-Lauf bestätigte Sperre, Lesen, Rollenwechsel, Schreiben und Wiederöffnen. Nach einem
+Starterwechsel gibt erst `adopt-win32-scene <Revision> <Snapshot-SHA-256> <Kontrollkopf>` die
+gespeicherte synthetische Szene für den neuen Starter frei. Revision und Hash stehen in
+`verify-win32-package`. Eine offene Sitzung sperrt die Übernahme.
+[Bedienung, Wiederanlauf und Windows-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#ausdrückliche-übernahme-der-synthetischen-szene-nach-einem-starterupdate).
+[Aufruf, Grenzen und ETW-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#lesezugriff-für-altpaare-und-authentisierter-rollenwechsel).
+
+Bei einem Starterabbruch während der Übernahme entscheidet der veröffentlichte Kontrollkopf über die
+Zuordnung. Vor dem Eintrag bleibt die alte Zuordnung erhalten, nach Veröffentlichung gilt die neue.
+Zwischen synchronisiertem Eintrag und Kopf sperrt der reguläre Start die Ablage. Der dafür
+ausgerüstete aktive Starter kann mit
+`recover-win32-scene-adoption <Revision> <Snapshot-SHA-256> <Kontrollkopf-vor-Übernahme>` genau
+einen eindeutig belegten Übernahmeeintrag abschließen. Der Windows-Prozesslauf bestätigte die
+einmalige Übernahme nach echtem Starterabbruch. Nach einem zweiten Abbruch bei vorbereitetem Kopf
+kann derselbe ausdrückliche Aufruf den bytegenau passenden authentisierten Kopf veröffentlichen. Ein
+abweichender Kopf sperrt die Übernahme.
+[Geprüfte Abbruchpunkte und Vorgehen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#wiederanlauf-nach-abbruch-der-szenenübernahme).
+
+Im Zwei-Absatz-Editor für die synthetische Szene A lässt sich eine Textstelle mit Umschalt und den
+Pfeiltasten auswählen. **Bearbeiten → Markierte Textstelle fett speichern und schließen** speichert
+die Auswahl und den aktuellen Text gemeinsam auf der geladenen Revision. Zulässig ist ein
+Teilbereich eines bisher unformatierten Absatzes. Eine bestehende Fettmarkierung des gesamten
+zweiten Absatzes bleibt erhalten. Im Leseauftrag zeigt die Vorschau die markierte Stelle an. Im
+Bearbeitungsauftrag lassen sich beide Absätze ändern. Bleibt der Absatz mit der Fettstelle gleich,
+speichert Strg+S die Änderungen am anderen Absatz samt Formatierung und schließt. Auch nach einer
+Änderung vor oder hinter der Fettstelle genügt Strg+S, wenn der markierte Text im alten und im neuen
+Absatz jeweils genau einmal vorkommt und eine Seite der Stelle vollständig unverändert ist.
+Andernfalls bleibt der Entwurf offen und verlangt die erneute Auswahl. Strg+Umschalt+B oder der
+Menübefehl speichert diese Auswahl. Für diese Fassung erfolgt das Speichern ausdrücklich. Weitere
+oder gemischte Inline-Markierungen öffnen weiterhin in der schreibgeschützten Vorschau. Der lokale
+Windows-Lauf bestätigte die Auswahl „ab“ in „Rabe“, die Fettmarkierung von „42“, Revision 1 und den
+vollständigen Klartext im Suchindex. Ein weiterer lokaler Windows-Lauf änderte „42“ zu „44“ unter
+Erhalt beider Fettmarkierungen. Im Windows-Lauf mit der aktualisierten Zuordnung blieb „ab“ beim
+Wechsel von „Rabe“ zu „Kolkrabe“ fett. Bei „Kolkrabe ab“ blieb der Entwurf bis zur ausdrücklichen
+Auswahl des zweiten „ab“ offen. Die so gespeicherte Revision 3 ließ sich unter frischer Lesebindung
+öffnen. Der Modelltest deckt außerdem Leserechte, veraltete Revisionen und Auswahlgrenzen innerhalb
+eines UTF-16-Zeichens ab.
+
+Der verwaltete Starter erkennt gemischte Generationen mit einseitiger Inline-Kennung vor dem
+Sitzungsstart. Für das passende Paar sind Markieren, Entfernen und Wiederöffnen im aktuellen
+Windows-Netzvergleich geprüft.
+[Paketprüfung und ETW-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#paketkompatibilität-und-etw-für-einzelne-fettmarkierungen).
+
+Mit F4 oder **Bearbeiten → Gespeicherte Fettstelle auswählen** springt der Bearbeitungsauftrag zur
+gespeicherten Fettstelle im aktuellen Entwurf. Geprüft sind die Auswahl nach einer eindeutigen
+Verschiebung im Absatz und der Erhalt der bisherigen Auswahl bei einer mehrdeutigen Zuordnung.
+
+Eine bereits gespeicherte Fettstelle lässt sich im Win32-Bearbeitungsauftrag gezielt ersetzen.
+Strg+H öffnet das Ersatzfeld. Dort übernimmt Strg+Umschalt+Enter den Ersatztext als neue Fettstelle,
+speichert die Szene und schließt nach Bestätigung. Derselbe Befehl steht unter **Bearbeiten →
+Fettstelle durch Ersatztext ersetzen, speichern und schließen**. Er setzt eine eindeutig zugeordnete
+Fettstelle und einen geänderten, nicht leeren Ersatztext voraus. Bei Überschreitung der Absatzgrenze
+bleibt der Entwurf offen. Der lokale Windows-Lauf prüfte diese Grenze sowie die Ersetzung von „ab“
+durch „e“ in „Rabe“. In Revision 2 von „Ree“ war genau das erste „e“ fett. Die Markierung von „42“,
+der Klartext im Suchindex und das Wiederöffnen unter frischer Lesebindung wurden bestätigt.
+
+**Bearbeiten → Fettmarkierung entfernen, speichern und schließen** entfernt die einzelne Fettstelle
+aus der geladenen Revision. Der Auftrag enthält nur die erwartete Revision. Text und
+Absatzformatierung stammen aus der gespeicherten Szene. Bei offenen Änderungen im Fenster ist der
+Befehl gesperrt. Im lokalen Win32-Lauf blieb ein geänderter Entwurf offen. Nach der Entfernung aus
+dem ursprünglichen Stand enthielt Revision 2 „Rabe“ als Klartext und „42“ weiterhin in Fett.
+Suchindex und erneutes Öffnen stimmten mit dem gespeicherten Stand überein. Der Modelltest prüft die
+Sperren für Lesebindung, veraltete Revision und bereits entfernte Markierung.
+
+Beim Wiederöffnen einer synthetischen Szene weist der Datendienst zusätzliche Felder in der äußeren
+Dokumenthülle ab. Damit können unbekannte Metadaten beim nächsten Speichern nicht stillschweigend
+entfallen. Der bestehende Modelltest für nicht unterstützte Dokumente deckt diesen Fall ab.
+
+Längere gespeicherte Klartextszenen sind im Bearbeitungsauftrag bis 4.096 UTF-16-Einheiten
+bearbeitbar. Bei verfügbarem Folgezug speichert der Klartexteditor gültige Änderungen nach 700 ms
+Schreibpause. Strg+Enter speichert sofort und lässt das Fenster zum Weiterschreiben offen. Beim
+letzten Schreibzug bleibt der Entwurf bis zur ausdrücklichen Entscheidung offen. Strg+S speichert
+und schließt. Bei einem Revisionskonflikt zeigt das Fenster den frisch gelesenen Diensttext neben
+dem lokalen Entwurf. F6 wechselt zwischen den Fassungen. F7 und Umschalt+F7 markieren den nächsten
+bzw. vorherigen abweichenden Absatzblock in beiden Texten. F8 übernimmt den ausgewählten Dienstblock
+in den lokalen Entwurf. Fehlt er im Dienststand, entfernt F8 die entsprechenden lokalen Absätze.
+Autosave bleibt im Konflikt gesperrt. Bei unformatiertem Klartext und freiem Schreibzug bietet F9
+an, den gesamten Entwurf ausdrücklich zu bestätigen und unter frischer Bindung zu speichern. Liegt
+die Dienstfassung bereits beim ersten Vergleich mehrere Revisionen voraus, erfordert F9 zusätzlich
+die Freigabe für einen revisionsübergreifenden Schreibzug. Ändert sich die Vergleichsbasis während
+der Bestätigung, bleibt der Entwurf offen. Bei freigegebenem Wiedervergleich zeigt das Fenster die
+neue Dienstrevision. F9 verlangt für einen zulässigen Klartextstand eine neue Bestätigung.
+Leerabsätze und Suchindex sind nach dem Wiederöffnen geprüft.
+[Klartextvertrag und Nachweise](architecture/decisions/0036-native-win32-ui-role-evaluation.md#längere-klartextszenen-bearbeiten).
+
+Beim Vergleich im langen Klartexteditor zeigt F7 für den ausgewählten Unterschied, ob F8
+Dienstabsätze einfügt, lokale Absätze ersetzt oder entfernt. Nach F8 liegt der Fokus im Entwurf.
+Eingefügte oder ersetzte Absätze sind ausgewählt; beim Entfernen steht die Einfügemarke an der
+Änderung. Im synthetischen Windows-Lauf ließ sich die Entfernung mit Strg+Z zurücknehmen. Nach dem
+Einfügen blieb „Neu“ ausgewählt. Die normale Speicherung war während des Konflikts gesperrt. Erst
+nach ausdrücklicher Bestätigung speicherte der Datendienst den geprüften Entwurf auf Revision 3.
+
+Der lange Klartexteditor bietet die Menüs **Datei**, **Bearbeiten**, **Ansicht** und **Vergleich**.
+Die Speicheraktionen folgen dem aktuellen Schreibbudget und den Konfliktsperren. Im Vergleich lassen
+sich Unterschiede in beide Richtungen ansteuern, der ausgewählte Dienstblock übernehmen und der
+Entwurf ausdrücklich bestätigen. F11 und der Menühaken zeigen denselben Fokusmodus. Tab überspringt
+ausgeblendete Felder. Beim Aufrufen von Suchen oder Ersetzen wird eine einzeilige Textauswahl bis
+zur Eingabefeldgrenze als Suchbegriff übernommen. Bei einer mehrzeiligen Auswahl bleibt der
+bisherige Suchbegriff erhalten.
+
+Rückgängig und Wiederholen stellen im langen Klartext zusätzlich die jeweilige Einfügemarke oder
+Auswahl wieder her. Der Verlauf liegt ausschließlich im Fenster. Im synthetischen Windows-Lauf ließ
+sich die Menüübernahme von „Neu“ aus dem Suchfeld heraus zurücknehmen und wiederholen. Einfügemarke
+und Markierung stimmten danach mit dem jeweiligen Entwurf überein. Die normale Speicherung blieb im
+Konflikt gesperrt. Erst nach ausdrücklicher Bestätigung wurde Revision 3 gespeichert und in der
+Testablage geprüft.
+
+Der
+[ETW-Netzvergleich des Klartextmenüs](architecture/decisions/0036-native-win32-ui-role-evaluation.md#etw-beim-arbeiten-mit-dem-klartextmenü)
+bestätigt null zugeordnete Netzwerkereignisse für Referenz, Bearbeitung und frisches Lesen mit den
+dort dokumentierten Programmbytes.
+
+Im langen Klartextentwurf öffnet Strg+F die lokale Suche. Enter im Suchfeld, F3 und Umschalt+F3
+springen zwischen exakten Treffern. Strg+H fokussiert den Ersatztext. Enter dort ersetzt einen
+Treffer und Strg+Enter alle. Eine zu große Zielszene wird vor der Änderung abgewiesen. Strg+Z und
+Strg+Y im Textfeld nehmen Bearbeitungsschritte zurück und stellen sie wieder her, auch nach
+bestätigtem Autosave im selben Fenster.
+[Bedienung und Windows-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#lokales-suchen-und-ersetzen-im-langen-klartext).
+
+Gespeicherte synthetische Fassungen mit bekannten, im Win32-Editor nicht darstellbaren
+Textmarkierungen öffnen als ausdrücklich gekennzeichnete, scrollbare Textvorschau. Sie unterstützt
+4.096 UTF-16-Codeeinheiten einschließlich Absatzgrenzen und eine lokale Suche mit Trefferzählung.
+Das gilt auch beim Start eines Bearbeitungsauftrags. Die Speicherbefehle des Datendienstes
+verweigern Änderungen.
+[Formatumfang und Windows-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#schreibgeschützte-textvorschau-für-formatierte-szenen).
+
+Im Forschungsauftrag `continue-win32-scene` speichert das Win32-Fenster gültige Änderungen an Text
+und Fettmarkierung nach 700 ms Schreibpause. Nach jeder Bestätigung kann im selben Fenster auf der
+bestätigten Revision weitergeschrieben werden, solange das Journal einen weiteren Schreibzug und den
+Sitzungsabschluss aufnehmen kann. Der Fenstertitel kennzeichnet den letzten verfügbaren Schreibzug.
+Geprüft mit synthetischer Szene A auf Windows.
+[Journalbudget und Nachweise](architecture/decisions/0036-native-win32-ui-role-evaluation.md#fortlaufendes-autosave-unter-journalbudget).
+
+Bei einem authentisierten Revisionskonflikt bleibt der Entwurf im selben Fenster lokal bearbeitbar.
+Speichern unter der alten Bindung ist gesperrt. Schließen oder Verwerfen verlangt eine ausdrückliche
+Entscheidung. Bei abgelehntem Verwerfen kehrt der Fokus ins zuvor genutzte Feld zurück. Der
+verwaltete Windows-Lauf und die Kanalprüfung sind im
+[Konfliktvertrag](architecture/decisions/0036-native-win32-ui-role-evaluation.md#revisionskonflikt-bei-einem-schreibzug)
+dokumentiert.
+
+Bei einem Konflikt lädt das verwaltete Rollenpaar den aktuellen Stand des Datendienstes unter einer
+einmaligen Lesebindung. Der Entwurf bleibt links bearbeitbar, die Dienstrevision steht rechts
+schreibgeschützt zum Vergleich. Tab erreicht das Vergleichsfeld nach dem zweiten Absatz. F6 springt
+aus der Vorschau zum ersten ungültigen, für die Übernahme ausgewählten Entwurfsabsatz. Bei gültiger
+Auswahl führt F6 zum zuletzt bearbeiteten Absatz zurück.
+[Bindung, Bedienung und Prüfungen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#lesender-revisionsvergleich-im-konfliktfenster).
+
+Im fortlaufenden Konfliktfenster lassen sich beide Absätze und die Fettmarkierung einzeln aus dem
+lokalen Entwurf übernehmen. Die Vorschau zeigt die Mischung und nennt für beide Absätze und die
+Fettmarkierung die gewählte Herkunft. Rückgängig, Wiederholen und der Wechsel der Dienstrevision
+aktualisieren diese Anzeige im selben Fenster. Ist ein ausgewählter Entwurfsabsatz ungültig, benennt
+die Vorschau den ersten betroffenen Absatz. In der Vorschau führt F6 zum Korrigieren. F8 wählt für
+den angezeigten ungültigen Absatz die Dienstfassung aus. Der lokale Text bleibt erhalten. Jeder
+Tastendruck ändert höchstens ein Häkchen und lässt sich über „Übernahme“ rückgängig machen. Bei
+einer Revisionslücke im ersten Zwei-Absatz-Vergleich können beide Absätze und die Fettmarkierung
+einzeln aus Entwurf oder Dienstfassung übernommen werden. Zum Speichern muss der
+revisionsübergreifende Schreibzug freigegeben und die Auswahl für die angezeigte Revision
+ausdrücklich bestätigt sein. Ohne Freigabe bleibt die Auswahl eine lokale Vorschau. Beim Bearbeiten
+bleibt die Scrollposition im Vergleichsfeld nach Möglichkeit erhalten. Eine Textmarkierung bleibt
+bestehen, solange der Text bis zu ihrem Ende gleich bleibt. Die ursprüngliche Bearbeitungsbasis
+lässt sich mit Revisionsnummer und Fettmarkierung einblenden. Für die Auswahl stehen der gesamte
+lokale Entwurf, der Dienststand und die eindeutig lokalen Änderungen zur Verfügung. Die letzte
+Änderung der Häkchen lässt sich innerhalb derselben Vergleichsrevision rückgängig machen und
+wiederholen. Eine neue Auswahl verwirft den Wiederholen-Schritt. Beim Wechsel der Dienstrevision
+bleiben die aktuellen Häkchen erhalten und der Auswahlverlauf beginnt neu. Die Vorschau nennt
+beidseitig unterschiedlich geänderte Absätze. Beide Speicherbefehle setzen eine gültige Änderung
+voraus. Die ausdrückliche Bestätigung speichert auf der erneut geprüften Vergleichsbasis unter
+frischer Schreibbindung und schließt das Fenster. Eine zwischenzeitlich geänderte Basis löst einen
+[erneuten Vergleich](architecture/decisions/0036-native-win32-ui-role-evaluation.md#erneuter-vergleich-vor-dem-speichern)
+aus. Der lokale Entwurf und die bisherige Auswahl bleiben zur Prüfung offen.
+[Bedienung, Grenzen und Windows-Prüfungen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#gezielte-übernahme-unter-frischer-schreibbindung).
+
+Bei einer Revisionslücke lässt sich die erneut geprüfte Auswahl mit ausdrücklichem **Ja** speichern.
+Die Vorschau bleibt bei **Nein** offen. Der Starter sichert die geprüfte Basis und vergibt für die
+Auswahl eine frische Schreibbindung. Zwei Windows-Läufe prüften Veröffentlichung und erneute
+Änderung unmittelbar vor dem Speichern.
+[Vertrag und Nachweise](architecture/decisions/0036-native-win32-ui-role-evaluation.md#bestätigte-übernahme-über-eine-revisionslücke).
+
+Über **Auswahl speichern und weiterschreiben** kann die bestätigte Mischung im selben Fenster
+weiterbearbeitet werden. Der Befehl berücksichtigt Journalbudget und Revisionsgrenze. Fällt der
+Autosave-Timer vorübergehend aus, bleibt der Entwurf offen. Strg+S speichert manuell. Bei der
+nächsten gültigen Änderung versucht der Editor erneut, Autosave einzurichten. Bleibt nach der erneut
+bestätigten Übernahme genau ein Schreibzug, weisen Bestätigungsdialog und Fenstertitel darauf hin,
+dass der nächste Autosave speichert und das Fenster schließt.
+[Bedienung und Windows-Prüfungen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#weiterschreiben-nach-bestätigter-übernahme).
+
+Bei weiteren Konflikten während der Bestätigung bleibt die Auswahl im selben Fenster prüfbar. Jeder
+neuere Stand erhält eine eigene Lesebindung und verlangt eine neue Bestätigung.
+[Wiederholter Abgleich und Windows-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#weitere-konflikte-während-der-erneuten-bestätigung).
+
+Die Titelleiste unterscheidet einen zu korrigierenden Absatz, die laufende Schreibpause, das
+Speichern mit ausstehender Starterbestätigung und die gespeicherte Revision. Ein Windows-Lauf mit
+leerem zweitem Absatz, Korrektur und verzögerter Bestätigung prüfte alle Übergänge und das frische
+Lesen von Revision 1.
+[Speicheranzeige](architecture/decisions/0036-native-win32-ui-role-evaluation.md#speicheranzeige-im-fortlaufenden-editor).
+
+Während einer ausstehenden Autosave-Bestätigung bleiben Tastatureingaben für den nächsten Schreibzug
+lokal vorgemerkt. Sie erscheinen nach Bestätigung und frischer Revisionsbindung. Der Windows-Lauf
+mit verzögerter Bestätigung und der Abbruchfall mit wartender Eingabe sind im
+[Sitzungsvertrag](architecture/decisions/0036-native-win32-ui-role-evaluation.md#eingaben-während-der-autosave-bestätigung)
+dokumentiert.
+
+Beim Schließen während einer Autosave-Bestätigung bezieht die Abfrage wartende Eingaben in den
+Entwurf ein. Speichern, Verwerfen und Weiterarbeiten sind auf Windows bis zum Wiederöffnen der
+erwarteten Revision geprüft.
+[Schließverhalten und Prüfumfang](architecture/decisions/0036-native-win32-ui-role-evaluation.md#schließen-mit-wartender-eingabe).
+
+Der Starter kann eine Folgerevision unter Kontrollsperre veröffentlichen, während das ursprüngliche
+Editorfenster auf die Bestätigung wartet. Die optionale
+[Checkpoint-Probe](architecture/decisions/0036-native-win32-ui-role-evaluation.md#veröffentlichung-bei-offenem-editorfenster)
+bestätigte zwei Revisionen in zwei Aufträgen und die Neustartsperre nach Verlust der
+Fensterquittung.
+
+Der Fenstertitel zeigt die authentisierte Basisrevision und den lokalen Änderungszustand. Im
+verwalteten Lauf blieb die Basis beim Bearbeiten von Revision 0 und 1 stabil. Die jeweils frisch
+geöffneten Leseansichten zeigten Revision 1 und 2; die SQLite-Gegenprüfung bestätigte Text und
+Formatierung. Der
+[Entwurf für revisionsgebundene Folgeschreibzüge](architecture/decisions/0036-native-win32-ui-role-evaluation.md#revisionsanzeige-und-nächster-autosave-schritt)
+beschreibt die dafür nötige Starterbestätigung und das Verhalten bei unklarem Commit.
+
+Der M1-Fokusmodus ist für die synthetische Szene A über **Ansicht → Fokusmodus** oder F11 verfügbar.
+Beide Absätze nutzen die frei werdende Fläche. Tab wechselt zwischen den Absätzen. Escape kehrt zur
+normalen Ansicht zurück, ein Suchbefehl öffnet die Suchwerkzeuge direkt. Der Ansichtswechsel bleibt
+im Fensterprozess. Er erzeugt weder eine Dokumentänderung noch eine gespeicherte Einstellung.
+Speichern und die Schließabfrage verwenden dieselbe Edit-Bindung.
+
+Ein zusammenhängender Windows-Lauf bestätigte den Flächengewinn, die Tab-Reihenfolge und die
+Rückkehr über Escape und Suche. Nach dem Speichern aus dem Fokusmodus enthielt die frisch geöffnete
+Revision 1 beide bearbeiteten Absätze und die Fettmarkierung.
+
+Der
+[ETW-Netzvergleich vom 23. November](architecture/decisions/0036-native-win32-ui-role-evaluation.md#etw-beim-ersetzen-formatieren-und-wiederöffnen)
+bestätigte für den gemessenen Editorstand null Netzwerkereignisse beim Ersetzen, Formatieren,
+Speichern und Wiederöffnen der synthetischen Szene.
+
+Die synthetische Szene A lässt sich per Tastatur bearbeiten, speichern und unter frischer
+Lesebindung wieder öffnen. Das Menü **Datei** enthält Speichern und Schließen. **Bearbeiten** bietet
+Rückgängig, Wiederholen und die Auswahl des fokussierten Absatzes (Strg+A). Bei ungespeicherten
+Änderungen fragt das Fenster beim Schließen nach. Abbrechen ist vorausgewählt und führt zum Entwurf
+zurück. Speichern verwendet die reguläre Absatzprüfung. Verwerfen schließt die Sitzung über den
+authentisierten Verwerfpfad ab.
+
+Im verwalteten Windows-Lauf wurden Menübefehle, Rückgängig/Wiederholen, Abbrechen, die Korrektur
+eines leeren Absatzes beim Schließen und das anschließende Speichern gemeinsam geprüft. Die wieder
+geöffnete Revision 1 enthielt beide Texte und die Fettmarkierung. Beim Verwerfen einer Folgeänderung
+blieb die gespeicherte Datei bytegleich und erneut lesbar.
+
+Unter **Bearbeiten → Zweiter Absatz fett** oder mit Strg+B lässt sich die Markierung des gesamten
+zweiten Absatzes umschalten. Eine reine Formatänderung aktiviert Speichern und zählt als eigene
+Revision. Rückgängig, Wiederholen und Verwerfen berücksichtigen Text und Markierung gemeinsam. Im
+verwalteten Windows-Lauf öffnete sich Revision 1 mit geändertem Text ohne Fettmarkierung. Im
+frischen Edit-Auftrag wurde ausschließlich die Markierung geändert. Revision 2 enthielt nach
+erneutem Öffnen denselben Text mit fett markiertem zweitem Absatz.
+
+Mit **Strg+F** lässt sich im geöffneten Bearbeitungsfenster nach einer exakten Zeichenfolge suchen.
+Enter im Suchfeld oder F3 markiert den nächsten Treffer, Umschalt+F3 den vorherigen. Die Suche
+berücksichtigt Groß-/Kleinschreibung und läuft zyklisch über beide Absätze. Der Suchbegriff bleibt
+im Fenster und gehört weder zur Revision noch zum Änderungsverlauf. Im verwalteten Windows-Lauf
+wurden drei Treffer über beide Absätze gefunden. Nach einem Emoji stimmten die Markierungsgrenzen.
+Beim Überschreiben des ausgewählten Treffers, Speichern und erneuten Öffnen blieben der übrige Text
+und die Fettmarkierung erhalten.
+
+**Strg+H** fokussiert das Ersatzfeld. Enter dort oder **Bearbeiten → Treffer ersetzen** ersetzt den
+markierten Treffer oder den nächsten Treffer ab der letzten Absatzposition. **Alle Treffer
+ersetzen** verarbeitet beide Absätze gemeinsam. Eine leere Ersatzzeichenfolge löscht die Treffer,
+sofern beide Absätze gültig bleiben. Vor der Änderung prüft das Fenster die vollständigen Zieltexte.
+Die Ersetzung behält die Absatzformatierung und bildet einen gemeinsamen Schritt im lokalen
+Rückgängig-Verlauf. Erst Speichern schreibt eine Revision.
+
+Im verwalteten Windows-Lauf blieben beide Absätze nach einem zu langen Ergebnis und nach einem
+leeren Zielabsatz unverändert. Eine Sammelersetzung durch Emojis ließ sich mit einem Schritt
+zurücknehmen und wiederholen. Nach Ersetzen eines einzelnen ausgewählten Treffers und Wiederöffnen
+von Revision 1 stimmten beide Texte und die Fettmarkierung.
+
+Die beiden einzeiligen Absätze sind auf je 48 UTF-16-Einheiten begrenzt. Das Fenster zeigt die
+Eingabegrenze an und fokussiert beim Speicherversuch einen ungültigen Absatz. Die bisherigen
+Windows-Läufe belegen die Abweisung überlanger Inhalte und das vollständige Einfügen, Überschreiben
+und Löschen von Surrogatpaaren, auch bei einer Auswahlgrenze innerhalb des Paars.
+
+Der Offline-Gastlauf vom 19. November ist bestanden. Bei erzwungener UMCI erreichte das
+Kontrollprogramm mit statisch importierter erlaubter DLL den erwarteten Exit 50. Beim statischen
+Import der fremden DLL beendete der Windows-Loader den Prozess mit `0xC0E90002`. Ereignis 3077 ist
+dem Importprogramm, der Richtlinie und dem vollständigen DLL-Hash zugeordnet. Die beiden bisherigen
+Blattrollen bestanden ebenfalls. Der Gast ist ausgeschaltet.
+[Prüfbericht und Wiederholung](testing/product-start-p2c-bp3-umci-guest.md).
+
+Der gezielte Abbruch des Starters bei laufendem Blattprozess ist im Offline-Gast bestätigt. Vor dem
+Abbruch war genau ein Blattprozess im Zähljob aktiv. Am gehaltenen Prozesshandle wurde sein Ende
+beobachtet. Danach meldete der Zähljob null aktive Prozesse bei einer Gesamtzahl von eins. Beide
+Wiederanläufe des synthetischen Starts sind geprüft. Ohne Prüfrichtlinie (UMCI 0) und mit aktiver
+Richtlinie derselben ID, aber abweichendem CIP-Hash (UMCI 2), sperrte der reguläre Einstieg vor dem
+Starter. Zwei Prüffenster nach Gastneustarts mit je zwei Kontrollprozessen belegen null
+Starterstarts. Vor Resume ist für die synthetischen Blattrollen die Bindung an das offene
+Markerobjekt geprüft: Leserolle exakt `FILE_GENERIC_READ`, leere Rolle kein Handle auf dieses
+Objekt, reine Attributrechte als Leserolle vor Resume abgewiesen. Der frische ETW-Vergleich mit
+demselben Prüfpaket ergab null TCP-/UDP-Ereignisse in beiden Prozessbäumen. Alle vier
+Loopback-Kontrollen waren in jedem Messfenster sichtbar. Die Rollenprüfung des echten
+WebView2-Kandidaten ergab sechs Runtimegenerationen mit einem WebView2-Prozess als Parent, darunter
+ein verschachtelter Crashpad-Start. Im eingebundenen Win32-SDK fehlt ein belegter Freigabepunkt vor
+jedem Kindstart. Auch Microsofts öffentliches stabiles SDK und Vorschau-SDK dokumentieren kein
+Startveto für verschachtelte Crashpad-Prozesse oder spätere Renderer. C4-Start und BP4-Datenzugriff
+bleiben bis zum Nachweis gemäß ADR 0035 gesperrt.
+[ADR 0035](architecture/decisions/0035-bp3-independent-process-and-image-enforcement.md).
+
+Das isolierte native Win32-Fenster ist im interaktiven Offline-Gast mit synthetischem Text geprüft.
+Direktstart und falsche Rolle wurden gesperrt. Tastatureingabe, Fokuswechsel, Narrator-Ansagen im
+lokalen Speech Recap und reguläres Prozessende sind bestätigt. ETW ergab null TCP-/UDP-Ereignisse in
+beiden Messbäumen bei je vier Positivkontrollen. Für diese Fensterprobe gilt die softwareseitige
+Sprachausgabe als bestanden. Die akustische Hörprüfung ist zurückgestellt.
+[Prüfbericht und Wiederholung](testing/native-win32-window-guest.md).
+
+Für BP4 liegt der
+[Vertrag für synthetische Win32-Szenen](data-format/native-win32-bp4-scene-v1-draft.md) vor. BP4a
+ist als eigenständiges Rust-Forschungsmodell geprüft. Eine exklusive Bindung begrenzt den Zugriff
+auf eine Katalogszene. Leseaufträge, Revisionskonflikte und ungültige Dokumente sind gegen
+unbeabsichtigtes Überschreiben getestet. Der
+[BP4b-Kanalvertrag](data-format/native-win32-bp4-channel-v1-draft.md) legt Rollenbindung und
+Replayabwehr fest. Framecodec und Replayabwehr sind im reinen Modell geprüft. Die
+[Pipe-Prüfung im Offline-Gast](testing/native-win32-pipe-rights.md) bestätigt vor Resume die
+Endpunktrechte und die Zugriffssperre für den geprüften Fremdprozess. Auch der
+[native HELLO/READY-Lauf](testing/native-win32-hello-ready.md) ist bestanden, einschließlich der
+Abweisung eines falsch authentisierten READY. Der
+[native Leseabruf](testing/native-win32-scene-read.md) von A im Lesemodus ist bis zum
+schreibgeschützten Win32-Feld bestätigt. Der
+[Schreibversuch unter derselben Lesebindung](testing/native-win32-denied-save.md) ergab DENIED. Die
+nächste Leseantwort bestätigte Text und Revision 0. Der
+[Edit-Gastlauf](testing/native-win32-edit-conflict.md) bestätigte Revision 1, CONFLICT beim zweiten
+Schreibversuch mit Revision 0 und den unveränderten Endtext. Der
+[SQLite-Gastlauf](testing/native-win32-durable-reopen.md) bestätigt Text und Revision 1 nach
+Prozessneustart unter frischer Lesebindung sowie unabhängig auf der ausgeschalteten Gastplatte. Der
+[Datendienstabbruch an der Commitgrenze](testing/native-win32-commit-crashes.md) ist im Gast
+geprüft. Vor Commit bleibt Revision 0 erhalten, nach Commit vor Antwort Revision 1. Der frische
+ETW-Netzvergleich beider Pfade ergab null Netzwerkereignisse im Prüfprozessbaum.
+[Teilübertragung und 30-Sekunden-Timeout](testing/native-win32-channel-interruptions.md) sind im
+Gast bestätigt. Beide endeten ohne Schreibantwort und mit Revision 0.
+[Fensterende vor Commit und ETW](testing/native-win32-window-close.md) sind für den neuen Build
+geprüft. Dienstende und Revision 0 sind bestätigt, im Prüfprozessbaum wurden null Netzwerkereignisse
+gemessen. Der [Wiederanlauf nach Starterabbruch](testing/native-win32-starter-restart.md) blieb
+dreimal gesperrt. Der frische ETW-Netzvergleich bestätigte null Netzwerkereignisse im
+Prüfprozessbaum. Alle drei gesperrten Starter endeten ohne Kindprozess. **BP4b ist für den
+synthetischen Win32-Kanal abgeschlossen.** Der
+[Abschluss mit Nachweisen](data-format/native-win32-bp4-channel-v1-draft.md#abschluss-des-synthetischen-datenkanals)
+umfasst Rechte, Revisionen, Transaktionsende und die Sperre der verbrauchten Einmalfreigabe bis zum
+Kaltstart. C4b bis C4d sind für das schreibgeschützte synthetische Win32-Fenster abgeschlossen. Der
+verwaltete Starter bindet Paket und Prozessgeneration unter Kontrollsperre und gibt das Fenster nach
+bestätigtem Bootstrap frei. Nach Starterabbruch blockiert der offene Sitzungsbeleg die nächste
+Fenstererzeugung. Die
+[bytegebundene C4d-Abnahme](architecture/decisions/0036-native-win32-ui-role-evaluation.md#c4d-abschluss-für-den-synthetischen-vorschaupfad)
+enthält Paketidentität, Sicherheitsnachweise und Freigabeumfang. Der neue Einstieg
+`broker-store open-win32-scene <Kontrollkopf>` zeigt nach beiden Bootstrap-Quittungen genau eine vom
+isolierten Datendienst gelesene Szene A schreibgeschützt an. Der ETW-Netzvergleich erfasste im
+Referenzlauf und beim einmaligen Szenenabruf je null Netzwerkereignisse im KRAQEL-Prozessbaum. Nur
+im Szenenlauf startete der Datendienst. Der anschließende verwaltete Prüflauf
+`check-win32-scene-denied-save` bestätigte `DENIED` für einen gültigen Speicherversuch und
+unveränderten Text auf Revision 0 beim erneuten Lesen unter derselben Bindung. Unter eigener
+Edit-Bindung bestätigte `check-win32-scene-edit-conflict` die erste Speicherung, `CONFLICT` für den
+veralteten Schreibversuch und den gespeicherten Text auf Revision 1 im Arbeitsspeicher. Der
+dauerhafte Prüfpfad `save-win32-scene` und `read-saved-win32-scene` bestätigte nach Prozessneustart
+Text und Revision 1 im isolierten SQLite-Abbild; veränderte Dateibytes sperren das Wiederöffnen vor
+dem Rollenstart. Produktdaten und WebView2 bleiben gesperrt.
+
+Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:
+
+[Debug-Wächter-Nachweis](testing/product-start-p2c-bp3-debug-guardian.md): Root beim Create-Ereignis
+vor User-Mode-Ausführung abgewiesen, normale Kindvererbung bestätigt. Ein Kind mit eigenem
+DEBUG_PROCESS läuft dagegen außerhalb der äußeren Debugkette; dieselbe Kindgeneration vorher vom
+Host an gehaltenem Handle, Token, Profil und Job geprüft. Kein AppContainer-/Jobausbruch. Drei
+native Fälle, neun Jobprozesse (fünf Worker/vier Konsolenhosts), sieben äußere Create-/Exit-Paare
+und zwei innere Create-Berichte; alle eigenen Jobs leer, Profile/Fixtures entfernt. **Debugvererbung
+allein ungeeignet für BP3.** Drei neue aktive Tests/141 Helfer-/Transporttests insgesamt und Clippy
+grün, sieben standardmäßig ignoriert. Kein frisches ETW oder tatsächlicher Wächter-Crash. C4-Sperre
+und native UI-ABI 0 unverändert; keine Runtime-/Datenautorität. BP3/BP4/C4c/d weiter offen. Nächster
+begrenzter Scope: Architekturentscheid für unabhängig durchgesetzte Erzeugung samt früher
+Wächter-/Ladebindung, keine weiteren Runtime-Versuche auf Basis bloßer Debugvererbung. Mittleres
+Prüfniveau und striktes Datenschutzziel unverändert; Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80
+%.
+
+Vorheriger Stand · BP3-Machbarkeitsgrenze und native Startsperre, 18. November 2026:
+
+[BP3-Nachweis](testing/product-start-p2c-bp3-admission.md): Für den aktuellen C4-Kandidaten ist noch
+kein vollständiger präventiver Modul-/WebView-Rollenmechanismus nachgewiesen. Der native Controller
+sperrt jetzt vor ACL-/Ressourcenanlage, Commit und CreateProcess; Worker und Runtime-Einstieg
+sperren zusätzlich vor Handleübernahme bzw. COM/WebView. Keine konfigurierbare Ausnahme oder
+Umdeutung von Paketpins, BP1/BP2 oder Diagnosen. Zwei aktive Regressionen, 138 aktive
+Helfer-/Transporttests und Clippy grün; sechs standardmäßig ignoriert. Drei direkte Workeraufrufe
+enden mit 2 ohne Ausgabe/Dateianlage. Kein neues ETW; frühere Messungen bleiben bytegebunden. **BP3
+insgesamt offen**, keine Runtime-/Datenfreigabe, BP4/C4c/d weiter gesperrt. Nächster begrenzter
+Scope: separate synthetische Debug-Wächter-Probe mit ausdrücklicher Debugketten-Gegenprobe; noch
+nicht implementiert. Keine System-/Schutzsoftware-/Signaturausnahme. Mittleres Prüfniveau und
+striktes Datenschutzziel unverändert; Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
+
+Vorheriger Stand · BP2 nativer synthetischer Blattversuch samt ETW, 18. November 2026:
+
+[BP2-Nachweis](testing/product-start-p2c-bp2-native-leaf.md): unabhängige native Supportprüfung,
+NoRemote-/NoLowLabel-/Child-Policy atomar bei suspendierter Erstellung; Readback vor Resume und im
+Blattprozess. Kindstart mit Windows-Fehler 367 abgewiesen, Jobbudget zwei zur Abgrenzung von
+Quotenfehlern, tatsächlich nur eine Generation je Job. Unsupported vor Create/Headänderung,
+abweichende Sollerwartung vor Resume und falsche MAC vor Accepted geprüft. Eigener BP2-Zweck,
+MAC-Frames/Records unter derselben Kontrollsperre, Ergebnis-Hashes in Endrecords gebunden. Je
+funktionaler/gemessener Serie 18 MAC-Records/14 BP2-Records/drei verbrauchte Launches geprüft,
+Profile/Fixtures entfernt. Frisches ETW des Paars `5205d72…`/`62d7a73…`: neun explizite Enden, acht
+Kontrollen, keine Verluste/Zuordnungslücken oder beobachtetes Netz in diesen Bäumen. Drei neue
+aktive Tests/136 insgesamt bestanden, sieben bewusst ignoriert, Clippy/rustfmt und 27
+Auswertungstests grün. Kein App-/Transport-/Installerumbau, native UI-ABI bleibt 0. **Keine
+Runtime-/Datenautorität:** BP1-Modell ist kein nativer Grant, BP2 keine vollständige
+Modul-/Rollenattestierung. **Nächster Scope BP3:** präventiven Wächter-/Lade-/WebView-Erzeugungsweg
+und Machbarkeit klären; Kindstartsperre nicht für Kompatibilität abschalten, keine Hersteller-/
+Signaturausnahme oder Schutzsoftwareänderung. BP4 Datenrechte/Commands und C4b insgesamt/C4c/d,
+P2/P3–P5 und Produkt-Q-01/Q-02 bleiben offen. Mittleres Prüfniveau und striktes Datenschutzziel
+unverändert; Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
+
+CI des vorherigen Übergabeheads `b881d59` vollständig grün (Windows/Linux/Dependency Review).
+[Aktuelle Übergabe](WORKSTATION_HANDOFF.md#aktueller-einstieg-und-gesicherter-stand); neue Head-CI
+gesondert prüfen.
+
+Vorheriger nativer Netzbeleg · C3, 17. November 2026:
+
+[Gezieltes C3-ETW](testing/product-start-p2c-group-bootstrap-etw.md) des unveränderten Builds
+`b24b3aa…` ist ergänzt: normaler Abschluss und Gruppenfehler/gesperrter Wiederanlauf. 28 Controller,
+sieben Root-/fünf Kindrollen, 28 Konsolenhosts; alle 68 Enden explizit. Acht lokale Kontrollen,
+Nullverluste/ Zuordnungslücken und null beobachtete Netzereignisse in diesen Bäumen einschließlich
+Loopback. Alle 28 nativen Controller-Erzeugungszeiten sowie sechs Root-/fünf Kindbindungen exakt mit
+Kernel abgeglichen; Root-Ende vor Kindende in allen fünf gebundenen Fällen. 66 MAC-Records/sieben
+verbrauchte Launches/sechs Inventare unabhängig geprüft; drei Profile entfernt (zwei Broker-/ein
+eigener Fixturecleanup), negativer Store weiter pending, echte Kontrollhashes unverändert. 42
+Diagnose-Tests grün, kein neuer Build/Runtimeumbau oder Produktfreigabe. Native UI-ABI bleibt 0;
+Gruppen-MAC ist keine unabhängige Renderer-/Schreiber-PID-Autorität. Der inzwischen ergänzte
+C4-Vertrag steht oben; keine automatische Übertragung auf WebView. P2 insgesamt/P3–P5 und
+Produkt-Q-01/Q-02 bleiben offen. Gesamt grob 65 % (60–70 %), nutzbarer 0.1-Funktionsumfang grob 80
+%; keine Zeit-/Produktionsreifequote. Striktes Datenschutzziel unverändert.
+
+Vorheriger Implementierungs-/Netznachweis:
+
+[Frischer Workerbindungs-/Wiederanlauf-Netzbeleg](testing/product-start-worker-lifetime-etw.md).
+Frisches Workerbindungs-v3-ETW, 17. November: unveränderter Build `37d7bec…`, normale Referenz und
+vier Wiederanlaufpfade. 52 Controller/acht Worker/52 Controller-Konsolenhosts, alle 112 Enden
+explizit; acht Kontrollen, Nullverluste/Zuordnungslücken, null beobachtete Netzereignisse in den
+ausgewählten Bäumen. Alle acht nativen Erzeugungszeiten zum Kernel abgeglichen, sieben dauerhafte
+Bindungen und drei Endrecords nach bestätigtem Kernelende zugeordnet. Exit 0 ersetzt keinen
+fachlichen Abschluss: vier Finish-Records, drei reconciliierte Starts, ein ungebundener Start weiter
+pending/gesperrt. Daten/MAC-/Paket-/Root-/Profilaudit und 42 Diagnose-Tests grün, echte Daten und
+Schlüssel unverändert. Kein neuer Build/App-/Transport-/Installerumbau oder pnpm check; Rohdaten nur
+lokal. Der damals nächste Vertragsumfang ist inzwischen als P2c-Entwurf dokumentiert; die Umsetzung
+bleibt offen. Ein-Prozess-Beleg nicht auf WebView2 übertragen, private Fixtures nicht promovieren;
+ungebundene Starts/unbestätigte Profile und P2 insgesamt/P3–P5/Produkt-Q-01/Q-02 offen, striktes
+Ziel unverändert.
+
+Vorheriger Stand:
+
+[Dauerhafte Workerbindung und Wiederanlauf](testing/product-start-worker-lifetime.md). Dauerhafte
+P2b-Workerbindung, 17. November: Execution v3/Bereinigungs-ABI 3, sechs Recordslots reserviert.
+WorkerBound bindet Launch, native PID/Erzeugungszeit und geprüfte Ein-Prozess-Jobpolicy vor Resume;
+enger nativer Lease-/Job-/Token-Wächter erlaubt nur diesen Record bei aktivem Worker, andere
+Storemutationen behalten Jobleerstand. Wiederanlauf vor Drained benötigt diesen MAC-Beleg und
+tatsächliches Ende derselben Prozessgeneration: signalisiertes Handle, andere Erzeugungszeit oder
+PID-Abwesenheit mit vollständigem Snapshot; keine fremde Terminierung, Fehler bleiben gesperrt.
+RecoveredDrain wird vor eigenem Profilcleanup gespeichert. Vier native Crashfälle: drei gebundene
+Starts sicher reconciliert und neue Generation erfolgreich; Start vor WorkerBound bleibt auch nach
+separatem eigenem Fixturecleanup pending/gesperrt. 47 Controller/sieben Worker, 63 Records, sieben
+verbrauchte Launches, 42 private Dateisperren; sieben Profile am Ende abwesend. 75 aktive
+Helfer-/Transporttests/Clippy und unabhängiger MAC-/PE-/Root-/Inventar-/Profilaudit grün, echte
+Daten und Schlüssel unverändert. Neuer gesicherter Runtimehash `37d7bec…`, kein
+App-/Transport-/Installer- umbau oder pnpm check. Nächster Scope: gezieltes frisches ETW dieses
+Controllers samt Worker-/ Lebenszeit-/Recoverypfaden. Voriger Netzbeleg bleibt an `9021872…`
+gebunden. Ein-Prozess-Prototyp ist keine mehrprozessige GUI; ungebundene Starts/unbestätigte
+Profile, persistente echte Arbeitsablagen-/UI-Bindung, P2 insgesamt/P3–P5 und Produkt-Q-01/Q-02
+offen; striktes Ziel unverändert.
+
+Vorheriger Stand:
+
+[Frischer Ressourcen-Reconciliation-Netzbeleg](testing/product-start-resource-reconciliation-etw.md).
+Frisches Ressourcen-ABI-2-ETW, 17. November: unveränderter Runtimebuild `9021872…`, normaler
+Workerabschluss als Referenz gegenüber vier gezielten Ressourcenabbrüchen/Reconciliation. 54 direkte
+Controller, sechs Worker, 54 Controller-Konsolenhosts, alle 114 Enden/Eltern/Exitcodes explizit
+abgeglichen. Acht lokale TCP-/UDP-IPv4/IPv6-Kontrollen, Nullverluste/Zuordnungslücken, null
+beobachtete Netzereignisse in den ausgewählten Bäumen (auch null Loopback). Daten/MACs/
+Paket-/Rootbindung und Profile unabhängig geprüft: 67 Records, neun verbrauchte Launches, 36 private
+Dateisperren, acht Profile am Ende abwesend. Sieben Broker-Cleanups; die eine eigene mehrdeutige
+Fixture bleibt ausdrücklich separate Prüfablaufbereinigung, keine Produktfreigabe. 42 Diagnose-Tests
+grün, kein neuer Build/Runtime-/App-/Transport-/Installerumbau oder pnpm check. Rohdaten nur lokal,
+echte Vorschauablage unverändert. Nächster Scope: dauerhafter Workerstartbeleg und gesicherter
+Wiederanlauf bei Controller-Crash zwischen RunIntent und Drained; bis belegtem Lebenszeitende weiter
+gesperrt. P2 insgesamt/P3–P5 und Produkt-Q-01/Q-02 offen, striktes Ziel unverändert; Beleg gilt nur
+für diese Bytes/Lebenszeiten/Pfade.
+
+Vorheriger Stand:
+
+[Begrenzte Ressourcen-Reconciliation](testing/product-start-resource-reconciliation.md).
+P2b-Ressourcen-Reconciliation, 17. November: Execution v2/Profilbereinigungs-ABI 2 mit neuen
+RunIntent-/Drained-Records, fünf Slots vor Ressourcenanlage reserviert. Unter derselben Lease werden
+fehlende unbestätigte Profile ohne Löschung abgeschlossen und bestätigte Profile nur ohne RunIntent
+oder nach dauerhaft belegtem Drain bereinigt. Exakte begrenzte HKCU-Mapping-/Moniker- Abfrage, keine
+Registryänderung; Fehler bleiben gesperrt. Bestehendes Profil ohne ProfileReady oder RunIntent ohne
+Drained wird nicht adoptiert/gelöscht. Vier native Abbruchfälle, 49 Controller, fünf erfolgreiche
+Worker, 30 private Dateisperren; sieben Profile erzeugt, sechs Broker-Cleanups, eine nachweislich
+eigene mehrdeutige Fixture ausschließlich durch den Prüfablauf separat entfernt. 73 aktive
+Helfer-/Transporttests/Clippy und unabhängiger MAC-/PE-/Root-/Inventar-/Profilaudit grün; acht
+verbrauchte Launches/56 Records, Daten/Schlüssel/echte Vorschauablage unverändert. Neuer Runtimehash
+`9021872…`, ein Helferbuild, keine App-/Transport-/Installeränderung oder pnpm check. Nächster
+Scope: gezielter frischer ETW-Vergleich dieses Builds mit Worker/Reconciliation. Voriger Netzbeleg
+bleibt ausschließlich an `590c3d4…` gebunden. Vollständige Live-Worker-Crashbereinigung, persistente
+echte Arbeitsablagen-/UI-Bindung, P2 insgesamt/P3–P5 und Produkt-Q-01/Q-02 offen; striktes
+Datenschutzziel unverändert.
+
+Vorheriger Stand:
+
+Frisches P2b-ETW, 17. November: unveränderter gesicherter Runtimebuild `590c3d4…`, zwei kurze
+gültige Messungen – Kontrollablagenreferenz und drei gezielte Workerfälle. 31 Controller, sechs
+Worker, 31 direkt zugeordnete Controller-Konsolenhosts, alle 68 Enden explizit. Acht lokale
+TCP-/UDP-IPv4/IPv6-Kontrollen, Nullverluste/Zuordnungslücken, null beobachtete Netzereignisse in den
+gemessenen Bäumen (auch null Loopback). Worker normal/MAC-Ablehnung/Sperre vor Resume und neue
+Generationen mit Replay/Kopfabwehr; native Daten/MACs, Token/Job/Lease und sechs entfernte Profile
+unabhängig bestätigt. Rohdaten nur lokal, echte Vorschauablage unverändert. 42 Diagnose-Tests;
+zusätzlich reinen Modelltest für Linux-Clippy korrigiert (Accessor statt privater Set-Zugriff), acht
+gezielte Kernprüfungen/Clippy grün. Keine Runtimeänderung/neuer Build,
+App-/Transport-/Installerumbau oder Workspace-Gesamtlauf. Nächster Scope: gesicherte
+Ressourcen-Crash-Reconciliation der P2b-Probeprofile, insbesondere
+Profilerzeugung/ProfileReady/Entfernung/Abschlussrecord. Keine Adoption unklarer Profile oder
+Bestandsdaten; P2 insgesamt, P3–P5 und Produkt-Q-01/Q-02 offen. Striktes Datenschutzziel
+unverändert, keine Übertragung auf normale App oder ungemessene Pfade.
+
+[Messung und Grenzen](testing/product-start-p2b-bootstrap-etw.md),
+[Aggregate](testing/product-start-p2b-bootstrap-etw.json). Grobe Projektfortschrittsschätzung im
+[aktuellen Roadmap-Überblick](../ROADMAP.md#grobe-fortschrittseinschätzung--17-november-2026).
+
+## Vorheriger funktionaler Stand
+
+Produktstart P2b, 17. November: authentisierter synthetischer Workerbootstrap unter derselben
+Kontrollsperre, ohne GUI oder Importtask. Separate frische Probeprofile/-daten, keine ACL-Promotion
+der privaten P2a-Fixture. Commit/ProfileReady/Receiptabschluss bzw. kontrollierte Reconciliation
+persistiert; exakte Token-/Job-/Leaseprüfung vor Resume, eigener Einmalschlüssel statt
+Kontrollschlüssel, begrenzte Pipes mit monotoner Receiptfrist. Jobleerstand am gehaltenen Objekt vor
+Profilentfernung, unklare Crashressourcen bleiben gesperrt; keine automatische Crashbereinigung.
+`.kqboot` Probe-ABI 1/UI-ABI 0, Legacy-/P2a-Marker unverändert. Vier neue Tests, 71 aktive
+Helfer-/Transporttests, gezielte Nachprüfung/Clippy grün. Drei finale native Fälle, 27
+Kontrollprozesse, sechs Worker (vier Erfolge, eine MAC-Ablehnung, eine Sperre vor Resume), 30
+private Zugriffssperren, sechs Probeprofile entfernt; unabhängiger
+MAC-/PE-/Root-/Prozess-/Profilaudit grün. Echte Daten und Vorschauablage unverändert. Finaler
+Broker/Worker `590c3d4…`, Sicherung `kraqel-product-start-p2b-build-20261117-05`, mehrere vorherige
+Entwicklungsbuilds nicht angenommen. Mittleres Prüfniveau ohne App-/Transport-/Installerumbau oder
+`pnpm check`. Nächster Scope: gezielter frischer ETW-Netzvergleich dieses Controllers samt separatem
+Workerpfad und beiden Ablehnungen. Alter ETW-Beleg nicht übertragbar. Danach
+Ressourcen-Crash-Reconciliation und echte persistente Arbeitsablagen-/UI-Bindung; P2 insgesamt/P3–P5
+und Produkt-Q-01/Q-02 offen, striktes Datenschutzziel unverändert.
+
+[Implementierung/Prüfung/Grenzen](testing/product-start-p2b-bootstrap.md),
+[Aggregate](testing/product-start-p2b-bootstrap.json).
+
+## Vorheriger funktionaler Stand
+
+Produktstart P2a, 17. November: authentisierte persistente Schema-5-Bindungs-/Launch-Records im
+pfadbegrenzten Forschungschild implementiert, nur synthetische private Ablagen ohne GUI. P1-Kern
+wird nach nativen Actor-/Kopf-/Job-/MAC-Prüfungen genutzt, Zustand aus Recorddigests rekonstruiert;
+erst passender Abschlusskopf gibt Store frei. `.kqprod` deklariert Record-ABI 1 und UI-Bootstrap-ABI
+0; Legacy-`.kqmeta` 1–4 unverändert. Keine Startcapability, kein Profil-/Importtask-/UI-Start. Drei
+native Abbruchfälle mit 31 Prozessen: vor Record, nach Kopf, unveröffentlichter Tail. Replay bleibt
+gesperrt, Tail wird nicht repariert; Schlüssel/Policy/Unicode-Daten erhalten. Vier neue Tests, 67
+aktive Helfer-/Transporttests/Clippy und unabhängiger MAC-/PE-/Root-/Inventaraudit grün. Ein
+Helferbuild, kein App-/Transport-/Installerumbau oder Workspace-Gesamtlauf. Echte
+Vorschau-/Projektdaten unverändert, Prozesse beendet. Brokerprivate Fixture ist kein
+Container-Produktvault; nicht per ACL promovieren. Neuer Broker ohne eigenen frischen ETW-Beleg.
+Nächster Scope P2b: authentisierter synthetischer Bootstrap mit Token/Job vor Ausführung, ohne
+Importtask; vor weiterer Freigabe eigener Netznachweis. Produktintegration/Bestandsübernahme offen,
+striktes Datenschutzziel unverändert.
+
+[Implementierung/Prüfung/Grenzen](testing/product-start-p2a-records.md),
+[Aggregate](testing/product-start-p2a-records.json).
+
+## Vorheriger funktionaler Stand
+
+Produktstart P1, 17. November: reine versionierte Bindungs-/Startvorschlagstypen und Zustandsregeln
+implementiert, ausschließlich `#[cfg(test)]` in `probe/src/main.rs`; keine produktive Autorität.
+`product_start.rs`/`product_start/tests.rs` ohne I/O/unsafe/Schlüssel/Transport/UI. Parser liefert
+`UntrustedStartProposal`, lehnt Import-/Fremdfelder und ungültige Versionen/Bindungen ab. Modell
+verbraucht Launch vor Running, erhält Binding/Replayhistorie bei Ende/Unterbrechung, reserviert
+Abschlussbudget; Ablehnungen ohne Mutation. Sieben neue Modelltests, insgesamt 63 aktive Helfer-/
+Transporttests und Clippy grün. Vorgeschlagenes Schema 5 bleibt nativ unimplementiert; Modellköpfe/
+Jobbedingungen sind keine MAC-/OS-Nachweise, keine Persistenz/Bootstrapfrist/Frameintegration.
+Mittleres Prüfniveau, kein App-/Helfer-EXE-Build, `pnpm check` oder neuer ETW-Lauf. Echte Daten/
+ACLs/Schlüssel unverändert, gesicherte Forschungsprogramme separat erhalten. Nächster begrenzter
+Scope P2a: authentisierte persistente Arbeitsablagenbindung/Launch-Records im Forschungsbroker, nur
+frische synthetische Wurzeln und zunächst ohne GUI; dann P2b Bootstrap/Token/Job ohne Importtask.
+Normale Produktintegration und Produkt-Q-01/Q-02 offen; striktes Datenschutzziel unverändert.
+
+[Implementierung/Prüfung/Grenzen](testing/product-start-p1-model.md).
+
+## Vorheriger Planungsstand
+
+Produktstart-/Bestandsdatenvertrag v1, 17. November: neuer ausdrücklicher Entwurf, keine
+Implementierung/Produktfreigabe. Statisch bestätigt: normaler Tauri-Start ohne vorgeschalteten
+Produktguard, getrennte Forschungs-UI, taskgebundenes RestartTicket v3 und migrationsfähige
+SQLite-Öffnung. Vorgesehen: eigene Workspace-Startautorität ohne Importtask, kein unisolierter
+Fallback, getrennte Hostkontrolle/Arbeitsablage, zerstörungsfreie explizite Bestandskopie mit
+erhaltenen IDs. Kontrollschema 5/Paketdeklaration geplant, nicht aktuell unterstützt; Forschung mit
+einer Sitzung/256 Records ist keine Produkt-Langzeitlösung. Stufen P1–P5 mit Prüfgates festgelegt.
+Nächster begrenzter Scope P1: reine versionierte Start-/Bindungstypen samt Zustandsregeln und
+gezielten Negativfällen, ohne UI-/Datei-/Produktfreigabe. Nur Dokumentation geändert, Quellen-/
+Verweis-/Format-/Diffprüfung; kein Build/neue Testmatrix. Keine echten Daten geöffnet/übernommen
+oder ACLs/Schlüssel geändert. Normaler Start weiter unisoliert, Produkt-Q-01/Q-02 offen; striktes
+Datenschutzziel unverändert. Letzter eigener Forschungs-Netzbeleg bleibt am unveränderten Build.
+
+[Vertrag/Quellen/Umsetzungsstufen](data-format/product-start-integration-v1-draft.md).
+
+## Vorheriger Netzprüfstand
+
+Frisches ETW der Prepare-Übergänge und des verwalteten Kandidaten, 17. November: unveränderte
+gesicherte Programme, zwei kurze gültige Phasen. Regulärer Schema-4-Update-/Recoverypfad als
+Referenz gegenüber den drei gezielten Übergangsabbrüchen; keine zusätzliche allgemeine Matrix. Alle
+59 direkten Aufrufe einschließlich fünf hashbenannter verwalteter EXEs erfasst, acht Kontrollen,
+Nullverluste/Zuordnungslücken, 182 explizite Enden, 0 beobachtete Nicht-Loopback-/48 getrennte
+Loopback-Ereignisse. Unabhängige MAC-/Paket-/SQLite-/Kernel-Audits grün: vier Aufgaben/vier legitime
+Kopien, keine Replaykopie, Schlüssel/App-/Sitzungsbindung erhalten. 42 Diagnose-Tests, mittleres
+Prüfniveau ohne neuen Build oder Workspace-Gesamtlauf. Echte Vorschauablage unverändert,
+Erfassungen/Prozesse beendet, Rohbelege lokal. Nächster begrenzter Scope: Start-/Integrationsvertrag
+für normalen Produktstart mit bestehenden Projekten konkretisieren; Forschungsautorität nicht
+automatisch auf echte Daten übertragen. Striktes Ziel und offene Produkt-Q-01/Q-02 unverändert.
+
+[Nachweis](testing/native-prepare-transition-etw.md),
+[Aggregate](testing/native-prepare-transition-etw.json).
+
+## Vorheriger funktionaler Stand
+
+Gezielte Prepare-Übergangsabbrüche, 17. November: drei standardmäßig inaktive Punkte im
+pfadbegrenzten Forschungschild: `artifact-removed`, `package-created`, `prepare-recorded`. Nach den
+ersten beiden bleibt der Kopf unverändert/kein Pending; danach gültiges Pending mit leerer Kopie,
+vor Retry ausdrücklich abzubrechen. Drei native Fälle mit 44 Kontrollprozessen/sechs GUIs bestanden;
+56 aktive Helfertests/Clippy grün, zwei vorhandene Tests um leere Kopien erweitert. Unabhängiger
+MAC-/Root-/Actor-/SQLite-Audit bestätigt 13/13/15 Records, erhaltene Schlüssel und
+App-/Sitzungsbindung sowie drei Aufgaben/Kopien ohne Replayduplikat. Derselbe Storelease bis
+Prozessende, keine neue Autorität oder Reparatur. Echte Vorschauablage unverändert, Testprozesse
+beendet. Mittleres Prüfniveau, kein Appbuild/Workspace-Gesamtlauf. Neue Brokerbytes ohne eigenen
+frischen ETW-Beleg; nächster begrenzter Scope: gezieltes ETW der neuen Programme einschließlich
+dieser drei Übergänge und verwaltetem Kandidaten. Unbekannte Artefakte/defekte Ketten bleiben
+gesperrt; striktes Datenschutzziel und offene Produktabnahme unverändert.
+
+[Nachweis](testing/native-prepare-transition-crashes.md),
+[Aggregate](testing/native-prepare-transition-crashes.json).
+
+## Vorheriger Netzprüfstand
+
+Frisches ETW des gesicherten Retry-Brokers, 17. November: unveränderte Programme, zwei kurze gültige
+Phasen. Referenz und kombinierter Teilkopie-/Abort-/Retry-/Aktivierungs-/Recoverypfad bestanden.
+Alle 21 direkten Aufrufe einschließlich fünf hashbenannter verwalteter EXEs erfasst, unveränderte
+Root-/Kalibrierungs-/Verlust-/Lebenszeitguards. Acht Kontrollen, Nullverluste/Zuordnungslücken, 144
+explizite Enden, 0 beobachtete Nicht-Loopback-/48 getrennte Loopback-Ereignisse. Unabhängige
+MAC-/Paket-/SQLite-/Kernel-Audits grün: drei Aufgaben/zwei legitime Kopien, keine Replaykopie,
+Schlüssel/App-/Sitzungsbindung erhalten. 42 Diagnose-Tests, mittleres Prüfniveau ohne neuen Build
+oder Workspace-Gesamtlauf. Echte Vorschauablage unverändert; Prozesse/Erfassungen beendet, Rohbelege
+lokal. Nächster begrenzter Scope: Prozessabbrüche zwischen Artefaktentfernung, Zielanlage und
+Prepare-Record gezielt prüfen. Unbekannte Artefakte/defekte Ketten bleiben gesperrt; striktes
+Datenschutzziel, normale Produktintegration und offene Produkt-Q-01/Q-02 unverändert.
+
+[Nachweis](testing/native-package-artifact-retry-etw.md),
+[Aggregate](testing/native-package-artifact-retry-etw.json).
+
+## Vorheriger funktionaler Stand
+
+Sichere Paketartefakte/erneute Vorbereitung, 17. November: Schema 4 leitet ersetzbare Hashs nur aus
+authentisierten Abort-Records ab. Aktueller Actor/Kopf, Jobleerstand und erlaubter Übergang vor
+jeder Dateimutation; dieselbe Kontrollsperre durchgehend gehalten. Geprüfte Einlink-Datei über
+exklusiven Handle entfernen; aktive/früher aktivierte oder unbekannte Pakete, unsichere Links/ACLs
+und gesperrte Dateien nicht bereinigen. Zieldatei vor neuem Pending exklusiv erzeugen. Drei neue
+Tests, 56 aktive Helfertests/Clippy und drei native Retryfälle/Daten-MAC-Audit grün. Schlüssel,
+App-/Sitzungsbindung und drei legitime Projektkopien erhalten, kein Replayduplikat. Echte
+Vorschauablage unverändert, Testprozesse beendet. Neuer Broker ohne eigenen frischen ETW-Beleg;
+mittleres Prüfniveau, kein App-/Workspace-Gesamtlauf. Nächster begrenzter Scope: gezieltes frisches
+ETW des neuen Brokers samt Retry und verwaltetem Kandidaten. Unbekannte Artefakte ohne Abort und
+unvollständige Kontrollketten bleiben gesperrt; striktes Ziel und offene Produktabnahme unverändert.
+
+[Nachweis](testing/native-package-artifact-retry.md),
+[Aggregate](testing/native-package-artifact-retry.json).
+
+## Vorheriger funktionaler Prüfstand
+
+Gezielte Update-Abbruch-/Fehlerreconciliation, 17. November: vorhandener sicherer Laufzeitpfad mit
+zwei zusätzlichen Helfertests und neuem reproduzierbarem nativen PS-Helfer abgesichert. Drei Fälle
+bestanden: Teilkopie, Paketmanipulation, Prozessende nach veröffentlichtem Abort. Aktueller
+Actor/Kopf, leeres Jobobjekt und dieselbe Kontrollsperre bleiben erforderlich; keine Reparatur
+unvollständiger Ketten. 53 aktive Helfertests/Clippy grün. 45 Kontrollprozesse/sechs GUIs, drei
+Aufgaben und drei legitime Kopien, keine Replaykopie; unabhängiger Daten-/MAC-/SQLite-Audit grün.
+[Nachweis](testing/native-update-abort-reconciliation.md),
+[Aggregate](testing/native-update-abort-reconciliation.json). Echte Vorschauablage unverändert,
+Testprozesse beendet. Mittleres Prüfniveau, kein neuer Broker-/Appbuild oder Workspace-Gesamtlauf.
+Kein neuer ETW-Beleg dieser zusätzlichen Fehlerläufe. Offene Einschränkung: Abort lässt Paketbytes
+liegen, erneute Vorbereitung desselben Hashs kann wieder Pending erzeugen. Nächster begrenzter
+Scope: abgebrochene Paketartefakte sicher behandeln/erneut vorbereiten unter derselben Sperre.
+Striktes Datenschutzziel, normale Produktintegration und offene Produkt-Q-01/Q-02 unverändert.
+
+## Vorheriger Netzprüfstand
+
+Gezieltes frisches ETW beider Schema-4-Updateprogramme, 17. November: gesicherte Programme
+unverändert, zwei kurze gültige Phasen. Alle 15 Updateaufrufe erfasst, davon fünf unter dem
+hashbenannten verwalteten EXE-Namen; exakte PID-/Image-Zuordnung nur für `native-control`. Acht
+Kontrollen, Nullverluste/Zuordnungslücken, 132 explizite Enden, 0 beobachtete Nicht-Loopback-/48
+getrennte Loopback-Ereignisse. Unabhängige Daten-/MAC-/Lebenszeitaudits grün: drei verschiedene
+Aufgaben/zwei legitime Kopien, kein Replayduplikat, erhaltener Schlüssel-/App-/Sitzungsbezug. 42
+Diagnose-Tests bestanden, mittleres Prüfniveau; kein neuer Build/Workspace-Gesamtlauf.
+[Nachweis](testing/native-schema4-package-update-etw.md),
+[Aggregate](testing/native-schema4-package-update-etw.json). Echte Vorschauablage unverändert;
+Erfassungen und Prozesse beendet. Nächster begrenzter Scope: Update-Abbruch-/Fehlerreconciliation
+unter derselben Sperre. Normale Produktintegration, echte Paket-/Datenmigration und
+Produkt-Q-01/Q-02 weiter offen; striktes Datenschutzziel unverändert.
+
+## Vorheriger funktionaler Prüfstand
+
+Lokale Update-/Paketkompatibilität für Kontrollschema 4, 17. November: Vorbereitung/Aktivierung/
+Abbruch unter bestehender Kontrollsperre implementiert. Bounded read-only `.kqmeta`-PE-Vertrag vor
+Pending und Aktivierung, keine Kandidatenausführung vorher. Vollständiger erwarteter SHA, aktueller
+Actor/Kopf/Jobleerstand und Rollbackabwehr bleiben verbindlich. Drei neue Tests, 51 aktive
+Helfertests/Clippy grün; ein gezielter nativer Updateablauf mit 15 Kontrollprozessen, zwei GUIs,
+Recovery/Replay/Cleanup und fünf erwarteten Abweisungen bestanden. Unabhängiger
+Metadaten-/MAC-/SQLite-/Unicode-Audit bestätigt unveränderte Installation/Schlüssel/Sitzung/App und
+genau eine erhaltene Projektkopie. [Nachweis](testing/native-schema4-package-update.md),
+[Aggregate](testing/native-schema4-package-update.json). Synthetischer Kandidat gleicher Code mit
+anderem Hash, keine beliebige Release-/Appdatenmigration. Echte Vorschauablage unverändert.
+Mittleres Prüfniveau, kein Workspace-Gesamtlauf/neue große Matrix. Der eigene frische ETW-Beleg der
+neuen Programme ist inzwischen oben verlinkt. Normale Produktintegration/Apppaketmigration und
+Produkt-Q-01/Q-02 weiter offen; striktes Ziel unverändert.
+
+## Vorheriger Prüfstand mit eigenem Netznachweis
+
+Gezielter frischer ETW-Vergleich des Cleanup-Stands, 17. November: gesicherte EXEs unverändert. Zwei
+gültige kurze Phasen: bisherige Recoveryserie und zwei Cleanup-Fälle samt 19 direkten
+Kontrollaufrufen. Acht Kontrollen, Nullverluste/Zuordnungslücken, alle 140 Prozessenden explizit. 0
+beobachtete Nicht-Loopback-/48 getrennte Loopback-Ereignisse. Daten-/MAC-/Kernel-Lebenszeitaudits
+grün; drei persistierte Aufgaben/zwei legitime Kopien, keine Replaykopie. Neuer Auswertungsmodus
+`native-control` für GUI-lose Hostaufrufe erhält alle allgemeinen Messguards; bisherige GUI-Modi
+unverändert. 39 Diagnose-Tests bestanden, bewusst mittleres Prüfniveau ohne neue Builds oder
+Workspace-Gesamtprüfung. [Nachweis](testing/native-profile-cleanup-etw.md),
+[Aggregate](testing/native-profile-cleanup-etw.json). Echte Vorschauablage unverändert,
+Erfassungen/Prozesse beendet; private Rohbelege erhalten. Nächster Scope: lokale Update-/
+Paketkompatibilität für Kontrollschema 4. Striktes Datenschutzziel unverändert; normale
+Produktintegration, weitere Crashpunkte/echte Datenmigration und Produkt-Q-01/Q-02 weiter offen.
+
+## Vorheriger funktionaler Prüfstand
+
+Authentisierte Profilbereinigung, 17. November: explizites Kontrollschema 4 persistiert Vorbereitung
+vor Profilerzeugung und Cleanupabschluss nach authentisierter Stilllegung. Dieselbe Kontrollsperre
+bleibt über Profillöschung und Recordabschluss gehalten. Wiederholung idempotent, Profilidentität
+nur aus Kontrollkette, keine neue Importautorität. Zwei gezielte neue Tests und zwei native Fälle
+bestanden: fehlendes Profil nach vorbereitendem Controllerabbruch sowie Cleanup-Reconciliation nach
+Stilllegungsabbruch. Kurzer Schema-4-Start/Recovery erhält eine Kopie mit zwei Dokumenten. 48 aktive
+Helfertests, Clippy, Format-/MAC-/Datenaudit grün. [Nachweis](testing/native-profile-cleanup.md),
+[Aggregate](testing/native-profile-cleanup.json). Auf ausdrücklichen Wunsch mittleres Prüfniveau:
+kein neuer Workspace-Gesamtlauf oder große Crash-/ETW-Matrix. Neuer Broker noch ohne frisches ETW;
+nächster Scope: gezielter Netzvergleich. Echte Vorschauablage unverändert, Testprozesse beendet.
+Alte ungebundene Orphans/defekte Kontrollketten bleiben gesperrt; normale
+Produktintegration/Updatepolitik weiter offen. Striktes Datenschutzziel unverändert, keine
+Produktfreigabe.
+
+## Vorheriger Prüfstand mit eigenem Netznachweis
+
+Sitzungsübergangs-Crashpunkte und eigener frischer ETW-Vergleich, 17. November: 20 neue
+Übergangsabbrüche an Bindung, Recovery-Startrecord und Stilllegung samt 13 vorbereitenden
+Controllerabbrüchen. Neun unvollständige Abschlüsse bleiben gesperrt, elf Zustände authentisierbar;
+nur vier davon ausdrücklich wiederanlaufbar. Kein automatischer Schlüsselreset oder Reparieren.
+Unabhängige MAC-/Wurzel-/SQLite-/Unicode-Audits bestanden. Frischer ETW-Vergleich desselben
+gesicherten Builds mit bisheriger Recoveryserie und neuer Crash-Serie: acht Kontrollen,
+Nullverluste/Zuordnungslücken, alle 458 Prozessenden explizit. 0 beobachtete Nicht-Loopback-/138
+getrennte Loopback-Ereignisse. 15 globale persistierte Aufgaben/14 legitime Kopien, keine
+Replaykopie. 46 aktive Helfertests, Clippy/`pnpm check`, 36 Diagnose-Tests grün.
+[Nachweis](testing/native-session-transition-crash-etw.md),
+[Aggregate/Hashes](testing/native-session-transition-crash-etw.json). Testprofile entfernt,
+Erfassungen/Prozesse beendet, private synthetische Fixtures bewusst erhalten. Echte Vorschauablage
+unverändert. Nächster Scope: authentisierte Profil-Cleanup-Reconciliation unter derselben
+Kontrollsperre; echte Datenmigration/Schema-3-Updates/Produktintegration weiter offen. Striktes Ziel
+unverändert, Produkt-Q-01/Q-02 nicht bestanden.
+
+## Vorheriger funktionaler Prüfstand
+
+Dauerhafte Apppaket-/Sitzungsbindung und authentisierter Wiederanlauf, 17. November: Kontrollschema
+2 → 3 explizit implementiert. Dieselbe private Kontrollkette bindet App-SHA, kanonische
+Sitzungswurzel, Task und Startkennungen; Recovery nutzt dieselbe Kontrollsperre und denselben
+Produktjob, niemals einen neuen Importgrant. Fehlendes Journal, manipuliertes Paket, alte Köpfe und
+Stilllegung werden abgewiesen. Zwei native Controllerabbrüche, sechs GUI-Starts, vier
+Recoveries/acht Replay-Ereignisse, 36 echte Dateiverweigerungen; genau eine legitime Kopie über zwei
+synthetische Aufgaben. Unabhängiger MAC-/Wurzel-/SQLite-/Unicode-Audit grün. 45 aktive Helfertests,
+Clippy/`pnpm check` bestanden. Echte Vorschauablage/verwaltete EXE unverändert.
+[Nachweis](testing/native-product-session-recovery.md),
+[Aggregate](testing/native-product-session-recovery.json). Eine Bindung je Installation, maximal 16
+Starts, Schema-3-Updates/echte Datenmigration/normaler Produktstart offen. Kein frischer ETW-Beleg
+des neuen Brokerhashs. Nächster Scope: zusätzliche Bindungs-/Startrecord-/ Stilllegungs-Crashpunkte,
+dann frischer ETW-Vergleich; striktes Ziel unverändert, Q-01/Q-02 offen.
+
+## Vorheriger funktionaler Prüfstand
+
+Kontrollgebundener isolierter Startpfad, 17. November: native synthetische Vorschau hält die private
+Kontrollsperre über die gesamte GUI-/Joblaufzeit und verwendet denselben benannten Produktjob wie
+Updates. Schema/Pending/Kopf/Actor/Apphash und auch leere Jobkollisionen geprüft. Quelle und Kopie
+gepinnt, tatsächliche Sperre/Rootzuweisung vor Resume geprüft. Zwei native Starts mit Neueröffnung
+derselben Kontrollablage, aber ausdrücklich getrennten neuen TEMP-Appdaten; zwölf tatsächliche
+Dateiverweigerungen, zwei synthetische Aufträge/zwei legitime Kopien mit je zwei Dokumenten.
+Unabhängiger MAC-/Wurzel-/SQLite-/Unicode-Audit bestanden, private Datenrolle bleibt leer. 43 aktive
+Helfertests, Clippy/`pnpm check` grün. Echte Vorschauablage/verwaltete EXE unverändert.
+[Nachweis](testing/native-product-starter.md), [Aggregate](testing/native-product-starter.json).
+Noch keine dauerhafte Produktdaten-/Sitzungsbindung, keine echte Datenmigration, kein frischer
+ETW-Beleg des neuen Brokerhashs und keine normale Produktintegration. Nächster Scope: authentisierte
+dauerhafte Apppaket-/Sitzungsbindung und Wiederanlauf unter derselben Sperre, danach frischer
+ETW-Vergleich. Striktes Ziel unverändert, Produkt-Q-01/Q-02 nicht bestanden; #134 offen.
+
+## Vorheriger Prüfstand mit eigenem Netznachweis
+
+Kontroll-Crash-Serie und eigener frischer ETW-Vergleich, 16. November: 28 echte Prozessabbrüche an
+Initialisierung, Kontrollmigration, Updatevorbereitung/Paketkopie, Aktivierung und Abbruch. 17
+Zustände bleiben korrekt gesperrt, elf nutzbar; acht ausdrücklich weitergeführt, kein automatisches
+Reparieren oder Schlüsselreset. Je erfolgreicher Serie 162 Child-Controller, 28 Enden 86/58
+erwartete Abweisungen/76 erfolgreiche Enden. Funktionaler und neuer gemessener Lauf unabhängig
+MAC-/Kopf-/Wurzel-/Paket-/Daten-geprüft. Beide ETW-Phasen gültig: bisherige GUI-/Broker-Serie mit 72
+Apps plus neue Kontrollserie mit zwei Container-GUIs, acht Kontrollen, Nullverluste, keine
+Zuordnungslücken, alle 1.136 Enden explizit. 0 beobachtete Nicht-Loopback-/444 getrennte
+Loopback-Ereignisse. 40 aktive Helfertests, Clippy/`pnpm check`, 36 Diagnose-Tests grün.
+[Nachweis](testing/native-product-control-crash-etw.md),
+[Aggregate/Hashes](testing/native-product-control-crash-etw.json). Testprofile und Prozesse/
+Erfassungen beendet; synthetische Kontroll-Fixtures absichtlich erhalten. Dauerhafte echte
+Vorschauablage und ihr autorisierter Broker unverändert, keine automatische Aktivierung des
+Prüfbuilds. Nächster Scope: isolierter Produktstarter mit derselben Sperre und getrennten
+Datenrollen. Gesperrte Abschlüsse, echte Datenmigration, Herausgebervertrauen und allgemeine
+F08-/Dienstgrenzen weiter offen; striktes Ziel unverändert, Produkt-Q-01/Q-02 nicht bestanden.
+
+## Frühere Prüfstände und damalige nächste Schritte
+
+Der aktuelle nächste Schritt steht oben. Frühere Netzbelege gelten ausschließlich für ihre jeweils
+dokumentierten Programme und Lebenszeiten.
+
+Dauerhafte native Kontrollablage, 16. November: Windows-Vorschau unter lokalem Benutzerprofil
+implementiert, unabhängig von TEMP/Paketcache. Private ACLs vor Schlüsselerzeugung geprüft,
+exklusive Sperre, HMAC-Übergangskette und Abschlusskopf, explizite Vorbereitung/Aktivierung/Abbruch
+lokaler SHA-freigegebener EXEs. Authentisierte Kontrollschema-Migration 1 → 2 schaltet Updatepolitik
+frei. Drei native Programmwechsel, Vorgänger-/Rollback-/Stale-Aufrufe abgewiesen. 30 Kontroll-
+Prozessaufrufe, zehn erwartete Abweisungen, 18 tatsächliche Dateiverweigerungen unter drei echten
+AppContainer-Tokens; fünf zusätzliche GUI-Regressionsstarts bestanden. Unabhängiger MAC-/
+Kopf-/Wurzel-/Paket-/SQLite-/Unicode-Audit bestanden, Genesis über Wechsel unverändert. 39 aktive
+Helfertests, Clippy und `pnpm check` grün; keine normale Appcodeänderung/vollständigen Appbuilds.
+Alle Testprofile entfernt/Prozesse beendet; dauerhafte Vorschauablage bleibt erhalten, deren
+Datenordner leer. [Nachweis](testing/native-product-control.md),
+[Aggregate](testing/native-product-control.json),
+[Vertrag](data-format/native-product-control-v1.md). Keine vorhandenen Projekte oder
+Forschungsjournale migriert, keine normale Produktintegration oder Herausgeber-/Netzabnahme. Die
+damals folgende Kontroll-Crash-Serie und deren eigener frischer ETW-Lauf sind inzwischen oben
+belegt; Produktstarter und echte Datenmigration bleiben offen. Striktes Datenschutzziel unverändert,
+Produkt-Q-01/Q-02 nicht bestanden.
+
+Frischer ETW-Netzvergleich des Fensterende-Paars, 16. November: Unverändertes gesichertes Paar in
+zwei getrennten gültigen Phasen geprüft. Automatik: neun Fälle/72 Apps/54 abgewiesene Folgeaktionen;
+manuell: beide Hauptfensterschlüsse einschließlich nativer Auswahl, Teiltransfer und Recovery/
+Replay/neuen Aufträgen, 16 Apps. Acht Kontrollen, Nullverluste, keine Zuordnungslücken; 119 Broker,
+88 Apps, 528 WebViews, 207 Console-Hosts, alle 942 Enden explizit. 0 beobachtete Nicht-Loopback- und
+536 getrennte Loopback-Ereignisse. Unabhängige MAC-/Ketten-/Hash-/SQLite-/Unicode-/Lebenszeitaudits
+bestanden: 22 unterschiedliche verbrauchte Aufträge, genau 13 legitime Kopien, kein Replay-Duplikat.
+Alle elf Profile entfernt, Messungen/Prozesse beendet. 36 Diagnose-Tests und Format-/Diff-/Hash-/
+Faktenprüfung bestanden; kein Runtimeumbau oder neuer Build.
+[Nachweis](testing/native-combined-window-close-etw.md),
+[Aggregate/Hashes](testing/native-combined-window-close-etw.json). Nächster Scope: geschützte
+dauerhafte Produktablage und authentisierte Updates/Migration. Weitere allgemeine Fensterende-/
+F08-Randfälle, externe Dienste und Produktintegration offen; striktes Ziel unverändert,
+Produkt-Q-01/Q-02 nicht bestanden.
+
+Kombinierte Fensterendeprüfung, 16. November: Native Hauptfensterschlüsse bei offenem Dateidialog
+und während eines echten Teiltransfers mit dem korrigierten Helfer bestanden. App unverändert; zwei
+reguläre initiale App-/Brokerenden 0, Auswahlthreads beendet, alte Aufträge `CANCELLED` ohne Kopie.
+Teiltransfer beidseitig 1.024 von 11.915 Bytes. Anschließend je vorzeitigen Folgeauftrag abweisen,
+authentisierte Recovery/Replay-Abwehr, ausdrücklich neuen Auftrag und zweifache Recovery prüfen:
+insgesamt 16 Apps, vier unterschiedliche Aufträge, genau zwei legitime Kopien. Unabhängige
+MAC-/Ketten-/Hash-/SQLite-/Unicode-Prüfung bestanden. Beide finalen Profile entfernt, Prozesse
+beendet; verworfener Erstlauf wegen inkonsistenter manueller Modusprüfung ausdrücklich unbestanden,
+dessen prozessfreies Profil gezielt entfernt, keine Autorität repariert oder wiederverwendet. 31
+aktive Helfertests, Helfer-Clippy und `pnpm check` bestanden, kein vollständiger Appbuild.
+[Nachweis](testing/native-combined-window-close.md),
+[Aggregate/Hashes](testing/native-combined-window-close.json). Damals nächster Schritt (inzwischen
+oben belegt): frischer ETW- Netzvergleich des neuen Fensterende-Paars; vorige Netzbelege nicht
+übertragen. Produktablage, Updates/Migration, weitere allgemeine Fensterende-/F08-Randfälle und
+externe Dienste offen. Striktes Datenschutzziel unverändert, Produkt-Q-01/Q-02 nicht bestanden.
+
+Tastatur und frisches ETW des manuellen Brokerpaars, 16. November: Eigener Tastaturvorlauf sowie
+alle vier gemessenen Wiederanlaufzustände ausschließlich per Tastatur laut menschlicher Bestätigung
+erfolgreich; Ansagen/Fokus und native Replay-Aufrufe vor Fensterende gegengeprüft.
+DOM-Pointer-Ereignisse bleiben dokumentiert, physische Eingabemethode nicht unabhängig bewiesen.
+Zwei gültige kalibrierte Erfassungen desselben gesicherten Paars, acht Kontrollen, Nullverluste,
+alle 906 Prozessenden explizit: 117 Broker, 84 Apps, 504 WebViews, 201 Console-Hosts. 0 beobachtete
+Nicht-Loopback- und 514 getrennte Loopback-Ereignisse. Automatik: neun Fälle/72 Apps/54 abgewiesene
+Folgeaktionen; manuell: vier reguläre Enden/zwölf Apps, echte initiale Dateiauswahl. MAC-/Ketten-/
+Hash-/SQLite-/Unicode- und chronologische Lebenszeitaudits bestanden: 22 verschiedene verbrauchte
+Aufträge, genau zwölf legitime Kopien, kein Replay-Duplikat. Alle Profile entfernt, Erfassungen/
+Prozesse beendet. 36 Diagnose-Tests bestanden, keine Runtime-/Auswerteränderung oder neuen Builds.
+[Nachweis](testing/native-combined-assistive-restart-etw.md),
+[Aggregate/Hashes](testing/native-combined-assistive-restart-etw.json). Nächster Scope: weitere
+kombinierte Fensterendeprüfung, danach geschützte Produktablage und Updates/Migration. Externe
+Dienste und Produktintegration bleiben offen; striktes Ziel unverändert, Produkt-Q-01/Q-02 nicht
+bestanden. Frühere zwei abgelehnte Erstversuche bleiben ausdrücklich unbestanden.
+
+Vorherige assistive kombinierte Prüfung, 16. November: Neuer manueller Broker-Wiederanlauf mit
+unveränderter App. Unterbrechung nach echter Dateiauswahl, Abschluss, synthetischer Abbruch und
+ungültiges Archiv mit Windows-Sprachausgabe/Fokus und nativem Replay-Gegenbeleg bestätigt. Vier
+reguläre manuelle Enden, vier gesperrte Altanfragen, vier MAC-Abschlussbelege; unabhängige
+Ketten-/SQLite-/Unicode- Prüfung bestanden. Fünf Aufträge, genau zwei legitime Kopien; Profile
+entfernt, Prozesse beendet. Zwei erste Wiederanläufe ohne nativen Replay-Gegenbeleg trotz
+menschlicher Bestätigung wurden korrekt abgelehnt und sind nicht als bestanden gezählt. Reine
+Tastatur-Replay-Abnahme war damals noch offen; keine Ursache behauptet. 28 aktive Helfertests,
+Helfer-Clippy und `pnpm check` bestanden. [Nachweis](testing/native-combined-assistive-restart.md),
+[Aggregate/Hashes](testing/native-combined-assistive-restart.json). Damals nächster Schritt:
+frischer ETW- Netzvergleich des geänderten Helferpaars samt automatischer Regression, inzwischen
+oben belegt. Der folgende ältere Netznachweis gilt nur für sein damaliges Hashpaar. Weitere
+Fensterendeprüfung und Produktintegration bleiben offen; striktes Datenschutzziel unverändert,
+Produkt-Q-01/Q-02 nicht bestanden.
+
+Kombinierter ETW-Nachweis, 16. November: Das unveränderte gesicherte v3-Paar ist frisch in zwei
+getrennten Phasen gemessen, einschließlich echter manueller Dateiauswahl und neuer Folgeaufträge.
+Beide gültig: acht Kontrollen, Nullverluste, keine Zuordnungslücken/unklaren Ziele; 114 Broker, 80
+Apps, 480 WebViews, 194 Console-Hosts und alle 868 Enden explizit. 0 Nicht-Loopback- und 480
+getrennte Loopback-Ereignisse. Native Abläufe, MAC-/Root-/Programmhashbindung und
+Journal/SQLite/Unicode/Kopien unabhängig im Messlauf bestätigt.
+[Nachweis](testing/native-combined-live-restart-etw.md),
+[Aggregate/Hashes](testing/native-combined-live-restart-etw.json). Erfassungen/Prozesse beendet,
+Runtime und normale Debug-App unverändert. Damals nächster Scope: kombinierte assistive
+Wiederanlauf-/ Fehlerprüfung und weitere Fensterendeprüfung. Produktablage/Updates/Migration und
+externe Dienstgrenzen bleiben offen; striktes Ziel unverändert, Produkt-Q-01/Q-02 nicht bestanden.
+
+Kombinierter Live-/Neustartpfad, 16. November: Startticket und Brokerkette v3 implementiert.
+Initiale Live-Auswahl, verbrauchte IDs, authentisierter Wiederanlauf ohne Auswahlhandles und
+expliziter neuer Folgeauftrag mit signierter Vorgängerkette/Abschlussbeleg. Finale native Serie:
+neun Fälle, 72 App-Starts, 18 Controller-Kills, 27 Wiederanläufe und 54 abgewiesene Folgeaktionen;
+keine doppelte Ausführung. Manuelle native Auswahl nach behobenem Shell-Pfadfehler bestätigt, danach
+Wiederanlauf/neuer Auftrag/Replay/Stilllegung nativ und unabhängig geprüft.
+[Nachweis](testing/native-combined-live-restart.md),
+[Aggregate/Hashes](testing/native-combined-live-restart.json). Zusätzlich 28-Start-Regression,
+Gesamtprüfung, 28 aktive Helfertests, zwei lokal ausgeführte Dialogtests, zwei Feature-Origin-/DTO-
+und acht Browser-Forschungstests bestanden. Normale Debug-App ohne Forschungsseite
+wiederhergestellt. Paar separat gesichert; dieser ursprüngliche Funktionslauf enthält keinen
+ETW-/Hörnachweis. Der spätere eigene ETW-Beleg steht oben. Nächster Scope: kombinierte assistive und
+weitere Fensterendeprüfung; Produktablage/Update-/Migrationspfad und externe Grenzen bleiben offen.
+Striktes Ziel unverändert; normale Produktstarts unisoliert, Q-01/Q-02 nicht bestanden. Frühere
+Absätze bezeichnen frühere Stufen/Hashpaare.
+
+HMAC-ETW 16. November: Eigener frischer gültiger Netzbeleg des gesicherten neuen Paars bestanden.
+Gesamter Serienbaum mit 103 Broker-, 30 App-, 180 WebView- und 133 Console-Host-Lebenszeiten; alle
+446 Enden explizit, vier Kontrollen, Nullverluste, 0 Nicht-Loopback- und 180 getrennte
+Loopback-Ereignisse. PID-Wiederverwendung lebenszeitgebunden mit allen 30 Startbelegen geprüft.
+Native Serie mit 78 Ablehnungen und unabhängige MAC-/Datenprüfung im Messlauf erneut bestanden.
+[Nachweis](testing/native-hmac-broker-etw.md),
+[Aggregate/Hashes](testing/native-hmac-broker-etw.json). Erfassung/Prozesse beendet, Paar
+unverändert. Nächster Scope: kombinierter Live-/Neustartpfad, geschützte Produktablage und
+authentisierter Update-/Migrationspfad. Externe Dienstgrenzen und Produktintegration weiter offen;
+striktes Ziel und nicht bestandene Produkt-Q-01/Q-02 unverändert.
+
+HMAC-Fortschreibung 16. November: DPAPI aus der Broker-Wiederanlaufautorität entfernt; neuer
+[Vertrag v2](data-format/native-broker-recovery-v2.md) verwendet lokalen HMAC-SHA-256-Beleg und
+privat verwahrten 256-Bit-Schlüssel. Keine Kontowiederherstellung oder Domänenbackup in diesem Pfad,
+keine Richtlinienausnahme. Finale Funktionsserie des neuen gesicherten Paars: sechs
+Controller-Kills, zwölf Wiederanlaufprozesse, 30 App-Generationen und 78 Ablehnungen bestanden. 180
+tatsächliche Container-Dateiverweigerungen, MACs mit unabhängiger Implementierung und
+Journal/SQLite/Unicode/Kopienzahlen geprüft. [Nachweis](testing/native-hmac-broker.md),
+[Aggregate/Hashes](testing/native-hmac-broker.json). Gesamtprüfung, 26 aktive Helfertests und 36
+Python-Diagnosetests bestanden. Anschließender eigener ETW-Lauf ist oben separat belegt. Schlüssel
+unverschlüsselt unter privater DACL; keine zusätzliche Hardware-/Kontogeheimnisbindung behaupten.
+Produktintegration, externe Dienstgrenzen und Q-01/Q-02 bleiben offen. Frühere Absätze beziehen sich
+auf frühere Hashpaare, insbesondere die abgelöste DPAPI-Stufe.
+
+Historischer Produktblocker der DPAPI-Broker-Grundlage: Kontogeschützte DPAPI besitzt mögliche
+externe Domänencontroller-/RPC-Pfade. Vor Produktintegration unter dem strikten Ziel belegen oder
+ersetzen; ein unauffälliger Appbaum allein genügt nicht.
+[Vertrauensgrenze](data-format/native-broker-recovery-v1.md).
+
+Controller-Crash, 16. November 2026: Dauerhafte authentisierte Wiederanlaufgrundlage im getrennten
+Forschungslauncher implementiert. DPAPI-geschützter nativer Beleg, geschützte Brokerablage,
+exklusive Sperre, Programm-/Wurzelbindung, Jobzuweisung bei Prozesserzeugung und tatsächliche
+Container-Zugriffsverweigerungen. Finale native Serie: sechs Controller-Kills, zwölf neue
+Wiederanlaufprozesse, 30 App-Generationen und 60 abgewehrte Fehlversuche bestanden. Journal,
+Kopienzahl, SQLite/Unicode/Receipt/Fremdschlüssel unabhängig geprüft; Profile entfernt, Prozesse
+beendet. [Vertrag](data-format/native-broker-recovery-v1.md),
+[Nachweis/Buildgrenzen](testing/native-controller-crash.md). Nächster Schritt: frisches ETW des
+separat gesicherten neuen Paars; danach kombinierter Live-/Neustartpfad und
+Produktbrokerintegration. Kein fertiger Produktbroker, keine neue Hör-/Netzabnahme. Normale Starts
+bleiben unisoliert, striktes Ziel unverändert; #134 und Produkt-Q-01/Q-02 nicht bestanden. Folgende
+Absätze sind frühere Stufen mit eigenen Hashgrenzen.
+
+ETW v2, 16. November 2026: Das gesicherte unveränderte v2-Paar ist frisch mit automatischer Serie
+und beiden manuellen Wiederanlaufpfaden gemessen. Gültige Erfassung: drei Controllerbäume, 32
+App-Generationen, 168 WebViews, alle 238 Lebenszeiten explizit beendet; vier Kontrollen,
+Nullverluste, 0 Nicht-Loopback- und 176 getrennte Loopback-Ereignisse. Native Abläufe, Daten und
+Cleanup im Messlauf unabhängig bestätigt. [Nachweis](testing/native-assistive-restart-etw.md),
+[Aggregate/Hashes](testing/native-assistive-restart-etw.json). Erfassung beendet, Rohdaten lokal,
+keine Runtimeänderung. Nächster Scope: Controller-Crash/dauerhafter authentisierter Broker und
+kombinierter Live-/Neustartpfad; externe Grenzen und Produktintegration weiter offen. Striktes Ziel
+unverändert, #134 und Produkt-Q-01/Q-02 nicht bestanden. Frühere Stufen folgen.
+
+Assistiver Wiederanlauf, 16. November 2026: Startticket v2 ermöglicht manuelle Prüfung ohne
+Bedienungsautomatik oder neuen Importgrant. Konkrete Unterbrechungs-/Abschluss-/Replay-Ansagen und
+Fokus mit Windows-Sprachausgabe bestätigt; native Aufrufe, Journal/Kopienzahl und Cleanup belegt.
+Tastaturnutzung menschlich bestätigt, aus dem Fokuslog allein nicht beweisbar. Ein erster Lauf ohne
+Replay wurde nicht akzeptiert und erfolgreich wiederholt.
+[Vertrag](data-format/native-ui-restart-v2.md), [Nachweis](testing/native-assistive-restart.md),
+[Aggregate](testing/native-assistive-restart.json). Automatische v2-Serie mit 28 Starts und 35
+Browser-E2E bestanden. Neues Paar separat gesichert, noch ohne eigenen ETW-Beleg. Nächster Scope:
+frisches ETW dieses v2-Paars, Controller-Crash/dauerhafter Broker und externe Grenzen. Striktes Ziel
+unverändert, Produkt-Q-01/Q-02 nicht bestanden. Frühere Stufen folgen.
+
+ETW-Fortschreibung, 16. November 2026: Das gesicherte unveränderte Neustart-Paar ist nun frisch
+gemessen. Gültige Erfassung mit vier Kontrollen, Nullverlusten, 28 vollständig zugeordneten
+App-Generationen und 144 WebView-Lebenszeiten: 0 Ereignisse außerhalb Loopback, 144
+Loopback-Ereignisse getrennt. Native Crash-/Wiederanlaufserie, Journal/SQLite/Unicode und Cleanup im
+Messlauf unabhängig bestätigt. [Nachweis](testing/native-ui-restart-etw.md),
+[Aggregate und genaue Hashes](testing/native-ui-restart-etw.json). Erfassung beendet, Rohdaten
+lokal; keine Runtimeänderung. Nächster Scope: assistive Wiederanlaufprüfung, Controller-Crash und
+dauerhafter Broker; externe Brokergrenzen und Produktintegration weiter offen. Striktes Ziel
+unverändert, #134 und Produkt-Q-01/Q-02 weiterhin nicht bestanden. Frühere Stufen folgen.
+
+Neustart-Fortschreibung, 16. November 2026: Authentisierter Forschungs-Neustart innerhalb desselben
+lebenden Controllers implementiert. Frische anonyme Pipes, exakte OS-Identität, Launch-Bindung und
+Programmhash vor WebView-Aufbau geprüft. Finale native Serie mit 28 Generationen bestanden: sechs
+Crashpunkte, je zwei Wiederanläufe und abgewehrter Altimport, vier abgewiesene Fehlstarts.
+Journal/SQLite/Unicode/Kopienzahl und Cleanup unabhängig bestätigt.
+[Vertrag](data-format/native-ui-restart-v1.md), [Nachweis](testing/native-ui-restart.md) und
+[Aggregate](testing/native-ui-restart.json). 35 Browser-E2E bestanden. Nächster Scope: frischer
+ETW-Vergleich genau dieses gesicherten App-/Controllerpaars und assistive Wiederanlaufprüfung.
+Controllerabsturz, dauerhafter Produktbroker, externe Brokergrenzen und Produktintegration bleiben
+offen. Keine neue Netzfreigabe; striktes Ziel und fehlende Produkt-Q-01/Q-02-Abnahme unverändert.
+Die folgenden Absätze beschreiben frühere Stufen und deren Buildgrenzen.
+
+Auftrags-Fortschreibung, 16. November 2026: Forschungsadapter ergänzt dauerhaft verbrauchte IDs,
+SQLite-Journal, exklusive Eigentümersperre und konservative Reconciliation vor neuen Importen.
+Sieben hart beendete native Rust-Testprozesse prüfen die Veröffentlichungsgrenzen; sieben neue
+aktive Integrationstests und sieben bisherige Adaptertests bestehen auf Windows. Erfolg und Abbruch
+mit Replay im isolierten Desktopfenster bestätigt; Journal/Kopienzahl/Cleanup unabhängig geprüft.
+[Vertrag](data-format/native-task-journal-v1.md) und
+[Nachweis](testing/native-task-reconciliation.md). Kein integrierter Crash-/Neustartnachweis der
+isolierten GUI, kein neuer ETW-Beleg und keine Produktfreigabe. Nächster Scope: authentisierter
+isolierter Neustart mit stabiler Ablage und native Crash-/Reconciliation-Serie. Striktes Ziel,
+offene Brokergrenzen und fehlende Produkt-Q-01/Q-02-Abnahme bleiben unverändert.
+
+Assistive Fortschreibung, 16. November 2026: Forschungsseite führt den Fokus zu verfügbaren
+Folgeaktionen und erhält bewusste Navigation. Native Erfolg-/Fehlerpfade einschließlich Replay mit
+Sprachausgabe und Fokus bestätigt; DOM-Diagnose, SQLite/Kopienzahl und Cleanup unabhängig geprüft.
+34 Browser-E2E bestanden. Frühere native Fokusabweichungen und die begrenzte lokale Diagnose sind
+[gesondert dokumentiert](testing/native-live-assistive-focus.md). Keine assistive Vollabnahme und
+kein neuer ETW-Beleg für diesen geänderten App-Build. Nächster Scope: dauerhafter
+Auftragslebenszyklus/Crash-Reconciliation und externe Brokergrenzen. Striktes Ziel unverändert, #134
+und Produkt-Q-01/Q-02 bleiben offen. Die folgenden Absätze bezeichnen frühere Buildstände.
+
+Fensterende-Fortschreibung, 16. November 2026: Offenen nativen Dateidialog bei Appende gezielt
+schließen und Auswahlthread begrenzt abwarten; final nativ mit Exitcodes 0, `CANCELLED`, beendetem
+Thread und leerer Projektwurzel bestätigt. Teiltransfer nach 1.024 von 11.915 Bytes
+sender-/empfängerseitig nachgewiesen und durch Fensterende verworfen. Cleanup in beiden Fällen
+bestätigt. [Nachweise, Zwischenfehler und Buildgrenzen](testing/native-live-window-close.md).
+Frischer ETW-Vergleich am unveränderten finalen App-/Controllerpaar: drei vollständige Bäume, 19
+WebView2-Lebenszeiten, vier Messkontrollen, Nullverluste, 0 Ereignisse außerhalb Loopback und 22
+getrennte Loopback-Disconnects. Referenzimport/Replay und beide Abbruchfälle unabhängig geprüft.
+[Aggregate](testing/native-live-window-close-etw.json). Erfassung beendet, keine Binäränderung nach
+Messung. Nächste Abnahme: assistive Fokus-/Fehlerprüfung, externe Brokergrenzen und dauerhafter
+Auftrags-/Crash-Lebenszyklus. Striktes Ziel unverändert, #134 und Produkt-Q-01/Q-02 bleiben offen.
+
+KQ-069-Fortschreibung 16. November: Replay nach Erfolg/Importfehler und Fensterende am
+Publish-Haltepunkt nativ bestanden; überschriebenen Replay-Hinweis korrigiert und browserseitig
+regressionsgeprüft. Drei vollständige Läufe desselben korrigierten Forschungsbuilds mit gültigem
+ETW: vier Messkontrollen, Nullverluste, 0 Ereignisse außerhalb Loopback, 22 Loopback-Disconnects.
+SQLite/Unicode, Kopienzahl, Replay und Cleanup unabhängig geprüft.
+[Nachweis und exakte Binärgrenzen](testing/native-live-file-selection.md),
+[Aggregate](testing/native-live-file-selection-etw.json). Nachträglicher Typalias für Clippy
+gesondert ausgewiesen. Produkt-Q-01/Q-02 weiter nicht bestanden; #134 offen. Nächster Scope: Appende
+bei offenem Dialog/Transfer, assistive Fokus-/Fehlerprüfung und externe Brokergrenzen.
+
+Nachtrag KQ-069 Live-Auswahl, 16. November 2026: Forschungsmodus `ui-live` implementiert. Native
+Auswahl aus laufender isolierter App und Dialogabbruch funktional bestätigt; Unicode/SQLite und
+Cleanup unabhängig geprüft. [Nachweis](testing/native-live-file-selection.md) und
+[Kanal v2](data-format/native-live-file-channel-v2.md). Kein neuer ETW-Lauf, keine Produktfreigabe.
+Nächster Scope: Replay, Fehler-/Fokus-/Fensterendeprüfung und Netzabnahme. Striktes Datenschutzziel
+unverändert; #134 bleibt offen.
+
 Nachtrag 16. November 2026: KQ-069 / #134, native Vorabauswahl und Dialogabbruch auf dem
 zurückgewechselten Windows-Rechner funktional bestanden. Unabhängig bestätigt: neue Projektkopie,
 zwei Dokumente, Unicode/SQLite-Integrität/Fremdschlüssel, keine Stagingreste, null Jobprozesse und
@@ -1013,28 +2423,28 @@ Medien-Einbettung je Exportformat. Rechts- und Lizenzfragen der Bildprovider sin
 
 ## Abhängigkeiten und technische Risiken
 
-| Thema                        | Zustand / Risiko                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Nächste Kontrolle                                                                                                                          |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Vor großen Projekten messen; Migration nur mit Evidenz                                                                                     |
-| Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Gemeinsame Fixtures oder spätere Codegenerierung bewerten                                                                                  |
-| Datenformat                  | Snapshot v3 samt begrenztem Neuimport, nativer und unter Windows manuell geprüfter Archivauswahl, Prompt-Entwürfen, Profilen und Hash-Assets; UTF-8-/Markdown-Import automatisiert und im dokumentierten nativen Windows-Kernumfang geprüft; Begrenzter DOCX-Import vorhanden; begrenzter strukturerhaltender Manuskriptroundtrip mit KQ-060/061 umgesetzt                                                                                                                                                                                                                                                                         | Unicode-/Shaping-Erweiterungen gesondert entscheiden; Fremdarchive fuzztesten                                                              |
-| Exportrenderer               | Markdown/HTML mit Bildern nativ geprüft; DOCX-Bildwriter mit Word und LibreOffice geprüft; PDF mit vier eingebetteten Schnitten, begrenztem Unicode-Profil und pixelgeprüften Szenenbildern                                                                                                                                                                                                                                                                                                                                                                                                                                        | Assistive Vollabnahme; Unicode-/Shaping-Erweiterungen gesondert prüfen                                                                     |
-| Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen                                                                                   |
-| Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Bei jeder Erweiterung Fixtures und Migration prüfen                                                                                        |
-| Desktoptests                 | Zwölf Browser-E2E-Suites einschließlich Beispielprojekt, Accessibility-Kern und -Randfällen, echter Windows-Tauri-M1-Smoke, lokaler NSIS-Lebenszyklus sowie bestandene KQ-033/KQ-034-Hörprüfungen                                                                                                                                                                                                                                                                                                                                                                                                                                  | Vor Release mit weiterer Testperson oder NVDA verbreitern                                                                                  |
-| Windows-Installer            | Debug-Lebenszyklus, unsignierter x64-Releasebau und isolierte Installation/Deinstallation grün; Alpha 4 mit Dubletten-Merge veröffentlicht, öffentlicher Rückdownload bytegleich, SmartScreen/Start/Persistenz extern offen                                                                                                                                                                                                                                                                                                                                                                                                        | Zweitrechner oder Clean-VM später manuell                                                                                                  |
-| CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Caching prüfen, ohne Reproduzierbarkeit zu schwächen                                                                                       |
-| Abhängigkeitssicherheit      | GitHub Dependency Graph und Schwachstellenwarnungen aktiviert. KQ-048 ist in PR #93 vollständig grün; GitHubs aktuelles SBOM enthält nur noch `zip` 9.5.1. GitHub meldet am 14. November drei offene Abhängigkeitswarnungen: `lopdf` (hoch), `glib` und `minimatch` (mittel). Die frühere Triage „lopdf-Parser nicht erreichbar“ ist seit KQ-065 überholt: Der native PDF-Selbstvergleich liest die eigene begrenzte Ausgabe, keine fremden PDFs. Aktuelle Laufzeitbewertung dieses Pfads, glib-Linux-Aufrufpfad und genaue minimatch-10-Aufrufer bleiben prüfbedürftig. Keine dynamische Sicherheitsprüfung oder Alert-Schließung | Issue #94 und Upstream prüfen; lopdf/glib getrennt nach Laufzeitpfad und verfügbarer Korrektur bewerten; keine erzwungenen Major-Overrides |
-| Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Plattformmatrix je Release definieren                                                                                                      |
-| Lokale Text-KI               | Protokoll gegen kontrollierten Loopback-Testserver geprüft; echter Ollama-/Modelllauf fehlt                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Mit freiem Testmodell manuell prüfen und Abbruch entwerfen                                                                                 |
-| Cloudprovider                | Vier Protokolle lokal getestet; echte API-, Kosten-, Aufbewahrungs- und Kontodialog-Abnahme fehlt                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Mit separaten Testkonten und Minimalbudget manuell prüfen                                                                                  |
-| Schlüsselspeicher            | Native Backends eingebunden; reale Windows-/Linux-Dialoge nicht automatisiert getestet                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Manuelle Plattformabnahme ohne produktive Schlüssel                                                                                        |
-| Kontinuitätsprüfung          | Vier Offline-Regeln getestet; exakte Nennungen und grober Zeilendiff begrenzen die Abdeckung                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Mit größeren künstlichen Projekten messen; KI-Kanal separat entwerfen                                                                      |
-| Medienimport                 | Drei Rasterformate und harte Limits getestet; Bytearray-IPC skaliert nicht für Massenuploads                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Nativen Streamingimport erst nach Messung großer Sammlungen bewerten                                                                       |
-| Assetbackup                  | Hash-verifizierte Begleitverzeichnisse getestet; `.kraqel` ist ein portables Snapshotpaket, aber kein fortschreibbares Backup                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Recovery- und Austauschzweck in der Oberfläche klar getrennt halten                                                                        |
-| Visuelle Profile             | Struktur und Referenzen getestet; Stilnamen-Eindeutigkeit nutzt SQLite-NOCASE mit ASCII-Grenze                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Unicode-Kollation bei internationalisierten Vorlagennamen bewerten                                                                         |
-| Bildprompt-Entwürfe          | Lokal, referenziell und browserseitig geprüft; kein Providerpfad und keine automatische Rekombination                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Tauri-/Screenreader-Abnahme; KQ-016-Grenze getrennt halten                                                                                 |
-| Bild-Capability-Verträge     | Rust/TypeScript v1 und lokaler Mock getestet; keine produktive Ausführung oder Persistenz                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Vor KQ-017 Freigabebeleg, Ergebnisprüfung, Kosten und Lizenzen klären                                                                      |
+| Thema                        | Zustand / Risiko                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Nächste Kontrolle                                                                                                                          |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Vor großen Projekten messen; Migration nur mit Evidenz                                                                                     |
+| Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Gemeinsame Fixtures oder spätere Codegenerierung bewerten                                                                                  |
+| Datenformat                  | Snapshot v3 samt begrenztem Neuimport, nativer und unter Windows manuell geprüfter Archivauswahl, Prompt-Entwürfen, Profilen und Hash-Assets; UTF-8-/Markdown-Import automatisiert und im dokumentierten nativen Windows-Kernumfang geprüft; Begrenzter DOCX-Import vorhanden; begrenzter strukturerhaltender Manuskriptroundtrip mit KQ-060/061 umgesetzt                                                                                                                                                                                                                                                                                                                                | Unicode-/Shaping-Erweiterungen gesondert entscheiden; Fremdarchive fuzztesten                                                              |
+| Exportrenderer               | Markdown/HTML mit Bildern nativ geprüft; DOCX-Bildwriter mit Word und LibreOffice geprüft; PDF mit vier eingebetteten Schnitten, begrenztem Unicode-Profil und pixelgeprüften Szenenbildern                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Assistive Vollabnahme; Unicode-/Shaping-Erweiterungen gesondert prüfen                                                                     |
+| Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen                                                                                   |
+| Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Bei jeder Erweiterung Fixtures und Migration prüfen                                                                                        |
+| Desktoptests                 | Zwölf Browser-E2E-Suites einschließlich Beispielprojekt, Accessibility-Kern und -Randfällen, echter Windows-Tauri-M1-Smoke, lokaler NSIS-Lebenszyklus sowie bestandene KQ-033/KQ-034-Hörprüfungen                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Vor Release mit weiterer Testperson oder NVDA verbreitern                                                                                  |
+| Windows-Installer            | Debug-Lebenszyklus, unsignierter x64-Releasebau und isolierte Installation/Deinstallation grün; Alpha 4 mit Dubletten-Merge veröffentlicht, öffentlicher Rückdownload bytegleich, SmartScreen/Start/Persistenz extern offen                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Zweitrechner oder Clean-VM später manuell                                                                                                  |
+| CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Caching prüfen, ohne Reproduzierbarkeit zu schwächen                                                                                       |
+| Abhängigkeitssicherheit      | GitHub Dependency Graph und Schwachstellenwarnungen aktiviert. KQ-048 ist in PR #93 vollständig grün; GitHubs aktuelles SBOM enthält nur noch `zip` 9.5.1. GitHub meldet am 14. November drei offene Abhängigkeitswarnungen: `lopdf` (hoch), `glib` und `minimatch` (mittel). Die frühere Triage „lopdf-Parser nicht erreichbar“ ist seit KQ-065 überholt: Der native PDF-Selbstvergleich liest die eigene begrenzte Ausgabe, keine fremden PDFs. Der Windows-Kandidatenzweig enthält bereinigte lopdf- und minimatch-Versionen. glib 0.18 bleibt im Linux-GTK-Pfad offen. [Triage der drei Meldungen](WORKSTATION_HANDOFF.md). Keine dynamische Sicherheitsprüfung oder Alert-Schließung | Issue #94 und Upstream prüfen; lopdf/glib getrennt nach Laufzeitpfad und verfügbarer Korrektur bewerten; keine erzwungenen Major-Overrides |
+| Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Plattformmatrix je Release definieren                                                                                                      |
+| Lokale Text-KI               | Protokoll gegen kontrollierten Loopback-Testserver geprüft; echter Ollama-/Modelllauf fehlt                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Mit freiem Testmodell manuell prüfen und Abbruch entwerfen                                                                                 |
+| Cloudprovider                | Vier Protokolle lokal getestet; echte API-, Kosten-, Aufbewahrungs- und Kontodialog-Abnahme fehlt                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Mit separaten Testkonten und Minimalbudget manuell prüfen                                                                                  |
+| Schlüsselspeicher            | Native Backends eingebunden; reale Windows-/Linux-Dialoge nicht automatisiert getestet                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Manuelle Plattformabnahme ohne produktive Schlüssel                                                                                        |
+| Kontinuitätsprüfung          | Vier Offline-Regeln getestet; exakte Nennungen und grober Zeilendiff begrenzen die Abdeckung                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Mit größeren künstlichen Projekten messen; KI-Kanal separat entwerfen                                                                      |
+| Medienimport                 | Drei Rasterformate und harte Limits getestet; Bytearray-IPC skaliert nicht für Massenuploads                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Nativen Streamingimport erst nach Messung großer Sammlungen bewerten                                                                       |
+| Assetbackup                  | Hash-verifizierte Begleitverzeichnisse getestet; `.kraqel` ist ein portables Snapshotpaket, aber kein fortschreibbares Backup                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Recovery- und Austauschzweck in der Oberfläche klar getrennt halten                                                                        |
+| Visuelle Profile             | Struktur und Referenzen getestet; Stilnamen-Eindeutigkeit nutzt SQLite-NOCASE mit ASCII-Grenze                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Unicode-Kollation bei internationalisierten Vorlagennamen bewerten                                                                         |
+| Bildprompt-Entwürfe          | Lokal, referenziell und browserseitig geprüft; kein Providerpfad und keine automatische Rekombination                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Tauri-/Screenreader-Abnahme; KQ-016-Grenze getrennt halten                                                                                 |
+| Bild-Capability-Verträge     | Rust/TypeScript v1 und lokaler Mock getestet; keine produktive Ausführung oder Persistenz                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Vor KQ-017 Freigabebeleg, Ergebnisprüfung, Kosten und Lizenzen klären                                                                      |
 
 ## Nächste geplante Entwicklungsstufe
 

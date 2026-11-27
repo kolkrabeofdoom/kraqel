@@ -1,5 +1,5 @@
 //! Bounded, offline DOCX-to-editor import. See ADR 0024.
-use kraqel_domain::{EDITOR_DOCUMENT_VERSION, EditorDocument};
+use kraqel_domain::{EDITOR_DOCUMENT_VERSION, EditorDocument, ScreenplayRole};
 use quick_xml::{events::Event, name::ResolveResult, reader::NsReader};
 use serde_json::{Value, json};
 use std::{
@@ -447,6 +447,7 @@ struct Format {
     bold: bool,
     italic: bool,
     heading: Option<u8>,
+    screenplay: Option<ScreenplayRole>,
 }
 
 fn toggle(node: &Element) -> Result<bool, ()> {
@@ -554,6 +555,7 @@ pub(super) struct Styles<'a> {
     normal: Option<&'a str>,
     character: Option<&'a str>,
     strict: bool,
+    bind_screenplay: bool,
 }
 impl<'a> Styles<'a> {
     pub(super) fn new(root: Option<&'a Element>) -> Result<Self, ()> {
@@ -563,6 +565,7 @@ impl<'a> Styles<'a> {
             normal: None,
             character: None,
             strict: false,
+            bind_screenplay: false,
         };
         if let Some(root) = root {
             if !root.is(W, "styles") {
@@ -606,9 +609,10 @@ impl<'a> Styles<'a> {
         }
         Ok(result)
     }
-    pub(super) fn roundtrip(root: &'a Element) -> Result<Self, ()> {
+    pub(super) fn roundtrip(root: &'a Element, bind_screenplay: bool) -> Result<Self, ()> {
         let mut styles = Self::new(Some(root))?;
         styles.strict = true;
+        styles.bind_screenplay = bind_screenplay;
         root.whitespace()?;
         let mut defaults = false;
         for node in &root.children {
@@ -631,6 +635,14 @@ impl<'a> Styles<'a> {
                     {
                         return Err(());
                     }
+                }
+            }
+        }
+        if bind_screenplay {
+            for role in crate::screenplay::ROLES {
+                let id = crate::screenplay::presentation(role).style;
+                if styles.definitions.contains_key(id) {
+                    styles.resolve(Some(id), "paragraph", styles.defaults, &mut Vec::new())?;
                 }
             }
         }
@@ -677,6 +689,18 @@ impl<'a> Styles<'a> {
             .map(|n| n.attr(W, "val").ok_or(()))
             .transpose()?;
         let mut inherited = self.resolve(base, kind, format, chain)?;
+        if self.bind_screenplay
+            && kind == "paragraph"
+            && let Some(role) = crate::screenplay::ROLES
+                .into_iter()
+                .find(|role| crate::screenplay::presentation(*role).style == id)
+        {
+            if inherited.screenplay.is_some() {
+                // A reserved base style cannot also inherit a different screenplay role.
+                return Err(());
+            }
+            inherited.screenplay = Some(role);
+        }
         if kind == "paragraph"
             && let Some(level) = id
                 .strip_prefix("Heading")
@@ -699,6 +723,7 @@ pub(super) fn paragraph(
     node: &Element,
     styles: &Styles<'_>,
     text_bytes: &mut usize,
+    expected_role: Option<ScreenplayRole>,
 ) -> Result<Value, ()> {
     node.whitespace()?;
     let properties = node.child("pPr")?;
@@ -707,9 +732,18 @@ pub(super) fn paragraph(
         .transpose()?
         .flatten()
         .map(|n| n.attr(W, "val").ok_or(()))
-        .transpose()?
-        .or(styles.normal);
-    let inherited = styles.resolve(style, "paragraph", styles.defaults, &mut Vec::new())?;
+        .transpose()?;
+    let inherited = styles.resolve(
+        style.or(styles.normal),
+        "paragraph",
+        styles.defaults,
+        &mut Vec::new(),
+    )?;
+    if styles.bind_screenplay
+        && (inherited.screenplay != expected_role || expected_role.is_some() && style.is_none())
+    {
+        return Err(());
+    }
     let format = paragraph_properties(properties, inherited)?;
     let mut content = Vec::new();
     for run in &node.children {
@@ -805,7 +839,7 @@ fn parse(bytes: &[u8]) -> Result<EditorDocument, ()> {
     let mut text_bytes = 0;
     for node in &body.children {
         if node.is(W, "p") {
-            blocks.push(paragraph(node, &styles, &mut text_bytes)?);
+            blocks.push(paragraph(node, &styles, &mut text_bytes, None)?);
         } else if node.is(W, "sectPr") {
             node.whitespace()?;
             for layout in &node.children {

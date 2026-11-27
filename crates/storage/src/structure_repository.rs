@@ -11,7 +11,7 @@ use kraqel_domain::{
     EntityId, PlotBoard, PlotCard, PlotStatus, ProjectId, Storyline, Timeline, TimelineDetails,
     TimelineEvent, TimelineMode,
 };
-use rusqlite::{OptionalExtension, Transaction, params};
+use rusqlite::{Connection, OptionalExtension, Transaction, params};
 
 use crate::{Database, StorageError};
 
@@ -649,12 +649,12 @@ fn require_exact_ids(
 fn require_project(tx: &Transaction<'_>, project: ProjectId) -> Result<(), StructureError> {
     require_exists(tx, "project", project, None)
 }
-fn require_storyline(
-    tx: &Transaction<'_>,
+pub(crate) fn require_storyline(
+    db: &Connection,
     project: ProjectId,
     id: EntityId,
 ) -> Result<(), StructureError> {
-    require_exists(tx, "storyline", project, Some(id))
+    require_exists(db, "storyline", project, Some(id))
 }
 fn require_event(
     tx: &Transaction<'_>,
@@ -672,7 +672,7 @@ fn require_any_entity(
 }
 
 fn require_exists(
-    tx: &Transaction<'_>,
+    db: &Connection,
     table: &str,
     project: ProjectId,
     id: Option<EntityId>,
@@ -683,11 +683,11 @@ fn require_exists(
         format!("SELECT EXISTS(SELECT 1 FROM {table} WHERE id = ?1)")
     };
     let exists = if let Some(id) = id {
-        tx.query_row(&sql, params![project.to_string(), id.to_string()], |row| {
+        db.query_row(&sql, params![project.to_string(), id.to_string()], |row| {
             row.get::<_, bool>(0)
         })?
     } else {
-        tx.query_row(&sql, [project.to_string()], |row| row.get::<_, bool>(0))?
+        db.query_row(&sql, [project.to_string()], |row| row.get::<_, bool>(0))?
     };
     if exists {
         Ok(())
@@ -696,12 +696,12 @@ fn require_exists(
     }
 }
 
-fn require_character(
-    tx: &Transaction<'_>,
+pub(crate) fn require_character(
+    db: &Connection,
     project: ProjectId,
     id: EntityId,
 ) -> Result<(), StructureError> {
-    let exists = tx.query_row("SELECT EXISTS(SELECT 1 FROM entity WHERE project_id = ?1 AND id = ?2 AND kind = 'character')", params![project.to_string(), id.to_string()], |row| row.get::<_, bool>(0))?;
+    let exists = db.query_row("SELECT EXISTS(SELECT 1 FROM entity WHERE project_id = ?1 AND id = ?2 AND kind = 'character')", params![project.to_string(), id.to_string()], |row| row.get::<_, bool>(0))?;
     if exists {
         Ok(())
     } else {
@@ -709,12 +709,12 @@ fn require_character(
     }
 }
 
-fn require_scene(
-    tx: &Transaction<'_>,
+pub(crate) fn require_scene(
+    db: &Connection,
     project: ProjectId,
     id: EntityId,
 ) -> Result<(), StructureError> {
-    let exists = tx.query_row("SELECT EXISTS(SELECT 1 FROM document WHERE project_id = ?1 AND id = ?2 AND kind = 'scene')", params![project.to_string(), id.to_string()], |row| row.get::<_, bool>(0))?;
+    let exists = db.query_row("SELECT EXISTS(SELECT 1 FROM document WHERE project_id = ?1 AND id = ?2 AND kind = 'scene')", params![project.to_string(), id.to_string()], |row| row.get::<_, bool>(0))?;
     if exists {
         Ok(())
     } else {
@@ -722,12 +722,12 @@ fn require_scene(
     }
 }
 
-fn require_timeline(
-    tx: &Transaction<'_>,
+pub(crate) fn require_timeline(
+    db: &Connection,
     project: ProjectId,
     id: EntityId,
 ) -> Result<TimelineMode, StructureError> {
-    tx.query_row(
+    db.query_row(
         "SELECT mode FROM timeline WHERE project_id = ?1 AND id = ?2",
         params![project.to_string(), id.to_string()],
         |row| row.get::<_, String>(0),
@@ -768,7 +768,7 @@ const fn status_name(value: PlotStatus) -> &'static str {
         PlotStatus::Done => "done",
     }
 }
-fn parse_mode(value: &str) -> Result<TimelineMode, StructureError> {
+pub(crate) fn parse_mode(value: &str) -> Result<TimelineMode, StructureError> {
     match value {
         "relative" => Ok(TimelineMode::Relative),
         "absolute" => Ok(TimelineMode::Absolute),
@@ -782,7 +782,7 @@ const fn mode_name(value: TimelineMode) -> &'static str {
     }
 }
 
-fn validate_text(value: &str, maximum: usize) -> Result<(), StructureError> {
+pub(crate) fn validate_text(value: &str, maximum: usize) -> Result<(), StructureError> {
     let value = value.trim();
     if value.is_empty() || value.chars().count() > maximum || value.chars().any(char::is_control) {
         Err(StructureError::InvalidInput)
@@ -790,14 +790,17 @@ fn validate_text(value: &str, maximum: usize) -> Result<(), StructureError> {
         Ok(())
     }
 }
-fn valid_color(value: &str) -> bool {
+pub(crate) fn valid_color(value: &str) -> bool {
     value.len() == 7
         && value.starts_with('#')
         && value[1..]
             .chars()
             .all(|character| character.is_ascii_hexdigit())
 }
-fn validate_event_time(mode: TimelineMode, value: Option<&str>) -> Result<(), StructureError> {
+pub(crate) fn validate_event_time(
+    mode: TimelineMode,
+    value: Option<&str>,
+) -> Result<(), StructureError> {
     match (mode, value.map(str::trim).filter(|value| !value.is_empty())) {
         (TimelineMode::Absolute, Some(value))
             if value.chars().count() <= 80 && !value.chars().any(char::is_control) =>

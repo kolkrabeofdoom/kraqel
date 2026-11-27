@@ -1,0 +1,197 @@
+//! Local P3 research picker. Only synthetic choices and explicit archive consent leave the dialog.
+use super::{Result, Value, fail, json};
+use std::ffi::OsStr;
+use std::ptr::null_mut;
+use windows_sys::Win32::Storage::FileSystem::*;
+use windows_sys::Win32::{Foundation::HWND, UI::WindowsAndMessaging::*};
+use windows_sys::Win32::{
+    Foundation::{HANDLE, WAIT_TIMEOUT},
+    System::Threading::{INFINITE, WaitForSingleObject},
+};
+
+fn invalid(stage: &'static str) -> super::Failure {
+    super::Failure { stage, code: -1 }
+}
+
+const NORTH: u16 = 101;
+const SOUTH: u16 = 102;
+
+unsafe extern "system" fn on_dialog(hwnd: HWND, msg: u32, w: usize, _: isize) -> isize {
+    match msg {
+        WM_INITDIALOG => {
+            unsafe { SendMessageW(hwnd, WM_NEXTDLGCTL, GetDlgItem(hwnd, IDCANCEL) as usize, 1) };
+            0
+        }
+        WM_CLOSE => unsafe { EndDialog(hwnd, IDCANCEL as isize) as isize },
+        WM_COMMAND if matches!(w as u16, NORTH | SOUTH | 2) && w >> 16 == 0 => unsafe {
+            let mut result = (w as u16) as isize;
+            if w as u16 != IDCANCEL as u16 {
+                for index in 0..4 {
+                    let checked = SendMessageW(GetDlgItem(hwnd, 201 + index), BM_GETCHECK, 0, 0);
+                    if checked == 1 {
+                        result |= 1 << (8 + index);
+                    }
+                }
+            }
+            EndDialog(hwnd, result) as isize
+        },
+        _ => 0,
+    }
+}
+
+fn string(words: &mut Vec<u16>, text: &str) {
+    words.extend(text.encode_utf16().chain(Some(0)));
+}
+
+fn handle_number(argument: &OsStr) -> Result<usize> {
+    argument
+        .to_str()
+        .and_then(|s| s.parse().ok())
+        .ok_or_else(|| invalid("p3-selection-handle"))
+}
+
+fn directory_identity(argument: &OsStr) -> Result<(u64, String)> {
+    let handle = handle_number(argument)? as HANDLE;
+    let mut info = BY_HANDLE_FILE_INFORMATION::default();
+    let mut id = FILE_ID_INFO::default();
+    if unsafe { GetFileType(handle) } != FILE_TYPE_DISK
+        || unsafe { GetFileInformationByHandle(handle, &mut info) } == 0
+        || info.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT)
+            != FILE_ATTRIBUTE_DIRECTORY
+        || unsafe {
+            GetFileInformationByHandleEx(
+                handle,
+                FileIdInfo,
+                (&raw mut id).cast(),
+                size_of::<FILE_ID_INFO>() as u32,
+            )
+        } == 0
+        || id.VolumeSerialNumber == 0
+        || id.FileId.Identifier == [0; 16]
+    {
+        return Err(invalid("p3-selection-directory"));
+    }
+    Ok((
+        id.VolumeSerialNumber,
+        format!("{:032x}", u128::from_le_bytes(id.FileId.Identifier)),
+    ))
+}
+
+pub(super) fn choose(north: &OsStr, south: &OsStr, owner: &OsStr) -> Result<Value> {
+    // This one-shot process retains the inherited SYNCHRONIZE handle until exit.
+    let owner = handle_number(owner)?;
+    if unsafe { WaitForSingleObject(owner as HANDLE, 0) } != WAIT_TIMEOUT {
+        return Err(invalid("p3-selection-owner"));
+    }
+    std::thread::Builder::new()
+        .name("p3-selection-owner".into())
+        .spawn(move || {
+            unsafe { WaitForSingleObject(owner as HANDLE, INFINITE) };
+            // A dead controller or a wait failure invalidates the outstanding dialog.
+            std::process::exit(2);
+        })
+        .map_err(|_| invalid("p3-selection-owner-watch"))?;
+    let north = directory_identity(north)?;
+    let south = directory_identity(south)?;
+    if north == south {
+        return Err(invalid("p3-selection-duplicate"));
+    }
+
+    // Standard DLGTEMPLATE and DLGITEMTEMPLATE structures use little-endian WORDs.
+    let style = WS_POPUP | WS_CAPTION | WS_SYSMENU | DS_MODALFRAME as u32 | DS_SETFONT as u32;
+    let mut words = vec![
+        style as u16,
+        (style >> 16) as u16,
+        0,
+        0,
+        9,
+        0,
+        0,
+        240,
+        152,
+        0,
+        0,
+    ];
+    string(&mut words, "KRAQEL - P3-Quellauswahl");
+    words.push(9);
+    string(&mut words, "Segoe UI");
+    for (id, class, x, y, width, height, label) in [
+        (
+            0xffff,
+            0x82,
+            8,
+            8,
+            204,
+            24,
+            "Welchen synthetischen Projektordner als Testkopie erfassen?",
+        ),
+        (
+            0xffff,
+            0x82,
+            8,
+            31,
+            224,
+            24,
+            "Zusätzlich separat archivieren (je Projekt):",
+        ),
+        (201, 0x80, 8, 52, 218, 15, "Sicherung: backups/alt.txt"),
+        (202, 0x80, 8, 69, 218, 15, "Export: exports/entwurf.txt"),
+        (203, 0x80, 8, 86, 218, 15, "Git-Bestand: .git/HEAD"),
+        (204, 0x80, 8, 103, 218, 15, "Weitere Datei: notiz.txt"),
+        (NORTH, 0x80, 8, 128, 62, 17, "Projekt Nord"),
+        (SOUTH, 0x80, 78, 128, 62, 17, "Projekt Sued"),
+        (IDCANCEL as u16, 0x80, 148, 128, 64, 17, "Abbrechen"),
+    ] {
+        if words.len() % 2 != 0 {
+            words.push(0);
+        }
+        let mut style = WS_CHILD | WS_VISIBLE;
+        if class == 0x80 {
+            style |= WS_TABSTOP;
+        }
+        if (201..=204).contains(&id) {
+            style |= BS_AUTOCHECKBOX as u32;
+        }
+        if id == IDCANCEL as u16 {
+            style |= BS_DEFPUSHBUTTON as u32;
+        }
+        words.extend([
+            style as u16,
+            (style >> 16) as u16,
+            0,
+            0,
+            x,
+            y,
+            width,
+            height,
+            id,
+            0xffff,
+            class,
+        ]);
+        string(&mut words, label);
+        words.push(0);
+    }
+    let template: Vec<u32> = words
+        .chunks(2)
+        .map(|w| u32::from(w[0]) | (u32::from(*w.get(1).unwrap_or(&0)) << 16))
+        .collect();
+    let result = unsafe {
+        DialogBoxIndirectParamW(
+            null_mut(),
+            template.as_ptr().cast(),
+            null_mut(),
+            Some(on_dialog),
+            0,
+        )
+    };
+    if !(0..=0x0fff).contains(&result) {
+        return Err(fail("p3-source-dialog"));
+    }
+    let selection = match result & 0xff {
+        2 => return Ok(json!({"selection":"cancel"})),
+        n if n == NORTH as isize => ("north", north),
+        n if n == SOUTH as isize => ("south", south),
+        _ => return Err(fail("p3-source-dialog")),
+    };
+    Ok(json!({"selection": selection.0, "directory": selection.1, "archiveGroups": result >> 8}))
+}

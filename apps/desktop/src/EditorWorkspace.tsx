@@ -3,7 +3,7 @@ import StarterKit from "@tiptap/starter-kit";
 import type { DocumentNode, EntityId } from "@kraqel/domain";
 import {
   AutosaveController,
-  EDITOR_DOCUMENT_VERSION,
+  editorDocumentVersion,
   buildDocumentTree,
   countWords,
   type AutosaveStatus,
@@ -33,6 +33,8 @@ import { Continuity } from "./Continuity";
 import { MediaLibrary } from "./MediaLibrary";
 import { VisualProfiles } from "./VisualProfiles";
 import { PromptBuilder } from "./PromptBuilder";
+import { ScreenplayBlock } from "./screenplay";
+import { ScreenplayControls } from "./ScreenplayControls";
 
 interface EditorWorkspaceProps {
   readonly initialWorkspace: Workspace;
@@ -101,13 +103,23 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
   const [docxChapter, setDocxChapter] = useState<EntityId | null>(null);
   const [importing, setImporting] = useState(false);
   const docxHeading = useRef<HTMLHeadingElement>(null);
+  const pendingSave = useRef<(() => Promise<boolean>) | null>(null);
+  const mayLeave = async () => {
+    if (!pendingSave.current || (await pendingSave.current())) return true;
+    setError(
+      "Die aktive Szene konnte nicht gespeichert werden. Der Entwurf bleibt im Editor geöffnet.",
+    );
+    return false;
+  };
   useEffect(() => {
     if (docxChapter) docxHeading.current?.focus();
   }, [docxChapter]);
   const tree = useMemo(() => buildDocumentTree(workspace.documents), [workspace.documents]);
 
+  const manuscriptOpen = view === "manuscript";
   useEffect(() => {
-    if (!activeId) {
+    if (!activeId || !manuscriptOpen) {
+      setLoading(false);
       setStored(null);
       return;
     }
@@ -127,7 +139,7 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
     return () => {
       active = false;
     };
-  }, [activeId, workspace.project.id]);
+  }, [activeId, workspace.project.id, manuscriptOpen]);
 
   const addChapter = async () => {
     try {
@@ -144,6 +156,7 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
   };
 
   const addScene = async (chapterId: EntityId) => {
+    if (!(await mayLeave())) return;
     try {
       const number =
         workspace.documents.filter(({ parentId }) => parentId === chapterId).length + 1;
@@ -162,6 +175,7 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
 
   const importScene = async (chapterId: EntityId) => {
     if (importing) return;
+    if (!(await mayLeave())) return;
     setImporting(true);
     try {
       const node = await importTextDocument(workspace.project.id, chapterId);
@@ -180,6 +194,7 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
 
   const importDocx = async () => {
     if (!docxChapter || importing) return;
+    if (!(await mayLeave())) return;
     setImporting(true);
     try {
       const node = await importDocxDocument(workspace.project.id, docxChapter);
@@ -308,7 +323,13 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
             <span className="eyebrow">Lokales Projekt</span>
             <h1>{workspace.project.name}</h1>
           </div>
-          <button type="button" className="secondary project-overview-button" onClick={onClose}>
+          <button
+            type="button"
+            className="secondary project-overview-button"
+            onClick={async () => {
+              if (await mayLeave()) onClose();
+            }}
+          >
             Projektübersicht
           </button>
         </div>
@@ -330,7 +351,9 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
                     type="button"
                     className={view === item.view ? "active" : "secondary"}
                     aria-current={view === item.view ? "page" : undefined}
-                    onClick={() => setView(item.view)}
+                    onClick={async () => {
+                      if (await mayLeave()) setView(item.view);
+                    }}
                   >
                     {item.label}
                   </button>
@@ -356,10 +379,14 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
                   key={chapter.id}
                   chapter={chapter}
                   activeId={activeId}
-                  onSelect={setActiveId}
+                  onSelect={async (id) => {
+                    if (await mayLeave()) setActiveId(id);
+                  }}
                   onAddScene={addScene}
                   onImportScene={importScene}
-                  onImportDocx={setDocxChapter}
+                  onImportDocx={async (id) => {
+                    if (await mayLeave()) setDocxChapter(id);
+                  }}
                   importing={importing || docxChapter !== null}
                   canMoveUp={index > 0}
                   canMoveDown={index < tree.length - 1}
@@ -404,6 +431,7 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
                 projectId={workspace.project.id}
                 stored={stored}
                 onRevision={updateDocumentRevision}
+                pendingSave={pendingSave}
               />
             ) : null}
             {!loading && !stored ? (
@@ -466,9 +494,16 @@ export function EditorWorkspace({ initialWorkspace, onClose }: EditorWorkspacePr
           activeDocumentId={activeId}
         />
       ) : view === "versions" ? (
-        <VersionControl projectId={workspace.project.id} />
+        <VersionControl
+          projectId={workspace.project.id}
+          documents={workspace.documents}
+          onActivated={(next) => {
+            setStored(null);
+            setWorkspace(next);
+          }}
+        />
       ) : view === "exports" ? (
-        <Exports projectId={workspace.project.id} />
+        <Exports projectId={workspace.project.id} documents={workspace.documents} />
       ) : (
         <TextAssistant projectId={workspace.project.id} activeDocumentId={activeId} />
       )}
@@ -719,10 +754,12 @@ function RichTextEditor({
   projectId,
   stored,
   onRevision,
+  pendingSave,
 }: {
   readonly projectId: Workspace["project"]["id"];
   readonly stored: StoredDocument;
   readonly onRevision: (id: EntityId, revision: number) => void;
+  readonly pendingSave: React.RefObject<(() => Promise<boolean>) | null>;
 }) {
   const [status, setStatus] = useState<AutosaveStatus>("saved");
   const [wordCount, setWordCount] = useState(countWords(stored.plainText));
@@ -735,13 +772,14 @@ function RichTextEditor({
     },
     [onRevision, projectId, stored.node.id],
   );
-  const autosave = useMemo(
-    () => new AutosaveController(stored.node.revision, persist, 700),
-    [persist, stored.node.revision],
-  );
+  // This component is keyed by scene ID. Keep the same revision queue across save acknowledgements.
+  const [autosave] = useState(() => new AutosaveController(stored.node.revision, persist, 700));
   const autosaveLifecycle = useRef(0);
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit.configure({ trailingNode: { notAfter: ["screenplayBlock"] } }),
+      ScreenplayBlock,
+    ],
     content: stored.content.document,
     immediatelyRender: false,
     editorProps: {
@@ -751,10 +789,8 @@ function RichTextEditor({
       },
     },
     onUpdate: ({ editor: current }) => {
-      const content: EditorDocument = {
-        version: EDITOR_DOCUMENT_VERSION,
-        document: current.getJSON(),
-      };
+      const document = current.getJSON();
+      const content: EditorDocument = { version: editorDocumentVersion(document), document };
       setWordCount(countWords(current.getText({ blockSeparator: " " })));
       autosave.schedule(content);
     },
@@ -770,7 +806,13 @@ function RichTextEditor({
   useEffect(() => {
     const lifecycle = ++autosaveLifecycle.current;
     const unsubscribe = autosave.subscribe(({ status: next }) => setStatus(next));
+    pendingSave.current = async () => {
+      let snapshot = await autosave.flush();
+      while (snapshot.status === "dirty") snapshot = await autosave.flush();
+      return snapshot.status === "saved";
+    };
     return () => {
+      pendingSave.current = null;
       unsubscribe();
       void autosave.flush();
       // StrictMode richtet Effekte im Devmodus sofort erneut ein; erst ein echter Unmount entsorgt.
@@ -778,7 +820,7 @@ function RichTextEditor({
         if (autosaveLifecycle.current === lifecycle) autosave.dispose();
       });
     };
-  }, [autosave]);
+  }, [autosave, pendingSave]);
 
   return (
     <div className={focusMode ? "editor-document focus-mode" : "editor-document"}>
@@ -825,6 +867,7 @@ function RichTextEditor({
           Fokusmodus
         </button>
       </div>
+      {editor && <ScreenplayControls editor={editor} />}
       <EditorContent editor={editor} className="tiptap-surface" />
     </div>
   );

@@ -1,0 +1,18 @@
+Der erste nichtleere Drehbuchabsatz muss ein Szenenkopf sein.
+Diese Drehbuchrolle braucht einen Text.
+Ein Dialog fehlt nach Figur oder Klammeranweisung.
+Eine Szene darf nur einen nichtleeren Szenenkopf enthalten.
+Dialog benötigt eine Figur.
+Eine Klammeranweisung benötigt eine Figur und anschließenden Dialog.
+Der letzte Dialogblock ist unvollständig.
+Die Drehbuchszene ist ungültig.
+Wähle ausschließlich gespeicherte Drehbuchszenen dieses Projekts aus.
+Die Drehbuchausgabe überschreitet die PDF-Grenzen.
+Der Text enthält Zeichen außerhalb des unterstützten Drehbuch-Schriftprofils.
+Eine zusammengehörige Drehbuchgruppe ist höher als die Druckseite.
+Der PDF-Auftrag enthält nicht unterstützte Zeichen oder überschreitet die Layoutgrenzen.
+Der Manuskriptauszug entspricht nicht der bestätigten Auswahl.
+Die Manuskriptauswahl ist ungültig.
+Das Manuskript enthält eine ungültige oder nicht unterstützte Struktur.
+Das Manuskript enthält Drehbuchszenen. Verwende für dieses Manuskript die Textausgabe ohne Szenenbilder.
+Die Auswahl muss gespeicherte Szenen dieses Projekts enthalten.

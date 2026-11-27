@@ -1,0 +1,675 @@
+{
+  "formatVersion": 1,
+  "nativePreviewOnly": true,
+  "productionAcceptance": false,
+  "sourceBaseCommit": "f19798c779394ec8b9c19cd5114715617baac32b",
+  "controllerSha256": "8b5f58587d6ba2b608a6c5573efa0dc430bb566db344f04c6543ad8c92380658",
+  "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+  "analyzerSha256": "387d4f37634261e7149b80e54353ea8104977190483c80c290b09b64eb58f9ff",
+  "functionalSeries": {
+    "formatVersion": 1,
+    "nativePreviewOnly": true,
+    "productionAcceptance": false,
+    "independentAuditPassed": true,
+    "controllerSha256": "8b5f58587d6ba2b608a6c5573efa0dc430bb566db344f04c6543ad8c92380658",
+    "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+    "transitionCrashCases": 20,
+    "seedControllerCrashes": 13,
+    "childControllerProcesses": 117,
+    "childExitCodes": {
+      "0": 55,
+      "1": 29,
+      "86": 33
+    },
+    "blockedCases": 9,
+    "controlReadyCases": 11,
+    "explicitRecoveries": 4,
+    "nativeGuiStarts": 17,
+    "actualContainerDenials": 102,
+    "persistedImportTasks": 13,
+    "legitimateProjectCopies": 13,
+    "profilesRemoved": 20,
+    "normalPreviewStoreUsed": false,
+    "reservedPrivateDataEmpty": true,
+    "networkMeasurement": false,
+    "cases": [
+      {
+        "action": "bind",
+        "point": "before-record",
+        "controlReady": true,
+        "explicitRecovery": false,
+        "statusReadOnly": true,
+        "keyUnchanged": true,
+        "testProfileRemoved": true,
+        "fixtureCleanupOnly": true
+      },
+      {
+        "action": "bind",
+        "point": "record-created",
+        "controlReady": false,
+        "explicitRecovery": false,
+        "statusReadOnly": true,
+        "keyUnchanged": true,
+        "testProfileRemoved": true,
+        "fixtureCleanupOnly": true
+      },
+      {
+        "action": "bind",
+        "point": "record-synced",
+        "controlReady": false,
+        "explicitRecovery": false,
+        "statusReadOnly": true,
+        "keyUnchanged": true,
+        "testProfileRemoved": true,
+        "fixtureCleanupOnly": true
+      },
+      {
+        "action": "bind",
+        "point": "head-staged",
+        "controlReady": false,
+        "explicitRecovery": false,
+        "statusReadOnly": true,
+        "keyUnchanged": true,
+        "testProfileRemoved": true,
+        "fixtureCleanupOnly": true
+      },
+      {
+        "action": "bind",
+        "point": "head-published",
+        "controlReady": true,
+        "explicitRecovery": false,
+        "statusReadOnly": true,
+        "keyUnchanged": true,
+        "testProfileRemoved": true,
+        "fixtureCleanupOnly": true
+      },
+      {
+        "action": "bind",
+        "point": "session-staged",
+        "controlReady": true,
+        "explicitRecovery": false,
+        "statusReadOnly": true,
+        "keyUnchanged": true,
+        "testProfileRemoved": true,
+        "fixtureCleanupOnly": true
+      },
+      {
+        "action": "bind",
+        "point": "before-session-run",
+        "controlReady": true,
+        "explicitRecovery": false,
+        "statusReadOnly": true,
+        "keyUnchanged": true,
+        "testProfileRemoved": true,
+        "fixtureCleanupOnly": true
+      },
+      {
+        "action": "recover",
+        "point": "before-record",
+        "controlReady": true,
+        "explicitRecovery": true,
+        "statusReadOnly": true,
+        "keyUnchanged": true,
+        "testProfileRemoved": true,
+        "fixtureCleanupOnly": true
+      },
+      {
+        "action": "recover",
+        "point": "record-created",
+        "controlReady": false,
+        "explicitRecovery": false,
+        "statusReadOnly": true,
+        "keyUnchanged": true,
+        "testProfileRemoved": true,
+        "fixtureCleanupOnly": true
+      },
+      {
+        "action": "recover",
+        "point": "record-synced",
+        "controlReady": false,
+        "explicitRecovery": false,
+        "statusReadOnly": true,
+        "keyUnchanged": true,
+        "testProfileRemoved": true,
+        "fixtureCleanupOnly": true
+      },
+      {
+        "action": "recover",
+        "point": "head-staged",
+        "controlReady": false,
+        "explicitRecovery": false,
+        "statusReadOnly": true,
+        "keyUnchanged": true,
+        "testProfileRemoved": true,
+        "fixtureCleanupOnly": true
+      },
+      {
+        "action": "recover",
+        "point": "head-published",
+        "controlReady": true,
+        "explicitRecovery": true,
+        "statusReadOnly": true,
+        "keyUnchanged": true,
+        "testProfileRemoved": true,
+        "fixtureCleanupOnly": true
+      },
+      {
+        "action": "recover",
+        "point": "before-session-run",
+        "controlReady": true,
+        "explicitRecovery": true,
+        "statusReadOnly": true,
+        "keyUnchanged": true,
+        "testProfileRemoved": true,
+        "fixtureCleanupOnly": true
+      },
+      {
+        "action": "retire",
+        "point": "before-record",
+        "controlReady": true,
+        "explicitRecovery": true,
+        "statusReadOnly": true,
+        "keyUnchanged": true,
+        "testProfileRemoved": true,
+        "fixtureCleanupOnly": true
+      },
+      {
+        "action": "retire",
+        "point": "record-created",
+        "controlReady": false,
+        "explicitRecovery": false,
+        "statusReadOnly": true,
+        "keyUnchanged": true,
+        "testProfileRemoved": true,
+        "fixtureCleanupOnly": true
+      },
+      {
+        "action": "retire",
+        "point": "record-synced",
+        "controlReady": false,
+        "explicitRecovery": false,
+        "statusReadOnly": true,
+        "keyUnchanged": true,
+        "testProfileRemoved": true,
+        "fixtureCleanupOnly": true
+      },
+      {
+        "action": "retire",
+        "point": "head-staged",
+        "controlReady": false,
+        "explicitRecovery": false,
+        "statusReadOnly": true,
+        "keyUnchanged": true,
+        "testProfileRemoved": true,
+        "fixtureCleanupOnly": true
+      },
+      {
+        "action": "retire",
+        "point": "head-published",
+        "controlReady": true,
+        "explicitRecovery": false,
+        "statusReadOnly": true,
+        "keyUnchanged": true,
+        "testProfileRemoved": true,
+        "fixtureCleanupOnly": true
+      },
+      {
+        "action": "retire",
+        "point": "retire-committed",
+        "controlReady": true,
+        "explicitRecovery": false,
+        "statusReadOnly": true,
+        "keyUnchanged": true,
+        "testProfileRemoved": true,
+        "fixtureCleanupOnly": true
+      },
+      {
+        "action": "retire",
+        "point": "profile-removed",
+        "controlReady": true,
+        "explicitRecovery": false,
+        "statusReadOnly": true,
+        "keyUnchanged": true,
+        "testProfileRemoved": true,
+        "fixtureCleanupOnly": true
+      }
+    ]
+  },
+  "measurementValid": true,
+  "positiveControls": {
+    "expected": 8,
+    "observed": 8
+  },
+  "explicitProcessStops": 458,
+  "processLifetimes": {
+    "kraqel-isolation-probe.exe": 137,
+    "conhost.exe": 160,
+    "kraqel-desktop.exe": 23,
+    "msedgewebview2.exe": 138
+  },
+  "nonLoopbackEvents": 0,
+  "separateLoopbackEvents": 138,
+  "measuredPersistedImportTasks": 15,
+  "measuredLegitimateProjectCopies": 14,
+  "normalPreviewStoreUsed": false,
+  "phases": [
+    {
+      "formatVersion": 1,
+      "measurementMode": "broker-ui",
+      "measurementValid": true,
+      "measurementProblems": [],
+      "result": "no-non-loopback-traffic-observed",
+      "rootStarts": 1,
+      "processLifetimes": {
+        "kraqel-isolation-probe.exe": 19,
+        "conhost.exe": 25,
+        "kraqel-desktop.exe": 6,
+        "msedgewebview2.exe": 36
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "unattributableNetworkEvents": 0,
+      "unknownDestinationEvents": 0,
+      "networkEvents": [
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 13,
+          "destinationScope": "loopback",
+          "count": 18
+        },
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 29,
+          "destinationScope": "loopback",
+          "count": 18
+        }
+      ],
+      "nonLoopbackEvents": 0,
+      "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths. Out-of-tree COM/Shell services are not attributed by this process-tree measurement.",
+      "phase": "baseline",
+      "captureReadyUtc": "2026-11-17T06:24:35.4372021Z",
+      "traceStoppedUtc": "2026-11-17T06:24:57.3570050Z",
+      "convertedUtc": "2026-11-17T06:24:57.6553796Z",
+      "etlBytes": 1769472,
+      "lifecycleAudit": {
+        "independentLifecycleAuditPassed": true,
+        "rootStarts": 1,
+        "orderedControllerChildrenMatched": 18,
+        "orderedAppGenerationsMatched": 6,
+        "explicitProcessStops": 86,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 19,
+          "conhost.exe": 25,
+          "kraqel-desktop.exe": 6,
+          "msedgewebview2.exe": 36
+        },
+        "controllerExitCodes": {
+          "0": 11,
+          "86": 2,
+          "1": 6
+        },
+        "appExitCodes": {
+          "0": 2,
+          "77": 4
+        },
+        "webViewsPerApp": 6
+      },
+      "dataAudit": {
+        "formatVersion": 1,
+        "nativePreviewOnly": true,
+        "productionAcceptance": false,
+        "sourceBaseCommit": "f19798c779394ec8b9c19cd5114715617baac32b",
+        "controllerSha256": "8b5f58587d6ba2b608a6c5573efa0dc430bb566db344f04c6543ad8c92380658",
+        "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+        "independentAuditPassed": true,
+        "controlSchema": 3,
+        "controlRecordsPerInstallation": 7,
+        "controllerProcesses": 18,
+        "controllerExitCodes": {
+          "0": 10,
+          "1": 6,
+          "86": 2
+        },
+        "nativeGuiStarts": 6,
+        "controllerCrashes": 2,
+        "authenticatedRecoveries": 4,
+        "explicitReplayEvents": 8,
+        "negativeRecoveries": 6,
+        "actualContainerDenials": 36,
+        "distinctTasks": 2,
+        "distinctLaunches": 6,
+        "legitimateProjectCopies": 1,
+        "profilesRemoved": 2,
+        "normalPreviewStoreUsed": false,
+        "reservedPrivateDataEmpty": true,
+        "networkMeasurement": false,
+        "cases": [
+          {
+            "point": "prepared",
+            "controllerExitCode": 86,
+            "recoveries": 2,
+            "replayEvents": 4,
+            "projectCopies": 0,
+            "profileRemoved": true,
+            "negativeStateUnchanged": true,
+            "keyUnchanged": true
+          },
+          {
+            "point": "completed",
+            "controllerExitCode": 86,
+            "recoveries": 2,
+            "replayEvents": 4,
+            "projectCopies": 1,
+            "profileRemoved": true,
+            "negativeStateUnchanged": true,
+            "keyUnchanged": true
+          }
+        ]
+      }
+    },
+    {
+      "formatVersion": 1,
+      "measurementMode": "broker-ui",
+      "measurementValid": true,
+      "measurementProblems": [],
+      "result": "no-non-loopback-traffic-observed",
+      "rootStarts": 1,
+      "processLifetimes": {
+        "kraqel-isolation-probe.exe": 118,
+        "conhost.exe": 135,
+        "kraqel-desktop.exe": 17,
+        "msedgewebview2.exe": 102
+      },
+      "loss": {
+        "EventsLost": 0,
+        "BuffersLost": 0
+      },
+      "positiveControls": {
+        "expected": 4,
+        "observed": 4
+      },
+      "unattributableNetworkEvents": 0,
+      "unknownDestinationEvents": 0,
+      "networkEvents": [
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 13,
+          "destinationScope": "loopback",
+          "count": 51
+        },
+        {
+          "image": "msedgewebview2.exe",
+          "eventId": 29,
+          "destinationScope": "loopback",
+          "count": 51
+        }
+      ],
+      "nonLoopbackEvents": 0,
+      "limits": "Transport metadata only; no HTTP/upload/content attribution. No physical network disconnection. Applies only to the captured process lifetimes and exercised paths. Out-of-tree COM/Shell services are not attributed by this process-tree measurement.",
+      "phase": "transitions",
+      "captureReadyUtc": "2026-11-17T06:24:57.7012945Z",
+      "traceStoppedUtc": "2026-11-17T06:26:29.1327913Z",
+      "convertedUtc": "2026-11-17T06:26:30.1037979Z",
+      "etlBytes": 6750208,
+      "lifecycleAudit": {
+        "independentLifecycleAuditPassed": true,
+        "rootStarts": 1,
+        "orderedControllerChildrenMatched": 117,
+        "orderedAppGenerationsMatched": 17,
+        "explicitProcessStops": 372,
+        "processLifetimes": {
+          "kraqel-isolation-probe.exe": 118,
+          "conhost.exe": 135,
+          "kraqel-desktop.exe": 17,
+          "msedgewebview2.exe": 102
+        },
+        "controllerExitCodes": {
+          "0": 56,
+          "86": 33,
+          "1": 29
+        },
+        "appExitCodes": {
+          "0": 13,
+          "77": 4
+        },
+        "webViewsPerApp": 6
+      },
+      "dataAudit": {
+        "formatVersion": 1,
+        "nativePreviewOnly": true,
+        "productionAcceptance": false,
+        "independentAuditPassed": true,
+        "controllerSha256": "8b5f58587d6ba2b608a6c5573efa0dc430bb566db344f04c6543ad8c92380658",
+        "appSha256": "6e56a51ed2e913a878a7935e039bd69628a49be25f0fbab7d02fce3a72fe8c70",
+        "transitionCrashCases": 20,
+        "seedControllerCrashes": 13,
+        "childControllerProcesses": 117,
+        "childExitCodes": {
+          "0": 55,
+          "1": 29,
+          "86": 33
+        },
+        "blockedCases": 9,
+        "controlReadyCases": 11,
+        "explicitRecoveries": 4,
+        "nativeGuiStarts": 17,
+        "actualContainerDenials": 102,
+        "persistedImportTasks": 13,
+        "legitimateProjectCopies": 13,
+        "profilesRemoved": 20,
+        "normalPreviewStoreUsed": false,
+        "reservedPrivateDataEmpty": true,
+        "networkMeasurement": false,
+        "cases": [
+          {
+            "action": "bind",
+            "point": "before-record",
+            "controlReady": true,
+            "explicitRecovery": false,
+            "statusReadOnly": true,
+            "keyUnchanged": true,
+            "testProfileRemoved": true,
+            "fixtureCleanupOnly": true
+          },
+          {
+            "action": "bind",
+            "point": "record-created",
+            "controlReady": false,
+            "explicitRecovery": false,
+            "statusReadOnly": true,
+            "keyUnchanged": true,
+            "testProfileRemoved": true,
+            "fixtureCleanupOnly": true
+          },
+          {
+            "action": "bind",
+            "point": "record-synced",
+            "controlReady": false,
+            "explicitRecovery": false,
+            "statusReadOnly": true,
+            "keyUnchanged": true,
+            "testProfileRemoved": true,
+            "fixtureCleanupOnly": true
+          },
+          {
+            "action": "bind",
+            "point": "head-staged",
+            "controlReady": false,
+            "explicitRecovery": false,
+            "statusReadOnly": true,
+            "keyUnchanged": true,
+            "testProfileRemoved": true,
+            "fixtureCleanupOnly": true
+          },
+          {
+            "action": "bind",
+            "point": "head-published",
+            "controlReady": true,
+            "explicitRecovery": false,
+            "statusReadOnly": true,
+            "keyUnchanged": true,
+            "testProfileRemoved": true,
+            "fixtureCleanupOnly": true
+          },
+          {
+            "action": "bind",
+            "point": "session-staged",
+            "controlReady": true,
+            "explicitRecovery": false,
+            "statusReadOnly": true,
+            "keyUnchanged": true,
+            "testProfileRemoved": true,
+            "fixtureCleanupOnly": true
+          },
+          {
+            "action": "bind",
+            "point": "before-session-run",
+            "controlReady": true,
+            "explicitRecovery": false,
+            "statusReadOnly": true,
+            "keyUnchanged": true,
+            "testProfileRemoved": true,
+            "fixtureCleanupOnly": true
+          },
+          {
+            "action": "recover",
+            "point": "before-record",
+            "controlReady": true,
+            "explicitRecovery": true,
+            "statusReadOnly": true,
+            "keyUnchanged": true,
+            "testProfileRemoved": true,
+            "fixtureCleanupOnly": true
+          },
+          {
+            "action": "recover",
+            "point": "record-created",
+            "controlReady": false,
+            "explicitRecovery": false,
+            "statusReadOnly": true,
+            "keyUnchanged": true,
+            "testProfileRemoved": true,
+            "fixtureCleanupOnly": true
+          },
+          {
+            "action": "recover",
+            "point": "record-synced",
+            "controlReady": false,
+            "explicitRecovery": false,
+            "statusReadOnly": true,
+            "keyUnchanged": true,
+            "testProfileRemoved": true,
+            "fixtureCleanupOnly": true
+          },
+          {
+            "action": "recover",
+            "point": "head-staged",
+            "controlReady": false,
+            "explicitRecovery": false,
+            "statusReadOnly": true,
+            "keyUnchanged": true,
+            "testProfileRemoved": true,
+            "fixtureCleanupOnly": true
+          },
+          {
+            "action": "recover",
+            "point": "head-published",
+            "controlReady": true,
+            "explicitRecovery": true,
+            "statusReadOnly": true,
+            "keyUnchanged": true,
+            "testProfileRemoved": true,
+            "fixtureCleanupOnly": true
+          },
+          {
+            "action": "recover",
+            "point": "before-session-run",
+            "controlReady": true,
+            "explicitRecovery": true,
+            "statusReadOnly": true,
+            "keyUnchanged": true,
+            "testProfileRemoved": true,
+            "fixtureCleanupOnly": true
+          },
+          {
+            "action": "retire",
+            "point": "before-record",
+            "controlReady": true,
+            "explicitRecovery": true,
+            "statusReadOnly": true,
+            "keyUnchanged": true,
+            "testProfileRemoved": true,
+            "fixtureCleanupOnly": true
+          },
+          {
+            "action": "retire",
+            "point": "record-created",
+            "controlReady": false,
+            "explicitRecovery": false,
+            "statusReadOnly": true,
+            "keyUnchanged": true,
+            "testProfileRemoved": true,
+            "fixtureCleanupOnly": true
+          },
+          {
+            "action": "retire",
+            "point": "record-synced",
+            "controlReady": false,
+            "explicitRecovery": false,
+            "statusReadOnly": true,
+            "keyUnchanged": true,
+            "testProfileRemoved": true,
+            "fixtureCleanupOnly": true
+          },
+          {
+            "action": "retire",
+            "point": "head-staged",
+            "controlReady": false,
+            "explicitRecovery": false,
+            "statusReadOnly": true,
+            "keyUnchanged": true,
+            "testProfileRemoved": true,
+            "fixtureCleanupOnly": true
+          },
+          {
+            "action": "retire",
+            "point": "head-published",
+            "controlReady": true,
+            "explicitRecovery": false,
+            "statusReadOnly": true,
+            "keyUnchanged": true,
+            "testProfileRemoved": true,
+            "fixtureCleanupOnly": true
+          },
+          {
+            "action": "retire",
+            "point": "retire-committed",
+            "controlReady": true,
+            "explicitRecovery": false,
+            "statusReadOnly": true,
+            "keyUnchanged": true,
+            "testProfileRemoved": true,
+            "fixtureCleanupOnly": true
+          },
+          {
+            "action": "retire",
+            "point": "profile-removed",
+            "controlReady": true,
+            "explicitRecovery": false,
+            "statusReadOnly": true,
+            "keyUnchanged": true,
+            "testProfileRemoved": true,
+            "fixtureCleanupOnly": true
+          }
+        ]
+      }
+    }
+  ],
+  "limits": "Control-ready is not a general execution grant. Nine incomplete stores remain blocked; fixture-only profile cleanup does not repair control state. Persistent preview store unchanged. Transport metadata for captured process trees only, no HTTP/content/upload or complete out-of-tree COM/Shell/DNS/broker attestation."
+}

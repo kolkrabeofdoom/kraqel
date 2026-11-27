@@ -1,21 +1,28 @@
-import type { ProjectId } from "@kraqel/domain";
+import type { DocumentNode, ProjectId } from "@kraqel/domain";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import {
   commitProjectSnapshot,
   createProjectSnapshot,
   exportProjectArchive,
+  prepareProjectHandoff,
   getVersionControlDiff,
   getVersionControlStatus,
   validateProjectSnapshot,
+  type Workspace,
   type SnapshotSummary,
   type VersionControlStatus,
 } from "./commands";
 
+import { HandoffComparison } from "./HandoffComparison";
+import { SceneBasisPanel } from "./SceneBasisPanel";
+
 interface VersionControlProps {
   readonly projectId: ProjectId;
+  readonly documents: readonly DocumentNode[];
+  readonly onActivated: (workspace: Workspace) => void;
 }
 
-export function VersionControl({ projectId }: VersionControlProps) {
+export function VersionControl({ projectId, documents, onActivated }: VersionControlProps) {
   const [status, setStatus] = useState<VersionControlStatus | null>(null);
   const [summary, setSummary] = useState<SnapshotSummary | null>(null);
   const [diff, setDiff] = useState("");
@@ -91,6 +98,24 @@ export function VersionControl({ projectId }: VersionControlProps) {
     }
   };
 
+  const prepareHandoff = async () => {
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const { folder, manifestSha256, sceneBasisSha256 } = await prepareProjectHandoff(projectId);
+      setNotice(
+        `Übernahme vorbereitet. Die lokale Arbeitskopie liegt im Projektordner unter backups/${folder}. SHA-256 des Inventars: ${manifestSha256}. SHA-256 der beiliegenden Szenenbasis: ${sceneBasisSha256}`,
+      );
+    } catch {
+      setError(
+        "Die Übernahme konnte nicht vorbereitet werden. Prüfe, ob das Projekt verfügbar ist und die verwendeten Bilder vollständig sind.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const commit = async (event: FormEvent) => {
     event.preventDefault();
     setBusy(true);
@@ -141,6 +166,31 @@ export function VersionControl({ projectId }: VersionControlProps) {
           </button>
         </div>
       </header>
+
+      <section className="version-panel" aria-labelledby="handoff-title">
+        <h3 id="handoff-title">Lokale Arbeitskopie</h3>
+        <p>
+          Bereitet den gespeicherten Projektstand samt verwendeten Bildern für die Übernahme vor.
+          Die Kopie liegt unverschlüsselt im lokalen Sicherungsordner.
+        </p>
+        <button
+          type="button"
+          className="secondary"
+          disabled={busy}
+          onClick={() => void prepareHandoff()}
+        >
+          Übernahme vorbereiten
+        </button>
+      </section>
+
+      <HandoffComparison key={`incoming-${projectId}`} projectId={projectId} />
+
+      <SceneBasisPanel
+        key={projectId}
+        projectId={projectId}
+        documents={documents}
+        onActivated={onActivated}
+      />
 
       <div className="version-status" aria-live="polite">
         <strong>
@@ -195,8 +245,9 @@ export function VersionControl({ projectId }: VersionControlProps) {
       </div>
 
       <section className="diff-panel" aria-labelledby="diff-title">
-        <h3 id="diff-title">Unified Diff</h3>
-        <pre tabIndex={0}>{diff || "Noch kein Diff vorhanden."}</pre>
+        <h3 id="diff-title">Geänderte Zeilen je Datei</h3>
+        {diff && <p>Hinzugefügt · entfernt · Dateipfad</p>}
+        <pre tabIndex={0}>{diff || "Keine geänderten Zeilen."}</pre>
       </section>
     </section>
   );

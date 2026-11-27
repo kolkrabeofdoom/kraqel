@@ -1,4 +1,6 @@
+use crate::screenplay::{ROLES, presentation};
 use crate::{Block, ExportError, ExportFormat, Inline, Manuscript, internal};
+use kraqel_domain::ScreenplayRole as Role;
 use std::{
     fmt::Write as _,
     io::{Cursor, Write},
@@ -17,6 +19,14 @@ pub(crate) fn render(
     }
 }
 
+fn has_screenplay(manuscript: &Manuscript) -> bool {
+    manuscript
+        .chapters
+        .iter()
+        .flat_map(|chapter| &chapter.scenes)
+        .any(|scene| matches!(scene.blocks.first(), Some(Block::Screenplay(..))))
+}
+
 fn markdown(manuscript: &Manuscript) -> String {
     let mut output = format!("# {}\n\n", escape_markdown(&manuscript.title));
     for chapter in &manuscript.chapters {
@@ -31,6 +41,11 @@ fn markdown(manuscript: &Manuscript) -> String {
 pub(super) fn markdown_blocks(output: &mut String, blocks: &[Block], depth: usize, prefix: &str) {
     for block in blocks {
         match block {
+            Block::Screenplay(role, inlines) => {
+                let _ = write!(output, "**{}**\n\n", presentation(*role).label);
+                markdown_inlines(output, inlines);
+                output.push_str("\n\n");
+            }
             Block::Paragraph(inlines) => {
                 output.push_str(prefix);
                 markdown_inlines(output, inlines);
@@ -100,14 +115,28 @@ fn html(manuscript: &Manuscript) -> String {
         body.push_str("</section>\n");
     }
     format!(
-        "<!doctype html>\n<html lang=\"de\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{}</title><style>body{{max-width:44rem;margin:4rem auto;padding:0 1.5rem;color:#182829;background:#fffdf8;font:12pt/1.65 Georgia,serif}}h1{{font-size:2.6rem}}h2{{margin-top:3rem;border-bottom:1px solid #9aaca8}}h3{{margin-top:2rem}}blockquote{{border-left:.25rem solid #0c7772;margin-left:0;padding-left:1rem;color:#435b5c}}@media print{{body{{margin:0}}}}</style></head><body>{}</body></html>\n",
+        "<!doctype html>\n<html lang=\"de\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{}</title><style>body{{max-width:44rem;margin:4rem auto;padding:0 1.5rem;color:#182829;background:#fffdf8;font:12pt/1.65 Georgia,serif}}h1{{font-size:2.6rem}}h2{{margin-top:3rem;border-bottom:1px solid #9aaca8}}h3{{margin-top:2rem}}blockquote{{border-left:.25rem solid #0c7772;margin-left:0;padding-left:1rem;color:#435b5c}}@media print{{body{{margin:0}}}}{screenplay_css}</style></head><body>{}</body></html>\n",
         escape_html(&manuscript.title),
-        body
+        body,
+        screenplay_css = if has_screenplay(manuscript) {
+            include_str!("screenplay.css")
+        } else {
+            ""
+        }
     )
 }
 pub(super) fn html_blocks(output: &mut String, blocks: &[Block]) {
     for block in blocks {
         match block {
+            Block::Screenplay(role, inlines) => {
+                let key = presentation(*role).key;
+                let _ = write!(
+                    output,
+                    r#"<p class="screenplay screenplay-{key}" data-kraqel-role="{key}">"#
+                );
+                html_inlines(output, inlines);
+                output.push_str("</p>\n");
+            }
             Block::Paragraph(inlines) => {
                 output.push_str("<p>");
                 html_inlines(output, inlines);
@@ -204,14 +233,34 @@ fn docx(manuscript: &Manuscript) -> Result<Vec<u8>, ExportError> {
             docx_blocks(&mut document, &scene.blocks, 0);
         }
     }
-    document.push_str(
-        r#"<w:sectPr><w:pgSz w:w="12240" w:h="15840"/></w:sectPr></w:body></w:document>"#,
-    );
-    package_docx(&document)
+    let screenplay = has_screenplay(manuscript);
+    if screenplay {
+        document.push_str(r#"<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1417" w:right="1417" w:bottom="1134" w:left="1701" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr></w:body></w:document>"#);
+    } else {
+        document.push_str(
+            r#"<w:sectPr><w:pgSz w:w="12240" w:h="15840"/></w:sectPr></w:body></w:document>"#,
+        );
+    }
+    package_docx(&document, screenplay)
 }
 pub(super) fn docx_blocks(document: &mut String, blocks: &[Block], depth: usize) {
-    for block in blocks {
+    for (index, block) in blocks.iter().enumerate() {
         match block {
+            Block::Screenplay(role, inlines) => {
+                let style = presentation(*role).style;
+                let _ = write!(document, r#"<w:p><w:pPr><w:pStyle w:val="{style}"/>"#);
+                if *role == Role::Dialogue
+                    && matches!(
+                        blocks.get(index + 1),
+                        Some(Block::Screenplay(Role::Dialogue | Role::Parenthetical, _))
+                    )
+                {
+                    document.push_str(r#"<w:spacing w:after="0"/>"#);
+                }
+                document.push_str("</w:pPr>");
+                docx_inlines(document, inlines);
+                document.push_str("</w:p>");
+            }
             Block::Paragraph(inlines) => docx_paragraph(document, inlines, None, None),
             Block::Heading(level, inlines) => {
                 docx_paragraph(
@@ -316,11 +365,57 @@ fn escape_xml(value: &str) -> String {
         .replace('<', "&lt;")
         .replace('>', "&gt;")
 }
-fn package_docx(document: &str) -> Result<Vec<u8>, ExportError> {
+pub(crate) fn add_screenplay_style(styles: &mut String, role: Role, name: &str) {
+    // OOXML margins/indents are in twentieths of a point, rounded from the profile's millimetres.
+    let (left, right) = match role {
+        Role::Character => (3118, 0),
+        Role::Parenthetical => (2268, 1417),
+        Role::Dialogue => (1417, 1417),
+        _ => (0, 0),
+    };
+    let alignment = if role == Role::Transition {
+        "right"
+    } else {
+        "left"
+    };
+    let after = if matches!(role, Role::Character | Role::Parenthetical) {
+        0
+    } else {
+        240
+    };
+    let keep_next = if matches!(
+        role,
+        Role::SceneHeading | Role::Character | Role::Parenthetical
+    ) {
+        "<w:keepNext/>"
+    } else {
+        ""
+    };
+    let _ = write!(
+        styles,
+        r#"<w:style w:type="paragraph" w:styleId="{}"><w:name w:val="{name}"/><w:basedOn w:val="Normal"/><w:pPr>{keep_next}<w:widowControl/><w:suppressAutoHyphens/><w:spacing w:before="0" w:after="{after}" w:line="280" w:lineRule="exact"/><w:ind w:left="{left}" w:right="{right}"/><w:jc w:val="{alignment}"/></w:pPr><w:rPr><w:rFonts w:ascii="JetBrains Mono" w:hAnsi="JetBrains Mono" w:eastAsia="JetBrains Mono" w:cs="JetBrains Mono"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:style>"#,
+        presentation(role).style
+    );
+}
+
+fn package_docx(document: &str, screenplay: bool) -> Result<Vec<u8>, ExportError> {
     const CONTENT_TYPES: &str = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>"#;
     const PACKAGE_RELS: &str = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>"#;
     const DOCUMENT_RELS: &str = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>"#;
     const STYLES: &str = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style><w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/></w:style><w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/></w:style><w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/></w:style><w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="heading 3"/></w:style><w:style w:type="paragraph" w:styleId="Heading4"><w:name w:val="heading 4"/></w:style><w:style w:type="paragraph" w:styleId="Heading5"><w:name w:val="heading 5"/></w:style><w:style w:type="paragraph" w:styleId="Heading6"><w:name w:val="heading 6"/></w:style></w:styles>"#;
+
+    let mut styles = STYLES.to_owned();
+    if screenplay {
+        styles.truncate(styles.len() - "</w:styles>".len());
+        for role in ROLES {
+            add_screenplay_style(
+                &mut styles,
+                role,
+                &format!("Drehbuch – {}", presentation(role).label),
+            );
+        }
+        styles.push_str("</w:styles>");
+    }
 
     let cursor = Cursor::new(Vec::new());
     let mut archive = ZipWriter::new(cursor);
@@ -329,7 +424,7 @@ fn package_docx(document: &str) -> Result<Vec<u8>, ExportError> {
         ("[Content_Types].xml", CONTENT_TYPES),
         ("_rels/.rels", PACKAGE_RELS),
         ("word/document.xml", document),
-        ("word/styles.xml", STYLES),
+        ("word/styles.xml", styles.as_str()),
         ("word/_rels/document.xml.rels", DOCUMENT_RELS),
     ] {
         archive.start_file(name, options).map_err(internal)?;
@@ -339,7 +434,10 @@ fn package_docx(document: &str) -> Result<Vec<u8>, ExportError> {
 }
 
 fn pdf(manuscript: &Manuscript) -> Result<Vec<u8>, ExportError> {
-    crate::pdf::text(manuscript).map_err(|_| ExportError::InvalidDocument(
-        "Der PDF-Auftrag enthält nicht unterstützte Zeichen oder überschreitet die Layoutgrenzen."
-    ))
+    crate::pdf::text(manuscript).map_err(|error| match error {
+        crate::illustrated::IllustratedError::ScreenplayLayout(hint) => ExportError::InvalidDocument(hint),
+        _ => ExportError::InvalidDocument(
+            "Der PDF-Auftrag enthält nicht unterstützte Zeichen oder überschreitet die Layoutgrenzen."
+        ),
+    })
 }

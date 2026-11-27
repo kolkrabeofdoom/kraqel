@@ -1,0 +1,31 @@
+{
+  "reference": {
+    "traceEvents": 42,
+    "processes": 2,
+    "fixture": {},
+    "controlsMatched": 4,
+    "lostEventsAndBuffers": 0,
+    "guestNetworkEvents": {
+      "loopback": 18
+    },
+    "networkEventsByScope": {},
+    "networkEvents": 0
+  },
+  "exercise": {
+    "traceEvents": 64,
+    "processes": 13,
+    "fixture": {
+      "bp3-starter.exe": 2,
+      "bp3-static-allowed.exe": 1,
+      "bp3-static-foreign.exe": 1,
+      "bp3-worker.exe": 4
+    },
+    "controlsMatched": 4,
+    "lostEventsAndBuffers": 0,
+    "guestNetworkEvents": {
+      "loopback": 18
+    },
+    "networkEventsByScope": {},
+    "networkEvents": 0
+  }
+}

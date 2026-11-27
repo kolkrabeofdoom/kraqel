@@ -1,9 +1,12 @@
 import { IllustratedExport } from "./IllustratedExport";
-import type { ProjectId } from "@kraqel/domain";
+import type { DocumentNode, EntityId, ProjectId } from "@kraqel/domain";
+import { buildDocumentTree } from "@kraqel/editor";
 import { useState } from "react";
 import {
+  KraqelCommandError,
   exportManuscript,
   exportRoundtripManuscript,
+  exportScreenplayPdf,
   openExportDirectory,
   type ExportFormat,
   type ExportResult,
@@ -13,28 +16,42 @@ const formats: readonly { format: ExportFormat; label: string; description: stri
   { format: "markdown", label: "Markdown", description: "Portabel und gut versionierbar" },
   { format: "html", label: "HTML", description: "Eigenständig im Browser lesbar" },
   { format: "docx", label: "DOCX", description: "Für Office-Programme und Lektor*innen" },
-  { format: "pdf", label: "PDF", description: "Für Weitergabe und Ausdruck" },
+  { format: "pdf", label: "PDF", description: "Gesamtes Manuskript mit Gliederungstiteln" },
 ];
 
-export function Exports({ projectId }: { readonly projectId: ProjectId }) {
-  const [busy, setBusy] = useState<ExportFormat | "roundtrip" | null>(null);
+export function Exports({
+  projectId,
+  documents,
+}: {
+  readonly projectId: ProjectId;
+  readonly documents: readonly DocumentNode[];
+}) {
+  const [busy, setBusy] = useState<ExportFormat | "roundtrip" | "screenplay" | null>(null);
+  const [sceneIds, setSceneIds] = useState<EntityId[]>([]);
   const [openingDirectory, setOpeningDirectory] = useState(false);
   const [result, setResult] = useState<ExportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const run = async (format: ExportFormat | "roundtrip") => {
+  const run = async (format: ExportFormat | "roundtrip" | "screenplay") => {
+    if (busy !== null) return;
     setBusy(format);
     setError(null);
     setResult(null);
     try {
       setResult(
-        await (format === "roundtrip"
-          ? exportRoundtripManuscript(projectId)
-          : exportManuscript(projectId, format)),
+        await (format === "screenplay"
+          ? exportScreenplayPdf(projectId, sceneIds)
+          : format === "roundtrip"
+            ? exportRoundtripManuscript(projectId)
+            : exportManuscript(projectId, format)),
       );
-    } catch {
+    } catch (cause) {
+      const hint = cause instanceof KraqelCommandError ? cause.exportHint : undefined;
       setError(
-        "Der Export ist gescheitert. Prüfe Formatierungen und bei PDF auch den unterstützten Zeichenumfang und die Layoutgrenzen.",
+        hint ??
+          (format === "screenplay"
+            ? "Drehbuch-PDF konnte nicht erzeugt werden. Wähle ausschließlich Drehbuchszenen. Prüfe Szenenkopf, Dialogfolge, Zeichen und Seitenlayout."
+            : "Der Export ist gescheitert. Prüfe Formatierungen und bei PDF auch den unterstützten Zeichenumfang und die Layoutgrenzen."),
       );
     } finally {
       setBusy(null);
@@ -42,6 +59,7 @@ export function Exports({ projectId }: { readonly projectId: ProjectId }) {
   };
 
   const openDirectory = async () => {
+    if (openingDirectory) return;
     setOpeningDirectory(true);
     setError(null);
     try {
@@ -59,12 +77,14 @@ export function Exports({ projectId }: { readonly projectId: ProjectId }) {
       <h2 id="export-heading">Manuskript exportieren</h2>
       <p>
         Kapitel, Szenen, Überschriften, Absätze, Listen, Zitate sowie fett und kursiv gesetzter Text
-        werden übernommen. Dateien entstehen ausschließlich im Projektordner <code>exports</code>.
+        werden übernommen. Markdown, HTML, DOCX und PDF geben auch Drehbuchrollen aus. Für einen
+        reinen Rollenauszug wähle unter „Drehbuch als A4-PDF“ die gewünschten Szenen. Alle Ausgaben
+        liegen im Projektordner <code>exports</code>.
       </p>
       <button
         type="button"
         className="secondary export-folder-button"
-        disabled={openingDirectory}
+        aria-disabled={openingDirectory}
         onClick={() => void openDirectory()}
       >
         {openingDirectory ? "Exportordner wird geöffnet …" : "Exportordner öffnen"}
@@ -74,21 +94,59 @@ export function Exports({ projectId }: { readonly projectId: ProjectId }) {
           <article key={format}>
             <h3>{label}</h3>
             <p>{description}</p>
-            <button type="button" disabled={busy !== null} onClick={() => void run(format)}>
+            <button type="button" aria-disabled={busy !== null} onClick={() => void run(format)}>
               {busy === format ? "Kolkrabe arbeitet …" : `${label} erzeugen`}
             </button>
           </article>
         ))}
       </div>
       <article>
+        <h3>Drehbuch als A4-PDF</h3>
+        <fieldset className="checkbox-grid" disabled={busy !== null}>
+          <legend>Drehbuchszenen auswählen</legend>
+          {buildDocumentTree(documents).flatMap((chapter) =>
+            chapter.children.map((scene) => (
+              <label key={scene.id}>
+                <input
+                  type="checkbox"
+                  checked={sceneIds.includes(scene.id)}
+                  onChange={(event) =>
+                    setSceneIds(
+                      event.target.checked
+                        ? [...sceneIds, scene.id]
+                        : sceneIds.filter((id) => id !== scene.id),
+                    )
+                  }
+                />
+                {chapter.title || "Ohne Kapiteltitel"} · {scene.title || "Ohne Szenentitel"}
+              </label>
+            )),
+          )}
+        </fieldset>
+        <p>
+          {sceneIds.length} Szenen ausgewählt. Gedruckt werden ihre Rollenabsätze in
+          Baumreihenfolge. Projekt-, Kapitel- und Szenentitel, Bilder und alle übrigen Szenen
+          bleiben außerhalb der Ausgabe.
+        </p>
+        <button
+          type="button"
+          disabled={sceneIds.length === 0}
+          aria-disabled={busy !== null || sceneIds.length === 0}
+          onClick={() => void run("screenplay")}
+        >
+          Drehbuch-PDF erzeugen
+        </button>
+      </article>
+      <article>
         <h3>DOCX zum Wiederimport</h3>
         <p>
-          Für die Rückkehr aus Word oder LibreOffice als neue Projektkopie: Kapitel, Szenen und
-          Textformatierungen bleiben erhalten. Ohne Medien, Story-Bibel und weitere Projektdaten.
-          Bearbeite Text innerhalb bestehender Absätze; Strukturänderungen in Office können den
+          Beim Wiederimport als neue Projektkopie bleiben Kapitel, Szenen, Drehbuchrollen und
+          Textformatierungen erhalten. Reine Prosa verwendet v1, Manuskripte mit Drehbuchszenen
+          verwenden v2. Ohne Medien, Story-Bibel und weitere Projektdaten. Bearbeite in Word oder
+          LibreOffice den Text innerhalb bestehender Absätze. Strukturänderungen können den
           Wiederimport verhindern.
         </p>
-        <button type="button" disabled={busy !== null} onClick={() => void run("roundtrip")}>
+        <button type="button" aria-disabled={busy !== null} onClick={() => void run("roundtrip")}>
           {busy === "roundtrip" ? "Kolkrabe arbeitet …" : "DOCX zum Wiederimport erzeugen"}
         </button>
       </article>

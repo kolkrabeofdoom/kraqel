@@ -1,5 +1,80 @@
 # Lokale Windows-Netzprüfung für M3
 
+[Frisches C3-Gruppen-ETW](../../docs/testing/product-start-p2c-group-bootstrap-etw.md): unveränderte
+Capture-/Auswertehelfer, regulärer Abschluss sowie Gruppenfehler/gesperrter Wiederanlauf. 28
+Controller, sieben Root-/fünf Kindrollen und 28 Konsolenhosts; 68 explizite Enden, acht Kontrollen,
+Nullverluste/Zuordnungslücken und null beobachtete Netzereignisse in diesen Bäumen. 28 native
+Controllerzeiten und elf dauerhafte Workerbindungen exakt zugeordnet, 66 MAC-Records/sechs Inventare
+geprüft. 42 Diagnose-Tests grün, kein neuer Build. UI-/Produkt-/Dienstgrenzen offen.
+
+[Frisches C2-Datenpfad-ETW](../../docs/testing/product-start-p2c-native-data-etw.md): unveränderte
+Capture-/Auswertehelfer, Referenz und Bearbeiten/Wiederöffnen/explizite Stilllegung. 15 Controller/
+15 Konsolenhosts, 30 explizite Enden, acht Kontrollen, Nullverluste/Zuordnungslücken und null
+beobachtete Netzereignisse in diesen Bäumen. Zwölf MAC-Records/vier Inventare und zwei
+Profilstilllegungen unabhängig bestätigt, 42 Diagnose-Tests grün. Kein neuer Build oder UI-Start;
+C3/Produkt-/Dienstgrenzen bleiben offen.
+
+[Frisches Worker-v3-ETW](../../docs/testing/product-start-worker-lifetime-etw.md): unveränderte
+Capture-/Auswertehelfer, Referenz/vier Wiederanlaufpfade, 52 explizite Controllerroots/acht Worker,
+112 explizite Enden, acht Kontrollen, Nullverluste/Zuordnungslücken, null beobachtete
+Netzereignisse. Separater Kernel-/Native-/MAC-Abgleich aller acht PID-/Erzeugungszeitpaare, sieben
+dauerhafter Bindungen und dreier Recovery-Endrecords nach Kernelende. Exit 0 ist keine fachliche
+Erfolgsautorität. 42 Diagnose-Tests grün, kein neuer Build; normale
+Produkt-/Mehrprozess-/Dienstgrenzen offen.
+
+[Frisches Ressourcen-ABI-2-ETW](../../docs/testing/product-start-resource-reconciliation-etw.md):
+unveränderte Capture-/Auswertehelfer, regulärer Workerabschluss und vier gezielte
+Ressourcenabbrüche. 54 explizite Controllerroots/sechs Worker/54 Controller-Konsolenhosts, 114
+explizite Enden, acht Kontrollen, Nullverluste/Zuordnungslücken, null beobachtete Netzereignisse in
+diesen Bäumen. Vollständiger separater Aufruf-/Worker-/MAC-/Daten-/Profilaudit und 42 Diagnose-Tests
+grün. Kein neuer Build; keine normale Produktfreigabe, externe Dienste/Prüfsteuerung außerhalb des
+Scopes.
+
+[Frischer P2b-Controller-/Workerbeleg](../../docs/testing/product-start-p2b-bootstrap-etw.md): zwei
+kurze gültige Phasen mit unveränderten Capture-/Auswertehelfern, 31 explizite native Roots, sechs
+separat gestartete Worker und 31 Controller-Konsolenhosts. Acht Kontrollen, Nullverluste, 68
+explizite Enden, null beobachtete Netzereignisse in diesen Bäumen. Workerzuordnung zusätzlich über
+private Startbelege/MAC-/Paket-/Root-/Token-/Job-/Profilaudit geprüft; 42 Diagnose-Tests grün. Kein
+neuer Runtimebuild, keine normale Produktfreigabe oder Übertragung auf andere Pfade.
+
+[Frischer Prepare-Übergangs-/Kandidatenbeleg](../../docs/testing/native-prepare-transition-etw.md):
+regulärer Update-/Recoverypfad als Referenz gegenüber drei Übergangsabbrüchen, unveränderte
+Auswertung/Capture. 59 direkte Roots einschließlich fünf verwalteter hashbenannter Starts, acht
+Kontrollen, Nullverluste, 182 explizite Enden, 0 Nicht-Loopback. Vollständiger separater
+Aufruf-/GUI-/ Daten-/MAC-Abgleich, 42 Diagnose-Tests; kein neuer Build oder Übertrag auf andere
+Programme/Pfade.
+
+[Frischer Retry-/Kandidatenbeleg](../../docs/testing/native-package-artifact-retry-etw.md):
+unveränderte Auswertung/Capture, zwei kurze Phasen, 21 explizite native Roots einschließlich fünf
+hashbenannter verwalteter EXEs. Acht Kontrollen, Nullverluste, 144 explizite Enden, 0
+Nicht-Loopback; unabhängiger Aufruf-/GUI-/Daten-/MAC-Abgleich. 42 Diagnose-Tests grün, keine
+Übertragung auf andere Programme oder ungemessene Pfade.
+
+`analyze.py --mode native-control` erfasst ausdrücklich ausgewählte kurze native Kontrollaufrufe des
+festen Root-Images `kraqel-isolation-probe.exe`, auch ohne Kindprozess/GUI. Jede tatsächlich
+gestartete Root-PID angeben und Handles bis Messende halten; alle erwarteten Aufrufe und etwaige
+GUIs unabhängig gegen Kernel-Lebenszeiten abgleichen. Leere/fehlende Roots, Verluste, unvollständige
+Kalibrierung oder Prozessenden bleiben ungültig. Die Strukturprüfungen der bisherigen Modi werden
+nicht verändert. [Gezielter Cleanup-Nachweis](../../docs/testing/native-profile-cleanup-etw.md).
+
+Für verwaltete, hashbenannte Broker erlaubt ausschließlich `native-control` zusätzlich
+`--root-map <private JSON-Datei>`: eine nichtleere Liste von `{"pid": 1234, "image": "…"}` mit exakt
+diesen Feldern. Positive eindeutige Integer-PIDs müssen genau den `--root-pid`-Angaben entsprechen.
+Als erwarteter Basisname ist `kraqel-isolation-probe.exe`, `p3-starter.exe`, `kraqel-archiv.exe`
+oder ein vollständiger kleingeschriebener SHA-256 plus `.exe` zulässig, kein Pfad. Die Auswertung
+verlangt sowohl PID als auch erwarteten Namen; sie entdeckt keine Roots automatisch.
+Paketbytes/Hashfreigabe und die Vollständigkeit erwarteter Aufrufe unabhängig prüfen. Andere Modi
+weisen diese Zuordnung ab.
+[Frischer Nachweis beider Updateprogramme](../../docs/testing/native-schema4-package-update-etw.md),
+42 Diagnose-Tests einschließlich falscher Namen, unvollständiger Zuordnung und öffentlicher
+Netzereignisse im hashbenannten Baum. Root-Zuordnungen enthalten private PIDs und bleiben lokal.
+
+`analyze.py --mode broker-ui` ist für die gesamte Controller-Crash-Serie vorgesehen: Root ist der
+beim Start festgehaltene Serienprozess. Alle nachgeordneten Broker einschließlich negativer Starts
+zählen zum Baum; pro Root muss ein lebenszeitgebundener Broker→App→WebView-Pfad existieren.
+Kontrollen, Verlustzähler, vollständige Prozessenden und getrennte Loopback-Zählung bleiben
+verpflichtend. Konkrete Generationen/Exitcodes zusätzlich mit den lokalen Startbelegen abgleichen.
+
 `capture.ps1` benötigt eine ausdrücklich freigegebene, erhöhte **PowerShell 7** und Windows-
 `logman`/`tracerpt`. Keine Installation, Änderung von ExecutionPolicy, Firewall oder
 Datenschutzeinstellungen. Vor Ausführung den Helfer lesen. Er erzeugt eine eigene Sitzung mit
@@ -33,10 +108,10 @@ python -m unittest discover -s scripts/m3-network -v
 ```
 
 Exitcode 0 verlangt vollständige positive Kontrollen, Verlustfreiheit, Start-/Stop-Belege des
-App-/WebView2-Baums und keine Ereignisse außerhalb Loopback. Fehlende Evidenz wird nicht als
-Netzstille gewertet. Die Zuordnung berücksichtigt Prozessgenerationen und PID-Wiederverwendung;
-mehrdeutige Root-PIDs verhindern eine Freigabe. Die Ausgabe enthält keine IP-Adressen, Commandlines
-oder fremden Prozessnamen.
+gewählten Baums samt modusspezifischen Strukturprüfungen und keine Ereignisse außerhalb Loopback.
+Fehlende Evidenz wird nicht als Netzstille gewertet. Die Zuordnung berücksichtigt
+Prozessgenerationen und PID-Wiederverwendung; mehrdeutige Root-PIDs verhindern eine Freigabe. Die
+Ausgabe enthält keine IP-Adressen, Commandlines oder fremden Prozessnamen.
 
 Ein positiver Verkehrsbefund bleibt ein Befund, auch wenn etwa der Prozess vor Messende noch nicht
 geschlossen wurde; eine grüne Vollabnahme ergibt sich daraus nicht. ETW belegt hier

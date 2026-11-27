@@ -2,9 +2,23 @@ import type { JSONContent } from "@tiptap/core";
 import type { DocumentNode, EntityId } from "@kraqel/domain";
 
 export const EDITOR_DOCUMENT_VERSION = 1 as const;
+export const SCREENPLAY_DOCUMENT_VERSION = 2 as const;
+export const SCREENPLAY_ROLES = [
+  "sceneHeading",
+  "action",
+  "character",
+  "parenthetical",
+  "dialogue",
+  "transition",
+] as const;
+export type ScreenplayRole = (typeof SCREENPLAY_ROLES)[number];
+
+export function editorDocumentVersion(doc: JSONContent): 1 | 2 {
+  return doc.content?.some((block) => block.type === "screenplayBlock") ? 2 : 1;
+}
 
 export interface EditorDocument {
-  readonly version: typeof EDITOR_DOCUMENT_VERSION;
+  readonly version: typeof EDITOR_DOCUMENT_VERSION | typeof SCREENPLAY_DOCUMENT_VERSION;
   readonly document: JSONContent;
 }
 
@@ -126,9 +140,67 @@ export class AutosaveController<T> {
 }
 
 export function isEditorDocument(value: unknown): value is EditorDocument {
-  if (!isRecord(value) || value.version !== EDITOR_DOCUMENT_VERSION) return false;
+  if (!isRecord(value) || !Object.keys(value).every((k) => k === "version" || k === "document"))
+    return false;
   if (!isRecord(value.document) || value.document.type !== "doc") return false;
-  return value.document.content === undefined || Array.isArray(value.document.content);
+  const blocks = value.document.content;
+  if (value.version === EDITOR_DOCUMENT_VERSION)
+    return (blocks === undefined || Array.isArray(blocks)) && !containsScreenplay(value.document);
+  return (
+    value.version === SCREENPLAY_DOCUMENT_VERSION &&
+    Object.keys(value.document).every((k) => k === "type" || k === "content") &&
+    Array.isArray(blocks) &&
+    blocks.length > 0 &&
+    blocks.every(validScreenplayBlock)
+  );
+}
+
+function containsScreenplay(node: unknown): boolean {
+  return (
+    isRecord(node) &&
+    (node.type === "screenplayBlock" ||
+      (Array.isArray(node.content) && node.content.some(containsScreenplay)))
+  );
+}
+
+function validScreenplayBlock(node: unknown): boolean {
+  return (
+    isRecord(node) &&
+    node.type === "screenplayBlock" &&
+    Object.keys(node).every((k) => ["type", "attrs", "content"].includes(k)) &&
+    isRecord(node.attrs) &&
+    Object.keys(node.attrs).length === 1 &&
+    (SCREENPLAY_ROLES as readonly unknown[]).includes(node.attrs.role) &&
+    (node.content === undefined ||
+      (Array.isArray(node.content) && node.content.every(validScreenplayInline)))
+  );
+}
+
+function validScreenplayInline(node: unknown): boolean {
+  if (!isRecord(node)) return false;
+  if (node.type === "hardBreak") return Object.keys(node).length === 1;
+  if (
+    node.type !== "text" ||
+    typeof node.text !== "string" ||
+    node.text.length === 0 ||
+    node.text.includes("\0") ||
+    !Object.keys(node).every((k) => ["type", "text", "marks"].includes(k))
+  )
+    return false;
+  if (node.marks === undefined) return true;
+  if (!Array.isArray(node.marks) || node.marks.length > 2) return false;
+  const roles = new Set<string>();
+  for (const mark of node.marks) {
+    if (
+      !isRecord(mark) ||
+      Object.keys(mark).length !== 1 ||
+      (mark.type !== "bold" && mark.type !== "italic") ||
+      roles.has(mark.type)
+    )
+      return false;
+    roles.add(mark.type);
+  }
+  return true;
 }
 
 export function buildDocumentTree(nodes: readonly DocumentNode[]): readonly DocumentTreeNode[] {
@@ -174,5 +246,5 @@ function collectText(node: JSONContent, fragments: string[]): void {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

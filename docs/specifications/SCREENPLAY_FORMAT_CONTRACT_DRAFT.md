@@ -1,8 +1,13 @@
 # Drehbuchformatierung: fachlich freigegebener Vertrag v1
 
+Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit
+sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte
+Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7
+enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
+
 Stand: 15. November 2026 · KQ-066 / Issue #129 · **Am 15. November 2026 vom Projektinitiator
-fachlich freigegeben; noch nicht implementiert.** Codebasis:
-`4679c893e021c44ff9b471cac0783458e7640f2b` (PR #128 grün zusammengeführt).
+fachlich freigegeben (damaliger Stand).** Codebasis: `4679c893e021c44ff9b471cac0783458e7640f2b` (PR
+#128 grün zusammengeführt).
 
 ## 1. Quelle und fachliche Freigabe
 
@@ -141,7 +146,9 @@ Der bisherige Prosa-PDF-Pfad und DOCX-Manuskriptaustausch v1 dürfen neue Rollen
 abflachen; solche Aufträge scheitern vor Veröffentlichung. Markdown/HTML und gewöhnliches DOCX
 dürfen nach ihrer v2-Erweiterung Prosa- und Drehbuchszenen gemeinsam mit erhaltener Baumstruktur
 ausgeben. Der vorgeschlagene A4-Drehbuch-Druckmodus bleibt dagegen auf explizit gewählte reine
-Drehbuchszenen beschränkt. Eine gemischte PDF-Gesamtausgabe ist nicht Teil von Stufe 1.
+Drehbuchszenen beschränkt. Eine gemischte PDF-Gesamtausgabe ist nicht Teil von Stufe 1. Die spätere
+Erweiterung des gewöhnlichen Manuskriptdrucks ist im
+[Datenformat](../data-format/screenplay-v2.md#pdf-ausgaben) beschrieben.
 
 Markdown verwendet exakt die sichtbaren deutschen Rollennamen aus §3 als `**Rollenname**`; Text und
 Fett/Kursiv werden wie im bestehenden Renderer maskiert, harte Umbrüche mit zwei Leerzeichen vor LF

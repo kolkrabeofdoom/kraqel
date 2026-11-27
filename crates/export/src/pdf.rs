@@ -1,15 +1,16 @@
 //! Bounded PDF layout with embedded fonts, explicit glyph coverage and measured advances.
 mod fonts;
+pub(super) mod screenplay;
 use crate::{
     Block, Inline, Manuscript,
     illustrated::{IllustratedError, MAX_PACKAGE, Manifest},
 };
 use fonts::Fonts;
 use printpdf::{
-    ColorBits, ColorSpace, Image, ImageTransform, ImageXObject, IndirectFontRef, Mm, PdfDocument,
-    PdfDocumentReference, PdfLayerReference, Px,
+    FontId, Mm, Op, ParsedFont, PdfDocument, PdfFontHandle, PdfPage, PdfParseErrorSeverity,
+    PdfSaveOptions, Point, Pt, RawImage, RawImageData, RawImageFormat, TextItem, XObjectTransform,
 };
-use std::{collections::BTreeMap, io::Cursor};
+use std::collections::BTreeMap;
 
 const LEFT: f32 = 56.7;
 const TOP: f32 = 785.0;
@@ -17,6 +18,49 @@ const BOTTOM: f32 = 56.7;
 const WIDTH: f32 = 481.8;
 const MAX_LINES: usize = 100_000;
 type Result<T> = std::result::Result<T, IllustratedError>;
+
+fn screenplay_layout_error(error: &crate::ExportError) -> IllustratedError {
+    error.document_hint().map_or(
+        IllustratedError::Invalid,
+        IllustratedError::ScreenplayLayout,
+    )
+}
+
+// Adjacent editor text nodes can split a single composed glyph. Normalize the
+// whole printable run, retaining hard breaks and changes of font face as boundaries.
+fn styled_text_runs(
+    runs: &[Inline],
+    default_style: usize,
+) -> impl Iterator<Item = (std::borrow::Cow<'_, str>, usize)> {
+    fn face(run: &Inline, default_style: usize) -> usize {
+        match run {
+            Inline::Text { bold, italic, .. } if *bold || *italic => {
+                usize::from(*bold) + 2 * usize::from(*italic)
+            }
+            _ => default_style,
+        }
+    }
+    runs.chunk_by(move |left, right| {
+        matches!((left, right), (Inline::Text { .. }, Inline::Text { .. }))
+            && face(left, default_style) == face(right, default_style)
+    })
+    .map(move |group| {
+        let text = match group {
+            [Inline::Text { text, .. }] => std::borrow::Cow::Borrowed(text.as_str()),
+            [Inline::HardBreak] => std::borrow::Cow::Borrowed("\n"),
+            _ => std::borrow::Cow::Owned(
+                group
+                    .iter()
+                    .filter_map(|run| match run {
+                        Inline::Text { text, .. } => Some(text.as_str()),
+                        Inline::HardBreak => None,
+                    })
+                    .collect(),
+            ),
+        };
+        (text, face(&group[0], default_style))
+    })
+}
 
 #[derive(Clone)]
 struct Line {
@@ -28,6 +72,7 @@ enum Item {
     Line(Line),
     Gap(f32),
     FigureEnd,
+    Screenplay(std::ops::Range<usize>),
     Image {
         key: String,
         width: f32,
@@ -41,6 +86,7 @@ struct Layout {
     lines: usize,
     text_bytes: usize,
     image_bytes: u64,
+    screenplay: Option<screenplay::Layout>,
 }
 impl Layout {
     fn new() -> Result<Self> {
@@ -50,6 +96,7 @@ impl Layout {
             lines: 0,
             text_bytes: 0,
             image_bytes: 0,
+            screenplay: None,
         })
     }
     fn push_line(&mut self, chars: Vec<(char, usize)>, size: f32, indent: f32) -> Result<()> {
@@ -93,23 +140,13 @@ impl Layout {
             .chars()
             .map(|c| (c, default_style))
             .collect();
-        for run in runs {
-            match run {
-                Inline::HardBreak => chars.push(('\n', default_style)),
-                Inline::Text { text, bold, italic } => {
-                    let style = if *bold || *italic {
-                        usize::from(*bold) + 2 * usize::from(*italic)
-                    } else {
-                        default_style
-                    };
-                    chars.extend(
-                        self.fonts
-                            .normalized(text, style)?
-                            .chars()
-                            .map(|c| (c, style)),
-                    );
-                }
-            }
+        for (text, style) in styled_text_runs(runs, default_style) {
+            chars.extend(
+                self.fonts
+                    .normalized(&text, style)?
+                    .chars()
+                    .map(|c| (c, style)),
+            );
         }
         let mut line = Vec::new();
         let mut width = 0.0;
@@ -174,6 +211,7 @@ impl Layout {
         for (index, block) in blocks.iter().enumerate() {
             let lead = if index == 0 { prefix } else { "" };
             match block {
+                Block::Screenplay(..) => return Err(IllustratedError::Invalid),
                 Block::Paragraph(runs) => self.paragraph(runs, 11.0, indent, lead, 0)?,
                 Block::Heading(_, runs) => self.paragraph(runs, 13.0, indent, lead, 1)?,
                 Block::Quote(children) => self.blocks(children, depth + 1, &format!("{lead}› "))?,
@@ -191,6 +229,33 @@ impl Layout {
         }
         Ok(())
     }
+    fn screenplay(&mut self, blocks: &[Block]) -> Result<()> {
+        let roles = blocks
+            .iter()
+            .map(|block| match block {
+                Block::Screenplay(role, runs) => Ok((*role, runs.as_slice())),
+                _ => Err(IllustratedError::Invalid),
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let layout = match &mut self.screenplay {
+            Some(layout) => layout,
+            slot @ None => slot.insert(
+                screenplay::Layout::new().map_err(|error| screenplay_layout_error(&error))?,
+            ),
+        };
+        let previous_bytes = layout.text_bytes();
+        let rows = layout
+            .scene(&roles)
+            .map_err(|error| screenplay_layout_error(&error))?;
+        self.lines += rows.len();
+        self.text_bytes += layout.text_bytes() - previous_bytes;
+        if self.lines > MAX_LINES || self.text_bytes > 8 * 1024 * 1024 {
+            return Err(IllustratedError::Invalid);
+        }
+        self.items.push(Item::Screenplay(rows));
+        Ok(())
+    }
+
     fn figures(&mut self, manifest: &Manifest, c: usize, s: usize) -> Result<()> {
         for placement in manifest
             .placements
@@ -220,8 +285,12 @@ impl Layout {
                 self.plain(caption, 10.0, 0)?;
             }
             let mut texts = self.items.split_off(start);
-            let text_height: text_height::Height = text_height::Height::of(&texts);
-            let maximum = (TOP - BOTTOM - text_height.0 - 16.0).min(540.0);
+            let text_height = texts.iter().try_fold(0.0, |height, item| match item {
+                Item::Line(line) => Ok(height + line.size * 1.4),
+                Item::Gap(gap) => Ok(height + gap),
+                _ => Err(IllustratedError::Invalid),
+            })?;
+            let maximum = (TOP - BOTTOM - text_height - 16.0).min(540.0);
             if maximum <= 0.0 {
                 return Err(IllustratedError::Invalid);
             }
@@ -244,65 +313,76 @@ impl Layout {
     }
 }
 
-// All figure lines and their image are planned as one page-bounded group.
-mod text_height {
-    use super::Item;
-    pub(super) struct Height(pub f32);
-    impl Height {
-        pub(super) fn of(items: &[Item]) -> Self {
-            Self(
-                items
-                    .iter()
-                    .map(|i| match i {
-                        Item::Line(l) => l.size * 1.4,
-                        Item::Gap(g) => *g,
-                        Item::Image { height, .. } => *height + 8.0,
-                        Item::FigureEnd => 10.0,
-                    })
-                    .sum(),
-            )
-        }
-    }
-}
-
 struct Canvas {
-    document: PdfDocumentReference,
-    layer: PdfLayerReference,
-    fonts: Vec<IndirectFontRef>,
+    document: PdfDocument,
+    ops: Vec<Op>,
+    remaining_styled_runs: Option<usize>,
+    fonts: Vec<FontId>,
     y: f32,
-    pages: usize,
 }
 impl Canvas {
     fn new(title: &str) -> Result<Self> {
-        let (document, page, layer) = PdfDocument::new(title, Mm(210.0), Mm(297.0), "Manuskript");
-        let fonts = fonts::DATA
-            .iter()
-            .map(|data| {
-                document
-                    .add_external_font(Cursor::new(data))
-                    .map_err(|_| IllustratedError::Invalid)
-            })
-            .collect::<Result<_>>()?;
-        let layer = document.get_page(page).get_layer(layer);
-        Ok(Self {
-            document,
-            layer,
-            fonts,
+        Self::with_fonts(title, fonts::DATA)
+    }
+    fn with_fonts(title: &str, data_set: [&'static [u8]; 4]) -> Result<Self> {
+        let mut canvas = Self {
+            document: PdfDocument::new(title),
+            ops: Vec::new(),
+            remaining_styled_runs: None,
+            fonts: Vec::new(),
             y: TOP,
-            pages: 1,
-        })
+        };
+        canvas.add_fonts(data_set)?;
+        Ok(canvas)
+    }
+
+    fn add_fonts(&mut self, data_set: [&'static [u8]; 4]) -> Result<usize> {
+        let offset = self.fonts.len();
+        for data in data_set {
+            let font = ParsedFont::from_bytes(data, 0, &mut Vec::new())
+                .ok_or(IllustratedError::Invalid)?;
+            self.fonts.push(self.document.add_font(&font));
+        }
+        Ok(offset)
+    }
+
+    fn finish_page(&mut self) {
+        self.document.pages.push(PdfPage::new(
+            Mm(210.0),
+            Mm(297.0),
+            std::mem::take(&mut self.ops),
+        ));
+    }
+
+    fn write_run(&mut self, text: String, size: f32, x: f32, y: f32, style: usize) -> Result<()> {
+        if let Some(remaining) = &mut self.remaining_styled_runs {
+            *remaining = remaining.checked_sub(1).ok_or(IllustratedError::Invalid)?;
+        }
+        self.ops.extend([
+            Op::StartTextSection,
+            Op::SetTextCursor {
+                pos: Point { x: Pt(x), y: Pt(y) },
+            },
+            Op::SetFont {
+                font: PdfFontHandle::External(self.fonts[style].clone()),
+                size: Pt(size),
+            },
+            Op::ShowText {
+                items: vec![TextItem::Text(text)],
+            },
+            Op::EndTextSection,
+        ]);
+        Ok(())
     }
     fn room(&mut self, height: f32) -> Result<()> {
         if height > TOP - BOTTOM {
             return Err(IllustratedError::Invalid);
         }
         if self.y - height < BOTTOM {
-            self.pages += 1;
-            if self.pages > 2048 {
+            if self.document.pages.len() >= 2047 {
                 return Err(IllustratedError::Invalid);
             }
-            let (page, layer) = self.document.add_page(Mm(210.0), Mm(297.0), "Manuskript");
-            self.layer = self.document.get_page(page).get_layer(layer);
+            self.finish_page();
             self.y = TOP;
         }
         Ok(())
@@ -315,32 +395,20 @@ impl Canvas {
         let mut style = 0;
         for (c, s) in &line.chars {
             if *s != style && !current.is_empty() {
-                self.layer.use_text(
-                    &current,
-                    line.size,
-                    Mm(x * 25.4 / 72.0),
-                    Mm(baseline * 25.4 / 72.0),
-                    &self.fonts[style],
-                );
-                x += current
+                let advance = current
                     .chars()
                     .map(|c| metrics.advance(c, style, line.size))
                     .collect::<Result<Vec<_>>>()?
                     .iter()
                     .sum::<f32>();
-                current.clear();
+                self.write_run(std::mem::take(&mut current), line.size, x, baseline, style)?;
+                x += advance;
             }
             style = *s;
             current.push(*c);
         }
         if !current.is_empty() {
-            self.layer.use_text(
-                current,
-                line.size,
-                Mm(x * 25.4 / 72.0),
-                Mm(baseline * 25.4 / 72.0),
-                &self.fonts[style],
-            );
+            self.write_run(current, line.size, x, baseline, style)?;
         }
         self.y -= line.size * 1.4;
         Ok(())
@@ -349,33 +417,27 @@ impl Canvas {
         let pixels = image::load_from_memory(png)
             .map_err(|_| IllustratedError::Invalid)?
             .to_rgb8();
-        let image = ImageXObject {
-            width: Px(pixels.width() as usize),
-            height: Px(pixels.height() as usize),
-            color_space: ColorSpace::Rgb,
-            bits_per_component: ColorBits::Bit8,
-            interpolate: false,
-            image_data: pixels.into_raw(),
-            image_filter: None,
-            smask: None,
-            clipping_bbox: None,
-        };
-        let px_width =
-            f32::from(u16::try_from(image.width.0).map_err(|_| IllustratedError::Invalid)?);
-        let px_height =
-            f32::from(u16::try_from(image.height.0).map_err(|_| IllustratedError::Invalid)?);
+        let px_width = u16::try_from(pixels.width()).map_err(|_| IllustratedError::Invalid)?;
+        let px_height = u16::try_from(pixels.height()).map_err(|_| IllustratedError::Invalid)?;
+        let id = self.document.add_image(&RawImage {
+            width: usize::from(px_width),
+            height: usize::from(px_height),
+            pixels: RawImageData::U8(pixels.into_raw()),
+            data_format: RawImageFormat::RGB8,
+            tag: Vec::new(),
+        });
         self.y -= height;
-        Image::from(image).add_to_layer(
-            self.layer.clone(),
-            ImageTransform {
-                translate_x: Some(Mm(LEFT * 25.4 / 72.0)),
-                translate_y: Some(Mm(self.y * 25.4 / 72.0)),
-                scale_x: Some(width / px_width),
-                scale_y: Some(height / px_height),
+        self.ops.push(Op::UseXobject {
+            id,
+            transform: XObjectTransform {
+                translate_x: Some(Pt(LEFT)),
+                translate_y: Some(Pt(self.y)),
+                scale_x: Some(width / f32::from(px_width)),
+                scale_y: Some(height / f32::from(px_height)),
                 dpi: Some(72.0),
-                ..ImageTransform::default()
+                ..Default::default()
             },
-        );
+        });
         self.y -= 8.0;
         Ok(())
     }
@@ -388,7 +450,11 @@ fn plan(manuscript: &Manuscript, manifest: Option<&Manifest>) -> Result<Layout> 
         layout.plain(&chapter.title, 17.0, 1)?;
         for (s, scene) in chapter.scenes.iter().enumerate() {
             layout.plain(&scene.title, 14.0, 1)?;
-            layout.blocks(&scene.blocks, 0, "")?;
+            if manifest.is_none() && matches!(scene.blocks.first(), Some(Block::Screenplay(..))) {
+                layout.screenplay(&scene.blocks)?;
+            } else {
+                layout.blocks(&scene.blocks, 0, "")?;
+            }
             if let Some(manifest) = manifest {
                 layout.figures(manifest, c, s)?;
             }
@@ -404,24 +470,39 @@ fn render(
 ) -> Result<Vec<u8>> {
     let layout = plan(manuscript, manifest)?;
     let mut canvas = Canvas::new(&manuscript.title)?;
+    let script_fonts = layout
+        .screenplay
+        .as_ref()
+        .map(|_| canvas.add_fonts(screenplay::FONTS))
+        .transpose()?;
+    if script_fonts.is_some() {
+        canvas.remaining_styled_runs = Some(screenplay::MAX_STYLED_RUNS);
+    }
     for (n, item) in layout.items.iter().enumerate() {
         match item {
             Item::Line(line) => canvas.line(line, &layout.fonts)?,
             Item::Gap(gap) => canvas.y -= gap,
             Item::FigureEnd => canvas.y -= 10.0,
+            Item::Screenplay(rows) => {
+                layout
+                    .screenplay
+                    .as_ref()
+                    .ok_or(IllustratedError::Invalid)?
+                    .draw(
+                        &mut canvas,
+                        rows.clone(),
+                        script_fonts.ok_or(IllustratedError::Invalid)?,
+                    )
+                    .map_err(|error| screenplay_layout_error(&error))?;
+            }
             Item::Image { key, width, height } => {
-                let following: Vec<_> = layout.items[n + 1..]
-                    .iter()
-                    .take_while(|i| !matches!(i, Item::Image { .. }))
-                    .collect();
-                // Figure descriptions are followed by a 10 pt separator; stop at that separator.
+                // The figure plan keeps its image and following description on one page.
                 let mut total = *height + 8.0;
-                for next in following {
+                for next in &layout.items[n + 1..] {
                     match next {
                         Item::Line(l) => total += l.size * 1.4,
-                        Item::FigureEnd => break,
                         Item::Gap(g) => total += g,
-                        Item::Image { .. } => {}
+                        Item::FigureEnd | Item::Image { .. } | Item::Screenplay(_) => break,
                     }
                 }
                 canvas.room(total)?;
@@ -433,11 +514,18 @@ fn render(
             }
         }
     }
-    let bytes = canvas
-        .document
-        .save_to_bytes()
-        .map_err(|_| IllustratedError::Invalid)?;
-    if bytes.len() > MAX_PACKAGE {
+    canvas.finish_page();
+    let options = PdfSaveOptions {
+        image_optimization: None,
+        ..Default::default()
+    };
+    let mut warnings = Vec::new();
+    let bytes = canvas.document.save(&options, &mut warnings);
+    if bytes.len() > MAX_PACKAGE
+        || warnings
+            .iter()
+            .any(|w| w.severity == PdfParseErrorSeverity::Error)
+    {
         return Err(IllustratedError::Invalid);
     }
     verify_images(&bytes, manifest, images)
@@ -454,8 +542,7 @@ fn verify_images(
 ) -> Result<Vec<u8>> {
     use sha2::{Digest, Sha256};
     use std::collections::BTreeSet;
-    let mut document =
-        printpdf::lopdf::Document::load_mem(bytes).map_err(|_| IllustratedError::Invalid)?;
+    let mut document = lopdf::Document::load_mem(bytes).map_err(|_| IllustratedError::Invalid)?;
     let mut expected = BTreeMap::new();
     if let Some(manifest) = manifest {
         for asset in &manifest.assets {
@@ -484,7 +571,7 @@ fn verify_images(
             if stream
                 .dict
                 .get(b"Subtype")
-                .and_then(printpdf::lopdf::Object::as_name)
+                .and_then(lopdf::Object::as_name)
                 .ok()
                 != Some(b"Image".as_slice())
             {
@@ -502,7 +589,7 @@ fn verify_images(
                     stream
                         .dict
                         .get(key)
-                        .and_then(printpdf::lopdf::Object::as_i64)
+                        .and_then(lopdf::Object::as_i64)
                         .map_err(|_| IllustratedError::Invalid)?,
                 )
                 .map_err(|_| IllustratedError::Invalid)
@@ -516,27 +603,26 @@ fn verify_images(
             if stream
                 .dict
                 .get(b"SMask")
-                .is_ok_and(|value| !matches!(value, printpdf::lopdf::Object::Null))
+                .is_ok_and(|value| !matches!(value, lopdf::Object::Null))
                 || stream
                     .dict
                     .get(b"BitsPerComponent")
-                    .and_then(printpdf::lopdf::Object::as_i64)
+                    .and_then(lopdf::Object::as_i64)
                     .ok()
                     != Some(8)
                 || stream
                     .dict
                     .get(b"ColorSpace")
-                    .and_then(printpdf::lopdf::Object::as_name)
+                    .and_then(lopdf::Object::as_name)
                     .ok()
                     != Some(b"DeviceRGB".as_slice())
             {
                 return Err(IllustratedError::Invalid);
             }
             stream.dict.remove(b"SMask");
-            stream.dict.set(
-                "KRAQELImageId",
-                printpdf::lopdf::Object::Name(id.as_bytes().to_vec()),
-            );
+            stream
+                .dict
+                .set("KRAQELImageId", lopdf::Object::Name(id.as_bytes().to_vec()));
             found.insert(key);
         }
     }
@@ -580,10 +666,30 @@ mod tests {
         }
         let manuscript = Manuscript {
             title: "ÄÖÜ Ελληνικά Кириллица".to_owned(),
-            chapters: Vec::new(),
+            chapters: vec![crate::Chapter {
+                title: "Kapitel".into(),
+                scenes: vec![crate::Scene {
+                    title: "Szene".into(),
+                    blocks: vec![Block::Paragraph(
+                        [
+                            (false, false, "Normal"),
+                            (true, false, "Fett"),
+                            (false, true, "Kursiv"),
+                            (true, true, "Beides"),
+                        ]
+                        .into_iter()
+                        .map(|(bold, italic, text)| Inline::Text {
+                            bold,
+                            italic,
+                            text: text.into(),
+                        })
+                        .collect(),
+                    )],
+                }],
+            }],
         };
         let bytes = text(&manuscript).unwrap();
-        let document = printpdf::lopdf::Document::load_mem(&bytes).unwrap();
+        let document = lopdf::Document::load_mem(&bytes).unwrap();
         let descriptors = document
             .objects
             .values()
@@ -598,6 +704,19 @@ mod tests {
             .count();
         assert_eq!(descriptors, 4);
         assert_eq!(maps, 4);
+        let extracted = document.extract_text(&[1]).unwrap();
+        for expected in [
+            manuscript.title.as_str(),
+            "Normal",
+            "Fett",
+            "Kursiv",
+            "Beides",
+        ] {
+            assert!(
+                extracted.contains(expected),
+                "missing {expected:?} in {extracted:?}"
+            );
+        }
         let bad = Manuscript {
             title: "PRIVATE 🙂".to_owned(),
             ..manuscript

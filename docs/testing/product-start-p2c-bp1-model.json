@@ -1,0 +1,40 @@
+{
+  "date": "2026-11-18",
+  "stage": "BP1-pure-preload-model",
+  "newTestsPassed": 14,
+  "activeTestsPassed": 133,
+  "binaryTestsPassed": 126,
+  "transportTestsPassed": 7,
+  "defaultIgnoredTests": 6,
+  "maxFrameBytes": 16384,
+  "maxRoles": 6,
+  "maxProcesses": 16,
+  "maxLaunchesPerModel": 64,
+  "formats": {
+    "policy": {
+      "bytes": 309,
+      "sha256": "17e1b86f3e2e9d36638a5f9c2a5effa98121d901e576eb65ac4907eef71bb552"
+    },
+    "support": {
+      "bytes": 71,
+      "sha256": "ba476c1999688de5d270dc7c0007b73035e167b02376e7eda15d708afbb0e3d4"
+    },
+    "witness": {
+      "bytes": 328,
+      "sha256": "21117d814cfaca4535132018b6d6793309b54481d9c2dc76ce891c80ca69cc1f"
+    },
+    "end": {
+      "bytes": 160,
+      "sha256": "bb44dd92ec4fc3cc30f453f5e1277b96a7f83d8b1814dce886e6f652350af2a8"
+    }
+  },
+  "runtimeAndDataAlwaysDenied": true,
+  "nativeAuthority": false,
+  "nativeIntegration": false,
+  "durableReplayGuarantee": false,
+  "nativeUiAbi": 0,
+  "realProjectDataUsed": false,
+  "networkMeasurement": false,
+  "productionAcceptance": false,
+  "c4bComplete": false
+}

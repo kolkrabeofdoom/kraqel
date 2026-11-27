@@ -1,11 +1,17 @@
 //! Validierter, lokaler Manuskriptexport in portable Formate.
 
 mod docx_scene;
+mod excerpt_file;
+pub use excerpt_file::{ExcerptFile, list_excerpt_files, pin_excerpt_project};
+mod excerpt;
+pub use excerpt::{ExportScope, export_excerpt};
 pub mod illustrated;
 mod manuscript;
 mod pdf;
 mod render;
 mod roundtrip;
+mod screenplay;
+pub use pdf::screenplay::export_screenplay_pdf;
 
 pub use roundtrip::{
     DocxRoundtripError, read_docx_roundtrip, read_docx_roundtrip_file, write_docx_roundtrip,
@@ -80,6 +86,19 @@ pub enum ExportError {
     UnsafeDestination,
     Internal(Box<dyn Error + Send + Sync>),
 }
+impl ExportError {
+    /// Liefert bei einem bekannten Dokumentfehler ausschließlich einen Hinweis aus dem lokalen Katalog.
+    #[must_use]
+    pub fn document_hint(&self) -> Option<&'static str> {
+        let Self::InvalidDocument(message) = self else {
+            return None;
+        };
+        include_str!("export-hints.txt")
+            .lines()
+            .find(|hint| hint == message)
+    }
+}
+
 impl fmt::Display for ExportError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -116,6 +135,7 @@ pub struct Scene {
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Block {
+    Screenplay(kraqel_domain::ScreenplayRole, Vec<Inline>),
     Paragraph(Vec<Inline>),
     Heading(u8, Vec<Inline>),
     BulletList(Vec<Vec<Block>>),
@@ -142,11 +162,7 @@ pub fn export_project(
     documents: &[ExportSourceDocument],
     format: ExportFormat,
 ) -> Result<ExportResult, ExportError> {
-    let manuscript = Manuscript::from_export_documents(project, documents).map_err(|_| {
-        ExportError::InvalidDocument(
-            "Das Manuskript enthält eine ungültige oder nicht unterstützte Struktur.",
-        )
-    })?;
+    let manuscript = Manuscript::from_export_documents(project, documents)?;
     let bytes = render::render(&manuscript, format)?;
     let directory = prepare_export_directory(project_directory)?;
     let file_name = format!("manuskript.{}", format.extension());
@@ -215,6 +231,7 @@ pub fn export_prompt_draft(
 fn build_manuscript(
     project: &Project,
     documents: &[ExportSourceDocument],
+    parse_scene: fn(&EditorDocument) -> Result<Vec<Block>, ExportError>,
 ) -> Result<Manuscript, ExportError> {
     if documents
         .iter()
@@ -253,7 +270,7 @@ fn build_manuscript(
                 }
                 Ok(Scene {
                     title: scene.node.title.clone(),
-                    blocks: parse_editor_document(&scene.content)?,
+                    blocks: parse_scene(&scene.content)?,
                 })
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -294,6 +311,13 @@ fn array<'value>(
     }
 }
 fn parse_editor_document(content: &EditorDocument) -> Result<Vec<Block>, ExportError> {
+    if content.version == kraqel_domain::SCREENPLAY_DOCUMENT_VERSION {
+        return screenplay::paragraphs(content).map(|ps| {
+            ps.into_iter()
+                .map(|p| Block::Screenplay(p.role, p.runs))
+                .collect()
+        });
+    }
     if content.version != EDITOR_DOCUMENT_VERSION {
         return Err(ExportError::InvalidDocument(
             "Die Editor-Dokumentversion wird nicht unterstützt.",
@@ -567,12 +591,134 @@ mod tests {
                 .starts_with(b"%PDF")
         );
     }
+    fn mixed_fixture() -> (Project, Vec<ExportSourceDocument>) {
+        let (project, mut documents) = fixture();
+        let mut scene = documents[1].clone();
+        scene.node.id = EntityId::new();
+        scene.node.title = "Die Rückseite der Karte".into();
+        scene.node.position = 1;
+        let mut paragraphs: Vec<_> = [
+            ("sceneHeading", "INT. STADTARCHIV – MORGEN"),
+            ("action", "Auf der Karte glänzt Tinte."),
+            ("character", "Mira"),
+            ("parenthetical", "(liest leise)"),
+            ("dialogue", "<Gleis *sieben*>"),
+            ("transition", "Schnitt auf:"),
+        ].into_iter().map(|(role, text)| json!({"type":"screenplayBlock","attrs":{"role":role},"content":[{"type":"text","text":text}]})).collect();
+        paragraphs[4]["content"][0]["marks"] = json!([{"type":"bold"},{"type":"italic"}]);
+        let dialogue = paragraphs[4]["content"].as_array_mut().unwrap();
+        dialogue.push(json!({"type":"hardBreak"}));
+        dialogue.push(json!({"type":"text","text":"Der Zug wartet."}));
+        scene.content = EditorDocument {
+            version: kraqel_domain::SCREENPLAY_DOCUMENT_VERSION,
+            document: json!({"type":"doc","content":paragraphs}),
+        };
+        documents.push(scene);
+        (project, documents)
+    }
+
+    fn paginated_mixed_fixture() -> (Project, Vec<ExportSourceDocument>) {
+        let (project, mut docs) = mixed_fixture();
+        let beats = (1..=50)
+            .map(|n| format!("Schritt {n:02}."))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let script = docs.last_mut().unwrap().content.document["content"]
+            .as_array_mut()
+            .unwrap();
+        script.insert(2, json!({"type":"screenplayBlock","attrs":{"role":"action"},"content":[{"type":"text","text":beats}]}));
+        let mut chapter = docs[0].clone();
+        chapter.node.id = EntityId::new();
+        chapter.node.title = "Nachklang".into();
+        chapter.node.position = 1;
+        let mut scene = docs[1].clone();
+        scene.node.id = EntityId::new();
+        scene.node.parent_id = Some(chapter.node.id);
+        scene.node.title = "Abreise".into();
+        scene.content.document = json!({"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Das Archiv schließt."}]}]});
+        docs.extend([chapter, scene]);
+        (project, docs)
+    }
+
+    #[test]
+    fn mixed_screenplay_preserves_roles_without_entering_prose_only_profiles() {
+        let (project, documents) = mixed_fixture();
+        let manuscript = Manuscript::from_export_documents(&project, &documents).unwrap();
+        let bytes = |format| render::render(&manuscript, format).unwrap();
+        let markdown = String::from_utf8(bytes(ExportFormat::Markdown)).unwrap();
+        let html = String::from_utf8(bytes(ExportFormat::Html)).unwrap();
+        let docx = bytes(ExportFormat::Docx);
+        let mut zip = ZipArchive::new(Cursor::new(&docx)).unwrap();
+        let mut part = |name| {
+            let mut xml = String::new();
+            zip.by_name(name).unwrap().read_to_string(&mut xml).unwrap();
+            xml
+        };
+        let document = part("word/document.xml");
+        let styles = part("word/styles.xml");
+        for (role, label, style) in [
+            ("sceneHeading", "Szenenkopf", "SceneHeading"),
+            ("action", "Handlung", "Action"),
+            ("character", "Figur", "Character"),
+            ("parenthetical", "Klammeranweisung", "Parenthetical"),
+            ("dialogue", "Dialog", "Dialogue"),
+            ("transition", "Übergang", "Transition"),
+        ] {
+            assert!(markdown.contains(&format!("**{label}**\n\n")));
+            assert!(html.contains(&format!(
+                r#"<p class="screenplay screenplay-{role}" data-kraqel-role="{role}">"#
+            )));
+            assert!(document.contains(&format!(r#"<w:pStyle w:val="KQScreenplay{style}"/>"#)));
+            assert!(styles.contains(&format!(r#"w:styleId="KQScreenplay{style}""#)));
+        }
+        assert!(markdown.contains("***\\<Gleis \\*sieben\\*\\>***  \nDer Zug wartet."));
+        assert!(
+            html.contains("<strong><em>&lt;Gleis *sieben*&gt;</em></strong><br>Der Zug wartet.")
+        );
+        assert!(document.contains("Ruf im Nebel"));
+        assert!(document.contains("Die Rückseite der Karte"));
+        let (project, documents) = paginated_mixed_fixture();
+        let directory = tempdir().unwrap();
+        let result =
+            export_project(directory.path(), &project, &documents, ExportFormat::Pdf).unwrap();
+        let parsed =
+            lopdf::Document::load(directory.path().join("exports").join(result.file_name)).unwrap();
+        let pages: Vec<_> = parsed.get_pages().into_keys().collect();
+        assert!(pages.len() > 1);
+        let extracted = parsed.extract_text(&pages).unwrap();
+        let mut rest = extracted.as_str();
+        for expected in [
+            project.name.as_str(),
+            "Ankunft",
+            "Ruf im Nebel",
+            "Niemals eine Krähe.",
+            "Die Rückseite der Karte",
+            "INT. STADTARCHIV",
+            "Schritt 01.",
+            "Schritt 50.",
+            "Mira",
+            "(liest leise)",
+            "Der Zug wartet.",
+            "Schnitt auf:",
+            "Nachklang",
+            "Abreise",
+            "Das Archiv schließt.",
+        ] {
+            rest = rest
+                .split_once(expected)
+                .unwrap_or_else(|| panic!("missing or out of order: {expected}"))
+                .1;
+        }
+        assert!(Manuscript::from_documents(&project, &documents).is_ok());
+        assert!(read_docx_roundtrip(&docx).is_err());
+    }
+
     #[test]
     fn unsupported_nodes_are_rejected_instead_of_dropped() {
         let (project, mut documents) = fixture();
         documents[1].content.document = json!({"type":"doc","content":[{"type":"codeBlock"}]});
         assert!(matches!(
-            build_manuscript(&project, &documents),
+            build_manuscript(&project, &documents, parse_editor_document),
             Err(ExportError::InvalidDocument(_))
         ));
     }
@@ -608,5 +754,20 @@ mod tests {
         let (project, documents) = fixture();
         export_project(&directory, &project, &documents, ExportFormat::Docx).expect("DOCX QA");
         export_project(&directory, &project, &documents, ExportFormat::Pdf).expect("PDF QA");
+        let directory = directory.join("screenplay");
+        fs::create_dir_all(&directory).unwrap();
+        let (project, documents) = mixed_fixture();
+        let selection = [documents.last().expect("screenplay scene").node.id];
+        export_screenplay_pdf(&directory, &project, &documents, &selection).expect("A4 layout QA");
+        let (mixed_project, mixed_docs) = paginated_mixed_fixture();
+        export_project(&directory, &mixed_project, &mixed_docs, ExportFormat::Pdf)
+            .expect("mixed manuscript PDF QA");
+        for format in [
+            ExportFormat::Markdown,
+            ExportFormat::Html,
+            ExportFormat::Docx,
+        ] {
+            export_project(&directory, &project, &documents, format).expect("screenplay QA");
+        }
     }
 }

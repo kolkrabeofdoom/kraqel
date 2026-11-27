@@ -61,7 +61,7 @@ impl Manuscript {
                 budget.text(&scene.title)?;
                 scenes.push(Scene {
                     title: scene.title.clone(),
-                    blocks: blocks(&scene.blocks, 4, &mut budget)?,
+                    blocks: scene_blocks(&scene.blocks, &mut budget)?,
                 });
             }
             chapters.push(Chapter {
@@ -83,19 +83,40 @@ impl Manuscript {
         project: &Project,
         documents: &[ExportSourceDocument],
     ) -> Result<Self, DocxRoundtripError> {
-        Self::from_documents_for(project, documents, false)
+        Self::validate_sources(project, documents, false)?;
+        crate::build_manuscript(project, documents, |content| {
+            if content.version == kraqel_domain::SCREENPLAY_DOCUMENT_VERSION {
+                return crate::screenplay::draft_paragraphs(content).map(|paragraphs| {
+                    paragraphs
+                        .into_iter()
+                        .map(|p| Block::Screenplay(p.role, p.runs))
+                        .collect()
+                });
+            }
+            crate::parse_editor_document(content)
+        })
+        .map_err(|_| DocxRoundtripError)?
+        .canonicalized_for(false)
     }
     pub(crate) fn from_export_documents(
         project: &Project,
         documents: &[ExportSourceDocument],
-    ) -> Result<Self, DocxRoundtripError> {
-        Self::from_documents_for(project, documents, true)
+    ) -> Result<Self, crate::ExportError> {
+        let invalid = |_| {
+            crate::ExportError::InvalidDocument(
+                "Das Manuskript enthält eine ungültige oder nicht unterstützte Struktur.",
+            )
+        };
+        Self::validate_sources(project, documents, true).map_err(invalid)?;
+        crate::build_manuscript(project, documents, crate::parse_editor_document)?
+            .canonicalized_for(true)
+            .map_err(invalid)
     }
-    fn from_documents_for(
+    fn validate_sources(
         project: &Project,
         documents: &[ExportSourceDocument],
         ordinary_export: bool,
-    ) -> Result<Self, DocxRoundtripError> {
+    ) -> Result<(), DocxRoundtripError> {
         if !ordinary_export && documents.len() > 4096 {
             return Err(DocxRoundtripError);
         }
@@ -111,6 +132,13 @@ impl Manuscript {
                 return Err(DocxRoundtripError);
             }
             preflight.text(&document.node.title)?;
+            if ordinary_export
+                && document.node.kind == DocumentKind::Scene
+                && document.content.version == kraqel_domain::SCREENPLAY_DOCUMENT_VERSION
+            {
+                // The dedicated parser validates the complete v2 grammar during tree construction.
+                continue;
+            }
             editor_shape(
                 &document.content.document,
                 &mut editor_nodes,
@@ -127,10 +155,24 @@ impl Manuscript {
                 }
             }
         }
-        crate::build_manuscript(project, documents)
-            .map_err(|_| DocxRoundtripError)?
-            .canonicalized_for(ordinary_export)
+        Ok(())
     }
+}
+
+fn scene_blocks(source: &[Block], budget: &mut Budget) -> Result<Vec<Block>, DocxRoundtripError> {
+    if !matches!(source.first(), Some(Block::Screenplay(..))) {
+        return blocks(source, 4, budget);
+    }
+    source
+        .iter()
+        .map(|block| {
+            let Block::Screenplay(role, runs) = block else {
+                return Err(DocxRoundtripError);
+            };
+            budget.node(4)?;
+            Ok(Block::Screenplay(*role, inlines(runs, budget)?))
+        })
+        .collect()
 }
 
 fn blocks(
@@ -150,7 +192,9 @@ fn blocks(
                 Block::Quote(children) if !children.is_empty() => {
                     Block::Quote(blocks(children, depth + 1, budget)?)
                 }
-                Block::Heading(_, _) | Block::Quote(_) => return Err(DocxRoundtripError),
+                Block::Screenplay(..) | Block::Heading(_, _) | Block::Quote(_) => {
+                    return Err(DocxRoundtripError);
+                }
                 Block::BulletList(items) | Block::OrderedList(items) => {
                     if items.is_empty() {
                         return Err(DocxRoundtripError);
@@ -215,15 +259,20 @@ impl Scene {
     /// # Errors
     /// Lehnt ungültige, zu große oder zu tiefe Szenen ab.
     pub fn editor_document(&self) -> Result<EditorDocument, DocxRoundtripError> {
-        let blocks = blocks(&self.blocks, 4, &mut Budget::default())?;
+        let blocks = scene_blocks(&self.blocks, &mut Budget::default())?;
         Ok(EditorDocument {
-            version: EDITOR_DOCUMENT_VERSION,
+            version: if matches!(blocks.first(), Some(Block::Screenplay(..))) {
+                kraqel_domain::SCREENPLAY_DOCUMENT_VERSION
+            } else {
+                EDITOR_DOCUMENT_VERSION
+            },
             document: json!({"type":"doc", "content":editor_blocks(&blocks)}),
         })
     }
 }
 fn editor_blocks(blocks: &[Block]) -> Vec<Value> {
     blocks.iter().map(|block| match block {
+        Block::Screenplay(role,runs) => json!({"type":"screenplayBlock","attrs":{"role":role},"content":editor_inlines(runs)}),
         Block::Paragraph(runs) => json!({"type":"paragraph", "content":editor_inlines(runs)}),
         Block::Heading(level,runs) => json!({"type":"heading", "attrs":{"level":level}, "content":editor_inlines(runs)}),
         Block::Quote(children) => json!({"type":"blockquote", "content":editor_blocks(children)}),
@@ -282,9 +331,8 @@ fn editor_shape(
             "doc" => &["type", "content"],
             "text" => &["type", "text", "marks", "attrs"],
             "hardBreak" => &["type", "attrs"],
-            "paragraph" | "heading" | "bulletList" | "orderedList" | "listItem" | "blockquote" => {
-                &["type", "content", "attrs"]
-            }
+            "screenplayBlock" | "paragraph" | "heading" | "bulletList" | "orderedList"
+            | "listItem" | "blockquote" => &["type", "content", "attrs"],
             _ => return Err(DocxRoundtripError),
         };
         if node.keys().any(|key| !allowed.contains(&key.as_str())) {
@@ -294,6 +342,7 @@ fn editor_shape(
             let attrs = attrs.as_object().ok_or(DocxRoundtripError)?;
             for (key, value) in attrs {
                 match (kind, key.as_str()) {
+                    ("screenplayBlock", "role") if value.is_string() => {}
                     ("heading", "level")
                         if value.as_u64().is_some_and(|v| (1..=6).contains(&v)) => {}
                     ("orderedList", "start") if value.as_u64() == Some(1) => {}

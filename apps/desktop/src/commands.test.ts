@@ -23,6 +23,7 @@ import {
   importSnapshotProject,
   importDocxProject,
   exportRoundtripManuscript,
+  exportScreenplayPdf,
   exportIllustratedManuscript,
   exportProjectArchive,
   listMediaAssets,
@@ -89,6 +90,16 @@ describe("typed Tauri commands", () => {
       });
     },
   );
+
+  it("keeps only exact catalogued print hints on a correlated export rejection", async () => {
+    const hint = "Dialog benötigt eine Figur.";
+    const request = () => exportScreenplayPdf(requestId as ProjectId, [requestId as EntityId]);
+    const rejection = { contractVersion: 1, requestId, code: "INVALID_REQUEST", retryable: false };
+    mockedInvoke.mockRejectedValueOnce({ ...rejection, message: hint });
+    await expect(request()).rejects.toHaveProperty("exportHint", hint);
+    mockedInvoke.mockRejectedValueOnce({ ...rejection, message: hint + " Privater Entwurf" });
+    await expect(request()).rejects.toHaveProperty("exportHint", undefined);
+  });
 
   it("sends a versioned request and accepts the matching response", async () => {
     mockedInvoke.mockResolvedValue({
@@ -290,7 +301,7 @@ describe("typed Tauri commands", () => {
 
   it("sends versioned editor content with an optimistic revision", async () => {
     mockedInvoke.mockResolvedValue({
-      contractVersion: COMMAND_CONTRACT_VERSION,
+      contractVersion: 2,
       requestId,
       data: { revision: 8 },
     });
@@ -302,9 +313,9 @@ describe("typed Tauri commands", () => {
     };
 
     await expect(saveDocument(projectId, documentId, 7, content)).resolves.toBe(8);
-    expect(mockedInvoke).toHaveBeenCalledWith("save_document", {
+    expect(mockedInvoke).toHaveBeenCalledWith("save_editor_scene", {
       request: {
-        contractVersion: COMMAND_CONTRACT_VERSION,
+        contractVersion: 2,
         requestId,
         payload: { projectId, documentId, expectedRevision: 7, content },
       },

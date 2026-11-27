@@ -1,5 +1,88 @@
 # Offenes KRAQEL-Datenformat
 
+Aktuell · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:
+
+[Debug-Wächter-Nachweis](../testing/product-start-p2c-bp3-debug-guardian.md): Root beim
+Create-Ereignis vor User-Mode-Ausführung abgewiesen, normale Kindvererbung bestätigt. Ein Kind mit
+eigenem DEBUG_PROCESS läuft dagegen außerhalb der äußeren Debugkette; dieselbe Kindgeneration vorher
+vom Host an gehaltenem Handle, Token, Profil und Job geprüft. Kein AppContainer-/Jobausbruch. Drei
+native Fälle, neun Jobprozesse (fünf Worker/vier Konsolenhosts), sieben äußere Create-/Exit-Paare
+und zwei innere Create-Berichte; alle eigenen Jobs leer, Profile/Fixtures entfernt. **Debugvererbung
+allein ungeeignet für BP3.** Drei neue aktive Tests/141 Helfer-/Transporttests insgesamt und Clippy
+grün, sieben standardmäßig ignoriert. Kein frisches ETW oder tatsächlicher Wächter-Crash. C4-Sperre
+und native UI-ABI 0 unverändert; keine Runtime-/Datenautorität. BP3/BP4/C4c/d weiter offen. Nächster
+begrenzter Scope: Architekturentscheid für unabhängig durchgesetzte Erzeugung samt früher
+Wächter-/Ladebindung, keine weiteren Runtime-Versuche auf Basis bloßer Debugvererbung. Mittleres
+Prüfniveau und striktes Datenschutzziel unverändert; Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80
+%.
+
+Vorheriger Stand · BP3-Machbarkeitsgrenze und native Startsperre, 18. November 2026:
+
+[BP3-Nachweis](../testing/product-start-p2c-bp3-admission.md): Für den aktuellen C4-Kandidaten ist
+noch kein vollständiger präventiver Modul-/WebView-Rollenmechanismus nachgewiesen. Der native
+Controller sperrt jetzt vor ACL-/Ressourcenanlage, Commit und CreateProcess; Worker und
+Runtime-Einstieg sperren zusätzlich vor Handleübernahme bzw. COM/WebView. Keine konfigurierbare
+Ausnahme oder Umdeutung von Paketpins, BP1/BP2 oder Diagnosen. Zwei aktive Regressionen, 138 aktive
+Helfer-/Transporttests und Clippy grün; sechs standardmäßig ignoriert. Drei direkte Workeraufrufe
+enden mit 2 ohne Ausgabe/Dateianlage. Kein neues ETW; frühere Messungen bleiben bytegebunden. **BP3
+insgesamt offen**, keine Runtime-/Datenfreigabe, BP4/C4c/d weiter gesperrt. Nächster begrenzter
+Scope: separate synthetische Debug-Wächter-Probe mit ausdrücklicher Debugketten-Gegenprobe; noch
+nicht implementiert. Keine System-/Schutzsoftware-/Signaturausnahme. Mittleres Prüfniveau und
+striktes Datenschutzziel unverändert; Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
+
+Vorheriger Stand · BP2 nativer synthetischer Blattversuch samt ETW, 18. November 2026:
+
+[BP2-Nachweis](../testing/product-start-p2c-bp2-native-leaf.md): unabhängige native Supportprüfung,
+NoRemote-/NoLowLabel-/Child-Policy atomar bei suspendierter Erstellung; Readback vor Resume und im
+Blattprozess. Kindstart mit Windows-Fehler 367 abgewiesen, Jobbudget zwei zur Abgrenzung von
+Quotenfehlern, tatsächlich nur eine Generation je Job. Unsupported vor Create/Headänderung,
+abweichende Sollerwartung vor Resume und falsche MAC vor Accepted geprüft. Eigener BP2-Zweck,
+MAC-Frames/Records unter derselben Kontrollsperre, Ergebnis-Hashes in Endrecords gebunden. Je
+funktionaler/gemessener Serie 18 MAC-Records/14 BP2-Records/drei verbrauchte Launches geprüft,
+Profile/Fixtures entfernt. Frisches ETW des Paars `5205d72…`/`62d7a73…`: neun explizite Enden, acht
+Kontrollen, keine Verluste/Zuordnungslücken oder beobachtetes Netz in diesen Bäumen. Drei neue
+aktive Tests/136 insgesamt bestanden, sieben bewusst ignoriert, Clippy/rustfmt und 27
+Auswertungstests grün. Kein App-/Transport-/Installerumbau, native UI-ABI bleibt 0. **Keine
+Runtime-/Datenautorität:** BP1-Modell ist kein nativer Grant, BP2 keine vollständige
+Modul-/Rollenattestierung. **Nächster Scope BP3:** präventiven Wächter-/Lade-/WebView-Erzeugungsweg
+und Machbarkeit klären; Kindstartsperre nicht für Kompatibilität abschalten, keine Hersteller-/
+Signaturausnahme oder Schutzsoftwareänderung. BP4 Datenrechte/Commands und C4b insgesamt/C4c/d,
+P2/P3–P5 und Produkt-Q-01/Q-02 bleiben offen. Mittleres Prüfniveau und striktes Datenschutzziel
+unverändert; Gesamt grob 65 %, nutzbarer 0.1-Umfang grob 80 %.
+
+Der C4-Vertrag ist durch den [reinen C4a-Modellkern](../testing/product-start-p2c-c4a-model.md)
+ergänzt: Paket-/Policytypen, deterministische Codierung und versionierter Lebenszyklus, zwölf neue
+Tests. Keine native UI-/Startautorität; native UI-ABI bleibt 0. Native Paket-/Startprüfungen und die
+weiterhin offenen Bindungsgates stehen in den obigen C4b-Nachweisen. C3-Bytes und deren eigener
+ETW-Beleg bleiben separat unverändert.
+
+[Produktstart und bestehende Projekte · Vertragsentwurf v1](product-start-integration-v1-draft.md)
+beschreibt die geplante Integration der isolierten Oberfläche: getrennte Start-/Importautorität,
+Arbeitsablagenbindung und zerstörungsfreie Bestandskopie. P1 ist als reiner Kern geprüft;
+[P2a](../testing/product-start-p2a-records.md) ergänzt authentisierte Schema-5-Records nur in
+privaten synthetischen Forschungsablagen ohne UI-Start. Kein portables Snapshotformat oder
+Produkt-Migrationsweg. P2b ist als
+[synthetischer Probeworker](../testing/product-start-p2b-bootstrap.md) umgesetzt;
+[frisches ETW](../testing/product-start-p2b-bootstrap-etw.md) ist für den Probeworker belegt.
+[Begrenzte Ressourcen-Reconciliation](../testing/product-start-resource-reconciliation.md) ist mit
+neuer Execution-/Cleanupversion implementiert. Deren
+[eigener frischer Netzbeleg](../testing/product-start-resource-reconciliation-etw.md) ist ergänzt.
+[Dauerhafte Workerbindung/Wiederanlauf vor Drained](../testing/product-start-worker-lifetime.md) ist
+nun für den synthetischen Ein-Prozess-Worker implementiert.
+[Eigener frischer Netznachweis](../testing/product-start-worker-lifetime-etw.md) des Builds ist
+ergänzt. Der [P2c-Vertragsentwurf](product-start-p2c-v1-draft.md) ist ausgearbeitet;
+[C1](../testing/product-start-p2c-model.md) mit reinen Typen, Inventarcodierung und Lebenszyklus ist
+geprüft. [C2](../testing/product-start-p2c-native-data.md) ergänzt ausschließlich neue synthetische
+persistente Ablagen und native Paket-/Profilbindung in eigenen Schema-6-DATA-Stores, ohne UI-Start
+oder Migration bestehender Stores. Der
+[eigene frische C2-Netzbeleg](../testing/product-start-p2c-native-data-etw.md) ist ergänzt.
+[C3](../testing/product-start-p2c-group-bootstrap.md) ergänzt einen begrenzten synthetischen
+Mehrprozess-Bootstrap mit gehaltenem Job; native UI-ABI bleibt 0.
+[Frisches C3-ETW](../testing/product-start-p2c-group-bootstrap-etw.md) ist ergänzt. Der C4-Vertrag
+ist oben verlinkt; als Nächstes folgt C4b mit nativen Paket-/Startgrenzen. Mehrprozessige
+Produktlebenszeiten und persistente echte Arbeitsablagen-/UI-Bindung bleiben offen. Vorhandener
+Snapshot-v3-Import erzeugt neue IDs.
+
 Der Exportstandard ist noch in Arbeit. Fest stehen folgende Invarianten:
 
 - UTF-8 und LF-Zeilenenden

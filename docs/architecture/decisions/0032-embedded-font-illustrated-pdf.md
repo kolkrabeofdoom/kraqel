@@ -15,8 +15,11 @@ nicht erforderlich. Die SIL Open Font License 1.1 liegt vollständig bei.
 `ttf-parser` 0.19.2 verwendet die bereits gelockte Parser-Version für Glyphenprüfung und echte
 Vorschub-/Oberlängenmaße. Als einzige neue Paketversion kommt `unicode-normalization` 0.1.25 (MIT
 oder Apache-2.0) für NFC hinzu; dessen MIT-Lizenz liegt bei. `image` 0.25.9 wird zusätzlich direkt
-vom Export-Crate verwendet, ohne zweite Bildbibliothek oder neue Version. `printpdf` 0.7.0 und
-dessen `lopdf`-Reexport bleiben Container-/Schrift-/Bildwriter und Rückleser.
+vom Export-Crate verwendet, ohne zweite Bildbibliothek oder neue Version. Seit dem 23. November 2026
+erzeugt `printpdf 0.12.14` die A4-Seiten aus den vorab berechneten Text- und Bildpositionen. Die
+Ausgabeprüfung liest dieselben Bytes mit `lopdf 0.47.0`. Der Schrifttest verwendet alle vier
+Schnitte, prüft eingebettete Fonts und Unicode-Zuordnungen und liest den griechischen, kyrillischen
+und deutschen Testtext aus der fertigen Datei zurück.
 
 Der vollständige Auftrag wird vor der PDF-Erzeugung geplant und auf Glyphen, Schrift-/Layoutprofil
 und Budgets geprüft. Lateinisch, Griechisch und Kyrillisch sind im dokumentierten Umfang abgenommen.

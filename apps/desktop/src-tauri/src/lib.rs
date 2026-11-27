@@ -32,7 +32,10 @@ use kraqel_storage::{
     continuity_repository::{ContinuityError, ContinuityRepository},
     document_repository::{DocumentError, DocumentRepository},
     media_repository::{MediaError, MediaRepository},
-    project_manager::{ProjectError, ProjectManager},
+    project_manager::{
+        PreparedHandoff, ProjectError, ProjectManager, SceneBasisComparison, SceneBasisReceipt,
+        SceneMergeSelection,
+    },
     prompt_repository::{PromptError, PromptRepository},
     story_bible_repository::{StoryBibleError, StoryBibleRepository},
     structure_repository::{StructureError, StructureRepository},
@@ -53,9 +56,15 @@ use tauri_plugin_dialog::DialogExt as _;
 use zeroize::Zeroizing;
 mod docx_import;
 mod docx_roundtrip;
+#[cfg(windows)]
+mod existing_folder;
 mod illustrated_export;
+#[cfg(windows)]
+mod item_review;
 #[cfg(test)]
 mod m3_acceptance;
+#[cfg(windows)]
+mod native_manuscript;
 
 const AI_RELEASE_LIFETIME: Duration = Duration::from_secs(10 * 60);
 const MAX_TEXT_IMPORT_BYTES: usize = 2 * 1024 * 1024;
@@ -191,6 +200,13 @@ struct DeleteDocumentRequest {
 struct ExportProjectRequest {
     project_id: String,
     format: ExportFormat,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ScreenplayPdfRequest {
+    project_id: String,
+    scene_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -723,7 +739,7 @@ async fn import_docx_project(
         .dialog()
         .file()
         .set_title("KRAQEL-Manuskript aus DOCX als neues Projekt importieren")
-        .add_filter("KRAQEL-Manuskript DOCX v1", &["docx"])
+        .add_filter("KRAQEL-Manuskript DOCX (v1/v2)", &["docx"])
         .blocking_pick_file();
     let Some(selected) = selected else {
         return Ok(CommandResponse::current(request.request_id, None));
@@ -869,6 +885,9 @@ fn load_document(
 ) -> Result<CommandResponse<StoredDocumentResponse>, CommandError> {
     require_current_contract(&request)?;
     let data = load_document_impl(&state, request.request_id, request.payload)?;
+    if data.content.version != EDITOR_DOCUMENT_VERSION {
+        return Err(CommandError::unsupported_contract(request.request_id));
+    }
     Ok(CommandResponse::current(request.request_id, data))
 }
 
@@ -884,6 +903,47 @@ fn save_document(
     require_current_contract(&request)?;
     let data = save_document_impl(&state, request.request_id, request.payload)?;
     Ok(CommandResponse::current(request.request_id, data))
+}
+
+fn editor_v2<T, U>(
+    request: CommandRequest<T>,
+    run: impl FnOnce(T) -> Result<U, CommandError>,
+) -> Result<CommandResponse<U>, CommandError> {
+    let id = request.request_id;
+    let data = if request.contract_version == 2 {
+        run(request.payload)
+    } else {
+        Err(CommandError::unsupported_contract(id))
+    }
+    .map_err(|error| CommandError {
+        contract_version: 2,
+        ..error
+    })?;
+    Ok(CommandResponse {
+        contract_version: 2,
+        request_id: id,
+        data,
+    })
+}
+
+#[tauri::command]
+async fn load_editor_scene(
+    state: State<'_, AppState>,
+    request: CommandRequest<DocumentRequest>,
+) -> Result<CommandResponse<StoredDocumentResponse>, CommandError> {
+    let id = request.request_id;
+    editor_v2(request, |payload| load_document_impl(&state, id, payload))
+}
+
+#[tauri::command]
+async fn save_editor_scene(
+    state: State<'_, AppState>,
+    request: CommandRequest<SaveDocumentRequest>,
+) -> Result<CommandResponse<SaveDocumentResponse>, CommandError> {
+    let id = request.request_id;
+    editor_v2(request, |payload| {
+        persist_scene(&state, id, payload, SceneWriter::RoleAware)
+    })
 }
 
 #[tauri::command]
@@ -940,6 +1000,36 @@ fn export_manuscript(
     require_current_contract(&request)?;
     let data = export_manuscript_impl(&state, request.request_id, &request.payload)?;
     Ok(CommandResponse::current(request.request_id, data))
+}
+
+#[tauri::command]
+async fn export_screenplay_pdf(
+    state: State<'_, AppState>,
+    request: CommandRequest<ScreenplayPdfRequest>,
+) -> Result<CommandResponse<ExportResult>, CommandError> {
+    require_current_contract(&request)?;
+    let id = request.request_id;
+    let selection = parse_entity_ids(id, &request.payload.scene_ids)?;
+    let manager = manager(&state, id)?;
+    let project = parse_project_id(id, &request.payload.project_id)?;
+    let data = tauri::async_runtime::spawn_blocking(move || {
+        export_selected_screenplay(&manager, id, project, &selection)
+    })
+    .await
+    .map_err(|_| CommandError::internal(id))??;
+    Ok(CommandResponse::current(id, data))
+}
+
+fn export_selected_screenplay(
+    manager: &ProjectManager,
+    request_id: uuid::Uuid,
+    project_id: ProjectId,
+    selection: &[EntityId],
+) -> Result<ExportResult, CommandError> {
+    let (directory, project, docs) =
+        manuscript_source(manager, request_id, project_id, Some(selection))?;
+    kraqel_export::export_screenplay_pdf(&directory, &project, &docs, selection)
+        .map_err(|error| map_export_error(request_id, &error))
 }
 
 #[tauri::command]
@@ -1890,6 +1980,302 @@ fn create_project_snapshot(
     Ok(CommandResponse::current(request.request_id, data))
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct CompareSceneBasesRequest {
+    project_id: String,
+    base: String,
+    incoming: String,
+}
+
+#[tauri::command]
+async fn save_scene_basis(
+    state: State<'_, AppState>,
+    request: CommandRequest<ProjectRequest>,
+) -> Result<CommandResponse<SceneBasisReceipt>, CommandError> {
+    require_current_contract(&request)?;
+    let request_id = request.request_id;
+    let id = parse_project_id(request_id, &request.payload.project_id)?;
+    let manager = manager(&state, request_id)?;
+    let result = tauri::async_runtime::spawn_blocking(move || manager.save_scene_basis(id))
+        .await
+        .map_err(|_| CommandError::internal(request_id))?
+        .map_err(|e| map_project_error(request_id, &e))?;
+    Ok(CommandResponse::current(request_id, result))
+}
+
+#[tauri::command]
+async fn compare_scene_bases(
+    state: State<'_, AppState>,
+    request: CommandRequest<CompareSceneBasesRequest>,
+) -> Result<CommandResponse<SceneBasisComparison>, CommandError> {
+    require_current_contract(&request)?;
+    let request_id = request.request_id;
+    let payload = request.payload;
+    let id = parse_project_id(request_id, &payload.project_id)?;
+    let manager = manager(&state, request_id)?;
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        manager.compare_scene_bases(id, &payload.base, &payload.incoming)
+    })
+    .await
+    .map_err(|_| CommandError::internal(request_id))?
+    .map_err(|e| map_project_error(request_id, &e))?;
+    Ok(CommandResponse::current(request_id, result))
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct PrepareSceneMergeRequest {
+    project_id: String,
+    selection: SceneMergeSelection,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SecureActivationRequest {
+    project_id: String,
+    selection: SceneMergeSelection,
+    candidate: PreparedHandoff,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SwitchActivationRequest {
+    project_id: String,
+    ticket: String,
+    undo: bool,
+}
+
+#[tauri::command]
+async fn secure_scene_activation(
+    state: State<'_, AppState>,
+    request: CommandRequest<SecureActivationRequest>,
+) -> Result<CommandResponse<String>, CommandError> {
+    require_current_contract(&request)?;
+    let request_id = request.request_id;
+    let payload = request.payload;
+    let id = parse_project_id(request_id, &payload.project_id)?;
+    let manager = manager(&state, request_id)?;
+    let ticket = tauri::async_runtime::spawn_blocking(move || {
+        manager.secure_scene_activation(id, &payload.selection, &payload.candidate)
+    })
+    .await
+    .map_err(|_| CommandError::internal(request_id))?
+    .map_err(|e| map_project_error(request_id, &e))?;
+    Ok(CommandResponse::current(request_id, ticket))
+}
+
+#[tauri::command]
+async fn switch_scene_activation(
+    state: State<'_, AppState>,
+    request: CommandRequest<SwitchActivationRequest>,
+) -> Result<CommandResponse<WorkspaceResponse>, CommandError> {
+    require_current_contract(&request)?;
+    let request_id = request.request_id;
+    let payload = request.payload;
+    let id = parse_project_id(request_id, &payload.project_id)?;
+    let manager = manager(&state, request_id)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        manager.switch_scene_activation(id, &payload.ticket, payload.undo)
+    })
+    .await
+    .map_err(|_| CommandError::internal(request_id))?
+    .map_err(|e| map_project_error(request_id, &e))?;
+    Ok(CommandResponse::current(
+        request_id,
+        open_workspace_impl(&state, request_id, &id.to_string())?,
+    ))
+}
+
+#[cfg(windows)]
+fn show_conflicting_versions(
+    home: &std::path::Path,
+    id: kraqel_domain::ProjectId,
+    selection: &SceneMergeSelection,
+    left: &kraqel_storage::project_manager::ReviewedScene,
+    right: &kraqel_storage::project_manager::ReviewedScene,
+) -> std::io::Result<kraqel_storage::project_manager::ReviewChoice> {
+    kraqel_isolation_transport::open_review(
+        home,
+        id,
+        selection,
+        left,
+        right,
+        include_bytes!(concat!(env!("KRAQEL_REVIEW_IMAGES"), "/pipe-service.exe")),
+        include_bytes!(concat!(env!("KRAQEL_REVIEW_IMAGES"), "/native-leaf.exe")),
+    )
+}
+
+#[tauri::command]
+async fn review_scene_conflict(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    request: CommandRequest<PrepareSceneMergeRequest>,
+) -> Result<CommandResponse<kraqel_storage::project_manager::ReviewOutcome>, CommandError> {
+    require_current_contract(&request)?;
+    let request_id = request.request_id;
+    let payload = request.payload;
+    let id = parse_project_id(request_id, &payload.project_id)?;
+    let manager = manager(&state, request_id)?;
+    #[cfg(not(windows))]
+    {
+        let _ = (app, manager, id, payload);
+        Err(CommandError::internal(request_id))
+    }
+    #[cfg(windows)]
+    {
+        let home = state
+            .project_root
+            .parent()
+            .ok_or_else(|| CommandError::internal(request_id))?
+            .to_owned();
+        let outcome = tauri::async_runtime::spawn_blocking(move || {
+            let confirmed = app.dialog().message("Beide vollständigen Szenenfassungen im isolierten Windows-Fenster anzeigen? Bei Wahl der externen Fassung wird eine separate Arbeitskopie vorbereitet.")
+                .title("Szenenvergleich öffnen")
+                .buttons(tauri_plugin_dialog::MessageDialogButtons::OkCancel)
+                .blocking_show();
+            if !confirmed {
+                return Ok(kraqel_storage::project_manager::ReviewOutcome::Cancel);
+            }
+            manager.review_scene_conflict(id, &payload.selection, |left,right| {
+                show_conflicting_versions(&home,id,&payload.selection,left,right).map_err(|_|ProjectError::InvalidDatabase)
+            })
+        }).await.map_err(|_|CommandError::internal(request_id))?.map_err(|e|map_project_error(request_id,&e))?;
+        Ok(CommandResponse::current(request_id, outcome))
+    }
+}
+
+#[tauri::command]
+async fn prepare_scene_merge(
+    state: State<'_, AppState>,
+    request: CommandRequest<PrepareSceneMergeRequest>,
+) -> Result<CommandResponse<PreparedHandoff>, CommandError> {
+    require_current_contract(&request)?;
+    let request_id = request.request_id;
+    let payload = request.payload;
+    let id = parse_project_id(request_id, &payload.project_id)?;
+    let manager = manager(&state, request_id)?;
+    let receipt = tauri::async_runtime::spawn_blocking(move || {
+        manager.prepare_scene_merge(id, &payload.selection)
+    })
+    .await
+    .map_err(|_| CommandError::internal(request_id))?
+    .map_err(|e| map_project_error(request_id, &e))?;
+    Ok(CommandResponse::current(request_id, receipt))
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ReceiveHandoffRequest {
+    folder: String,
+    manifest_sha256: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct CompareHandoffRequest {
+    include_media: bool,
+    project_id: String,
+    folder: String,
+    manifest_sha256: String,
+}
+
+#[tauri::command]
+async fn compare_project_handoff(
+    state: State<'_, AppState>,
+    request: CommandRequest<CompareHandoffRequest>,
+) -> Result<CommandResponse<Vec<String>>, CommandError> {
+    require_current_contract(&request)?;
+    let request_id = request.request_id;
+    let payload = request.payload;
+    let id = parse_project_id(request_id, &payload.project_id)?;
+    #[cfg(windows)]
+    {
+        let manager = manager(&state, request_id)?;
+        let changed = tauri::async_runtime::spawn_blocking(move || {
+            manager.compare_handoff(
+                id,
+                &payload.folder,
+                &payload.manifest_sha256,
+                payload.include_media,
+            )
+        })
+        .await
+        .map_err(|_| CommandError::internal(request_id))?
+        .map_err(|e| map_project_error(request_id, &e))?;
+        Ok(CommandResponse::current(request_id, changed))
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (
+            state,
+            id,
+            payload.folder,
+            payload.manifest_sha256,
+            payload.include_media,
+        );
+        Err(CommandError::invalid_request(
+            request_id,
+            "Dieser Vergleich erfordert Windows.",
+        ))
+    }
+}
+
+#[tauri::command]
+async fn receive_project_handoff(
+    state: State<'_, AppState>,
+    request: CommandRequest<ReceiveHandoffRequest>,
+) -> Result<CommandResponse<()>, CommandError> {
+    require_current_contract(&request)?;
+    let request_id = request.request_id;
+    #[cfg(windows)]
+    {
+        let manager = manager(&state, request_id)?;
+        let payload = request.payload;
+        tauri::async_runtime::spawn_blocking(move || {
+            manager.receive_handoff(&payload.folder, &payload.manifest_sha256)
+        })
+        .await
+        .map_err(|_| CommandError::internal(request_id))?
+        .map_err(|e| match e {
+            ProjectError::ProjectAlreadyExists => CommandError {
+                message: "Die Projektkennung ist am Ziel bereits belegt.",
+                ..CommandError::conflict(request_id)
+            },
+            other => map_project_error(request_id, &other),
+        })?;
+        Ok(CommandResponse::current(request_id, ()))
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (
+            state,
+            request.payload.folder,
+            request.payload.manifest_sha256,
+        );
+        Err(CommandError::invalid_request(
+            request_id,
+            "Dieser Empfang erfordert Windows.",
+        ))
+    }
+}
+
+#[tauri::command]
+async fn prepare_project_handoff(
+    state: State<'_, AppState>,
+    request: CommandRequest<ProjectRequest>,
+) -> Result<CommandResponse<PreparedHandoff>, CommandError> {
+    require_current_contract(&request)?;
+    let request_id = request.request_id;
+    let id = parse_project_id(request_id, &request.payload.project_id)?;
+    let manager = manager(&state, request_id)?;
+    let receipt = tauri::async_runtime::spawn_blocking(move || manager.prepare_handoff(id))
+        .await
+        .map_err(|_| CommandError::internal(request_id))?
+        .map_err(|error| map_project_error(request_id, &error))?;
+    Ok(CommandResponse::current(request_id, receipt))
+}
+
 #[tauri::command]
 #[allow(
     clippy::needless_pass_by_value,
@@ -1981,7 +2367,7 @@ fn get_version_control_diff(
         &state,
         request.request_id,
         &request.payload.project_id,
-        |_, service, _| service.diff(),
+        |_, service, _| service.diff_statistics(),
     )?;
     Ok(CommandResponse::current(
         request.request_id,
@@ -2058,19 +2444,20 @@ fn create_project_impl(
         schema_version: CURRENT_SCHEMA_VERSION,
     };
     let manager = manager(state, request_id)?;
-    let mut opened = manager
-        .create_project(project.id.to_string(), &project)
+    let mut documents = Vec::with_capacity(2);
+    manager
+        .create_project_with_initializer(project.id.to_string(), &project, |database, _| {
+            let mut repository = DocumentRepository::new(database);
+            let chapter = repository
+                .create(project.id, None, DocumentKind::Chapter, "Kapitel 1")
+                .map_err(|_| ProjectError::InvalidDatabase)?;
+            let scene = repository
+                .create(project.id, Some(chapter.id), DocumentKind::Scene, "Szene 1")
+                .map_err(|_| ProjectError::InvalidDatabase)?;
+            documents.extend([chapter, scene]);
+            Ok(())
+        })
         .map_err(|error| map_project_error(request_id, &error))?;
-    let mut repository = DocumentRepository::new(opened.database_mut());
-    let chapter = repository
-        .create(project.id, None, DocumentKind::Chapter, "Kapitel 1")
-        .map_err(|error| map_document_error(request_id, &error))?;
-    repository
-        .create(project.id, Some(chapter.id), DocumentKind::Scene, "Szene 1")
-        .map_err(|error| map_document_error(request_id, &error))?;
-    let documents = repository
-        .list(project.id)
-        .map_err(|error| map_document_error(request_id, &error))?;
     Ok(WorkspaceResponse { project, documents })
 }
 
@@ -2503,20 +2890,47 @@ fn save_document_impl(
             "Die Editor-Dokumentversion wird nicht unterstützt.",
         ));
     }
+    persist_scene(state, request_id, request, SceneWriter::Prose)
+}
+
+#[derive(Clone, Copy)]
+enum SceneWriter {
+    Prose,
+    RoleAware,
+}
+
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "DTO wird an der Servicegrenze übernommen"
+)]
+fn persist_scene(
+    state: &AppState,
+    request_id: uuid::Uuid,
+    request: SaveDocumentRequest,
+    writer: SceneWriter,
+) -> Result<SaveDocumentResponse, CommandError> {
     let project_id = parse_project_id(request_id, &request.project_id)?;
     let document_id = parse_entity_id(request_id, &request.document_id)?;
     let manager = manager(state, request_id)?;
     let mut opened = manager
         .open_project(project_id.to_string())
         .map_err(|error| map_project_error(request_id, &error))?;
-    let revision = DocumentRepository::new(opened.database_mut())
-        .save_scene(
+    let mut repository = DocumentRepository::new(opened.database_mut());
+    let revision = match writer {
+        SceneWriter::Prose => repository.save_prose_scene(
             project_id,
             document_id,
             request.expected_revision,
             &request.content,
-        )
-        .map_err(|error| map_document_error(request_id, &error))?;
+        ),
+        SceneWriter::RoleAware => repository.save_scene(
+            project_id,
+            document_id,
+            request.expected_revision,
+            &request.content,
+        ),
+    }
+    .map_err(|error| map_document_error(request_id, &error))?;
     Ok(SaveDocumentResponse { revision })
 }
 
@@ -2618,6 +3032,22 @@ fn export_manuscript_mode_impl(
 ) -> Result<ExportResult, CommandError> {
     let project_id = parse_project_id(request_id, &request.project_id)?;
     let manager = manager(state, request_id)?;
+    let (project_directory, project, documents) =
+        manuscript_source(&manager, request_id, project_id, None)?;
+    if roundtrip {
+        kraqel_export::export_project_roundtrip(&project_directory, &project, &documents)
+    } else {
+        export_project(&project_directory, &project, &documents, request.format)
+    }
+    .map_err(|error| map_export_error(request_id, &error))
+}
+
+fn manuscript_source(
+    manager: &ProjectManager,
+    request_id: uuid::Uuid,
+    project_id: ProjectId,
+    selection: Option<&[EntityId]>,
+) -> Result<(PathBuf, Project, Vec<ExportSourceDocument>), CommandError> {
     let mut opened = manager
         .open_project(project_id.to_string())
         .map_err(|error| map_project_error(request_id, &error))?;
@@ -2637,26 +3067,64 @@ fn export_manuscript_mode_impl(
     };
     let project_directory = opened.directory().to_path_buf();
     let repository = DocumentRepository::new(opened.database_mut());
-    let documents = repository
+    let selected = selection.map(|ids| {
+        ids.iter()
+            .copied()
+            .collect::<std::collections::HashSet<_>>()
+    });
+    let select = |outline: &[DocumentNode]| -> Option<Vec<DocumentNode>> {
+        let Some(ids) = &selected else {
+            return Some(outline.to_vec());
+        };
+        if ids.is_empty() || selection?.len() != ids.len() {
+            return None;
+        }
+        let scenes = outline
+            .iter()
+            .filter(|n| n.kind == DocumentKind::Scene && ids.contains(&n.id));
+        if scenes.clone().count() != ids.len() {
+            return None;
+        }
+        let parents: std::collections::HashSet<_> =
+            scenes.map(|n| n.parent_id).collect::<Option<_>>()?;
+        let chapters = outline.iter().filter(|n| {
+            n.kind == DocumentKind::Chapter && parents.contains(&n.id) && n.parent_id.is_none()
+        });
+        if chapters.count() != parents.len() {
+            return None;
+        }
+        Some(
+            outline
+                .iter()
+                .filter(|n| ids.contains(&n.id) || parents.contains(&n.id))
+                .cloned()
+                .collect(),
+        )
+    };
+    let outline = repository
         .list(project_id)
-        .map_err(|error| map_document_error(request_id, &error))?
+        .map_err(|e| map_document_error(request_id, &e))?;
+    let expected = select(&outline).ok_or_else(|| {
+        CommandError::invalid_request(
+            request_id,
+            "Die Auswahl muss gespeicherte Szenen dieses Projekts enthalten.",
+        )
+    })?;
+    let contents = repository
+        .load_export_snapshot(
+            project_id,
+            &project.name,
+            &expected,
+            selected.is_some(),
+            select,
+        )
+        .map_err(|e| map_document_error(request_id, &e))?;
+    let documents = expected
         .into_iter()
-        .map(|node| {
-            repository
-                .load(project_id, node.id)
-                .map(|stored| ExportSourceDocument {
-                    node: stored.node,
-                    content: stored.content,
-                })
-                .map_err(|error| map_document_error(request_id, &error))
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    if roundtrip {
-        kraqel_export::export_project_roundtrip(&project_directory, &project, &documents)
-    } else {
-        export_project(&project_directory, &project, &documents, request.format)
-    }
-    .map_err(|error| map_export_error(request_id, &error))
+        .zip(contents)
+        .map(|(node, content)| ExportSourceDocument { node, content })
+        .collect();
+    Ok((project_directory, project, documents))
 }
 
 fn resolve_export_directory(
@@ -3702,7 +4170,9 @@ fn map_export_error(request_id: uuid::Uuid, error: &ExportError) -> CommandError
     match error {
         ExportError::InvalidDocument(_) => CommandError::invalid_request(
             request_id,
-            "Das Manuskript enthält eine noch nicht exportierbare Formatierung.",
+            error
+                .document_hint()
+                .unwrap_or("Das Manuskript enthält eine noch nicht exportierbare Formatierung."),
         ),
         ExportError::UnsafeDestination | ExportError::Internal(_) => {
             CommandError::internal(request_id)
@@ -3755,26 +4225,157 @@ fn map_credential_error(request_id: uuid::Uuid, error: CredentialError) -> Comma
     }
 }
 
+struct StartupProject(Option<ProjectId>);
+
+#[tauri::command]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Tauri besitzt Command-Argumente"
+)]
+fn startup_project(
+    state: State<'_, StartupProject>,
+    request: CommandRequest<ApplicationStatusRequest>,
+) -> Result<CommandResponse<Option<ProjectId>>, CommandError> {
+    require_current_contract(&request)?;
+    Ok(CommandResponse::current(request.request_id, state.0))
+}
+
+#[cfg(windows)]
+fn open_native_start(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    use kraqel_native_start::Choice;
+
+    let chosen = if std::env::args_os()
+        .skip(1)
+        .any(|arg| arg == "--projektverwaltung")
+    {
+        None
+    } else {
+        let state = app.state::<AppState>();
+        loop {
+            let manager = ProjectManager::new(&state.project_root);
+            let projects = manager.as_ref().ok().and_then(|db| db.list_projects().ok());
+            let names = projects.as_ref().map(|items| {
+                items
+                    .iter()
+                    .map(|project| project.name.clone())
+                    .collect::<Vec<_>>()
+            });
+            match kraqel_native_start::choose(names.as_deref())? {
+                Choice::Close => {
+                    app.handle().exit(0);
+                    return Ok(());
+                }
+                Choice::Management => break None,
+                Choice::Create => {
+                    if projects.is_none() {
+                        kraqel_native_start::notify(
+                            "Der lokale Projektkatalog ist nicht verfügbar.",
+                        );
+                        continue;
+                    }
+                    let Some(name) = kraqel_native_start::ask_project_name(is_valid_project_name)?
+                    else {
+                        continue;
+                    };
+                    match create_project_impl(
+                        &state,
+                        uuid::Uuid::new_v4(),
+                        CreateProjectRequest { name },
+                    ) {
+                        Ok(workspace) => {
+                            let home =
+                                state.project_root.parent().ok_or("Projektkatalog fehlt.")?;
+                            if native_manuscript::browse(home, &manager?, workspace.project.id)
+                                .is_err()
+                            {
+                                kraqel_native_start::notify(
+                                    "Das Projekt wurde angelegt. Die Manuskriptübersicht konnte nicht geöffnet werden.",
+                                );
+                            }
+                        }
+                        Err(_) => kraqel_native_start::notify(
+                            "Die Projektanlage konnte nicht abgeschlossen werden.",
+                        ),
+                    }
+                }
+                Choice::Project(index) => {
+                    break Some(
+                        projects
+                            .as_ref()
+                            .and_then(|p| p.get(index))
+                            .ok_or("Projekt fehlt.")?
+                            .id,
+                    );
+                }
+                Choice::Manuscript(index) => {
+                    let home = state.project_root.parent().ok_or("Projektkatalog fehlt.")?;
+                    let project = projects
+                        .as_ref()
+                        .and_then(|p| p.get(index))
+                        .ok_or("Projekt fehlt.")?;
+                    if native_manuscript::browse(home, &manager?, project.id).is_err() {
+                        kraqel_native_start::notify(
+                            "Die Manuskriptübersicht konnte nicht geöffnet werden.",
+                        );
+                    }
+                }
+            }
+        }
+    };
+    app.manage(StartupProject(chosen));
+    let config = app
+        .config()
+        .app
+        .windows
+        .iter()
+        .find(|w| w.label == "main")
+        .ok_or("Die Konfiguration für das Hauptfenster fehlt.")?;
+    tauri::WebviewWindowBuilder::from_config(app.handle(), config)?.build()?;
+    Ok(())
+}
+
+fn setup_local_state(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    let project_root = app.path().app_local_data_dir()?.join("projects");
+    fs::create_dir_all(&project_root)?;
+    #[cfg(windows)]
+    app.manage(existing_folder::FolderState::default());
+    app.manage(AppState {
+        project_root,
+        ai_releases: Mutex::new(HashMap::new()),
+    });
+    #[cfg(windows)]
+    open_native_start(app)?;
+    #[cfg(not(windows))]
+    app.manage(StartupProject(None));
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 /// Startet die Desktop-Anwendung.
 ///
 /// # Panics
 ///
 /// Bricht ab, wenn die Tauri-Laufzeit nicht initialisiert oder ausgeführt werden kann.
+#[allow(
+    clippy::too_many_lines,
+    reason = "Alle freigegebenen Tauri-Commands stehen in einer prüfbaren Registrierungsliste."
+)]
 pub fn run() {
+    let context = tauri::generate_context!();
+    #[cfg(windows)]
+    let context = {
+        let mut context = context;
+        for window in &mut context.config_mut().app.windows {
+            window.create = false;
+        }
+        context
+    };
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .setup(|app| {
-            let project_root = app.path().app_local_data_dir()?.join("projects");
-            fs::create_dir_all(&project_root)?;
-            app.manage(AppState {
-                project_root,
-                ai_releases: Mutex::new(HashMap::new()),
-            });
-            Ok(())
-        })
+        .setup(setup_local_state)
         .invoke_handler(tauri::generate_handler![
             application_status,
+            startup_project,
             validate_project_name,
             list_projects,
             create_project,
@@ -3790,10 +4391,13 @@ pub fn run() {
             import_docx_document,
             load_document,
             save_document,
+            load_editor_scene,
+            save_editor_scene,
             rename_document,
             reorder_documents,
             delete_document,
             export_manuscript,
+            export_screenplay_pdf,
             open_export_directory,
             list_ollama_models,
             list_cloud_provider_statuses,
@@ -3848,12 +4452,37 @@ pub fn run() {
             link_timeline_event,
             create_project_snapshot,
             export_project_archive,
+            compare_project_handoff,
+            receive_project_handoff,
+            #[cfg(windows)]
+            existing_folder::preview_existing_folder,
+            #[cfg(windows)]
+            existing_folder::cancel_existing_folder,
+            #[cfg(windows)]
+            existing_folder::receive_existing_folder,
+            prepare_project_handoff,
+            save_scene_basis,
+            compare_scene_bases,
+            prepare_scene_merge,
+            review_scene_conflict,
+            #[cfg(windows)]
+            item_review::list_handoff_items,
+            #[cfg(windows)]
+            item_review::missing_handoff_parent,
+            #[cfg(windows)]
+            item_review::review_handoff_item,
+            #[cfg(windows)]
+            item_review::secure_handoff_item,
+            #[cfg(windows)]
+            item_review::switch_handoff_item,
+            secure_scene_activation,
+            switch_scene_activation,
             validate_project_snapshot,
             get_version_control_status,
             get_version_control_diff,
             commit_project_snapshot
         ])
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("KRAQEL konnte nicht gestartet werden");
 }
 
@@ -4097,6 +4726,17 @@ mod tests {
             "Die Stadt, die den Dienstag verkaufte (Beispiel)"
         );
         assert_eq!(workspace.documents.len(), 20);
+        let receipt = super::manager(&state, REQUEST_ID)
+            .unwrap()
+            .prepare_handoff(workspace.project.id)
+            .expect("bundled manuscript and media should prepare together");
+        let prepared = state
+            .project_root
+            .join(workspace.project.id.to_string())
+            .join("backups")
+            .join(receipt.folder);
+        assert!(prepared.join("uebernahme.json").is_file());
+        assert!(prepared.join("assets/thumbnails").is_dir());
         assert_eq!(list_projects_impl(&state, REQUEST_ID).unwrap().len(), 1);
     }
 
@@ -4193,6 +4833,170 @@ mod tests {
 
         assert_eq!(error.code, CommandErrorCode::UnsupportedContractVersion);
         assert!(!error.retryable);
+    }
+
+    #[test]
+    #[allow(
+        clippy::too_many_lines,
+        reason = "The same saved scene exercises both command paths and file preservation on failure"
+    )]
+    fn role_aware_commands_reopen_scene_and_print_selected_content() {
+        let root = tempdir().unwrap();
+        let state = AppState {
+            project_root: root.path().to_path_buf(),
+            ai_releases: Mutex::new(HashMap::new()),
+        };
+        let workspace = create_project_impl(
+            &state,
+            REQUEST_ID,
+            CreateProjectRequest {
+                name: "Fensterprobe".into(),
+            },
+        )
+        .unwrap();
+        let project_id = workspace.project.id;
+        let scene = workspace
+            .documents
+            .iter()
+            .find(|node| node.kind == kraqel_domain::DocumentKind::Scene)
+            .unwrap();
+        let content = EditorDocument {
+            version: kraqel_domain::SCREENPLAY_DOCUMENT_VERSION,
+            document: json!({"type":"doc","content":[
+                {"type":"screenplayBlock","attrs":{"role":"sceneHeading"},"content":[{"type":"text","text":"INNEN. ARCHIV – TAG"}]},
+                {"type":"screenplayBlock","attrs":{"role":"action"},"content":[{"type":"text","text":"Ein Kolkrabe klappt das Buch zu."}]},
+                {"type":"screenplayBlock","attrs":{"role":"character"},"content":[{"type":"text","text":"KOLKRABE"}]},
+                {"type":"screenplayBlock","attrs":{"role":"dialogue"},"content":[{"type":"text","text":"Morgen ist auch noch Dienstag."}]}
+            ]}),
+        };
+        let save = |contract_version, expected_revision, content| {
+            let request = CommandRequest {
+                contract_version,
+                request_id: REQUEST_ID,
+                payload: SaveDocumentRequest {
+                    project_id: project_id.to_string(),
+                    document_id: scene.id.to_string(),
+                    expected_revision,
+                    content,
+                },
+            };
+            super::editor_v2(request, |p| {
+                super::persist_scene(&state, REQUEST_ID, p, super::SceneWriter::RoleAware)
+            })
+        };
+        let saved = save(2, 0, content.clone()).unwrap();
+        assert_eq!((saved.contract_version, saved.data.revision), (2, 1));
+        assert_eq!(
+            save(1, 1, content.clone()).unwrap_err().code,
+            CommandErrorCode::UnsupportedContractVersion
+        );
+        let mut unexpected_attr = content.clone();
+        unexpected_attr.document["content"][0]["attrs"]["extra"] = json!(true);
+        assert_eq!(
+            save(2, 1, unexpected_attr).unwrap_err().code,
+            CommandErrorCode::InvalidRequest
+        );
+        let reopened = load_document_impl(
+            &state,
+            REQUEST_ID,
+            DocumentRequest {
+                project_id: project_id.to_string(),
+                document_id: scene.id.to_string(),
+            },
+        )
+        .unwrap();
+        assert_eq!(reopened.node.revision, 1);
+        assert_eq!(reopened.content, content);
+        let manager = super::manager(&state, REQUEST_ID).unwrap();
+        let export = |ids: &[super::EntityId]| {
+            super::export_selected_screenplay(&manager, REQUEST_ID, project_id, ids)
+        };
+        let chapter = scene.parent_id.unwrap();
+        let prose = create_document_impl(
+            &state,
+            REQUEST_ID,
+            CreateDocumentRequest {
+                project_id: project_id.to_string(),
+                parent_id: Some(chapter.to_string()),
+                kind: DocumentKind::Scene,
+                title: "Nachwort".into(),
+            },
+        )
+        .unwrap();
+        save_document_impl(
+            &state,
+            REQUEST_ID,
+            SaveDocumentRequest {
+                project_id: project_id.to_string(),
+                document_id: prose.id.to_string(),
+                expected_revision: 0,
+                content: EditorDocument {
+                    version: EDITOR_DOCUMENT_VERSION,
+                    document: json!({"type":"doc","content":[{"type":"paragraph","content":[
+                        {"type":"text","text":"Der Archivschlüssel liegt bereit."}
+                    ]}]}),
+                },
+            },
+        )
+        .unwrap();
+        let manuscript = || {
+            export_manuscript_impl(
+                &state,
+                REQUEST_ID,
+                &ExportProjectRequest {
+                    project_id: project_id.to_string(),
+                    format: ExportFormat::Pdf,
+                },
+            )
+        };
+        let whole = manuscript().unwrap();
+        assert_eq!(whole.file_name, "manuskript.pdf");
+        let opened = manager.open_project(project_id.to_string()).unwrap();
+        let manuscript_path = opened.directory().join("exports").join(whole.file_name);
+        let original = fs::read(&manuscript_path).unwrap();
+        assert!(original.starts_with(b"%PDF-"));
+        let path = opened.directory().join("exports").join("drehbuch.pdf");
+        // A chapter supplies ordering metadata; its body has no place in a selected scene PDF.
+        opened
+            .database()
+            .connection()
+            .execute(
+                "UPDATE document SET content_json = '{}' WHERE id = ?1",
+                [chapter.to_string()],
+            )
+            .unwrap();
+        drop(opened);
+        assert!(manuscript().is_err());
+        assert_eq!(fs::read(manuscript_path).unwrap(), original);
+        assert!(export(&[]).is_err());
+        assert!(!path.exists());
+        let pdf = export(&[scene.id]).unwrap();
+        assert_eq!(pdf.file_name, "drehbuch.pdf");
+        let saved = fs::read(&path).unwrap();
+        assert!(saved.starts_with(b"%PDF-"));
+        assert!(export(&[chapter]).is_err());
+        assert_eq!(fs::read(&path).unwrap(), saved);
+
+        let mut unprintable = content;
+        unprintable.document["content"]
+            .as_array_mut()
+            .unwrap()
+            .pop(); // Figure without dialogue.
+        let opened = manager.open_project(project_id.to_string()).unwrap();
+        opened
+            .database()
+            .connection()
+            .execute(
+                "UPDATE document SET content_json = ?1 WHERE id = ?2",
+                [
+                    serde_json::to_string(&unprintable).unwrap(),
+                    scene.id.to_string(),
+                ],
+            )
+            .unwrap();
+        drop(opened);
+        assert!(export(&[scene.id]).is_err());
+        assert_eq!(fs::read(path).unwrap(), saved);
     }
 
     #[test]
@@ -4897,4 +5701,39 @@ mod tests {
             .is_err()
         );
     }
+}
+
+#[cfg(all(windows, test))]
+#[test]
+#[ignore = "interactive Windows desktop; choose the external version"]
+fn isolated_manuscript_choice() {
+    use kraqel_storage::project_manager::{ReviewChoice, ReviewedScene};
+    let home = tempfile::tempdir().unwrap();
+    let id = kraqel_domain::ProjectId::new();
+    let selection = SceneMergeSelection {
+        base: "a".repeat(64),
+        local: "b".repeat(64),
+        incoming: "c".repeat(64),
+        manifest: "d".repeat(64),
+        folder: String::new(),
+        scenes: vec![kraqel_domain::EntityId::new()],
+    };
+    let left = ReviewedScene {
+        title: "Kapitel eins".into(),
+        text: "Am Wasser.\nZweite Zeile.".into(),
+        revision: 17,
+    };
+    let right = ReviewedScene {
+        title: "Kapitel zwei".into(),
+        text: "Andere Fassung mit Umlauten, 🪶 und Zeilenumbruch.\nEnde.".into(),
+        revision: 29,
+    };
+    let choice = show_conflicting_versions(home.path(), id, &selection, &left, &right).unwrap();
+    assert!(matches!(choice, ReviewChoice::Incoming));
+    assert!(
+        !home
+            .path()
+            .join("KRAQEL-Manuskriptvergleich/active")
+            .exists()
+    );
 }

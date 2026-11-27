@@ -1,6 +1,6 @@
 # KQ-032 bis KQ-034: Tastatur- und Accessibility-Prüfmatrix
 
-Stand: 11. November 2026
+Stand: 27. November 2026
 
 Fortschreibung vom 15. November 2026: [KQ-068](native-m3-coverage.md) ergänzt benannte
 Medien-Linkwähler/-artikel, Erfolgs-Liveregionen und Fehleralarme für Medien/visuelle Profile. Der
@@ -16,6 +16,23 @@ historischer Beleg.
 Diese Matrix trennt automatisiert belegte Browserprüfungen von einer echten Hörprüfung mit
 assistiver Technik. Axe und der Browser-Accessibility-Tree finden viele strukturelle Fehler, hören
 aber keine Ausgabe. Ein grüner Roboter ist noch keine zuhörende Testperson.
+
+## Fokus bei Rollenwahl, Import und Export
+
+Die Bedienläufe vom 27. November 2026 verwenden synthetische Projekte und den lokalen
+E2E-Command-Adapter. Dateiauswahl, Abbruch und Dienstfehler kommen aus diesem Adapter.
+
+- **Drehbuchrollen.** `Enter` auf „In Drehbuch umwandeln …“ fokussiert die Überschrift
+  „Zuordnungsvorschau“. Mit `Tab` ist die Rolle für Absatz 1 erreichbar. Nach einer Auswahl bringt
+  „Abbrechen“ den Fokus zum Auslöser zurück. Der Szenentext behält seine ursprünglichen Absätze ohne
+  Rollenzuordnung. [Bedienlauf](../../apps/desktop/e2e/m1-editor.spec.ts)
+- **DOCX-Austausch.** Nach Abbruch oder Fehler bleibt „Manuskript-DOCX auswählen“ fokussiert. Der
+  Fehlerhinweis erklärt die Wiederherstellung über eine frische Austauschkopie. Nach dem Export per
+  `Enter` bleibt „DOCX zum Wiederimport erzeugen“ fokussiert und der Status nennt die erzeugte
+  Datei. [Bedienlauf](../../apps/desktop/e2e/docx-roundtrip.spec.ts)
+- **Bildexport.** Enthält der Alternativtext nur Leerzeichen, beschreibt der zugängliche Feldhinweis
+  die Eingabegrenze und die Ausgabe bleibt gesperrt. Nach der Korrektur lässt sich das ausgewählte
+  Bild exportieren. [Bedienlauf](../../apps/desktop/e2e/illustrated-export.spec.ts)
 
 ## Automatisiert verifiziert
 

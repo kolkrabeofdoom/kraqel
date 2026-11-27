@@ -10,12 +10,26 @@ use std::{
 use kraqel_domain::{
     DocumentKind, DocumentNode, EDITOR_DOCUMENT_VERSION, EditorDocument, EntityId, ProjectId,
 };
-use rusqlite::{OptionalExtension, Transaction, params};
+use rusqlite::{Connection, OptionalExtension, Transaction, params};
 use serde_json::{Value, json};
 
 use crate::{Database, StorageError};
 
-const MAX_EDITOR_DOCUMENT_BYTES: usize = 5 * 1024 * 1024;
+mod copying;
+mod deletion;
+pub use deletion::DeletePreview;
+
+pub(crate) const MAX_EDITOR_DOCUMENT_BYTES: usize = 5 * 1024 * 1024;
+
+/// Requested change to a reviewed native project outline.
+#[derive(Clone, Copy)]
+pub enum OutlineMove {
+    Earlier,
+    Later,
+    /// Final zero-based position in the selected list of siblings.
+    AtIndex(usize),
+    AppendToChapter(EntityId),
+}
 
 /// Vollständiger gespeicherter Dokumentstand.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -107,6 +121,13 @@ impl From<StorageError> for DocumentError {
     }
 }
 
+#[derive(Clone, Copy)]
+pub(crate) enum SaveGuard<'a> {
+    Any,
+    Prose,
+    ExactProse(&'a EditorDocument),
+}
+
 /// Repository über einer bereits verwalteten Projektdatenbank.
 pub struct DocumentRepository<'database> {
     database: &'database mut Database,
@@ -165,6 +186,7 @@ impl<'database> DocumentRepository<'database> {
                 }
                 validate_imported_title(title)?;
                 validate_content(content)?;
+                crate::require_editor_schema(&transaction, content.version)?;
                 let json =
                     serde_json::to_string(content).map_err(|_| DocumentError::InvalidInput)?;
                 if json.len() > MAX_EDITOR_DOCUMENT_BYTES {
@@ -195,29 +217,7 @@ impl<'database> DocumentRepository<'database> {
     ///
     /// Liefert einen Fehler bei SQLite-Problemen oder ungültigen gespeicherten Werten.
     pub fn list(&self, project_id: ProjectId) -> Result<Vec<DocumentNode>, DocumentError> {
-        let mut statement = self.database.connection().prepare(
-            "SELECT id, project_id, parent_id, kind, title, position, revision
-             FROM document
-             WHERE project_id = ?1
-             ORDER BY parent_id IS NOT NULL, parent_id, position, id",
-        )?;
-        let rows = statement.query_map([project_id.to_string()], |row| {
-            Ok(RawDocumentNode {
-                id: row.get(0)?,
-                project_id: row.get(1)?,
-                parent_id: row.get(2)?,
-                kind: row.get(3)?,
-                title: row.get(4)?,
-                position: row.get(5)?,
-                revision: row.get(6)?,
-            })
-        })?;
-
-        rows.map(|row| {
-            row.map_err(DocumentError::from)
-                .and_then(RawDocumentNode::parse)
-        })
-        .collect()
+        list_nodes(self.database.connection(), project_id)
     }
 
     /// Lädt einen vollständigen Kapitel- oder Szenenstand.
@@ -266,6 +266,62 @@ impl<'database> DocumentRepository<'database> {
             content,
             plain_text: raw.2,
         })
+    }
+
+    /// Reads only the confirmed document bodies from one SQLite snapshot. A scene's
+    /// parent contributes its heading metadata, never its editor contents.
+    ///
+    /// # Errors
+    /// Refuses a project name, selected subtree or revision that changed since confirmation.
+    pub fn load_export_snapshot(
+        &self,
+        project: ProjectId,
+        project_name: &str,
+        expected: &[DocumentNode],
+        chapter_headings_only: bool,
+        select: impl FnOnce(&[DocumentNode]) -> Option<Vec<DocumentNode>>,
+    ) -> Result<Vec<EditorDocument>, DocumentError> {
+        let tx = self.database.connection().unchecked_transaction()?;
+        let project_matches: bool = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM project WHERE id = ?1 AND name = ?2)",
+            params![project.to_string(), project_name],
+            |r| r.get(0),
+        )?;
+        let outline = list_nodes(&tx, project)?;
+        if !project_matches || select(&outline).as_deref() != Some(expected) {
+            return Err(DocumentError::RevisionConflict);
+        }
+        let mut contents = Vec::with_capacity(expected.len());
+        {
+            let mut body = tx.prepare(
+                "SELECT content_json FROM document WHERE project_id = ?1 AND id = ?2
+                 AND length(CAST(content_json AS BLOB)) <= ?3",
+            )?;
+            let limit = i64::try_from(MAX_EDITOR_DOCUMENT_BYTES)
+                .map_err(|_| DocumentError::InvalidInput)?;
+            for node in expected {
+                if chapter_headings_only && node.kind == DocumentKind::Chapter {
+                    if node.parent_id.is_some() {
+                        return Err(DocumentError::InvalidParent);
+                    }
+                    contents.push(empty_editor_document());
+                } else {
+                    let json: String = body
+                        .query_row(
+                            params![project.to_string(), node.id.to_string(), limit],
+                            |r| r.get(0),
+                        )
+                        .optional()?
+                        .ok_or(DocumentError::InvalidStoredData)?;
+                    let document = serde_json::from_str(&json)
+                        .map_err(|_| DocumentError::InvalidStoredData)?;
+                    validate_content(&document).map_err(|_| DocumentError::InvalidStoredData)?;
+                    contents.push(document);
+                }
+            }
+        }
+        tx.commit()?;
+        Ok(contents)
     }
 
     /// Erstellt ein Kapitel oder eine Szene an der letzten stabilen Geschwisterposition.
@@ -348,6 +404,7 @@ impl<'database> DocumentRepository<'database> {
         let plain_text = plain_text(content);
         let timestamp = current_timestamp()?;
         let transaction = self.database.transaction()?;
+        crate::require_editor_schema(&transaction, content.version)?;
         validate_project_and_parent(
             &transaction,
             project_id,
@@ -405,6 +462,46 @@ impl<'database> DocumentRepository<'database> {
         expected_revision: u64,
         content: &EditorDocument,
     ) -> Result<u64, DocumentError> {
+        self.save_content(
+            project_id,
+            document_id,
+            expected_revision,
+            content,
+            SaveGuard::Any,
+        )
+    }
+
+    /// V1-Schreibzug. Auch eine gültige Prosa-Anfrage darf keine vorhandene v2-Szene ersetzen.
+    ///
+    /// # Errors
+    /// Lehnt unzulässigen Bestand, Revision oder Inhalt atomar ab.
+    pub fn save_prose_scene(
+        &mut self,
+        project_id: ProjectId,
+        document_id: EntityId,
+        expected_revision: u64,
+        content: &EditorDocument,
+    ) -> Result<u64, DocumentError> {
+        if content.version != EDITOR_DOCUMENT_VERSION {
+            return Err(DocumentError::InvalidInput);
+        }
+        self.save_content(
+            project_id,
+            document_id,
+            expected_revision,
+            content,
+            SaveGuard::Prose,
+        )
+    }
+
+    pub(crate) fn save_content(
+        &mut self,
+        project_id: ProjectId,
+        document_id: EntityId,
+        expected_revision: u64,
+        content: &EditorDocument,
+        guard: SaveGuard<'_>,
+    ) -> Result<u64, DocumentError> {
         validate_content(content)?;
         let content_json =
             serde_json::to_string(content).map_err(|_| DocumentError::InvalidInput)?;
@@ -417,10 +514,25 @@ impl<'database> DocumentRepository<'database> {
             .ok_or(DocumentError::InvalidInput)?;
         let timestamp = current_timestamp()?;
         let transaction = self.database.transaction()?;
+        if let SaveGuard::ExactProse(expected) = guard {
+            let stored: Option<String> = transaction.query_row(
+                "SELECT content_json FROM document WHERE project_id = ?1 AND id = ?2 AND revision = ?3 AND kind = 'scene'",
+                params![project_id.to_string(), document_id.to_string(), i64::try_from(expected_revision).map_err(|_| DocumentError::InvalidInput)?],
+                |row| row.get(0),
+            ).optional()?;
+            let stored: EditorDocument =
+                serde_json::from_str(stored.as_deref().ok_or(DocumentError::RevisionConflict)?)
+                    .map_err(|_| DocumentError::InvalidStoredData)?;
+            if &stored != expected {
+                return Err(DocumentError::RevisionConflict);
+            }
+        }
+        crate::require_editor_schema(&transaction, content.version)?;
         let changed = transaction.execute(
             "UPDATE document
              SET content_json = ?1, plain_text = ?2, revision = ?3, updated_at = ?4
-             WHERE project_id = ?5 AND id = ?6 AND kind = 'scene' AND revision = ?7",
+             WHERE project_id = ?5 AND id = ?6 AND kind = 'scene' AND revision = ?7
+             AND (NOT ?8 OR json_extract(content_json,'$.version') = 1)",
             params![
                 content_json,
                 plain_text,
@@ -428,7 +540,8 @@ impl<'database> DocumentRepository<'database> {
                 timestamp,
                 project_id.to_string(),
                 document_id.to_string(),
-                i64::try_from(expected_revision).map_err(|_| DocumentError::InvalidInput)?
+                i64::try_from(expected_revision).map_err(|_| DocumentError::InvalidInput)?,
+                !matches!(guard, SaveGuard::Any)
             ],
         )?;
         if changed == 0 {
@@ -465,13 +578,44 @@ impl<'database> DocumentRepository<'database> {
         expected_title: &str,
         title: &str,
     ) -> Result<DocumentNode, DocumentError> {
+        self.rename_checked(project_id, document_id, expected_title, None, title)
+    }
+
+    /// Renames the displayed node only while its title and place in the project tree still match.
+    ///
+    /// # Errors
+    /// Returns a conflict if another operation renamed or moved the selected node.
+    pub fn rename_selected(
+        &mut self,
+        selected: &DocumentNode,
+        title: &str,
+    ) -> Result<DocumentNode, DocumentError> {
+        self.rename_checked(
+            selected.project_id,
+            selected.id,
+            &selected.title,
+            Some((selected.kind, selected.parent_id)),
+            title,
+        )
+    }
+
+    fn rename_checked(
+        &mut self,
+        project_id: ProjectId,
+        document_id: EntityId,
+        expected_title: &str,
+        location: Option<(DocumentKind, Option<EntityId>)>,
+        title: &str,
+    ) -> Result<DocumentNode, DocumentError> {
         validate_imported_title(expected_title)?;
         validate_title(title)?;
         let title = title.trim();
         let timestamp = current_timestamp()?;
         let transaction = self.database.transaction()?;
         let mut node = load_node(&transaction, project_id, document_id)?;
-        if node.title != expected_title {
+        if node.title != expected_title
+            || location.is_some_and(|p| p != (node.kind, node.parent_id))
+        {
             return Err(DocumentError::RevisionConflict);
         }
         let changed = transaction.execute(
@@ -526,18 +670,109 @@ impl<'database> DocumentRepository<'database> {
         if current != expected_order {
             return Err(DocumentError::RevisionConflict);
         }
-        for (position, id) in ordered_ids.iter().enumerate() {
-            transaction.execute(
-                "UPDATE document SET position = ?1, updated_at = ?2
-                 WHERE project_id = ?3 AND id = ?4 AND parent_id IS ?5",
-                params![
-                    i64::try_from(position).map_err(|_| DocumentError::InvalidInput)?,
-                    timestamp,
-                    project_id.to_string(),
-                    id.to_string(),
-                    parent_id.map(|value| value.to_string())
-                ],
-            )?;
+        write_order(&transaction, project_id, parent_id, ordered_ids, &timestamp)?;
+        transaction.commit()?;
+        Ok(())
+    }
+
+    /// Moves a document only if the reviewed outline still matches inside the write transaction.
+    /// Text-only edits do not invalidate structural decisions.
+    ///
+    /// # Errors
+    /// Rejects stale outlines, invalid destinations and movement beyond a list boundary.
+    pub fn move_in_outline(
+        &mut self,
+        project_id: ProjectId,
+        expected: &[DocumentNode],
+        selected: EntityId,
+        direction: OutlineMove,
+    ) -> Result<(), DocumentError> {
+        let transaction = self.database.transaction()?;
+        let current = list_nodes(&transaction, project_id)?;
+        let structure = |a: &DocumentNode, b: &DocumentNode| {
+            a.project_id == b.project_id
+                && a.id == b.id
+                && a.kind == b.kind
+                && a.parent_id == b.parent_id
+                && a.position == b.position
+                && a.title == b.title
+        };
+        if current.len() != expected.len()
+            || !current.iter().zip(expected).all(|(a, b)| structure(a, b))
+        {
+            return Err(DocumentError::RevisionConflict);
+        }
+        let node = current
+            .iter()
+            .find(|n| n.id == selected)
+            .ok_or(DocumentError::NotFound)?;
+        let timestamp = current_timestamp()?;
+        match direction {
+            OutlineMove::AppendToChapter(target) => {
+                let parent = node.parent_id.ok_or(DocumentError::InvalidParent)?;
+                if node.kind != DocumentKind::Scene || parent == target {
+                    return Err(DocumentError::InvalidParent);
+                }
+                validate_reorder_parent(&transaction, project_id, Some(target))?;
+                let position = match current
+                    .iter()
+                    .filter(|n| n.parent_id == Some(target))
+                    .map(|n| n.position)
+                    .max()
+                {
+                    Some(last) => last
+                        .checked_add(1)
+                        .ok_or(DocumentError::InvalidStoredData)?,
+                    None => 0,
+                };
+                let changed = transaction.execute(
+                    "UPDATE document SET parent_id = ?1, position = ?2, updated_at = ?3
+                     WHERE project_id = ?4 AND id = ?5 AND parent_id = ?6",
+                    params![
+                        target.to_string(),
+                        position,
+                        timestamp,
+                        project_id.to_string(),
+                        selected.to_string(),
+                        parent.to_string()
+                    ],
+                )?;
+                if changed != 1 {
+                    return Err(DocumentError::RevisionConflict);
+                }
+                compact_siblings(&transaction, project_id, Some(parent))?;
+            }
+            OutlineMove::Earlier | OutlineMove::Later | OutlineMove::AtIndex(_) => {
+                let mut siblings: Vec<_> = current
+                    .iter()
+                    .filter(|n| n.parent_id == node.parent_id)
+                    .map(|n| n.id)
+                    .collect();
+                let index = siblings
+                    .iter()
+                    .position(|id| *id == selected)
+                    .ok_or(DocumentError::NotFound)?;
+                let target = match direction {
+                    OutlineMove::Earlier => index.checked_sub(1),
+                    OutlineMove::AtIndex(target) => Some(target),
+                    _ => index.checked_add(1),
+                }
+                .filter(|target| *target < siblings.len())
+                .ok_or(DocumentError::InvalidInput)?;
+                if index == target {
+                    transaction.commit()?;
+                    return Ok(());
+                }
+                siblings.remove(index);
+                siblings.insert(target, selected);
+                write_order(
+                    &transaction,
+                    project_id,
+                    node.parent_id,
+                    &siblings,
+                    &timestamp,
+                )?;
+            }
         }
         transaction.commit()?;
         Ok(())
@@ -583,23 +818,26 @@ impl<'database> DocumentRepository<'database> {
         if children != expected_child_ids {
             return Err(DocumentError::RevisionConflict);
         }
-        let changed = transaction.execute(
-            "DELETE FROM document
-             WHERE project_id = ?1 AND id = ?2 AND title = ?3 AND revision = ?4",
-            params![
-                project_id.to_string(),
-                document_id.to_string(),
-                expected_title,
-                i64::try_from(expected_revision).map_err(|_| DocumentError::InvalidInput)?
-            ],
-        )?;
-        if changed != 1 {
-            return Err(DocumentError::RevisionConflict);
-        }
-        compact_siblings(&transaction, project_id, node.parent_id)?;
+        delete_node(&transaction, &node)?;
         transaction.commit()?;
         Ok(())
     }
+}
+
+fn delete_node(transaction: &Transaction<'_>, node: &DocumentNode) -> Result<(), DocumentError> {
+    let changed = transaction.execute(
+        "DELETE FROM document WHERE project_id = ?1 AND id = ?2 AND title = ?3 AND revision = ?4",
+        params![
+            node.project_id.to_string(),
+            node.id.to_string(),
+            node.title,
+            i64::try_from(node.revision).map_err(|_| DocumentError::InvalidInput)?
+        ],
+    )?;
+    if changed != 1 {
+        return Err(DocumentError::RevisionConflict);
+    }
+    compact_siblings(transaction, node.project_id, node.parent_id)
 }
 
 struct RawDocumentNode {
@@ -632,6 +870,35 @@ impl RawDocumentNode {
     }
 }
 
+fn list_nodes(
+    connection: &Connection,
+    project_id: ProjectId,
+) -> Result<Vec<DocumentNode>, DocumentError> {
+    let mut statement = connection.prepare(
+        "SELECT id, project_id, parent_id, kind, title, position, revision
+             FROM document
+             WHERE project_id = ?1
+             ORDER BY parent_id IS NOT NULL, parent_id, position, id",
+    )?;
+    let rows = statement.query_map([project_id.to_string()], |row| {
+        Ok(RawDocumentNode {
+            id: row.get(0)?,
+            project_id: row.get(1)?,
+            parent_id: row.get(2)?,
+            kind: row.get(3)?,
+            title: row.get(4)?,
+            position: row.get(5)?,
+            revision: row.get(6)?,
+        })
+    })?;
+
+    rows.map(|row| {
+        row.map_err(DocumentError::from)
+            .and_then(RawDocumentNode::parse)
+    })
+    .collect()
+}
+
 fn load_node(
     transaction: &Transaction<'_>,
     project_id: ProjectId,
@@ -657,6 +924,29 @@ fn load_node(
         .optional()?
         .ok_or(DocumentError::NotFound)?
         .parse()
+}
+
+fn write_order(
+    transaction: &Transaction<'_>,
+    project_id: ProjectId,
+    parent_id: Option<EntityId>,
+    ordered_ids: &[EntityId],
+    timestamp: &str,
+) -> Result<(), DocumentError> {
+    for (position, id) in ordered_ids.iter().enumerate() {
+        transaction.execute(
+            "UPDATE document SET position = ?1, updated_at = ?2
+                 WHERE project_id = ?3 AND id = ?4 AND parent_id IS ?5",
+            params![
+                i64::try_from(position).map_err(|_| DocumentError::InvalidInput)?,
+                timestamp,
+                project_id.to_string(),
+                id.to_string(),
+                parent_id.map(|value| value.to_string())
+            ],
+        )?;
+    }
+    Ok(())
 }
 
 fn sibling_ids(
@@ -762,9 +1052,14 @@ fn validate_project_and_parent(
     }
 }
 
+/// Whether a newly entered chapter or scene title fits the repository.
+#[must_use]
+pub fn is_valid_document_title(title: &str) -> bool {
+    (1..=240).contains(&title.trim().chars().count())
+}
+
 fn validate_title(title: &str) -> Result<(), DocumentError> {
-    let length = title.trim().chars().count();
-    if (1..=240).contains(&length) {
+    if is_valid_document_title(title) {
         Ok(())
     } else {
         Err(DocumentError::InvalidInput)
@@ -779,14 +1074,8 @@ fn validate_imported_title(title: &str) -> Result<(), DocumentError> {
     }
 }
 
-fn validate_content(content: &EditorDocument) -> Result<(), DocumentError> {
-    if content.version != EDITOR_DOCUMENT_VERSION
-        || content.document.get("type").and_then(Value::as_str) != Some("doc")
-        || content
-            .document
-            .get("content")
-            .is_some_and(|value| !value.is_array())
-    {
+pub(crate) fn validate_content(content: &EditorDocument) -> Result<(), DocumentError> {
+    if !content.is_valid() {
         return Err(DocumentError::InvalidInput);
     }
     Ok(())
@@ -799,7 +1088,9 @@ fn empty_editor_document() -> EditorDocument {
     }
 }
 
-fn plain_text(content: &EditorDocument) -> String {
+/// Leitet den durchsuchbaren Text aus der gespeicherten Szene ab.
+#[must_use]
+pub fn plain_text(content: &EditorDocument) -> String {
     let mut fragments = Vec::new();
     collect_text(&content.document, &mut fragments);
     fragments
@@ -855,6 +1146,165 @@ mod tests {
 
     use super::{DocumentError, DocumentRepository};
     use crate::project_manager::ProjectManager;
+
+    #[test]
+    fn export_selection_reads_confirmed_bodies_from_one_snapshot() {
+        let root = tempdir().unwrap();
+        let manager = ProjectManager::new(root.path()).unwrap();
+        let project = project();
+        let mut opened = manager.create_project("projekt", &project).unwrap();
+        let mut repo = DocumentRepository::new(opened.database_mut());
+        let chapter = repo
+            .create(project.id, None, DocumentKind::Chapter, "Kapitel")
+            .unwrap();
+        let approved = content("Bestätigt");
+        let scene = repo
+            .create_scene_with_content(project.id, chapter.id, "Auswahl", &approved)
+            .unwrap();
+        let sibling = repo
+            .create_scene_with_content(project.id, chapter.id, "Andere Szene", &content("Privat"))
+            .unwrap();
+        let mut second = manager.open_project("projekt").unwrap();
+        // Invalid bodies outside the authorized set must not even be deserialized.
+        second
+            .database()
+            .connection()
+            .execute(
+                "UPDATE document SET content_json='{}' WHERE id IN (?1, ?2)",
+                params![chapter.id.to_string(), sibling.id.to_string()],
+            )
+            .unwrap();
+        let expected = vec![chapter.clone(), scene.clone()];
+        let select = |outline: &[kraqel_domain::DocumentNode]| {
+            Some(
+                outline
+                    .iter()
+                    .filter(|n| n.id == chapter.id || n.id == scene.id)
+                    .cloned()
+                    .collect(),
+            )
+        };
+        let bodies = repo
+            .load_export_snapshot(project.id, &project.name, &expected, true, |outline| {
+                DocumentRepository::new(second.database_mut())
+                    .save_scene(project.id, scene.id, scene.revision, &content("Später"))
+                    .unwrap();
+                select(outline)
+            })
+            .unwrap();
+        assert_eq!(bodies, [super::empty_editor_document(), approved]);
+        assert!(matches!(
+            repo.load_export_snapshot(project.id, &project.name, &expected, true, select),
+            Err(DocumentError::RevisionConflict)
+        ));
+    }
+
+    #[test]
+    fn duplicates_manuscript_with_new_ids_ordered_content_and_search_index() {
+        let root = tempdir().unwrap();
+        let manager = ProjectManager::new(root.path()).unwrap();
+        let project = project();
+        let mut opened = manager.create_project("projekt", &project).unwrap();
+        let mut repo = DocumentRepository::new(opened.database_mut());
+        let chapter = repo
+            .create(project.id, None, DocumentKind::Chapter, "Kapitel")
+            .unwrap();
+        let mut prose = content("Federkiel");
+        prose.document["content"][0]["content"][0]["marks"] = json!([{"type":"bold"}]);
+        let scene = repo
+            .create_scene_with_content(project.id, chapter.id, "Prosa", &prose)
+            .unwrap();
+        let screenplay = EditorDocument {
+            version: kraqel_domain::SCREENPLAY_DOCUMENT_VERSION,
+            document: json!({"type":"doc","content":[{"type":"screenplayBlock","attrs":{"role":"action"},
+                "content":[{"type":"text","text":"Zugbrücke"}]}]}),
+        };
+        let script = repo
+            .create_scene_with_content(project.id, chapter.id, "Film", &screenplay)
+            .unwrap();
+
+        let copy = repo
+            .duplicate_manuscript(&chapter, &[&scene, &script], None, "Variante")
+            .unwrap();
+        assert_ne!(copy.id, chapter.id);
+        assert_eq!((copy.position, copy.revision), (1, 0));
+        let tree = repo.list(project.id).unwrap();
+        let children: Vec<_> = tree
+            .iter()
+            .filter(|n| n.parent_id == Some(copy.id))
+            .collect();
+        assert_eq!(children.len(), 2);
+        for (child, original) in children.iter().zip([&scene, &script]) {
+            assert_ne!(child.id, original.id);
+            assert_eq!(
+                (&child.title, child.position, child.revision),
+                (&original.title, original.position, 0)
+            );
+            let template = repo.load(project.id, original.id).unwrap();
+            assert_eq!(
+                repo.load(project.id, child.id).unwrap().content,
+                template.content
+            );
+        }
+        let extra = repo
+            .duplicate_manuscript(&scene, &[], Some(&copy), "Neue Szene")
+            .unwrap();
+        assert_eq!((extra.parent_id, extra.position), (Some(copy.id), 2));
+        assert_eq!(repo.load(project.id, extra.id).unwrap().content, prose);
+        repo.save_scene(project.id, extra.id, 0, &content("Eigenständig"))
+            .unwrap();
+        assert_eq!(repo.load(project.id, scene.id).unwrap().content, prose);
+        let count: i64 = opened
+            .database_mut()
+            .connection()
+            .query_row(
+                "SELECT count(*) FROM document_fts WHERE document_fts MATCH 'Federkiel'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 2);
+    }
+
+    #[test]
+    fn duplicate_manuscript_rolls_back_partial_chapter_and_rejects_stale_destination() {
+        let root = tempdir().unwrap();
+        let manager = ProjectManager::new(root.path()).unwrap();
+        let project = project();
+        let mut opened = manager.create_project("projekt", &project).unwrap();
+        let mut repo = DocumentRepository::new(opened.database_mut());
+        let chapter = repo
+            .create(project.id, None, DocumentKind::Chapter, "Entwurf")
+            .unwrap();
+        let first = repo
+            .create(project.id, Some(chapter.id), DocumentKind::Scene, "Erste")
+            .unwrap();
+        let last = repo
+            .create(project.id, Some(chapter.id), DocumentKind::Scene, "Zweite")
+            .unwrap();
+        let target = repo
+            .create(project.id, None, DocumentKind::Chapter, "Ziel")
+            .unwrap();
+        repo.save_scene(project.id, last.id, 0, &content("Neuer Stand"))
+            .unwrap();
+        repo.rename_selected(&target, "Anderes Ziel").unwrap();
+        let before = repo.list(project.id).unwrap();
+
+        // The first scene has already been inserted when the second revision check fails.
+        assert!(matches!(
+            repo.duplicate_manuscript(&chapter, &[&first, &last], None, "Kopie"),
+            Err(DocumentError::RevisionConflict)
+        ));
+        assert!(matches!(
+            repo.duplicate_manuscript(&chapter, &[&first], None, "Kopie"),
+            Err(DocumentError::RevisionConflict)
+        ));
+        assert!(matches!(
+            repo.duplicate_manuscript(&first, &[], Some(&target), "Kopie"),
+            Err(DocumentError::RevisionConflict)
+        ));
+        assert_eq!(repo.list(project.id).unwrap(), before);
+    }
 
     #[test]
     fn creates_scene_and_imported_content_in_one_repository_operation() {
@@ -968,6 +1418,10 @@ mod tests {
     }
 
     #[test]
+    #[allow(
+        clippy::too_many_lines,
+        reason = "The integration scenario checks successive states of the same fixture"
+    )]
     fn renames_reorders_and_deletes_only_the_displayed_tree_state() {
         let root = tempdir().expect("temporary root should exist");
         let manager = ProjectManager::new(root.path()).expect("manager should open");
@@ -999,8 +1453,34 @@ mod tests {
             )
             .expect("scene should be created");
 
+        let outline = repository.list(project.id).unwrap();
+        repository
+            .rename(project.id, second_chapter.id, "Kapitel 2", "Ziel")
+            .unwrap();
+        for movement in [
+            super::OutlineMove::Later,
+            super::OutlineMove::AtIndex(0),
+            super::OutlineMove::AppendToChapter(second_chapter.id),
+        ] {
+            assert!(matches!(
+                repository.move_in_outline(project.id, &outline, first_scene.id, movement),
+                Err(DocumentError::RevisionConflict)
+            ));
+        }
+        assert_eq!(
+            repository.load(project.id, first_scene.id).unwrap().node,
+            first_scene
+        );
+        let stale_location = kraqel_domain::DocumentNode {
+            parent_id: Some(second_chapter.id),
+            ..first_scene.clone()
+        };
+        assert!(matches!(
+            repository.rename_selected(&stale_location, "Ankunft"),
+            Err(DocumentError::RevisionConflict)
+        ));
         let renamed = repository
-            .rename(project.id, first_scene.id, "Szene 1", "Ankunft")
+            .rename_selected(&first_scene, "Ankunft")
             .expect("current title should rename");
         assert_eq!(renamed.title, "Ankunft");
         assert_eq!(renamed.revision, first_scene.revision);
@@ -1059,6 +1539,36 @@ mod tests {
         assert_eq!(remaining.len(), 1);
         assert_eq!(remaining[0].id, second_chapter.id);
         assert_eq!(remaining[0].position, 0);
+
+        check_direct_position(&mut repository, project.id, second_chapter.id);
+    }
+
+    fn check_direct_position(
+        repository: &mut DocumentRepository<'_>,
+        project: ProjectId,
+        first: kraqel_domain::EntityId,
+    ) {
+        let middle = repository
+            .create(project, None, DocumentKind::Chapter, "Mitte")
+            .unwrap();
+        let last = repository
+            .create(project, None, DocumentKind::Chapter, "Ende")
+            .unwrap();
+        let outline = repository.list(project).unwrap();
+        let move_first = |repo: &mut DocumentRepository<'_>, index| {
+            repo.move_in_outline(project, &outline, first, super::OutlineMove::AtIndex(index))
+        };
+        assert!(matches!(
+            move_first(repository, 3),
+            Err(DocumentError::InvalidInput)
+        ));
+        move_first(repository, 0).unwrap();
+        move_first(repository, 2).unwrap();
+        let nodes = repository.list(project).unwrap();
+        assert_eq!(
+            nodes.iter().map(|n| (n.id, n.position)).collect::<Vec<_>>(),
+            [(middle.id, 0), (last.id, 1), (first, 2)]
+        );
     }
 
     #[test]
@@ -1215,8 +1725,47 @@ mod tests {
             )
             .expect("prompt profile fixture");
 
-        DocumentRepository::new(opened.database_mut())
-            .delete(project.id, scene.id, "Szene", 0, &[])
+        let chapter = DocumentRepository::new(opened.database_mut())
+            .list(project.id)
+            .unwrap()
+            .into_iter()
+            .find(|n| n.id == scene.parent_id.unwrap())
+            .unwrap();
+        let mut repository = DocumentRepository::new(opened.database_mut());
+        let chapter_preview = repository.preview_delete(&chapter).unwrap();
+        assert_eq!(chapter_preview.children(), std::slice::from_ref(&scene));
+        assert_eq!(chapter_preview.related_counts(), [1; 6]);
+        // A changed dependent row must not be deleted using stale, numerically identical counts.
+        repository
+            .database
+            .connection()
+            .execute(
+                "UPDATE image_prompt_draft SET prompt_text='Neuer Entwurf' WHERE id=?1",
+                [draft.to_string()],
+            )
+            .unwrap();
+        assert!(matches!(
+            repository.confirm_delete(&chapter_preview),
+            Err(DocumentError::RevisionConflict)
+        ));
+        let chapter_preview = repository.preview_delete(&chapter).unwrap();
+        repository
+            .database
+            .connection()
+            .execute(
+                "UPDATE document SET revision=1 WHERE id=?1",
+                [scene.id.to_string()],
+            )
+            .unwrap();
+        assert!(matches!(
+            repository.confirm_delete(&chapter_preview),
+            Err(DocumentError::RevisionConflict)
+        ));
+        let current = repository.load(project.id, scene.id).unwrap().node;
+        let preview = repository.preview_delete(&current).unwrap();
+        assert_eq!(preview.parent(), Some(&chapter));
+        repository
+            .confirm_delete(&preview)
             .expect("current scene should delete");
 
         for table in [
@@ -1225,6 +1774,7 @@ mod tests {
             "event_document_link",
             "asset_link",
             "image_prompt_draft",
+            "image_prompt_draft_profile",
         ] {
             let count: i64 = opened
                 .database()
@@ -1319,6 +1869,98 @@ mod tests {
             .delete(project.id, chapter.id, "", 0, &[scene.id])
             .unwrap();
         assert_eq!(repository.list(project.id).unwrap(), []);
+    }
+
+    #[test]
+    fn native_scene_grants_preserve_structure_and_refuse_stale_revisions() {
+        use crate::native_scene::{SceneEditGrant, SceneReadGrant};
+        let root = tempdir().unwrap();
+        let manager = ProjectManager::new(root.path()).unwrap();
+        let project = project();
+        let mut opened = manager.create_project("projekt", &project).unwrap();
+        let mut repository = DocumentRepository::new(opened.database_mut());
+        let chapter = repository
+            .create(project.id, None, DocumentKind::Chapter, "Kapitel")
+            .unwrap();
+        assert!(SceneReadGrant::from_node(&chapter).is_err());
+        let scene = repository
+            .create_scene_with_content(project.id, chapter.id, "Szene", &content("Vorher"))
+            .unwrap();
+        let grant = || SceneReadGrant::from_node(&scene).unwrap();
+        let mut first = grant()
+            .read(&repository)
+            .unwrap()
+            .edit
+            .unwrap()
+            .into_session();
+        let stale = grant().read(&repository).unwrap().edit.unwrap();
+        assert_eq!(first.save(&mut repository, "Zwischenstand").unwrap(), 1);
+        assert_eq!(first.save(&mut repository, "Kolkrabe\n\nΔ").unwrap(), 2);
+        let competing_node = repository.load(project.id, scene.id).unwrap().node;
+        let confirmed = SceneReadGrant::from_node(&competing_node)
+            .unwrap()
+            .read(&repository)
+            .unwrap();
+        assert_eq!(confirmed.text, "Kolkrabe\n\nΔ");
+        let competing = confirmed.edit.unwrap();
+        assert_eq!(competing.save(&mut repository, "Dritter Stand").unwrap(), 3);
+        assert!(matches!(
+            first.save(&mut repository, "Veralteter Folgezug"),
+            Err(DocumentError::RevisionConflict)
+        ));
+        assert!(matches!(
+            stale.save(&mut repository, "veraltet"),
+            Err(DocumentError::RevisionConflict)
+        ));
+        assert!(matches!(
+            grant().read(&repository),
+            Err(DocumentError::RevisionConflict)
+        ));
+        drop(opened);
+        let mut reopened = manager.open_project("projekt").unwrap();
+        let repository = DocumentRepository::new(reopened.database_mut());
+        let node = repository.load(project.id, scene.id).unwrap().node;
+        let snapshot = SceneReadGrant::from_node(&node)
+            .unwrap()
+            .read(&repository)
+            .unwrap();
+        assert_eq!(snapshot.text, "Dritter Stand");
+        // A restored/imported copy may present the same IDs and revision with different markup.
+        let edit = snapshot.edit.unwrap();
+        let mut rich = content("Kolkrabe");
+        rich.document["content"][0]["content"][0]["marks"] = json!([{"type":"bold"}]);
+        reopened
+            .database()
+            .connection()
+            .execute(
+                "UPDATE document SET content_json=?1 WHERE id=?2",
+                params![serde_json::to_string(&rich).unwrap(), scene.id.to_string()],
+            )
+            .unwrap();
+        let mut repository = DocumentRepository::new(reopened.database_mut());
+        assert!(SceneReadGrant::latest_prose(project.id, scene.id, &repository).is_err());
+        assert!(matches!(
+            SceneEditGrant::save_reviewed(
+                &mut repository,
+                project.id,
+                scene.id,
+                node.revision,
+                "Kolkrabe",
+                "Auswahl",
+            ),
+            Err(DocumentError::RevisionConflict)
+        ));
+        assert!(matches!(
+            edit.save(&mut repository, "überschreiben"),
+            Err(DocumentError::RevisionConflict)
+        ));
+        let snapshot = SceneReadGrant::from_node(&node)
+            .unwrap()
+            .read(&repository)
+            .unwrap();
+        assert_eq!(snapshot.text, "Kolkrabe");
+        assert!(snapshot.edit.is_none());
+        assert_eq!(repository.load(project.id, scene.id).unwrap().content, rich);
     }
 
     fn project() -> Project {
