@@ -33,6 +33,7 @@ export function Exports({
   const [error, setError] = useState<string | null>(null);
 
   const run = async (format: ExportFormat | "roundtrip" | "screenplay") => {
+    if (busy !== null) return;
     setBusy(format);
     setError(null);
     setResult(null);
@@ -58,6 +59,7 @@ export function Exports({
   };
 
   const openDirectory = async () => {
+    if (openingDirectory) return;
     setOpeningDirectory(true);
     setError(null);
     try {
@@ -82,7 +84,7 @@ export function Exports({
       <button
         type="button"
         className="secondary export-folder-button"
-        disabled={openingDirectory}
+        aria-disabled={openingDirectory}
         onClick={() => void openDirectory()}
       >
         {openingDirectory ? "Exportordner wird geöffnet …" : "Exportordner öffnen"}
@@ -92,7 +94,7 @@ export function Exports({
           <article key={format}>
             <h3>{label}</h3>
             <p>{description}</p>
-            <button type="button" disabled={busy !== null} onClick={() => void run(format)}>
+            <button type="button" aria-disabled={busy !== null} onClick={() => void run(format)}>
               {busy === format ? "Kolkrabe arbeitet …" : `${label} erzeugen`}
             </button>
           </article>
@@ -128,7 +130,8 @@ export function Exports({
         </p>
         <button
           type="button"
-          disabled={busy !== null || sceneIds.length === 0}
+          disabled={sceneIds.length === 0}
+          aria-disabled={busy !== null || sceneIds.length === 0}
           onClick={() => void run("screenplay")}
         >
           Drehbuch-PDF erzeugen
@@ -143,7 +146,7 @@ export function Exports({
           LibreOffice den Text innerhalb bestehender Absätze. Strukturänderungen können den
           Wiederimport verhindern.
         </p>
-        <button type="button" disabled={busy !== null} onClick={() => void run("roundtrip")}>
+        <button type="button" aria-disabled={busy !== null} onClick={() => void run("roundtrip")}>
           {busy === "roundtrip" ? "Kolkrabe arbeitet …" : "DOCX zum Wiederimport erzeugen"}
         </button>
       </article>

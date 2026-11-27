@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useEditorState, type Editor } from "@tiptap/react";
 import type { Node } from "@tiptap/pm/model";
 import { SCREENPLAY_ROLES, type ScreenplayRole } from "@kraqel/editor";
 import {
   canConvert,
   convertScene,
+  hasScreenplayText,
   isScreenplay,
   roleNames,
   scriptHint,
@@ -16,6 +18,10 @@ const options = SCREENPLAY_ROLES.map((role) => (
     {roleNames[role]}
   </option>
 ));
+
+function focusReviewHeading(heading: HTMLHeadingElement | null) {
+  heading?.focus();
+}
 
 export function ScreenplayControls({ editor }: { editor: Editor }) {
   const view = useEditorState({
@@ -31,6 +37,16 @@ export function ScreenplayControls({ editor }: { editor: Editor }) {
   });
   const [review, setReview] = useState<{ doc: Node; roles: ScreenplayRole[] } | null>(null);
   const [error, setError] = useState("");
+  const conversionButton = useRef<HTMLButtonElement>(null);
+  const reviewId = useId();
+  const dismissReview = () => {
+    flushSync(() => setReview(null));
+    if (conversionButton.current && !conversionButton.current.disabled) {
+      conversionButton.current.focus();
+    } else {
+      editor.view.focus();
+    }
+  };
   const prepare = () => {
     const doc = editor.state.doc;
     const roles: ScreenplayRole[] = [];
@@ -39,8 +55,8 @@ export function ScreenplayControls({ editor }: { editor: Editor }) {
     );
     if (!isScreenplay(doc)) {
       let first = 0;
-      while (first < doc.childCount - 1 && !doc.child(first).textContent.trim()) first++;
-      roles[doc.textContent.trim() ? first : 0] = "sceneHeading";
+      while (first < doc.childCount && !hasScreenplayText(doc.child(first))) first++;
+      roles[first < doc.childCount ? first : 0] = "sceneHeading";
     }
     setError("");
     setReview({ doc, roles });
@@ -58,6 +74,9 @@ export function ScreenplayControls({ editor }: { editor: Editor }) {
         type="button"
         className="secondary"
         disabled={!view.convertible || review !== null}
+        ref={conversionButton}
+        aria-expanded={review !== null}
+        aria-controls={review ? reviewId : undefined}
         onClick={prepare}
       >
         {view.script ? "In Prosa umwandeln …" : "In Drehbuch umwandeln …"}
@@ -69,8 +88,10 @@ export function ScreenplayControls({ editor }: { editor: Editor }) {
         </p>
       )}
       {review && (
-        <section aria-label="Zuordnungsvorschau">
-          <h3>Zuordnungsvorschau</h3>
+        <section id={reviewId} aria-label="Zuordnungsvorschau">
+          <h3 ref={focusReviewHeading} tabIndex={-1}>
+            Zuordnungsvorschau
+          </h3>
           {view.script && (
             <p>
               Beim Umwandeln in Prosa werden die Drehbuchrollen entfernt. Der Text bleibt erhalten.
@@ -106,14 +127,17 @@ export function ScreenplayControls({ editor }: { editor: Editor }) {
           <button
             type="button"
             onClick={() => {
-              if (!convertScene(editor, review.doc, review.roles))
+              if (!convertScene(editor, review.doc, review.roles)) {
                 setError("Die Szene hat sich geändert. Öffne die Zuordnungsvorschau erneut.");
-              setReview(null);
+                dismissReview();
+              } else {
+                setReview(null);
+              }
             }}
           >
             Umwandlung bestätigen
           </button>
-          <button type="button" className="secondary" onClick={() => setReview(null)}>
+          <button type="button" className="secondary" onClick={dismissReview}>
             Abbrechen
           </button>
         </section>

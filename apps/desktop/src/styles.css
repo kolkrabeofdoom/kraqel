@@ -43,11 +43,12 @@ button {
   cursor: pointer;
 }
 
-button:hover:not(:disabled) {
+button:hover:not(:disabled, [aria-disabled="true"]) {
   background: #075e5a;
 }
 
-button:disabled {
+button:disabled,
+button[aria-disabled="true"] {
   cursor: not-allowed;
   opacity: 0.55;
 }

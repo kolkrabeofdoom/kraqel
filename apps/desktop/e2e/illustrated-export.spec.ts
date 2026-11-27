@@ -26,7 +26,11 @@ test("explizite Szenenbilder ergeben getrennte Pakete mit Alttext und neutralem 
   await expect(action).toBeDisabled();
   await page.getByRole("button", { name: "Bildauswahl laden", exact: true }).click();
   await page.getByRole("checkbox", { name: "Szenenbild", exact: true }).check();
-  await page.getByLabel("Alternativtext für Szenenbild").fill("Ein Rabe am Schreibtisch");
+  const altText = page.getByLabel("Alternativtext für Szenenbild");
+  await altText.fill(" ");
+  await expect(altText).toHaveAccessibleDescription(/höchstens 500 Zeichen/);
+  await expect(action).toBeDisabled();
+  await altText.fill("Ein Rabe am Schreibtisch");
   await page.getByLabel("Bildunterschrift für Szenenbild").fill("Nur dieses ausgewählte Bild");
   await action.click();
   await expect(page.getByRole("status")).toContainText("Bildpaket fertig: mit-bildern/html-test-1");

@@ -139,13 +139,18 @@ export function selectedRole(editor: Editor): ScreenplayRole | "mixed" | null {
   return roles.size === 1 ? [...roles][0]! : "mixed";
 }
 
+export function hasScreenplayText(node: DocumentNode): boolean {
+  // The Rust print grammar uses str::trim(), which follows Unicode White_Space.
+  return /\P{White_Space}/u.test(node.textContent);
+}
+
 export function scriptHint(doc: DocumentNode): string | null {
   if (!isScreenplay(doc)) return null;
   const blocks: { role: ScreenplayRole; filled: boolean }[] = [];
   doc.forEach((node) =>
     blocks.push({
       role: node.attrs.role as ScreenplayRole,
-      filled: node.textContent.trim().length > 0,
+      filled: hasScreenplayText(node),
     }),
   );
   const first = blocks.find((block) => block.filled);

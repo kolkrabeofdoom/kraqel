@@ -1,5 +1,11 @@
 # Entwicklungsstatus
 
+**Drehbuchbearbeitung · 27. November 2026.** In der installierten Windows-Fassung aus `df2ee4ca165f`
+behielt eine leere synthetische Szene bei Umwandlung, Rückgängig, Wiederholen und Neustart ihre
+Kennung und Zuordnung. Gespeichert wurde ein einzelner leerer Szenenkopf. Die drehbuchspezifische
+Sprachausgabeprüfung ist auf Wunsch zurückgestellt.
+[Abnahmestand DB-01 bis DB-08](testing/F08_M3_ACCEPTANCE_MATRIX.md#stand-der-drehbuchkriterien)
+
 **DOCX-Manuskriptaustausch · 27. November 2026:** Der Entwicklungszweig kann gemischte Manuskripte
 im Austauschprofil v2 schreiben und als neue lokale Projektkopie einlesen. Der native Rundlauf
 bestätigte Rollen, leere Absätze, Schriftschnitte, harte Umbrüche und Suchbarkeit nach Wiederöffnen.

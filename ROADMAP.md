@@ -288,6 +288,8 @@ Datenschutzziel bleibt unverändert.
      - [x] Versioniertes Drehbuchmodell, lokale Schriftprüfung und A4-Renderer umsetzen.
      - [ ] Drehbuchkriterien DB-01 bis DB-08 vollständig abnehmen.
            [Einzelnachweise und offene Grenzen](docs/testing/F08_M3_ACCEPTANCE_MATRIX.md#stand-der-drehbuchkriterien)
+       - [x] Leere Szene im installierten Studio umwandeln, die Umwandlung rückgängig machen und
+             wiederholen. Drehbuchmodus und stabile Kennungen nach Prozessneustart prüfen.
        - [x] A4-Rollenmaße einer vollständigen synthetischen Szene unabhängig vermessen,
              Dialogumbruch über zwei kurze Absätze korrigieren und den Erhalt einer vorhandenen
              Ausgabe bei Auswahl- und Grammatikfehlern im Desktop prüfen.

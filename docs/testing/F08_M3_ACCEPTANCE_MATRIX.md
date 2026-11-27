@@ -10,10 +10,18 @@ enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-fo
 - **DB-01 · Bearbeiten.** Der Studio-Bedienlauf deckt sechs Rollen und konkurrierendes Autosave ab.
   Abbrechen verwirft die Rollenauswahl. Umwandlung, Rollenwechsel mit Undo/Redo und Rückwandlung
   erhalten Fettdruck, Kursivschrift und harten Umbruch im synthetischen Manuskript. Der installierte
-  Desktop belegt den Neustart mit Szenenkopf und Handlung. Die Bedienläufe mit simuliertem IPC und
-  die installierten Kandidaten sind unten einzeln ausgewiesen.
+  Desktop belegt den Neustart mit Szenenkopf und Handlung. In der isolierten Installation aus
+  `df2ee4ca165f` wurde zusätzlich eine leere Prosaszene im Studio umgewandelt. Rückgängig zeigte
+  wieder Prosa, Wiederholen wieder Drehbuch. Nach Speichern und regulärem Ende enthielt SQLite genau
+  einen leeren Szenenkopf in v2 unter Schema 7. Nach dem Prozessneustart öffnete dieselbe Szene im
+  Drehbuchmodus. Projekt-, Kapitel- und Szenenkennung stimmten vor der Umwandlung, nach dem
+  Speichern und nach dem zweiten Programmende überein. Der Lauf nutzte lokale UI-Automation und
+  synthetische Daten. Eine drehbuchspezifische Sprachausgabeprüfung ist offen und auf Wunsch
+  zurückgestellt.
 - **DB-02 · Validieren.** Ein Dialog ohne Figur und ein zweiter Szenenkopf bleiben als Entwurf
-  speicherbar. Der Druck weist beide Folgen vor der Dateianlage ab.
+  speicherbar. Der Druck weist beide Folgen vor der Dateianlage ab. Der Studio-Druckhinweis und der
+  Vorschlag für den ersten Szenenkopf behandeln U+0085 wie die native Druckprüfung als
+  Unicode-Leerraum. Damit zählt ein alleinstehendes U+0085 bei der Rollenprüfung als leer.
 - **DB-03 · Wiederherstellen.** SQLite-Backup und v4-Archiv erhalten Rollen, Umbruch, Formatierung,
   Revision und FTS-Suchbarkeit. Der Archivimport erzeugt eine eigene Projektkennung.
 - **DB-04 · Schrift.** Vier gebündelte Schriftschnitte, lateinische, griechische und kyrillische
@@ -25,7 +33,8 @@ enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-fo
   Rollen, rechter Übergangsrand und Grundlinienabstände unabhängig vermessen. Bei den beiden
   Wortumbruchproben lagen die sichtbaren Zeichen auf allen sechs gerasterten Seiten horizontal
   zwischen 29,99 und 184,86 mm. Die unterste Pixelkante der kritischen Seite lag bei 288 dpi bei
-  277,019 mm ab Blattoberkante, innerhalb eines Rasterpixels der 20-mm-Randvorgabe.
+  277,019 mm ab Blattoberkante, innerhalb eines Rasterpixels der 20-mm-Randvorgabe. Für die rechten
+  Umbruchgrenzen von Dialog und Klammeranweisung fehlt hier eine unabhängige Einzelmessung.
 - **DB-06 · Seitenwechsel.** Figurenzeile und die ersten zwei Dialogzeilen bleiben auch bei
   getrennten Dialogabsätzen zusammen. Eine unteilbare Gruppe von 52 Figurenzeilen scheitert vor der
   Veröffentlichung. Zwei rückgelesene PDFs belegen den Seitenwechsel am Szenenkopf. Die beiden
@@ -724,7 +733,8 @@ für den Mengenunterschied ableiten. Beim ersten Versuch stoppte die Binärprüf
 Programmstart. Für die Tabelle wurde ausschließlich die vollständige Wiederholung verwendet.
 Testinstallationen, Profile und Rohaufzeichnung wurden nach der Auswertung entfernt.
 
-**Drehbuchprüfung am 25. November 2026**
+**Historische Drehbuchprüfung am 25. November 2026.** Spätere Abnahmen einschließlich
+DOCX-v2-Rückimport stehen im [aktuellen Kriterienstand](#stand-der-drehbuchkriterien).
 
 | Bereich  | Nachweis und verbleibende Grenze                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

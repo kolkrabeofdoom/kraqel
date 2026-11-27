@@ -147,6 +147,7 @@ export function App() {
   };
 
   const importSnapshot = async () => {
+    if (busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -162,6 +163,7 @@ export function App() {
   };
 
   const importManuscript = async () => {
+    if (busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -254,7 +256,7 @@ export function App() {
             Ein Snapshot-Archiv der Version 3 oder 4 sicher als neue lokale Projektkopie öffnen. Das
             Quellarchiv bleibt unverändert.
           </p>
-          <button type="button" disabled={busy} onClick={() => void importSnapshot()}>
+          <button type="button" aria-disabled={busy} onClick={() => void importSnapshot()}>
             Projektarchiv auswählen
           </button>
           <p className="muted">
@@ -313,7 +315,7 @@ export function App() {
             Für vollständige Projektkopien verwende das Projektarchiv. Gewöhnliche DOCX-Dateien
             kannst du im Editor als einzelne Szene importieren.
           </p>
-          <button type="button" disabled={busy} onClick={() => void importManuscript()}>
+          <button type="button" aria-disabled={busy} onClick={() => void importManuscript()}>
             Manuskript-DOCX auswählen
           </button>
           <p className="muted">

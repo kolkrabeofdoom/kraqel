@@ -23,12 +23,16 @@ test("Drehbuchrollen bleiben nach Autosave und Wiederöffnen über die Tastatur 
   const opening = await firstBlock.innerHTML();
   const toScript = page.getByRole("button", { name: "In Drehbuch umwandeln …" });
   const firstRole = page.getByLabel("Rolle für Absatz 1");
-  await toScript.click();
+  await toScript.press("Enter");
+  await expect(page.getByRole("heading", { name: "Zuordnungsvorschau" })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(firstRole).toBeFocused();
   await firstRole.selectOption("dialogue");
   await page
     .getByRole("region", { name: "Zuordnungsvorschau" })
     .getByRole("button", { name: "Abbrechen" })
-    .click();
+    .press("Enter");
+  await expect(toScript).toBeFocused();
   await expect(editor.locator("[data-kraqel-role]")).toHaveCount(0);
   await toScript.click();
   await expect(firstRole).toHaveValue("sceneHeading");

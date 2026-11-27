@@ -4869,21 +4869,33 @@ mod tests {
                 {"type":"screenplayBlock","attrs":{"role":"dialogue"},"content":[{"type":"text","text":"Morgen ist auch noch Dienstag."}]}
             ]}),
         };
-        let request = CommandRequest {
-            contract_version: 2,
-            request_id: REQUEST_ID,
-            payload: SaveDocumentRequest {
-                project_id: project_id.to_string(),
-                document_id: scene.id.to_string(),
-                expected_revision: 0,
-                content: content.clone(),
-            },
+        let save = |contract_version, expected_revision, content| {
+            let request = CommandRequest {
+                contract_version,
+                request_id: REQUEST_ID,
+                payload: SaveDocumentRequest {
+                    project_id: project_id.to_string(),
+                    document_id: scene.id.to_string(),
+                    expected_revision,
+                    content,
+                },
+            };
+            super::editor_v2(request, |p| {
+                super::persist_scene(&state, REQUEST_ID, p, super::SceneWriter::RoleAware)
+            })
         };
-        let saved = super::editor_v2(request, |p| {
-            super::persist_scene(&state, REQUEST_ID, p, super::SceneWriter::RoleAware)
-        })
-        .unwrap();
+        let saved = save(2, 0, content.clone()).unwrap();
         assert_eq!((saved.contract_version, saved.data.revision), (2, 1));
+        assert_eq!(
+            save(1, 1, content.clone()).unwrap_err().code,
+            CommandErrorCode::UnsupportedContractVersion
+        );
+        let mut unexpected_attr = content.clone();
+        unexpected_attr.document["content"][0]["attrs"]["extra"] = json!(true);
+        assert_eq!(
+            save(2, 1, unexpected_attr).unwrap_err().code,
+            CommandErrorCode::InvalidRequest
+        );
         let reopened = load_document_impl(
             &state,
             REQUEST_ID,
@@ -4893,6 +4905,7 @@ mod tests {
             },
         )
         .unwrap();
+        assert_eq!(reopened.node.revision, 1);
         assert_eq!(reopened.content, content);
         let manager = super::manager(&state, REQUEST_ID).unwrap();
         let export = |ids: &[super::EntityId]| {
