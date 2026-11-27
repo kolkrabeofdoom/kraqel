@@ -1,5 +1,10 @@
 # Roadmap
 
+**Entwicklungswerkzeuge · 27. November 2026:** Die automatische lokale Prüfung vor dem Push ist
+eingerichtet. Sie nutzt `pnpm check`; die Windows-/Linux-CI bleibt für die zusätzlichen Plattform-,
+Build- und Browserprüfungen zuständig.
+[Einrichtung und Grenzen](CONTRIBUTING.md#automatische-prüfung-vor-dem-push)
+
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit
 sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte
 Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7

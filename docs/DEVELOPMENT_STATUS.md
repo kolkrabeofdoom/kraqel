@@ -1,5 +1,10 @@
 # Entwicklungsstatus
 
+**Entwicklungswerkzeuge · 27. November 2026:** Ein versionierter Push-Hook startet lokal
+`pnpm check` und sperrt den Push bei Fehlern. `pnpm install` richtet ihn automatisch ein;
+`pnpm hooks:install` aktiviert ihn in bestehenden Checkouts. Fremde Hooks bleiben erhalten.
+[Einrichtung, Prüfumfang und Grenzen](../CONTRIBUTING.md#automatische-prüfung-vor-dem-push)
+
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit
 sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte
 Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7
