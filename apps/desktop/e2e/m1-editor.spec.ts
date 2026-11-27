@@ -54,6 +54,33 @@ test("Drehbuchrollen bleiben nach Autosave und Wiederöffnen über die Tastatur 
   await page.getByRole("group", { name: "Drehbuchszenen auswählen" }).getByRole("checkbox").check();
   await print.click();
   await expect(page.getByRole("status")).toContainText("drehbuch.pdf");
+
+  // Both editor sessions open the same stored revision before either begins its edit.
+  await page.getByRole("button", { name: "Manuskript", exact: true }).click();
+  await expect(editor.locator("[data-kraqel-role=transition]")).toHaveText("Schwarzblende");
+  const other = await page.context().newPage();
+  await other.goto("/");
+  const reopen = other.getByRole("button", { name: /Drehbuchprobe.*Öffnen/u });
+  await reopen.click();
+  const otherEditor = other.getByRole("textbox", { name: "Text von Szene 1" });
+  const storedText = "Schwarzblende am Hafen.";
+  await otherEditor.press("Control+End");
+  await other.getByRole("combobox", { name: "Absatzrolle", exact: true }).selectOption("action");
+  await other.getByRole("button", { name: "Rolle anwenden" }).click();
+  await otherEditor.press("Control+End");
+  await other.keyboard.insertText(" am Hafen.");
+  await expect(other.getByText("Gespeichert", { exact: true })).toBeVisible();
+
+  await editor.press("Control+End");
+  await page.keyboard.insertText(" im Archiv.");
+  await expect(page.getByText("Speichern fehlgeschlagen", { exact: true })).toBeVisible();
+  await expect(editor.locator("[data-kraqel-role=transition]")).toHaveText(
+    "Schwarzblende im Archiv.",
+  );
+  await other.getByRole("button", { name: "Projektübersicht" }).click();
+  await reopen.click();
+  await expect(otherEditor.locator("[data-kraqel-role=action]").last()).toHaveText(storedText);
+  await expect(otherEditor.locator("[data-kraqel-role=transition]")).toHaveCount(0);
 });
 
 test("Projekt, Autosave und Dokumentbaum bleiben über Wiederöffnen konsistent", async ({

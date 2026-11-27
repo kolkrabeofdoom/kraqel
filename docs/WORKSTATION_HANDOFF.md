@@ -5,6 +5,15 @@ sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die
 Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7
 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](data-format/screenplay-v2.md)
 
+## Windows-Kandidat mit korrigiertem Unicode-Druck
+
+Der am 27. November aus dem grünen PR-Commit `8b6bb61348e0` gebaute Installer liegt unter
+`artifacts/release/0.1.0/windows-x64/8b6bb61348e0/KRAQEL_0.1.0_windows-x64-setup.exe`. Die
+paketierte Desktop-EXE bestand den gezielten Kapiteldruck mit getrennt gespeichertem Grundbuchstaben
+und Akzent. Die anschließenden DB-02-/DB-03-Prüfungen ergänzen die Nachweise für ungültige
+Druckfolgen und Wiederherstellung.
+[Prüfumfang und Prüfsumme](testing/F08_M3_ACCEPTANCE_MATRIX.md#windows-kandidat-und-drehbuch-rundlauf-vom-27-november)
+
 ## Wiedereinstieg am Freitag, 27. November 2026
 
 Der Windows-Kandidat vom 25. November stammt aus `5eaadf32b236` auf

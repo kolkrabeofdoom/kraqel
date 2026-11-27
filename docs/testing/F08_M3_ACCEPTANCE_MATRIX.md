@@ -5,6 +5,32 @@ sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die
 Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7
 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Windows-Kandidat und Drehbuch-Rundlauf vom 27. November
+
+Der unsignierte Installer aus dem grünen PR-Stand `8b6bb61348e0` umfasst 320.147.064 Byte (SHA-256
+`161021972105fee6c149baefe8ab6d0261addc0b6f12da9a0a6777e5ecfce1fd`). Die aus diesem Setup
+extrahierte Desktop-EXE öffnete ein synthetisches Projekt in einem frischen Profil. Nach der
+Bestätigung im nativen Exportdialog entstand genau eine Kapitel-PDF. Die App endete regulär. Die
+Installationsprobe im frischen Windows-Gast weiter unten gilt für den Vorgänger.
+
+In der Drehbuchszene waren „Zu“ und das kombinierende Trema mit „rich“ getrennte, fett-kursive
+Textknoten. Unabhängiges Rücklesen ergab das zusammengesetzte Wort „Zürich“ in der richtigen
+Textreihenfolge. Die eingebettete Schrift der sechs Zeichen hatte Gewicht 700 und das Kursivmerkmal.
+Auf der gerasterten A4-Seite war das Wort vollständig lesbar. Alle drei Marker des Nachbarkapitels
+fehlten. Die PDF umfasste 842.242 Byte.
+
+Für DB-02 prüft der vorhandene Auszugstest zwei speicherbare Entwürfe mit ungültiger Druckfolge:
+einen Dialog ohne Figur am Szenenanfang und einen zweiten Szenenkopf. Beide Aufträge endeten vor der
+Dateianlage. Für DB-03 wurde eine synthetische Drehbuchszene aus dem SQLite-Backup und aus einem
+v4-Archiv wiederhergestellt. In beiden Fällen stimmten Szenen-ID, Elternkapitel, Revision, Rollen,
+Formatierung und harter Umbruch. Eine FTS5-Suche im Szenentext fand die erwartete Szene. Beim
+Archivimport erhielt das Projekt eine neue Kennung. Für DB-01 arbeiteten im vorhandenen
+Browser-Bedientest zwei Editorsitzungen auf derselben Szenenrevision. Die zweite speicherte eine
+geänderte Rolle und einen neuen Text. Beim anschließenden Autosave der ersten Sitzung meldete der
+Editor einen Speicherfehler und behielt den lokalen Text samt Übergangsrolle im offenen Fenster.
+Beim Wiederöffnen in der zweiten Sitzung war ihre gespeicherte Handlung samt Text erhalten. Dieser
+Konfliktnachweis verwendet die Studio-Oberfläche mit synthetischem IPC-Dienst.
+
 ## Installationsprobe im netzlosen Windows-Gast am 27. November 2026
 
 Geprüft wurde der unsignierte x64-Kandidat `5eaadf32b236` mit SHA-256

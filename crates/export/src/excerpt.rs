@@ -270,18 +270,25 @@ mod tests {
         let full_text = extracted(full_pdf.file_name);
         assert!(full_text.contains("ARCHIV") && full_text.contains("Niemals eine Krähe."));
         assert!(!chapter.contains("Niemals eine Krähe."));
-        mixed[1].content.document["content"][0]["attrs"]["role"] = serde_json::json!("dialogue");
-        assert!(
-            export_excerpt(
-                root.path(),
-                &project,
-                ExportScope::Manuscript,
-                &full,
-                &mixed,
-                ExportFormat::Pdf
-            )
-            .is_err()
-        );
+        // Both drafts can be saved; neither may publish a partial manuscript.
+        for roles in [["dialogue", "action"], ["sceneHeading", "sceneHeading"]] {
+            for (index, role) in roles.into_iter().enumerate() {
+                mixed[1].content.document["content"][index]["attrs"]["role"] =
+                    serde_json::json!(role);
+            }
+            assert!(mixed[1].content.is_valid());
+            assert!(
+                export_excerpt(
+                    root.path(),
+                    &project,
+                    ExportScope::Manuscript,
+                    &full,
+                    &mixed,
+                    ExportFormat::Pdf
+                )
+                .is_err()
+            );
+        }
         assert_eq!(
             std::fs::read_dir(root.path().join("exports"))
                 .unwrap()

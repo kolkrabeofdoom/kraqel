@@ -1817,10 +1817,6 @@ mod tests {
         let backup = manager
             .restore_backup(id.to_string(), "rollen", "restored-backup")
             .unwrap();
-        assert_eq!(
-            backup.database().schema_version().unwrap(),
-            SCREENPLAY_DATABASE_VERSION
-        );
         let opened = manager.open_project(id.to_string()).unwrap();
         let service = GitService::new(opened.directory());
         let destination = root.path().join("drehbuch.kraqel");
@@ -1828,18 +1824,32 @@ mod tests {
             .export_snapshot_archive(opened.database(), id, &destination)
             .unwrap();
         assert_eq!(result.snapshot.format_version, 4);
-        let (mut restored, summary) =
+        let (restored, summary) =
             import_snapshot_archive(&manager, &fs::read(destination).unwrap()).unwrap();
-        assert_eq!(
-            restored.database().schema_version().unwrap(),
-            SCREENPLAY_DATABASE_VERSION
-        );
-        let loaded = DocumentRepository::new(restored.database_mut())
-            .load(summary.project_id, scene.id)
-            .unwrap();
-        assert_eq!(loaded.node.revision, 1);
-        assert_eq!(loaded.content, content);
-        assert!(loaded.plain_text.contains("Rabe"));
+        assert_ne!(summary.project_id, id);
+        for (mut recovered, project_id) in [(backup, id), (restored, summary.project_id)] {
+            assert_eq!(
+                recovered.database().schema_version().unwrap(),
+                SCREENPLAY_DATABASE_VERSION
+            );
+            let loaded = DocumentRepository::new(recovered.database_mut())
+                .load(project_id, scene.id)
+                .unwrap();
+            assert_eq!(loaded.node.parent_id, Some(chapter.id));
+            assert_eq!(loaded.node.revision, 1);
+            assert_eq!(loaded.content, content);
+            let hit: String = recovered
+                .database()
+                .connection()
+                .query_row(
+                    "SELECT d.id FROM document_fts JOIN document d ON d.rowid = document_fts.rowid
+                 WHERE document_fts MATCH 'plain_text:wartet' AND d.project_id = ?1",
+                    [project_id.to_string()],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(hit, scene.id.to_string());
+        }
 
         let manifest = opened.directory().join("snapshot/manifest.json");
         let mut altered: serde_json::Value =
