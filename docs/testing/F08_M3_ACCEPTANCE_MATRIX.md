@@ -32,7 +32,8 @@ enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-fo
   folgenden Handlungszeilen stehen jeweils auf derselben Seite wie der Kopf. Alle 65 Dialogzeilen
   folgen über zwei Seiten genau einmal in der richtigen Reihenfolge.
 - **DB-07 · Austausch.** Word und LibreOffice erhielten beim Speichern alle sechs Rollen und den
-  Dialogumbruch. Der kanonische Rückimport von DOCX mit v2-Rollenmarkern ist offen.
+  Dialogumbruch. Der [kanonische DOCX-v2-Austausch](../data-format/DOCX_ROUNDTRIP_V2.md) ist
+  spezifiziert. Implementierung und Rückimport eines in Office bearbeiteten Manuskripts sind offen.
 - **DB-08 · Desktop-Export.** Szenen- und Kapitelauswahl sind im gebauten Desktop belegt. Ein Fehler
   im produktiven Studio-Export lässt die vorhandene PDF bytegleich. Beim Gesamt-PDF kommen Rollen-
   und Seitenhöhenfehler als feste Hinweise an. Der Studio-Adapter verwirft abweichende Meldungen
