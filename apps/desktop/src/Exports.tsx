@@ -137,9 +137,10 @@ export function Exports({
       <article>
         <h3>DOCX zum Wiederimport</h3>
         <p>
-          Für die Rückkehr aus Word oder LibreOffice als neue Projektkopie: Kapitel, Szenen und
-          Textformatierungen bleiben erhalten. Ohne Medien, Story-Bibel und weitere Projektdaten.
-          Bearbeite Text innerhalb bestehender Absätze; Strukturänderungen in Office können den
+          Beim Wiederimport als neue Projektkopie bleiben Kapitel, Szenen, Drehbuchrollen und
+          Textformatierungen erhalten. Reine Prosa verwendet v1, Manuskripte mit Drehbuchszenen
+          verwenden v2. Ohne Medien, Story-Bibel und weitere Projektdaten. Bearbeite in Word oder
+          LibreOffice den Text innerhalb bestehender Absätze. Strukturänderungen können den
           Wiederimport verhindern.
         </p>
         <button type="button" disabled={busy !== null} onClick={() => void run("roundtrip")}>

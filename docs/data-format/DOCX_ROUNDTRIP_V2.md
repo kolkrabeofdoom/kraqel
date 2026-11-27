@@ -1,9 +1,9 @@
 # DOCX-Manuskriptaustausch v2 für Prosa und Drehbuch
 
-**Technische Spezifikation vom 27. November 2026. Implementierung und Abnahme offen.** Der folgende
-Vertrag erweitert den ausdrücklich gewählten Manuskriptaustausch. Die Regeln für Paket, Inventar,
-Prosa, Inline-Formatierung, Ressourcen und Veröffentlichung gelten aus
-[Profil v1](DOCX_ROUNDTRIP.md), soweit hier keine Erweiterung beschrieben ist.
+**Stand vom 27. November 2026 auf dem Entwicklungszweig.** Der folgende Vertrag erweitert den
+ausdrücklich gewählten Manuskriptaustausch. Die Regeln für Paket, Inventar, Prosa,
+Inline-Formatierung, Ressourcen und Veröffentlichung gelten aus [Profil v1](DOCX_ROUNDTRIP.md),
+soweit hier keine Erweiterung beschrieben ist.
 [ADR 0037](../architecture/decisions/0037-docx-screenplay-roundtrip.md)
 
 ## Profilwahl und Identität
@@ -52,6 +52,10 @@ effektiven Stil einschließlich Vererbung auf eindeutige Übereinstimmung. Die s
 sich nicht gegenseitig erben. Ein fehlender oder widersprüchlicher Stil, ein Drehbuchstil an einem
 Prosablatt und jede unerwartete Nummerierung an einem Drehbuchblatt führen zur Ablehnung. Ein Stil
 allein begründet keine Rolle. Struktur- oder Textfehler lösen keinen Ersatzimport aus.
+
+Der v2-Writer setzt den Namen jeder Rollenbasis gleich ihrer Stil-ID. Word verwendet beim Speichern
+den Namen, um die Kennung neu zu bilden. Ein lokalisierter Anzeigename würde damit die Bindung
+auflösen. Für gewöhnliche DOCX-Ausgaben bleiben die deutschen Stilnamen verfügbar.
 
 Ein Drehbuchblatt hält Text, Fett, Kursiv und harte Umbrüche gemäß der Editor-v2-Speichergrammatik
 fest. Auch ein als Entwurf speicherbarer unvollständiger Dialog darf ausgetauscht werden. Für den

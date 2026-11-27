@@ -231,6 +231,7 @@ pub fn export_prompt_draft(
 fn build_manuscript(
     project: &Project,
     documents: &[ExportSourceDocument],
+    parse_scene: fn(&EditorDocument) -> Result<Vec<Block>, ExportError>,
 ) -> Result<Manuscript, ExportError> {
     if documents
         .iter()
@@ -269,7 +270,7 @@ fn build_manuscript(
                 }
                 Ok(Scene {
                     title: scene.node.title.clone(),
-                    blocks: parse_editor_document(&scene.content)?,
+                    blocks: parse_scene(&scene.content)?,
                 })
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -708,8 +709,7 @@ mod tests {
                 .unwrap_or_else(|| panic!("missing or out of order: {expected}"))
                 .1;
         }
-        assert!(Manuscript::from_documents(&project, &documents).is_err());
-        assert!(write_docx_roundtrip(&manuscript).is_err());
+        assert!(Manuscript::from_documents(&project, &documents).is_ok());
         assert!(read_docx_roundtrip(&docx).is_err());
     }
 
@@ -718,7 +718,7 @@ mod tests {
         let (project, mut documents) = fixture();
         documents[1].content.document = json!({"type":"doc","content":[{"type":"codeBlock"}]});
         assert!(matches!(
-            build_manuscript(&project, &documents),
+            build_manuscript(&project, &documents, parse_editor_document),
             Err(ExportError::InvalidDocument(_))
         ));
     }

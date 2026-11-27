@@ -739,7 +739,7 @@ async fn import_docx_project(
         .dialog()
         .file()
         .set_title("KRAQEL-Manuskript aus DOCX als neues Projekt importieren")
-        .add_filter("KRAQEL-Manuskript DOCX v1", &["docx"])
+        .add_filter("KRAQEL-Manuskript DOCX (v1/v2)", &["docx"])
         .blocking_pick_file();
     let Some(selected) = selected else {
         return Ok(CommandResponse::current(request.request_id, None));

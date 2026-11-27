@@ -169,7 +169,7 @@ export function App() {
       if (imported) setWorkspace(imported);
     } catch {
       setError(
-        "Das DOCX-Manuskript konnte nicht importiert werden. Verwende einen KRAQEL-Export zum Wiederimport (v1, höchstens 8 MiB). Die Datei muss vollständig unterstützt sein.",
+        "Das DOCX-Manuskript konnte nicht importiert werden. Verwende einen KRAQEL-Export zum Wiederimport (v1 oder v2, höchstens 8 MiB).",
       );
     } finally {
       setBusy(false);
@@ -305,8 +305,8 @@ export function App() {
           <h2 id="import-manuscript-heading">KRAQEL-Manuskript aus DOCX</h2>
           <p>
             Importiert einen KRAQEL-Export zum Wiederimport als neues lokales Projekt. Kapitel,
-            Szenen und unterstützte Textformatierungen bleiben erhalten. Vorhandene Projekte und die
-            Quelldatei bleiben unverändert.
+            Szenen, Drehbuchrollen und unterstützte Textformatierungen bleiben erhalten. Vorhandene
+            Projekte und die Quelldatei bleiben unverändert.
           </p>
           <p className="muted">
             Ohne Story-Bibel, Plotboard, Timelines, Medien, Profile, Prompts und Versionsgeschichte.
@@ -317,7 +317,7 @@ export function App() {
             Manuskript-DOCX auswählen
           </button>
           <p className="muted">
-            KRAQEL-Manuskript v1, höchstens 8 MiB. Projekttitel 1–120 Zeichen, Kapitel- und
+            KRAQEL-Manuskript v1 oder v2, höchstens 8 MiB. Projekttitel 1–120 Zeichen, Kapitel- und
             Szenentitel bis 240 Zeichen. Textänderungen innerhalb bestehender Absätze sind
             unterstützt; Strukturänderungen in Office können den Wiederimport verhindern.
           </p>

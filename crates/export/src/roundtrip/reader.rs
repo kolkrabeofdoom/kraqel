@@ -22,7 +22,7 @@ pub(super) fn read(bytes: &[u8]) -> Result<Manuscript, ()> {
     body.whitespace()?;
     let mut style_root = parts.get("word/styles.xml").ok_or(())?.clone();
     clean_layout(&mut style_root)?;
-    let styles = Styles::roundtrip(&style_root)?;
+    let styles = Styles::roundtrip(&style_root, inventory.version == 2)?;
     let mut numbering = Numbering::new(parts.get("word/numbering.xml").ok_or(())?)?;
     let leaves: Vec<_> = inventory
         .nodes
@@ -53,7 +53,12 @@ pub(super) fn read(bytes: &[u8]) -> Result<Manuscript, ()> {
             return Err(());
         }
         let &(node_index, expected) = leaves.get(index).ok_or(())?;
-        let mut paragraph = control(node, &expected.role.marker(&expected.id, &digest))?;
+        let mut paragraph = control(
+            node,
+            &expected
+                .role
+                .marker(inventory.version, &expected.id, &digest),
+        )?;
         let properties = paragraph.child("pPr")?;
         let parent = ids.get(expected.parent.as_str()).copied().ok_or(())?;
         let expected_list =
@@ -71,15 +76,16 @@ pub(super) fn read(bytes: &[u8]) -> Result<Manuscript, ()> {
             properties.children.retain(|p| !p.is(W, "numPr"));
         }
         clean_layout(&mut paragraph)?;
-        let value = docx_scene::paragraph(&paragraph, &styles, &mut text_bytes)?;
-        let block = crate::parse_block(&value).map_err(|_| ())?;
-        if let Some(level) = expected.role.heading() {
-            if !matches!(&block,Block::Heading(actual,_) if *actual==level) {
-                return Err(());
+        let role = expected.role.screenplay_role();
+        let value = docx_scene::paragraph(&paragraph, &styles, &mut text_bytes, role)?;
+        let block = match (crate::parse_block(&value).map_err(|_| ())?, role) {
+            (Block::Paragraph(runs), Some(role)) => Block::Screenplay(role, runs),
+            (block @ Block::Paragraph(_), None) if expected.role.heading().is_none() => block,
+            (Block::Heading(level, runs), None) if expected.role.heading() == Some(level) => {
+                Block::Heading(level, runs)
             }
-        } else if !matches!(&block, Block::Paragraph(_)) {
-            return Err(());
-        }
+            _ => return Err(()),
+        };
         blocks.insert(node_index, block);
         index += 1;
     }
@@ -281,6 +287,7 @@ fn block(
     blocks: &BTreeMap<usize, Block>,
 ) -> Result<Block, ()> {
     Ok(match inventory.nodes[index].role {
+        role if role.screenplay_role().is_some() => blocks.get(&index).ok_or(())?.clone(),
         Role::Paragraph
         | Role::Heading1
         | Role::Heading2

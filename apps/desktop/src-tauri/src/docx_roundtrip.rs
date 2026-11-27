@@ -60,7 +60,15 @@ pub(super) fn import_file(
             .collect::<Result<Vec<_>, ProjectError>>()?;
         let restored = Manuscript::from_documents(&project, &documents)
             .map_err(|_| ProjectError::InvalidImportedData)?;
-        if restored != manuscript {
+        let expected_schema = if documents
+            .iter()
+            .any(|doc| doc.content.version == kraqel_domain::SCREENPLAY_DOCUMENT_VERSION)
+        {
+            kraqel_storage::SCREENPLAY_DATABASE_VERSION
+        } else {
+            kraqel_storage::CURRENT_DATABASE_VERSION
+        };
+        if restored != manuscript || database.schema_version()? != expected_schema {
             return Err(ProjectError::InvalidImportedData);
         }
         Ok(())
@@ -191,6 +199,48 @@ mod tests {
         );
     }
 
+    fn add_screenplay_draft(
+        state: &crate::AppState,
+        source: &crate::WorkspaceResponse,
+        request_id: uuid::Uuid,
+    ) -> (kraqel_domain::DocumentNode, kraqel_domain::EditorDocument) {
+        let script = crate::create_document_impl(
+            state,
+            request_id,
+            crate::CreateDocumentRequest {
+                project_id: source.project.id.to_string(),
+                parent_id: Some(source.documents[0].id.to_string()),
+                kind: kraqel_domain::DocumentKind::Scene,
+                title: "Rollenentwurf".to_owned(),
+            },
+        )
+        .unwrap();
+        let script_body = kraqel_domain::EditorDocument {
+            version: kraqel_domain::SCREENPLAY_DOCUMENT_VERSION,
+            document: serde_json::json!({"type":"doc", "content":[
+                {"type":"screenplayBlock","attrs":{"role":"dialogue"},"content":[
+                    {"type":"text","text":"Glockenspiel","marks":[{"type":"bold"}]},
+                    {"type":"hardBreak"},
+                    {"type":"text","text":"am Kai","marks":[{"type":"italic"}]}
+                ]},
+                {"type":"screenplayBlock","attrs":{"role":"action"},"content":[]}
+            ]}),
+        };
+        crate::persist_scene(
+            state,
+            request_id,
+            crate::SaveDocumentRequest {
+                project_id: source.project.id.to_string(),
+                document_id: script.id.to_string(),
+                expected_revision: script.revision,
+                content: script_body.clone(),
+            },
+            crate::SceneWriter::RoleAware,
+        )
+        .unwrap();
+        (script, script_body)
+    }
+
     #[test]
     fn command_services_export_import_and_reject_files_without_echoing_details() {
         let root = tempfile::tempdir().unwrap();
@@ -208,6 +258,8 @@ mod tests {
             },
         )
         .unwrap();
+        let (script, script_body) = add_screenplay_draft(&state, &source, request_id);
+        let manager = crate::manager(&state, request_id).unwrap();
         let result = crate::export_manuscript_mode_impl(
             &state,
             request_id,
@@ -226,13 +278,42 @@ mod tests {
             .join(result.file_name);
         let imported = crate::import_docx_project_file_impl(&state, request_id, &path).unwrap();
         assert_ne!(source.project.id, imported.project.id);
-        assert_eq!(source.documents.len(), imported.documents.len());
+        assert_eq!(source.documents.len() + 1, imported.documents.len());
         assert!(
             imported
                 .documents
                 .iter()
-                .all(|n| source.documents.iter().all(|old| old.id != n.id))
+                .all(|n| n.id != script.id && source.documents.iter().all(|old| old.id != n.id))
         );
+        let mut reopened = manager
+            .open_project(imported.project.id.to_string())
+            .unwrap();
+        assert_eq!(
+            reopened.database().schema_version().unwrap(),
+            kraqel_storage::SCREENPLAY_DATABASE_VERSION
+        );
+        let (_, documents) = restored(&mut reopened);
+        let draft = documents
+            .iter()
+            .find(|doc| doc.node.title == script.title)
+            .unwrap();
+        assert_eq!(draft.content, script_body);
+        assert!(
+            documents
+                .iter()
+                .filter(|doc| doc.node.id != draft.node.id)
+                .all(|doc| doc.content.version == kraqel_domain::EDITOR_DOCUMENT_VERSION)
+        );
+        let indexed: i64 = reopened
+            .database()
+            .connection()
+            .query_row(
+                "SELECT count(*) FROM document_fts WHERE document_fts MATCH 'Glockenspiel'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(indexed, 1);
         let invalid = root.path().join("private-source.docx");
         fs::write(&invalid, b"private manuscript text").unwrap();
         let error = crate::import_docx_project_file_impl(&state, request_id, &invalid).unwrap_err();

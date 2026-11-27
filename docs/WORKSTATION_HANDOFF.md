@@ -44,7 +44,10 @@ Desktop mit WebView2, etwa für den Import oder das Löschen eines Projekts. Die
 Der installierte Drehbuchkandidat `aca30d0ae0d9` bestand den Bedienlauf bis zum Wiederöffnen und
 A4-Export. Im neueren Stand kann das gesamte Manuskript einschließlich Drehbuchrollen auch als
 Markdown, HTML und gewöhnliches DOCX ausgegeben werden. Die DOCX-Austauschfunktion v1 bleibt auf
-Prosa beschränkt. [Abnahme mit Word und LibreOffice](testing/F08_M3_ACCEPTANCE_MATRIX.md)
+Prosa beschränkt. Auf dem Entwicklungszweig wählt **DOCX zum Wiederimport** für Manuskripte mit
+Drehbuchszenen das [Austauschprofil v2](data-format/DOCX_ROUNDTRIP_V2.md). Auf der Startseite
+importiert **Manuskript-DOCX auswählen** die bearbeitete Fassung als separate Projektkopie.
+[Abnahme nach Format und Programm](testing/F08_M3_ACCEPTANCE_MATRIX.md#stand-der-drehbuchkriterien)
 
 ## Ein Manuskript nativ lesen und bearbeiten
 

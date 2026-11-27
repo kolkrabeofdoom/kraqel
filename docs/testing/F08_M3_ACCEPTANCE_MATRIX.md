@@ -32,8 +32,19 @@ enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-fo
   folgenden Handlungszeilen stehen jeweils auf derselben Seite wie der Kopf. Alle 65 Dialogzeilen
   folgen über zwei Seiten genau einmal in der richtigen Reihenfolge.
 - **DB-07 · Austausch.** Word und LibreOffice erhielten beim Speichern alle sechs Rollen und den
-  Dialogumbruch. Der [kanonische DOCX-v2-Austausch](../data-format/DOCX_ROUNDTRIP_V2.md) ist
-  spezifiziert. Implementierung und Rückimport eines in Office bearbeiteten Manuskripts sind offen.
+  Dialogumbruch. Im [kanonischen DOCX-v2-Austausch](../data-format/DOCX_ROUNDTRIP_V2.md) prüft der
+  native Reader Absatzmarker, Inventarrolle und effektiven Absatzstil. Eine korrekt abgeleitete
+  Dialogvorlage wurde akzeptiert, widersprüchliche Rollenbindungen wurden abgewiesen. Der
+  Desktop-Command exportierte ein gemischtes Manuskript und veröffentlichte die zurückgelesene Kopie
+  mit neuen Projekt- und Dokumentkennungen. Nach Wiederöffnen enthielt sie Prosa v1 und den
+  ursprünglichen Drehbuchentwurf v2 mit leerer Handlung, Fett/Kursiv und hartem Umbruch. SQLite
+  meldete Schema 7 und die Volltextsuche fand die Szene. Word 16.0.17932 öffnete das separate
+  v2-Testmanuskript. Nach einer Textänderung im markierten Prosaabsatz speicherte Word die Datei mit
+  allen 27 sichtbaren Inhaltssteuerelementen. Der native Reader las den geänderten Text und
+  sämtliche erwarteten Rollen und Formatierungen zurück. Nach Import derselben Word-Datei und
+  erneutem Öffnen entsprach der SQLite-Inhalt dem zurückgelesenen Manuskript. Die FTS-Suche nach dem
+  geänderten Wort fand einen Treffer. Die Word-Datei blieb bytegleich. Für LibreOffice steht der
+  eigenständige v2-Lauf aus. Die ältere LibreOffice-Probe betrifft die gewöhnliche DOCX-Ausgabe.
 - **DB-08 · Desktop-Export.** Szenen- und Kapitelauswahl sind im gebauten Desktop belegt. Ein Fehler
   im produktiven Studio-Export lässt die vorhandene PDF bytegleich. Beim Gesamt-PDF kommen Rollen-
   und Seitenhöhenfehler als feste Hinweise an. Der Studio-Adapter verwirft abweichende Meldungen

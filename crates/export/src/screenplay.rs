@@ -12,6 +12,23 @@ pub(crate) struct Paragraph {
 }
 
 pub(crate) fn paragraphs(content: &EditorDocument) -> Result<Vec<Paragraph>, ExportError> {
+    let blocks = draft_paragraphs(content)?;
+    let sequence: Vec<_> = blocks
+        .iter()
+        .map(|p| {
+            (
+                p.role,
+                p.runs
+                    .iter()
+                    .any(|r| matches!(r, Inline::Text { text, .. } if !text.trim().is_empty())),
+            )
+        })
+        .collect();
+    validate_sequence(&sequence).map_err(ExportError::InvalidDocument)?;
+    Ok(blocks)
+}
+
+pub(crate) fn draft_paragraphs(content: &EditorDocument) -> Result<Vec<Paragraph>, ExportError> {
     if content.version != SCREENPLAY_DOCUMENT_VERSION || !content.is_valid() {
         return Err(INVALID);
     }
@@ -20,18 +37,12 @@ pub(crate) fn paragraphs(content: &EditorDocument) -> Result<Vec<Paragraph>, Exp
         "Die Drehbuchszene ist ungültig.",
     )?;
     let mut blocks = Vec::with_capacity(nodes.len());
-    let mut sequence = Vec::with_capacity(nodes.len());
     for node in nodes {
         let role: Role =
             serde_json::from_value(node["attrs"]["role"].clone()).map_err(|_| INVALID)?;
         let runs = parse_inlines(node.get("content"))?;
-        let has_text = runs
-            .iter()
-            .any(|r| matches!(r,Inline::Text{text,..} if !text.trim().is_empty()));
-        sequence.push((role, has_text));
         blocks.push(Paragraph { role, runs });
     }
-    validate_sequence(&sequence).map_err(ExportError::InvalidDocument)?;
     Ok(blocks)
 }
 

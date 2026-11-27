@@ -365,8 +365,7 @@ fn escape_xml(value: &str) -> String {
         .replace('<', "&lt;")
         .replace('>', "&gt;")
 }
-fn add_screenplay_style(styles: &mut String, role: Role) {
-    let presentation = presentation(role);
+pub(crate) fn add_screenplay_style(styles: &mut String, role: Role, name: &str) {
     // OOXML margins/indents are in twentieths of a point, rounded from the profile's millimetres.
     let (left, right) = match role {
         Role::Character => (3118, 0),
@@ -394,8 +393,8 @@ fn add_screenplay_style(styles: &mut String, role: Role) {
     };
     let _ = write!(
         styles,
-        r#"<w:style w:type="paragraph" w:styleId="{}"><w:name w:val="Drehbuch – {}"/><w:basedOn w:val="Normal"/><w:pPr>{keep_next}<w:widowControl/><w:suppressAutoHyphens/><w:spacing w:before="0" w:after="{after}" w:line="280" w:lineRule="exact"/><w:ind w:left="{left}" w:right="{right}"/><w:jc w:val="{alignment}"/></w:pPr><w:rPr><w:rFonts w:ascii="JetBrains Mono" w:hAnsi="JetBrains Mono" w:eastAsia="JetBrains Mono" w:cs="JetBrains Mono"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:style>"#,
-        presentation.style, presentation.label
+        r#"<w:style w:type="paragraph" w:styleId="{}"><w:name w:val="{name}"/><w:basedOn w:val="Normal"/><w:pPr>{keep_next}<w:widowControl/><w:suppressAutoHyphens/><w:spacing w:before="0" w:after="{after}" w:line="280" w:lineRule="exact"/><w:ind w:left="{left}" w:right="{right}"/><w:jc w:val="{alignment}"/></w:pPr><w:rPr><w:rFonts w:ascii="JetBrains Mono" w:hAnsi="JetBrains Mono" w:eastAsia="JetBrains Mono" w:cs="JetBrains Mono"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:style>"#,
+        presentation(role).style
     );
 }
 
@@ -409,7 +408,11 @@ fn package_docx(document: &str, screenplay: bool) -> Result<Vec<u8>, ExportError
     if screenplay {
         styles.truncate(styles.len() - "</w:styles>".len());
         for role in ROLES {
-            add_screenplay_style(&mut styles, role);
+            add_screenplay_style(
+                &mut styles,
+                role,
+                &format!("Drehbuch – {}", presentation(role).label),
+            );
         }
         styles.push_str("</w:styles>");
     }

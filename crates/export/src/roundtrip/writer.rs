@@ -1,5 +1,5 @@
 use super::{
-    inventory::{self, CP, PROPERTY, Role, VT, W},
+    inventory::{self, CP, PROPERTY, PROPERTY_V2, Role, VT, W},
     package::{self, OFFICE, REL},
 };
 use crate::{Inline, Manuscript};
@@ -14,6 +14,9 @@ fn escape(value: &str) -> String {
         .replace('\r', "&#13;")
 }
 fn style(role: Role) -> String {
+    if let Some(role) = role.screenplay_role() {
+        return crate::screenplay::presentation(role).style.to_owned();
+    }
     if let Some(level) = role.heading() {
         return format!("Heading{level}");
     }
@@ -26,6 +29,9 @@ fn style(role: Role) -> String {
     .to_owned()
 }
 fn alias(role: Role) -> &'static str {
+    if let Some(role) = role.screenplay_role() {
+        return crate::screenplay::presentation(role).label;
+    }
     match role {
         Role::ProjectTitle => "Projekttitel",
         Role::ChapterTitle => "Kapiteltitel",
@@ -64,12 +70,17 @@ fn runs(output: &mut String, values: &[Inline]) -> Result<(), ()> {
 
 pub(super) fn properties(nodes: Vec<inventory::Node>) -> Result<(String, String), ()> {
     let (payload, header) = inventory::payload(nodes)?;
+    let property = if header.version == 2 {
+        PROPERTY_V2
+    } else {
+        PROPERTY
+    };
     let mut props = format!("<Properties xmlns=\"{CP}\" xmlns:vt=\"{VT}\">");
     let header_json = serde_json::to_string(&header).map_err(|_| ())?;
-    let mut values = vec![(PROPERTY.to_owned(), header_json)];
+    let mut values = vec![(property.to_owned(), header_json)];
     for (index, chunk) in payload.as_bytes().chunks(inventory::CHUNK).enumerate() {
         values.push((
-            format!("{PROPERTY}.{:04}", index + 1),
+            format!("{property}.{:04}", index + 1),
             std::str::from_utf8(chunk).map_err(|_| ())?.to_owned(),
         ));
     }
@@ -84,6 +95,7 @@ pub(super) fn write(manuscript: &Manuscript) -> Result<Vec<u8>, ()> {
     let records = inventory::records(manuscript)?;
     let nodes = records.iter().map(|r| r.node.clone()).collect::<Vec<_>>();
     inventory::topology(&nodes)?;
+    let version = inventory::version(&nodes);
     let (props, digest) = properties(nodes)?;
     let indices: BTreeMap<_, _> = records
         .iter()
@@ -128,12 +140,12 @@ pub(super) fn write(manuscript: &Manuscript) -> Result<Vec<u8>, ()> {
         if indent > 0 {
             write!(document, "<w:ind w:left=\"{indent}\"/>").map_err(|_| ())?;
         }
-        write!(document,"</w:pPr><w:sdt><w:sdtPr><w:alias w:val=\"{}\"/><w:tag w:val=\"{}\"/><w:id w:val=\"{}\"/><w:richText/></w:sdtPr><w:sdtContent>",alias(record.node.role),record.node.role.marker(&record.node.id,&digest),index+1).map_err(|_|())?;
+        write!(document,"</w:pPr><w:sdt><w:sdtPr><w:alias w:val=\"{}\"/><w:tag w:val=\"{}\"/><w:id w:val=\"{}\"/><w:richText/></w:sdtPr><w:sdtContent>",alias(record.node.role),record.node.role.marker(version,&record.node.id,&digest),index+1).map_err(|_|())?;
         runs(&mut document, values)?;
         document.push_str("</w:sdtContent></w:sdt></w:p>");
     }
     document.push_str("<w:sectPr><w:pgSz w:w=\"11906\" w:h=\"16838\"/><w:pgMar w:top=\"1134\" w:right=\"1134\" w:bottom=\"1134\" w:left=\"1134\"/></w:sectPr></w:body></w:document>");
-    let styles = styles()?;
+    let styles = styles(version)?;
     let numbers = numbers(&records)?;
     let root_rels = format!(
         "<Relationships xmlns=\"{REL}\"><Relationship Id=\"rId1\" Type=\"{OFFICE}officeDocument\" Target=\"word/document.xml\"/><Relationship Id=\"rId2\" Type=\"{OFFICE}custom-properties\" Target=\"docProps/custom.xml\"/></Relationships>"
@@ -151,7 +163,7 @@ pub(super) fn write(manuscript: &Manuscript) -> Result<Vec<u8>, ()> {
     ]))
 }
 
-fn styles() -> Result<String, ()> {
+fn styles(version: u32) -> Result<String, ()> {
     let mut styles = format!("<w:styles xmlns:w=\"{W}\">");
     let definitions = [
         ("Normal", 22, None),
@@ -184,6 +196,16 @@ fn styles() -> Result<String, ()> {
             write!(styles, "<w:outlineLvl w:val=\"{outline}\"/>").map_err(|_| ())?;
         }
         write!(styles,"</w:pPr><w:rPr><w:rFonts w:ascii=\"Calibri\" w:hAnsi=\"Calibri\"/><w:color w:val=\"000000\"/><w:sz w:val=\"{size}\"/></w:rPr></w:style>").map_err(|_|())?;
+    }
+    if version == 2 {
+        for role in crate::screenplay::ROLES {
+            // Word regenerates the style ID from its name when saving.
+            crate::render::add_screenplay_style(
+                &mut styles,
+                role,
+                crate::screenplay::presentation(role).style,
+            );
+        }
     }
     styles.push_str("</w:styles>");
     Ok(styles)

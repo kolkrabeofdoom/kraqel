@@ -1,7 +1,6 @@
 # ADR 0037 – Versionierter DOCX-Manuskriptaustausch für Drehbuchszenen
 
-**27. November 2026 · Technische Spezifikation für die Umsetzung. Implementierung und Abnahme
-offen.**
+**27. November 2026 · Angenommen und auf dem Entwicklungszweig umgesetzt.**
 
 ADR 0033 sieht für den kanonischen Austausch von Drehbuchrollen ein eigenes versioniertes Profil
 vor. Das bestehende v1-Inventar erfasst ausschließlich Prosa. Leser*innen können am Einzug oder an
@@ -21,5 +20,5 @@ Ressourcengrenzen gelten über das gesamte Dokument. Reine Prosamanuskripte verw
 Die Umsetzung betrifft Writer, Reader und den transaktionalen Neuimport mit semantischem Rücklesen.
 Bei gemischten, unbekannten oder widersprüchlichen Versionen endet der Austausch vor der
 Veröffentlichung. Ein bestandener Office-Rundlauf für gewöhnliches DOCX belegt nur die Darstellung
-und das Speichern der Rollenstile. Für den kanonischen v2-Austausch fehlt der gesonderte Nachweis
-bis zur Implementierung.
+und das Speichern der Rollenstile. Die eigenständigen Nachweise für den kanonischen Austausch stehen
+unter [DB-07](../../testing/F08_M3_ACCEPTANCE_MATRIX.md#stand-der-drehbuchkriterien).
