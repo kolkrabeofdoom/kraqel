@@ -368,6 +368,10 @@ mod tests {
     }
 
     #[test]
+    #[allow(
+        clippy::too_many_lines,
+        reason = "The integration scenario checks successive states of the same fixture"
+    )]
     fn reviewed_media_binds_own_files_and_links_from_source_to_undo() {
         let root = tempdir().unwrap();
         let manager = ProjectManager::new(root.path()).unwrap();
@@ -396,7 +400,7 @@ mod tests {
         let project_id = id.to_string();
         replace_bytes(dir, &remote);
         db.execute("INSERT INTO entity(id,project_id,kind,name,created_at,updated_at) VALUES(?,?,'character','Figur','t','t')",params![entity,project_id]).unwrap();
-        db.execute("INSERT INTO media_asset(id,project_id,kind,relative_path,thumbnail_path,original_name,title,mime_type,checksum,byte_count,width,height,provenance,created_at,updated_at) VALUES(?,?,'image','assets/test.png','assets/thumbnails/test.png','test.png','Ferne Fassung','image/png',?,?,?,?,'imported','t','t')",params![asset,project_id,remote.checksum,remote.original_bytes.len() as i64,remote.width,remote.height]).unwrap();
+        db.execute("INSERT INTO media_asset(id,project_id,kind,relative_path,thumbnail_path,original_name,title,mime_type,checksum,byte_count,width,height,provenance,created_at,updated_at) VALUES(?,?,'image','assets/test.png','assets/thumbnails/test.png','test.png','Ferne Fassung','image/png',?,?,?,?,'imported','t','t')",params![asset,project_id,remote.checksum,i64::try_from(remote.original_bytes.len()).unwrap(),remote.width,remote.height]).unwrap();
         db.execute(
             "INSERT INTO asset_link VALUES(?,?,'entity',?,'reference','t')",
             params![project_id, asset, entity],
@@ -441,7 +445,7 @@ mod tests {
         assert!(matches!(choice, ReviewChoice::Cancel) && candidate.is_none());
 
         replace_bytes(dir, &local);
-        db.execute("UPDATE media_asset SET title='Lokale Fassung',checksum=?,byte_count=?,width=?,height=? WHERE id=?",params![local.checksum,local.original_bytes.len() as i64,local.width,local.height,asset]).unwrap();
+        db.execute("UPDATE media_asset SET title='Lokale Fassung',checksum=?,byte_count=?,width=?,height=? WHERE id=?",params![local.checksum,i64::try_from(local.original_bytes.len()).unwrap(),local.width,local.height,asset]).unwrap();
         db.execute("DELETE FROM asset_link WHERE asset_id=?", [&asset])
             .unwrap();
         let current = selection();

@@ -349,7 +349,7 @@ pub(super) fn check_activation(
     fs::remove_file(thumb).unwrap();
 
     manager.switch_handoff_item(id, &ticket, false).unwrap();
-    assert!(current() == expected);
+    assert_eq!(current(), expected);
     // Undo must fail closed if someone added a relationship after approval.
     let inserted = db
         .execute(

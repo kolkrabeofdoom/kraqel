@@ -1418,6 +1418,10 @@ mod tests {
     }
 
     #[test]
+    #[allow(
+        clippy::too_many_lines,
+        reason = "The integration scenario checks successive states of the same fixture"
+    )]
     fn renames_reorders_and_deletes_only_the_displayed_tree_state() {
         let root = tempdir().expect("temporary root should exist");
         let manager = ProjectManager::new(root.path()).expect("manager should open");

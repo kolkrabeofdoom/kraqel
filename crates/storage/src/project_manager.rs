@@ -1475,7 +1475,7 @@ mod tests {
             ),
             Err(ProjectError::InvalidProjectMetadata)
         ));
-        assert!(compare(true).unwrap().is_empty());
+        assert_eq!(compare(true).unwrap(), Vec::<String>::new());
         received
             .database()
             .connection()

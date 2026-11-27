@@ -144,19 +144,16 @@ impl Layout {
             _ => 155.0,
         } * MM;
         let mut line: Vec<(char, usize)> = Vec::new();
-        for run in runs {
-            let (text, style) = match run {
-                Inline::HardBreak => ("\n", 0),
-                Inline::Text { text, bold, italic } => {
-                    (text.as_str(), usize::from(*bold) + 2 * usize::from(*italic))
-                }
-            };
+        for (text, style) in super::styled_text_runs(runs, 0) {
             self.text_bytes = self
                 .text_bytes
                 .checked_add(text.len())
                 .filter(|&n| n <= MAX_TEXT)
                 .ok_or(LIMIT)?;
-            let normalized = self.fonts.normalized(text, style).map_err(|_| FONT_ERROR)?;
+            let normalized = self
+                .fonts
+                .normalized(&text, style)
+                .map_err(|_| FONT_ERROR)?;
             for c in normalized.chars() {
                 if c == '\n' {
                     self.row(std::mem::take(&mut line), role)?;
@@ -421,7 +418,8 @@ mod tests {
                 {"type":"text","text":", "},
                 {"type":"text","text":"Київ","marks":[{"type":"italic"}]},
                 {"type":"text","text":" und "},
-                {"type":"text","text":"Zürich","marks":[{"type":"bold"},{"type":"italic"}]},
+                {"type":"text","text":"Zu","marks":[{"type":"bold"},{"type":"italic"}]},
+                {"type":"text","text":"\u{308}rich","marks":[{"type":"bold"},{"type":"italic"}]},
                 {"type":"text","text":". Wer hat sie eingetragen?"}
             ]}),
         ];
@@ -478,6 +476,21 @@ mod tests {
         assert!(export_screenplay_pdf(root.path(), &project, &docs, &[docs[0].node.id]).is_err());
         docs[1].content.document["content"][0]["content"][0]["text"] = json!("Archiv 🪶");
         assert!(export_screenplay_pdf(root.path(), &project, &docs, &ids).is_err());
+        assert_eq!(std::fs::read(&path).unwrap(), bytes);
+
+        // A speaker spanning an entire page cannot be kept together with its dialogue.
+        let speaker = ["FIGUR"; 52].join("\n");
+        docs[1].content.document = json!({"type":"doc","content":[
+            block("sceneHeading", "INT. ARCHIV"),
+            block("character", &speaker),
+            block("dialogue", "Hier."),
+        ]});
+        assert!(matches!(
+            export_screenplay_pdf(root.path(), &project, &docs, &ids),
+            Err(ExportError::InvalidDocument(
+                "Eine zusammengehörige Drehbuchgruppe ist höher als die Druckseite."
+            ))
+        ));
         assert_eq!(std::fs::read(path).unwrap(), bytes);
     }
 }

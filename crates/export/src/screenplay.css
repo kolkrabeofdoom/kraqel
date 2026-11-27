@@ -1,21 +1,47 @@
-
 .screenplay {
-    font: 12pt/14pt "JetBrains Mono", monospace;
-    white-space: pre-wrap;
-    hyphens: none;
-    margin: 0 0 12pt;
-    min-height: 14pt;
-    orphans: 2;
-    widows: 2;
+  font:
+    12pt/14pt "JetBrains Mono",
+    monospace;
+  white-space: pre-wrap;
+  hyphens: none;
+  margin: 0 0 12pt;
+  min-height: 14pt;
+  orphans: 2;
+  widows: 2;
 }
-.screenplay-character { margin-left: 55mm; }
-.screenplay-parenthetical { margin-left: 40mm; margin-right: 25mm; }
-.screenplay-dialogue { margin-left: 25mm; margin-right: 25mm; }
-.screenplay-transition { text-align: right; }
-.screenplay-character, .screenplay-parenthetical,
-.screenplay-dialogue:has(+ .screenplay-dialogue, + .screenplay-parenthetical) { margin-bottom: 0; }
+.screenplay-character {
+  margin-left: 55mm;
+}
+.screenplay-parenthetical {
+  margin-left: 40mm;
+  margin-right: 25mm;
+}
+.screenplay-dialogue {
+  margin-left: 25mm;
+  margin-right: 25mm;
+}
+.screenplay-transition {
+  text-align: right;
+}
+.screenplay-character,
+.screenplay-parenthetical,
+.screenplay-dialogue:has(+ .screenplay-dialogue, + .screenplay-parenthetical) {
+  margin-bottom: 0;
+}
 @media print {
-    @page { size: A4; margin: 25mm 25mm 20mm 30mm; }
-    body { width: auto; max-width: none; margin: 0; padding: 0; }
-    .screenplay-sceneHeading, .screenplay-character, .screenplay-parenthetical { break-after: avoid; }
+  @page {
+    size: A4;
+    margin: 25mm 25mm 20mm 30mm;
+  }
+  body {
+    width: auto;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+  .screenplay-sceneHeading,
+  .screenplay-character,
+  .screenplay-parenthetical {
+    break-after: avoid;
+  }
 }

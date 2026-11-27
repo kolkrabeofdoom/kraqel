@@ -22,6 +22,14 @@ weiterhin als Snapshot v3 ausgegeben.
 
 ## PDF-Ausgaben
 
-Der eigenständige A4-Drehbuchdruck gibt die Rollenabsätze der ausdrücklich gewählten Drehbuchszenen in Baumreihenfolge aus. Dieser Weg lässt Projekt-, Kapitel- und Szenentitel weg. In der nativen Gliederung verwendet auch die einzelne gewählte Drehbuchszene dieses Profil.
+Der eigenständige A4-Drehbuchdruck gibt die Rollenabsätze der ausdrücklich gewählten Drehbuchszenen
+in Baumreihenfolge aus. Dieser Weg lässt Projekt-, Kapitel- und Szenentitel weg. In der nativen
+Gliederung verwendet auch die einzelne gewählte Drehbuchszene dieses Profil.
 
-Der anschließend erweiterte gewöhnliche Manuskriptdruck umfasst die bestätigte Auswahl einschließlich ihrer Gliederungstitel. Kapitel und Manuskripte können reine Prosa, reine Drehbuchszenen oder beides enthalten. Die bestehenden Druckregeln für Dialogfolge, Schriften und Ausgabegrenzen gelten auch für die darin enthaltenen Drehbuchszenen. Ein Fehler in einem ausgewählten Abschnitt bricht die Ausgabe vor der Veröffentlichung ab. Diese Erweiterung betrifft den textbasierten PDF-Export. Der bebilderte Export und der kanonische DOCX-Austausch behalten ihre eigenen Formatgrenzen.
+Der anschließend erweiterte gewöhnliche Manuskriptdruck umfasst die bestätigte Auswahl
+einschließlich ihrer Gliederungstitel. Kapitel und Manuskripte können reine Prosa, reine
+Drehbuchszenen oder beides enthalten. Die bestehenden Druckregeln für Dialogfolge, Schriften und
+Ausgabegrenzen gelten auch für die darin enthaltenen Drehbuchszenen. Ein Fehler in einem
+ausgewählten Abschnitt bricht die Ausgabe vor der Veröffentlichung ab. Diese Erweiterung betrifft
+den textbasierten PDF-Export. Der bebilderte Export und der kanonische DOCX-Austausch behalten ihre
+eigenen Formatgrenzen.

@@ -134,6 +134,8 @@ BP4b-Framecodec und Zustandsmodell sind offline geprüft. Der
 Anzeige im Fenster belegt. Der [native Edit-Gastlauf](../testing/native-win32-edit-conflict.md)
 bestätigt den Revisionskonflikt im speicherresidenten Katalog. Der
 [SQLite-Gastlauf](../testing/native-win32-durable-reopen.md) bestätigt Text und Revision nach
-Prozessneustart mit separatem Leseprofil. Die [Abbrüche an der Commitgrenze](../testing/native-win32-commit-crashes.md) sind geprüft. Der ETW-Netzvergleich beider Abbruchpfade ist dort dokumentiert. Reale Manuskripte,
-allgemeines Rich Text, die Produkt-UI-ABI und eine produktive `DataAllowed`-Freigabe erfordern eine
-eigene Entscheidung und Nachweise.
+Prozessneustart mit separatem Leseprofil. Die
+[Abbrüche an der Commitgrenze](../testing/native-win32-commit-crashes.md) sind geprüft. Der
+ETW-Netzvergleich beider Abbruchpfade ist dort dokumentiert. Reale Manuskripte, allgemeines Rich
+Text, die Produkt-UI-ABI und eine produktive `DataAllowed`-Freigabe erfordern eine eigene
+Entscheidung und Nachweise.

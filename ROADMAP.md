@@ -1,39 +1,133 @@
 # Roadmap
 
-Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](docs/data-format/screenplay-v2.md)
+Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit
+sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte
+Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7
+enthält diese Funktion noch nicht.
+[Datenformat und Kompatibilität](docs/data-format/screenplay-v2.md)
 
-Die native Windows-Projektübersicht unterstützt die Anlage eines lokalen Projekts mit Kapitel und erster Szene. In der nativen Gliederung lassen sich Kapitel und Szenen anlegen, umbenennen und umordnen. Eine Szene kann an das Ende eines anderen Kapitels verschoben werden. Die Gliederung unterstützt außerdem unabhängige Szenen- und Kapitelfassungen im selben Projekt. Für Kapitel und Szenen ist der endgültige Listenplatz direkt wählbar. Für Auszüge und Gesamtausgaben stehen der native Formatexport und die projektbezogene Liste früherer Ausgaben zur Verfügung. Vor dem Entfernen eines Kapitels oder einer Szene zeigt der Desktop den Umfang an und prüft ihn bei der Bestätigung erneut. Über „Manuskript öffnen“ lassen sich vorhandene Szenen lesen und einfache Prosaszenen direkt bearbeiten. Der produktive Prosaeditor zeigt Wortzahl und UTF-8-Speicherbudget an und bietet einen per F11 umschaltbaren Fokusmodus. Die lokale Szenensuche kann in Leser und Editor auf ganze Wörter begrenzt werden. Bei Bedarf findet sie auch unterschiedliche Groß- und Kleinschreibungen. Der Editor verwendet beide Optionen beim Ersetzen. Eine Schließabfrage schützt geänderte Entwürfe. Der Editor hält den Entwurf bis zur Speicherbestätigung offen. Bei einem Revisionskonflikt kann die aktuelle Prosa ausdrücklich zum absatzweisen Vergleich geladen werden. Im Fassungsvergleich sind auch unveränderte Absätze direkt über ihre Position erreichbar. Bei der absatzweisen Quellwahl zeigt die Vorschau die Größe der Mischung an. Eine Auswahl über 64 KiB bleibt zur Korrektur offen. Eine erneut geänderte Vergleichsbasis erfordert eine neue Prüfung und Bestätigung. „Im Studio öffnen“ und „Projektverwaltung öffnen“ starten den bisherigen Desktop mit WebView2. Der Drehbuch-Schreibablauf wurde im installierten Vorgänger geprüft. Der Manuskriptexport berücksichtigt Drehbuchrollen in Markdown, HTML, DOCX und im textbasierten PDF. In einem gemischten PDF bleiben Gliederung, Prosa und die sechs Rollen in Manuskriptreihenfolge erhalten. Word und LibreOffice behielten beim Speichern alle sechs verwendeten Rollenstile. [Prüfstand und Geltungsbereich](docs/testing/F08_M3_ACCEPTANCE_MATRIX.md)
+Die native Windows-Projektübersicht unterstützt die Anlage eines lokalen Projekts mit Kapitel und
+erster Szene. In der nativen Gliederung lassen sich Kapitel und Szenen anlegen, umbenennen und
+umordnen. Eine Szene kann an das Ende eines anderen Kapitels verschoben werden. Die Gliederung
+unterstützt außerdem unabhängige Szenen- und Kapitelfassungen im selben Projekt. Für Kapitel und
+Szenen ist der endgültige Listenplatz direkt wählbar. Für Auszüge und Gesamtausgaben stehen der
+native Formatexport und die projektbezogene Liste früherer Ausgaben zur Verfügung. Vor dem Entfernen
+eines Kapitels oder einer Szene zeigt der Desktop den Umfang an und prüft ihn bei der Bestätigung
+erneut. Über „Manuskript öffnen“ lassen sich vorhandene Szenen lesen und einfache Prosaszenen direkt
+bearbeiten. Der produktive Prosaeditor zeigt Wortzahl und UTF-8-Speicherbudget an und bietet einen
+per F11 umschaltbaren Fokusmodus. Die lokale Szenensuche kann in Leser und Editor auf ganze Wörter
+begrenzt werden. Bei Bedarf findet sie auch unterschiedliche Groß- und Kleinschreibungen. Der Editor
+verwendet beide Optionen beim Ersetzen. Eine Schließabfrage schützt geänderte Entwürfe. Der Editor
+hält den Entwurf bis zur Speicherbestätigung offen. Bei einem Revisionskonflikt kann die aktuelle
+Prosa ausdrücklich zum absatzweisen Vergleich geladen werden. Im Fassungsvergleich sind auch
+unveränderte Absätze direkt über ihre Position erreichbar. Bei der absatzweisen Quellwahl zeigt die
+Vorschau die Größe der Mischung an. Eine Auswahl über 64 KiB bleibt zur Korrektur offen. Eine erneut
+geänderte Vergleichsbasis erfordert eine neue Prüfung und Bestätigung. „Im Studio öffnen“ und
+„Projektverwaltung öffnen“ starten den bisherigen Desktop mit WebView2. Der Drehbuch-Schreibablauf
+wurde im installierten Vorgänger geprüft. Der Manuskriptexport berücksichtigt Drehbuchrollen in
+Markdown, HTML, DOCX und im textbasierten PDF. In einem gemischten PDF bleiben Gliederung, Prosa und
+die sechs Rollen in Manuskriptreihenfolge erhalten. Word und LibreOffice behielten beim Speichern
+alle sechs verwendeten Rollenstile.
+[Prüfstand und Geltungsbereich](docs/testing/F08_M3_ACCEPTANCE_MATRIX.md)
 
 ## Verwalteter Win32-Szeneneditor · 24. November 2026
 
-Der Wiederanlauf der synthetischen Szenenübernahme ist für die geprüften Prozessabbrüche abgeschlossen. Der ausdrückliche Wiederanlauf darf genau einen authentisierten Übernahmeeintrag samt gegebenenfalls vorbereitetem Kontrollkopf bestätigen. Die Bindung an Starter, Szene, Revision und Snapshot gilt auch nach dem zweiten Abbruch. [Abnahme und Grenzen](docs/architecture/decisions/0036-native-win32-ui-role-evaluation.md#wiederanlauf-nach-abbruch-der-szenenübernahme)
+Der Wiederanlauf der synthetischen Szenenübernahme ist für die geprüften Prozessabbrüche
+abgeschlossen. Der ausdrückliche Wiederanlauf darf genau einen authentisierten Übernahmeeintrag samt
+gegebenenfalls vorbereitetem Kontrollkopf bestätigen. Die Bindung an Starter, Szene, Revision und
+Snapshot gilt auch nach dem zweiten Abbruch.
+[Abnahme und Grenzen](docs/architecture/decisions/0036-native-win32-ui-role-evaluation.md#wiederanlauf-nach-abbruch-der-szenenübernahme)
 
-Der M1-Schreibkern umfasst im langen synthetischen Klartexteditor jetzt die lokale Wortzählung, eine Anzeige der belegten UTF-16-Einheiten und den Fokusmodus. [Bedienung und Windows-Nachweis](docs/DEVELOPMENT_STATUS.md#verwalteter-win32-szeneneditor)
+Der M1-Schreibkern umfasst im langen synthetischen Klartexteditor jetzt die lokale Wortzählung, eine
+Anzeige der belegten UTF-16-Einheiten und den Fokusmodus.
+[Bedienung und Windows-Nachweis](docs/DEVELOPMENT_STATUS.md#verwalteter-win32-szeneneditor)
 
-Für P3 wurde an einer synthetischen SQLite-Quelle geprüft, wie ein im WAL bestätigter Stand ohne Änderungen an den Quelldateien in einem getrennten Staging wiederhergestellt werden kann. [Befund und offene Voraussetzungen der Bestandskopie](docs/data-format/product-start-integration-v1-draft.md#vorprüfung-zur-sqlite-erfassung-bei-p3)
+Für P3 wurde an einer synthetischen SQLite-Quelle geprüft, wie ein im WAL bestätigter Stand ohne
+Änderungen an den Quelldateien in einem getrennten Staging wiederhergestellt werden kann.
+[Befund und offene Voraussetzungen der Bestandskopie](docs/data-format/product-start-integration-v1-draft.md#vorprüfung-zur-sqlite-erfassung-bei-p3)
 
-Für vorbereitete Windows-Arbeitskopien sind Erstempfang und schreibgeschützter Vergleich der Arbeitsdaten bei bestehender Projektkennung umgesetzt. Über die Startseite empfangene Projekte wurden lokal in der gebauten App geprüft. Der Versionsdialog meldet bei abweichenden Datenbankeinträgen die betroffenen Bereiche. Für Story-Bibel-Einträge, Beziehungen, Dokumentverknüpfungen, Handlungsstränge, Plotkarten, Zeitachsen und Timeline-Ereignisse samt Zuordnungen führt der Versionsdialog jetzt von der Einzelauswahl bis zur lokalen Aktivierung und Rücknahme. Einzelne Bilder lassen sich mit Vorschau, Metadaten und Verknüpfungen übernehmen und lokal zurücknehmen. Der physische Zweitrechnertest steht aus. [Rechnerwechsel](docs/WORKSTATION_HANDOFF.md#vorbereitete-arbeitskopie-erstmals-empfangen)
+Für vorbereitete Windows-Arbeitskopien sind Erstempfang und schreibgeschützter Vergleich der
+Arbeitsdaten bei bestehender Projektkennung umgesetzt. Über die Startseite empfangene Projekte
+wurden lokal in der gebauten App geprüft. Der Versionsdialog meldet bei abweichenden
+Datenbankeinträgen die betroffenen Bereiche. Für Story-Bibel-Einträge, Beziehungen,
+Dokumentverknüpfungen, Handlungsstränge, Plotkarten, Zeitachsen und Timeline-Ereignisse samt
+Zuordnungen führt der Versionsdialog jetzt von der Einzelauswahl bis zur lokalen Aktivierung und
+Rücknahme. Einzelne Bilder lassen sich mit Vorschau, Metadaten und Verknüpfungen übernehmen und
+lokal zurücknehmen. Der physische Zweitrechnertest steht aus.
+[Rechnerwechsel](docs/WORKSTATION_HANDOFF.md#vorbereitete-arbeitskopie-erstmals-empfangen)
 
-Der [synthetische P3-Quelldatenträger](docs/data-format/product-start-integration-v1-draft.md#stabiler-dateibestand-auf-einem-synthetischen-quelldatenträger) sichert den gesamten Projektbaum während der Kopie. Die Anlage neuer Assets wurde auch im Unterverzeichnis verhindert. Für einen [beschreibbaren synthetischen NTFS-Ordner](docs/data-format/product-start-integration-v1-draft.md#erfassung-eines-beschreibbaren-synthetischen-projektordners) ist das Verwerfen einer durch neue Assets überholten Erfassung geprüft. Der Prüfstarter bestätigt die ursprüngliche Quellidentität nach Neustart aus seiner Kontrollablage. Die [bedienbare synthetische Übernahme](docs/data-format/product-start-integration-v1-draft.md#bedienbare-p3-übernahme-mit-separatem-zusatzarchiv) reicht bis zur veröffentlichten Szene und übernimmt Zusatzbestände nur nach ausdrücklicher Auswahl in ein separates Archiv. Die metadatenbasierte Bestandserkennung im Speichermodul ist am synthetischen Projektkatalog angebunden. Die Windows-Alpha 7 bietet für geschlossene Projektordner die lokale Bestandsaufnahme, die bestätigte Arbeitskopie und ein getrenntes verschlüsseltes Zusatzarchiv an. [Bedienung](docs/WORKSTATION_HANDOFF.md#einen-vorhandenen-windows-projektordner-übernehmen)
+Der
+[synthetische P3-Quelldatenträger](docs/data-format/product-start-integration-v1-draft.md#stabiler-dateibestand-auf-einem-synthetischen-quelldatenträger)
+sichert den gesamten Projektbaum während der Kopie. Die Anlage neuer Assets wurde auch im
+Unterverzeichnis verhindert. Für einen
+[beschreibbaren synthetischen NTFS-Ordner](docs/data-format/product-start-integration-v1-draft.md#erfassung-eines-beschreibbaren-synthetischen-projektordners)
+ist das Verwerfen einer durch neue Assets überholten Erfassung geprüft. Der Prüfstarter bestätigt
+die ursprüngliche Quellidentität nach Neustart aus seiner Kontrollablage. Die
+[bedienbare synthetische Übernahme](docs/data-format/product-start-integration-v1-draft.md#bedienbare-p3-übernahme-mit-separatem-zusatzarchiv)
+reicht bis zur veröffentlichten Szene und übernimmt Zusatzbestände nur nach ausdrücklicher Auswahl
+in ein separates Archiv. Die metadatenbasierte Bestandserkennung im Speichermodul ist am
+synthetischen Projektkatalog angebunden. Die Windows-Alpha 7 bietet für geschlossene Projektordner
+die lokale Bestandsaufnahme, die bestätigte Arbeitskopie und ein getrenntes verschlüsseltes
+Zusatzarchiv an.
+[Bedienung](docs/WORKSTATION_HANDOFF.md#einen-vorhandenen-windows-projektordner-übernehmen)
 
-Die [zielgebundene synthetische Veröffentlichung](docs/data-format/product-start-integration-v1-draft.md#einmalige-veröffentlichung-am-gebundenen-synthetischen-ziel) erkennt eine bereits abgeschlossene Kopie nach Ausfall des Kopierprozesses wieder. Die synthetische Teilkopie kann auf ausdrücklichen Wiederanlauf mit derselben Autorität fortgesetzt werden. Ein bestätigtes Paket kann nach Prozessabbruch vor der Umbenennung veröffentlicht werden. Unklare Bestände bleiben gesperrt. Der synthetische Starter nutzt beim Wiederanlauf ein [installationsgebundenes Kontrolljournal](docs/data-format/product-start-integration-v1-draft.md#wiederanlauf-mit-installationsgebundenem-kontrolljournal). Die Bereinigungsentscheidung ist im synthetischen Journal umgesetzt. Entfernung, Wiederanlauf nach Unterbrechung und Abschluss sind für das kontrollierte synthetische Ziel umgesetzt. Der synthetische Leseaufruf stellt auch einen ausschließlich im WAL bestätigten Szenentext aus der veröffentlichten Kopie wieder her. Der isolierte Win32-Datendienst bestätigt den Empfang der gebundenen P3-Zeile. Die gebundene Fensterrolle zeigt die Zeile über den lokalen Nur-Lese-Kanal im synthetischen Vorschaufenster an. Nach Abbruch bei sichtbarer Vorschau lässt sich das belegte Rollenprofil bereinigen. Der Szenenzugriff bleibt gesperrt. Die Integration in eine reguläre Installation ist offen.
+Die
+[zielgebundene synthetische Veröffentlichung](docs/data-format/product-start-integration-v1-draft.md#einmalige-veröffentlichung-am-gebundenen-synthetischen-ziel)
+erkennt eine bereits abgeschlossene Kopie nach Ausfall des Kopierprozesses wieder. Die synthetische
+Teilkopie kann auf ausdrücklichen Wiederanlauf mit derselben Autorität fortgesetzt werden. Ein
+bestätigtes Paket kann nach Prozessabbruch vor der Umbenennung veröffentlicht werden. Unklare
+Bestände bleiben gesperrt. Der synthetische Starter nutzt beim Wiederanlauf ein
+[installationsgebundenes Kontrolljournal](docs/data-format/product-start-integration-v1-draft.md#wiederanlauf-mit-installationsgebundenem-kontrolljournal).
+Die Bereinigungsentscheidung ist im synthetischen Journal umgesetzt. Entfernung, Wiederanlauf nach
+Unterbrechung und Abschluss sind für das kontrollierte synthetische Ziel umgesetzt. Der synthetische
+Leseaufruf stellt auch einen ausschließlich im WAL bestätigten Szenentext aus der veröffentlichten
+Kopie wieder her. Der isolierte Win32-Datendienst bestätigt den Empfang der gebundenen P3-Zeile. Die
+gebundene Fensterrolle zeigt die Zeile über den lokalen Nur-Lese-Kanal im synthetischen
+Vorschaufenster an. Nach Abbruch bei sichtbarer Vorschau lässt sich das belegte Rollenprofil
+bereinigen. Der Szenenzugriff bleibt gesperrt. Die Integration in eine reguläre Installation ist
+offen.
 
 ## Prüfstand für KQ-069 · 19. November 2026
 
-Der [synthetische BP4b-Datenkanal](docs/data-format/native-win32-bp4-channel-v1-draft.md#abschluss-des-synthetischen-datenkanals) ist abgeschlossen. C4b bis C4d sind für das schreibgeschützte synthetische Win32-Fenster abgeschlossen. Der verwaltete Starter bindet Paket und Prozessgeneration unter Kontrollsperre und gibt das Fenster nach bestätigtem Bootstrap frei. Nach Starterabbruch blockiert der offene Sitzungsbeleg die nächste Fenstererzeugung. Die [bytegebundene C4d-Abnahme](docs/architecture/decisions/0036-native-win32-ui-role-evaluation.md#c4d-abschluss-für-den-synthetischen-vorschaupfad) enthält Paketidentität, Sicherheitsnachweise und Freigabeumfang. Der neue Einstieg `broker-store open-win32-scene <Kontrollkopf>` zeigt nach beiden Bootstrap-Quittungen genau eine vom isolierten Datendienst gelesene Szene A schreibgeschützt an. Der ETW-Netzvergleich erfasste im Referenzlauf und beim einmaligen Szenenabruf je null Netzwerkereignisse im KRAQEL-Prozessbaum. Nur im Szenenlauf startete der Datendienst. Der anschließende verwaltete Prüflauf `check-win32-scene-denied-save` bestätigte `DENIED` für einen gültigen Speicherversuch und unveränderten Text auf Revision 0 beim erneuten Lesen unter derselben Bindung. Unter eigener Edit-Bindung bestätigte `check-win32-scene-edit-conflict` die erste Speicherung, `CONFLICT` für den veralteten Schreibversuch und den gespeicherten Text auf Revision 1 im Arbeitsspeicher. Der dauerhafte Prüfpfad `save-win32-scene` und `read-saved-win32-scene` bestätigte nach Prozessneustart Text und Revision 1 im isolierten SQLite-Abbild; veränderte Dateibytes sperren das Wiederöffnen vor dem Rollenstart. Produktdaten und WebView2 bleiben gesperrt.
+Der
+[synthetische BP4b-Datenkanal](docs/data-format/native-win32-bp4-channel-v1-draft.md#abschluss-des-synthetischen-datenkanals)
+ist abgeschlossen. C4b bis C4d sind für das schreibgeschützte synthetische Win32-Fenster
+abgeschlossen. Der verwaltete Starter bindet Paket und Prozessgeneration unter Kontrollsperre und
+gibt das Fenster nach bestätigtem Bootstrap frei. Nach Starterabbruch blockiert der offene
+Sitzungsbeleg die nächste Fenstererzeugung. Die
+[bytegebundene C4d-Abnahme](docs/architecture/decisions/0036-native-win32-ui-role-evaluation.md#c4d-abschluss-für-den-synthetischen-vorschaupfad)
+enthält Paketidentität, Sicherheitsnachweise und Freigabeumfang. Der neue Einstieg
+`broker-store open-win32-scene <Kontrollkopf>` zeigt nach beiden Bootstrap-Quittungen genau eine vom
+isolierten Datendienst gelesene Szene A schreibgeschützt an. Der ETW-Netzvergleich erfasste im
+Referenzlauf und beim einmaligen Szenenabruf je null Netzwerkereignisse im KRAQEL-Prozessbaum. Nur
+im Szenenlauf startete der Datendienst. Der anschließende verwaltete Prüflauf
+`check-win32-scene-denied-save` bestätigte `DENIED` für einen gültigen Speicherversuch und
+unveränderten Text auf Revision 0 beim erneuten Lesen unter derselben Bindung. Unter eigener
+Edit-Bindung bestätigte `check-win32-scene-edit-conflict` die erste Speicherung, `CONFLICT` für den
+veralteten Schreibversuch und den gespeicherten Text auf Revision 1 im Arbeitsspeicher. Der
+dauerhafte Prüfpfad `save-win32-scene` und `read-saved-win32-scene` bestätigte nach Prozessneustart
+Text und Revision 1 im isolierten SQLite-Abbild; veränderte Dateibytes sperren das Wiederöffnen vor
+dem Rollenstart. Produktdaten und WebView2 bleiben gesperrt.
 
 ## Grobe Fortschrittseinschätzung · 25. November 2026
 
-Für den aktuellen Entwicklungszweig schätzen wir den Gesamtstand einschließlich M6/Version 0.2 auf **rund 72 %**, mit einer plausiblen Spanne von **67–77 %**. Ausgangspunkt ist die Einschätzung vom 17. November (65 %). Den Ausschlag geben die produktive Übernahme und Wiederherstellung von Arbeitskopien, die Veröffentlichung von Alpha 7 und die seither im Windows-Installer belegten Schreib- und Exportabläufe. Die Schätzung gewichtet umgesetzte Arbeitsblöcke und offene Abnahmerisiken. Die Tageswerte sind nachträglich geschätzte Größenordnungen.
+Für den aktuellen Entwicklungszweig schätzen wir den Gesamtstand einschließlich M6/Version 0.2 auf
+**rund 72 %**, mit einer plausiblen Spanne von **67–77 %**. Ausgangspunkt ist die Einschätzung
+vom 17. November (65 %). Den Ausschlag geben die produktive Übernahme und Wiederherstellung von
+Arbeitskopien, die Veröffentlichung von Alpha 7 und die seither im Windows-Installer belegten
+Schreib- und Exportabläufe. Die Schätzung gewichtet umgesetzte Arbeitsblöcke und offene
+Abnahmerisiken. Die Tageswerte sind nachträglich geschätzte Größenordnungen.
 
-| Tag (November 2026, Berlin) | Geschätzter Gesamtstand | Belegter Fortschritt |
-| --- | --- | --- |
-| 21.–22. | ca. 66 % | Auf dem Entwicklungszweig keine neuen Commits seit der Übergabe vom 20. |
-| 23. | ca. 67 % | Verwalteter synthetischer Editor mit Autosave, Konfliktbearbeitung und Inline-Formatierung. |
-| 24. | ca. 70 % | Arbeitskopien, selektive Übernahme und Rücknahme sowie geschützte Zusatzarchive. |
-| 25. | ca. 72 % | Alpha 7 veröffentlicht. Auf dem Entwicklungszweig zusätzlich native Manuskriptbearbeitung, Autosave, Konfliktvergleich und Drehbuchexport. |
+| Tag (November 2026, Berlin) | Geschätzter Gesamtstand | Belegter Fortschritt                                                                                                                       |
+| --------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| 21.–22.                     | ca. 66 %                | Auf dem Entwicklungszweig keine neuen Commits seit der Übergabe vom 20.                                                                    |
+| 23.                         | ca. 67 %                | Verwalteter synthetischer Editor mit Autosave, Konfliktbearbeitung und Inline-Formatierung.                                                |
+| 24.                         | ca. 70 %                | Arbeitskopien, selektive Übernahme und Rücknahme sowie geschützte Zusatzarchive.                                                           |
+| 25.                         | ca. 72 %                | Alpha 7 veröffentlicht. Auf dem Entwicklungszweig zusätzlich native Manuskriptbearbeitung, Autosave, Konfliktvergleich und Drehbuchexport. |
 
-Offen bleiben unter anderem die vollständige Produktisolation, die Abnahme mit realen KI-Providern, der physische Zweitrechnertest und die für M6 geplante Bild- und Kartenfunktionalität. [Abnahmeumfang des Entwicklungszweigs](docs/testing/F08_M3_ACCEPTANCE_MATRIX.md)
+Offen bleiben unter anderem die vollständige Produktisolation, die Abnahme mit realen KI-Providern,
+der physische Zweitrechnertest und die für M6 geplante Bild- und Kartenfunktionalität.
+[Abnahmeumfang des Entwicklungszweigs](docs/testing/F08_M3_ACCEPTANCE_MATRIX.md)
 
 ## Grobe Fortschrittseinschätzung · 17. November 2026
 
@@ -184,7 +278,10 @@ Datenschutzziel bleibt unverändert.
            entscheiden
      - [ ] Nach Freigabe Modell-/Versionsprototyp und Schriftprüfung, danach Renderer und
            DB-01–DB-08
-       - [x] A4-Rollenmaße einer vollständigen synthetischen Szene unabhängig vermessen, Dialogumbruch über zwei kurze Absätze korrigieren und den Erhalt einer vorhandenen Ausgabe bei Auswahl- und Grammatikfehlern im Desktop prüfen. [DB-05/06/08](docs/testing/F08_M3_ACCEPTANCE_MATRIX.md)
+       - [x] A4-Rollenmaße einer vollständigen synthetischen Szene unabhängig vermessen,
+             Dialogumbruch über zwei kurze Absätze korrigieren und den Erhalt einer vorhandenen
+             Ausgabe bei Auswahl- und Grammatikfehlern im Desktop prüfen.
+             [DB-05/06/08](docs/testing/F08_M3_ACCEPTANCE_MATRIX.md)
      - [x] Funktionalen nativen Gesamtlauf M3-G01 mit 100 Szenen/50 Bildern, Neustart,
            Backup/Recovery, Snapshot-Neuimport, Umbenennung, Backlinks und sichtbaren Assetfehlern
            durchführen (KQ-067)
@@ -415,20 +512,29 @@ Datenschutzziel bleibt unverändert.
        - [x] KQ-069 A: Szene A in isolierter SQLite-Testablage dauerhaft gespeichert, nach Neustart
              beider Rollen und auf der ausgeschalteten Gastplatte bestätigt.
        - [x] KQ-069 A: Datendienstabbruch vor und nach Commit im Gast geprüft.
-             [Wiederöffnen und unabhängige Plattenprüfung](docs/testing/native-win32-commit-crashes.md) bestätigen Revision 0 bzw. 1.
-       - [x] KQ-069 A: Beide Abbruch- und Wiederöffnungspfade mit frischem ETW-Netzvergleich geprüft.
-             Je Lauf vier Positivkontrollen, null Verluste und null Netzwerkereignisse im Prüfprozessbaum.
-       - [x] KQ-069 A: [Partieller Schreibframe und Kanal-Timeout](docs/testing/native-win32-channel-interruptions.md)
+             [Wiederöffnen und unabhängige Plattenprüfung](docs/testing/native-win32-commit-crashes.md)
+             bestätigen Revision 0 bzw. 1.
+       - [x] KQ-069 A: Beide Abbruch- und Wiederöffnungspfade mit frischem ETW-Netzvergleich
+             geprüft. Je Lauf vier Positivkontrollen, null Verluste und null Netzwerkereignisse im
+             Prüfprozessbaum.
+       - [x] KQ-069 A:
+             [Partieller Schreibframe und Kanal-Timeout](docs/testing/native-win32-channel-interruptions.md)
              im Offline-Gast geprüft. Beide frischen Lesepaare bestätigten Revision 0.
-       - [x] KQ-069 A: [Fensterende bei laufender Anfrage und frischer ETW-Netzvergleich](docs/testing/native-win32-window-close.md).
+       - [x] KQ-069 A:
+             [Fensterende bei laufender Anfrage und frischer ETW-Netzvergleich](docs/testing/native-win32-window-close.md).
              Revision 0, leere Jobs und null Netzwerkereignisse im Prüfprozessbaum bestätigt.
-       - [x] KQ-069 A: [Starterabbruch ohne Endebeleg](docs/testing/native-win32-starter-restart.md) geprüft.
-             Die synthetische Ablage blieb bei drei Neustartversuchen gesperrt.
+       - [x] KQ-069 A: [Starterabbruch ohne Endebeleg](docs/testing/native-win32-starter-restart.md)
+             geprüft. Die synthetische Ablage blieb bei drei Neustartversuchen gesperrt.
        - [x] KQ-069 A: Frischer ETW-Netzvergleich für Starterabbruch und gesperrten Wiederanlauf.
              Alle drei Neustarts ohne Kindprozess, null Netzwerkereignisse im Prüfprozessbaum.
-       - [x] KQ-069 A: [Freigabebedingungen nach Starterabbruch](docs/data-format/native-win32-bp4-channel-v1-draft.md#freigabeentscheidung-nach-starterabbruch) spezifiziert.
-       - [x] KQ-069 A: [Generationsgebundener Endebeleg und einmalige Lesefreigabe](docs/testing/native-win32-release-proof.md) auf neuer synthetischer Ablage bei überlebender Kontrollinstanz geprüft.
-       - [x] KQ-069 A: Frischer ETW-Netzvergleich für Belegausstellung, einmalige Freigabe und verweigerten Lesezugriff. Beide Prüfprozessbäume ohne Netzwerkereignisse.
+       - [x] KQ-069 A:
+             [Freigabebedingungen nach Starterabbruch](docs/data-format/native-win32-bp4-channel-v1-draft.md#freigabeentscheidung-nach-starterabbruch)
+             spezifiziert.
+       - [x] KQ-069 A:
+             [Generationsgebundener Endebeleg und einmalige Lesefreigabe](docs/testing/native-win32-release-proof.md)
+             auf neuer synthetischer Ablage bei überlebender Kontrollinstanz geprüft.
+       - [x] KQ-069 A: Frischer ETW-Netzvergleich für Belegausstellung, einmalige Freigabe und
+             verweigerten Lesezugriff. Beide Prüfprozessbäume ohne Netzwerkereignisse.
        - [ ] KQ-069 A: Durchsetzbaren Erzeugungsweg für jede Runtimegeneration belegen. Der geprüfte
              WebView2-Win32-Einstieg erfüllt BP3 nicht. Produktive BP4-Datenrechte bleiben offen.
        - [ ] KQ-069 A: C4b vollständige Runtime-/Nichtsystemmodul-/Rollenbindung, wirksame native

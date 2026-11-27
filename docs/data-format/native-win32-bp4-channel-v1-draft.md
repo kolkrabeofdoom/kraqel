@@ -10,16 +10,21 @@ geprüft. Produktprojekte bleiben gesperrt.
 
 ## Abschluss des synthetischen Datenkanals
 
-**BP4b ist für die geprüfte Win32-Forschungsprobe abgeschlossen.** Die Abnahme stützt sich auf die vorhandenen Gastläufe.
+**BP4b ist für die geprüfte Win32-Forschungsprobe abgeschlossen.** Die Abnahme stützt sich auf die
+vorhandenen Gastläufe.
 
-| Eigenschaft | Nachweis |
-| --- | --- |
-| Nur die gebundenen Rollen erhalten die vorgesehenen Pipe-Enden. Die Gegenstelle muss sich authentisieren. | [Handle-Rechte](../testing/native-win32-pipe-rights.md), [HELLO/READY](../testing/native-win32-hello-ready.md) |
-| Die Lesebindung erlaubt einen Szenenabruf. Schreiben erfordert eine Edit-Bindung und die passende Revision. | [Lesen](../testing/native-win32-scene-read.md), [Schreibabweisung](../testing/native-win32-denied-save.md), [Revisionskonflikt](../testing/native-win32-edit-conflict.md) |
+| Eigenschaft                                                                                                                                                                     | Nachweis                                                                                                                                                                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Nur die gebundenen Rollen erhalten die vorgesehenen Pipe-Enden. Die Gegenstelle muss sich authentisieren.                                                                       | [Handle-Rechte](../testing/native-win32-pipe-rights.md), [HELLO/READY](../testing/native-win32-hello-ready.md)                                                                                                                                            |
+| Die Lesebindung erlaubt einen Szenenabruf. Schreiben erfordert eine Edit-Bindung und die passende Revision.                                                                     | [Lesen](../testing/native-win32-scene-read.md), [Schreibabweisung](../testing/native-win32-denied-save.md), [Revisionskonflikt](../testing/native-win32-edit-conflict.md)                                                                                 |
 | An der Commitgrenze bleibt genau die ursprüngliche oder die bestätigte Revision erhalten. Unvollständige Übertragungen und Fensterende führen zu keiner unbestätigten Änderung. | [SQLite-Wiederöffnung](../testing/native-win32-durable-reopen.md), [Commitgrenze](../testing/native-win32-commit-crashes.md), [Teilübertragung](../testing/native-win32-channel-interruptions.md), [Fensterende](../testing/native-win32-window-close.md) |
-| Ohne gültigen Endebeleg bleibt die Ablage gesperrt. Eine verbrauchte Lesefreigabe überlebt Bereinigung und Kaltstart als Sperre. | [Starterabbruch](../testing/native-win32-starter-restart.md), [Einmalfreigabe und ETW-Messgrenzen](../testing/native-win32-release-proof.md) |
+| Ohne gültigen Endebeleg bleibt die Ablage gesperrt. Eine verbrauchte Lesefreigabe überlebt Bereinigung und Kaltstart als Sperre.                                                | [Starterabbruch](../testing/native-win32-starter-restart.md), [Einmalfreigabe und ETW-Messgrenzen](../testing/native-win32-release-proof.md)                                                                                                              |
 
-Die Kanalprüfungen verwendeten synthetische Katalogdaten. Tastaturbedienung und softwareseitige Sprachausgabe sind für die [Fensterprobe](../testing/native-win32-window-guest.md) separat belegt. Der bedienbare Editor mit explizitem Speichern über den gebundenen Kanal gehört zur offenen C4c-Integration. Für reale Projekte und eine produktive Datenfreigabe fehlen weiterhin die Integrationsnachweise.
+Die Kanalprüfungen verwendeten synthetische Katalogdaten. Tastaturbedienung und softwareseitige
+Sprachausgabe sind für die [Fensterprobe](../testing/native-win32-window-guest.md) separat belegt.
+Der bedienbare Editor mit explizitem Speichern über den gebundenen Kanal gehört zur offenen
+C4c-Integration. Für reale Projekte und eine produktive Datenfreigabe fehlen weiterhin die
+Integrationsnachweise.
 
 ## Wer verbindet sich mit wem?
 
@@ -94,20 +99,61 @@ verbraucht. Fehlt nach Starterabbruch ein verlässlicher Endebeleg, bleibt die A
 
 ### Freigabeentscheidung nach Starterabbruch
 
-**Entscheidung für die vorhandene synthetische Ablage:** Sie bleibt gesperrt. Im [gemessenen Abbruchlauf](../testing/native-win32-starter-restart.md) blieb `pending` zurück. Die ursprünglichen Jobhandles sind verloren und der Transaktionsausgang ist ungeklärt. Die drei abgewiesenen Neustarts und der ETW-Netzvergleich bestätigen die Sperre. Sie liefern keinen Endebeleg.
+**Entscheidung für die vorhandene synthetische Ablage:** Sie bleibt gesperrt. Im
+[gemessenen Abbruchlauf](../testing/native-win32-starter-restart.md) blieb `pending` zurück. Die
+ursprünglichen Jobhandles sind verloren und der Transaktionsausgang ist ungeklärt. Die drei
+abgewiesenen Neustarts und der ETW-Netzvergleich bestätigen die Sperre. Sie liefern keinen
+Endebeleg.
 
-**Stand der Implementierung.** Der [Prüfstarter](../../scripts/runtime-isolation/native-window/src/bin/pipe-check.rs) schreibt unter exklusiver Kontrollsperre vor Arbeitsbeginn `pending` und synchronisiert den Vermerk. Im regulären Ablauf wartet er auf die ursprünglichen Prozesshandles, prüft beide gehaltenen Jobs auf Leerstand und verlangt die Entfernung der Startinformationen. Erst dann schreibt und synchronisiert er `drained`. Beide Vermerke enthalten den Hash des Paketankers. Dieser identifiziert weder einen einzelnen Auftrag noch dessen SQLite-Ergebnis. Für diese vorhandene Ablage bleibt die Sperre endgültig bestehen, solange der Endebeleg fehlt. Die neue Probe verwendet einen separaten, generationsgebundenen Ablauf.
+**Stand der Implementierung.** Der
+[Prüfstarter](../../scripts/runtime-isolation/native-window/src/bin/pipe-check.rs) schreibt unter
+exklusiver Kontrollsperre vor Arbeitsbeginn `pending` und synchronisiert den Vermerk. Im regulären
+Ablauf wartet er auf die ursprünglichen Prozesshandles, prüft beide gehaltenen Jobs auf Leerstand
+und verlangt die Entfernung der Startinformationen. Erst dann schreibt und synchronisiert er
+`drained`. Beide Vermerke enthalten den Hash des Paketankers. Dieser identifiziert weder einen
+einzelnen Auftrag noch dessen SQLite-Ergebnis. Für diese vorhandene Ablage bleibt die Sperre
+endgültig bestehen, solange der Endebeleg fehlt. Die neue Probe verwendet einen separaten,
+generationsgebundenen Ablauf.
 
-**Bedingungen für einen künftigen Freigabepfad.** Alle folgenden Nachweise müssen unter derselben exklusiven Kontrollsperre zusammenpassen, bevor der Starter irgendeine Rolle startet oder SQLite öffnet.
+**Bedingungen für einen künftigen Freigabepfad.** Alle folgenden Nachweise müssen unter derselben
+exklusiven Kontrollsperre zusammenpassen, bevor der Starter irgendeine Rolle startet oder SQLite
+öffnet.
 
-1. **Herkunft und Aktualität.** Ein lokal geschützter Startvermerk bindet vor dem ersten Rollenstart eine eindeutige Auftragsgeneration an Paket, Richtlinie, Sitzung und die konkrete synthetische Ablage. Der Endebeleg muss von der dafür vorgesehenen vertrauenswürdigen lokalen Kontrollinstanz stammen und exakt diesem offenen Auftrag entsprechen. Ein früherer Beleg desselben Pakets darf weder wiederverwendet noch durch Zurückspielen eines älteren Kontrollstands gültig werden.
-2. **Ende beider Rollen.** Die Kontrollinstanz hat das Ende der ursprünglichen Prozessgenerationen und den Leerstand beider zugehörigen Jobs anhand der seit dem Start gehaltenen Kernelobjekte festgestellt. Die alten Kanalenden und Startfreigaben sind unwirksam. Soll der Beleg erst nach dem Starterabbruch entstehen, muss eine überlebende Kontrollinstanz diese Beobachtungsmöglichkeit bereits vor dem Rollenstart erhalten haben. Ein späterer Prozessscan, eine freie Dateisperre oder eine fehlende PID ersetzt sie nicht.
-3. **Abgeschlossene Transaktion.** Ein dem Auftrag zugeordneter, dauerhafter Nachweis bestätigt entweder den erfolgten Commit samt Zielrevision oder den abgeschlossenen Rollback samt Ausgangsrevision. Eine Absichtserklärung vor Commit, eine ausgebliebene UI-Antwort und der Zustand einer Journaldatei reichen nicht aus. Ein Abbruch zwischen SQLite-Abschluss und dauerhafter Bestätigung bleibt ungeklärt. Auch zum Nachsehen bleibt die Datenbank in diesem Zustand geschlossen.
-4. **Einmaliger Übergang.** Erst wenn alle Nachweise vollständig sind, darf die Kontrollinstanz den alten Auftrag dauerhaft abschließen und seine Freigaben verbrauchen. Der erste neue Zugriff erfolgt unter frischer Lesebindung mit neuen Pipes, Schlüsseln und Kanal-ID. Er muss die belegte Revision bestätigen. Bei Abweichung endet die Paarung gesperrt. Ein Schreibauftrag erfordert eine eigene neue Edit-Bindung. Ein unterbrochener oder widersprüchlicher Kontrollübergang erlaubt keinen Zugriff.
+1. **Herkunft und Aktualität.** Ein lokal geschützter Startvermerk bindet vor dem ersten Rollenstart
+   eine eindeutige Auftragsgeneration an Paket, Richtlinie, Sitzung und die konkrete synthetische
+   Ablage. Der Endebeleg muss von der dafür vorgesehenen vertrauenswürdigen lokalen Kontrollinstanz
+   stammen und exakt diesem offenen Auftrag entsprechen. Ein früherer Beleg desselben Pakets darf
+   weder wiederverwendet noch durch Zurückspielen eines älteren Kontrollstands gültig werden.
+2. **Ende beider Rollen.** Die Kontrollinstanz hat das Ende der ursprünglichen Prozessgenerationen
+   und den Leerstand beider zugehörigen Jobs anhand der seit dem Start gehaltenen Kernelobjekte
+   festgestellt. Die alten Kanalenden und Startfreigaben sind unwirksam. Soll der Beleg erst nach
+   dem Starterabbruch entstehen, muss eine überlebende Kontrollinstanz diese Beobachtungsmöglichkeit
+   bereits vor dem Rollenstart erhalten haben. Ein späterer Prozessscan, eine freie Dateisperre oder
+   eine fehlende PID ersetzt sie nicht.
+3. **Abgeschlossene Transaktion.** Ein dem Auftrag zugeordneter, dauerhafter Nachweis bestätigt
+   entweder den erfolgten Commit samt Zielrevision oder den abgeschlossenen Rollback samt
+   Ausgangsrevision. Eine Absichtserklärung vor Commit, eine ausgebliebene UI-Antwort und der
+   Zustand einer Journaldatei reichen nicht aus. Ein Abbruch zwischen SQLite-Abschluss und
+   dauerhafter Bestätigung bleibt ungeklärt. Auch zum Nachsehen bleibt die Datenbank in diesem
+   Zustand geschlossen.
+4. **Einmaliger Übergang.** Erst wenn alle Nachweise vollständig sind, darf die Kontrollinstanz den
+   alten Auftrag dauerhaft abschließen und seine Freigaben verbrauchen. Der erste neue Zugriff
+   erfolgt unter frischer Lesebindung mit neuen Pipes, Schlüsseln und Kanal-ID. Er muss die belegte
+   Revision bestätigen. Bei Abweichung endet die Paarung gesperrt. Ein Schreibauftrag erfordert eine
+   eigene neue Edit-Bindung. Ein unterbrochener oder widersprüchlicher Kontrollübergang erlaubt
+   keinen Zugriff.
 
-Für diesen Entscheid genügen lokale Zustandskennungen und gebundene Revisionen. Szenentext, Schlüssel, Rohframes und externe Dienste sind dafür entbehrlich. Ein manuelles Löschen oder Umschreiben des Sperrvermerks ist kein Freigabeverfahren.
+Für diesen Entscheid genügen lokale Zustandskennungen und gebundene Revisionen. Szenentext,
+Schlüssel, Rohframes und externe Dienste sind dafür entbehrlich. Ein manuelles Löschen oder
+Umschreiben des Sperrvermerks ist kein Freigabeverfahren.
 
-**Gezielte Abnahme vor einer Implementierungsfreigabe.** Auf einer frischen synthetischen Ablage genau einen passenden Abschluss zur einmaligen Lesefreigabe führen. Einen alten oder fremden Abschluss sowie den Abbruch vor dauerhafter Abschlussbestätigung vor jedem Rollenstart abweisen. Bei wiederholtem oder konkurrierendem Aufruf darf höchstens eine neue Lesepaarung entstehen. Die [beiden Gastläufe mit lebender Kontrollinstanz](../testing/native-win32-release-proof.md) bestätigen genau eine Lesebindung für Revision 1, die Ablehnung einer fremden Generation, den Verbrauch bei Konkurrenz und Replay sowie die Sperre bei Abbruch vor dem Endebeleg.
+**Gezielte Abnahme vor einer Implementierungsfreigabe.** Auf einer frischen synthetischen Ablage
+genau einen passenden Abschluss zur einmaligen Lesefreigabe führen. Einen alten oder fremden
+Abschluss sowie den Abbruch vor dauerhafter Abschlussbestätigung vor jedem Rollenstart abweisen. Bei
+wiederholtem oder konkurrierendem Aufruf darf höchstens eine neue Lesepaarung entstehen. Die
+[beiden Gastläufe mit lebender Kontrollinstanz](../testing/native-win32-release-proof.md) bestätigen
+genau eine Lesebindung für Revision 1, die Ablehnung einer fremden Generation, den Verbrauch bei
+Konkurrenz und Replay sowie die Sperre bei Abbruch vor dem Endebeleg.
 
 ## Gezielte Abnahme
 
@@ -147,5 +193,14 @@ bestätigt genau ein REQUEST/RESPONSE-Paar für A/read. Die
 Sequenznummern im Gast bestätigt.
 [Edit-Bindung und Konflikt](../testing/native-win32-edit-conflict.md) sind mit speicherresidentem
 Katalog bestätigt. [SQLite und regulärer Prozessneustart](../testing/native-win32-durable-reopen.md)
-sind im Gast geprüft. Der [Datendienstabbruch vor und nach Commit](../testing/native-win32-commit-crashes.md) ist geprüft. Die [Teilübertragung und die Empfangsfrist von 30 Sekunden](../testing/native-win32-channel-interruptions.md) sind im Offline-Gast geprüft.
-[Fensterende bei offener Transaktion und frischer ETW-Netzvergleich](../testing/native-win32-window-close.md) sind geprüft. Der Netzlauf dieses Builds umfasst Teilübertragung, Timeout, Fensterende und die zugehörigen Wiederöffnungen. Der [Wiederanlauf nach Starterabbruch bei fehlendem Endebeleg](../testing/native-win32-starter-restart.md) blieb für zwei Leseversuche und einen neuen Auftrag gesperrt. Der frische ETW-Netzvergleich desselben Binärstands bestätigte drei gesperrte Starter ohne Kindprozess und null Netzwerkereignisse im Prüfprozessbaum.
+sind im Gast geprüft. Der
+[Datendienstabbruch vor und nach Commit](../testing/native-win32-commit-crashes.md) ist geprüft. Die
+[Teilübertragung und die Empfangsfrist von 30 Sekunden](../testing/native-win32-channel-interruptions.md)
+sind im Offline-Gast geprüft.
+[Fensterende bei offener Transaktion und frischer ETW-Netzvergleich](../testing/native-win32-window-close.md)
+sind geprüft. Der Netzlauf dieses Builds umfasst Teilübertragung, Timeout, Fensterende und die
+zugehörigen Wiederöffnungen. Der
+[Wiederanlauf nach Starterabbruch bei fehlendem Endebeleg](../testing/native-win32-starter-restart.md)
+blieb für zwei Leseversuche und einen neuen Auftrag gesperrt. Der frische ETW-Netzvergleich
+desselben Binärstands bestätigte drei gesperrte Starter ohne Kindprozess und null Netzwerkereignisse
+im Prüfprozessbaum.

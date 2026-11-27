@@ -19,6 +19,42 @@ const WIDTH: f32 = 481.8;
 const MAX_LINES: usize = 100_000;
 type Result<T> = std::result::Result<T, IllustratedError>;
 
+// Adjacent editor text nodes can split a single composed glyph. Normalize the
+// whole printable run, retaining hard breaks and changes of font face as boundaries.
+fn styled_text_runs(
+    runs: &[Inline],
+    default_style: usize,
+) -> impl Iterator<Item = (std::borrow::Cow<'_, str>, usize)> {
+    fn face(run: &Inline, default_style: usize) -> usize {
+        match run {
+            Inline::Text { bold, italic, .. } if *bold || *italic => {
+                usize::from(*bold) + 2 * usize::from(*italic)
+            }
+            _ => default_style,
+        }
+    }
+    runs.chunk_by(move |left, right| {
+        matches!((left, right), (Inline::Text { .. }, Inline::Text { .. }))
+            && face(left, default_style) == face(right, default_style)
+    })
+    .map(move |group| {
+        let text = match group {
+            [Inline::Text { text, .. }] => std::borrow::Cow::Borrowed(text.as_str()),
+            [Inline::HardBreak] => std::borrow::Cow::Borrowed("\n"),
+            _ => std::borrow::Cow::Owned(
+                group
+                    .iter()
+                    .filter_map(|run| match run {
+                        Inline::Text { text, .. } => Some(text.as_str()),
+                        Inline::HardBreak => None,
+                    })
+                    .collect(),
+            ),
+        };
+        (text, face(&group[0], default_style))
+    })
+}
+
 #[derive(Clone)]
 struct Line {
     chars: Vec<(char, usize)>,
@@ -97,23 +133,13 @@ impl Layout {
             .chars()
             .map(|c| (c, default_style))
             .collect();
-        for run in runs {
-            match run {
-                Inline::HardBreak => chars.push(('\n', default_style)),
-                Inline::Text { text, bold, italic } => {
-                    let style = if *bold || *italic {
-                        usize::from(*bold) + 2 * usize::from(*italic)
-                    } else {
-                        default_style
-                    };
-                    chars.extend(
-                        self.fonts
-                            .normalized(text, style)?
-                            .chars()
-                            .map(|c| (c, style)),
-                    );
-                }
-            }
+        for (text, style) in styled_text_runs(runs, default_style) {
+            chars.extend(
+                self.fonts
+                    .normalized(&text, style)?
+                    .chars()
+                    .map(|c| (c, style)),
+            );
         }
         let mut line = Vec::new();
         let mut width = 0.0;

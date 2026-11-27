@@ -29,7 +29,9 @@ mit Kennung, Rolle, Elternkennung und Geschwisterposition. Es enthält keinen Ma
 Sichtbarer Text kommt ausschließlich aus den markierten Absätzen in `word/document.xml`. Die
 `kq1`-Grammatik ist experimentell und reserviert keine produktive Formatversion.
 
-Die laufenden Tests behalten die LibreOffice-Ablehnung der verschachtelten Darstellung sowie gemeinsame Prüfungen für Absatzformat, Nummerierung, Run-Aufteilung, XML und ZIP bei. Die flache Darstellung trägt die laufenden Office-Roundtrip- und Strukturtests.
+Die laufenden Tests behalten die LibreOffice-Ablehnung der verschachtelten Darstellung sowie
+gemeinsame Prüfungen für Absatzformat, Nummerierung, Run-Aufteilung, XML und ZIP bei. Die flache
+Darstellung trägt die laufenden Office-Roundtrip- und Strukturtests.
 
 ## Ergebnis des Versuchs am 14 November 2026
 

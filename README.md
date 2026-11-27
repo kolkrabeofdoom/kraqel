@@ -387,31 +387,80 @@ Backups sind Recovery-Artefakte. Für Austausch und Versionskontrolle dient der 
 
 ### Szenenstände auf zwei Rechnern vergleichen
 
-Im Desktop-Entwicklungsstand unter **Werkzeuge → Versionen → Szenenstände zwischen zwei Rechnern vergleichen**:
+Im Desktop-Entwicklungsstand unter **Werkzeuge → Versionen → Szenenstände zwischen zwei Rechnern
+vergleichen**:
 
-1. Vor dem getrennten Weiterschreiben die letzte Speicherung abwarten und **Szenenbasis sichern** wählen. Die angezeigte SHA-256-Prüfsumme der gemeinsamen Basis getrennt aufbewahren.
-2. Nach der Bearbeitung auf dem anderen Rechner dessen neuen Stand genauso sichern. Die Basisdatei `szenenbasis-<SHA-256>.json` in den Ordner `backups` des Zielprojekts kopieren. Dort muss auch die ursprüngliche Basisdatei liegen. Die beim Sichern angezeigte Prüfsumme unabhängig von der kopierten Datei abgleichen.
-3. Am Ziel beide Prüfsummen eingeben und **Szenen lesend vergleichen** wählen. Als dritte Fassung dient der hier bereits gespeicherte Stand. Das Ergebnis unterscheidet neue, fehlende, einseitig geänderte, identisch geänderte und widersprüchliche Szenen.
+1. Vor dem getrennten Weiterschreiben die letzte Speicherung abwarten und **Szenenbasis sichern**
+   wählen. Die angezeigte SHA-256-Prüfsumme der gemeinsamen Basis getrennt aufbewahren.
+2. Nach der Bearbeitung auf dem anderen Rechner dessen neuen Stand genauso sichern. Die Basisdatei
+   `szenenbasis-<SHA-256>.json` in den Ordner `backups` des Zielprojekts kopieren. Dort muss auch
+   die ursprüngliche Basisdatei liegen. Die beim Sichern angezeigte Prüfsumme unabhängig von der
+   kopierten Datei abgleichen.
+3. Am Ziel beide Prüfsummen eingeben und **Szenen lesend vergleichen** wählen. Als dritte Fassung
+   dient der hier bereits gespeicherte Stand. Das Ergebnis unterscheidet neue, fehlende, einseitig
+   geänderte, identisch geänderte und widersprüchliche Szenen.
 
-Die Basisdatei enthält Format, Projektkennung sowie pro Szene deren Kennung und einen Hash. Dieser erfasst Titel, Text, Formatierung, übergeordnetes Dokument und Position. Änderungen allein an Revision oder Zeitstempeln zählen nicht als Textänderung. Medien, Plot und Story-Bibel werden nicht als Teil des Szenentexts verglichen. Bei einer auf dem anderen Rechner entfernten Szene zeigt die Übersicht vorhandene lokale Plotkarten, Bildprompt-Entwürfe und Verknüpfungen als mögliche Löschfolgen an.
+Die Basisdatei enthält Format, Projektkennung sowie pro Szene deren Kennung und einen Hash. Dieser
+erfasst Titel, Text, Formatierung, übergeordnetes Dokument und Position. Änderungen allein an
+Revision oder Zeitstempeln zählen nicht als Textänderung. Medien, Plot und Story-Bibel werden nicht
+als Teil des Szenentexts verglichen. Bei einer auf dem anderen Rechner entfernten Szene zeigt die
+Übersicht vorhandene lokale Plotkarten, Bildprompt-Entwürfe und Verknüpfungen als mögliche
+Löschfolgen an.
 
-Eine neu vorbereitete Arbeitskopie enthält die passende Basisdatei aus derselben SQLite-Transaktion. Für den Vergleich genügt es, diese Datei in den Zielordner `backups` zu kopieren und die bei der Vorbereitung angezeigte Basisprüfsumme zu verwenden.
+Eine neu vorbereitete Arbeitskopie enthält die passende Basisdatei aus derselben SQLite-Transaktion.
+Für den Vergleich genügt es, diese Datei in den Zielordner `backups` zu kopieren und die bei der
+Vorbereitung angezeigte Basisprüfsumme zu verwenden.
 
-**Eine Auswahl als neue Arbeitskopie vorbereiten.** Für eine bereits auf beiden Rechnern vorhandene Szene lassen sich Titel und formatierter Inhalt übernehmen, wenn nur der andere Rechner sie geändert hat und sie an derselben Stelle im Manuskript steht. Dazu den vollständigen vorbereiteten Quellordner `uebernahme-<UUID>` nach `backups` kopieren. Im Vergleich die gewünschten Szenen ankreuzen, Ordnername und separat bestätigten SHA-256 des **Quellinventars** eingeben und die Auswahl bestätigen. Im angezeigten neuen Ordner liegt der lokale Projektstand mit diesen Änderungen. Die lokalen Medien und Verknüpfungen bleiben Bestandteil der Kopie.
+**Eine Auswahl als neue Arbeitskopie vorbereiten.** Für eine bereits auf beiden Rechnern vorhandene
+Szene lassen sich Titel und formatierter Inhalt übernehmen, wenn nur der andere Rechner sie geändert
+hat und sie an derselben Stelle im Manuskript steht. Dazu den vollständigen vorbereiteten
+Quellordner `uebernahme-<UUID>` nach `backups` kopieren. Im Vergleich die gewünschten Szenen
+ankreuzen, Ordnername und separat bestätigten SHA-256 des **Quellinventars** eingeben und die
+Auswahl bestätigen. Im angezeigten neuen Ordner liegt der lokale Projektstand mit diesen Änderungen.
+Die lokalen Medien und Verknüpfungen bleiben Bestandteil der Kopie.
 
-Eine auf dem anderen Rechner gelöschte Szene bleibt lokal erhalten. Eine Löschung ist ausschließlich über die bewusste lokale Projektbearbeitung möglich. Ändert sich der geprüfte lokale Szenenstand vor dem Bestätigen, ist ein neuer Vergleich erforderlich. Das Ergebnis ist eine vorbereitete Kopie mit derselben Projektkennung. Das aktive Projekt behält seine Kennung.
+Eine auf dem anderen Rechner gelöschte Szene bleibt lokal erhalten. Eine Löschung ist ausschließlich
+über die bewusste lokale Projektbearbeitung möglich. Ändert sich der geprüfte lokale Szenenstand vor
+dem Bestätigen, ist ein neuer Vergleich erforderlich. Das Ergebnis ist eine vorbereitete Kopie mit
+derselben Projektkennung. Das aktive Projekt behält seine Kennung.
 
-**Zwischen zwei bearbeiteten Fassungen wählen (Windows).** Wähle im Versionsdialog die betreffende Konfliktszene. Gib den vorbereiteten Quellordner und die separat bestätigte Inventarprüfsumme ein. Mit **Beide Texte im isolierten Win32-Fenster anzeigen** und der anschließenden nativen Bestätigung öffnest du die Volltextansicht. Über **Lokal anzeigen** und **Extern anzeigen** wechselst du zwischen den Fassungen. Schau auf den Fenstertitel, bevor du die angezeigte Fassung wählst. Haben beide denselben sichtbaren Text und Titel, zeigt das Fenster zusätzlich die gespeicherte Dokumentstruktur zum Formatvergleich an.
+**Zwischen zwei bearbeiteten Fassungen wählen (Windows).** Wähle im Versionsdialog die betreffende
+Konfliktszene. Gib den vorbereiteten Quellordner und die separat bestätigte Inventarprüfsumme ein.
+Mit **Beide Texte im isolierten Win32-Fenster anzeigen** und der anschließenden nativen Bestätigung
+öffnest du die Volltextansicht. Über **Lokal anzeigen** und **Extern anzeigen** wechselst du
+zwischen den Fassungen. Schau auf den Fenstertitel, bevor du die angezeigte Fassung wählst. Haben
+beide denselben sichtbaren Text und Titel, zeigt das Fenster zusätzlich die gespeicherte
+Dokumentstruktur zum Formatvergleich an.
 
-Schließen bricht die Wahl ab. Bei lokaler Wahl bleibt das Manuskript wie gespeichert. Bei externer Wahl erzeugt KRAQEL nach erneuter Prüfung eine eigene Arbeitskopie mit der ausgewählten Szene. Danach kannst du wie unten beschrieben deren bisherige Fassung sichern und die Auswahl im geöffneten Projekt aktivieren. Ein zwischenzeitlich geänderter Stand verlangt einen neuen Vergleich. Beide Ausgangsfassungen bleiben bis zur ausdrücklichen Aktivierung erhalten.
+Schließen bricht die Wahl ab. Bei lokaler Wahl bleibt das Manuskript wie gespeichert. Bei externer
+Wahl erzeugt KRAQEL nach erneuter Prüfung eine eigene Arbeitskopie mit der ausgewählten Szene.
+Danach kannst du wie unten beschrieben deren bisherige Fassung sichern und die Auswahl im geöffneten
+Projekt aktivieren. Ein zwischenzeitlich geänderter Stand verlangt einen neuen Vergleich. Beide
+Ausgangsfassungen bleiben bis zur ausdrücklichen Aktivierung erhalten.
 
-Die Volltextansicht ist auf zwei vorhandene Fassungen derselben Szene an derselben Manuskriptposition begrenzt. Der native Kanal erlaubt höchstens 2 MiB für das gesamte Anzeigepaar einschließlich Titel und gegebenenfalls Dokumentstruktur. Auch bei initialisiertem Git zeigt der Versionsdialog nur Änderungszahlen und Dateipfade der gestagten Dateien. Der Versionsdialog erhält Auswahlstatus und bei externer Wahl die Belege der vorbereiteten Kopie. Die installierte Alpha benötigt für diese Funktion einen aktualisierten Windows-Build.
+Die Volltextansicht ist auf zwei vorhandene Fassungen derselben Szene an derselben
+Manuskriptposition begrenzt. Der native Kanal erlaubt höchstens 2 MiB für das gesamte Anzeigepaar
+einschließlich Titel und gegebenenfalls Dokumentstruktur. Auch bei initialisiertem Git zeigt der
+Versionsdialog nur Änderungszahlen und Dateipfade der gestagten Dateien. Der Versionsdialog erhält
+Auswahlstatus und bei externer Wahl die Belege der vorbereiteten Kopie. Die installierte Alpha
+benötigt für diese Funktion einen aktualisierten Windows-Build.
 
-**Die Auswahl im geöffneten Projekt aktivieren.** Mit „Vorherige Fassungen sichern“ erlaubst du eine lokale, unverschlüsselte Rücknahmedatei. Sie enthält Titel und Inhalt der ausgewählten bisherigen Szenen und liegt unter `backups/szenenaktivierung-<SHA-256>.json`. Bewahre die angezeigte Prüfsumme separat auf. Erst „Auswahl jetzt im Projekt aktivieren“ schreibt die bestätigten Szenen gemeinsam ins geöffnete Projekt. Lokale Medien, Plotkarten und Verknüpfungen bleiben erhalten.
+**Die Auswahl im geöffneten Projekt aktivieren.** Mit „Vorherige Fassungen sichern“ erlaubst du eine
+lokale, unverschlüsselte Rücknahmedatei. Sie enthält Titel und Inhalt der ausgewählten bisherigen
+Szenen und liegt unter `backups/szenenaktivierung-<SHA-256>.json`. Bewahre die angezeigte Prüfsumme
+separat auf. Erst „Auswahl jetzt im Projekt aktivieren“ schreibt die bestätigten Szenen gemeinsam
+ins geöffnete Projekt. Lokale Medien, Plotkarten und Verknüpfungen bleiben erhalten.
 
-Nach einem Abbruch öffnest du im Versionsdialog „Aktivieren oder vorherige Szenen wiederherstellen“, gibst die Prüfsumme ein und wiederholst die gewünschte Aktion. Eine bereits bestätigte Änderung erhöht die Revision beim Wiederholen kein zweites Mal. Zur Rücknahme benötigt KRAQEL die lokale Freigabe und die Rücknahmedatei. Hat sich der geprüfte Szenenbestand inzwischen geändert, verlangt die Anwendung einen neuen Abgleich. Die Rücknahmedatei bleibt nach der Verwendung im Sicherungsordner und kann frühere private Entwürfe enthalten.
+Nach einem Abbruch öffnest du im Versionsdialog „Aktivieren oder vorherige Szenen wiederherstellen“,
+gibst die Prüfsumme ein und wiederholst die gewünschte Aktion. Eine bereits bestätigte Änderung
+erhöht die Revision beim Wiederholen kein zweites Mal. Zur Rücknahme benötigt KRAQEL die lokale
+Freigabe und die Rücknahmedatei. Hat sich der geprüfte Szenenbestand inzwischen geändert, verlangt
+die Anwendung einen neuen Abgleich. Die Rücknahmedatei bleibt nach der Verwendung im
+Sicherungsordner und kann frühere private Entwürfe enthalten.
 
-Die Basisdatei ist ein Vergleichsbeleg. Eine Wiederherstellung des Manuskripts oder eine zeilenweise Rekonstruktion früherer Texte ist daraus nicht möglich. Für die gemeinsame Herkunft ist die vor der Trennung gesicherte Basis maßgeblich. Die Projektkennung allein belegt diese Herkunft nicht.
+Die Basisdatei ist ein Vergleichsbeleg. Eine Wiederherstellung des Manuskripts oder eine zeilenweise
+Rekonstruktion früherer Texte ist daraus nicht möglich. Für die gemeinsame Herkunft ist die vor der
+Trennung gesicherte Basis maßgeblich. Die Projektkennung allein belegt diese Herkunft nicht.
 
 ### Übernahme eines geöffneten Projekts vorbereiten
 
@@ -431,9 +480,15 @@ festhalten. Mit PowerShell lässt sich dieser Wert im Zielordner mit `Get-FileHa
 vergleichen. Die Dateiprüfsummen im Inventar dienen dem Abgleich des Inhalts. Eine automatische
 Freigabe oder ein Import dieses Formats im isolierten Starter steht noch aus.
 
-Am Windows-Zielrechner lässt sich eine vorbereitete Arbeitskopie mit freier Projektkennung über die Startseite empfangen. [Eingangsordner und Bedienung](docs/WORKSTATION_HANDOFF.md#vorbereitete-arbeitskopie-erstmals-empfangen)
+Am Windows-Zielrechner lässt sich eine vorbereitete Arbeitskopie mit freier Projektkennung über die
+Startseite empfangen.
+[Eingangsordner und Bedienung](docs/WORKSTATION_HANDOFF.md#vorbereitete-arbeitskopie-erstmals-empfangen)
 
-Für einzelne Story-Bibel-Einträge, Beziehungen, Dokumentverknüpfungen, Handlungsstränge, Plotkarten, Zeitachsen und Timeline-Ereignisse samt Zuordnungen führt der Versionsdialog von der Kennungsauswahl über die isolierte Fassungsansicht bis zur Aktivierung und Rücknahme. Für einzelne Bilder umfasst die Wahl Metadaten, Original, Vorschaubild und Verknüpfungen. [Einzelübernahme im Windows-Entwicklungsstand](docs/WORKSTATION_HANDOFF.md#einzelne-projekteinträge-übernehmen)
+Für einzelne Story-Bibel-Einträge, Beziehungen, Dokumentverknüpfungen, Handlungsstränge, Plotkarten,
+Zeitachsen und Timeline-Ereignisse samt Zuordnungen führt der Versionsdialog von der Kennungsauswahl
+über die isolierte Fassungsansicht bis zur Aktivierung und Rücknahme. Für einzelne Bilder umfasst
+die Wahl Metadaten, Original, Vorschaubild und Verknüpfungen.
+[Einzelübernahme im Windows-Entwicklungsstand](docs/WORKSTATION_HANDOFF.md#einzelne-projekteinträge-übernehmen)
 
 ### Portabler Snapshot v3
 
@@ -575,12 +630,61 @@ Screenreader-Ausgabe, echte Exportdateien und Betriebssystemintegration benötig
 Nachweise. Aussagegrenzen gehören zur Testdokumentation – denn ein grüner Haken ist kein
 metaphysischer Wahrheitsbeweis.
 
-Auf der nativen Windows-Startseite des Entwicklungsstands erstellt **Projekt anlegen** ein lokales Projekt mit Kapitel und erster Szene. Für bestehende Projekte führt **Manuskript öffnen** zur Kapitelauswahl. In der Kapitelauswahl kannst du weitere Kapitel anlegen oder umbenennen. Öffne ein Kapitel, um darin Szenen anzulegen oder umzubenennen. Über **Kopieren** kannst du eine Szene als Variante im selben oder einem anderen Kapitel anlegen. Eine Kapitelkopie enthält alle zugehörigen Szenen in der bisherigen Reihenfolge. Formatierungen und Drehbuchrollen bleiben erhalten. Über **Exportieren** gibst du eine Szene, ein Kapitel oder das gesamte Manuskript lokal als Markdown, HTML, DOCX oder PDF aus. Jeder Auftrag legt eine eigene Datei an. Für eine einzelne Drehbuchszene verwendet PDF das A4-Drehbuchlayout. Beim Kapitel- und Manuskript-PDF erscheinen die Gliederungstitel, Prosatexte und Drehbuchabsätze in Manuskriptreihenfolge. Für einen Auszug nur aus Rollenabsätzen wählst du im Studio **Drehbuch als A4-PDF**. **Vorhandene Ausgaben** zeigt dir den Speicherort auch nach einem Neustart. Mit **Nach oben** und **Nach unten** änderst du die Reihenfolge. Mit **An Position** setzt du eine Szene oder ein Kapitel direkt auf den gewählten Platz. **In Kapitel verschieben** hängt die ausgewählte Szene an das Ende eines anderen Kapitels. Mit **Entf** in der Liste oder **Entfernen …** öffnest du eine Vorschau. Sie nennt das ausgewählte Dokument, bei Kapiteln auch die enthaltenen Szenen sowie die betroffenen Verknüpfungen und Zusatzdaten. **Abbrechen** ist vorausgewählt. In der Szenenliste kannst du direkt lesen oder einfache Prosa bearbeiten und speichern. Über **Datei** und **Bearbeiten** sind die Aktionen des geöffneten Szenenfensters auch per Menü erreichbar. Im Prosafenster siehst du Wortzahl und belegten Speicherplatz bis zur Grenze von 64 KiB. **F11** wechselt in den Fokusmodus, **Esc** führt zurück. **Strg+A** markiert im Szenenfeld den gesamten Text. **Strg+S** speichert die bearbeitete Szene auch im Fokusmodus. Beim Lesen und Schreiben öffnet **Strg+F** die Suche in der aktuellen Szene und übernimmt eine einzeilige Textauswahl als Suchbegriff. **F3** und **Umschalt+F3** springen zwischen den Treffern. Über **Bearbeiten → Nur ganze Wörter** findet die Suche beispielsweise „Rat“ in „der Rat“, während „Rathaus“ übersprungen wird. Schalte unter **Bearbeiten** zusätzlich **Groß-/Kleinschreibung beachten** aus, um auch „RAT“ und „rat“ zu finden. Beide Einstellungen gelten beim Ersetzen. Im Editor öffnet **Strg+H** das Ersetzen. Du kannst die markierte Fundstelle ändern oder mit **Alle ersetzen** sämtliche Treffer der geöffneten Szene bearbeiten. Vor dem Gesamtersatz zeigt der Editor die Trefferzahl. Einmal **Strg+Z** nimmt den gesamten Ersatz zurück. Im Szenenfeld kannst du mehrere Bearbeitungsschritte mit **Strg+Z** zurücknehmen und mit **Strg+Y** wiederholen. Neue Eingaben verwerfen die zuvor zurückgenommenen Schritte. Über **Datei** kannst du für das geöffnete Editorfenster lokales Autosave einschalten. Nach 700 ms Schreibpause speichert es einen gültigen geänderten Entwurf. Auch im Fokusmodus siehst du den Speicherstatus und die zuletzt bestätigte Revision. Mit **Strg+S** speicherst und schließt du den Entwurf. Zum Weiterschreiben im selben Fenster wählst du **Datei → Speichern und weiterschreiben** oder drückst im Szenenfeld **Strg+Enter**. Bei ungespeicherten Änderungen bietet das Schließen **Speichern**, **Verwerfen** und **Weiterschreiben** an. Nach einem Speicherfehler oder einer zwischenzeitlichen Änderung der gespeicherten Szene bleibt der Entwurf im Editfenster offen. Bei einem Revisionskonflikt öffnet **Fassungen vergleichen** den lokalen Entwurf und die aktuelle gespeicherte Prosa im isolierten Fenster. Der Vergleich öffnet am ersten abweichenden Absatz. Mit **F7** und **Umschalt+F7** springst du zwischen Unterschieden, mit **F6** wechselst du zwischen den Fassungen. Mit **Strg+G** gibst du eine Absatznummer ein und springst mit **Enter** direkt dorthin. Du kannst mit dem gesamten Entwurf oder der gesamten gespeicherten Fassung beginnen und anschließend einzelne Absatzquellen ändern. Im Vergleich nehmen **Strg+Z** und **Strg+Y** die letzte Quellwahl zurück oder stellen sie wieder her. Die Vorschau zeigt das vollständige Ergebnis und seine Größe in UTF-8-Bytes. Überschreitet die Mischung 64 KiB, kannst du die Absatzwahl anpassen oder zurücknehmen. Formatierte Szenen lassen sich schreibgeschützt lesen. **Im Studio öffnen** startet WebView2. [Bedienung und Grenzen](docs/WORKSTATION_HANDOFF.md#ein-manuskript-nativ-lesen-und-bearbeiten)
+Auf der nativen Windows-Startseite des Entwicklungsstands erstellt **Projekt anlegen** ein lokales
+Projekt mit Kapitel und erster Szene. Für bestehende Projekte führt **Manuskript öffnen** zur
+Kapitelauswahl. In der Kapitelauswahl kannst du weitere Kapitel anlegen oder umbenennen. Öffne ein
+Kapitel, um darin Szenen anzulegen oder umzubenennen. Über **Kopieren** kannst du eine Szene als
+Variante im selben oder einem anderen Kapitel anlegen. Eine Kapitelkopie enthält alle zugehörigen
+Szenen in der bisherigen Reihenfolge. Formatierungen und Drehbuchrollen bleiben erhalten. Über
+**Exportieren** gibst du eine Szene, ein Kapitel oder das gesamte Manuskript lokal als Markdown,
+HTML, DOCX oder PDF aus. Jeder Auftrag legt eine eigene Datei an. Für eine einzelne Drehbuchszene
+verwendet PDF das A4-Drehbuchlayout. Beim Kapitel- und Manuskript-PDF erscheinen die
+Gliederungstitel, Prosatexte und Drehbuchabsätze in Manuskriptreihenfolge. Für einen Auszug nur aus
+Rollenabsätzen wählst du im Studio **Drehbuch als A4-PDF**. **Vorhandene Ausgaben** zeigt dir den
+Speicherort auch nach einem Neustart. Mit **Nach oben** und **Nach unten** änderst du die
+Reihenfolge. Mit **An Position** setzt du eine Szene oder ein Kapitel direkt auf den gewählten
+Platz. **In Kapitel verschieben** hängt die ausgewählte Szene an das Ende eines anderen Kapitels.
+Mit **Entf** in der Liste oder **Entfernen …** öffnest du eine Vorschau. Sie nennt das ausgewählte
+Dokument, bei Kapiteln auch die enthaltenen Szenen sowie die betroffenen Verknüpfungen und
+Zusatzdaten. **Abbrechen** ist vorausgewählt. In der Szenenliste kannst du direkt lesen oder
+einfache Prosa bearbeiten und speichern. Über **Datei** und **Bearbeiten** sind die Aktionen des
+geöffneten Szenenfensters auch per Menü erreichbar. Im Prosafenster siehst du Wortzahl und belegten
+Speicherplatz bis zur Grenze von 64 KiB. **F11** wechselt in den Fokusmodus, **Esc** führt zurück.
+**Strg+A** markiert im Szenenfeld den gesamten Text. **Strg+S** speichert die bearbeitete Szene auch
+im Fokusmodus. Beim Lesen und Schreiben öffnet **Strg+F** die Suche in der aktuellen Szene und
+übernimmt eine einzeilige Textauswahl als Suchbegriff. **F3** und **Umschalt+F3** springen zwischen
+den Treffern. Über **Bearbeiten → Nur ganze Wörter** findet die Suche beispielsweise „Rat“ in „der
+Rat“, während „Rathaus“ übersprungen wird. Schalte unter **Bearbeiten** zusätzlich
+**Groß-/Kleinschreibung beachten** aus, um auch „RAT“ und „rat“ zu finden. Beide Einstellungen
+gelten beim Ersetzen. Im Editor öffnet **Strg+H** das Ersetzen. Du kannst die markierte Fundstelle
+ändern oder mit **Alle ersetzen** sämtliche Treffer der geöffneten Szene bearbeiten. Vor dem
+Gesamtersatz zeigt der Editor die Trefferzahl. Einmal **Strg+Z** nimmt den gesamten Ersatz zurück.
+Im Szenenfeld kannst du mehrere Bearbeitungsschritte mit **Strg+Z** zurücknehmen und mit **Strg+Y**
+wiederholen. Neue Eingaben verwerfen die zuvor zurückgenommenen Schritte. Über **Datei** kannst du
+für das geöffnete Editorfenster lokales Autosave einschalten. Nach 700 ms Schreibpause speichert es
+einen gültigen geänderten Entwurf. Auch im Fokusmodus siehst du den Speicherstatus und die zuletzt
+bestätigte Revision. Mit **Strg+S** speicherst und schließt du den Entwurf. Zum Weiterschreiben im
+selben Fenster wählst du **Datei → Speichern und weiterschreiben** oder drückst im Szenenfeld
+**Strg+Enter**. Bei ungespeicherten Änderungen bietet das Schließen **Speichern**, **Verwerfen** und
+**Weiterschreiben** an. Nach einem Speicherfehler oder einer zwischenzeitlichen Änderung der
+gespeicherten Szene bleibt der Entwurf im Editfenster offen. Bei einem Revisionskonflikt öffnet
+**Fassungen vergleichen** den lokalen Entwurf und die aktuelle gespeicherte Prosa im isolierten
+Fenster. Der Vergleich öffnet am ersten abweichenden Absatz. Mit **F7** und **Umschalt+F7** springst
+du zwischen Unterschieden, mit **F6** wechselst du zwischen den Fassungen. Mit **Strg+G** gibst du
+eine Absatznummer ein und springst mit **Enter** direkt dorthin. Du kannst mit dem gesamten Entwurf
+oder der gesamten gespeicherten Fassung beginnen und anschließend einzelne Absatzquellen ändern. Im
+Vergleich nehmen **Strg+Z** und **Strg+Y** die letzte Quellwahl zurück oder stellen sie wieder her.
+Die Vorschau zeigt das vollständige Ergebnis und seine Größe in UTF-8-Bytes. Überschreitet die
+Mischung 64 KiB, kannst du die Absatzwahl anpassen oder zurücknehmen. Formatierte Szenen lassen sich
+schreibgeschützt lesen. **Im Studio öffnen** startet WebView2.
+[Bedienung und Grenzen](docs/WORKSTATION_HANDOFF.md#ein-manuskript-nativ-lesen-und-bearbeiten)
 
 Im Entwicklungszweig lassen sich Szenen ausdrücklich in Drehbuchszenen umwandeln. Sechs Absatzrollen
 bleiben beim Speichern und Wiederöffnen erhalten. Unter **Export → Drehbuch als A4-PDF** wählst du
-die zu druckenden Szenen einzeln aus. Die Druckausgabe enthält ihre Rollenabsätze in Manuskriptreihenfolge. Ein Fehler beim Drucken erhält die vorherige Drehbuch-PDF. Ab dem ersten Speichern einer Drehbuchszene benötigt das
-Projekt den neuen Desktop. Die öffentliche Alpha 7 verwendet für Prosa weiterhin Schema 6.
+die zu druckenden Szenen einzeln aus. Die Druckausgabe enthält ihre Rollenabsätze in
+Manuskriptreihenfolge. Ein Fehler beim Drucken erhält die vorherige Drehbuch-PDF. Ab dem ersten
+Speichern einer Drehbuchszene benötigt das Projekt den neuen Desktop. Die öffentliche Alpha 7
+verwendet für Prosa weiterhin Schema 6.
 [Formatvertrag](docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md) ·
 [Prüfstand und Grenzen](docs/testing/F08_M3_ACCEPTANCE_MATRIX.md)
 

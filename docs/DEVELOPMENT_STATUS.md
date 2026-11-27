@@ -1,236 +1,596 @@
 # Entwicklungsstatus
 
-Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](data-format/screenplay-v2.md)
+Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit
+sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte
+Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7
+enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](data-format/screenplay-v2.md)
 
-Die native Windows-Projektübersicht unterstützt die Anlage eines lokalen Projekts mit Kapitel und erster Szene. In der nativen Gliederung lassen sich Kapitel und Szenen anlegen, umbenennen und umordnen. Eine Szene kann an das Ende eines anderen Kapitels verschoben werden. Eine Manuskriptkopie übernimmt einzelne Szenen ins gewählte Zielkapitel oder ein Kapitel mit geordneter Szenenfolge ans Projektende. Die Speicherung verwendet eine gemeinsame SQLite-Transaktion. Über die direkte Platzwahl lassen sich Varianten in einem Schritt einordnen. Der native Export bindet Szene, Kapitel oder Manuskript an die bestätigte Auswahl und liest den Inhalt in einem SQLite-Snapshot. Die Ausgabenliste ermittelt Dateinamen und Größen im Projektordner. PDF verwendet bei einer einzelnen Drehbuchszene den validierten A4-Drehbuchrenderer. Der Studio-Drehbuchdruck liest die ausgewählten Szenentexte aus einem gemeinsamen SQLite-Snapshot. Die zugehörigen Kapitel liefern ausschließlich Ordnungsdaten. Die native PDF-Bestätigung weist vorab auf den Ausschluss der Gliederungstitel bei einer Drehbuchszene hin. Vor dem Entfernen eines Kapitels oder einer Szene zeigt der Desktop den Umfang an und prüft ihn bei der Bestätigung erneut. Über „Manuskript öffnen“ lassen sich vorhandene Szenen lesen und einfache Prosaszenen direkt bearbeiten. Die nativen Szenenfenster bieten eine rollenabhängige Menüleiste für Datei- und Bearbeitungsaktionen. Der produktive Prosaeditor zeigt Wortzahl und UTF-8-Speicherbudget an und bietet einen per F11 umschaltbaren Fokusmodus. Im Szenenfeld markiert Strg+A den gesamten Text. Strg+S nutzt auch im Fokusmodus denselben revisionsgebundenen Speicherpfad wie die Schaltfläche. Leser und Editor unterstützen die lokale Suche im aktuell angezeigten Szenentext. Ganzwortsuche und Beachtung der Groß-/Kleinschreibung lassen sich im Fenster unabhängig umschalten. Beide Optionen gelten für Navigation und beide Ersatzbefehle. Eine einzeilige Auswahl kann als Suchbegriff übernommen werden. Im Editor ersetzt Enter im Ersatzfeld den aktuellen Treffer. Strg+Enter ruft die Bestätigung für den Gesamtersatz auf. Für alle Treffer der geöffneten Szene zeigt der Editor die Anzahl an und verlangt eine Bestätigung. Der Gesamtersatz bildet einen Bearbeitungsschritt. Der lokale Verlauf des Editors ermöglicht mehrstufiges Rückgängig und Wiederholen samt Auswahl. Dafür gilt der bestehende revisionsgebundene Speicherpfad. Eine Schließabfrage schützt geänderte Entwürfe. Der Editor hält den Entwurf bis zur Speicherbestätigung offen. Beim ausdrücklichen Zwischenspeichern bleibt das Fenster samt Bearbeitungsverlauf geöffnet. Der nächste Schreibzug setzt auf der bestätigten Szenenrevision auf. Wahlweise speichert der Editor nach 700 ms Schreibpause lokal. Die Einstellung gilt für das geöffnete Fenster. Der Speicherstatus unterscheidet den lokalen Entwurf, den laufenden Schreibzug und die zuletzt bestätigte Revision auch im Fokusmodus. Bei einem Revisionskonflikt kann die aktuelle Prosa ausdrücklich zum absatzweisen Vergleich geladen werden. Im Vergleich lässt sich gezielt zu abweichenden Absätzen springen und der Fokus zwischen beiden Fassungen wechseln. Strg+G führt über die Absatznummer direkt zur gewünschten Position. Die Quellen lassen sich für alle Absätze gemeinsam und danach positionsweise wählen. Die Auswahl kann innerhalb derselben Vergleichsbasis zurückgenommen und wiederholt werden. Der Vergleich zeigt das UTF-8-Budget der gewählten Mischung und sperrt die Bestätigung bei Überlänge. Eine erneut geänderte Vergleichsbasis erfordert eine neue Prüfung und Bestätigung. „Im Studio öffnen“ und „Projektverwaltung öffnen“ starten den bisherigen Desktop mit WebView2. Der Drehbuch-Schreibablauf wurde im installierten Vorgänger geprüft. Der Manuskriptexport berücksichtigt Drehbuchrollen in Markdown, HTML, DOCX und im textbasierten PDF. In einem gemischten PDF bleiben Gliederung, Prosa und die sechs Rollen in Manuskriptreihenfolge erhalten. Word und LibreOffice behielten beim Speichern alle sechs verwendeten Rollenstile. [Prüfstand und Geltungsbereich](testing/F08_M3_ACCEPTANCE_MATRIX.md)
+Die native Windows-Projektübersicht unterstützt die Anlage eines lokalen Projekts mit Kapitel und
+erster Szene. In der nativen Gliederung lassen sich Kapitel und Szenen anlegen, umbenennen und
+umordnen. Eine Szene kann an das Ende eines anderen Kapitels verschoben werden. Eine Manuskriptkopie
+übernimmt einzelne Szenen ins gewählte Zielkapitel oder ein Kapitel mit geordneter Szenenfolge ans
+Projektende. Die Speicherung verwendet eine gemeinsame SQLite-Transaktion. Über die direkte
+Platzwahl lassen sich Varianten in einem Schritt einordnen. Der native Export bindet Szene, Kapitel
+oder Manuskript an die bestätigte Auswahl und liest den Inhalt in einem SQLite-Snapshot. Die
+Ausgabenliste ermittelt Dateinamen und Größen im Projektordner. PDF verwendet bei einer einzelnen
+Drehbuchszene den validierten A4-Drehbuchrenderer. Der Studio-Drehbuchdruck liest die ausgewählten
+Szenentexte aus einem gemeinsamen SQLite-Snapshot. Die zugehörigen Kapitel liefern ausschließlich
+Ordnungsdaten. Die native PDF-Bestätigung weist vorab auf den Ausschluss der Gliederungstitel bei
+einer Drehbuchszene hin. Vor dem Entfernen eines Kapitels oder einer Szene zeigt der Desktop den
+Umfang an und prüft ihn bei der Bestätigung erneut. Über „Manuskript öffnen“ lassen sich vorhandene
+Szenen lesen und einfache Prosaszenen direkt bearbeiten. Die nativen Szenenfenster bieten eine
+rollenabhängige Menüleiste für Datei- und Bearbeitungsaktionen. Der produktive Prosaeditor zeigt
+Wortzahl und UTF-8-Speicherbudget an und bietet einen per F11 umschaltbaren Fokusmodus. Im
+Szenenfeld markiert Strg+A den gesamten Text. Strg+S nutzt auch im Fokusmodus denselben
+revisionsgebundenen Speicherpfad wie die Schaltfläche. Leser und Editor unterstützen die lokale
+Suche im aktuell angezeigten Szenentext. Ganzwortsuche und Beachtung der Groß-/Kleinschreibung
+lassen sich im Fenster unabhängig umschalten. Beide Optionen gelten für Navigation und beide
+Ersatzbefehle. Eine einzeilige Auswahl kann als Suchbegriff übernommen werden. Im Editor ersetzt
+Enter im Ersatzfeld den aktuellen Treffer. Strg+Enter ruft die Bestätigung für den Gesamtersatz auf.
+Für alle Treffer der geöffneten Szene zeigt der Editor die Anzahl an und verlangt eine Bestätigung.
+Der Gesamtersatz bildet einen Bearbeitungsschritt. Der lokale Verlauf des Editors ermöglicht
+mehrstufiges Rückgängig und Wiederholen samt Auswahl. Dafür gilt der bestehende revisionsgebundene
+Speicherpfad. Eine Schließabfrage schützt geänderte Entwürfe. Der Editor hält den Entwurf bis zur
+Speicherbestätigung offen. Beim ausdrücklichen Zwischenspeichern bleibt das Fenster samt
+Bearbeitungsverlauf geöffnet. Der nächste Schreibzug setzt auf der bestätigten Szenenrevision auf.
+Wahlweise speichert der Editor nach 700 ms Schreibpause lokal. Die Einstellung gilt für das
+geöffnete Fenster. Der Speicherstatus unterscheidet den lokalen Entwurf, den laufenden Schreibzug
+und die zuletzt bestätigte Revision auch im Fokusmodus. Bei einem Revisionskonflikt kann die
+aktuelle Prosa ausdrücklich zum absatzweisen Vergleich geladen werden. Im Vergleich lässt sich
+gezielt zu abweichenden Absätzen springen und der Fokus zwischen beiden Fassungen wechseln. Strg+G
+führt über die Absatznummer direkt zur gewünschten Position. Die Quellen lassen sich für alle
+Absätze gemeinsam und danach positionsweise wählen. Die Auswahl kann innerhalb derselben
+Vergleichsbasis zurückgenommen und wiederholt werden. Der Vergleich zeigt das UTF-8-Budget der
+gewählten Mischung und sperrt die Bestätigung bei Überlänge. Eine erneut geänderte Vergleichsbasis
+erfordert eine neue Prüfung und Bestätigung. „Im Studio öffnen“ und „Projektverwaltung öffnen“
+starten den bisherigen Desktop mit WebView2. Der Drehbuch-Schreibablauf wurde im installierten
+Vorgänger geprüft. Der Manuskriptexport berücksichtigt Drehbuchrollen in Markdown, HTML, DOCX und im
+textbasierten PDF. In einem gemischten PDF bleiben Gliederung, Prosa und die sechs Rollen in
+Manuskriptreihenfolge erhalten. Word und LibreOffice behielten beim Speichern alle sechs verwendeten
+Rollenstile. [Prüfstand und Geltungsbereich](testing/F08_M3_ACCEPTANCE_MATRIX.md)
 
 ### Direkte Übernahme bestehender Windows-Projektordner
 
-Die veröffentlichte Alpha 7 bindet die lokale Bestandsaufnahme an die reguläre Startseite an.
-Der native Import erstellt für eine freie Projektkennung eine separate Arbeitskopie aus bestätigten
+Die veröffentlichte Alpha 7 bindet die lokale Bestandsaufnahme an die reguläre Startseite an. Der
+native Import erstellt für eine freie Projektkennung eine separate Arbeitskopie aus bestätigten
 Datenbankinhalten und referenzierten Medien. Ein lokales Änderungsereignis und gebundene
 Dateihandles sichern die Erfassung. Der optionale Archivpfad verschlüsselt ausdrücklich gewählte
 Zusatzgruppen im portablen age-Format.
 [Bedienung und Grenzen](WORKSTATION_HANDOFF.md#einen-vorhandenen-windows-projektordner-übernehmen)
 
-Im gebauten Windows-Desktop zeigte die Vorschau des geschlossenen Demoprojekts 20 Dokumente und 21 Bilder. Vor der nativen Bestätigung und nach **Nein** war der frische Zielkatalog leer. Nach neuer Auswahl, **Ja** und zweifacher Passphrase ließen sich die Arbeitskopie und ein separates verschlüsseltes Archiv anlegen. Die Demo öffnete sich nach Neustart. Der Windows-Speichertest bestätigte die Sperre bei einem neu angelegten Eintrag im Quellbaum und die Übernahme eines ausschließlich im SQLite-WAL bestätigten Texts. Hauptdatei, WAL und SHM blieben bei dieser Prüfung bytegleich.
+Im gebauten Windows-Desktop zeigte die Vorschau des geschlossenen Demoprojekts 20 Dokumente und 21
+Bilder. Vor der nativen Bestätigung und nach **Nein** war der frische Zielkatalog leer. Nach neuer
+Auswahl, **Ja** und zweifacher Passphrase ließen sich die Arbeitskopie und ein separates
+verschlüsseltes Archiv anlegen. Die Demo öffnete sich nach Neustart. Der Windows-Speichertest
+bestätigte die Sperre bei einem neu angelegten Eintrag im Quellbaum und die Übernahme eines
+ausschließlich im SQLite-WAL bestätigten Texts. Hauptdatei, WAL und SHM blieben bei dieser Prüfung
+bytegleich.
 
 ### P3 · synthetische Bestandskopie
 
-Das Speichermodul erkennt mögliche Bestandsprojekte anhand ihrer Verzeichniskennung und Datenbankdatei, ohne SQLite zu öffnen. Der native Prüfpfad verwendet diese Erkennung an einem synthetischen Projektkatalog.
+Das Speichermodul erkennt mögliche Bestandsprojekte anhand ihrer Verzeichniskennung und
+Datenbankdatei, ohne SQLite zu öffnen. Der native Prüfpfad verwendet diese Erkennung an einem
+synthetischen Projektkatalog.
 
-Mit `-SelectedPreview` führt die Auswahl eines synthetischen Projekts bis zur schreibgeschützten Szene aus der veröffentlichten Kopie. Backups, Exporte, Git-Bestand und weitere Dateien sind einzeln anwählbar und standardmäßig abgewählt. Nur ausdrücklich gewählte Gruppen gelangen in ein separates, passphrasenverschlüsseltes ZIP im age-Format. Ein lokaler Windows-Lauf prüfte Export und Wiederherstellung in einem frischen Verzeichnis mit kopierter EXE, außerdem die Ablehnung einer falschen Passphrase und eines gekürzten Archivs. Der separate ETW-Vergleich für den lokalen und den portablen Archivhelfer erfasste beim Verschlüsseln und Wiederherstellen keine zugehörigen Netzwerkereignisse. Die portable Windows-x64-EXE öffnete das mit dem lokalen Build erzeugte Archiv aus dem entpackten Testpaket. Die physische Zweitrechnerprobe steht aus. [Bedienung, Abnahme und Geltungsbereich](data-format/product-start-integration-v1-draft.md#bedienbare-p3-übernahme-mit-separatem-zusatzarchiv)
+Mit `-SelectedPreview` führt die Auswahl eines synthetischen Projekts bis zur schreibgeschützten
+Szene aus der veröffentlichten Kopie. Backups, Exporte, Git-Bestand und weitere Dateien sind einzeln
+anwählbar und standardmäßig abgewählt. Nur ausdrücklich gewählte Gruppen gelangen in ein separates,
+passphrasenverschlüsseltes ZIP im age-Format. Ein lokaler Windows-Lauf prüfte Export und
+Wiederherstellung in einem frischen Verzeichnis mit kopierter EXE, außerdem die Ablehnung einer
+falschen Passphrase und eines gekürzten Archivs. Der separate ETW-Vergleich für den lokalen und den
+portablen Archivhelfer erfasste beim Verschlüsseln und Wiederherstellen keine zugehörigen
+Netzwerkereignisse. Die portable Windows-x64-EXE öffnete das mit dem lokalen Build erzeugte Archiv
+aus dem entpackten Testpaket. Die physische Zweitrechnerprobe steht aus.
+[Bedienung, Abnahme und Geltungsbereich](data-format/product-start-integration-v1-draft.md#bedienbare-p3-übernahme-mit-separatem-zusatzarchiv)
 
-Die Desktop-App bietet im geöffneten Projekt unter **Werkzeuge → Versionen → Lokale Arbeitskopie** den Befehl **Übernahme vorbereiten**. Der native Befehl erstellt im lokalen Sicherungsordner eine neue Schema-6-Arbeitskopie aus dem bestätigten Stand mit den referenzierten Medien. Eine laufende Schreibtransaktion sperrt konkurrierende Datenbankänderungen während der Erfassung. Das JSON-Inventar enthält die Projektkennung und Datei-Prüfsummen. Die Oberfläche zeigt den SHA-256 des Inventars separat an. Der isolierte Prüfpfad hat eine so vorbereitete synthetische Arbeitskopie nach Prüfung des separat übermittelten Inventarhashs schreibgeschützt geöffnet. Eine zweite Vorbereitung unter derselben Freigabe wurde abgewiesen. Der Windows-Startbildschirm bietet den erstmaligen Empfang aus einem festen lokalen Eingangsordner an. Der Speichertest mit getrennten Projektwurzeln bestätigt die Übernahme der Szenenrevision, das Auslassen privater Zusatzdateien und die Sperre bei falschem Inventarhash, verändertem Vorschaubild oder belegter Projektkennung. Der gebaute Windows-Desktop hat eine über den Versionsdialog vorbereitete Beispielkopie über die Startseite in einen leeren Projektkatalog empfangen und geöffnet. Nach Programmende stimmten alle 17 Anwendungstabellen einschließlich 20 Dokumenten und 21 Medieneinträgen mit der Quelle überein. Die SHA-256-Prüfung bestätigte alle 42 Bild- und Vorschaudateien. Beim erneuten Empfang zeigte die Startseite den Hinweis auf das vorhandene Projekt und den Versionsdialog. Die Zieldatenbank blieb bytegleich. Beide Läufe verwendeten ein eigenes lokales WebView-Profil. Die physische Zweitrechnerprobe steht aus. [Empfang am Zielrechner](WORKSTATION_HANDOFF.md#vorbereitete-arbeitskopie-erstmals-empfangen) [Abnahme und ETW-Geltungsbereich](data-format/product-start-integration-v1-draft.md#vorbereitete-desktop-arbeitskopie-im-isolierten-vorschaufenster) [Bedienung und Format](../README.md#übernahme-eines-geöffneten-projekts-vorbereiten)
+Die Desktop-App bietet im geöffneten Projekt unter **Werkzeuge → Versionen → Lokale Arbeitskopie**
+den Befehl **Übernahme vorbereiten**. Der native Befehl erstellt im lokalen Sicherungsordner eine
+neue Schema-6-Arbeitskopie aus dem bestätigten Stand mit den referenzierten Medien. Eine laufende
+Schreibtransaktion sperrt konkurrierende Datenbankänderungen während der Erfassung. Das
+JSON-Inventar enthält die Projektkennung und Datei-Prüfsummen. Die Oberfläche zeigt den SHA-256 des
+Inventars separat an. Der isolierte Prüfpfad hat eine so vorbereitete synthetische Arbeitskopie nach
+Prüfung des separat übermittelten Inventarhashs schreibgeschützt geöffnet. Eine zweite Vorbereitung
+unter derselben Freigabe wurde abgewiesen. Der Windows-Startbildschirm bietet den erstmaligen
+Empfang aus einem festen lokalen Eingangsordner an. Der Speichertest mit getrennten Projektwurzeln
+bestätigt die Übernahme der Szenenrevision, das Auslassen privater Zusatzdateien und die Sperre bei
+falschem Inventarhash, verändertem Vorschaubild oder belegter Projektkennung. Der gebaute
+Windows-Desktop hat eine über den Versionsdialog vorbereitete Beispielkopie über die Startseite in
+einen leeren Projektkatalog empfangen und geöffnet. Nach Programmende stimmten alle 17
+Anwendungstabellen einschließlich 20 Dokumenten und 21 Medieneinträgen mit der Quelle überein. Die
+SHA-256-Prüfung bestätigte alle 42 Bild- und Vorschaudateien. Beim erneuten Empfang zeigte die
+Startseite den Hinweis auf das vorhandene Projekt und den Versionsdialog. Die Zieldatenbank blieb
+bytegleich. Beide Läufe verwendeten ein eigenes lokales WebView-Profil. Die physische
+Zweitrechnerprobe steht aus.
+[Empfang am Zielrechner](WORKSTATION_HANDOFF.md#vorbereitete-arbeitskopie-erstmals-empfangen)
+[Abnahme und ETW-Geltungsbereich](data-format/product-start-integration-v1-draft.md#vorbereitete-desktop-arbeitskopie-im-isolierten-vorschaufenster)
+[Bedienung und Format](../README.md#übernahme-eines-geöffneten-projekts-vorbereiten)
 
-Bei zwei unabhängig bearbeiteten Fassungen desselben Projekts gilt die bestätigte Entscheidung, beide zu erhalten und vor jeder Übernahme einen schreibgeschützten Vergleich anzubieten. Der verwaltete Starter bindet die geordneten Inventarhashes, die Szene und beide Rollenprogramme an dieselbe Lesesitzung. Der isolierte Datendienst liefert beide Fassungen über eine Pipe an das schreibgeschützte Win32-Fenster. Bei vertauschten Hashes verweigerte der Starter den Aufruf. Die Originalinventare blieben erhalten. Der lokale ETW-Lauf erfasste für den Vergleich keine zugeordneten Netzwerkereignisse. Bei belegter Projektkennung kann der Versionsdialog die Datenbank der vorbereiteten Eingangskopie mit einer konsistenten Lesesicht des geöffneten Projekts vergleichen. Der Vergleich prüft Inventarhash, Datenbankhash, Kennung und Schema. Er meldet ausschließlich die betroffenen Bereiche aus den 17 Anwendungstabellen. Der native Speichertest deckt identische Stände und einen geänderten Medientitel ab. Auf ausdrückliche Auswahl vergleicht der Dienst zusätzlich die referenzierten Bilder und Vorschaubilder per SHA-256. Eine veränderte lokale Vorschau wurde als Unterschied erkannt. Eine manipulierte Vorschau im Eingang sperrte die angeforderte Dateiprüfung. Die Bereichausgabe im Versionsdialog wurde mit simulierter IPC geprüft. Für Story-Bibel, Beziehungen, Dokumentverknüpfungen, Plotkarten, Timeline-Ereignisse und ihre Zuordnungen kann der Windows-Versionsdialog jetzt einzelne Datensätze aus dem Eingang übernehmen. Die WebView erhält Typ, stabile Kennungen, Vergleichshashes und Ergebnisbelege. Der vollständige Feldvergleich erfordert die native Bestätigung. Eine externe Wahl erstellt eine separate Arbeitskopie. Sicherung, Aktivierung und Rücknahme prüfen die gewählte Zeile im geöffneten Zielprojekt. Der Browsertest mit simulierter IPC deckt auch die erneute Prüfung bei überholtem Stand ab. Separat zeigte ein echter Windows-Rollenlauf eine synthetische Ereignis–Figur-Zuordnung ohne lokale Fassung im isolierten Fenster. Nach der bestätigten externen Wahl endeten beide Rollen und die aktive Sitzung wurde bereinigt. Der native Speichertest bestätigte für eine geänderte Figur die Rücknahme bei erhaltener zweiter Figur und Beziehung. Bei einer neu übernommenen Figur blockierte eine später hinzugefügte Beziehung die Rücknahme. [Bedienung und Abhängigkeiten](WORKSTATION_HANDOFF.md#einzelne-projekteinträge-übernehmen)
+Bei zwei unabhängig bearbeiteten Fassungen desselben Projekts gilt die bestätigte Entscheidung,
+beide zu erhalten und vor jeder Übernahme einen schreibgeschützten Vergleich anzubieten. Der
+verwaltete Starter bindet die geordneten Inventarhashes, die Szene und beide Rollenprogramme an
+dieselbe Lesesitzung. Der isolierte Datendienst liefert beide Fassungen über eine Pipe an das
+schreibgeschützte Win32-Fenster. Bei vertauschten Hashes verweigerte der Starter den Aufruf. Die
+Originalinventare blieben erhalten. Der lokale ETW-Lauf erfasste für den Vergleich keine
+zugeordneten Netzwerkereignisse. Bei belegter Projektkennung kann der Versionsdialog die Datenbank
+der vorbereiteten Eingangskopie mit einer konsistenten Lesesicht des geöffneten Projekts
+vergleichen. Der Vergleich prüft Inventarhash, Datenbankhash, Kennung und Schema. Er meldet
+ausschließlich die betroffenen Bereiche aus den 17 Anwendungstabellen. Der native Speichertest deckt
+identische Stände und einen geänderten Medientitel ab. Auf ausdrückliche Auswahl vergleicht der
+Dienst zusätzlich die referenzierten Bilder und Vorschaubilder per SHA-256. Eine veränderte lokale
+Vorschau wurde als Unterschied erkannt. Eine manipulierte Vorschau im Eingang sperrte die
+angeforderte Dateiprüfung. Die Bereichausgabe im Versionsdialog wurde mit simulierter IPC geprüft.
+Für Story-Bibel, Beziehungen, Dokumentverknüpfungen, Plotkarten, Timeline-Ereignisse und ihre
+Zuordnungen kann der Windows-Versionsdialog jetzt einzelne Datensätze aus dem Eingang übernehmen.
+Die WebView erhält Typ, stabile Kennungen, Vergleichshashes und Ergebnisbelege. Der vollständige
+Feldvergleich erfordert die native Bestätigung. Eine externe Wahl erstellt eine separate
+Arbeitskopie. Sicherung, Aktivierung und Rücknahme prüfen die gewählte Zeile im geöffneten
+Zielprojekt. Der Browsertest mit simulierter IPC deckt auch die erneute Prüfung bei überholtem Stand
+ab. Separat zeigte ein echter Windows-Rollenlauf eine synthetische Ereignis–Figur-Zuordnung ohne
+lokale Fassung im isolierten Fenster. Nach der bestätigten externen Wahl endeten beide Rollen und
+die aktive Sitzung wurde bereinigt. Der native Speichertest bestätigte für eine geänderte Figur die
+Rücknahme bei erhaltener zweiter Figur und Beziehung. Bei einer neu übernommenen Figur blockierte
+eine später hinzugefügte Beziehung die Rücknahme.
+[Bedienung und Abhängigkeiten](WORKSTATION_HANDOFF.md#einzelne-projekteinträge-übernehmen)
 
-**Einzelne Medien in Windows-Arbeitskopien.** Der Versionsdialog unterstützt Originalbild, PNG-Vorschau, Metadaten und Verknüpfungen als gemeinsame Auswahl. Der native Speichertest deckt eine abweichende Vorschau bei gleichem Katalogstand, einen Dateiaustausch während der Auswahl und den Weg von der bestätigten Fassung über Aktivierung bis zur lokalen Rücknahme ab. [Bedienung und Aufbewahrung](WORKSTATION_HANDOFF.md#einzelne-projekteinträge-übernehmen)
+**Einzelne Medien in Windows-Arbeitskopien.** Der Versionsdialog unterstützt Originalbild,
+PNG-Vorschau, Metadaten und Verknüpfungen als gemeinsame Auswahl. Der native Speichertest deckt eine
+abweichende Vorschau bei gleichem Katalogstand, einen Dateiaustausch während der Auswahl und den Weg
+von der bestätigten Fassung über Aktivierung bis zur lokalen Rücknahme ab.
+[Bedienung und Aufbewahrung](WORKSTATION_HANDOFF.md#einzelne-projekteinträge-übernehmen)
 
-**Desktop-Abnahme der Einzelübernahme auf Windows.** Am Stand `16c8f6f` führte der Versionsdialog mit echter IPC vom Öffnen eines synthetischen Zielprojekts über beide Fassungen im isolierten Fenster zur externen Wahl. Kandidat und Eingang stimmten in allen Anwendungstabellen überein. Nach Aktivierung, regulärem Schließen und Wiederöffnen war die externe Figur aktiv. Nach Rücknahme und erneutem Öffnen stimmte das Ziel wieder mit dem ursprünglichen lokalen Stand überein. Der Vergleich umfasste auch die zweite Figur, die Beziehung und die Eigenschaften. Der Lauf nutzte separate Projekt- und WebView-Verzeichnisse.
+**Desktop-Abnahme der Einzelübernahme auf Windows.** Am Stand `16c8f6f` führte der Versionsdialog
+mit echter IPC vom Öffnen eines synthetischen Zielprojekts über beide Fassungen im isolierten
+Fenster zur externen Wahl. Kandidat und Eingang stimmten in allen Anwendungstabellen überein. Nach
+Aktivierung, regulärem Schließen und Wiederöffnen war die externe Figur aktiv. Nach Rücknahme und
+erneutem Öffnen stimmte das Ziel wieder mit dem ursprünglichen lokalen Stand überein. Der Vergleich
+umfasste auch die zweite Figur, die Beziehung und die Eigenschaften. Der Lauf nutzte separate
+Projekt- und WebView-Verzeichnisse.
 
-Handlungsstränge und Zeitachsen lassen sich im Versionsdialog einzeln prüfen, aktivieren und zurücknehmen. Fehlt die Voraussetzung für eine gewählte Karte bzw. ein Ereignis, ermittelt der Dienst die Kennung aus der gebundenen Eingangsfassung. Die ausdrückliche Wahl und Aktivierung der Voraussetzung hat einen eigenen Beleg. Danach lädt der Dialog die ursprüngliche Auswahl erneut. Ein nativer Speichertest hat den Ablauf für beide Elternarten sowie die Sperre vor einer kaskadierenden Rücknahme geprüft. Ein lokaler Browsertest mit simulierter IPC deckt die Rückkehr zum ursprünglich ausgewählten Ereignis ab.
+Handlungsstränge und Zeitachsen lassen sich im Versionsdialog einzeln prüfen, aktivieren und
+zurücknehmen. Fehlt die Voraussetzung für eine gewählte Karte bzw. ein Ereignis, ermittelt der
+Dienst die Kennung aus der gebundenen Eingangsfassung. Die ausdrückliche Wahl und Aktivierung der
+Voraussetzung hat einen eigenen Beleg. Danach lädt der Dialog die ursprüngliche Auswahl erneut. Ein
+nativer Speichertest hat den Ablauf für beide Elternarten sowie die Sperre vor einer kaskadierenden
+Rücknahme geprüft. Ein lokaler Browsertest mit simulierter IPC deckt die Rückkehr zum ursprünglich
+ausgewählten Ereignis ab.
 
-Im ausdrücklich gestarteten isolierten Win32-Vergleich zweier synthetischer Fassungen kann die schreibende Person eine Seite auswählen und bestätigen. Der Starter gibt die Entscheidung nach dem Ende der Rollen zurück. Das Schließen ohne Wahl und die bestätigte externe Auswahl sind am nativen Fenster geprüft. Beide Arbeitskopien blieben dabei erhalten. Der ETW-Vergleich für das neutrale Schließen und die bestätigte lokale Wahl erfasste am Stand `f7f0a1a` keine den nativen Rollen zugeordneten Netzwerkereignisse. Der v2-Kanal überträgt auch eine längere synthetische Szene bei laufendem Leser. Der zugehörige ETW-Lauf mit kurzem und langem Paar erfasste beide Rollen einschließlich Steuerung ohne zugeordnete Netzwerkereignisse. Der Windows-Desktop-Quellstand bindet den Versionsdialog inzwischen an eine gesondert gebaute Produktrolle für Manuskriptvergleiche an. Beide Rollenprogramme werden in die Desktop-EXE eingebettet. Die native Bestätigung geht dem Laden der Vergleichstexte voraus. Bei externer Wahl bereitet das Speichermodul eine eigene Arbeitskopie vor. Ein separat im Zielprojekt ausgestellter Beleg bindet die spätere Aktivierung an diese Wahl. Der Browsertest verwendet simulierte IPC. Ein separater Windows-Lauf hat die eingebetteten Rollen mit frei gewählten Testtexten bis zur bestätigten externen Wahl und Sitzungsbereinigung geprüft.
+Im ausdrücklich gestarteten isolierten Win32-Vergleich zweier synthetischer Fassungen kann die
+schreibende Person eine Seite auswählen und bestätigen. Der Starter gibt die Entscheidung nach dem
+Ende der Rollen zurück. Das Schließen ohne Wahl und die bestätigte externe Auswahl sind am nativen
+Fenster geprüft. Beide Arbeitskopien blieben dabei erhalten. Der ETW-Vergleich für das neutrale
+Schließen und die bestätigte lokale Wahl erfasste am Stand `f7f0a1a` keine den nativen Rollen
+zugeordneten Netzwerkereignisse. Der v2-Kanal überträgt auch eine längere synthetische Szene bei
+laufendem Leser. Der zugehörige ETW-Lauf mit kurzem und langem Paar erfasste beide Rollen
+einschließlich Steuerung ohne zugeordnete Netzwerkereignisse. Der Windows-Desktop-Quellstand bindet
+den Versionsdialog inzwischen an eine gesondert gebaute Produktrolle für Manuskriptvergleiche an.
+Beide Rollenprogramme werden in die Desktop-EXE eingebettet. Die native Bestätigung geht dem Laden
+der Vergleichstexte voraus. Bei externer Wahl bereitet das Speichermodul eine eigene Arbeitskopie
+vor. Ein separat im Zielprojekt ausgestellter Beleg bindet die spätere Aktivierung an diese Wahl.
+Der Browsertest verwendet simulierte IPC. Ein separater Windows-Lauf hat die eingebetteten Rollen
+mit frei gewählten Testtexten bis zur bestätigten externen Wahl und Sitzungsbereinigung geprüft.
 
-Der vollständige Bedienweg ist auch an der gebauten Windows-Desktop-EXE mit echter IPC und einem generierten Manuskript geprüft. Vom Öffnen auf der Startseite bis zur externen Wahl blieb die lokale Szene auf Revision 1. Nach Aktivierung war die externe Fassung auf Revision 2 gespeichert, nach Rücknahme und Programmende wieder die lokale auf Revision 3. Titel, Klartext und strukturierter Editorinhalt wurden jeweils direkt mit den Ausgangsfassungen verglichen. [Direktprüfung und Binärstand](data-format/product-start-integration-v1-draft.md#produktpfad-für-die-manuelle-fassungswahl)
+Der vollständige Bedienweg ist auch an der gebauten Windows-Desktop-EXE mit echter IPC und einem
+generierten Manuskript geprüft. Vom Öffnen auf der Startseite bis zur externen Wahl blieb die lokale
+Szene auf Revision 1. Nach Aktivierung war die externe Fassung auf Revision 2 gespeichert, nach
+Rücknahme und Programmende wieder die lokale auf Revision 3. Titel, Klartext und strukturierter
+Editorinhalt wurden jeweils direkt mit den Ausgangsfassungen verglichen.
+[Direktprüfung und Binärstand](data-format/product-start-integration-v1-draft.md#produktpfad-für-die-manuelle-fassungswahl)
 
-Beim Öffnen des Versionsdialogs erhält die WebView für gestagte Snapshotdateien nur Git-Zeilenstatistiken und Pfade. Der Szeneneditor lädt den Dokumentinhalt erst wieder beim Wechsel zurück zum Manuskript. Der native Git-Test und der Browsertest prüfen, dass die Statistik keinen Snapshottext enthält.
+Beim Öffnen des Versionsdialogs erhält die WebView für gestagte Snapshotdateien nur
+Git-Zeilenstatistiken und Pfade. Der Szeneneditor lädt den Dokumentinhalt erst wieder beim Wechsel
+zurück zum Manuskript. Der native Git-Test und der Browsertest prüfen, dass die Statistik keinen
+Snapshottext enthält.
 
-Im Desktop-Quellstand ist der lesende Drei-Wege-Vergleich der **Szenenprüfsummen** über den normalen Versionsdialog erreichbar. Die gemeinsame Basis und der externe Stand werden anhand der getrennten SHA-256-Belege im lokalen Sicherungsordner geprüft. Der lokale Stand und mögliche Löschfolgen stammen aus derselben SQLite-Lesetransaktion. Der Speichertest deckt unter anderem Formatänderung, Revision ohne Inhaltsänderung, Löschung gegen Bearbeitung, betroffene Plotkarte und verfälschten Beleg ab. Der Browser-Bedienlauf nutzt die simulierte IPC. Der native synthetische Lauf verwendet zwei Arbeitsverzeichnisse und die echten Speicherbefehle. Im Desktop-Quellstand bereitet die ausdrückliche Auswahl einseitig geänderter bestehender Szenen eine eigene logische Arbeitskopie vor. Der native Speicherpfad vergleicht Titel und Inhalt über gebundene Szenenhashes, bewahrt die lokalen Beziehungen und sperrt Löschungen, echte Konflikte sowie Strukturänderungen. Zwei synthetische Projektverzeichnisse und ein Browserlauf mit simulierter IPC sind geprüft. Die ausdrücklich bestätigte Aktivierung und Rücknahme im geöffneten Projekt sind mit synthetischen Szenen im nativen Speicherpfad und per Browser mit simulierter IPC geprüft. Ein Abbruch vor dem Commit ließ Revision 0 stehen, ein Abbruch danach Revision 1. Wiederholte Rücknahme endete auf Revision 2. Bei beidseitiger Bearbeitung ist die ausdrückliche Wahl einer ganzen Fassung im Windows-Entwicklungsstand umgesetzt. Der native Speichertest prüft die Kopie, die Ablehnung einer inzwischen erhöhten Revision, die erforderliche lokale Freigabe sowie Aktivierung und Rücknahme. [Bedienung und Umfang](../README.md#szenenstände-auf-zwei-rechnern-vergleichen)
+Im Desktop-Quellstand ist der lesende Drei-Wege-Vergleich der **Szenenprüfsummen** über den normalen
+Versionsdialog erreichbar. Die gemeinsame Basis und der externe Stand werden anhand der getrennten
+SHA-256-Belege im lokalen Sicherungsordner geprüft. Der lokale Stand und mögliche Löschfolgen
+stammen aus derselben SQLite-Lesetransaktion. Der Speichertest deckt unter anderem Formatänderung,
+Revision ohne Inhaltsänderung, Löschung gegen Bearbeitung, betroffene Plotkarte und verfälschten
+Beleg ab. Der Browser-Bedienlauf nutzt die simulierte IPC. Der native synthetische Lauf verwendet
+zwei Arbeitsverzeichnisse und die echten Speicherbefehle. Im Desktop-Quellstand bereitet die
+ausdrückliche Auswahl einseitig geänderter bestehender Szenen eine eigene logische Arbeitskopie vor.
+Der native Speicherpfad vergleicht Titel und Inhalt über gebundene Szenenhashes, bewahrt die lokalen
+Beziehungen und sperrt Löschungen, echte Konflikte sowie Strukturänderungen. Zwei synthetische
+Projektverzeichnisse und ein Browserlauf mit simulierter IPC sind geprüft. Die ausdrücklich
+bestätigte Aktivierung und Rücknahme im geöffneten Projekt sind mit synthetischen Szenen im nativen
+Speicherpfad und per Browser mit simulierter IPC geprüft. Ein Abbruch vor dem Commit ließ Revision 0
+stehen, ein Abbruch danach Revision 1. Wiederholte Rücknahme endete auf Revision 2. Bei beidseitiger
+Bearbeitung ist die ausdrückliche Wahl einer ganzen Fassung im Windows-Entwicklungsstand umgesetzt.
+Der native Speichertest prüft die Kopie, die Ablehnung einer inzwischen erhöhten Revision, die
+erforderliche lokale Freigabe sowie Aktivierung und Rücknahme.
+[Bedienung und Umfang](../README.md#szenenstände-auf-zwei-rechnern-vergleichen)
 
-Für produktive Übernahmen ist der logische Neuaufbau verbindlich. Im synthetischen P3-Auswahlpfad ist er umgesetzt. Die neue SQLite-Datei übernimmt aktuelle Arbeitsdaten und Kennungen. Der Suchindex entsteht aus den aktuellen Dokumenten. Die Prüfung deckt den überschriebenen Absatz, den Suchtreffer für die aktuelle Fassung, den Zeilenabgleich einschließlich eines gespeicherten Bildprompt-Entwurfs und die schreibgeschützte VHDX-Vorschau ab. Die Produktintegration für gewöhnliche Bestandsordner ist offen.
+Für produktive Übernahmen ist der logische Neuaufbau verbindlich. Im synthetischen P3-Auswahlpfad
+ist er umgesetzt. Die neue SQLite-Datei übernimmt aktuelle Arbeitsdaten und Kennungen. Der Suchindex
+entsteht aus den aktuellen Dokumenten. Die Prüfung deckt den überschriebenen Absatz, den Suchtreffer
+für die aktuelle Fassung, den Zeilenabgleich einschließlich eines gespeicherten Bildprompt-Entwurfs
+und die schreibgeschützte VHDX-Vorschau ab. Die Produktintegration für gewöhnliche Bestandsordner
+ist offen.
 
-Die synthetische P3-Auswahl ermittelt Originalbilder und Vorschaubilder aus der bestätigten SQLite-Sicht einschließlich WAL. Vor der Freigabe prüft sie Projektkennung, Schema, Dateibestand, Mediengröße, Prüfsumme und Szenenverknüpfung. Die lokale Auswahl und der vollständige VHDX-Lauf übernahmen das abweichend benannte Vorschaubild von Süd. Nach Veröffentlichung öffnete sich „Szene B · Revision 0“ schreibgeschützt. Ein zusätzliches unbekanntes Asset, eine fehlende referenzierte Vorschau und eine zusätzliche SQLite-Tabelle sperrten die Planung. Die installierte Alpha verwendet diesen Prüfpfad noch nicht.
+Die synthetische P3-Auswahl ermittelt Originalbilder und Vorschaubilder aus der bestätigten
+SQLite-Sicht einschließlich WAL. Vor der Freigabe prüft sie Projektkennung, Schema, Dateibestand,
+Mediengröße, Prüfsumme und Szenenverknüpfung. Die lokale Auswahl und der vollständige VHDX-Lauf
+übernahmen das abweichend benannte Vorschaubild von Süd. Nach Veröffentlichung öffnete sich „Szene B
+· Revision 0“ schreibgeschützt. Ein zusätzliches unbekanntes Asset, eine fehlende referenzierte
+Vorschau und eine zusätzliche SQLite-Tabelle sperrten die Planung. Die installierte Alpha verwendet
+diesen Prüfpfad noch nicht.
 
-Der native P3-Prüfstarter bietet zwei synthetische Projektordner in einem eigenen Win32-Dialog zur Auswahl an. Der Auswahlschritt benötigt weder PowerShell noch den Windows-Explorer. Für beide wurde geprüft, dass genau die ausgewählte Projekt- und Verzeichnisidentität samt Inventar übernommen wurde. Auch bei vertauschten Verzeichnishandles verweigerte die Prüfsteuerung die Erfassung vor der Zielanlage. Abbrechen hinterließ ein leeres Ziel. Beim harten Abbruch der Prüfsteuerung schloss sich der offene Dialog, beide Ordnerhandles wurden frei und es entstand kein Freigabebeleg. Windows entfernte die für den Dialog vorgemerkten synthetischen Quelldateien. Eine zusätzlich angelegte Fremddatei blieb erhalten.
+Der native P3-Prüfstarter bietet zwei synthetische Projektordner in einem eigenen Win32-Dialog zur
+Auswahl an. Der Auswahlschritt benötigt weder PowerShell noch den Windows-Explorer. Für beide wurde
+geprüft, dass genau die ausgewählte Projekt- und Verzeichnisidentität samt Inventar übernommen
+wurde. Auch bei vertauschten Verzeichnishandles verweigerte die Prüfsteuerung die Erfassung vor der
+Zielanlage. Abbrechen hinterließ ein leeres Ziel. Beim harten Abbruch der Prüfsteuerung schloss sich
+der offene Dialog, beide Ordnerhandles wurden frei und es entstand kein Freigabebeleg. Windows
+entfernte die für den Dialog vorgemerkten synthetischen Quelldateien. Eine zusätzlich angelegte
+Fremddatei blieb erhalten.
 
-Auch die reguläre Bereinigung des interaktiven Quellbestands ist an Dateiidentität und Inhalt gebunden. Eine zusätzliche Datei in der gewählten Quelle blockierte die Kopie und blieb erhalten. Eine Fremddatei im anderen Projekt blieb bei erfolgreicher Auswahl und beim Abbrechen erhalten. Der Austausch eines Bilds nach Bestätigung gegen eine bytegleiche Datei sperrte die Erfassung vor Zielanlage. Auch ein neu hinzugefügter NTFS-Datenstrom sperrte die Kopie. Ersatzdatei bzw. zusätzlicher Datenstrom blieben beim Aufräumen erhalten.
+Auch die reguläre Bereinigung des interaktiven Quellbestands ist an Dateiidentität und Inhalt
+gebunden. Eine zusätzliche Datei in der gewählten Quelle blockierte die Kopie und blieb erhalten.
+Eine Fremddatei im anderen Projekt blieb bei erfolgreicher Auswahl und beim Abbrechen erhalten. Der
+Austausch eines Bilds nach Bestätigung gegen eine bytegleiche Datei sperrte die Erfassung vor
+Zielanlage. Auch ein neu hinzugefügter NTFS-Datenstrom sperrte die Kopie. Ersatzdatei bzw.
+zusätzlicher Datenstrom blieben beim Aufräumen erhalten.
 
-Der native Prüfstarter bindet den synthetischen Quellordner an den erfassten Kandidaten und dessen Inventar. Ein Wiederanlauf mit anderer Quellidentität wurde abgewiesen, der ursprüngliche Kandidat bestätigt.
+Der native Prüfstarter bindet den synthetischen Quellordner an den erfassten Kandidaten und dessen
+Inventar. Ein Wiederanlauf mit anderer Quellidentität wurde abgewiesen, der ursprüngliche Kandidat
+bestätigt.
 
-Am beschreibbaren synthetischen NTFS-Ordner führte ein neues Asset im Unterverzeichnis zum Abbruch ohne Zielkopie. Die anschließende Erfassung übernahm das Asset und die im WAL bestätigte Szene. Der vollständige VHDX-Lauf mit diesem Bestand bestätigte Veröffentlichung, Wiederanlauf, Bereinigung und schreibgeschützte Anzeige der Szene im verwalteten Win32-Fenster. [Erfassung und Geltungsbereich](data-format/product-start-integration-v1-draft.md#erfassung-eines-beschreibbaren-synthetischen-projektordners)
+Am beschreibbaren synthetischen NTFS-Ordner führte ein neues Asset im Unterverzeichnis zum Abbruch
+ohne Zielkopie. Die anschließende Erfassung übernahm das Asset und die im WAL bestätigte Szene. Der
+vollständige VHDX-Lauf mit diesem Bestand bestätigte Veröffentlichung, Wiederanlauf, Bereinigung und
+schreibgeschützte Anzeige der Szene im verwalteten Win32-Fenster.
+[Erfassung und Geltungsbereich](data-format/product-start-integration-v1-draft.md#erfassung-eines-beschreibbaren-synthetischen-projektordners)
 
-Für die Kopie eines Projekts von einem vollständig schreibgeschützten synthetischen Quelldatenträger sind stabiler Dateibestand, Assetverknüpfungen und Identitätserhalt im Staging geprüft. Der zweite Prozess erhielt beim Anlegen neuer Assets im Stamm und im Unterverzeichnis jeweils `ERROR_WRITE_PROTECT`. Die Freigabe gewöhnlicher Bestandsordner und die Veröffentlichung einer produktiven Arbeitskopie sind offen. [Prüfaufbau und Geltungsbereich](data-format/product-start-integration-v1-draft.md#stabiler-dateibestand-auf-einem-synthetischen-quelldatenträger)
+Für die Kopie eines Projekts von einem vollständig schreibgeschützten synthetischen Quelldatenträger
+sind stabiler Dateibestand, Assetverknüpfungen und Identitätserhalt im Staging geprüft. Der zweite
+Prozess erhielt beim Anlegen neuer Assets im Stamm und im Unterverzeichnis jeweils
+`ERROR_WRITE_PROTECT`. Die Freigabe gewöhnlicher Bestandsordner und die Veröffentlichung einer
+produktiven Arbeitskopie sind offen.
+[Prüfaufbau und Geltungsbereich](data-format/product-start-integration-v1-draft.md#stabiler-dateibestand-auf-einem-synthetischen-quelldatenträger)
 
-Die geprüfte synthetische Kopie lässt sich einmalig an ein gebundenes Testziel veröffentlichen. Nach Prozessende vor der Rückmeldung bestätigte der Folgeaufruf denselben Abschluss. Fremdes Ziel, frischer Schlüssel und veränderter Zielbestand wurden abgewiesen. Ein regulärer Neustart sperrt vorhandene Teilkopien. Im kontrollierten Prüfziel kann derselbe Controller eine ausdrücklich angeforderte Fortsetzung anhand authentisierter Dateiidentitäten und aller bisherigen Quellbytes zulassen. Ein bereits vollständig bestätigtes Paket ließ sich nach einem zweiten Abbruch vor der Umbenennung einmalig veröffentlichen. Unklare Bestände bleiben gesperrt. [Nachweis und Grenze der Prüfautorität](data-format/product-start-integration-v1-draft.md#einmalige-veröffentlichung-am-gebundenen-synthetischen-ziel)
+Die geprüfte synthetische Kopie lässt sich einmalig an ein gebundenes Testziel veröffentlichen. Nach
+Prozessende vor der Rückmeldung bestätigte der Folgeaufruf denselben Abschluss. Fremdes Ziel,
+frischer Schlüssel und veränderter Zielbestand wurden abgewiesen. Ein regulärer Neustart sperrt
+vorhandene Teilkopien. Im kontrollierten Prüfziel kann derselbe Controller eine ausdrücklich
+angeforderte Fortsetzung anhand authentisierter Dateiidentitäten und aller bisherigen Quellbytes
+zulassen. Ein bereits vollständig bestätigtes Paket ließ sich nach einem zweiten Abbruch vor der
+Umbenennung einmalig veröffentlichen. Unklare Bestände bleiben gesperrt.
+[Nachweis und Grenze der Prüfautorität](data-format/product-start-integration-v1-draft.md#einmalige-veröffentlichung-am-gebundenen-synthetischen-ziel)
 
-Der native Prüfstarter bindet die Entscheidung für eine synthetische Übernahme an das Kontrolljournal der Testinstallation. Der Windows-Lauf prüft den Neustart nach dem ersten Kopierbyte und nach Veröffentlichung sowie die Ablehnung durch eine zweite Installation. Eine ausdrückliche Bereinigungsentscheidung für den gebundenen Teilbestand sperrt die weitere Übernahme auch nach Neustart. Die Entfernung lässt sich nach dem geprüften Prozessabbruch anhand der im Journal freigegebenen Schritte fortsetzen. Unerwartet fehlende und ausgetauschte Objekte sperren die Fortsetzung. [Kontrolljournal und Geltungsbereich](data-format/product-start-integration-v1-draft.md#wiederanlauf-mit-installationsgebundenem-kontrolljournal)
+Der native Prüfstarter bindet die Entscheidung für eine synthetische Übernahme an das
+Kontrolljournal der Testinstallation. Der Windows-Lauf prüft den Neustart nach dem ersten Kopierbyte
+und nach Veröffentlichung sowie die Ablehnung durch eine zweite Installation. Eine ausdrückliche
+Bereinigungsentscheidung für den gebundenen Teilbestand sperrt die weitere Übernahme auch nach
+Neustart. Die Entfernung lässt sich nach dem geprüften Prozessabbruch anhand der im Journal
+freigegebenen Schritte fortsetzen. Unerwartet fehlende und ausgetauschte Objekte sperren die
+Fortsetzung.
+[Kontrolljournal und Geltungsbereich](data-format/product-start-integration-v1-draft.md#wiederanlauf-mit-installationsgebundenem-kontrolljournal)
 
-Der gezielte P3-Leseaufruf kann die gebundene synthetische Szene aus der bestätigten Kopie im Arbeitsspeicher lesen. Die Teilkopie bleibt für diesen Aufruf gesperrt. Der isolierte Win32-Datendienst quittiert genau die gebundene Zeile nach bestätigtem Bootstrap. Eine andere Szenenkennung wird vor dem Dienststart abgewiesen. Ein Starterabbruch nach dem dauerhaften Beginn und vor der Startbestätigung sperrt den folgenden Leseaufruf. Die P3-Fensterrolle empfängt diese Zeile über eine nur lesbare Pipe und zeigt den geprüften Klartext im schreibgeschützten nativen Eingabefeld an.
+Der gezielte P3-Leseaufruf kann die gebundene synthetische Szene aus der bestätigten Kopie im
+Arbeitsspeicher lesen. Die Teilkopie bleibt für diesen Aufruf gesperrt. Der isolierte
+Win32-Datendienst quittiert genau die gebundene Zeile nach bestätigtem Bootstrap. Eine andere
+Szenenkennung wird vor dem Dienststart abgewiesen. Ein Starterabbruch nach dem dauerhaften Beginn
+und vor der Startbestätigung sperrt den folgenden Leseaufruf. Die P3-Fensterrolle empfängt diese
+Zeile über eine nur lesbare Pipe und zeigt den geprüften Klartext im schreibgeschützten nativen
+Eingabefeld an.
 
-Der vollständige VHDX-Lauf bestätigte auch die Abweisung der ausgetauschten Fenster-EXE. Mit `-InteractivePreview` bleibt das schreibgeschützte Fenster bis zum Schließen geöffnet. Im lokalen Rollenlauf sperrte die Anzeige parallele Leseaufrufe. Nach Starterabbruch endete die Fensterrolle und der Wiederanlauf blieb gesperrt. Für neue synthetische Vorschauen ist die Profilbereinigung nach einem harten Starterabbruch im lokalen Rollenlauf geprüft. Ein Ersatzverzeichnis blieb erhalten. Das ursprüngliche Fensterprofil wurde einmal entfernt und der Szenenneustart blieb gesperrt.
+Der vollständige VHDX-Lauf bestätigte auch die Abweisung der ausgetauschten Fenster-EXE. Mit
+`-InteractivePreview` bleibt das schreibgeschützte Fenster bis zum Schließen geöffnet. Im lokalen
+Rollenlauf sperrte die Anzeige parallele Leseaufrufe. Nach Starterabbruch endete die Fensterrolle
+und der Wiederanlauf blieb gesperrt. Für neue synthetische Vorschauen ist die Profilbereinigung nach
+einem harten Starterabbruch im lokalen Rollenlauf geprüft. Ein Ersatzverzeichnis blieb erhalten. Das
+ursprüngliche Fensterprofil wurde einmal entfernt und der Szenenneustart blieb gesperrt.
 
-Der vollständige Windows-VHDX-Lauf hat Profilbereinigung und gesperrten Neustart nach dem Abbruch bei sichtbarem Fenster bestätigt. Er wurde mit einem ausschließlich im WAL bestätigten Szenentext wiederholt. Staging und Fenster erhielten »Text aus der Testkopie.« aus der veröffentlichten Kopie. Der Hauptdateihash blieb beim WAL-Commit gleich, das gesamte Quellinventar blieb bis zum Laufende unverändert. Ein separater lokaler Leseversuch mit fehlendem SHM-Index wurde vor dem SQLite-Aufruf abgewiesen. Bei einem unklaren Laufende erhält die Prüfsteuerung das Kontrolljournal der Primärinstallation für die Diagnose.
+Der vollständige Windows-VHDX-Lauf hat Profilbereinigung und gesperrten Neustart nach dem Abbruch
+bei sichtbarem Fenster bestätigt. Er wurde mit einem ausschließlich im WAL bestätigten Szenentext
+wiederholt. Staging und Fenster erhielten »Text aus der Testkopie.« aus der veröffentlichten Kopie.
+Der Hauptdateihash blieb beim WAL-Commit gleich, das gesamte Quellinventar blieb bis zum Laufende
+unverändert. Ein separater lokaler Leseversuch mit fehlendem SHM-Index wurde vor dem SQLite-Aufruf
+abgewiesen. Bei einem unklaren Laufende erhält die Prüfsteuerung das Kontrolljournal der
+Primärinstallation für die Diagnose.
 
 ### PDF-Export
 
-Text- und Bildexport lesen das selbst erzeugte PDF zur Ausgabeprüfung mit `lopdf 0.47.0`.
-Der bestehende Exporttest prüft unter anderem die eingebetteten RGB-Daten, Abmessungen und
-Bildkennungen. Der Schreiber `printpdf 0.12.14` verwendet ebenfalls `lopdf 0.47.0`.
-Diese ist die einzige im Workspace aufgelöste Version. Damit ist die von
-[Dependabot #8](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/8) gemeldete
-Version auf dem Entwicklungsbranch entfernt. Eine illustrierte synthetische Ausgabe wurde
-unabhängig mit Poppler auf allen drei A4-Seiten gerendert.
+Text- und Bildexport lesen das selbst erzeugte PDF zur Ausgabeprüfung mit `lopdf 0.47.0`. Der
+bestehende Exporttest prüft unter anderem die eingebetteten RGB-Daten, Abmessungen und
+Bildkennungen. Der Schreiber `printpdf 0.12.14` verwendet ebenfalls `lopdf 0.47.0`. Diese ist die
+einzige im Workspace aufgelöste Version. Damit ist die von
+[Dependabot #8](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/8) gemeldete Version
+auf dem Entwicklungsbranch entfernt. Eine illustrierte synthetische Ausgabe wurde unabhängig mit
+Poppler auf allen drei A4-Seiten gerendert.
 
 ### Verwalteter Win32-Szeneneditor
 
-**Abnahme und Weiterentwicklung am 24. November 2026.** Die vorhandenen Prozessnachweise schließen den Wiederanlauf der synthetischen Szenenübernahme für diesen Umfang ab. Im langen Klartexteditor zeigt eine eigene Zeile die Wortzahl des lokalen Entwurfs und die belegten UTF-16-Einheiten von 4096. Absatzgrenzen zählen als eine Einheit. F11 blendet Suche, Ersetzen, Zähler und Speicherknöpfe aus und vergrößert die Schreibfläche. F11 oder Esc führt zum Entwurf in der normalen Ansicht zurück. Der lokale Windows-Lauf bestätigte zwei Wörter und sieben Einheiten für eine Feder als Emoji, einen Absatzwechsel und „Rabe“, die gesperrte Speicherung bei 4097 Einheiten und den Rückweg aus dem Fokusmodus. Speichern, erneutes Öffnen mit 22 angezeigten Wörtern und Weiterschreiben bis Revision 3 wurden an synthetischem Text geprüft.
+**Abnahme und Weiterentwicklung am 24. November 2026.** Die vorhandenen Prozessnachweise schließen
+den Wiederanlauf der synthetischen Szenenübernahme für diesen Umfang ab. Im langen Klartexteditor
+zeigt eine eigene Zeile die Wortzahl des lokalen Entwurfs und die belegten UTF-16-Einheiten
+von 4096. Absatzgrenzen zählen als eine Einheit. F11 blendet Suche, Ersetzen, Zähler und
+Speicherknöpfe aus und vergrößert die Schreibfläche. F11 oder Esc führt zum Entwurf in der normalen
+Ansicht zurück. Der lokale Windows-Lauf bestätigte zwei Wörter und sieben Einheiten für eine Feder
+als Emoji, einen Absatzwechsel und „Rabe“, die gesperrte Speicherung bei 4097 Einheiten und den
+Rückweg aus dem Fokusmodus. Speichern, erneutes Öffnen mit 22 angezeigten Wörtern und
+Weiterschreiben bis Revision 3 wurden an synthetischem Text geprüft.
 
-Der aktualisierte Starter lässt unmarkierte Altpaare nur lesen. Ein gebundenes Altpaar kann unter demselben Starter mit `upgrade-win32-package` auf ein geprüftes Schreibpaar wechseln. Der lokale Windows-Lauf bestätigte Sperre, Lesen, Rollenwechsel, Schreiben und Wiederöffnen. Nach einem Starterwechsel gibt erst `adopt-win32-scene <Revision> <Snapshot-SHA-256> <Kontrollkopf>` die gespeicherte synthetische Szene für den neuen Starter frei. Revision und Hash stehen in `verify-win32-package`. Eine offene Sitzung sperrt die Übernahme. [Bedienung, Wiederanlauf und Windows-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#ausdrückliche-übernahme-der-synthetischen-szene-nach-einem-starterupdate). [Aufruf, Grenzen und ETW-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#lesezugriff-für-altpaare-und-authentisierter-rollenwechsel).
+Der aktualisierte Starter lässt unmarkierte Altpaare nur lesen. Ein gebundenes Altpaar kann unter
+demselben Starter mit `upgrade-win32-package` auf ein geprüftes Schreibpaar wechseln. Der lokale
+Windows-Lauf bestätigte Sperre, Lesen, Rollenwechsel, Schreiben und Wiederöffnen. Nach einem
+Starterwechsel gibt erst `adopt-win32-scene <Revision> <Snapshot-SHA-256> <Kontrollkopf>` die
+gespeicherte synthetische Szene für den neuen Starter frei. Revision und Hash stehen in
+`verify-win32-package`. Eine offene Sitzung sperrt die Übernahme.
+[Bedienung, Wiederanlauf und Windows-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#ausdrückliche-übernahme-der-synthetischen-szene-nach-einem-starterupdate).
+[Aufruf, Grenzen und ETW-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#lesezugriff-für-altpaare-und-authentisierter-rollenwechsel).
 
-Bei einem Starterabbruch während der Übernahme entscheidet der veröffentlichte Kontrollkopf über die Zuordnung. Vor dem Eintrag bleibt die alte Zuordnung erhalten, nach Veröffentlichung gilt die neue. Zwischen synchronisiertem Eintrag und Kopf sperrt der reguläre Start die Ablage. Der dafür ausgerüstete aktive Starter kann mit `recover-win32-scene-adoption <Revision> <Snapshot-SHA-256> <Kontrollkopf-vor-Übernahme>` genau einen eindeutig belegten Übernahmeeintrag abschließen. Der Windows-Prozesslauf bestätigte die einmalige Übernahme nach echtem Starterabbruch. Nach einem zweiten Abbruch bei vorbereitetem Kopf kann derselbe ausdrückliche Aufruf den bytegenau passenden authentisierten Kopf veröffentlichen. Ein abweichender Kopf sperrt die Übernahme. [Geprüfte Abbruchpunkte und Vorgehen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#wiederanlauf-nach-abbruch-der-szenenübernahme).
+Bei einem Starterabbruch während der Übernahme entscheidet der veröffentlichte Kontrollkopf über die
+Zuordnung. Vor dem Eintrag bleibt die alte Zuordnung erhalten, nach Veröffentlichung gilt die neue.
+Zwischen synchronisiertem Eintrag und Kopf sperrt der reguläre Start die Ablage. Der dafür
+ausgerüstete aktive Starter kann mit
+`recover-win32-scene-adoption <Revision> <Snapshot-SHA-256> <Kontrollkopf-vor-Übernahme>` genau
+einen eindeutig belegten Übernahmeeintrag abschließen. Der Windows-Prozesslauf bestätigte die
+einmalige Übernahme nach echtem Starterabbruch. Nach einem zweiten Abbruch bei vorbereitetem Kopf
+kann derselbe ausdrückliche Aufruf den bytegenau passenden authentisierten Kopf veröffentlichen. Ein
+abweichender Kopf sperrt die Übernahme.
+[Geprüfte Abbruchpunkte und Vorgehen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#wiederanlauf-nach-abbruch-der-szenenübernahme).
 
-Im Zwei-Absatz-Editor für die synthetische Szene A lässt sich eine Textstelle mit Umschalt und den Pfeiltasten auswählen. **Bearbeiten → Markierte Textstelle fett speichern und schließen** speichert die Auswahl und den aktuellen Text gemeinsam auf der geladenen Revision. Zulässig ist ein Teilbereich eines bisher unformatierten Absatzes. Eine bestehende Fettmarkierung des gesamten zweiten Absatzes bleibt erhalten. Im Leseauftrag zeigt die Vorschau die markierte Stelle an. Im Bearbeitungsauftrag lassen sich beide Absätze ändern. Bleibt der Absatz mit der Fettstelle gleich, speichert Strg+S die Änderungen am anderen Absatz samt Formatierung und schließt. Auch nach einer Änderung vor oder hinter der Fettstelle genügt Strg+S, wenn der markierte Text im alten und im neuen Absatz jeweils genau einmal vorkommt und eine Seite der Stelle vollständig unverändert ist. Andernfalls bleibt der Entwurf offen und verlangt die erneute Auswahl. Strg+Umschalt+B oder der Menübefehl speichert diese Auswahl. Für diese Fassung erfolgt das Speichern ausdrücklich. Weitere oder gemischte Inline-Markierungen öffnen weiterhin in der schreibgeschützten Vorschau. Der lokale Windows-Lauf bestätigte die Auswahl „ab“ in „Rabe“, die Fettmarkierung von „42“, Revision 1 und den vollständigen Klartext im Suchindex. Ein weiterer lokaler Windows-Lauf änderte „42“ zu „44“ unter Erhalt beider Fettmarkierungen. Im Windows-Lauf mit der aktualisierten Zuordnung blieb „ab“ beim Wechsel von „Rabe“ zu „Kolkrabe“ fett. Bei „Kolkrabe ab“ blieb der Entwurf bis zur ausdrücklichen Auswahl des zweiten „ab“ offen. Die so gespeicherte Revision 3 ließ sich unter frischer Lesebindung öffnen. Der Modelltest deckt außerdem Leserechte, veraltete Revisionen und Auswahlgrenzen innerhalb eines UTF-16-Zeichens ab.
+Im Zwei-Absatz-Editor für die synthetische Szene A lässt sich eine Textstelle mit Umschalt und den
+Pfeiltasten auswählen. **Bearbeiten → Markierte Textstelle fett speichern und schließen** speichert
+die Auswahl und den aktuellen Text gemeinsam auf der geladenen Revision. Zulässig ist ein
+Teilbereich eines bisher unformatierten Absatzes. Eine bestehende Fettmarkierung des gesamten
+zweiten Absatzes bleibt erhalten. Im Leseauftrag zeigt die Vorschau die markierte Stelle an. Im
+Bearbeitungsauftrag lassen sich beide Absätze ändern. Bleibt der Absatz mit der Fettstelle gleich,
+speichert Strg+S die Änderungen am anderen Absatz samt Formatierung und schließt. Auch nach einer
+Änderung vor oder hinter der Fettstelle genügt Strg+S, wenn der markierte Text im alten und im neuen
+Absatz jeweils genau einmal vorkommt und eine Seite der Stelle vollständig unverändert ist.
+Andernfalls bleibt der Entwurf offen und verlangt die erneute Auswahl. Strg+Umschalt+B oder der
+Menübefehl speichert diese Auswahl. Für diese Fassung erfolgt das Speichern ausdrücklich. Weitere
+oder gemischte Inline-Markierungen öffnen weiterhin in der schreibgeschützten Vorschau. Der lokale
+Windows-Lauf bestätigte die Auswahl „ab“ in „Rabe“, die Fettmarkierung von „42“, Revision 1 und den
+vollständigen Klartext im Suchindex. Ein weiterer lokaler Windows-Lauf änderte „42“ zu „44“ unter
+Erhalt beider Fettmarkierungen. Im Windows-Lauf mit der aktualisierten Zuordnung blieb „ab“ beim
+Wechsel von „Rabe“ zu „Kolkrabe“ fett. Bei „Kolkrabe ab“ blieb der Entwurf bis zur ausdrücklichen
+Auswahl des zweiten „ab“ offen. Die so gespeicherte Revision 3 ließ sich unter frischer Lesebindung
+öffnen. Der Modelltest deckt außerdem Leserechte, veraltete Revisionen und Auswahlgrenzen innerhalb
+eines UTF-16-Zeichens ab.
 
-Der verwaltete Starter erkennt gemischte Generationen mit einseitiger Inline-Kennung vor dem Sitzungsstart. Für das passende Paar sind Markieren, Entfernen und Wiederöffnen im aktuellen Windows-Netzvergleich geprüft. [Paketprüfung und ETW-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#paketkompatibilität-und-etw-für-einzelne-fettmarkierungen).
+Der verwaltete Starter erkennt gemischte Generationen mit einseitiger Inline-Kennung vor dem
+Sitzungsstart. Für das passende Paar sind Markieren, Entfernen und Wiederöffnen im aktuellen
+Windows-Netzvergleich geprüft.
+[Paketprüfung und ETW-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#paketkompatibilität-und-etw-für-einzelne-fettmarkierungen).
 
-Mit F4 oder **Bearbeiten → Gespeicherte Fettstelle auswählen** springt der Bearbeitungsauftrag zur gespeicherten Fettstelle im aktuellen Entwurf. Geprüft sind die Auswahl nach einer eindeutigen Verschiebung im Absatz und der Erhalt der bisherigen Auswahl bei einer mehrdeutigen Zuordnung.
+Mit F4 oder **Bearbeiten → Gespeicherte Fettstelle auswählen** springt der Bearbeitungsauftrag zur
+gespeicherten Fettstelle im aktuellen Entwurf. Geprüft sind die Auswahl nach einer eindeutigen
+Verschiebung im Absatz und der Erhalt der bisherigen Auswahl bei einer mehrdeutigen Zuordnung.
 
-Eine bereits gespeicherte Fettstelle lässt sich im Win32-Bearbeitungsauftrag gezielt ersetzen. Strg+H öffnet das Ersatzfeld. Dort übernimmt Strg+Umschalt+Enter den Ersatztext als neue Fettstelle, speichert die Szene und schließt nach Bestätigung. Derselbe Befehl steht unter **Bearbeiten → Fettstelle durch Ersatztext ersetzen, speichern und schließen**. Er setzt eine eindeutig zugeordnete Fettstelle und einen geänderten, nicht leeren Ersatztext voraus. Bei Überschreitung der Absatzgrenze bleibt der Entwurf offen. Der lokale Windows-Lauf prüfte diese Grenze sowie die Ersetzung von „ab“ durch „e“ in „Rabe“. In Revision 2 von „Ree“ war genau das erste „e“ fett. Die Markierung von „42“, der Klartext im Suchindex und das Wiederöffnen unter frischer Lesebindung wurden bestätigt.
+Eine bereits gespeicherte Fettstelle lässt sich im Win32-Bearbeitungsauftrag gezielt ersetzen.
+Strg+H öffnet das Ersatzfeld. Dort übernimmt Strg+Umschalt+Enter den Ersatztext als neue Fettstelle,
+speichert die Szene und schließt nach Bestätigung. Derselbe Befehl steht unter **Bearbeiten →
+Fettstelle durch Ersatztext ersetzen, speichern und schließen**. Er setzt eine eindeutig zugeordnete
+Fettstelle und einen geänderten, nicht leeren Ersatztext voraus. Bei Überschreitung der Absatzgrenze
+bleibt der Entwurf offen. Der lokale Windows-Lauf prüfte diese Grenze sowie die Ersetzung von „ab“
+durch „e“ in „Rabe“. In Revision 2 von „Ree“ war genau das erste „e“ fett. Die Markierung von „42“,
+der Klartext im Suchindex und das Wiederöffnen unter frischer Lesebindung wurden bestätigt.
 
-**Bearbeiten → Fettmarkierung entfernen, speichern und schließen** entfernt die einzelne Fettstelle aus der geladenen Revision. Der Auftrag enthält nur die erwartete Revision. Text und Absatzformatierung stammen aus der gespeicherten Szene. Bei offenen Änderungen im Fenster ist der Befehl gesperrt. Im lokalen Win32-Lauf blieb ein geänderter Entwurf offen. Nach der Entfernung aus dem ursprünglichen Stand enthielt Revision 2 „Rabe“ als Klartext und „42“ weiterhin in Fett. Suchindex und erneutes Öffnen stimmten mit dem gespeicherten Stand überein. Der Modelltest prüft die Sperren für Lesebindung, veraltete Revision und bereits entfernte Markierung.
+**Bearbeiten → Fettmarkierung entfernen, speichern und schließen** entfernt die einzelne Fettstelle
+aus der geladenen Revision. Der Auftrag enthält nur die erwartete Revision. Text und
+Absatzformatierung stammen aus der gespeicherten Szene. Bei offenen Änderungen im Fenster ist der
+Befehl gesperrt. Im lokalen Win32-Lauf blieb ein geänderter Entwurf offen. Nach der Entfernung aus
+dem ursprünglichen Stand enthielt Revision 2 „Rabe“ als Klartext und „42“ weiterhin in Fett.
+Suchindex und erneutes Öffnen stimmten mit dem gespeicherten Stand überein. Der Modelltest prüft die
+Sperren für Lesebindung, veraltete Revision und bereits entfernte Markierung.
 
-Beim Wiederöffnen einer synthetischen Szene weist der Datendienst zusätzliche Felder in der äußeren Dokumenthülle ab. Damit können unbekannte Metadaten beim nächsten Speichern nicht stillschweigend entfallen. Der bestehende Modelltest für nicht unterstützte Dokumente deckt diesen Fall ab.
+Beim Wiederöffnen einer synthetischen Szene weist der Datendienst zusätzliche Felder in der äußeren
+Dokumenthülle ab. Damit können unbekannte Metadaten beim nächsten Speichern nicht stillschweigend
+entfallen. Der bestehende Modelltest für nicht unterstützte Dokumente deckt diesen Fall ab.
 
-Längere gespeicherte Klartextszenen sind im Bearbeitungsauftrag bis 4.096 UTF-16-Einheiten bearbeitbar. Bei verfügbarem Folgezug speichert der Klartexteditor gültige Änderungen nach 700 ms Schreibpause. Strg+Enter speichert sofort und lässt das Fenster zum Weiterschreiben offen. Beim letzten Schreibzug bleibt der Entwurf bis zur ausdrücklichen Entscheidung offen. Strg+S speichert und schließt. Bei einem Revisionskonflikt zeigt das Fenster den frisch gelesenen Diensttext neben dem lokalen Entwurf. F6 wechselt zwischen den Fassungen. F7 und Umschalt+F7 markieren den nächsten bzw. vorherigen abweichenden Absatzblock in beiden Texten. F8 übernimmt den ausgewählten Dienstblock in den lokalen Entwurf. Fehlt er im Dienststand, entfernt F8 die entsprechenden lokalen Absätze. Autosave bleibt im Konflikt gesperrt. Bei unformatiertem Klartext und freiem Schreibzug bietet F9 an, den gesamten Entwurf ausdrücklich zu bestätigen und unter frischer Bindung zu speichern. Liegt die Dienstfassung bereits beim ersten Vergleich mehrere Revisionen voraus, erfordert F9 zusätzlich die Freigabe für einen revisionsübergreifenden Schreibzug. Ändert sich die Vergleichsbasis während der Bestätigung, bleibt der Entwurf offen. Bei freigegebenem Wiedervergleich zeigt das Fenster die neue Dienstrevision. F9 verlangt für einen zulässigen Klartextstand eine neue Bestätigung. Leerabsätze und Suchindex sind nach dem Wiederöffnen geprüft. [Klartextvertrag und Nachweise](architecture/decisions/0036-native-win32-ui-role-evaluation.md#längere-klartextszenen-bearbeiten).
+Längere gespeicherte Klartextszenen sind im Bearbeitungsauftrag bis 4.096 UTF-16-Einheiten
+bearbeitbar. Bei verfügbarem Folgezug speichert der Klartexteditor gültige Änderungen nach 700 ms
+Schreibpause. Strg+Enter speichert sofort und lässt das Fenster zum Weiterschreiben offen. Beim
+letzten Schreibzug bleibt der Entwurf bis zur ausdrücklichen Entscheidung offen. Strg+S speichert
+und schließt. Bei einem Revisionskonflikt zeigt das Fenster den frisch gelesenen Diensttext neben
+dem lokalen Entwurf. F6 wechselt zwischen den Fassungen. F7 und Umschalt+F7 markieren den nächsten
+bzw. vorherigen abweichenden Absatzblock in beiden Texten. F8 übernimmt den ausgewählten Dienstblock
+in den lokalen Entwurf. Fehlt er im Dienststand, entfernt F8 die entsprechenden lokalen Absätze.
+Autosave bleibt im Konflikt gesperrt. Bei unformatiertem Klartext und freiem Schreibzug bietet F9
+an, den gesamten Entwurf ausdrücklich zu bestätigen und unter frischer Bindung zu speichern. Liegt
+die Dienstfassung bereits beim ersten Vergleich mehrere Revisionen voraus, erfordert F9 zusätzlich
+die Freigabe für einen revisionsübergreifenden Schreibzug. Ändert sich die Vergleichsbasis während
+der Bestätigung, bleibt der Entwurf offen. Bei freigegebenem Wiedervergleich zeigt das Fenster die
+neue Dienstrevision. F9 verlangt für einen zulässigen Klartextstand eine neue Bestätigung.
+Leerabsätze und Suchindex sind nach dem Wiederöffnen geprüft.
+[Klartextvertrag und Nachweise](architecture/decisions/0036-native-win32-ui-role-evaluation.md#längere-klartextszenen-bearbeiten).
 
-Beim Vergleich im langen Klartexteditor zeigt F7 für den ausgewählten Unterschied, ob F8 Dienstabsätze einfügt, lokale Absätze ersetzt oder entfernt. Nach F8 liegt der Fokus im Entwurf. Eingefügte oder ersetzte Absätze sind ausgewählt; beim Entfernen steht die Einfügemarke an der Änderung. Im synthetischen Windows-Lauf ließ sich die Entfernung mit Strg+Z zurücknehmen. Nach dem Einfügen blieb „Neu“ ausgewählt. Die normale Speicherung war während des Konflikts gesperrt. Erst nach ausdrücklicher Bestätigung speicherte der Datendienst den geprüften Entwurf auf Revision 3.
+Beim Vergleich im langen Klartexteditor zeigt F7 für den ausgewählten Unterschied, ob F8
+Dienstabsätze einfügt, lokale Absätze ersetzt oder entfernt. Nach F8 liegt der Fokus im Entwurf.
+Eingefügte oder ersetzte Absätze sind ausgewählt; beim Entfernen steht die Einfügemarke an der
+Änderung. Im synthetischen Windows-Lauf ließ sich die Entfernung mit Strg+Z zurücknehmen. Nach dem
+Einfügen blieb „Neu“ ausgewählt. Die normale Speicherung war während des Konflikts gesperrt. Erst
+nach ausdrücklicher Bestätigung speicherte der Datendienst den geprüften Entwurf auf Revision 3.
 
-Der lange Klartexteditor bietet die Menüs **Datei**, **Bearbeiten**, **Ansicht** und **Vergleich**. Die Speicheraktionen folgen dem aktuellen Schreibbudget und den Konfliktsperren. Im Vergleich lassen sich Unterschiede in beide Richtungen ansteuern, der ausgewählte Dienstblock übernehmen und der Entwurf ausdrücklich bestätigen. F11 und der Menühaken zeigen denselben Fokusmodus. Tab überspringt ausgeblendete Felder. Beim Aufrufen von Suchen oder Ersetzen wird eine einzeilige Textauswahl bis zur Eingabefeldgrenze als Suchbegriff übernommen. Bei einer mehrzeiligen Auswahl bleibt der bisherige Suchbegriff erhalten.
+Der lange Klartexteditor bietet die Menüs **Datei**, **Bearbeiten**, **Ansicht** und **Vergleich**.
+Die Speicheraktionen folgen dem aktuellen Schreibbudget und den Konfliktsperren. Im Vergleich lassen
+sich Unterschiede in beide Richtungen ansteuern, der ausgewählte Dienstblock übernehmen und der
+Entwurf ausdrücklich bestätigen. F11 und der Menühaken zeigen denselben Fokusmodus. Tab überspringt
+ausgeblendete Felder. Beim Aufrufen von Suchen oder Ersetzen wird eine einzeilige Textauswahl bis
+zur Eingabefeldgrenze als Suchbegriff übernommen. Bei einer mehrzeiligen Auswahl bleibt der
+bisherige Suchbegriff erhalten.
 
-Rückgängig und Wiederholen stellen im langen Klartext zusätzlich die jeweilige Einfügemarke oder Auswahl wieder her. Der Verlauf liegt ausschließlich im Fenster. Im synthetischen Windows-Lauf ließ sich die Menüübernahme von „Neu“ aus dem Suchfeld heraus zurücknehmen und wiederholen. Einfügemarke und Markierung stimmten danach mit dem jeweiligen Entwurf überein. Die normale Speicherung blieb im Konflikt gesperrt. Erst nach ausdrücklicher Bestätigung wurde Revision 3 gespeichert und in der Testablage geprüft.
+Rückgängig und Wiederholen stellen im langen Klartext zusätzlich die jeweilige Einfügemarke oder
+Auswahl wieder her. Der Verlauf liegt ausschließlich im Fenster. Im synthetischen Windows-Lauf ließ
+sich die Menüübernahme von „Neu“ aus dem Suchfeld heraus zurücknehmen und wiederholen. Einfügemarke
+und Markierung stimmten danach mit dem jeweiligen Entwurf überein. Die normale Speicherung blieb im
+Konflikt gesperrt. Erst nach ausdrücklicher Bestätigung wurde Revision 3 gespeichert und in der
+Testablage geprüft.
 
-Der [ETW-Netzvergleich des Klartextmenüs](architecture/decisions/0036-native-win32-ui-role-evaluation.md#etw-beim-arbeiten-mit-dem-klartextmenü) bestätigt null zugeordnete Netzwerkereignisse für Referenz, Bearbeitung und frisches Lesen mit den dort dokumentierten Programmbytes.
+Der
+[ETW-Netzvergleich des Klartextmenüs](architecture/decisions/0036-native-win32-ui-role-evaluation.md#etw-beim-arbeiten-mit-dem-klartextmenü)
+bestätigt null zugeordnete Netzwerkereignisse für Referenz, Bearbeitung und frisches Lesen mit den
+dort dokumentierten Programmbytes.
 
-Im langen Klartextentwurf öffnet Strg+F die lokale Suche. Enter im Suchfeld, F3 und Umschalt+F3 springen zwischen exakten Treffern. Strg+H fokussiert den Ersatztext. Enter dort ersetzt einen Treffer und Strg+Enter alle. Eine zu große Zielszene wird vor der Änderung abgewiesen. Strg+Z und Strg+Y im Textfeld nehmen Bearbeitungsschritte zurück und stellen sie wieder her, auch nach bestätigtem Autosave im selben Fenster. [Bedienung und Windows-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#lokales-suchen-und-ersetzen-im-langen-klartext).
+Im langen Klartextentwurf öffnet Strg+F die lokale Suche. Enter im Suchfeld, F3 und Umschalt+F3
+springen zwischen exakten Treffern. Strg+H fokussiert den Ersatztext. Enter dort ersetzt einen
+Treffer und Strg+Enter alle. Eine zu große Zielszene wird vor der Änderung abgewiesen. Strg+Z und
+Strg+Y im Textfeld nehmen Bearbeitungsschritte zurück und stellen sie wieder her, auch nach
+bestätigtem Autosave im selben Fenster.
+[Bedienung und Windows-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#lokales-suchen-und-ersetzen-im-langen-klartext).
 
-Gespeicherte synthetische Fassungen mit bekannten, im Win32-Editor nicht darstellbaren Textmarkierungen öffnen als ausdrücklich gekennzeichnete, scrollbare Textvorschau. Sie unterstützt 4.096 UTF-16-Codeeinheiten einschließlich Absatzgrenzen und eine lokale Suche mit Trefferzählung. Das gilt auch beim Start eines Bearbeitungsauftrags. Die Speicherbefehle des Datendienstes verweigern Änderungen. [Formatumfang und Windows-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#schreibgeschützte-textvorschau-für-formatierte-szenen).
+Gespeicherte synthetische Fassungen mit bekannten, im Win32-Editor nicht darstellbaren
+Textmarkierungen öffnen als ausdrücklich gekennzeichnete, scrollbare Textvorschau. Sie unterstützt
+4.096 UTF-16-Codeeinheiten einschließlich Absatzgrenzen und eine lokale Suche mit Trefferzählung.
+Das gilt auch beim Start eines Bearbeitungsauftrags. Die Speicherbefehle des Datendienstes
+verweigern Änderungen.
+[Formatumfang und Windows-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#schreibgeschützte-textvorschau-für-formatierte-szenen).
 
-Im Forschungsauftrag `continue-win32-scene` speichert das Win32-Fenster gültige Änderungen
-an Text und Fettmarkierung nach 700 ms Schreibpause. Nach jeder Bestätigung kann im selben
-Fenster auf der bestätigten Revision weitergeschrieben werden, solange das Journal einen
-weiteren Schreibzug und den Sitzungsabschluss aufnehmen kann. Der Fenstertitel kennzeichnet
-den letzten verfügbaren Schreibzug. Geprüft mit synthetischer Szene A auf Windows.
+Im Forschungsauftrag `continue-win32-scene` speichert das Win32-Fenster gültige Änderungen an Text
+und Fettmarkierung nach 700 ms Schreibpause. Nach jeder Bestätigung kann im selben Fenster auf der
+bestätigten Revision weitergeschrieben werden, solange das Journal einen weiteren Schreibzug und den
+Sitzungsabschluss aufnehmen kann. Der Fenstertitel kennzeichnet den letzten verfügbaren Schreibzug.
+Geprüft mit synthetischer Szene A auf Windows.
 [Journalbudget und Nachweise](architecture/decisions/0036-native-win32-ui-role-evaluation.md#fortlaufendes-autosave-unter-journalbudget).
 
-Bei einem authentisierten Revisionskonflikt bleibt der Entwurf im selben Fenster lokal
-bearbeitbar. Speichern unter der alten Bindung ist gesperrt. Schließen oder Verwerfen verlangt eine ausdrückliche
-Entscheidung. Bei abgelehntem Verwerfen kehrt der Fokus ins zuvor genutzte Feld zurück. Der verwaltete Windows-Lauf und die Kanalprüfung sind im
-[Konfliktvertrag](architecture/decisions/0036-native-win32-ui-role-evaluation.md#revisionskonflikt-bei-einem-schreibzug) dokumentiert.
+Bei einem authentisierten Revisionskonflikt bleibt der Entwurf im selben Fenster lokal bearbeitbar.
+Speichern unter der alten Bindung ist gesperrt. Schließen oder Verwerfen verlangt eine ausdrückliche
+Entscheidung. Bei abgelehntem Verwerfen kehrt der Fokus ins zuvor genutzte Feld zurück. Der
+verwaltete Windows-Lauf und die Kanalprüfung sind im
+[Konfliktvertrag](architecture/decisions/0036-native-win32-ui-role-evaluation.md#revisionskonflikt-bei-einem-schreibzug)
+dokumentiert.
 
-Bei einem Konflikt lädt das verwaltete Rollenpaar den aktuellen Stand des Datendienstes unter
-einer einmaligen Lesebindung. Der Entwurf bleibt links bearbeitbar, die Dienstrevision steht
-rechts schreibgeschützt zum Vergleich. Tab erreicht das Vergleichsfeld nach dem zweiten Absatz. F6 springt aus der Vorschau zum ersten ungültigen, für die Übernahme ausgewählten Entwurfsabsatz. Bei gültiger Auswahl führt F6 zum zuletzt bearbeiteten Absatz zurück.
+Bei einem Konflikt lädt das verwaltete Rollenpaar den aktuellen Stand des Datendienstes unter einer
+einmaligen Lesebindung. Der Entwurf bleibt links bearbeitbar, die Dienstrevision steht rechts
+schreibgeschützt zum Vergleich. Tab erreicht das Vergleichsfeld nach dem zweiten Absatz. F6 springt
+aus der Vorschau zum ersten ungültigen, für die Übernahme ausgewählten Entwurfsabsatz. Bei gültiger
+Auswahl führt F6 zum zuletzt bearbeiteten Absatz zurück.
 [Bindung, Bedienung und Prüfungen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#lesender-revisionsvergleich-im-konfliktfenster).
 
-Im fortlaufenden Konfliktfenster lassen sich beide Absätze und die Fettmarkierung einzeln
-aus dem lokalen Entwurf übernehmen. Die Vorschau zeigt die Mischung und nennt für beide Absätze und die Fettmarkierung die gewählte Herkunft. Rückgängig, Wiederholen und der Wechsel der Dienstrevision aktualisieren diese Anzeige im selben Fenster. Ist ein ausgewählter Entwurfsabsatz ungültig, benennt die Vorschau den ersten betroffenen Absatz. In der Vorschau führt F6 zum Korrigieren. F8 wählt für den angezeigten ungültigen Absatz die Dienstfassung aus. Der lokale Text bleibt erhalten. Jeder Tastendruck ändert höchstens ein Häkchen und lässt sich über „Übernahme“ rückgängig machen.
-Bei einer Revisionslücke im ersten Zwei-Absatz-Vergleich können beide Absätze und die Fettmarkierung einzeln aus Entwurf oder Dienstfassung übernommen werden. Zum Speichern muss der revisionsübergreifende Schreibzug freigegeben und die Auswahl für die angezeigte Revision ausdrücklich bestätigt sein. Ohne Freigabe bleibt die Auswahl eine lokale Vorschau.
-Beim Bearbeiten bleibt die Scrollposition im Vergleichsfeld nach Möglichkeit erhalten. Eine Textmarkierung bleibt bestehen, solange der Text bis zu ihrem Ende gleich bleibt.
-Die ursprüngliche Bearbeitungsbasis lässt sich mit Revisionsnummer und Fettmarkierung einblenden.
-Für die Auswahl stehen der gesamte lokale Entwurf, der Dienststand und die eindeutig lokalen Änderungen zur Verfügung. Die letzte Änderung der Häkchen lässt sich innerhalb derselben Vergleichsrevision rückgängig machen und wiederholen. Eine neue Auswahl verwirft den Wiederholen-Schritt. Beim Wechsel der Dienstrevision bleiben die aktuellen Häkchen erhalten und der Auswahlverlauf beginnt neu. Die Vorschau nennt beidseitig
-unterschiedlich geänderte Absätze. Beide Speicherbefehle setzen eine gültige Änderung voraus. Die ausdrückliche Bestätigung speichert auf der erneut
-geprüften Vergleichsbasis unter frischer Schreibbindung und schließt das Fenster. Eine
-zwischenzeitlich geänderte Basis löst einen [erneuten Vergleich](architecture/decisions/0036-native-win32-ui-role-evaluation.md#erneuter-vergleich-vor-dem-speichern) aus. Der lokale Entwurf und die bisherige Auswahl bleiben zur Prüfung offen.
+Im fortlaufenden Konfliktfenster lassen sich beide Absätze und die Fettmarkierung einzeln aus dem
+lokalen Entwurf übernehmen. Die Vorschau zeigt die Mischung und nennt für beide Absätze und die
+Fettmarkierung die gewählte Herkunft. Rückgängig, Wiederholen und der Wechsel der Dienstrevision
+aktualisieren diese Anzeige im selben Fenster. Ist ein ausgewählter Entwurfsabsatz ungültig, benennt
+die Vorschau den ersten betroffenen Absatz. In der Vorschau führt F6 zum Korrigieren. F8 wählt für
+den angezeigten ungültigen Absatz die Dienstfassung aus. Der lokale Text bleibt erhalten. Jeder
+Tastendruck ändert höchstens ein Häkchen und lässt sich über „Übernahme“ rückgängig machen. Bei
+einer Revisionslücke im ersten Zwei-Absatz-Vergleich können beide Absätze und die Fettmarkierung
+einzeln aus Entwurf oder Dienstfassung übernommen werden. Zum Speichern muss der
+revisionsübergreifende Schreibzug freigegeben und die Auswahl für die angezeigte Revision
+ausdrücklich bestätigt sein. Ohne Freigabe bleibt die Auswahl eine lokale Vorschau. Beim Bearbeiten
+bleibt die Scrollposition im Vergleichsfeld nach Möglichkeit erhalten. Eine Textmarkierung bleibt
+bestehen, solange der Text bis zu ihrem Ende gleich bleibt. Die ursprüngliche Bearbeitungsbasis
+lässt sich mit Revisionsnummer und Fettmarkierung einblenden. Für die Auswahl stehen der gesamte
+lokale Entwurf, der Dienststand und die eindeutig lokalen Änderungen zur Verfügung. Die letzte
+Änderung der Häkchen lässt sich innerhalb derselben Vergleichsrevision rückgängig machen und
+wiederholen. Eine neue Auswahl verwirft den Wiederholen-Schritt. Beim Wechsel der Dienstrevision
+bleiben die aktuellen Häkchen erhalten und der Auswahlverlauf beginnt neu. Die Vorschau nennt
+beidseitig unterschiedlich geänderte Absätze. Beide Speicherbefehle setzen eine gültige Änderung
+voraus. Die ausdrückliche Bestätigung speichert auf der erneut geprüften Vergleichsbasis unter
+frischer Schreibbindung und schließt das Fenster. Eine zwischenzeitlich geänderte Basis löst einen
+[erneuten Vergleich](architecture/decisions/0036-native-win32-ui-role-evaluation.md#erneuter-vergleich-vor-dem-speichern)
+aus. Der lokale Entwurf und die bisherige Auswahl bleiben zur Prüfung offen.
 [Bedienung, Grenzen und Windows-Prüfungen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#gezielte-übernahme-unter-frischer-schreibbindung).
 
-Bei einer Revisionslücke lässt sich die erneut geprüfte Auswahl mit ausdrücklichem **Ja**
-speichern. Die Vorschau bleibt bei **Nein** offen. Der Starter sichert die geprüfte Basis
-und vergibt für die Auswahl eine frische Schreibbindung. Zwei Windows-Läufe prüften
-Veröffentlichung und erneute Änderung unmittelbar vor dem Speichern.
+Bei einer Revisionslücke lässt sich die erneut geprüfte Auswahl mit ausdrücklichem **Ja** speichern.
+Die Vorschau bleibt bei **Nein** offen. Der Starter sichert die geprüfte Basis und vergibt für die
+Auswahl eine frische Schreibbindung. Zwei Windows-Läufe prüften Veröffentlichung und erneute
+Änderung unmittelbar vor dem Speichern.
 [Vertrag und Nachweise](architecture/decisions/0036-native-win32-ui-role-evaluation.md#bestätigte-übernahme-über-eine-revisionslücke).
 
 Über **Auswahl speichern und weiterschreiben** kann die bestätigte Mischung im selben Fenster
-weiterbearbeitet werden. Der Befehl berücksichtigt Journalbudget und Revisionsgrenze. Fällt der Autosave-Timer vorübergehend aus, bleibt der Entwurf offen. Strg+S speichert manuell. Bei der nächsten gültigen Änderung versucht der Editor erneut, Autosave einzurichten. Bleibt nach der erneut bestätigten Übernahme genau ein Schreibzug, weisen Bestätigungsdialog und Fenstertitel darauf hin, dass der nächste Autosave speichert und das Fenster schließt.
+weiterbearbeitet werden. Der Befehl berücksichtigt Journalbudget und Revisionsgrenze. Fällt der
+Autosave-Timer vorübergehend aus, bleibt der Entwurf offen. Strg+S speichert manuell. Bei der
+nächsten gültigen Änderung versucht der Editor erneut, Autosave einzurichten. Bleibt nach der erneut
+bestätigten Übernahme genau ein Schreibzug, weisen Bestätigungsdialog und Fenstertitel darauf hin,
+dass der nächste Autosave speichert und das Fenster schließt.
 [Bedienung und Windows-Prüfungen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#weiterschreiben-nach-bestätigter-übernahme).
 
-Bei weiteren Konflikten während der Bestätigung bleibt die Auswahl im selben Fenster
-prüfbar. Jeder neuere Stand erhält eine eigene Lesebindung und verlangt eine neue Bestätigung.
+Bei weiteren Konflikten während der Bestätigung bleibt die Auswahl im selben Fenster prüfbar. Jeder
+neuere Stand erhält eine eigene Lesebindung und verlangt eine neue Bestätigung.
 [Wiederholter Abgleich und Windows-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#weitere-konflikte-während-der-erneuten-bestätigung).
 
-Die Titelleiste unterscheidet einen zu korrigierenden Absatz, die laufende Schreibpause,
-das Speichern mit ausstehender Starterbestätigung und die gespeicherte Revision.
-Ein Windows-Lauf mit leerem zweitem Absatz, Korrektur und verzögerter Bestätigung prüfte
-alle Übergänge und das frische Lesen von Revision 1.
+Die Titelleiste unterscheidet einen zu korrigierenden Absatz, die laufende Schreibpause, das
+Speichern mit ausstehender Starterbestätigung und die gespeicherte Revision. Ein Windows-Lauf mit
+leerem zweitem Absatz, Korrektur und verzögerter Bestätigung prüfte alle Übergänge und das frische
+Lesen von Revision 1.
 [Speicheranzeige](architecture/decisions/0036-native-win32-ui-role-evaluation.md#speicheranzeige-im-fortlaufenden-editor).
 
-Während einer ausstehenden Autosave-Bestätigung bleiben Tastatureingaben für den nächsten
-Schreibzug lokal vorgemerkt. Sie erscheinen nach Bestätigung und frischer Revisionsbindung.
-Der Windows-Lauf mit verzögerter Bestätigung und der Abbruchfall mit wartender Eingabe
-sind im [Sitzungsvertrag](architecture/decisions/0036-native-win32-ui-role-evaluation.md#eingaben-während-der-autosave-bestätigung) dokumentiert.
+Während einer ausstehenden Autosave-Bestätigung bleiben Tastatureingaben für den nächsten Schreibzug
+lokal vorgemerkt. Sie erscheinen nach Bestätigung und frischer Revisionsbindung. Der Windows-Lauf
+mit verzögerter Bestätigung und der Abbruchfall mit wartender Eingabe sind im
+[Sitzungsvertrag](architecture/decisions/0036-native-win32-ui-role-evaluation.md#eingaben-während-der-autosave-bestätigung)
+dokumentiert.
 
-Beim Schließen während einer Autosave-Bestätigung bezieht die Abfrage wartende Eingaben
-in den Entwurf ein. Speichern, Verwerfen und Weiterarbeiten sind auf Windows bis zum
-Wiederöffnen der erwarteten Revision geprüft.
+Beim Schließen während einer Autosave-Bestätigung bezieht die Abfrage wartende Eingaben in den
+Entwurf ein. Speichern, Verwerfen und Weiterarbeiten sind auf Windows bis zum Wiederöffnen der
+erwarteten Revision geprüft.
 [Schließverhalten und Prüfumfang](architecture/decisions/0036-native-win32-ui-role-evaluation.md#schließen-mit-wartender-eingabe).
 
 Der Starter kann eine Folgerevision unter Kontrollsperre veröffentlichen, während das ursprüngliche
-Editorfenster auf die Bestätigung wartet. Die optionale [Checkpoint-Probe](architecture/decisions/0036-native-win32-ui-role-evaluation.md#veröffentlichung-bei-offenem-editorfenster)
-bestätigte zwei Revisionen in zwei Aufträgen und die Neustartsperre nach Verlust der Fensterquittung.
+Editorfenster auf die Bestätigung wartet. Die optionale
+[Checkpoint-Probe](architecture/decisions/0036-native-win32-ui-role-evaluation.md#veröffentlichung-bei-offenem-editorfenster)
+bestätigte zwei Revisionen in zwei Aufträgen und die Neustartsperre nach Verlust der
+Fensterquittung.
 
-Der Fenstertitel zeigt die authentisierte Basisrevision und den lokalen Änderungszustand.
-Im verwalteten Lauf blieb die Basis beim Bearbeiten von Revision 0 und 1 stabil. Die jeweils
-frisch geöffneten Leseansichten zeigten Revision 1 und 2; die SQLite-Gegenprüfung bestätigte
-Text und Formatierung. Der
+Der Fenstertitel zeigt die authentisierte Basisrevision und den lokalen Änderungszustand. Im
+verwalteten Lauf blieb die Basis beim Bearbeiten von Revision 0 und 1 stabil. Die jeweils frisch
+geöffneten Leseansichten zeigten Revision 1 und 2; die SQLite-Gegenprüfung bestätigte Text und
+Formatierung. Der
 [Entwurf für revisionsgebundene Folgeschreibzüge](architecture/decisions/0036-native-win32-ui-role-evaluation.md#revisionsanzeige-und-nächster-autosave-schritt)
 beschreibt die dafür nötige Starterbestätigung und das Verhalten bei unklarem Commit.
 
-Der M1-Fokusmodus ist für die synthetische Szene A über **Ansicht → Fokusmodus** oder F11
-verfügbar. Beide Absätze nutzen die frei werdende Fläche. Tab wechselt zwischen den Absätzen.
-Escape kehrt zur normalen Ansicht zurück, ein Suchbefehl öffnet die Suchwerkzeuge direkt.
-Der Ansichtswechsel bleibt im Fensterprozess. Er erzeugt weder eine Dokumentänderung noch
-eine gespeicherte Einstellung. Speichern und die Schließabfrage verwenden dieselbe Edit-Bindung.
+Der M1-Fokusmodus ist für die synthetische Szene A über **Ansicht → Fokusmodus** oder F11 verfügbar.
+Beide Absätze nutzen die frei werdende Fläche. Tab wechselt zwischen den Absätzen. Escape kehrt zur
+normalen Ansicht zurück, ein Suchbefehl öffnet die Suchwerkzeuge direkt. Der Ansichtswechsel bleibt
+im Fensterprozess. Er erzeugt weder eine Dokumentänderung noch eine gespeicherte Einstellung.
+Speichern und die Schließabfrage verwenden dieselbe Edit-Bindung.
 
 Ein zusammenhängender Windows-Lauf bestätigte den Flächengewinn, die Tab-Reihenfolge und die
-Rückkehr über Escape und Suche. Nach dem Speichern aus dem Fokusmodus enthielt die frisch
-geöffnete Revision 1 beide bearbeiteten Absätze und die Fettmarkierung.
+Rückkehr über Escape und Suche. Nach dem Speichern aus dem Fokusmodus enthielt die frisch geöffnete
+Revision 1 beide bearbeiteten Absätze und die Fettmarkierung.
 
-Der [ETW-Netzvergleich vom 23. November](architecture/decisions/0036-native-win32-ui-role-evaluation.md#etw-beim-ersetzen-formatieren-und-wiederöffnen) bestätigte für den gemessenen Editorstand null Netzwerkereignisse beim Ersetzen, Formatieren, Speichern und Wiederöffnen der synthetischen Szene.
+Der
+[ETW-Netzvergleich vom 23. November](architecture/decisions/0036-native-win32-ui-role-evaluation.md#etw-beim-ersetzen-formatieren-und-wiederöffnen)
+bestätigte für den gemessenen Editorstand null Netzwerkereignisse beim Ersetzen, Formatieren,
+Speichern und Wiederöffnen der synthetischen Szene.
 
 Die synthetische Szene A lässt sich per Tastatur bearbeiten, speichern und unter frischer
-Lesebindung wieder öffnen. Das Menü **Datei** enthält Speichern und Schließen. **Bearbeiten**
-bietet Rückgängig, Wiederholen und die Auswahl des fokussierten Absatzes (Strg+A).
-Bei ungespeicherten Änderungen fragt das Fenster beim Schließen nach. Abbrechen ist
-vorausgewählt und führt zum Entwurf zurück. Speichern verwendet die reguläre Absatzprüfung.
-Verwerfen schließt die Sitzung über den authentisierten Verwerfpfad ab.
+Lesebindung wieder öffnen. Das Menü **Datei** enthält Speichern und Schließen. **Bearbeiten** bietet
+Rückgängig, Wiederholen und die Auswahl des fokussierten Absatzes (Strg+A). Bei ungespeicherten
+Änderungen fragt das Fenster beim Schließen nach. Abbrechen ist vorausgewählt und führt zum Entwurf
+zurück. Speichern verwendet die reguläre Absatzprüfung. Verwerfen schließt die Sitzung über den
+authentisierten Verwerfpfad ab.
 
-Im verwalteten Windows-Lauf wurden Menübefehle, Rückgängig/Wiederholen, Abbrechen,
-die Korrektur eines leeren Absatzes beim Schließen und das anschließende Speichern gemeinsam
-geprüft. Die wieder geöffnete Revision 1 enthielt beide Texte und die Fettmarkierung. Beim
-Verwerfen einer Folgeänderung blieb die gespeicherte Datei bytegleich und erneut lesbar.
+Im verwalteten Windows-Lauf wurden Menübefehle, Rückgängig/Wiederholen, Abbrechen, die Korrektur
+eines leeren Absatzes beim Schließen und das anschließende Speichern gemeinsam geprüft. Die wieder
+geöffnete Revision 1 enthielt beide Texte und die Fettmarkierung. Beim Verwerfen einer Folgeänderung
+blieb die gespeicherte Datei bytegleich und erneut lesbar.
 
-Unter **Bearbeiten → Zweiter Absatz fett** oder mit Strg+B lässt sich die Markierung des
-gesamten zweiten Absatzes umschalten. Eine reine Formatänderung aktiviert Speichern und zählt
-als eigene Revision. Rückgängig, Wiederholen und Verwerfen berücksichtigen Text und Markierung
-gemeinsam. Im verwalteten Windows-Lauf öffnete sich Revision 1 mit geändertem Text ohne
-Fettmarkierung. Im frischen Edit-Auftrag wurde ausschließlich die Markierung geändert. Revision 2
-enthielt nach erneutem Öffnen denselben Text mit fett markiertem zweitem Absatz.
+Unter **Bearbeiten → Zweiter Absatz fett** oder mit Strg+B lässt sich die Markierung des gesamten
+zweiten Absatzes umschalten. Eine reine Formatänderung aktiviert Speichern und zählt als eigene
+Revision. Rückgängig, Wiederholen und Verwerfen berücksichtigen Text und Markierung gemeinsam. Im
+verwalteten Windows-Lauf öffnete sich Revision 1 mit geändertem Text ohne Fettmarkierung. Im
+frischen Edit-Auftrag wurde ausschließlich die Markierung geändert. Revision 2 enthielt nach
+erneutem Öffnen denselben Text mit fett markiertem zweitem Absatz.
 
-Mit **Strg+F** lässt sich im geöffneten Bearbeitungsfenster nach einer exakten Zeichenfolge
-suchen. Enter im Suchfeld oder F3 markiert den nächsten Treffer, Umschalt+F3 den vorherigen.
-Die Suche berücksichtigt Groß-/Kleinschreibung und läuft zyklisch über beide Absätze. Der
-Suchbegriff bleibt im Fenster und gehört weder zur Revision noch zum Änderungsverlauf.
-Im verwalteten Windows-Lauf wurden drei Treffer über beide Absätze gefunden. Nach einem Emoji
-stimmten die Markierungsgrenzen. Beim Überschreiben des ausgewählten Treffers, Speichern und
-erneuten Öffnen blieben der übrige Text und die Fettmarkierung erhalten.
+Mit **Strg+F** lässt sich im geöffneten Bearbeitungsfenster nach einer exakten Zeichenfolge suchen.
+Enter im Suchfeld oder F3 markiert den nächsten Treffer, Umschalt+F3 den vorherigen. Die Suche
+berücksichtigt Groß-/Kleinschreibung und läuft zyklisch über beide Absätze. Der Suchbegriff bleibt
+im Fenster und gehört weder zur Revision noch zum Änderungsverlauf. Im verwalteten Windows-Lauf
+wurden drei Treffer über beide Absätze gefunden. Nach einem Emoji stimmten die Markierungsgrenzen.
+Beim Überschreiben des ausgewählten Treffers, Speichern und erneuten Öffnen blieben der übrige Text
+und die Fettmarkierung erhalten.
 
-**Strg+H** fokussiert das Ersatzfeld. Enter dort oder **Bearbeiten → Treffer ersetzen**
-ersetzt den markierten Treffer oder den nächsten Treffer ab der letzten Absatzposition.
-**Alle Treffer ersetzen** verarbeitet beide Absätze gemeinsam. Eine leere Ersatzzeichenfolge
-löscht die Treffer, sofern beide Absätze gültig bleiben. Vor der Änderung prüft das Fenster
-die vollständigen Zieltexte. Die Ersetzung behält die Absatzformatierung und bildet einen
-gemeinsamen Schritt im lokalen Rückgängig-Verlauf. Erst Speichern schreibt eine Revision.
+**Strg+H** fokussiert das Ersatzfeld. Enter dort oder **Bearbeiten → Treffer ersetzen** ersetzt den
+markierten Treffer oder den nächsten Treffer ab der letzten Absatzposition. **Alle Treffer
+ersetzen** verarbeitet beide Absätze gemeinsam. Eine leere Ersatzzeichenfolge löscht die Treffer,
+sofern beide Absätze gültig bleiben. Vor der Änderung prüft das Fenster die vollständigen Zieltexte.
+Die Ersetzung behält die Absatzformatierung und bildet einen gemeinsamen Schritt im lokalen
+Rückgängig-Verlauf. Erst Speichern schreibt eine Revision.
 
-Im verwalteten Windows-Lauf blieben beide Absätze nach einem zu langen Ergebnis und nach
-einem leeren Zielabsatz unverändert. Eine Sammelersetzung durch Emojis ließ sich mit einem
-Schritt zurücknehmen und wiederholen. Nach Ersetzen eines einzelnen ausgewählten Treffers
-und Wiederöffnen von Revision 1 stimmten beide Texte und die Fettmarkierung.
+Im verwalteten Windows-Lauf blieben beide Absätze nach einem zu langen Ergebnis und nach einem
+leeren Zielabsatz unverändert. Eine Sammelersetzung durch Emojis ließ sich mit einem Schritt
+zurücknehmen und wiederholen. Nach Ersetzen eines einzelnen ausgewählten Treffers und Wiederöffnen
+von Revision 1 stimmten beide Texte und die Fettmarkierung.
 
 Die beiden einzeiligen Absätze sind auf je 48 UTF-16-Einheiten begrenzt. Das Fenster zeigt die
 Eingabegrenze an und fokussiert beim Speicherversuch einen ungültigen Absatz. Die bisherigen
-Windows-Läufe belegen die Abweisung überlanger Inhalte und das vollständige Einfügen,
-Überschreiben und Löschen von Surrogatpaaren, auch bei einer Auswahlgrenze innerhalb des Paars.
+Windows-Läufe belegen die Abweisung überlanger Inhalte und das vollständige Einfügen, Überschreiben
+und Löschen von Surrogatpaaren, auch bei einer Auswahlgrenze innerhalb des Paars.
 
 Der Offline-Gastlauf vom 19. November ist bestanden. Bei erzwungener UMCI erreichte das
 Kontrollprogramm mit statisch importierter erlaubter DLL den erwarteten Exit 50. Beim statischen
@@ -282,14 +642,37 @@ nächste Leseantwort bestätigte Text und Revision 0. Der
 [Edit-Gastlauf](testing/native-win32-edit-conflict.md) bestätigte Revision 1, CONFLICT beim zweiten
 Schreibversuch mit Revision 0 und den unveränderten Endtext. Der
 [SQLite-Gastlauf](testing/native-win32-durable-reopen.md) bestätigt Text und Revision 1 nach
-Prozessneustart unter frischer Lesebindung sowie unabhängig auf der ausgeschalteten Gastplatte.
-Der [Datendienstabbruch an der Commitgrenze](testing/native-win32-commit-crashes.md) ist im Gast geprüft.
-Vor Commit bleibt Revision 0 erhalten, nach Commit vor Antwort Revision 1. Der frische ETW-Netzvergleich beider Pfade ergab null Netzwerkereignisse im Prüfprozessbaum.
-[Teilübertragung und 30-Sekunden-Timeout](testing/native-win32-channel-interruptions.md) sind im Gast bestätigt.
-Beide endeten ohne Schreibantwort und mit Revision 0. [Fensterende vor Commit und ETW](testing/native-win32-window-close.md) sind für den neuen Build geprüft.
-Dienstende und Revision 0 sind bestätigt, im Prüfprozessbaum wurden null Netzwerkereignisse gemessen. Der [Wiederanlauf nach Starterabbruch](testing/native-win32-starter-restart.md) blieb dreimal gesperrt.
-Der frische ETW-Netzvergleich bestätigte null Netzwerkereignisse im Prüfprozessbaum. Alle drei gesperrten Starter endeten ohne Kindprozess.
-**BP4b ist für den synthetischen Win32-Kanal abgeschlossen.** Der [Abschluss mit Nachweisen](data-format/native-win32-bp4-channel-v1-draft.md#abschluss-des-synthetischen-datenkanals) umfasst Rechte, Revisionen, Transaktionsende und die Sperre der verbrauchten Einmalfreigabe bis zum Kaltstart. C4b bis C4d sind für das schreibgeschützte synthetische Win32-Fenster abgeschlossen. Der verwaltete Starter bindet Paket und Prozessgeneration unter Kontrollsperre und gibt das Fenster nach bestätigtem Bootstrap frei. Nach Starterabbruch blockiert der offene Sitzungsbeleg die nächste Fenstererzeugung. Die [bytegebundene C4d-Abnahme](architecture/decisions/0036-native-win32-ui-role-evaluation.md#c4d-abschluss-für-den-synthetischen-vorschaupfad) enthält Paketidentität, Sicherheitsnachweise und Freigabeumfang. Der neue Einstieg `broker-store open-win32-scene <Kontrollkopf>` zeigt nach beiden Bootstrap-Quittungen genau eine vom isolierten Datendienst gelesene Szene A schreibgeschützt an. Der ETW-Netzvergleich erfasste im Referenzlauf und beim einmaligen Szenenabruf je null Netzwerkereignisse im KRAQEL-Prozessbaum. Nur im Szenenlauf startete der Datendienst. Der anschließende verwaltete Prüflauf `check-win32-scene-denied-save` bestätigte `DENIED` für einen gültigen Speicherversuch und unveränderten Text auf Revision 0 beim erneuten Lesen unter derselben Bindung. Unter eigener Edit-Bindung bestätigte `check-win32-scene-edit-conflict` die erste Speicherung, `CONFLICT` für den veralteten Schreibversuch und den gespeicherten Text auf Revision 1 im Arbeitsspeicher. Der dauerhafte Prüfpfad `save-win32-scene` und `read-saved-win32-scene` bestätigte nach Prozessneustart Text und Revision 1 im isolierten SQLite-Abbild; veränderte Dateibytes sperren das Wiederöffnen vor dem Rollenstart. Produktdaten und WebView2 bleiben gesperrt.
+Prozessneustart unter frischer Lesebindung sowie unabhängig auf der ausgeschalteten Gastplatte. Der
+[Datendienstabbruch an der Commitgrenze](testing/native-win32-commit-crashes.md) ist im Gast
+geprüft. Vor Commit bleibt Revision 0 erhalten, nach Commit vor Antwort Revision 1. Der frische
+ETW-Netzvergleich beider Pfade ergab null Netzwerkereignisse im Prüfprozessbaum.
+[Teilübertragung und 30-Sekunden-Timeout](testing/native-win32-channel-interruptions.md) sind im
+Gast bestätigt. Beide endeten ohne Schreibantwort und mit Revision 0.
+[Fensterende vor Commit und ETW](testing/native-win32-window-close.md) sind für den neuen Build
+geprüft. Dienstende und Revision 0 sind bestätigt, im Prüfprozessbaum wurden null Netzwerkereignisse
+gemessen. Der [Wiederanlauf nach Starterabbruch](testing/native-win32-starter-restart.md) blieb
+dreimal gesperrt. Der frische ETW-Netzvergleich bestätigte null Netzwerkereignisse im
+Prüfprozessbaum. Alle drei gesperrten Starter endeten ohne Kindprozess. **BP4b ist für den
+synthetischen Win32-Kanal abgeschlossen.** Der
+[Abschluss mit Nachweisen](data-format/native-win32-bp4-channel-v1-draft.md#abschluss-des-synthetischen-datenkanals)
+umfasst Rechte, Revisionen, Transaktionsende und die Sperre der verbrauchten Einmalfreigabe bis zum
+Kaltstart. C4b bis C4d sind für das schreibgeschützte synthetische Win32-Fenster abgeschlossen. Der
+verwaltete Starter bindet Paket und Prozessgeneration unter Kontrollsperre und gibt das Fenster nach
+bestätigtem Bootstrap frei. Nach Starterabbruch blockiert der offene Sitzungsbeleg die nächste
+Fenstererzeugung. Die
+[bytegebundene C4d-Abnahme](architecture/decisions/0036-native-win32-ui-role-evaluation.md#c4d-abschluss-für-den-synthetischen-vorschaupfad)
+enthält Paketidentität, Sicherheitsnachweise und Freigabeumfang. Der neue Einstieg
+`broker-store open-win32-scene <Kontrollkopf>` zeigt nach beiden Bootstrap-Quittungen genau eine vom
+isolierten Datendienst gelesene Szene A schreibgeschützt an. Der ETW-Netzvergleich erfasste im
+Referenzlauf und beim einmaligen Szenenabruf je null Netzwerkereignisse im KRAQEL-Prozessbaum. Nur
+im Szenenlauf startete der Datendienst. Der anschließende verwaltete Prüflauf
+`check-win32-scene-denied-save` bestätigte `DENIED` für einen gültigen Speicherversuch und
+unveränderten Text auf Revision 0 beim erneuten Lesen unter derselben Bindung. Unter eigener
+Edit-Bindung bestätigte `check-win32-scene-edit-conflict` die erste Speicherung, `CONFLICT` für den
+veralteten Schreibversuch und den gespeicherten Text auf Revision 1 im Arbeitsspeicher. Der
+dauerhafte Prüfpfad `save-win32-scene` und `read-saved-win32-scene` bestätigte nach Prozessneustart
+Text und Revision 1 im isolierten SQLite-Abbild; veränderte Dateibytes sperren das Wiederöffnen vor
+dem Rollenstart. Produktdaten und WebView2 bleiben gesperrt.
 
 Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:
 
@@ -2010,28 +2393,28 @@ Medien-Einbettung je Exportformat. Rechts- und Lizenzfragen der Bildprovider sin
 
 ## Abhängigkeiten und technische Risiken
 
-| Thema                        | Zustand / Risiko                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Nächste Kontrolle                                                                                                                          |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Vor großen Projekten messen; Migration nur mit Evidenz                                                                                     |
-| Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Gemeinsame Fixtures oder spätere Codegenerierung bewerten                                                                                  |
-| Datenformat                  | Snapshot v3 samt begrenztem Neuimport, nativer und unter Windows manuell geprüfter Archivauswahl, Prompt-Entwürfen, Profilen und Hash-Assets; UTF-8-/Markdown-Import automatisiert und im dokumentierten nativen Windows-Kernumfang geprüft; Begrenzter DOCX-Import vorhanden; begrenzter strukturerhaltender Manuskriptroundtrip mit KQ-060/061 umgesetzt                                                                                                                                                                                                                                                                         | Unicode-/Shaping-Erweiterungen gesondert entscheiden; Fremdarchive fuzztesten                                                              |
-| Exportrenderer               | Markdown/HTML mit Bildern nativ geprüft; DOCX-Bildwriter mit Word und LibreOffice geprüft; PDF mit vier eingebetteten Schnitten, begrenztem Unicode-Profil und pixelgeprüften Szenenbildern                                                                                                                                                                                                                                                                                                                                                                                                                                        | Assistive Vollabnahme; Unicode-/Shaping-Erweiterungen gesondert prüfen                                                                     |
-| Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen                                                                                   |
-| Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Bei jeder Erweiterung Fixtures und Migration prüfen                                                                                        |
-| Desktoptests                 | Zwölf Browser-E2E-Suites einschließlich Beispielprojekt, Accessibility-Kern und -Randfällen, echter Windows-Tauri-M1-Smoke, lokaler NSIS-Lebenszyklus sowie bestandene KQ-033/KQ-034-Hörprüfungen                                                                                                                                                                                                                                                                                                                                                                                                                                  | Vor Release mit weiterer Testperson oder NVDA verbreitern                                                                                  |
-| Windows-Installer            | Debug-Lebenszyklus, unsignierter x64-Releasebau und isolierte Installation/Deinstallation grün; Alpha 4 mit Dubletten-Merge veröffentlicht, öffentlicher Rückdownload bytegleich, SmartScreen/Start/Persistenz extern offen                                                                                                                                                                                                                                                                                                                                                                                                        | Zweitrechner oder Clean-VM später manuell                                                                                                  |
-| CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Caching prüfen, ohne Reproduzierbarkeit zu schwächen                                                                                       |
+| Thema                        | Zustand / Risiko                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Nächste Kontrolle                                                                                                                          |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| SQLite und FTS5              | Dokument-FTS sowie Story-Bibel-CRUD, Relationen, Links und Recovery getestet; Entitätssuche nicht indexiert                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Vor großen Projekten messen; Migration nur mit Evidenz                                                                                     |
+| Rust-/TS-Vertragsduplikation | Manuell gespiegelt; Drift ist möglich                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Gemeinsame Fixtures oder spätere Codegenerierung bewerten                                                                                  |
+| Datenformat                  | Snapshot v3 samt begrenztem Neuimport, nativer und unter Windows manuell geprüfter Archivauswahl, Prompt-Entwürfen, Profilen und Hash-Assets; UTF-8-/Markdown-Import automatisiert und im dokumentierten nativen Windows-Kernumfang geprüft; Begrenzter DOCX-Import vorhanden; begrenzter strukturerhaltender Manuskriptroundtrip mit KQ-060/061 umgesetzt                                                                                                                                                                                                                                                                                                                                | Unicode-/Shaping-Erweiterungen gesondert entscheiden; Fremdarchive fuzztesten                                                              |
+| Exportrenderer               | Markdown/HTML mit Bildern nativ geprüft; DOCX-Bildwriter mit Word und LibreOffice geprüft; PDF mit vier eingebetteten Schnitten, begrenztem Unicode-Profil und pixelgeprüften Szenenbildern                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Assistive Vollabnahme; Unicode-/Shaping-Erweiterungen gesondert prüfen                                                                     |
+| Dateisystem                  | Komponentenprüfung aktiv; TOCTOU gegen böswillige Paralleländerung bleibt                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Vor nicht vertrauenswürdigen Importen Handle-APIs prüfen                                                                                   |
+| Editorformat                 | Tiptap-Vertrag v1; spätere inkompatible Änderungen brauchen neue Version                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Bei jeder Erweiterung Fixtures und Migration prüfen                                                                                        |
+| Desktoptests                 | Zwölf Browser-E2E-Suites einschließlich Beispielprojekt, Accessibility-Kern und -Randfällen, echter Windows-Tauri-M1-Smoke, lokaler NSIS-Lebenszyklus sowie bestandene KQ-033/KQ-034-Hörprüfungen                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Vor Release mit weiterer Testperson oder NVDA verbreitern                                                                                  |
+| Windows-Installer            | Debug-Lebenszyklus, unsignierter x64-Releasebau und isolierte Installation/Deinstallation grün; Alpha 4 mit Dubletten-Merge veröffentlicht, öffentlicher Rückdownload bytegleich, SmartScreen/Start/Persistenz extern offen                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Zweitrechner oder Clean-VM später manuell                                                                                                  |
+| CI-Laufzeit                  | Kalte Tauri-/Rust-Builds unter Windows dauern mehrere Minuten                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Caching prüfen, ohne Reproduzierbarkeit zu schwächen                                                                                       |
 | Abhängigkeitssicherheit      | GitHub Dependency Graph und Schwachstellenwarnungen aktiviert. KQ-048 ist in PR #93 vollständig grün; GitHubs aktuelles SBOM enthält nur noch `zip` 9.5.1. GitHub meldet am 14. November drei offene Abhängigkeitswarnungen: `lopdf` (hoch), `glib` und `minimatch` (mittel). Die frühere Triage „lopdf-Parser nicht erreichbar“ ist seit KQ-065 überholt: Der native PDF-Selbstvergleich liest die eigene begrenzte Ausgabe, keine fremden PDFs. Der Windows-Kandidatenzweig enthält bereinigte lopdf- und minimatch-Versionen. glib 0.18 bleibt im Linux-GTK-Pfad offen. [Triage der drei Meldungen](WORKSTATION_HANDOFF.md). Keine dynamische Sicherheitsprüfung oder Alert-Schließung | Issue #94 und Upstream prüfen; lopdf/glib getrennt nach Laufzeitpfad und verfügbarer Korrektur bewerten; keine erzwungenen Major-Overrides |
-| Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Plattformmatrix je Release definieren                                                                                                      |
-| Lokale Text-KI               | Protokoll gegen kontrollierten Loopback-Testserver geprüft; echter Ollama-/Modelllauf fehlt                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Mit freiem Testmodell manuell prüfen und Abbruch entwerfen                                                                                 |
-| Cloudprovider                | Vier Protokolle lokal getestet; echte API-, Kosten-, Aufbewahrungs- und Kontodialog-Abnahme fehlt                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Mit separaten Testkonten und Minimalbudget manuell prüfen                                                                                  |
-| Schlüsselspeicher            | Native Backends eingebunden; reale Windows-/Linux-Dialoge nicht automatisiert getestet                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Manuelle Plattformabnahme ohne produktive Schlüssel                                                                                        |
-| Kontinuitätsprüfung          | Vier Offline-Regeln getestet; exakte Nennungen und grober Zeilendiff begrenzen die Abdeckung                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Mit größeren künstlichen Projekten messen; KI-Kanal separat entwerfen                                                                      |
-| Medienimport                 | Drei Rasterformate und harte Limits getestet; Bytearray-IPC skaliert nicht für Massenuploads                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Nativen Streamingimport erst nach Messung großer Sammlungen bewerten                                                                       |
-| Assetbackup                  | Hash-verifizierte Begleitverzeichnisse getestet; `.kraqel` ist ein portables Snapshotpaket, aber kein fortschreibbares Backup                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Recovery- und Austauschzweck in der Oberfläche klar getrennt halten                                                                        |
-| Visuelle Profile             | Struktur und Referenzen getestet; Stilnamen-Eindeutigkeit nutzt SQLite-NOCASE mit ASCII-Grenze                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Unicode-Kollation bei internationalisierten Vorlagennamen bewerten                                                                         |
-| Bildprompt-Entwürfe          | Lokal, referenziell und browserseitig geprüft; kein Providerpfad und keine automatische Rekombination                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Tauri-/Screenreader-Abnahme; KQ-016-Grenze getrennt halten                                                                                 |
-| Bild-Capability-Verträge     | Rust/TypeScript v1 und lokaler Mock getestet; keine produktive Ausführung oder Persistenz                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Vor KQ-017 Freigabebeleg, Ergebnisprüfung, Kosten und Lizenzen klären                                                                      |
+| Plattformen                  | Windows ist primär; Linux baut in CI, ist fachlich aber nicht abgenommen                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Plattformmatrix je Release definieren                                                                                                      |
+| Lokale Text-KI               | Protokoll gegen kontrollierten Loopback-Testserver geprüft; echter Ollama-/Modelllauf fehlt                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Mit freiem Testmodell manuell prüfen und Abbruch entwerfen                                                                                 |
+| Cloudprovider                | Vier Protokolle lokal getestet; echte API-, Kosten-, Aufbewahrungs- und Kontodialog-Abnahme fehlt                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Mit separaten Testkonten und Minimalbudget manuell prüfen                                                                                  |
+| Schlüsselspeicher            | Native Backends eingebunden; reale Windows-/Linux-Dialoge nicht automatisiert getestet                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Manuelle Plattformabnahme ohne produktive Schlüssel                                                                                        |
+| Kontinuitätsprüfung          | Vier Offline-Regeln getestet; exakte Nennungen und grober Zeilendiff begrenzen die Abdeckung                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Mit größeren künstlichen Projekten messen; KI-Kanal separat entwerfen                                                                      |
+| Medienimport                 | Drei Rasterformate und harte Limits getestet; Bytearray-IPC skaliert nicht für Massenuploads                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Nativen Streamingimport erst nach Messung großer Sammlungen bewerten                                                                       |
+| Assetbackup                  | Hash-verifizierte Begleitverzeichnisse getestet; `.kraqel` ist ein portables Snapshotpaket, aber kein fortschreibbares Backup                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Recovery- und Austauschzweck in der Oberfläche klar getrennt halten                                                                        |
+| Visuelle Profile             | Struktur und Referenzen getestet; Stilnamen-Eindeutigkeit nutzt SQLite-NOCASE mit ASCII-Grenze                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Unicode-Kollation bei internationalisierten Vorlagennamen bewerten                                                                         |
+| Bildprompt-Entwürfe          | Lokal, referenziell und browserseitig geprüft; kein Providerpfad und keine automatische Rekombination                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Tauri-/Screenreader-Abnahme; KQ-016-Grenze getrennt halten                                                                                 |
+| Bild-Capability-Verträge     | Rust/TypeScript v1 und lokaler Mock getestet; keine produktive Ausführung oder Persistenz                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Vor KQ-017 Freigabebeleg, Ergebnisprüfung, Kosten und Lizenzen klären                                                                      |
 
 ## Nächste geplante Entwicklungsstufe
 

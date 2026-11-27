@@ -108,7 +108,7 @@ fn show(
     match isolated(home, scene, &text, Some(&mut save))? {
         SceneOutcome::SavedAndClosed => notify("Die Szene wurde gespeichert."),
         SceneOutcome::ClosedAfterCheckpoint => {
-            notify("Der zuletzt bestätigte Zwischenstand wurde gespeichert.")
+            notify("Der zuletzt bestätigte Zwischenstand wurde gespeichert.");
         }
         SceneOutcome::Closed => {}
     }
@@ -143,18 +143,7 @@ pub(super) fn browse(home: &Path, manager: &ProjectManager, project: ProjectId) 
             parent = None;
             selected = None;
         }
-        let (kind, label, nodes) = if parent.is_some() {
-            (
-                DocumentKind::Scene,
-                "Szene",
-                outline
-                    .iter()
-                    .filter(|n| n.kind == DocumentKind::Scene && n.parent_id == parent)
-                    .collect::<Vec<_>>(),
-            )
-        } else {
-            (DocumentKind::Chapter, "Kapitel", chapters.clone())
-        };
+        let (kind, label, nodes) = outline_entries(&outline, &chapters, parent);
         let names = titles(&nodes);
         let index = nodes.iter().position(|node| Some(node.id) == selected);
         let choice = match kind {
@@ -171,22 +160,7 @@ pub(super) fn browse(home: &Path, manager: &ProjectManager, project: ProjectId) 
                 if let Err(error) =
                     export::choose(manager, project, &project_name, &outline, node, parent)
                 {
-                    if matches!(
-                        error.downcast_ref::<DocumentError>(),
-                        Some(DocumentError::RevisionConflict)
-                    ) {
-                        notify(
-                            "Der bestätigte Manuskriptstand hat sich geändert. Bitte den Export aus der aktuellen Gliederung erneut wählen.",
-                        );
-                    } else if let Some(kraqel_export::ExportError::InvalidDocument(message)) =
-                        error.downcast_ref::<kraqel_export::ExportError>()
-                    {
-                        notify(message);
-                    } else {
-                        notify(
-                            "Der Export konnte nicht erstellt werden. Bitte prüfe die Auswahl und den lokalen Exportordner.",
-                        );
-                    }
+                    report_export_error(error.as_ref());
                 }
             }
             OutlineChoice::Copy(_) => {
@@ -223,16 +197,7 @@ pub(super) fn browse(home: &Path, manager: &ProjectManager, project: ProjectId) 
                     parent = Some(node.id);
                     selected = None;
                 } else {
-                    let action = if matches!(choice, OutlineChoice::Edit(_)) {
-                        SceneAction::Edit
-                    } else {
-                        SceneAction::Read
-                    };
-                    if show(home, manager, node, action).is_err() {
-                        notify(
-                            "Die gebundene Szenensitzung konnte nicht abgeschlossen werden. Bitte prüfe die aktuelle Auswahl.",
-                        );
-                    }
+                    open_scene(home, manager, node, &choice);
                 }
             }
             OutlineChoice::Up(_)
@@ -240,22 +205,10 @@ pub(super) fn browse(home: &Path, manager: &ProjectManager, project: ProjectId) 
             | OutlineChoice::Move(_)
             | OutlineChoice::Position(_) => {
                 let id = node.ok_or("Dokumentauswahl fehlt.")?.id;
-                let Some(direction) = choose_move(&choice, &names, &chapters, chapter_index)?
-                else {
-                    continue;
-                };
-                let mut opened = manager.open_project(project.to_string())?;
-                match DocumentRepository::new(opened.database_mut())
-                    .move_in_outline(project, &outline, id, direction)
+                if let Some(direction) = choose_move(&choice, &names, &chapters, chapter_index)?
+                    && let Some(target) = apply_move(manager, project, &outline, id, direction)?
                 {
-                    Ok(()) => {
-                        if let OutlineMove::AppendToChapter(target) = direction {
-                            parent = Some(target);
-                        }
-                    }
-                    Err(_) => notify(
-                        "Der Eintrag wurde nicht verschoben. Bitte prüfe die aktualisierte Gliederung.",
-                    ),
+                    parent = Some(target);
                 }
             }
             OutlineChoice::Back => {
@@ -266,6 +219,75 @@ pub(super) fn browse(home: &Path, manager: &ProjectManager, project: ProjectId) 
             }
         }
     }
+}
+
+fn outline_entries<'a>(
+    outline: &'a [DocumentNode],
+    chapters: &[&'a DocumentNode],
+    parent: Option<EntityId>,
+) -> (DocumentKind, &'static str, Vec<&'a DocumentNode>) {
+    match parent {
+        Some(chapter) => (
+            DocumentKind::Scene,
+            "Szene",
+            outline
+                .iter()
+                .filter(|n| n.kind == DocumentKind::Scene && n.parent_id == Some(chapter))
+                .collect(),
+        ),
+        None => (DocumentKind::Chapter, "Kapitel", chapters.to_vec()),
+    }
+}
+
+fn open_scene(home: &Path, manager: &ProjectManager, node: &DocumentNode, choice: &OutlineChoice) {
+    let action = if matches!(choice, OutlineChoice::Edit(_)) {
+        SceneAction::Edit
+    } else {
+        SceneAction::Read
+    };
+    if show(home, manager, node, action).is_err() {
+        notify(
+            "Die gebundene Szenensitzung konnte nicht abgeschlossen werden. Bitte prüfe die aktuelle Auswahl.",
+        );
+    }
+}
+
+fn report_export_error(error: &(dyn Error + 'static)) {
+    if matches!(
+        error.downcast_ref::<DocumentError>(),
+        Some(DocumentError::RevisionConflict)
+    ) {
+        notify(
+            "Der bestätigte Manuskriptstand hat sich geändert. Bitte den Export aus der aktuellen Gliederung erneut wählen.",
+        );
+    } else if let Some(kraqel_export::ExportError::InvalidDocument(message)) =
+        error.downcast_ref::<kraqel_export::ExportError>()
+    {
+        notify(message);
+    } else {
+        notify(
+            "Der Export konnte nicht erstellt werden. Bitte prüfe die Auswahl und den lokalen Exportordner.",
+        );
+    }
+}
+
+fn apply_move(
+    manager: &ProjectManager,
+    project: ProjectId,
+    outline: &[DocumentNode],
+    id: EntityId,
+    direction: OutlineMove,
+) -> Result<Option<EntityId>> {
+    let mut opened = manager.open_project(project.to_string())?;
+    if DocumentRepository::new(opened.database_mut())
+        .move_in_outline(project, outline, id, direction)
+        .is_err()
+    {
+        notify("Der Eintrag wurde nicht verschoben. Bitte prüfe die aktualisierte Gliederung.");
+    } else if let OutlineMove::AppendToChapter(target) = direction {
+        return Ok(Some(target));
+    }
+    Ok(None)
 }
 
 fn copy_document(

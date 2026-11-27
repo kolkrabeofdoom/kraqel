@@ -285,15 +285,16 @@ impl<'project> GitService<'project> {
                 {
                     return Err(GitServiceError::InvalidSnapshot);
                 }
-                let value: Value = serde_json::from_slice(&bytes)
-                    .map_err(|_| GitServiceError::InvalidSnapshot)?;
+                let value: Value =
+                    serde_json::from_slice(&bytes).map_err(|_| GitServiceError::InvalidSnapshot)?;
                 validate_json_file(name, &value)?;
                 if name == "documents.json" {
                     let documents = value["documents"]
                         .as_array()
                         .ok_or(GitServiceError::InvalidSnapshot)?;
                     if (document_snapshot_version(documents, true)? == 4)
-                        != (manifest.format_version == 4) {
+                        != (manifest.format_version == 4)
+                    {
                         return Err(GitServiceError::InvalidSnapshot);
                     }
                 }

@@ -414,6 +414,10 @@ mod tests {
     use kraqel_domain::{CURRENT_SCHEMA_VERSION, Project};
 
     #[test]
+    #[allow(
+        clippy::too_many_lines,
+        reason = "The integration scenario checks successive states of the same fixture"
+    )]
     fn adopts_only_selected_scene_into_new_copy_and_refuses_remote_deletion() {
         if let Ok(root) = std::env::var("KRAQEL_TEST_ACTIVATION_HOME") {
             let manager = ProjectManager::new(root).unwrap();

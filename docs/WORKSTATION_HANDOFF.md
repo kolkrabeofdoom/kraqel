@@ -1,79 +1,240 @@
 # Rechnerwechsel und Arbeitsübergabe
 
-Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](data-format/screenplay-v2.md)
+Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit
+sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte
+Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7
+enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](data-format/screenplay-v2.md)
 
 ## Wiedereinstieg am Freitag, 27. November 2026
 
-Der Windows-Kandidat vom 25. November stammt aus `5eaadf32b236` auf `feat/kq-069-live-file-selection`. Kapitel und Gesamtmanuskripte lassen sich einschließlich gemischter Prosa- und Drehbuchszenen als PDF ausgeben. Die zweitseitige Probe wurde visuell geprüft und maschinell rückgelesen. Auswahlgrenzen und Dateierhalt bei Fehlern sind in der [Abnahmematrix](testing/F08_M3_ACCEPTANCE_MATRIX.md) dokumentiert.
+Der Windows-Kandidat vom 25. November stammt aus `5eaadf32b236` auf
+`feat/kq-069-live-file-selection`. Kapitel und Gesamtmanuskripte lassen sich einschließlich
+gemischter Prosa- und Drehbuchszenen als PDF ausgeben. Die zweitseitige Probe wurde visuell geprüft
+und maschinell rückgelesen. Auswahlgrenzen und Dateierhalt bei Fehlern sind in der
+[Abnahmematrix](testing/F08_M3_ACCEPTANCE_MATRIX.md) dokumentiert.
 
-Am 27. November bestand dieser Installer die frische Offline-Installationsprobe auf Windows Server 2025 mit Desktop Experience. Der regulär gestartete Desktop exportierte ein gemischtes Kapitel über die native Gliederung und endete regulär. Das unabhängige PDF-Rücklesen bestätigte Inhalt, Reihenfolge und Ausschluss des zweiten Kapitels. [Prüfumfang und Nachweis](testing/F08_M3_ACCEPTANCE_MATRIX.md#installationsprobe-im-netzlosen-windows-gast-am-27-november-2026)
+Am 27. November bestand dieser Installer die frische Offline-Installationsprobe auf Windows Server
+2025 mit Desktop Experience. Der regulär gestartete Desktop exportierte ein gemischtes Kapitel über
+die native Gliederung und endete regulär. Das unabhängige PDF-Rücklesen bestätigte Inhalt,
+Reihenfolge und Ausschluss des zweiten Kapitels.
+[Prüfumfang und Nachweis](testing/F08_M3_ACCEPTANCE_MATRIX.md#installationsprobe-im-netzlosen-windows-gast-am-27-november-2026)
 
-Der Installer liegt unter `artifacts/release/0.1.0/windows-x64/5eaadf32b236/KRAQEL_0.1.0_windows-x64-setup.exe` (SHA-256 `c282818e445dc69fdc702922716015142e4c3558575dd028fc79485645dd5cf9`). Der physische Zweitrechnertest ist weiterhin offen.
+Der Installer liegt unter
+`artifacts/release/0.1.0/windows-x64/5eaadf32b236/KRAQEL_0.1.0_windows-x64-setup.exe` (SHA-256
+`c282818e445dc69fdc702922716015142e4c3558575dd028fc79485645dd5cf9`). Der physische Zweitrechnertest
+ist weiterhin offen.
 
 ## Windows-Entwicklungsstand vom 25. November
 
-Der reguläre Windows-Start zeigt die lokale Projektliste. **Projekt anlegen** erstellt ein neues Projekt und führt direkt zur Kapitelauswahl. **Manuskript öffnen** führt für ein ausgewähltes Projekt dorthin. **Im Studio öffnen** und **Projektverwaltung öffnen** starten den bisherigen Desktop mit WebView2, etwa für den Import oder das Löschen eines Projekts. Die veröffentlichte Alpha 7 hat noch den bisherigen Einstieg.
+Der reguläre Windows-Start zeigt die lokale Projektliste. **Projekt anlegen** erstellt ein neues
+Projekt und führt direkt zur Kapitelauswahl. **Manuskript öffnen** führt für ein ausgewähltes
+Projekt dorthin. **Im Studio öffnen** und **Projektverwaltung öffnen** starten den bisherigen
+Desktop mit WebView2, etwa für den Import oder das Löschen eines Projekts. Die veröffentlichte Alpha
+7 hat noch den bisherigen Einstieg.
 
-Der installierte Drehbuchkandidat `aca30d0ae0d9` bestand den Bedienlauf bis zum Wiederöffnen und A4-Export. Im neueren Stand kann das gesamte Manuskript einschließlich Drehbuchrollen auch als Markdown, HTML und gewöhnliches DOCX ausgegeben werden. Die DOCX-Austauschfunktion v1 bleibt auf Prosa beschränkt. [Abnahme mit Word und LibreOffice](testing/F08_M3_ACCEPTANCE_MATRIX.md)
+Der installierte Drehbuchkandidat `aca30d0ae0d9` bestand den Bedienlauf bis zum Wiederöffnen und
+A4-Export. Im neueren Stand kann das gesamte Manuskript einschließlich Drehbuchrollen auch als
+Markdown, HTML und gewöhnliches DOCX ausgegeben werden. Die DOCX-Austauschfunktion v1 bleibt auf
+Prosa beschränkt. [Abnahme mit Word und LibreOffice](testing/F08_M3_ACCEPTANCE_MATRIX.md)
 
 ## Ein Manuskript nativ lesen und bearbeiten
 
-1. **Projekt anlegen** wählen, den Projektnamen eingeben und bestätigen. Das neue Projekt enthält **Kapitel 1** und **Szene 1**. Für ein bestehendes Projekt dessen Namen auswählen und **Manuskript öffnen** drücken.
-2. Das Kapitel öffnen und in der Szenenauswahl **Lesen** oder **Bearbeiten** wählen. Lesen öffnet ein schreibgeschütztes Fenster. Bearbeiten öffnet für einfache Prosa direkt den isolierten Editor. **Speichern** übergibt den aktuellen Entwurf zur Speicherung unter der beim Öffnen gebundenen Revision.
-3. Zum Wiederöffnen dieselbe Szene auswählen. Mehrere unformatierte Absätze und Leerzeilen werden unterstützt. Die Textgrenze beträgt 64 KiB UTF-8. Markierungen, Listen, Überschriften, Drehbuchrollen und sonstige nicht exakt rückwandelbare Dokumentstrukturen erhalten eine schreibgeschützte Textansicht. Für ihre Bearbeitung ist weiterhin das Studio vorgesehen.
+1. **Projekt anlegen** wählen, den Projektnamen eingeben und bestätigen. Das neue Projekt enthält
+   **Kapitel 1** und **Szene 1**. Für ein bestehendes Projekt dessen Namen auswählen und
+   **Manuskript öffnen** drücken.
+2. Das Kapitel öffnen und in der Szenenauswahl **Lesen** oder **Bearbeiten** wählen. Lesen öffnet
+   ein schreibgeschütztes Fenster. Bearbeiten öffnet für einfache Prosa direkt den isolierten
+   Editor. **Speichern** übergibt den aktuellen Entwurf zur Speicherung unter der beim Öffnen
+   gebundenen Revision.
+3. Zum Wiederöffnen dieselbe Szene auswählen. Mehrere unformatierte Absätze und Leerzeilen werden
+   unterstützt. Die Textgrenze beträgt 64 KiB UTF-8. Markierungen, Listen, Überschriften,
+   Drehbuchrollen und sonstige nicht exakt rückwandelbare Dokumentstrukturen erhalten eine
+   schreibgeschützte Textansicht. Für ihre Bearbeitung ist weiterhin das Studio vorgesehen.
 
-**Menübedienung.** Mit **Alt** wechselst du in die native Menüleiste. Unter **Datei** kannst du das Szenenfenster schließen und im Editor speichern. Unter **Bearbeiten** findest du die Szenensuche und die Treffernavigation. Im Editor beziehen sich die Menübefehle **Rückgängig** und **Wiederholen** auf den Szenenentwurf. Im Szenenfeld erfüllen **Strg+Z** und **Strg+Y** dieselbe Aufgabe. Der Verlauf stellt auch die frühere Einfügemarke oder Auswahl wieder her und endet beim Schließen des Fensters. Er hält bis zu 64 Änderungen, bei langen Entwürfen entsprechend weniger. Für den gespeicherten Textverlauf stehen pro Fenster maximal 4 MiB zur Verfügung. Im Editor sind außerdem Ersetzen und der Fokusmodus verfügbar. Der Fassungsvergleich setzt einen gemeldeten Revisionskonflikt voraus.
+**Menübedienung.** Mit **Alt** wechselst du in die native Menüleiste. Unter **Datei** kannst du das
+Szenenfenster schließen und im Editor speichern. Unter **Bearbeiten** findest du die Szenensuche und
+die Treffernavigation. Im Editor beziehen sich die Menübefehle **Rückgängig** und **Wiederholen**
+auf den Szenenentwurf. Im Szenenfeld erfüllen **Strg+Z** und **Strg+Y** dieselbe Aufgabe. Der
+Verlauf stellt auch die frühere Einfügemarke oder Auswahl wieder her und endet beim Schließen des
+Fensters. Er hält bis zu 64 Änderungen, bei langen Entwürfen entsprechend weniger. Für den
+gespeicherten Textverlauf stehen pro Fenster maximal 4 MiB zur Verfügung. Im Editor sind außerdem
+Ersetzen und der Fokusmodus verfügbar. Der Fassungsvergleich setzt einen gemeldeten
+Revisionskonflikt voraus.
 
-**Beim Schreiben.** Die normale Bearbeitungsansicht zeigt die Wortzahl und die belegten UTF-8-Bytes. Für die Grenze von 65.536 Bytes zählt ein Absatzwechsel als ein Byte. Umlaute und Emoji können mehrere Bytes belegen. Einen zu langen Entwurf kannst du im Fenster kürzen und anschließend speichern. **F11** schaltet den Fokusmodus ein und aus. **Esc** führt aus dem Fokusmodus zur normalen Bearbeitungsansicht zurück. **Strg+A** markiert im Szenenfeld den gesamten Text. **Strg+S** speichert die bearbeitete Szene auch im Fokusmodus. **Strg+F** öffnet beim Lesen und Bearbeiten die Suche innerhalb der geöffneten Szene. **F3** springt zum nächsten Treffer, **Umschalt+F3** zum vorherigen. Am Ende geht es beim ersten Treffer weiter, in Gegenrichtung beim letzten. **Esc** schließt die Suchzeile und führt zum Szenentext zurück. Zum Ersetzen im Editor **Strg+H** drücken, einen Treffer auswählen und den Ersatz ausdrücklich anwenden. Mit **Alle ersetzen** zeigt der Editor zunächst die Zahl der betroffenen Treffer in dieser Szene. Bestätige sie, um alle Treffer im Entwurf zu ändern. Beim Öffnen mit **Strg+F** oder **Strg+H** wird eine gültige einzeilige Auswahl aus dem Szenentext als Suchbegriff übernommen. Für diese Vorbelegung gilt eine Grenze von 256 UTF-16-Einheiten. Bei längerer, leerer oder mehrzeiliger Auswahl bleibt der bisherige Suchbegriff erhalten. Im Ersatzfeld ändert **Enter** den aktuellen Treffer. **Strg+Enter** zeigt die Trefferzahl für den Gesamtersatz und fragt nach Bestätigung. Ein leeres Ersatzfeld löscht die betroffenen Fundstellen. **Strg+Z** im Szenenfeld nimmt die Änderung zurück. Im Szenenfeld speichert **Strg+Enter** den Entwurf und lässt das Fenster zum Weiterschreiben offen. Denselben Befehl findest du unter **Datei → Speichern und weiterschreiben**. Nach der Bestätigung bleibt der Bearbeitungsverlauf verfügbar. Eine unveränderte Zwischenspeicherung erzeugt keine neue Revision. **Strg+S** speichert und schließt.
+**Beim Schreiben.** Die normale Bearbeitungsansicht zeigt die Wortzahl und die belegten UTF-8-Bytes.
+Für die Grenze von 65.536 Bytes zählt ein Absatzwechsel als ein Byte. Umlaute und Emoji können
+mehrere Bytes belegen. Einen zu langen Entwurf kannst du im Fenster kürzen und anschließend
+speichern. **F11** schaltet den Fokusmodus ein und aus. **Esc** führt aus dem Fokusmodus zur
+normalen Bearbeitungsansicht zurück. **Strg+A** markiert im Szenenfeld den gesamten Text. **Strg+S**
+speichert die bearbeitete Szene auch im Fokusmodus. **Strg+F** öffnet beim Lesen und Bearbeiten die
+Suche innerhalb der geöffneten Szene. **F3** springt zum nächsten Treffer, **Umschalt+F3** zum
+vorherigen. Am Ende geht es beim ersten Treffer weiter, in Gegenrichtung beim letzten. **Esc**
+schließt die Suchzeile und führt zum Szenentext zurück. Zum Ersetzen im Editor **Strg+H** drücken,
+einen Treffer auswählen und den Ersatz ausdrücklich anwenden. Mit **Alle ersetzen** zeigt der Editor
+zunächst die Zahl der betroffenen Treffer in dieser Szene. Bestätige sie, um alle Treffer im Entwurf
+zu ändern. Beim Öffnen mit **Strg+F** oder **Strg+H** wird eine gültige einzeilige Auswahl aus dem
+Szenentext als Suchbegriff übernommen. Für diese Vorbelegung gilt eine Grenze von 256
+UTF-16-Einheiten. Bei längerer, leerer oder mehrzeiliger Auswahl bleibt der bisherige Suchbegriff
+erhalten. Im Ersatzfeld ändert **Enter** den aktuellen Treffer. **Strg+Enter** zeigt die Trefferzahl
+für den Gesamtersatz und fragt nach Bestätigung. Ein leeres Ersatzfeld löscht die betroffenen
+Fundstellen. **Strg+Z** im Szenenfeld nimmt die Änderung zurück. Im Szenenfeld speichert
+**Strg+Enter** den Entwurf und lässt das Fenster zum Weiterschreiben offen. Denselben Befehl findest
+du unter **Datei → Speichern und weiterschreiben**. Nach der Bestätigung bleibt der
+Bearbeitungsverlauf verfügbar. Eine unveränderte Zwischenspeicherung erzeugt keine neue Revision.
+**Strg+S** speichert und schließt.
 
-**Nur ganze Wörter suchen.** Unter **Bearbeiten → Nur ganze Wörter** kannst du die Suche für das geöffnete Szenenfenster eingrenzen. „Rat“ findet dann auch „Rat,“ am Satzende, während „Rathaus“ und „Stadt_Rat“ übersprungen werden. Beim Öffnen ist **Groß-/Kleinschreibung beachten** eingeschaltet. Schalte die Option unter **Bearbeiten** aus, um verschiedene Schreibweisen zu finden. „Rabe“ trifft dann auch „RABE“ und „rabe“. Der Vergleich erfolgt zeichenweise. „ß“ und „ẞ“ passen zusammen, „ß“ und „ss“ bleiben verschieden. Der Ersatztext wird genau wie eingegeben eingesetzt. Im Editor gelten beide Einstellungen auch für **Treffer ersetzen** und **Alle ersetzen**. Nach einem Moduswechsel den gewünschten Einzeltreffer erneut suchen. Beim nächsten Öffnen der Szene ist wieder die Teilwortsuche aktiv.
+**Nur ganze Wörter suchen.** Unter **Bearbeiten → Nur ganze Wörter** kannst du die Suche für das
+geöffnete Szenenfenster eingrenzen. „Rat“ findet dann auch „Rat,“ am Satzende, während „Rathaus“ und
+„Stadt_Rat“ übersprungen werden. Beim Öffnen ist **Groß-/Kleinschreibung beachten** eingeschaltet.
+Schalte die Option unter **Bearbeiten** aus, um verschiedene Schreibweisen zu finden. „Rabe“ trifft
+dann auch „RABE“ und „rabe“. Der Vergleich erfolgt zeichenweise. „ß“ und „ẞ“ passen zusammen, „ß“
+und „ss“ bleiben verschieden. Der Ersatztext wird genau wie eingegeben eingesetzt. Im Editor gelten
+beide Einstellungen auch für **Treffer ersetzen** und **Alle ersetzen**. Nach einem Moduswechsel den
+gewünschten Einzeltreffer erneut suchen. Beim nächsten Öffnen der Szene ist wieder die Teilwortsuche
+aktiv.
 
-**Automatisch speichern.** Autosave ist beim Öffnen ausgeschaltet. Schalte es im Datei-Menü ein, um gültige Änderungen nach 700 ms Schreibpause lokal zu speichern. Während die Bestätigung aussteht, kannst du weiter tippen. Der nächste Schreibzug baut auf dem bestätigten Zwischenstand auf. Eine Schließanforderung während des Speicherns berücksichtigt auch die späteren Eingaben. Bei einem Speicherfehler oder Revisionskonflikt bleibt der Entwurf im Fenster.
+**Automatisch speichern.** Autosave ist beim Öffnen ausgeschaltet. Schalte es im Datei-Menü ein, um
+gültige Änderungen nach 700 ms Schreibpause lokal zu speichern. Während die Bestätigung aussteht,
+kannst du weiter tippen. Der nächste Schreibzug baut auf dem bestätigten Zwischenstand auf. Eine
+Schließanforderung während des Speicherns berücksichtigt auch die späteren Eingaben. Bei einem
+Speicherfehler oder Revisionskonflikt bleibt der Entwurf im Fenster.
 
-**Editor schließen.** Bei einem geänderten Entwurf öffnen X und Alt+F4 die Schließabfrage. **Weiterschreiben** ist vorausgewählt. **Verwerfen** schließt das Fenster und lässt die gespeicherte Szene bestehen. **Speichern** schließt nach erfolgreicher Bestätigung durch den Desktop. Entspricht der Text dem zuletzt bestätigten Stand, entfällt die Abfrage.
+**Editor schließen.** Bei einem geänderten Entwurf öffnen X und Alt+F4 die Schließabfrage.
+**Weiterschreiben** ist vorausgewählt. **Verwerfen** schließt das Fenster und lässt die gespeicherte
+Szene bestehen. **Speichern** schließt nach erfolgreicher Bestätigung durch den Desktop. Entspricht
+der Text dem zuletzt bestätigten Stand, entfällt die Abfrage.
 
-Die Speicheranzeige bleibt auch im Fokusmodus sichtbar. Prüfe nach einem Autosave die bestätigte Revision und achte auf noch ungespeicherte Eingaben. Bei einem Speicherfehler schaltet sich Autosave aus und der Text bleibt im selben Editfenster. Nach Behebung kannst du mit **Strg+Enter** ausdrücklich erneut speichern und weiterschreiben. Hat sich die Szene zwischenzeitlich geändert, schützt die Revisionsprüfung die neuere Fassung. Der lokale Entwurf bleibt im Arbeitsspeicher des offenen Fensters. Ein Programmabsturz oder ein Neustart beendet diesen Schutz.
+Die Speicheranzeige bleibt auch im Fokusmodus sichtbar. Prüfe nach einem Autosave die bestätigte
+Revision und achte auf noch ungespeicherte Eingaben. Bei einem Speicherfehler schaltet sich Autosave
+aus und der Text bleibt im selben Editfenster. Nach Behebung kannst du mit **Strg+Enter**
+ausdrücklich erneut speichern und weiterschreiben. Hat sich die Szene zwischenzeitlich geändert,
+schützt die Revisionsprüfung die neuere Fassung. Der lokale Entwurf bleibt im Arbeitsspeicher des
+offenen Fensters. Ein Programmabsturz oder ein Neustart beendet diesen Schutz.
 
-**Konflikt auflösen.** Nach einem Revisionskonflikt **Fassungen vergleichen** wählen. Erst dieser Aufruf lädt den aktuellen Text derselben Szene. Im isolierten Vergleich stehen die Absätze an derselben Position nebeneinander. Beim ersten Öffnen wird der erste Unterschied angezeigt. Mit **F7** zum nächsten und mit **Umschalt+F7** zum vorherigen Unterschied springen. Mit **F6** zwischen lokalem und gespeichertem Absatz wechseln. Für den direkten Sprung **Strg+G** drücken, die Absatznummer ab 1 eingeben und mit **Enter** bestätigen. Die Navigation erhält die bisherige Auswahl. Als Ausgangspunkt kannst du alle Absätze aus dem Entwurf oder aus der gespeicherten Fassung wählen. Ändere anschließend einzelne Positionen und prüfe das vollständige Ergebnis. Die Vorschau zählt die UTF-8-Bytes der Mischung einschließlich Absatzwechseln. Bei mehr als 65.536 Bytes bleibt die Auswahl offen. Wähle kürzere Absätze oder nimm eine Quellwahl zurück, bis die Mischung wieder ins Budget passt. Im Vergleich gelten **Strg+Z** und **Strg+Y** für die Quellwahl. Bei einer neuen Vergleichsbasis bleiben vorhandene Positionsentscheidungen erhalten. Der Auswahlverlauf beginnt neu. Bei eingefügten oder entfernten Absätzen besonders auf die Zuordnung achten. Das Schließen des Vergleichs führt zum ursprünglichen Entwurf zurück.
+**Konflikt auflösen.** Nach einem Revisionskonflikt **Fassungen vergleichen** wählen. Erst dieser
+Aufruf lädt den aktuellen Text derselben Szene. Im isolierten Vergleich stehen die Absätze an
+derselben Position nebeneinander. Beim ersten Öffnen wird der erste Unterschied angezeigt. Mit
+**F7** zum nächsten und mit **Umschalt+F7** zum vorherigen Unterschied springen. Mit **F6** zwischen
+lokalem und gespeichertem Absatz wechseln. Für den direkten Sprung **Strg+G** drücken, die
+Absatznummer ab 1 eingeben und mit **Enter** bestätigen. Die Navigation erhält die bisherige
+Auswahl. Als Ausgangspunkt kannst du alle Absätze aus dem Entwurf oder aus der gespeicherten Fassung
+wählen. Ändere anschließend einzelne Positionen und prüfe das vollständige Ergebnis. Die Vorschau
+zählt die UTF-8-Bytes der Mischung einschließlich Absatzwechseln. Bei mehr als 65.536 Bytes bleibt
+die Auswahl offen. Wähle kürzere Absätze oder nimm eine Quellwahl zurück, bis die Mischung wieder
+ins Budget passt. Im Vergleich gelten **Strg+Z** und **Strg+Y** für die Quellwahl. Bei einer neuen
+Vergleichsbasis bleiben vorhandene Positionsentscheidungen erhalten. Der Auswahlverlauf beginnt neu.
+Bei eingefügten oder entfernten Absätzen besonders auf die Zuordnung achten. Das Schließen des
+Vergleichs führt zum ursprünglichen Entwurf zurück.
 
-Die ausdrückliche Speicherbestätigung gilt für die angezeigte Vergleichsbasis. Hat sich diese erneut geändert, zeigt der Vergleich den neueren Stand mit den bisherigen Entscheidungen je Absatzposition an. Das Ergebnis erneut prüfen und bestätigen. Kann der gespeicherte Stand nicht verlustfrei als einfache Prosa bearbeitet werden, bleibt der lokale Entwurf im Editor.
+Die ausdrückliche Speicherbestätigung gilt für die angezeigte Vergleichsbasis. Hat sich diese erneut
+geändert, zeigt der Vergleich den neueren Stand mit den bisherigen Entscheidungen je Absatzposition
+an. Das Ergebnis erneut prüfen und bestätigen. Kann der gespeicherte Stand nicht verlustfrei als
+einfache Prosa bearbeitet werden, bleibt der lokale Entwurf im Editor.
 
-**Weitere Kapitel und Szenen.** In der Kapitelauswahl **Kapitel anlegen** wählen und einen Titel eingeben. Das neue Kapitel ist anschließend ausgewählt. Das Kapitel öffnen und über **Szene anlegen** die erste oder weitere Szenen hinzufügen. Zum Ändern eines Titels den Eintrag markieren und **Umbenennen** wählen. Bei **Abbrechen** bleibt die bisherige Auswahl erhalten. Gleichnamige Szenen in verschiedenen Kapiteln behalten ihre eigenen Kennungen. Das Umbenennen lässt Manuskripttext und Textrevision unberührt.
+**Weitere Kapitel und Szenen.** In der Kapitelauswahl **Kapitel anlegen** wählen und einen Titel
+eingeben. Das neue Kapitel ist anschließend ausgewählt. Das Kapitel öffnen und über **Szene
+anlegen** die erste oder weitere Szenen hinzufügen. Zum Ändern eines Titels den Eintrag markieren
+und **Umbenennen** wählen. Bei **Abbrechen** bleibt die bisherige Auswahl erhalten. Gleichnamige
+Szenen in verschiedenen Kapiteln behalten ihre eigenen Kennungen. Das Umbenennen lässt
+Manuskripttext und Textrevision unberührt.
 
-**Ausgaben erstellen und wiederfinden.** Öffne in der Kapitel- oder Szenenliste **Exportieren**. Wähle die markierte Szene, ihr Kapitel oder das Gesamtmanuskript und anschließend Markdown, HTML, DOCX oder PDF. Prüfe den angezeigten Umfang, bevor du bestätigst. Für einen einzelnen Szenenauszug dienen Projekt- und Kapiteltitel als Orientierung. Texte benachbarter Szenen gelangen nur bei entsprechend erweitertem Umfang in die Ausgabe.
+**Ausgaben erstellen und wiederfinden.** Öffne in der Kapitel- oder Szenenliste **Exportieren**.
+Wähle die markierte Szene, ihr Kapitel oder das Gesamtmanuskript und anschließend Markdown, HTML,
+DOCX oder PDF. Prüfe den angezeigten Umfang, bevor du bestätigst. Für einen einzelnen Szenenauszug
+dienen Projekt- und Kapiteltitel als Orientierung. Texte benachbarter Szenen gelangen nur bei
+entsprechend erweitertem Umfang in die Ausgabe.
 
-Jeder Auftrag schreibt eine neue Datei in den Unterordner `exports` des lokalen Projektordners. Der Ergebnisdialog nennt den vollständigen Pfad. Unter **Exportieren → Vorhandene Ausgaben** findest du die nativen Ausgabedateien auch nach dem nächsten Start, mit Dateiname, Größe und Speicherort. Bei einer inzwischen geänderten Auswahl öffne den Export erneut. Die Ausgabe enthält den gespeicherten Manuskriptstand. Für Prosa stehen alle vier Formate zur Verfügung. PDF druckt eine einzeln gewählte Drehbuchszene im A4-Drehbuchlayout. Wähle für ein ganzes Kapitel oder das Gesamtmanuskript **PDF**, um Prosa und Drehbuchszenen gemeinsam mit ihren Gliederungstiteln zu drucken. Im Studio heißt die entsprechende Aktion **PDF erzeugen**. Bei der nativen Einzel-Drehbuchszene und beim gesonderten Drehbuchdruck entfallen die Gliederungstitel. Für mehrere einzelne Drehbuchszenen öffne im Studio **Export → Drehbuch als A4-PDF** und markiere die gewünschten Szenen. Sie erscheinen in Manuskriptreihenfolge. Ein unvollständiger Dialog lässt sich als Entwurf speichern. Ergänze die fehlende Dialogzeile, bevor du die Szene druckst.
+Jeder Auftrag schreibt eine neue Datei in den Unterordner `exports` des lokalen Projektordners. Der
+Ergebnisdialog nennt den vollständigen Pfad. Unter **Exportieren → Vorhandene Ausgaben** findest du
+die nativen Ausgabedateien auch nach dem nächsten Start, mit Dateiname, Größe und Speicherort. Bei
+einer inzwischen geänderten Auswahl öffne den Export erneut. Die Ausgabe enthält den gespeicherten
+Manuskriptstand. Für Prosa stehen alle vier Formate zur Verfügung. PDF druckt eine einzeln gewählte
+Drehbuchszene im A4-Drehbuchlayout. Wähle für ein ganzes Kapitel oder das Gesamtmanuskript **PDF**,
+um Prosa und Drehbuchszenen gemeinsam mit ihren Gliederungstiteln zu drucken. Im Studio heißt die
+entsprechende Aktion **PDF erzeugen**. Bei der nativen Einzel-Drehbuchszene und beim gesonderten
+Drehbuchdruck entfallen die Gliederungstitel. Für mehrere einzelne Drehbuchszenen öffne im Studio
+**Export → Drehbuch als A4-PDF** und markiere die gewünschten Szenen. Sie erscheinen in
+Manuskriptreihenfolge. Ein unvollständiger Dialog lässt sich als Entwurf speichern. Ergänze die
+fehlende Dialogzeile, bevor du die Szene druckst.
 
-**Eine Variante anlegen.** Markiere in der Szenenliste die Vorlage und wähle **Kopieren**. Wähle das Zielkapitel im selben Projekt, gib der Kopie einen Titel und bestätige. Die neue Szene steht am Ende des Zielkapitels. Für eine alternative Kapitelfassung wähle **Kopieren** in der Kapitelliste. Das neue Kapitel wird am Manuskriptende angefügt. Seine Szenen behalten Reihenfolge, Titel und Manuskriptinhalt.
+**Eine Variante anlegen.** Markiere in der Szenenliste die Vorlage und wähle **Kopieren**. Wähle das
+Zielkapitel im selben Projekt, gib der Kopie einen Titel und bestätige. Die neue Szene steht am Ende
+des Zielkapitels. Für eine alternative Kapitelfassung wähle **Kopieren** in der Kapitelliste. Das
+neue Kapitel wird am Manuskriptende angefügt. Seine Szenen behalten Reihenfolge, Titel und
+Manuskriptinhalt.
 
-Die Kopien erhalten eigene Kennungen. Formatierungen und Drehbuchrollen bleiben im Dokument erhalten. Einfache Prosakopien kannst du sofort im nativen Editor weiterschreiben. Für die Bearbeitung formatierter Texte und von Drehbuchrollen öffne die Kopie im Studio. Plotkarten, Story-Bibel-, Medien- und Timeline-Verknüpfungen sowie die Versionsgeschichte gehören weiter zum ursprünglichen Eintrag. Wenn sich die gewählte Vorlage während der Auswahl ändert, prüfe vor einem neuen Versuch die aktualisierte Gliederung.
+Die Kopien erhalten eigene Kennungen. Formatierungen und Drehbuchrollen bleiben im Dokument
+erhalten. Einfache Prosakopien kannst du sofort im nativen Editor weiterschreiben. Für die
+Bearbeitung formatierter Texte und von Drehbuchrollen öffne die Kopie im Studio. Plotkarten,
+Story-Bibel-, Medien- und Timeline-Verknüpfungen sowie die Versionsgeschichte gehören weiter zum
+ursprünglichen Eintrag. Wenn sich die gewählte Vorlage während der Auswahl ändert, prüfe vor einem
+neuen Versuch die aktualisierte Gliederung.
 
-**Reihenfolge ändern.** Das Kapitel oder die Szene markieren, mit Tab zu **Nach oben** oder **Nach unten** wechseln und die Schaltfläche auslösen. Für größere Sprünge **An Position** wählen und den gewünschten endgültigen Platz in der nummerierten Liste bestätigen. So kann etwa die neue Kapitelvariante von Platz 6 auf Platz 2 rücken. Die anderen Kapitel behalten untereinander ihre Reihenfolge. Für Szenen gilt die Platzwahl innerhalb ihres Kapitels. Der verschobene Eintrag bleibt ausgewählt. Für einen Kapitelwechsel in der Szenenliste **In Kapitel verschieben** wählen und das Ziel bestätigen. Die Nummern in der Zielauswahl entsprechen der Kapitelreihenfolge. Nach dem Verschieben ist die Szene am Ende des Zielkapitels markiert. Bei einer zwischenzeitlich geänderten Gliederung die aktualisierte Liste prüfen und den Vorgang bei Bedarf erneut auslösen.
+**Reihenfolge ändern.** Das Kapitel oder die Szene markieren, mit Tab zu **Nach oben** oder **Nach
+unten** wechseln und die Schaltfläche auslösen. Für größere Sprünge **An Position** wählen und den
+gewünschten endgültigen Platz in der nummerierten Liste bestätigen. So kann etwa die neue
+Kapitelvariante von Platz 6 auf Platz 2 rücken. Die anderen Kapitel behalten untereinander ihre
+Reihenfolge. Für Szenen gilt die Platzwahl innerhalb ihres Kapitels. Der verschobene Eintrag bleibt
+ausgewählt. Für einen Kapitelwechsel in der Szenenliste **In Kapitel verschieben** wählen und das
+Ziel bestätigen. Die Nummern in der Zielauswahl entsprechen der Kapitelreihenfolge. Nach dem
+Verschieben ist die Szene am Ende des Zielkapitels markiert. Bei einer zwischenzeitlich geänderten
+Gliederung die aktualisierte Liste prüfen und den Vorgang bei Bedarf erneut auslösen.
 
-**Kapitel oder Szene entfernen.** Den Eintrag markieren und in der Liste **Entf** drücken oder **Entfernen …** wählen. Bei einer Szene zeigt die Vorschau auch ihr Kapitel, bei einem Kapitel die zugehörigen Szenen. Betroffene Plotkarten und Bildprompt-Entwürfe werden mit entfernt. Verknüpfungen zu Story-Bibel-Einträgen, Ereignissen, Medien und Profilen werden gelöst. Die verknüpften Einträge, Ereignisse, Medien und Profile selbst bleiben erhalten. **Abbrechen** ist die Vorgabe. Erst die ausdrückliche Bestätigung löscht den geprüften Stand. Hat sich dieser inzwischen geändert, die aktualisierte Auswahl prüfen und bei Bedarf erneut bestätigen.
+**Kapitel oder Szene entfernen.** Den Eintrag markieren und in der Liste **Entf** drücken oder
+**Entfernen …** wählen. Bei einer Szene zeigt die Vorschau auch ihr Kapitel, bei einem Kapitel die
+zugehörigen Szenen. Betroffene Plotkarten und Bildprompt-Entwürfe werden mit entfernt. Verknüpfungen
+zu Story-Bibel-Einträgen, Ereignissen, Medien und Profilen werden gelöst. Die verknüpften Einträge,
+Ereignisse, Medien und Profile selbst bleiben erhalten. **Abbrechen** ist die Vorgabe. Erst die
+ausdrückliche Bestätigung löscht den geprüften Stand. Hat sich dieser inzwischen geändert, die
+aktualisierte Auswahl prüfen und bei Bedarf erneut bestätigen.
 
-Die lokale Datenbank bleibt im vertrauenswürdigen Desktop-Speicherdienst. Die beiden isolierten Rollen erhalten nur die ausgewählte Szene über private Pipes. Beim Speichern prüft eine SQLite-Transaktion die gebundene Revision und das ursprüngliche Dokument. Ein konkurrierender Stand bleibt erhalten. Der Editierauftrag `--managed-project-scene-edit-v4` hält den bereits authentisierten privaten Kanal bis zur Speicherentscheidung offen. Beim Zwischenspeichern bestätigt der Desktop die tatsächlich gespeicherte Revision über den an dieselbe Szene gebundenen Kanal. Der Desktop beantwortet den Speicherversuch mit einer Bestätigung nach dem SQLite-Commit, einem Revisionskonflikt oder einem Speicherfehler. Nach einem Konflikt bleibt die ursprüngliche Schreibfreigabe gesperrt. Für die bestätigte Übernahme bildet der Desktop den Text aus dem gebundenen Entwurf, der geprüften gespeicherten Fassung und der Absatzwahl. Eine frische Schreibfreigabe bindet die Übernahme an die geprüfte Szene und Revision.
+Die lokale Datenbank bleibt im vertrauenswürdigen Desktop-Speicherdienst. Die beiden isolierten
+Rollen erhalten nur die ausgewählte Szene über private Pipes. Beim Speichern prüft eine
+SQLite-Transaktion die gebundene Revision und das ursprüngliche Dokument. Ein konkurrierender Stand
+bleibt erhalten. Der Editierauftrag `--managed-project-scene-edit-v4` hält den bereits
+authentisierten privaten Kanal bis zur Speicherentscheidung offen. Beim Zwischenspeichern bestätigt
+der Desktop die tatsächlich gespeicherte Revision über den an dieselbe Szene gebundenen Kanal. Der
+Desktop beantwortet den Speicherversuch mit einer Bestätigung nach dem SQLite-Commit, einem
+Revisionskonflikt oder einem Speicherfehler. Nach einem Konflikt bleibt die ursprüngliche
+Schreibfreigabe gesperrt. Für die bestätigte Übernahme bildet der Desktop den Text aus dem
+gebundenen Entwurf, der geprüften gespeicherten Fassung und der Absatzwahl. Eine frische
+Schreibfreigabe bindet die Übernahme an die geprüfte Szene und Revision.
 
-**Bedienabnahme vom 25. November.** Im echten Windows-Debug-Build öffnete sich die ausgewählte Szene eines eigens angelegten Projekts mit Leseschutz und dem erwarteten Text auf Revision 0. Nach ausdrücklicher Bearbeitungsfreigabe, Speichern zweier Absätze, regulärem Beenden und einem neuen Prozess zeigte eine frische Lesesitzung beide Absätze exakt wieder an. SQLite bestätigte Editordokument v1 und Revision 1. Der Speichertest verwarf außerdem eine veraltete Revision sowie ein bei gleicher Revision zwischenzeitlich geändertes Originaldokument.
+**Bedienabnahme vom 25. November.** Im echten Windows-Debug-Build öffnete sich die ausgewählte Szene
+eines eigens angelegten Projekts mit Leseschutz und dem erwarteten Text auf Revision 0. Nach
+ausdrücklicher Bearbeitungsfreigabe, Speichern zweier Absätze, regulärem Beenden und einem neuen
+Prozess zeigte eine frische Lesesitzung beide Absätze exakt wieder an. SQLite bestätigte
+Editordokument v1 und Revision 1. Der Speichertest verwarf außerdem eine veraltete Revision sowie
+ein bei gleicher Revision zwischenzeitlich geändertes Originaldokument.
 
-Der optimierte Windows-Desktop aus `e24c9c959069` bestand denselben Bedienlauf. Nach einem neuen Desktopprozess zeigte das schreibgeschützte Fenster beide bearbeiteten Absätze wieder an. Die direkte SQLite-Prüfung bestätigte beide Absatzknoten und Revision 1. Im Vorläufer scheiterte der Start des isolierten Datendienstes vor dessen Bootstrap-Bestätigung. Der ausgelieferte Manuskriptdatendienst ist jetzt als konsolenloses Windows-Programm gebaut und verwendet die ausdrücklich vererbten Pipes. Die reguläre Startfrist beträgt weiterhin fünf Sekunden.
+Der optimierte Windows-Desktop aus `e24c9c959069` bestand denselben Bedienlauf. Nach einem neuen
+Desktopprozess zeigte das schreibgeschützte Fenster beide bearbeiteten Absätze wieder an. Die
+direkte SQLite-Prüfung bestätigte beide Absatzknoten und Revision 1. Im Vorläufer scheiterte der
+Start des isolierten Datendienstes vor dessen Bootstrap-Bestätigung. Der ausgelieferte
+Manuskriptdatendienst ist jetzt als konsolenloses Windows-Programm gebaut und verwendet die
+ausdrücklich vererbten Pipes. Die reguläre Startfrist beträgt weiterhin fünf Sekunden.
 
-Beim ersten abgebrochenen UI-Prüflauf wurde der Starter bei offenem Lesefenster beendet. Im Windows-Paketverzeichnis blieb ein temporäres UI-AppContainer-Profil. Seine Kontrollablage war bereits entfernt; ohne generationsgebundenen Beleg bleibt das Profil unangetastet. Der reguläre Folgelauf hinterließ kein weiteres Profil. Die Prüfhilfen behalten künftig bei unbestätigtem Sitzungsende die Kontrollablage zurück.
+Beim ersten abgebrochenen UI-Prüflauf wurde der Starter bei offenem Lesefenster beendet. Im
+Windows-Paketverzeichnis blieb ein temporäres UI-AppContainer-Profil. Seine Kontrollablage war
+bereits entfernt; ohne generationsgebundenen Beleg bleibt das Profil unangetastet. Der reguläre
+Folgelauf hinterließ kein weiteres Profil. Die Prüfhilfen behalten künftig bei unbestätigtem
+Sitzungsende die Kontrollablage zurück.
 
 ## Wiedereinstieg nach dem 24. November 2026
 
-Auf dem Entwicklungszweig `feat/kq-069-live-file-selection` mit `git pull --ff-only` beginnen.
-Die vorherige [Alpha 6](https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.6)
-trägt den Tag auf `a202aca3cd43`. Die öffentliche [Alpha 7](https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.7) mit Ordnerimport stammt aus
-`a9a3a673ff14`. Auf dem Buildrechner liegen Installer und Prüfsummendatei unter
+Auf dem Entwicklungszweig `feat/kq-069-live-file-selection` mit `git pull --ff-only` beginnen. Die
+vorherige [Alpha 6](https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.6) trägt den
+Tag auf `a202aca3cd43`. Die öffentliche
+[Alpha 7](https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.7) mit Ordnerimport
+stammt aus `a9a3a673ff14`. Auf dem Buildrechner liegen Installer und Prüfsummendatei unter
 `artifacts/release/0.1.0/windows-x64/a9a3a673ff14/`, Archivhelfer und Anleitung unter
 `Rechnerwechsel/` daneben. Die lokalen Installer-Prüfsummen beider Stände, die drei öffentlichen
 Release-Dateien und der portable Archivhelfer wurden zum Tagesabschluss abgeglichen.
 
 Der gebaute Desktop übernahm das geschlossene Demoprojekt mit 22 inhaltlich identischen
-SQLite-Tabellen und 42 bytegleichen Bild- und Vorschaudateien. Nach einem Neustart öffnete sich
-die Kopie. Die separate Archivwahl ließ sich mit der Passphrase wiederherstellen und enthielt
-genau die ausgewählte Zusatzdatei.
+SQLite-Tabellen und 42 bytegleichen Bild- und Vorschaudateien. Nach einem Neustart öffnete sich die
+Kopie. Die separate Archivwahl ließ sich mit der Passphrase wiederherstellen und enthielt genau die
+ausgewählte Zusatzdatei.
 
 **Upgrade-Abnahme am 25. November 2026 bestanden.** Im getrennten Windows-Testprofil öffnete
 dieselbe Startmenüverknüpfung nach dem Update von Alpha 6 auf `a9a3a673ff14` das vorhandene
@@ -81,15 +242,16 @@ Demoprojekt mit derselben UUID bis zur Projektansicht. Auf der Startseite war **
 auswählen** sichtbar, fokussierbar und aktiviert. Beide Desktopprogramme verwendeten das
 Windows-GUI-Subsystem. Testinstallation, Registrierung, Verknüpfungen und Testprofil wurden
 bereinigt. Der geprüfte Installer hat SHA-256
-`85c4f09e8e24ae4f82946a69d8d67f4f540f7af087ea2fe2ef90c2e07c905bdd`.
-Der unveränderte Installer wurde als Alpha 7 veröffentlicht. Das separate Rechnerwechsel-Paket enthält den portablen Archivhelfer für die Wiederherstellung.
+`85c4f09e8e24ae4f82946a69d8d67f4f540f7af087ea2fe2ef90c2e07c905bdd`. Der unveränderte Installer wurde
+als Alpha 7 veröffentlicht. Das separate Rechnerwechsel-Paket enthält den portablen Archivhelfer für
+die Wiederherstellung.
 
 ## Einen vorhandenen Windows-Projektordner übernehmen
 
-Ab Alpha 7 auf der Startseite **Projektordner auswählen** öffnen. Den
-geschlossenen lokalen Projektordner mit seiner ursprünglichen UUID als Namen auswählen. Die Vorschau
-zeigt die Anzahl der Dokumente und Bilder sowie die Dateianzahl jeder Zusatzgruppe. Projektpfade,
-Dateinamen und Passphrase bleiben im nativen Teil der Anwendung.
+Ab Alpha 7 auf der Startseite **Projektordner auswählen** öffnen. Den geschlossenen lokalen
+Projektordner mit seiner ursprünglichen UUID als Namen auswählen. Die Vorschau zeigt die Anzahl der
+Dokumente und Bilder sowie die Dateianzahl jeder Zusatzgruppe. Projektpfade, Dateinamen und
+Passphrase bleiben im nativen Teil der Anwendung.
 
 **Arbeitskopie anlegen** und die native Rückfrage bestätigen. KRAQEL legt die Kopie unter der
 ursprünglichen, am Ziel freien Projektkennung an. Die Auswahl läuft nach zehn Minuten ab. Bei
@@ -106,63 +268,131 @@ Ergebnisse getrennt. Die Zusatzdateien bleiben in der Quelle.
 
 ## Getrennt auf zwei Rechnern schreiben
 
-Vor dem Abzweigen im Versionsdialog die gemeinsame Szenenbasis sichern. Nach der Rückkehr lassen sich einseitige Änderungen und Konflikte anhand der Basisdateien lesend vergleichen. Für die Auswahl einseitiger Änderungen den vorbereiteten Quellordner und seinen getrennt bestätigten Inventarhash mitnehmen. Die Bestätigung erzeugt einen weiteren Vorbereitungsordner. Die vollständigen Arbeitskopien für die weitere Bearbeitung separat aufbewahren. Aktivierung und Rücknahme geschehen im geöffneten Zielprojekt. Seine lokale Freigabe und die unverschlüsselte Rücknahmedatei gehören zu diesem Arbeitsplatz. Für den Wiederanlauf die separat gesicherte Prüfsumme bereithalten. [Ablauf im Desktop-Entwicklungsstand](../README.md#szenenstände-auf-zwei-rechnern-vergleichen)
+Vor dem Abzweigen im Versionsdialog die gemeinsame Szenenbasis sichern. Nach der Rückkehr lassen
+sich einseitige Änderungen und Konflikte anhand der Basisdateien lesend vergleichen. Für die Auswahl
+einseitiger Änderungen den vorbereiteten Quellordner und seinen getrennt bestätigten Inventarhash
+mitnehmen. Die Bestätigung erzeugt einen weiteren Vorbereitungsordner. Die vollständigen
+Arbeitskopien für die weitere Bearbeitung separat aufbewahren. Aktivierung und Rücknahme geschehen
+im geöffneten Zielprojekt. Seine lokale Freigabe und die unverschlüsselte Rücknahmedatei gehören zu
+diesem Arbeitsplatz. Für den Wiederanlauf die separat gesicherte Prüfsumme bereithalten.
+[Ablauf im Desktop-Entwicklungsstand](../README.md#szenenstände-auf-zwei-rechnern-vergleichen)
 
-Bei einem Textkonflikt im Windows-Entwicklungsstand genau die gewünschte Szene im Versionsdialog auswählen und die isolierte Volltextansicht ausdrücklich öffnen. Die bestätigte externe Fassung ergibt eine neue Arbeitskopie. Zur Aktivierung im geöffneten Zielprojekt zuerst die früheren Fassungen lokal sichern. Die eingebetteten Rollenprogramme werden beim Desktop-Build aus dem Repository erzeugt. [Bedienweg](../README.md#szenenstände-auf-zwei-rechnern-vergleichen)
+Bei einem Textkonflikt im Windows-Entwicklungsstand genau die gewünschte Szene im Versionsdialog
+auswählen und die isolierte Volltextansicht ausdrücklich öffnen. Die bestätigte externe Fassung
+ergibt eine neue Arbeitskopie. Zur Aktivierung im geöffneten Zielprojekt zuerst die früheren
+Fassungen lokal sichern. Die eingebetteten Rollenprogramme werden beim Desktop-Build aus dem
+Repository erzeugt. [Bedienweg](../README.md#szenenstände-auf-zwei-rechnern-vergleichen)
 
 ## Desktop-Vorbereitung und isolierte Vorschau
 
-Der lokale Empfang ist vom Desktop-Speichermodul bis zum schreibgeschützten Win32-Fenster mit synthetischen Arbeitsdaten geprüft. Die Anleitung enthält den Build und den automatischen VHDX-Lauf. Der Windows-Entwicklungsstand unterstützt jetzt den erstmaligen Empfang als lokales Projekt. Die physische Zweitrechnerprobe steht aus. [Prüflauf und Grenzen](data-format/product-start-integration-v1-draft.md#vorbereitete-desktop-arbeitskopie-im-isolierten-vorschaufenster)
+Der lokale Empfang ist vom Desktop-Speichermodul bis zum schreibgeschützten Win32-Fenster mit
+synthetischen Arbeitsdaten geprüft. Die Anleitung enthält den Build und den automatischen VHDX-Lauf.
+Der Windows-Entwicklungsstand unterstützt jetzt den erstmaligen Empfang als lokales Projekt. Die
+physische Zweitrechnerprobe steht aus.
+[Prüflauf und Grenzen](data-format/product-start-integration-v1-draft.md#vorbereitete-desktop-arbeitskopie-im-isolierten-vorschaufenster)
 
 ## Vorbereitete Arbeitskopie erstmals empfangen
 
-1. Auf dem Quellrechner im Versionsdialog **Übernahme vorbereiten** wählen. Den angezeigten Inventar-SHA-256 separat sichern.
-2. KRAQEL auf dem Windows-Zielrechner einmal öffnen. Unter `%LOCALAPPDATA%\org.kraqel.desktop\projects` den Ordner `empfang` anlegen und den vollständigen Ordner `uebernahme-<UUID>` hineinkopieren. Die Arbeitskopie enthält unverschlüsselte Manuskript- und Mediendaten. Für den Transport einen entsprechend geschützten Datenträger verwenden.
-3. Auf der Startseite unter **Windows-Arbeitskopie empfangen** den Ordnernamen und die separat bestätigte Inventarprüfsumme eingeben. **Als lokales Projekt übernehmen** wählen. Erst nach erfolgreicher Prüfung erscheint das Projekt in der Liste. Der Eingangsordner bleibt erhalten.
-4. Ist die Projektkennung am Ziel belegt, im vorhandenen Projekt **Werkzeuge → Versionen → Eingangskopie vergleichen** öffnen. Mit Ordnername und separat bestätigtem Inventar-SHA-256 zeigt **Arbeitsdaten vergleichen** die Bereiche mit abweichenden gespeicherten Einträgen an. Dazu zählen auch Revisionen und Zeitstempel. Bilder und Vorschaubilder werden nur bei angekreuzter Zusatzprüfung gelesen. Dann vergleicht KRAQEL die referenzierten Dateien lokal anhand ihrer Prüfsummen. Fehlende referenzierte Dateien auf beiden Seiten oder ein abweichender Inhaltsbeleg sperren die Zusatzprüfung. Das Ergebnis beschreibt die einzeln gelesenen Dateien. Eine spätere Übernahme braucht eine frische Prüfung. Für die anschließende Entscheidung über einzelne Szenen den Szenenvergleich mit der gemeinsamen Ausgangsbasis verwenden.
+1. Auf dem Quellrechner im Versionsdialog **Übernahme vorbereiten** wählen. Den angezeigten
+   Inventar-SHA-256 separat sichern.
+2. KRAQEL auf dem Windows-Zielrechner einmal öffnen. Unter
+   `%LOCALAPPDATA%\org.kraqel.desktop\projects` den Ordner `empfang` anlegen und den vollständigen
+   Ordner `uebernahme-<UUID>` hineinkopieren. Die Arbeitskopie enthält unverschlüsselte Manuskript-
+   und Mediendaten. Für den Transport einen entsprechend geschützten Datenträger verwenden.
+3. Auf der Startseite unter **Windows-Arbeitskopie empfangen** den Ordnernamen und die separat
+   bestätigte Inventarprüfsumme eingeben. **Als lokales Projekt übernehmen** wählen. Erst nach
+   erfolgreicher Prüfung erscheint das Projekt in der Liste. Der Eingangsordner bleibt erhalten.
+4. Ist die Projektkennung am Ziel belegt, im vorhandenen Projekt **Werkzeuge → Versionen →
+   Eingangskopie vergleichen** öffnen. Mit Ordnername und separat bestätigtem Inventar-SHA-256 zeigt
+   **Arbeitsdaten vergleichen** die Bereiche mit abweichenden gespeicherten Einträgen an. Dazu
+   zählen auch Revisionen und Zeitstempel. Bilder und Vorschaubilder werden nur bei angekreuzter
+   Zusatzprüfung gelesen. Dann vergleicht KRAQEL die referenzierten Dateien lokal anhand ihrer
+   Prüfsummen. Fehlende referenzierte Dateien auf beiden Seiten oder ein abweichender Inhaltsbeleg
+   sperren die Zusatzprüfung. Das Ergebnis beschreibt die einzeln gelesenen Dateien. Eine spätere
+   Übernahme braucht eine frische Prüfung. Für die anschließende Entscheidung über einzelne Szenen
+   den Szenenvergleich mit der gemeinsamen Ausgangsbasis verwenden.
 
 ## Einzelne Projekteinträge übernehmen
 
-Im geöffneten Zielprojekt unter **Werkzeuge → Versionen** die Eingangskopie mit ihrem separat bestätigten Inventar-SHA-256 vergleichen.
+Im geöffneten Zielprojekt unter **Werkzeuge → Versionen** die Eingangskopie mit ihrem separat
+bestätigten Inventar-SHA-256 vergleichen.
 
-1. **Einzelne Projekteinträge übernehmen** aufklappen, den Projektbereich wählen und **Abweichende Einträge laden**. Die Liste verwendet die stabilen Kennungen. Bei Ereigniszuordnungen gehört das Kennungspaar zusammen. Gleiche Namen sind kein Identitätsbeleg.
-2. Einen geänderten oder nur im Eingang vorhandenen Eintrag auswählen. **Fassungen im isolierten Fenster öffnen** und den nativen Dialog bestätigen. Die vollständigen Felder sind im Win32-Fenster lesbar. Nur lokal vorhandene Einträge bleiben erhalten.
-3. Die externe Fassung im Fenster ausdrücklich wählen. KRAQEL bereitet eine separate Arbeitskopie vor. **Rücknahme für diesen Eintrag sichern** und den angezeigten lokalen Beleg aufbewahren. Erst **Eintrag aktivieren** verändert das geöffnete Projekt.
-4. Mit **Eintragsübernahme zurücknehmen** den gesicherten Ausgangsstand wiederherstellen. Nach einem Programmneustart lässt sich der Beleg im selben Projekt erneut eingeben. Bei einem zwischenzeitlich geänderten Stand die Einträge neu laden und die Fassungswahl wiederholen. Die Auswahl bleibt beim erneuten Laden anhand ihrer Kennung erhalten, sofern der Eintrag weiterhin abweicht.
+1. **Einzelne Projekteinträge übernehmen** aufklappen, den Projektbereich wählen und **Abweichende
+   Einträge laden**. Die Liste verwendet die stabilen Kennungen. Bei Ereigniszuordnungen gehört das
+   Kennungspaar zusammen. Gleiche Namen sind kein Identitätsbeleg.
+2. Einen geänderten oder nur im Eingang vorhandenen Eintrag auswählen. **Fassungen im isolierten
+   Fenster öffnen** und den nativen Dialog bestätigen. Die vollständigen Felder sind im
+   Win32-Fenster lesbar. Nur lokal vorhandene Einträge bleiben erhalten.
+3. Die externe Fassung im Fenster ausdrücklich wählen. KRAQEL bereitet eine separate Arbeitskopie
+   vor. **Rücknahme für diesen Eintrag sichern** und den angezeigten lokalen Beleg aufbewahren. Erst
+   **Eintrag aktivieren** verändert das geöffnete Projekt.
+4. Mit **Eintragsübernahme zurücknehmen** den gesicherten Ausgangsstand wiederherstellen. Nach einem
+   Programmneustart lässt sich der Beleg im selben Projekt erneut eingeben. Bei einem
+   zwischenzeitlich geänderten Stand die Einträge neu laden und die Fassungswahl wiederholen. Die
+   Auswahl bleibt beim erneuten Laden anhand ihrer Kennung erhalten, sofern der Eintrag weiterhin
+   abweicht.
 
-Für ein einzelnes Bild **Bilder und Vorschaubilder → Medienkennungen laden** wählen. Auch **Gleicher Katalogstand** lässt sich öffnen, weil die Vorschaudatei bei identischen Metadaten abweichen kann. Nach ausdrücklicher Bestätigung prüft KRAQEL Original und Vorschau. Im isolierten Fenster stehen die Metadaten, Dateiprüfsummen und Verknüpfungen zur Wahl. Die verknüpften Ziele müssen im Zielprojekt vorhanden sein. Die lokale Rücknahmesicherung enthält die früheren Bilddaten. Frühere Dateigenerationen können für noch offene Lesezugriffe im Projektordner verbleiben. Projekt und Sicherung deshalb gemeinsam schützen.
+Für ein einzelnes Bild **Bilder und Vorschaubilder → Medienkennungen laden** wählen. Auch **Gleicher
+Katalogstand** lässt sich öffnen, weil die Vorschaudatei bei identischen Metadaten abweichen kann.
+Nach ausdrücklicher Bestätigung prüft KRAQEL Original und Vorschau. Im isolierten Fenster stehen die
+Metadaten, Dateiprüfsummen und Verknüpfungen zur Wahl. Die verknüpften Ziele müssen im Zielprojekt
+vorhanden sein. Die lokale Rücknahmesicherung enthält die früheren Bilddaten. Frühere
+Dateigenerationen können für noch offene Lesezugriffe im Projektordner verbleiben. Projekt und
+Sicherung deshalb gemeinsam schützen.
 
-Eine Beziehung setzt die beteiligten Einträge im Ziel voraus. Das gilt entsprechend für Dokumentverknüpfungen, Plotkarten, Ereignisse und ihre Zuordnungen. Fehlt einer gewählten Plotkarte der Handlungsstrang oder einem Ereignis die Zeitachse, bietet der Dialog die passende Kennung aus derselben Eingangskopie an. **Fehlenden Handlungsstrang auswählen** bzw. **Fehlende Zeitachse auswählen** führt zur separaten Fassungswahl. Die Voraussetzung erhält einen eigenen Rücknahmebeleg. Nach ihrer Aktivierung lädt der Dialog die ursprüngliche Karte bzw. das Ereignis erneut. Die Fassung dieses Eintrags ausdrücklich prüfen und übernehmen. Für die Rücknahme zuerst den abhängigen Eintrag und anschließend die Voraussetzung zurücknehmen. Handlungsstränge und Zeitachsen lassen sich auch direkt im Projektbereich wählen. Ein Typwechsel für dieselbe Story-Bibel-Kennung ist gesperrt. Hat eine neu übernommene Figur inzwischen eine Beziehung erhalten, sperrt KRAQEL die Rücknahme. Bei unklarem Transaktionsende den aktuellen Stand erneut vergleichen. Lokale Sicherungen können vollständige frühere Inhalte enthalten und gehören auf einen geschützten Datenträger.
+Eine Beziehung setzt die beteiligten Einträge im Ziel voraus. Das gilt entsprechend für
+Dokumentverknüpfungen, Plotkarten, Ereignisse und ihre Zuordnungen. Fehlt einer gewählten Plotkarte
+der Handlungsstrang oder einem Ereignis die Zeitachse, bietet der Dialog die passende Kennung aus
+derselben Eingangskopie an. **Fehlenden Handlungsstrang auswählen** bzw. **Fehlende Zeitachse
+auswählen** führt zur separaten Fassungswahl. Die Voraussetzung erhält einen eigenen Rücknahmebeleg.
+Nach ihrer Aktivierung lädt der Dialog die ursprüngliche Karte bzw. das Ereignis erneut. Die Fassung
+dieses Eintrags ausdrücklich prüfen und übernehmen. Für die Rücknahme zuerst den abhängigen Eintrag
+und anschließend die Voraussetzung zurücknehmen. Handlungsstränge und Zeitachsen lassen sich auch
+direkt im Projektbereich wählen. Ein Typwechsel für dieselbe Story-Bibel-Kennung ist gesperrt. Hat
+eine neu übernommene Figur inzwischen eine Beziehung erhalten, sperrt KRAQEL die Rücknahme. Bei
+unklarem Transaktionsende den aktuellen Stand erneut vergleichen. Lokale Sicherungen können
+vollständige frühere Inhalte enthalten und gehören auf einen geschützten Datenträger.
 
 ## Zusatzarchiv auf einem anderen Windows-PC öffnen
 
-Für die synthetische P3-Übernahme lassen sich ausgewählte Zusatzdateien lokal mit einer Passphrase verschlüsseln. Auf dem Entwicklungsrechner im Repository ausführen (der native P3-Prüfstarter muss wie in der P3-Anleitung gebaut sein):
+Für die synthetische P3-Übernahme lassen sich ausgewählte Zusatzdateien lokal mit einer Passphrase
+verschlüsseln. Auf dem Entwicklungsrechner im Repository ausführen (der native P3-Prüfstarter muss
+wie in der P3-Anleitung gebaut sein):
 
 ```powershell
 cargo build --locked --release -p kraqel-archiv
 python -I scripts/runtime-isolation/p3-volume-fixture.py export-supplement .\zusatz.zip.age
 ```
 
-Im Fenster die gewünschten Gruppen markieren und das Quellprojekt bestätigen. Im Terminal eine lange, einzigartige Passphrase zweimal verdeckt eingeben. Das Ziel muss neu sein. Die Beispieldateien stammen aus dem synthetischen Projektkatalog.
+Im Fenster die gewünschten Gruppen markieren und das Quellprojekt bestätigen. Im Terminal eine
+lange, einzigartige Passphrase zweimal verdeckt eingeben. Das Ziel muss neu sein. Die
+Beispieldateien stammen aus dem synthetischen Projektkatalog.
 
-Für den Rechnerwechsel die Datei `zusatz.zip.age` und die portable Windows-x64-EXE mitnehmen. Der normale Build für den Prüfpfad lädt `VCRUNTIME140.dll`. Die portable Variante bindet die C-Laufzeit statisch. Der folgende Build setzt die Option ausschließlich im gestarteten Prozess:
+Für den Rechnerwechsel die Datei `zusatz.zip.age` und die portable Windows-x64-EXE mitnehmen. Der
+normale Build für den Prüfpfad lädt `VCRUNTIME140.dll`. Die portable Variante bindet die C-Laufzeit
+statisch. Der folgende Build setzt die Option ausschließlich im gestarteten Prozess:
 
 ```powershell
 cmd /d /c "set CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS=-C target-feature=+crt-static&&cargo build --locked --release --target x86_64-pc-windows-msvc -p kraqel-archiv"
 ```
 
-Die portable EXE liegt in `target/x86_64-pc-windows-msvc/release/kraqel-archiv.exe`. Die Passphrase getrennt aufbewahren. Auf dem zweiten Windows-x64-PC im Ordner mit beiden Dateien ausführen:
+Die portable EXE liegt in `target/x86_64-pc-windows-msvc/release/kraqel-archiv.exe`. Die Passphrase
+getrennt aufbewahren. Auf dem zweiten Windows-x64-PC im Ordner mit beiden Dateien ausführen:
 
 ```powershell
 .\kraqel-archiv.exe restore .\zusatz.zip.age .\wiederhergestellt.zip
 ```
 
-Nach Eingabe der Passphrase entsteht ein **unverschlüsseltes ZIP** am gewählten neuen Ziel. Ein vorhandenes Ziel bleibt erhalten. Zur Wiederherstellung genügen Archiv, Programm und Passphrase. Windows-Konto, Laufwerksbuchstabe und ursprüngliches Projektjournal spielen dafür keine Rolle. Eine verlorene Passphrase lässt sich über KRAQEL nicht zurücksetzen.
+Nach Eingabe der Passphrase entsteht ein **unverschlüsseltes ZIP** am gewählten neuen Ziel. Ein
+vorhandenes Ziel bleibt erhalten. Zur Wiederherstellung genügen Archiv, Programm und Passphrase.
+Windows-Konto, Laufwerksbuchstabe und ursprüngliches Projektjournal spielen dafür keine Rolle. Eine
+verlorene Passphrase lässt sich über KRAQEL nicht zurücksetzen.
 
 ## Wiedereinstieg in den verwalteten Szeneneditor
 
-Arbeitsbranch ist `feat/kq-069-live-file-selection`. Der Fokusmodus ist im verwalteten Szeneneditor verfügbar; Bedienung und Prüfumfang stehen im Entwicklungsstatus.
-Im vorhandenen sauberen Checkout auf einem beliebigen Laufwerk:
+Arbeitsbranch ist `feat/kq-069-live-file-selection`. Der Fokusmodus ist im verwalteten Szeneneditor
+verfügbar; Bedienung und Prüfumfang stehen im Entwicklungsstatus. Im vorhandenen sauberen Checkout
+auf einem beliebigen Laufwerk:
 
 ```powershell
 git switch feat/kq-069-live-file-selection
@@ -170,51 +400,171 @@ git pull --ff-only
 git status -sb
 ```
 
-Für den aktuellen P3-Vorschaupfad nach dem Checkout die Auswahl und die schreibgeschützte Anzeige als einen Vorgang starten. Die vorhandenen VHDX-/Wiederanlaufprüfungen können separat aufgerufen werden. [Befehl, Voraussetzungen und Netzbeleg](data-format/product-start-integration-v1-draft.md#bedienbare-p3-übernahme-mit-separatem-zusatzarchiv)
+Für den aktuellen P3-Vorschaupfad nach dem Checkout die Auswahl und die schreibgeschützte Anzeige
+als einen Vorgang starten. Die vorhandenen VHDX-/Wiederanlaufprüfungen können separat aufgerufen
+werden.
+[Befehl, Voraussetzungen und Netzbeleg](data-format/product-start-integration-v1-draft.md#bedienbare-p3-übernahme-mit-separatem-zusatzarchiv)
 
-Der Wiederanlauf der synthetischen Szenenübernahme ist im geprüften Umfang abgeschlossen. Im langen Klartexteditor sind Wortzahl, UTF-16-Budget und Fokusmodus verfügbar. F11 wechselt die Ansicht, Esc verlässt den Fokusmodus. Beim Revisionsvergleich zeigt F7 die Wirkung von F8. Nach der Übernahme bleibt die bearbeitete Stelle im Entwurf sichtbar. Die Befehle für Suche, Fokusmodus und Konfliktentscheidung sind auch per Menü erreichbar. Rückgängig und Wiederholen stellen die Auswahl im langen Entwurf wieder her. [Aktueller Stand und Prüfumfang](DEVELOPMENT_STATUS.md#verwalteter-win32-szeneneditor)
+Der Wiederanlauf der synthetischen Szenenübernahme ist im geprüften Umfang abgeschlossen. Im langen
+Klartexteditor sind Wortzahl, UTF-16-Budget und Fokusmodus verfügbar. F11 wechselt die Ansicht, Esc
+verlässt den Fokusmodus. Beim Revisionsvergleich zeigt F7 die Wirkung von F8. Nach der Übernahme
+bleibt die bearbeitete Stelle im Entwurf sichtbar. Die Befehle für Suche, Fokusmodus und
+Konfliktentscheidung sind auch per Menü erreichbar. Rückgängig und Wiederholen stellen die Auswahl
+im langen Entwurf wieder her.
+[Aktueller Stand und Prüfumfang](DEVELOPMENT_STATUS.md#verwalteter-win32-szeneneditor)
 
-Der aktualisierte Starter lässt unmarkierte Altpaare nur lesen. Ein gebundenes Altpaar kann unter demselben Starter mit `upgrade-win32-package` auf ein geprüftes Schreibpaar wechseln. Der lokale Windows-Lauf bestätigte Sperre, Lesen, Rollenwechsel, Schreiben und Wiederöffnen. Nach einem Starterwechsel gibt erst `adopt-win32-scene <Revision> <Snapshot-SHA-256> <Kontrollkopf>` die gespeicherte synthetische Szene für den neuen Starter frei. Revision und Hash stehen in `verify-win32-package`. Eine offene Sitzung sperrt die Übernahme. [Bedienung, Wiederanlauf und Windows-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#ausdrückliche-übernahme-der-synthetischen-szene-nach-einem-starterupdate). [Aufruf, Grenzen und ETW-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#lesezugriff-für-altpaare-und-authentisierter-rollenwechsel).
+Der aktualisierte Starter lässt unmarkierte Altpaare nur lesen. Ein gebundenes Altpaar kann unter
+demselben Starter mit `upgrade-win32-package` auf ein geprüftes Schreibpaar wechseln. Der lokale
+Windows-Lauf bestätigte Sperre, Lesen, Rollenwechsel, Schreiben und Wiederöffnen. Nach einem
+Starterwechsel gibt erst `adopt-win32-scene <Revision> <Snapshot-SHA-256> <Kontrollkopf>` die
+gespeicherte synthetische Szene für den neuen Starter frei. Revision und Hash stehen in
+`verify-win32-package`. Eine offene Sitzung sperrt die Übernahme.
+[Bedienung, Wiederanlauf und Windows-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#ausdrückliche-übernahme-der-synthetischen-szene-nach-einem-starterupdate).
+[Aufruf, Grenzen und ETW-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#lesezugriff-für-altpaare-und-authentisierter-rollenwechsel).
 
-Bei einem Starterabbruch während der Übernahme entscheidet der veröffentlichte Kontrollkopf über die Zuordnung. Vor dem Eintrag bleibt die alte Zuordnung erhalten, nach Veröffentlichung gilt die neue. Zwischen synchronisiertem Eintrag und Kopf sperrt der reguläre Start die Ablage. Der dafür ausgerüstete aktive Starter kann mit `recover-win32-scene-adoption <Revision> <Snapshot-SHA-256> <Kontrollkopf-vor-Übernahme>` genau einen eindeutig belegten Übernahmeeintrag abschließen. Der Windows-Prozesslauf bestätigte die einmalige Übernahme nach echtem Starterabbruch. Nach einem zweiten Abbruch bei vorbereitetem Kopf kann derselbe ausdrückliche Aufruf den bytegenau passenden authentisierten Kopf veröffentlichen. Ein abweichender Kopf sperrt die Übernahme. [Geprüfte Abbruchpunkte und Vorgehen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#wiederanlauf-nach-abbruch-der-szenenübernahme).
+Bei einem Starterabbruch während der Übernahme entscheidet der veröffentlichte Kontrollkopf über die
+Zuordnung. Vor dem Eintrag bleibt die alte Zuordnung erhalten, nach Veröffentlichung gilt die neue.
+Zwischen synchronisiertem Eintrag und Kopf sperrt der reguläre Start die Ablage. Der dafür
+ausgerüstete aktive Starter kann mit
+`recover-win32-scene-adoption <Revision> <Snapshot-SHA-256> <Kontrollkopf-vor-Übernahme>` genau
+einen eindeutig belegten Übernahmeeintrag abschließen. Der Windows-Prozesslauf bestätigte die
+einmalige Übernahme nach echtem Starterabbruch. Nach einem zweiten Abbruch bei vorbereitetem Kopf
+kann derselbe ausdrückliche Aufruf den bytegenau passenden authentisierten Kopf veröffentlichen. Ein
+abweichender Kopf sperrt die Übernahme.
+[Geprüfte Abbruchpunkte und Vorgehen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#wiederanlauf-nach-abbruch-der-szenenübernahme).
 
-**Stand zum Tagesabschluss am 23. November 2026.** F4 oder **Bearbeiten → Gespeicherte Fettstelle auswählen** springt im Bearbeitungsauftrag zur eindeutig zugeordneten Fettstelle und markiert sie im Absatz. Im lokalen Windows-Lauf markierte F4 nach dem Wechsel von „Rabe“ zu „Kolkrabe“ genau „ab“. Bei „Kolkrabe ab“ blieb die vorhandene Auswahl erhalten.
+**Stand zum Tagesabschluss am 23. November 2026.** F4 oder **Bearbeiten → Gespeicherte Fettstelle
+auswählen** springt im Bearbeitungsauftrag zur eindeutig zugeordneten Fettstelle und markiert sie im
+Absatz. Im lokalen Windows-Lauf markierte F4 nach dem Wechsel von „Rabe“ zu „Kolkrabe“ genau „ab“.
+Bei „Kolkrabe ab“ blieb die vorhandene Auswahl erhalten.
 
-**Stand am 24. November 2026.** Zum Entfernen einer gespeicherten einzelnen Fettmarkierung die Szene im Bearbeitungsauftrag öffnen und **Bearbeiten → Fettmarkierung entfernen, speichern und schließen** wählen. Der Befehl ist bei ungespeicherten Änderungen gesperrt. Der lokale Windows-Lauf bestätigte nach dem Wiederöffnen den vollständigen Text und die weiterhin fett gesetzte „42“.
+**Stand am 24. November 2026.** Zum Entfernen einer gespeicherten einzelnen Fettmarkierung die Szene
+im Bearbeitungsauftrag öffnen und **Bearbeiten → Fettmarkierung entfernen, speichern und schließen**
+wählen. Der Befehl ist bei ungespeicherten Änderungen gesperrt. Der lokale Windows-Lauf bestätigte
+nach dem Wiederöffnen den vollständigen Text und die weiterhin fett gesetzte „42“.
 
-Der verwaltete Starter erkennt gemischte Generationen mit einseitiger Inline-Kennung vor dem Sitzungsstart. Für das passende Paar sind Markieren, Entfernen und Wiederöffnen im aktuellen Windows-Netzvergleich geprüft. [Paketprüfung und ETW-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#paketkompatibilität-und-etw-für-einzelne-fettmarkierungen).
+Der verwaltete Starter erkennt gemischte Generationen mit einseitiger Inline-Kennung vor dem
+Sitzungsstart. Für das passende Paar sind Markieren, Entfernen und Wiederöffnen im aktuellen
+Windows-Netzvergleich geprüft.
+[Paketprüfung und ETW-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#paketkompatibilität-und-etw-für-einzelne-fettmarkierungen).
 
-Zum Weiterbearbeiten einer gespeicherten Szene mit einer einzelnen Fettstelle den Auftrag `edit-win32-scene` öffnen. Strg+S erhält die Fettstelle auch nach einer eindeutigen Änderung davor oder dahinter. Fordert das Fenster zur erneuten Auswahl auf, die gewünschte Stelle markieren und mit Strg+Umschalt+B speichern. Zum gezielten Ersetzen der gespeicherten Fettstelle Strg+H drücken, den Ersatztext eingeben und im Ersatzfeld mit Strg+Umschalt+Enter speichern und schließen.
+Zum Weiterbearbeiten einer gespeicherten Szene mit einer einzelnen Fettstelle den Auftrag
+`edit-win32-scene` öffnen. Strg+S erhält die Fettstelle auch nach einer eindeutigen Änderung davor
+oder dahinter. Fordert das Fenster zur erneuten Auswahl auf, die gewünschte Stelle markieren und mit
+Strg+Umschalt+B speichern. Zum gezielten Ersetzen der gespeicherten Fettstelle Strg+H drücken, den
+Ersatztext eingeben und im Ersatzfeld mit Strg+Umschalt+Enter speichern und schließen.
 
-Der verwaltete Win32-Editor bearbeitet ausschließlich die synthetische Szene A. Text,
-Fettmarkierung des zweiten Absatzes, Rückgängig/Wiederholen und lokales Suchen/Ersetzen sind
-bis zum Speichern und Wiederöffnen geprüft. Der [Entwicklungsstatus](DEVELOPMENT_STATUS.md#verwalteter-win32-szeneneditor)
-beschreibt die Bedienung und die geprüften Grenzen. Beim Öffnen einer bereits gespeicherten Szene A mit zusätzlichen Absätzen oder bekannten Inline-Markierungen ist die [schreibgeschützte Textvorschau](architecture/decisions/0036-native-win32-ui-role-evaluation.md#schreibgeschützte-textvorschau-für-formatierte-szenen) geprüft. In der Vorschau öffnet Strg+F die lokale Suche. Enter, F3 und Umschalt+F3 navigieren zu Treffern. Zusätzliche Felder in der Dokumenthülle sperren das Wiederöffnen im synthetischen Datendienst. Im langen Klartextentwurf sind [lokales Suchen, Ersetzen und Rückgängig/Wiederholen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#lokales-suchen-und-ersetzen-im-langen-klartext) verfügbar. Die Arbeitsweise für fortlaufende Roadmap-Schritte steht in [AGENTS.md](../AGENTS.md).
+Der verwaltete Win32-Editor bearbeitet ausschließlich die synthetische Szene A. Text, Fettmarkierung
+des zweiten Absatzes, Rückgängig/Wiederholen und lokales Suchen/Ersetzen sind bis zum Speichern und
+Wiederöffnen geprüft. Der [Entwicklungsstatus](DEVELOPMENT_STATUS.md#verwalteter-win32-szeneneditor)
+beschreibt die Bedienung und die geprüften Grenzen. Beim Öffnen einer bereits gespeicherten Szene A
+mit zusätzlichen Absätzen oder bekannten Inline-Markierungen ist die
+[schreibgeschützte Textvorschau](architecture/decisions/0036-native-win32-ui-role-evaluation.md#schreibgeschützte-textvorschau-für-formatierte-szenen)
+geprüft. In der Vorschau öffnet Strg+F die lokale Suche. Enter, F3 und Umschalt+F3 navigieren zu
+Treffern. Zusätzliche Felder in der Dokumenthülle sperren das Wiederöffnen im synthetischen
+Datendienst. Im langen Klartextentwurf sind
+[lokales Suchen, Ersetzen und Rückgängig/Wiederholen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#lokales-suchen-und-ersetzen-im-langen-klartext)
+verfügbar. Die Arbeitsweise für fortlaufende Roadmap-Schritte steht in [AGENTS.md](../AGENTS.md).
 
-Für das fortlaufende Autosave den Forschungsauftrag `continue-win32-scene` verwenden. Die Zahl im Fenstertitel zeigt den aktuellen Schreibzug und das Sitzungsbudget. Nach dem letzten bestätigten Schreibzug schließt das Fenster regulär. Während der Bestätigung eingegebene Zeichen werden nach der frischen Revisionsbindung verarbeitet. Der [Windows-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#eingaben-während-der-autosave-bestätigung) umfasst auch den Starterabbruch bei wartender Eingabe. [Vertrag und Windows-Nachweise](architecture/decisions/0036-native-win32-ui-role-evaluation.md#fortlaufendes-autosave-unter-journalbudget). Beim [Schließen mit wartender Eingabe](architecture/decisions/0036-native-win32-ui-role-evaluation.md#schließen-mit-wartender-eingabe) sind alle drei Entscheidungen geprüft. Die [Speicheranzeige](architecture/decisions/0036-native-win32-ui-role-evaluation.md#speicheranzeige-im-fortlaufenden-editor) ist geprüft. Bei einem [Revisionskonflikt](architecture/decisions/0036-native-win32-ui-role-evaluation.md#revisionskonflikt-bei-einem-schreibzug) bleibt der Entwurf bis zur Entscheidung offen. Der [lesende Revisionsvergleich](architecture/decisions/0036-native-win32-ui-role-evaluation.md#lesender-revisionsvergleich-im-konfliktfenster) ist umgesetzt. Im fortlaufenden Auftrag ist die [gezielte Übernahme](architecture/decisions/0036-native-win32-ui-role-evaluation.md#gezielte-übernahme-unter-frischer-schreibbindung) für zwei Absätze und die Fettmarkierung geprüft. Im Bearbeitungsauftrag öffnet längerer unformatierter Text im Klartexteditor. Bei einer bereits gespeicherten kurzen Klartextszene führt **Bearbeiten → Als längeren Klartext bearbeiten** dorthin. Bei verfügbarem Folgezug speichert auch der lange Klartexteditor nach 700 ms Schreibpause. Der letzte Schreibzug verlangt ausdrücklich Speichern und Schließen. Strg+Enter speichert und lässt das Fenster bei verfügbarem Folgezug offen. Strg+S speichert und schließt. Beim Konflikt im langen Klartext steht rechts die aktuelle Dienstrevision als schreibgeschützte Textvorschau. Mit F6 wechselt man zurück zum lokalen Entwurf. F7 bzw. Umschalt+F7 springt zum nächsten bzw. vorherigen Unterschied. Nach einer lokalen Änderung beginnt die Navigation wieder beim ersten bzw. letzten Unterschied. F8 übernimmt den ausgewählten Dienstblock in den lokalen Entwurf. Fehlt er im Dienststand, entfernt F8 die entsprechenden lokalen Absätze. Autosave bleibt im Konflikt gesperrt. Bei unformatiertem Klartext und freiem Schreibzug bietet F9 an, den gesamten Entwurf ausdrücklich zu bestätigen und unter frischer Bindung zu speichern. Liegt die Dienstfassung bereits beim ersten Vergleich mehrere Revisionen voraus, erfordert F9 zusätzlich die Freigabe für einen revisionsübergreifenden Schreibzug. Ändert sich die Vergleichsbasis während der Bestätigung, bleibt der Entwurf offen. Bei freigegebenem Wiedervergleich zeigt das Fenster die neue Dienstrevision. F9 verlangt für einen zulässigen Klartextstand eine neue Bestätigung. Bei einer Revisionslücke im ersten Zwei-Absatz-Vergleich können beide Absätze und die Fettmarkierung einzeln aus Entwurf oder Dienstfassung übernommen werden. Zum Speichern muss der revisionsübergreifende Schreibzug freigegeben und die Auswahl für die angezeigte Revision ausdrücklich bestätigt sein. Ohne Freigabe bleibt die Auswahl eine lokale Vorschau. Beim Überarbeiten im selben Vergleich bleibt die gelesene Zeile nach Möglichkeit sichtbar. Mit Tab geht es vom zweiten Absatz ins Vergleichsfeld, mit F6 zurück zum zuletzt bearbeiteten Absatz. Außerhalb des Fokusmodus öffnet Esc auch aus dem Vergleichsfeld die Schließabfrage. Mit **Nein** liest man dort weiter. Die lokale Vorschau ist bereits bei der ersten Auswahl verfügbar. Über **Übernahme → Ursprüngliche Bearbeitungsbasis anzeigen** lässt sich beim Entscheiden die Ausgangsfassung einblenden. Im Menü **Übernahme** kann man vom gesamten lokalen Entwurf oder vom Dienststand ausgehen und die Auswahl pro Feld anpassen. Eindeutig lokale Änderungen lassen sich zusätzlich markieren. Nach einer versehentlichen Auswahl stellt **Übernahme → Letzte Auswahl rückgängig machen** die vorherigen Häkchen wieder her. Beim [erneuten Vergleich](architecture/decisions/0036-native-win32-ui-role-evaluation.md#erneuter-vergleich-vor-dem-speichern) kann die Auswahl auf der aktualisierten Vorschau geprüft und geändert werden. Die [ausdrücklich bestätigte Übernahme über die Revisionslücke](architecture/decisions/0036-native-win32-ui-role-evaluation.md#bestätigte-übernahme-über-eine-revisionslücke) ist unter frischer Schreibbindung geprüft. Bei ausreichendem Budget ist auch [Weiterschreiben nach bestätigter Übernahme](architecture/decisions/0036-native-win32-ui-role-evaluation.md#weiterschreiben-nach-bestätigter-übernahme) im selben Fenster möglich. [Weitere Konflikte während der Bestätigung](architecture/decisions/0036-native-win32-ui-role-evaluation.md#weitere-konflikte-während-der-erneuten-bestätigung) lassen den Entwurf samt Auswahl erneut prüfen.
+Für das fortlaufende Autosave den Forschungsauftrag `continue-win32-scene` verwenden. Die Zahl im
+Fenstertitel zeigt den aktuellen Schreibzug und das Sitzungsbudget. Nach dem letzten bestätigten
+Schreibzug schließt das Fenster regulär. Während der Bestätigung eingegebene Zeichen werden nach der
+frischen Revisionsbindung verarbeitet. Der
+[Windows-Nachweis](architecture/decisions/0036-native-win32-ui-role-evaluation.md#eingaben-während-der-autosave-bestätigung)
+umfasst auch den Starterabbruch bei wartender Eingabe.
+[Vertrag und Windows-Nachweise](architecture/decisions/0036-native-win32-ui-role-evaluation.md#fortlaufendes-autosave-unter-journalbudget).
+Beim
+[Schließen mit wartender Eingabe](architecture/decisions/0036-native-win32-ui-role-evaluation.md#schließen-mit-wartender-eingabe)
+sind alle drei Entscheidungen geprüft. Die
+[Speicheranzeige](architecture/decisions/0036-native-win32-ui-role-evaluation.md#speicheranzeige-im-fortlaufenden-editor)
+ist geprüft. Bei einem
+[Revisionskonflikt](architecture/decisions/0036-native-win32-ui-role-evaluation.md#revisionskonflikt-bei-einem-schreibzug)
+bleibt der Entwurf bis zur Entscheidung offen. Der
+[lesende Revisionsvergleich](architecture/decisions/0036-native-win32-ui-role-evaluation.md#lesender-revisionsvergleich-im-konfliktfenster)
+ist umgesetzt. Im fortlaufenden Auftrag ist die
+[gezielte Übernahme](architecture/decisions/0036-native-win32-ui-role-evaluation.md#gezielte-übernahme-unter-frischer-schreibbindung)
+für zwei Absätze und die Fettmarkierung geprüft. Im Bearbeitungsauftrag öffnet längerer
+unformatierter Text im Klartexteditor. Bei einer bereits gespeicherten kurzen Klartextszene führt
+**Bearbeiten → Als längeren Klartext bearbeiten** dorthin. Bei verfügbarem Folgezug speichert auch
+der lange Klartexteditor nach 700 ms Schreibpause. Der letzte Schreibzug verlangt ausdrücklich
+Speichern und Schließen. Strg+Enter speichert und lässt das Fenster bei verfügbarem Folgezug offen.
+Strg+S speichert und schließt. Beim Konflikt im langen Klartext steht rechts die aktuelle
+Dienstrevision als schreibgeschützte Textvorschau. Mit F6 wechselt man zurück zum lokalen Entwurf.
+F7 bzw. Umschalt+F7 springt zum nächsten bzw. vorherigen Unterschied. Nach einer lokalen Änderung
+beginnt die Navigation wieder beim ersten bzw. letzten Unterschied. F8 übernimmt den ausgewählten
+Dienstblock in den lokalen Entwurf. Fehlt er im Dienststand, entfernt F8 die entsprechenden lokalen
+Absätze. Autosave bleibt im Konflikt gesperrt. Bei unformatiertem Klartext und freiem Schreibzug
+bietet F9 an, den gesamten Entwurf ausdrücklich zu bestätigen und unter frischer Bindung zu
+speichern. Liegt die Dienstfassung bereits beim ersten Vergleich mehrere Revisionen voraus,
+erfordert F9 zusätzlich die Freigabe für einen revisionsübergreifenden Schreibzug. Ändert sich die
+Vergleichsbasis während der Bestätigung, bleibt der Entwurf offen. Bei freigegebenem Wiedervergleich
+zeigt das Fenster die neue Dienstrevision. F9 verlangt für einen zulässigen Klartextstand eine neue
+Bestätigung. Bei einer Revisionslücke im ersten Zwei-Absatz-Vergleich können beide Absätze und die
+Fettmarkierung einzeln aus Entwurf oder Dienstfassung übernommen werden. Zum Speichern muss der
+revisionsübergreifende Schreibzug freigegeben und die Auswahl für die angezeigte Revision
+ausdrücklich bestätigt sein. Ohne Freigabe bleibt die Auswahl eine lokale Vorschau. Beim
+Überarbeiten im selben Vergleich bleibt die gelesene Zeile nach Möglichkeit sichtbar. Mit Tab geht
+es vom zweiten Absatz ins Vergleichsfeld, mit F6 zurück zum zuletzt bearbeiteten Absatz. Außerhalb
+des Fokusmodus öffnet Esc auch aus dem Vergleichsfeld die Schließabfrage. Mit **Nein** liest man
+dort weiter. Die lokale Vorschau ist bereits bei der ersten Auswahl verfügbar. Über **Übernahme →
+Ursprüngliche Bearbeitungsbasis anzeigen** lässt sich beim Entscheiden die Ausgangsfassung
+einblenden. Im Menü **Übernahme** kann man vom gesamten lokalen Entwurf oder vom Dienststand
+ausgehen und die Auswahl pro Feld anpassen. Eindeutig lokale Änderungen lassen sich zusätzlich
+markieren. Nach einer versehentlichen Auswahl stellt **Übernahme → Letzte Auswahl rückgängig
+machen** die vorherigen Häkchen wieder her. Beim
+[erneuten Vergleich](architecture/decisions/0036-native-win32-ui-role-evaluation.md#erneuter-vergleich-vor-dem-speichern)
+kann die Auswahl auf der aktualisierten Vorschau geprüft und geändert werden. Die
+[ausdrücklich bestätigte Übernahme über die Revisionslücke](architecture/decisions/0036-native-win32-ui-role-evaluation.md#bestätigte-übernahme-über-eine-revisionslücke)
+ist unter frischer Schreibbindung geprüft. Bei ausreichendem Budget ist auch
+[Weiterschreiben nach bestätigter Übernahme](architecture/decisions/0036-native-win32-ui-role-evaluation.md#weiterschreiben-nach-bestätigter-übernahme)
+im selben Fenster möglich.
+[Weitere Konflikte während der Bestätigung](architecture/decisions/0036-native-win32-ui-role-evaluation.md#weitere-konflikte-während-der-erneuten-bestätigung)
+lassen den Entwurf samt Auswahl erneut prüfen.
 
-Der geplante [ETW-Netzvergleich des Editorstands](architecture/decisions/0036-native-win32-ui-role-evaluation.md#etw-beim-ersetzen-formatieren-und-wiederöffnen) ist seit dem 23. November abgeschlossen. Referenz, Bearbeitung und frisches Lesen waren in den gemessenen Prozessbäumen ohne Netzwerkereignisse.
+Der geplante
+[ETW-Netzvergleich des Editorstands](architecture/decisions/0036-native-win32-ui-role-evaluation.md#etw-beim-ersetzen-formatieren-und-wiederöffnen)
+ist seit dem 23. November abgeschlossen. Referenz, Bearbeitung und frisches Lesen waren in den
+gemessenen Prozessbäumen ohne Netzwerkereignisse.
 
-Der Win32-Editor übernimmt beim Weiterbearbeiten auch die [unformatierte Fassung einer älteren synthetischen Szene](architecture/decisions/0036-native-win32-ui-role-evaluation.md#weiterbearbeiten-unformatierter-altbestände).
+Der Win32-Editor übernimmt beim Weiterbearbeiten auch die
+[unformatierte Fassung einer älteren synthetischen Szene](architecture/decisions/0036-native-win32-ui-role-evaluation.md#weiterbearbeiten-unformatierter-altbestände).
 
+Im synthetischen Win32-Editor sind Rückgängig und Wiederholen über beide Absätze verfügbar. Der
+Verlauf bleibt auf das offene Fenster beschränkt.
 
-Im synthetischen Win32-Editor sind Rückgängig und Wiederholen über beide Absätze verfügbar. Der Verlauf bleibt auf das offene Fenster beschränkt.
+Der
+[authentisierte Abschluss beim Verwerfen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#authentisierter-abschluss-beim-verwerfen)
+gibt die synthetische Ablage nach regulärem Schließen wieder frei. Ein erzwungenes Prozessende hält
+sie gesperrt. Der
+[ETW-Netzvergleich](architecture/decisions/0036-native-win32-ui-role-evaluation.md#etw-beim-bestätigten-verwerfen-und-wiederöffnen)
+bestätigte null Netzwerkereignisse in den gemessenen Prozessbäumen beim Verwerfen und erneuten
+Lesen.
 
+Der verwaltete Auftrag `edit-win32-scene` kann die
+[zuletzt gespeicherte markierte Szene weiterbearbeiten](architecture/decisions/0036-native-win32-ui-role-evaluation.md#gespeicherte-markierte-szene-weiterbearbeiten).
+Der Windows-Lauf bestätigte Revision 2 mit erhaltener Fettmarkierung und unveränderter Quelldatei
+auf Revision 1.
 
-Der [authentisierte Abschluss beim Verwerfen](architecture/decisions/0036-native-win32-ui-role-evaluation.md#authentisierter-abschluss-beim-verwerfen) gibt die synthetische Ablage nach regulärem Schließen wieder frei. Ein erzwungenes Prozessende hält sie gesperrt. Der [ETW-Netzvergleich](architecture/decisions/0036-native-win32-ui-role-evaluation.md#etw-beim-bestätigten-verwerfen-und-wiederöffnen) bestätigte null Netzwerkereignisse in den gemessenen Prozessbäumen beim Verwerfen und erneuten Lesen.
+Beim verwalteten Szenenzugriff ist der
+[Erhalt einer Fettmarkierung beim Ändern des markierten Textes](architecture/decisions/0036-native-win32-ui-role-evaluation.md#textänderung-in-einem-markierten-absatz)
+bis zum Wiederöffnen verifiziert. Die
+[native Vorschau](architecture/decisions/0036-native-win32-ui-role-evaluation.md#formatierte-vorschau)
+zeigt die gespeicherte Fettmarkierung am zweiten Absatz an.
 
+Der
+[Teilabbruch beim Speichern](architecture/decisions/0036-native-win32-ui-role-evaluation.md#unterbrechung-während-des-schreibens)
+ist geprüft. Die getrennte Basisdatei bewahrte Revision 0, während der neue Leseauftrag gesperrt
+blieb. Reguläres Speichern und Wiederöffnen von Revision 1 ist mit dem aktualisierten Rollenpaket
+bestätigt.
 
-Der verwaltete Auftrag `edit-win32-scene` kann die [zuletzt gespeicherte markierte Szene weiterbearbeiten](architecture/decisions/0036-native-win32-ui-role-evaluation.md#gespeicherte-markierte-szene-weiterbearbeiten). Der Windows-Lauf bestätigte Revision 2 mit erhaltener Fettmarkierung und unveränderter Quelldatei auf Revision 1.
+Der
+[ETW-Vergleich des regulären Speicher- und Lesepfads](architecture/decisions/0036-native-win32-ui-role-evaluation.md#etw-beim-dauerhaften-speichern-und-wiederöffnen)
+ergab für beide Aufträge null Netzwerkereignisse im jeweiligen Prozessbaum.
 
-
-Beim verwalteten Szenenzugriff ist der [Erhalt einer Fettmarkierung beim Ändern des markierten Textes](architecture/decisions/0036-native-win32-ui-role-evaluation.md#textänderung-in-einem-markierten-absatz) bis zum Wiederöffnen verifiziert. Die [native Vorschau](architecture/decisions/0036-native-win32-ui-role-evaluation.md#formatierte-vorschau) zeigt die gespeicherte Fettmarkierung am zweiten Absatz an.
-
-
-Der [Teilabbruch beim Speichern](architecture/decisions/0036-native-win32-ui-role-evaluation.md#unterbrechung-während-des-schreibens) ist geprüft. Die getrennte Basisdatei bewahrte Revision 0, während der neue Leseauftrag gesperrt blieb. Reguläres Speichern und Wiederöffnen von Revision 1 ist mit dem aktualisierten Rollenpaket bestätigt.
-
-Der [ETW-Vergleich des regulären Speicher- und Lesepfads](architecture/decisions/0036-native-win32-ui-role-evaluation.md#etw-beim-dauerhaften-speichern-und-wiederöffnen) ergab für beide Aufträge null Netzwerkereignisse im jeweiligen Prozessbaum.
-
-Beim verwalteten Speichern von Szene A sind die beiden [Datendienstabbrüche an der dauerhaften Speichergrenze](architecture/decisions/0036-native-win32-ui-role-evaluation.md#datendienstabbruch-an-der-dauerhaften-speichergrenze) geprüft. Auf der Platte blieben Revision 0 bzw. 1 erhalten; der offene Sitzungsbeleg sperrte beide Neustarts.
+Beim verwalteten Speichern von Szene A sind die beiden
+[Datendienstabbrüche an der dauerhaften Speichergrenze](architecture/decisions/0036-native-win32-ui-role-evaluation.md#datendienstabbruch-an-der-dauerhaften-speichergrenze)
+geprüft. Auf der Platte blieben Revision 0 bzw. 1 erhalten; der offene Sitzungsbeleg sperrte beide
+Neustarts.
 
 Diese Anleitung trennt den öffentlichen Quellcode vom privaten Schreibprojekt. GitHub transportiert
 Code und Projektdokumentation; ein `.kraqel`-Archiv transportiert Manuskript, Struktur und lokale
@@ -283,14 +633,37 @@ nächste Leseantwort bestätigte Text und Revision 0. Der
 [Edit-Gastlauf](testing/native-win32-edit-conflict.md) bestätigte Revision 1, CONFLICT beim zweiten
 Schreibversuch mit Revision 0 und den unveränderten Endtext. Der
 [SQLite-Gastlauf](testing/native-win32-durable-reopen.md) bestätigt Text und Revision 1 nach
-Prozessneustart unter frischer Lesebindung sowie unabhängig auf der ausgeschalteten Gastplatte.
-Der [Datendienstabbruch an der Commitgrenze](testing/native-win32-commit-crashes.md) ist im Gast geprüft.
-Vor Commit bleibt Revision 0 erhalten, nach Commit vor Antwort Revision 1. Der frische ETW-Netzvergleich beider Pfade ergab null Netzwerkereignisse im Prüfprozessbaum.
-[Teilübertragung und 30-Sekunden-Timeout](testing/native-win32-channel-interruptions.md) sind im Gast bestätigt.
-Beide endeten ohne Schreibantwort und mit Revision 0. [Fensterende vor Commit und ETW](testing/native-win32-window-close.md) sind für den neuen Build geprüft.
-Dienstende und Revision 0 sind bestätigt, im Prüfprozessbaum wurden null Netzwerkereignisse gemessen. Der [Wiederanlauf nach Starterabbruch](testing/native-win32-starter-restart.md) blieb dreimal gesperrt.
-Der frische ETW-Netzvergleich bestätigte null Netzwerkereignisse im Prüfprozessbaum. Alle drei gesperrten Starter endeten ohne Kindprozess.
-**BP4b ist für den synthetischen Win32-Kanal abgeschlossen.** Der [Abschluss mit Nachweisen](data-format/native-win32-bp4-channel-v1-draft.md#abschluss-des-synthetischen-datenkanals) umfasst Rechte, Revisionen, Transaktionsende und die Sperre der verbrauchten Einmalfreigabe bis zum Kaltstart. C4b bis C4d sind für das schreibgeschützte synthetische Win32-Fenster abgeschlossen. Der verwaltete Starter bindet Paket und Prozessgeneration unter Kontrollsperre und gibt das Fenster nach bestätigtem Bootstrap frei. Nach Starterabbruch blockiert der offene Sitzungsbeleg die nächste Fenstererzeugung. Die [bytegebundene C4d-Abnahme](architecture/decisions/0036-native-win32-ui-role-evaluation.md#c4d-abschluss-für-den-synthetischen-vorschaupfad) enthält Paketidentität, Sicherheitsnachweise und Freigabeumfang. Der neue Einstieg `broker-store open-win32-scene <Kontrollkopf>` zeigt nach beiden Bootstrap-Quittungen genau eine vom isolierten Datendienst gelesene Szene A schreibgeschützt an. Der ETW-Netzvergleich erfasste im Referenzlauf und beim einmaligen Szenenabruf je null Netzwerkereignisse im KRAQEL-Prozessbaum. Nur im Szenenlauf startete der Datendienst. Der anschließende verwaltete Prüflauf `check-win32-scene-denied-save` bestätigte `DENIED` für einen gültigen Speicherversuch und unveränderten Text auf Revision 0 beim erneuten Lesen unter derselben Bindung. Unter eigener Edit-Bindung bestätigte `check-win32-scene-edit-conflict` die erste Speicherung, `CONFLICT` für den veralteten Schreibversuch und den gespeicherten Text auf Revision 1 im Arbeitsspeicher. Der dauerhafte Prüfpfad `save-win32-scene` und `read-saved-win32-scene` bestätigte nach Prozessneustart Text und Revision 1 im isolierten SQLite-Abbild; veränderte Dateibytes sperren das Wiederöffnen vor dem Rollenstart. Produktdaten und WebView2 bleiben gesperrt.
+Prozessneustart unter frischer Lesebindung sowie unabhängig auf der ausgeschalteten Gastplatte. Der
+[Datendienstabbruch an der Commitgrenze](testing/native-win32-commit-crashes.md) ist im Gast
+geprüft. Vor Commit bleibt Revision 0 erhalten, nach Commit vor Antwort Revision 1. Der frische
+ETW-Netzvergleich beider Pfade ergab null Netzwerkereignisse im Prüfprozessbaum.
+[Teilübertragung und 30-Sekunden-Timeout](testing/native-win32-channel-interruptions.md) sind im
+Gast bestätigt. Beide endeten ohne Schreibantwort und mit Revision 0.
+[Fensterende vor Commit und ETW](testing/native-win32-window-close.md) sind für den neuen Build
+geprüft. Dienstende und Revision 0 sind bestätigt, im Prüfprozessbaum wurden null Netzwerkereignisse
+gemessen. Der [Wiederanlauf nach Starterabbruch](testing/native-win32-starter-restart.md) blieb
+dreimal gesperrt. Der frische ETW-Netzvergleich bestätigte null Netzwerkereignisse im
+Prüfprozessbaum. Alle drei gesperrten Starter endeten ohne Kindprozess. **BP4b ist für den
+synthetischen Win32-Kanal abgeschlossen.** Der
+[Abschluss mit Nachweisen](data-format/native-win32-bp4-channel-v1-draft.md#abschluss-des-synthetischen-datenkanals)
+umfasst Rechte, Revisionen, Transaktionsende und die Sperre der verbrauchten Einmalfreigabe bis zum
+Kaltstart. C4b bis C4d sind für das schreibgeschützte synthetische Win32-Fenster abgeschlossen. Der
+verwaltete Starter bindet Paket und Prozessgeneration unter Kontrollsperre und gibt das Fenster nach
+bestätigtem Bootstrap frei. Nach Starterabbruch blockiert der offene Sitzungsbeleg die nächste
+Fenstererzeugung. Die
+[bytegebundene C4d-Abnahme](architecture/decisions/0036-native-win32-ui-role-evaluation.md#c4d-abschluss-für-den-synthetischen-vorschaupfad)
+enthält Paketidentität, Sicherheitsnachweise und Freigabeumfang. Der neue Einstieg
+`broker-store open-win32-scene <Kontrollkopf>` zeigt nach beiden Bootstrap-Quittungen genau eine vom
+isolierten Datendienst gelesene Szene A schreibgeschützt an. Der ETW-Netzvergleich erfasste im
+Referenzlauf und beim einmaligen Szenenabruf je null Netzwerkereignisse im KRAQEL-Prozessbaum. Nur
+im Szenenlauf startete der Datendienst. Der anschließende verwaltete Prüflauf
+`check-win32-scene-denied-save` bestätigte `DENIED` für einen gültigen Speicherversuch und
+unveränderten Text auf Revision 0 beim erneuten Lesen unter derselben Bindung. Unter eigener
+Edit-Bindung bestätigte `check-win32-scene-edit-conflict` die erste Speicherung, `CONFLICT` für den
+veralteten Schreibversuch und den gespeicherten Text auf Revision 1 im Arbeitsspeicher. Der
+dauerhafte Prüfpfad `save-win32-scene` und `read-saved-win32-scene` bestätigte nach Prozessneustart
+Text und Revision 1 im isolierten SQLite-Abbild; veränderte Dateibytes sperren das Wiederöffnen vor
+dem Rollenstart. Produktdaten und WebView2 bleiben gesperrt.
 
 Der Host-Abgleich für die Hörprüfung ergab einen aktiven hostseitigen Wiedergabeendpunkt. Für den
 isolierten Gast ist kein eigener Ausgang belegt, ein separater Prüfplatz war nicht verfügbar. Die
@@ -1091,7 +1464,11 @@ Entwicklungsbranch (`8c4132a4a176`) ergeben für den lokalen Kandidaten folgende
 | [#6 · Lint-Werkzeuge](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/6) | `typescript-estree 8.72.1` zieht `minimatch 10.2.6` ein. | `typescript-estree 8.73.0` verwendet `11.0.9`. Die separate ESLint-Abhängigkeit `3.1.5` liegt auf beiden Branches außerhalb des gemeldeten Bereichs. |
 | [#7 · GLib](https://github.com/kolkrabeofdoom/kraqel/security/dependabot/7)           | `glib 0.18.5` im plattformübergreifenden Cargo-Lockfile. | `cargo tree --locked --offline` bestätigt `glib 0.18.5` über GTK/WebKitGTK für Linux und keine Einbindung in das Windows-x64-MSVC-Ziel.              |
 
-Am 25. November bestätigte die GitHub-Abfrage erneut die offenen Meldungen #6, #7 und #8. Die Auflösungen im sauberen Checkout `466dccf` stimmen weiterhin mit der Tabelle überein. Der Checkout bindet Tauri 2.12.5, GTK 0.18.2 und WebKitGTK 2.0.2. SHA-256 der geprüften Lockfiles: `Cargo.lock` = `3b565437acf37c9a7f869b27471e9f4708539fdddfc60ba3a55d8f24ef9b4a70`, `pnpm-lock.yaml` = `ec3323771d2a9a6359dd086afc18f6ec1be5f7f03fa6d8067ee77b9f22838e00`.
+Am 25. November bestätigte die GitHub-Abfrage erneut die offenen Meldungen #6, #7 und #8. Die
+Auflösungen im sauberen Checkout `466dccf` stimmen weiterhin mit der Tabelle überein. Der Checkout
+bindet Tauri 2.12.5, GTK 0.18.2 und WebKitGTK 2.0.2. SHA-256 der geprüften Lockfiles: `Cargo.lock` =
+`3b565437acf37c9a7f869b27471e9f4708539fdddfc60ba3a55d8f24ef9b4a70`, `pnpm-lock.yaml` =
+`ec3323771d2a9a6359dd086afc18f6ec1be5f7f03fa6d8067ee77b9f22838e00`.
 
 Für Linux bleibt #7 offen. Der korrigierte GLib-Zweig beginnt mit 0.20.0, während Tauri 2.12.7 GTK
 ^0.18 verwendet. Erneut prüfen, sobald der Desktop-Stack die korrigierte Reihe unterstützt oder ein

@@ -511,6 +511,10 @@ mod tests {
     }
 
     #[test]
+    #[allow(
+        clippy::too_many_lines,
+        reason = "The integration scenario checks successive states of the same fixture"
+    )]
     fn selected_item_is_reviewed_isolated_prepared_switched_and_restored() {
         let root = tempdir().unwrap();
         let manager = ProjectManager::new(root.path()).unwrap();
@@ -705,6 +709,10 @@ mod parent_tests {
     use tempfile::tempdir;
 
     #[test]
+    #[allow(
+        clippy::too_many_lines,
+        reason = "The integration scenario checks successive states of the same fixture"
+    )]
     fn missing_parent_requires_separate_activation_and_protects_dependent_children() {
         let root = tempdir().unwrap();
         let manager = ProjectManager::new(root.path()).unwrap();

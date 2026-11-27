@@ -146,11 +146,12 @@ derselben Projektkennung. Der Rückdownload aller drei Dateien stimmte mit dem f
 überein. Installation und Deinstallation des heruntergeladenen Setups wurden separat geprüft.
 [Alpha 6](https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.6)
 
-Für Alpha 7 wurde der zugelassene Ordnerimport-Installer aus Commit `a9a3a673ff14` nach
-der Upgrade-Probe über Alpha 6 unverändert veröffentlicht. Alle vier Dateien wurden von GitHub
-zurückgeladen und anhand ihrer SHA-256-Prüfsummen abgeglichen. Der zurückgeladene Installer
-bestand die isolierte Installation und Deinstallation. Das zusätzliche Rechnerwechsel-ZIP enthält
-den portablen Archivhelfer, die Anleitung und seine Prüfsumme. [Alpha 7](https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.7)
+Für Alpha 7 wurde der zugelassene Ordnerimport-Installer aus Commit `a9a3a673ff14` nach der
+Upgrade-Probe über Alpha 6 unverändert veröffentlicht. Alle vier Dateien wurden von GitHub
+zurückgeladen und anhand ihrer SHA-256-Prüfsummen abgeglichen. Der zurückgeladene Installer bestand
+die isolierte Installation und Deinstallation. Das zusätzliche Rechnerwechsel-ZIP enthält den
+portablen Archivhelfer, die Anleitung und seine Prüfsumme.
+[Alpha 7](https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.7)
 
 Ein lokaler Build ersetzt weder die Clean-VM-Abnahme noch die Prüfung des tatsächlich
 heruntergeladenen GitHub-Artefakts. Hashes sind nützlich, aber sie tragen keine kleinen Roben und

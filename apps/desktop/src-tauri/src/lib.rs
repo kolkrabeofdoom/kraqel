@@ -4834,6 +4834,10 @@ mod tests {
     }
 
     #[test]
+    #[allow(
+        clippy::too_many_lines,
+        reason = "The same saved scene exercises both command paths and file preservation on failure"
+    )]
     fn role_aware_commands_reopen_scene_and_print_selected_content() {
         let root = tempdir().unwrap();
         let state = AppState {

@@ -26,13 +26,27 @@ Leitplanken:
 
 ## Tests schlank halten
 
-Sprachausgabe-Tests künftig auslassen. Das gilt für Narrator, Sprachsynthese und akustische Hörprüfungen. Die vorhandenen Nachweise bleiben dokumentiert.
+Sprachausgabe-Tests künftig auslassen. Das gilt für Narrator, Sprachsynthese und akustische
+Hörprüfungen. Die vorhandenen Nachweise bleiben dokumentiert.
 
-- Bearbeite aufeinanderfolgende, freigegebene Roadmap-Schritte selbstständig über Zwischenstände hinweg. Bündele Änderungen, nötige Prüfungen und Übergabe zu nutzbaren Abläufen. Eine einzelne bestandene Prüfung ist kein Übergabepunkt. Setze begründete Vorschläge innerhalb des freigegebenen Umfangs eigenständig um. Stabilität, Datenschutz und Datenerhalt haben Vorrang. Frage nach, wenn eine Entscheidung den freigegebenen Umfang erweitert, erhebliche Folgen offen sind oder Mitwirkung erforderlich ist.
-- Prüfe für jeden Test, welches beobachtbare Verhalten er über welchen echten Codepfad absichert und welcher bestehende Test denselben Fehler bereits erkennen würde. Berücksichtige dabei auch andere Testebenen und den regulären Runner.
-- Behalte funktionale Tests, Unit-Tests und Regressionstests mit eigenständigem Fehlersignal. Führe doppelte Abläufe zusammen und erhalte ihre einzigartigen Assertions. Entwicklungsetappen, frühere Testzahlen und einmalige Messbelege gehören in die Projektdokumentation.
-- Eine Ergänzung ohne Verhaltensänderung braucht nur dann einen zusätzlichen Test, wenn eine konkrete Abdeckungslücke besteht. Erweitere bevorzugt einen vorhandenen Fall. Nutze für Änderungen den kleinsten aussagekräftigen Prüflauf.
-- Teure E2E-, Gast- und ETW-Läufe sind für Eigenschaften vorgesehen, die erst an dieser Grenze beobachtbar sind. Für BP4b gehören dazu Rollenrechte, einmaliger Verbrauch, Sperre und Netzwerkverhalten des konkreten Binärstands.
+- Bearbeite aufeinanderfolgende, freigegebene Roadmap-Schritte selbstständig über Zwischenstände
+  hinweg. Bündele Änderungen, nötige Prüfungen und Übergabe zu nutzbaren Abläufen. Eine einzelne
+  bestandene Prüfung ist kein Übergabepunkt. Setze begründete Vorschläge innerhalb des freigegebenen
+  Umfangs eigenständig um. Stabilität, Datenschutz und Datenerhalt haben Vorrang. Frage nach, wenn
+  eine Entscheidung den freigegebenen Umfang erweitert, erhebliche Folgen offen sind oder Mitwirkung
+  erforderlich ist.
+- Prüfe für jeden Test, welches beobachtbare Verhalten er über welchen echten Codepfad absichert und
+  welcher bestehende Test denselben Fehler bereits erkennen würde. Berücksichtige dabei auch andere
+  Testebenen und den regulären Runner.
+- Behalte funktionale Tests, Unit-Tests und Regressionstests mit eigenständigem Fehlersignal. Führe
+  doppelte Abläufe zusammen und erhalte ihre einzigartigen Assertions. Entwicklungsetappen, frühere
+  Testzahlen und einmalige Messbelege gehören in die Projektdokumentation.
+- Eine Ergänzung ohne Verhaltensänderung braucht nur dann einen zusätzlichen Test, wenn eine
+  konkrete Abdeckungslücke besteht. Erweitere bevorzugt einen vorhandenen Fall. Nutze für Änderungen
+  den kleinsten aussagekräftigen Prüflauf.
+- Teure E2E-, Gast- und ETW-Läufe sind für Eigenschaften vorgesehen, die erst an dieser Grenze
+  beobachtbar sind. Für BP4b gehören dazu Rollenrechte, einmaliger Verbrauch, Sperre und
+  Netzwerkverhalten des konkreten Binärstands.
 
 ## Architektur und Technologie
 
@@ -50,9 +64,10 @@ Aktuell im Repository und verifiziert:
 - **Workspaces:** pnpm-Monorepo für TypeScript, Cargo-Workspace für Rust.
 - **Verträge:** versionierte Request-/Response-Hüllen, UUID-Typen und bereinigte IPC-Fehler in Rust
   und TypeScript.
-- **Persistenz:** SQLite-Schema 6 für reine Prosa, Schema 7 ab dem ersten Speichern einer Drehbuchszene. Beide verwenden Fremdschlüssel, FTS5, Medienmetadaten, visuelle
-  Profile, Stilvorlagen und Bildprompt-Entwürfe im `kraqel-storage`-Crate; sicherer
-  Projektlebenszyklus mit Datenbank- und Assetbackup.
+- **Persistenz:** SQLite-Schema 6 für reine Prosa, Schema 7 ab dem ersten Speichern einer
+  Drehbuchszene. Beide verwenden Fremdschlüssel, FTS5, Medienmetadaten, visuelle Profile,
+  Stilvorlagen und Bildprompt-Entwürfe im `kraqel-storage`-Crate; sicherer Projektlebenszyklus mit
+  Datenbank- und Assetbackup.
 - **Story-Bibel:** typisierte Figuren, Orte, Fraktionen und Gegenstände, freie Eigenschaften,
   gerichtete Relationen, Unicode-Suche, Szenen-Rückverweise und atomare Dubletten-Zusammenführung
   über das bestehende SQLite-Schema.
@@ -63,15 +78,22 @@ Aktuell im Repository und verifiziert:
   kopiert, Prompt-Quellen referenziell geprüft, SQLite und Nebenartefakte bleiben ausgeschlossen.
   Alle internen Git-Prozesse setzen `core.longpaths=true` ausschließlich pro Aufruf, damit
   SHA-256-Assets auch unter langen Windows-App-Datenpfaden stagebar bleiben.
-- **Manuelle Fassungswahl unter Windows:** Volltexte zweier Projektfassungen dürfen im Versionsdialog nur nach nativer Bestätigung über den isolierten Vergleich angezeigt werden. Die WebView erhält Status, Prüfsummen und Ordnerkennung der freigegebenen Kopie. Auch Git liefert dem Versionsdialog ausschließlich Änderungszahlen und Dateipfade. Die Produktrollen werden beim Windows-Build eingebettet. Eine externe Wahl wird unmittelbar vor Veröffentlichung der Kopie gegen die geprüften Revisionen und Inhalte abgeglichen. [Bedienung](README.md#szenenstände-auf-zwei-rechnern-vergleichen)
-- **Archivimport:** streng begrenzte Snapshot-v3-/v4-ZIP-Archive werden vollständig in Rust geprüft und
-  erst danach als neues Projekt mit neuer UUID atomar veröffentlicht. Die Oberfläche bietet sowohl
-  die offline eingebettete Beispielvorlage als auch eine native Auswahl für `.kraqel`- und
+- **Manuelle Fassungswahl unter Windows:** Volltexte zweier Projektfassungen dürfen im
+  Versionsdialog nur nach nativer Bestätigung über den isolierten Vergleich angezeigt werden. Die
+  WebView erhält Status, Prüfsummen und Ordnerkennung der freigegebenen Kopie. Auch Git liefert dem
+  Versionsdialog ausschließlich Änderungszahlen und Dateipfade. Die Produktrollen werden beim
+  Windows-Build eingebettet. Eine externe Wahl wird unmittelbar vor Veröffentlichung der Kopie gegen
+  die geprüften Revisionen und Inhalte abgeglichen.
+  [Bedienung](README.md#szenenstände-auf-zwei-rechnern-vergleichen)
+- **Archivimport:** streng begrenzte Snapshot-v3-/v4-ZIP-Archive werden vollständig in Rust geprüft
+  und erst danach als neues Projekt mit neuer UUID atomar veröffentlicht. Die Oberfläche bietet
+  sowohl die offline eingebettete Beispielvorlage als auch eine native Auswahl für `.kraqel`- und
   ZIP-Dateien. Pfad und Archivbytes bleiben vollständig in Rust und werden nicht über IPC an React
   gegeben.
 - **Archivexport:** Ein nativer Speicherdialog veröffentlicht einen unmittelbar zuvor erzeugten und
-  geprüften Snapshot (v3 für Prosa, v4 bei Drehbuchrollen) als deterministisches `.kraqel`-Archiv. Zielpfad und Archivbytes bleiben in
-  Rust; React erhält nur Dateiname, Größe und Snapshotzusammenfassung.
+  geprüften Snapshot (v3 für Prosa, v4 bei Drehbuchrollen) als deterministisches `.kraqel`-Archiv.
+  Zielpfad und Archivbytes bleiben in Rust; React erhält nur Dateiname, Größe und
+  Snapshotzusammenfassung.
 - **Projektlöschung:** Die Startseite trennt Öffnen und Löschen. Erst eine zweite sichtbare
   Bestätigung löst den Rust-Command aus; Rust verlangt zusätzlich ein Bestätigungsflag und prüft
   Übereinstimmung von Verzeichnis- und Datenbank-UUID vor der endgültigen Entfernung.
@@ -355,14 +377,37 @@ Die nächste Leseantwort bestätigte Text und Revision 0. Der
 [Edit-Gastlauf](docs/testing/native-win32-edit-conflict.md) bestätigte Revision 1, CONFLICT beim
 zweiten Schreibversuch mit Revision 0 und den unveränderten Endtext. Der
 [SQLite-Gastlauf](docs/testing/native-win32-durable-reopen.md) bestätigt Text und Revision 1 nach
-Prozessneustart unter frischer Lesebindung sowie unabhängig auf der ausgeschalteten Gastplatte.
-Der [Datendienstabbruch an der Commitgrenze](docs/testing/native-win32-commit-crashes.md) ist im Gast geprüft.
-Vor Commit bleibt Revision 0 erhalten, nach Commit vor Antwort Revision 1. Der frische ETW-Netzvergleich beider Pfade ergab null Netzwerkereignisse im Prüfprozessbaum.
-[Teilübertragung und 30-Sekunden-Timeout](docs/testing/native-win32-channel-interruptions.md) sind im Gast bestätigt.
-Beide endeten ohne Schreibantwort und mit Revision 0. [Fensterende vor Commit und ETW](docs/testing/native-win32-window-close.md) sind für den neuen Build geprüft.
-Dienstende und Revision 0 sind bestätigt, im Prüfprozessbaum wurden null Netzwerkereignisse gemessen. Der [Wiederanlauf nach Starterabbruch](docs/testing/native-win32-starter-restart.md) blieb dreimal gesperrt.
-Der frische ETW-Netzvergleich bestätigte null Netzwerkereignisse im Prüfprozessbaum. Alle drei gesperrten Starter endeten ohne Kindprozess.
-**BP4b ist für den synthetischen Win32-Kanal abgeschlossen.** Der [Abschluss mit Nachweisen](docs/data-format/native-win32-bp4-channel-v1-draft.md#abschluss-des-synthetischen-datenkanals) umfasst Rechte, Revisionen, Transaktionsende und die Sperre der verbrauchten Einmalfreigabe bis zum Kaltstart. C4b bis C4d sind für das schreibgeschützte synthetische Win32-Fenster abgeschlossen. Der verwaltete Starter bindet Paket und Prozessgeneration unter Kontrollsperre und gibt das Fenster nach bestätigtem Bootstrap frei. Nach Starterabbruch blockiert der offene Sitzungsbeleg die nächste Fenstererzeugung. Die [bytegebundene C4d-Abnahme](docs/architecture/decisions/0036-native-win32-ui-role-evaluation.md#c4d-abschluss-für-den-synthetischen-vorschaupfad) enthält Paketidentität, Sicherheitsnachweise und Freigabeumfang. Der neue Einstieg `broker-store open-win32-scene <Kontrollkopf>` zeigt nach beiden Bootstrap-Quittungen genau eine vom isolierten Datendienst gelesene Szene A schreibgeschützt an. Der ETW-Netzvergleich erfasste im Referenzlauf und beim einmaligen Szenenabruf je null Netzwerkereignisse im KRAQEL-Prozessbaum. Nur im Szenenlauf startete der Datendienst. Der anschließende verwaltete Prüflauf `check-win32-scene-denied-save` bestätigte `DENIED` für einen gültigen Speicherversuch und unveränderten Text auf Revision 0 beim erneuten Lesen unter derselben Bindung. Unter eigener Edit-Bindung bestätigte `check-win32-scene-edit-conflict` die erste Speicherung, `CONFLICT` für den veralteten Schreibversuch und den gespeicherten Text auf Revision 1 im Arbeitsspeicher. Der dauerhafte Prüfpfad `save-win32-scene` und `read-saved-win32-scene` bestätigte nach Prozessneustart Text und Revision 1 im isolierten SQLite-Abbild; veränderte Dateibytes sperren das Wiederöffnen vor dem Rollenstart. Produktdaten und WebView2 bleiben gesperrt.
+Prozessneustart unter frischer Lesebindung sowie unabhängig auf der ausgeschalteten Gastplatte. Der
+[Datendienstabbruch an der Commitgrenze](docs/testing/native-win32-commit-crashes.md) ist im Gast
+geprüft. Vor Commit bleibt Revision 0 erhalten, nach Commit vor Antwort Revision 1. Der frische
+ETW-Netzvergleich beider Pfade ergab null Netzwerkereignisse im Prüfprozessbaum.
+[Teilübertragung und 30-Sekunden-Timeout](docs/testing/native-win32-channel-interruptions.md) sind
+im Gast bestätigt. Beide endeten ohne Schreibantwort und mit Revision 0.
+[Fensterende vor Commit und ETW](docs/testing/native-win32-window-close.md) sind für den neuen Build
+geprüft. Dienstende und Revision 0 sind bestätigt, im Prüfprozessbaum wurden null Netzwerkereignisse
+gemessen. Der [Wiederanlauf nach Starterabbruch](docs/testing/native-win32-starter-restart.md) blieb
+dreimal gesperrt. Der frische ETW-Netzvergleich bestätigte null Netzwerkereignisse im
+Prüfprozessbaum. Alle drei gesperrten Starter endeten ohne Kindprozess. **BP4b ist für den
+synthetischen Win32-Kanal abgeschlossen.** Der
+[Abschluss mit Nachweisen](docs/data-format/native-win32-bp4-channel-v1-draft.md#abschluss-des-synthetischen-datenkanals)
+umfasst Rechte, Revisionen, Transaktionsende und die Sperre der verbrauchten Einmalfreigabe bis zum
+Kaltstart. C4b bis C4d sind für das schreibgeschützte synthetische Win32-Fenster abgeschlossen. Der
+verwaltete Starter bindet Paket und Prozessgeneration unter Kontrollsperre und gibt das Fenster nach
+bestätigtem Bootstrap frei. Nach Starterabbruch blockiert der offene Sitzungsbeleg die nächste
+Fenstererzeugung. Die
+[bytegebundene C4d-Abnahme](docs/architecture/decisions/0036-native-win32-ui-role-evaluation.md#c4d-abschluss-für-den-synthetischen-vorschaupfad)
+enthält Paketidentität, Sicherheitsnachweise und Freigabeumfang. Der neue Einstieg
+`broker-store open-win32-scene <Kontrollkopf>` zeigt nach beiden Bootstrap-Quittungen genau eine vom
+isolierten Datendienst gelesene Szene A schreibgeschützt an. Der ETW-Netzvergleich erfasste im
+Referenzlauf und beim einmaligen Szenenabruf je null Netzwerkereignisse im KRAQEL-Prozessbaum. Nur
+im Szenenlauf startete der Datendienst. Der anschließende verwaltete Prüflauf
+`check-win32-scene-denied-save` bestätigte `DENIED` für einen gültigen Speicherversuch und
+unveränderten Text auf Revision 0 beim erneuten Lesen unter derselben Bindung. Unter eigener
+Edit-Bindung bestätigte `check-win32-scene-edit-conflict` die erste Speicherung, `CONFLICT` für den
+veralteten Schreibversuch und den gespeicherten Text auf Revision 1 im Arbeitsspeicher. Der
+dauerhafte Prüfpfad `save-win32-scene` und `read-saved-win32-scene` bestätigte nach Prozessneustart
+Text und Revision 1 im isolierten SQLite-Abbild; veränderte Dateibytes sperren das Wiederöffnen vor
+dem Rollenstart. Produktdaten und WebView2 bleiben gesperrt.
 
 Vorheriger Stand · BP3 synthetische Debug-Wächter-Gegenprobe, 18. November 2026:
 
