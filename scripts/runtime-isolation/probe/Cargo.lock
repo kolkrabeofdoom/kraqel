@@ -399,6 +399,7 @@ dependencies = [
  "kraqel-continuity",
  "kraqel-domain",
  "kraqel-windows-inventory",
+ "libc",
  "rusqlite",
  "serde",
  "serde_json",

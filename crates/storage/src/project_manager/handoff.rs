@@ -181,7 +181,14 @@ pub(super) fn pinned_file(path: &Path, writable_source: bool) -> Result<fs::File
             .share_mode(if writable_source { 3 } else { 1 })
             .custom_flags(0x0020_0000);
     }
-    #[cfg(not(windows))]
+    #[cfg(target_os = "linux")]
+    if writable_source {
+        // Closing an independent I/O descriptor releases this process's SQLite POSIX
+        // locks on the inode. An O_PATH handle pins its identity without releasing locks.
+        use std::os::unix::fs::OpenOptionsExt as _;
+        options.custom_flags(libc::O_PATH | libc::O_NOFOLLOW);
+    }
+    #[cfg(not(any(windows, target_os = "linux")))]
     let _ = writable_source;
     let file = options.open(path).map_err(io_error)?;
     let info = file.metadata().map_err(io_error)?;
