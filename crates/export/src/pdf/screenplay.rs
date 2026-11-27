@@ -372,15 +372,16 @@ mod tests {
     use super::*;
     use serde_json::json;
 
+    fn block(role: &str, text: &str) -> serde_json::Value {
+        json!({
+            "type":"screenplayBlock", "attrs":{"role":role},
+            "content":[{"type":"text","text":text}]
+        })
+    }
+
     #[test]
     fn figure_keeps_two_short_dialogue_paragraphs_at_the_page_boundary() {
         let (project, mut docs) = crate::tests::fixture();
-        let block = |role: &str, text: &str| {
-            json!({
-                "type":"screenplayBlock", "attrs":{"role":role},
-                "content":[{"type":"text","text":text}]
-            })
-        };
         let action = vec!["Schritte."; 46].join("\n");
         docs[1].content = kraqel_domain::EditorDocument {
             version: kraqel_domain::SCREENPLAY_DOCUMENT_VERSION,
@@ -404,7 +405,6 @@ mod tests {
     #[test]
     fn scene_heading_keeps_two_lines_and_long_dialogue_continues_in_order() {
         let (project, mut docs) = crate::tests::fixture();
-        let block = |role: &str, text: &str| json!({"type":"screenplayBlock","attrs":{"role":role},"content":[{"type":"text","text":text}]});
         docs[1].content.version = kraqel_domain::SCREENPLAY_DOCUMENT_VERSION;
         let mut next = docs[1].clone();
         next.node.id = EntityId::new();
@@ -453,7 +453,6 @@ mod tests {
     fn selected_screenplay_preserves_unicode_styles_and_dialogue_across_pages() {
         let root = tempfile::tempdir().unwrap();
         let (project, mut docs) = crate::tests::fixture();
-        let block = |role: &str, text: &str| json!({"type":"screenplayBlock","attrs":{"role":role},"content":[{"type":"text","text":text}]});
         let mut blocks = vec![
             block("sceneHeading", "INT. STADTARCHIV – MORGEN"),
             block(
