@@ -115,7 +115,7 @@ export async function invoke<T>(command: string, args: InvokeArgs = {}): Promise
     throw new Error("Controlled E2E save failure");
   }
 
-  const data = execute(command, request.payload);
+  const data = execute(command, request);
   return {
     contractVersion: version,
     requestId: request.requestId,
@@ -123,7 +123,10 @@ export async function invoke<T>(command: string, args: InvokeArgs = {}): Promise
   } as T;
 }
 
-function execute(command: string, payload: Record<string, unknown>): unknown {
+function execute(
+  command: string,
+  { payload, requestId, contractVersion }: CommandRequest,
+): unknown {
   const state = readState();
 
   switch (command) {
@@ -251,6 +254,14 @@ function execute(command: string, payload: Record<string, unknown>): unknown {
       const current = findProject(state, payload.projectId);
       if (localStorage.getItem("kraqel-e2e-illustrated-failure") === "1")
         throw new Error("private path decoder details");
+      if (current.documents.some((doc) => doc.content.version === 2)) {
+        throw Object.assign(
+          new Error(
+            "Das Manuskript enthält Drehbuchszenen. Verwende für dieses Manuskript die Textausgabe ohne Szenenbilder.",
+          ),
+          { contractVersion, requestId, code: "INVALID_REQUEST", retryable: false },
+        );
+      }
       const placements = payload.placements as {
         sceneId: EntityId;
         assetId: EntityId;

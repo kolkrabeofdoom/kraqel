@@ -74,6 +74,7 @@ pub struct ImagePlacement {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IllustratedError {
     Invalid,
+    ScreenplayUnsupported,
     ScreenplayLayout(&'static str),
     Conflict,
     Internal,
@@ -85,12 +86,14 @@ impl std::fmt::Display for IllustratedError {
                 "Die Auswahl oder eine Bilddatei ist ungültig oder überschreitet die Exportgrenzen."
             }
             Self::ScreenplayLayout(_) => "Das Drehbuchlayout ist für den PDF-Export ungültig.",
+            Self::ScreenplayUnsupported => SCREENPLAY_IMAGE_HINT,
             Self::Conflict => "Projekt oder Bildauswahl wurden zwischenzeitlich verändert.",
             Self::Internal => "Das Bildpaket konnte nicht veröffentlicht werden.",
         })
     }
 }
 impl std::error::Error for IllustratedError {}
+pub const SCREENPLAY_IMAGE_HINT: &str = "Das Manuskript enthält Drehbuchszenen. Verwende für dieses Manuskript die Textausgabe ohne Szenenbilder.";
 fn hash(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
 }
@@ -174,11 +177,14 @@ pub fn prepare(
     if selection.is_empty() || selection.len() > 200 {
         return Err(invalid());
     }
-    if documents
-        .iter()
-        .any(|doc| doc.content.version != kraqel_domain::EDITOR_DOCUMENT_VERSION)
-    {
-        return Err(invalid());
+    for document in documents {
+        match document.content.version {
+            kraqel_domain::EDITOR_DOCUMENT_VERSION => {}
+            kraqel_domain::SCREENPLAY_DOCUMENT_VERSION => {
+                return Err(IllustratedError::ScreenplayUnsupported);
+            }
+            _ => return Err(invalid()),
+        }
     }
     validate_source_budget(project, documents)?;
     let manuscript =

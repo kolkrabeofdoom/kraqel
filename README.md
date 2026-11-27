@@ -682,9 +682,12 @@ schreibgeschützt lesen. **Im Studio öffnen** startet WebView2.
 Im Entwicklungszweig lassen sich Szenen ausdrücklich in Drehbuchszenen umwandeln. Sechs Absatzrollen
 bleiben beim Speichern und Wiederöffnen erhalten. Unter **Export → Drehbuch als A4-PDF** wählst du
 die zu druckenden Szenen einzeln aus. Die Druckausgabe enthält ihre Rollenabsätze in
-Manuskriptreihenfolge. Ein Fehler beim Drucken erhält die vorherige Drehbuch-PDF. Ab dem ersten
-Speichern einer Drehbuchszene benötigt das Projekt den neuen Desktop. Die öffentliche Alpha 7
-verwendet für Prosa weiterhin Schema 6.
+Manuskriptreihenfolge. Für Prosa und Drehbuch mit Gliederungstiteln verwende den gewöhnlichen
+Manuskript-PDF-Export. Das bebilderte Manuskriptpaket setzt reine Prosa voraus. Einen
+unvollständigen Dialog kannst du als Entwurf speichern. Meldet der Druck „Dialog benötigt eine
+Figur“, ergänze vor dem Dialog eine Figurenzeile oder korrigiere die Absatzrolle. Ein Fehler beim
+Drucken erhält die vorherige Drehbuch-PDF. Ab dem ersten Speichern einer Drehbuchszene benötigt das
+Projekt den neuen Desktop. Die öffentliche Alpha 7 verwendet für Prosa weiterhin Schema 6.
 [Formatvertrag](docs/specifications/SCREENPLAY_FORMAT_CONTRACT_DRAFT.md) ·
 [Prüfstand und Grenzen](docs/testing/F08_M3_ACCEPTANCE_MATRIX.md)
 

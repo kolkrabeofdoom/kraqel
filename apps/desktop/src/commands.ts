@@ -76,7 +76,9 @@ export class KraqelCommandError extends Error {
     this.name = "KraqelCommandError";
     if (
       error.code === "INVALID_REQUEST" &&
-      (command === "export_manuscript" || command === "export_screenplay_pdf")
+      (command === "export_manuscript" ||
+        command === "export_screenplay_pdf" ||
+        command === "export_illustrated_manuscript")
     ) {
       this.exportHint = exportHints.find((hint) => hint === error.message);
     }

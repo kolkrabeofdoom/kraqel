@@ -55,4 +55,17 @@ test("explizite Szenenbilder ergeben getrennte Pakete mit Alttext und neutralem 
   await page.getByRole("button", { name: "Bildauswahl neu laden" }).click();
   await expect(action).toBeDisabled();
   await expect(page.getByRole("checkbox", { name: "Szenenbild", exact: true })).not.toBeChecked();
+  await page.evaluate(() => localStorage.removeItem("kraqel-e2e-illustrated-failure"));
+  await page.getByRole("button", { name: "Manuskript", exact: true }).click();
+  await page.getByRole("textbox", { name: "Text von Szene 1" }).fill("INT. ARCHIV");
+  await page.getByRole("button", { name: "In Drehbuch umwandeln …" }).click();
+  await page.getByRole("button", { name: "Umwandlung bestätigen" }).click();
+  await expect(page.getByText("Gespeichert", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Export", exact: true }).click();
+  await page.getByRole("button", { name: "Bildauswahl laden", exact: true }).click();
+  await page.getByRole("checkbox", { name: "Szenenbild", exact: true }).check();
+  await page.getByRole("button", { name: "PDF mit Bildern erzeugen" }).click();
+  await expect(page.getByRole("alert")).toHaveText(
+    "Das Manuskript enthält Drehbuchszenen. Verwende für dieses Manuskript die Textausgabe ohne Szenenbilder.",
+  );
 });

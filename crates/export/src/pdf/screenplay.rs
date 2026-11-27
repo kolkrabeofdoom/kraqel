@@ -421,13 +421,27 @@ mod tests {
         // With 43 action lines the next heading and both opening lines fit. With
         // 46 lines only the heading would fit, so the whole group must move.
         for (filler_lines, opening_page) in [(43, 1), (46, 2)] {
+            // 61 monospace cells fit the 155 mm action column at 12 pt. A single
+            // uninterrupted word must wrap without losing or adding characters.
+            let word_rows: Vec<_> = (1..=filler_lines)
+                .map(|n| format!("Wort{n:02}{}", "w".repeat(55)))
+                .collect();
             docs[1].content.document = json!({"type":"doc","content":[
                 block("sceneHeading", "INT. ARCHIV"),
-                block("action", &vec!["Schritte."; filler_lines].join("\n"))
+                block("action", &word_rows.concat())
             ]});
             let bytes = render_selected(&project, &docs, &selection).unwrap();
             let pdf = lopdf::Document::load_mem(&bytes).unwrap();
             assert_eq!(pdf.get_pages().len(), 3);
+            let first = pdf.extract_text(&[1]).unwrap();
+            assert_eq!(
+                first
+                    .lines()
+                    .map(str::trim)
+                    .filter(|s| s.starts_with("Wort"))
+                    .collect::<Vec<_>>(),
+                word_rows
+            );
             let opening = pdf.extract_text(&[opening_page]).unwrap();
             for expected in ["INT. WERKSTATT", "Die Uhr tickt.", "Ein Hammer faellt."] {
                 assert!(

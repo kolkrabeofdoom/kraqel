@@ -87,6 +87,41 @@ fn command_publishes_independent_packages_and_sanitizes_bad_sources() {
     request.placements[0].expected_scene_revision = 99;
     let error = export(&state, id, &request).unwrap_err();
     assert!(!serde_json::to_string(&error).unwrap().contains("PRIVATE"));
+
+    let saved = crate::persist_scene(
+        &state, id, crate::SaveDocumentRequest {
+            project_id: request.project_id.clone(),
+            document_id: request.placements[0].scene_id.to_string(),
+            expected_revision: 0,
+            content: kraqel_domain::EditorDocument {
+                version: kraqel_domain::SCREENPLAY_DOCUMENT_VERSION,
+                document: serde_json::json!({"type":"doc","content":[{"type":"screenplayBlock","attrs":{"role":"sceneHeading"},"content":[{"type":"text","text":"INT. ARCHIV"}]}]}),
+            },
+        }, crate::SceneWriter::RoleAware,
+    ).unwrap();
+    request.placements[0].expected_scene_revision = saved.revision;
+    let packages = root
+        .path()
+        .join(&request.project_id)
+        .join("exports/mit-bildern");
+    let entries = || {
+        fs::read_dir(&packages)
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .collect::<BTreeSet<_>>()
+    };
+    let before = entries();
+    let pdf = before
+        .iter()
+        .map(|dir| dir.join("manuskript.pdf"))
+        .find(|p| p.is_file())
+        .unwrap();
+    let bytes = fs::read(&pdf).unwrap();
+    let error = export(&state, id, &request).unwrap_err();
+    assert_eq!(error.code, kraqel_domain::CommandErrorCode::InvalidRequest);
+    assert_eq!(error.message, illustrated::SCREENPLAY_IMAGE_HINT);
+    assert_eq!(entries(), before);
+    assert_eq!(fs::read(pdf).unwrap(), bytes);
 }
 #[test]
 fn concurrent_metadata_changes_conflict_before_directory_publication() {

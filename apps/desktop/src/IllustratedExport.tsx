@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { DocumentNode, ProjectId } from "@kraqel/domain";
 import {
+  KraqelCommandError,
   exportIllustratedManuscript,
   listMediaAssets,
   openWorkspace,
@@ -100,9 +101,10 @@ export function IllustratedExport({
     setResult(null);
     try {
       setResult(await exportIllustratedManuscript(projectId, format, selection));
-    } catch {
+    } catch (cause) {
       setError(
-        "Das Bildpaket konnte nicht erzeugt werden. Auswahl und Quelldateien müssen gültig und unverändert sein. Prüfe die Grenzen und lade bei Änderungen die Bildauswahl neu.",
+        (cause instanceof KraqelCommandError ? cause.exportHint : undefined) ??
+          "Das Bildpaket konnte nicht erzeugt werden. Auswahl und Quelldateien müssen gültig und unverändert sein. Prüfe die Grenzen und lade bei Änderungen die Bildauswahl neu.",
       );
     } finally {
       setBusy(false);

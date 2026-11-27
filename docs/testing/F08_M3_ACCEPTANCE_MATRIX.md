@@ -18,9 +18,14 @@ enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-fo
   Revision und FTS-Suchbarkeit. Der Archivimport erzeugt eine eigene Projektkennung.
 - **DB-04 · Schrift.** Vier gebündelte Schriftschnitte, lateinische, griechische und kyrillische
   Stichproben sowie kombinierende Zeichen über Textknotengrenzen sind geprüft. Ein fehlendes Emoji
-  führt zur Ablehnung und die vorhandene PDF bleibt bytegleich.
+  führt zur Ablehnung und die vorhandene PDF bleibt bytegleich. Für zwei Wörter mit 2.623 und 2.806
+  Zeichen bestätigte das PDF-Rücklesen genau 43 bzw. 46 Zeilen mit je 61 Zeichen in ursprünglicher
+  Reihenfolge.
 - **DB-05 · Satzmaße.** Für die vollständige synthetische A4-Szene sind Schriftgröße, Einzüge aller
-  Rollen, rechter Übergangsrand und Grundlinienabstände unabhängig vermessen.
+  Rollen, rechter Übergangsrand und Grundlinienabstände unabhängig vermessen. Bei den beiden
+  Wortumbruchproben lagen die sichtbaren Zeichen auf allen sechs gerasterten Seiten horizontal
+  zwischen 29,99 und 184,86 mm. Die unterste Pixelkante der kritischen Seite lag bei 288 dpi bei
+  277,019 mm ab Blattoberkante, innerhalb eines Rasterpixels der 20-mm-Randvorgabe.
 - **DB-06 · Seitenwechsel.** Figurenzeile und die ersten zwei Dialogzeilen bleiben auch bei
   getrennten Dialogabsätzen zusammen. Eine unteilbare Gruppe von 52 Figurenzeilen scheitert vor der
   Veröffentlichung. Zwei rückgelesene PDFs belegen den Seitenwechsel am Szenenkopf. Die beiden
@@ -31,10 +36,20 @@ enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-fo
 - **DB-08 · Desktop-Export.** Szenen- und Kapitelauswahl sind im gebauten Desktop belegt. Ein Fehler
   im produktiven Studio-Export lässt die vorhandene PDF bytegleich. Beim Gesamt-PDF kommen Rollen-
   und Seitenhöhenfehler als feste Hinweise an. Der Studio-Adapter verwirft abweichende Meldungen
-  einschließlich angehängter Fremdtexte. Die jeweilige Prüfumgebung und der verwendete Kandidat
-  stehen bei den nachfolgenden Nachweisen.
+  einschließlich angehängter Fremdtexte. Im nativen Command-Test lehnte der bebilderte PDF-Export
+  eine gültige Bildauswahl nach Umwandlung der Szene in ein Drehbuch ab. Alle vier vorhandenen
+  Paketverzeichnisse und die Bytes der vorhandenen PDF blieben erhalten. Der Studio-Bedienlauf in
+  Edge mit lokal simuliertem IPC bestätigte den sichtbaren Hinweis auf die Textausgabe.
 
 ## Windows-Kandidat und Drehbuch-Rundlauf vom 27. November
+
+In einem separaten Windows-Bedienlauf mit der lokal gebauten Debug-EXE entstand in einem
+synthetischen Projekt zunächst eine gültige gemischte Kapitel-PDF mit 704.878 Byte. Nach dem
+Neustart enthielt die Drehbuchszene einen Dialog ohne Figurenzeile. Nach **Nein** bei der
+Exportbestätigung und erneut nach **Ja** blieb die einzige vorhandene Datei unter demselben Namen
+bytegleich (SHA-256 `1d477f6665896a2cc0841e681634de6d1659874c04fd1464fbac25ab0ef85d0b`). Im zweiten
+Fall zeigte das native Fenster „Dialog benötigt eine Figur.“. Beide Desktopprozesse endeten regulär.
+Das isolierte Testprofil wurde entfernt.
 
 Der unsignierte Installer aus dem grünen PR-Stand `8b6bb61348e0` umfasst 320.147.064 Byte (SHA-256
 `161021972105fee6c149baefe8ab6d0261addc0b6f12da9a0a6777e5ecfce1fd`). Die aus diesem Setup
@@ -140,8 +155,9 @@ EXE wurden entfernt.
 Der SQLite-Test prüfte die Revision bei gleichzeitigem Schreiben und die Begrenzung auf ausgewählte
 Inhalte. Ein Windows-Verzeichnistest bestätigte, dass ein umgeleiteter Exportordner (Junction) weder
 zur Ausgabe noch zur Auflistung zugelassen wurde. Der gezielte PDF-Test belegte die A4-Ausgabe für
-eine ausdrücklich ausgewählte Drehbuchszene. Kapitel- und Manuskript-PDFs mit Drehbuchanteilen
-bleiben gesperrt.
+eine ausdrücklich ausgewählte Drehbuchszene. Der damalige Kandidat sperrte Kapitel- und
+Manuskript-PDFs mit Drehbuchanteilen. Den später freigegebenen Textdruck für gemischte Kapitel
+beschreibt der [Windows-Rundlauf](#windows-kandidat-und-drehbuch-rundlauf-vom-27-november).
 
 SHA-256 des Installers: `608086783077e9cf980a207a90b4f18b4f046d037a19194080f99b8b0178a869`.
 
@@ -945,6 +961,7 @@ Nachweis offen; Teilnachweise werden nicht hochgestuft.
    Löschung und Neustart; Q-01/Q-02 bleiben wegen des gemessenen WebView2-Verkehrs in #134 offen.
    Die abschließende Lösch-/Export-Hörprobe ist ebenfalls bestätigt; weitere allgemeine assistive
    F08-Randfälle bleiben getrennt.
-3. Nach Drehbuchfreigabe Modell-/Versions- und Schriftprototyp, dann Renderer und DB-01–DB-08;
-   Status zeilenweise mit tatsächlichen Nachweisen aktualisieren.
+3. Modell v2, lokale Schriftschnitte und A4-Renderer sind umgesetzt. Bei der weiteren Abnahme gelten
+   die [Einzelnachweise für DB-01 bis DB-08](#stand-der-drehbuchkriterien) einschließlich ihrer
+   jeweiligen Format- und Laufzeitgrenzen.
 4. Vor stabilem 0.1 die übrigen F01–F09-/M5- und Abhängigkeitsrisiken separat schließen.

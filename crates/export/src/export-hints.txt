@@ -14,4 +14,5 @@ Der PDF-Auftrag enthält nicht unterstützte Zeichen oder überschreitet die Lay
 Der Manuskriptauszug entspricht nicht der bestätigten Auswahl.
 Die Manuskriptauswahl ist ungültig.
 Das Manuskript enthält eine ungültige oder nicht unterstützte Struktur.
+Das Manuskript enthält Drehbuchszenen. Verwende für dieses Manuskript die Textausgabe ohne Szenenbilder.
 Die Auswahl muss gespeicherte Szenen dieses Projekts enthalten.
