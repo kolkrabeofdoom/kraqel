@@ -2,6 +2,14 @@
 
 Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
 
+## Installationsprobe im netzlosen Windows-Gast am 27. November 2026
+
+Geprüft wurde der unsignierte x64-Kandidat `5eaadf32b236` mit SHA-256 `c282818e445dc69fdc702922716015142e4c3558575dd028fc79485645dd5cf9`. Der Prüfplatz erhielt eine frische Windows-Installation vom lokalen ISO (Windows Server 2025 Standard Evaluation mit Desktop Experience). Hyper-V meldete beim Start null virtuelle Netzadapter und null aktivierte Integrationsdienste. Die stille Installation endete mit Exitcode 0. Der Prüfhelfer bestätigte das Installationsziel anhand der Registrierung und startete die dort installierte Desktop-EXE.
+
+Im installierten Desktop öffnete der Prüflauf das synthetische Projekt über die native Projektübersicht, wählte ein Kapitel mit Prosa und Drehbuchszene und bestätigte dessen PDF-Export. KRAQEL erzeugte genau eine Kapiteldatei und endete beim Schließen über die Oberfläche mit Exitcode 0. Das unabhängige Rücklesen auf dem Host bestätigte eine A4-Seite mit allen neun erwarteten Titeln und Textstellen in Reihenfolge. Titel, Szenenname und Kontrolltext des zweiten Kapitels fehlten. Die Ausgabe umfasste 704.878 Byte; SHA-256 dieser Probe: `1d477f6665896a2cc0841e681634de6d1659874c04fd1464fbac25ab0ef85d0b`.
+
+Die ersten beiden Anläufe zeigten Fehler im temporären Bedienhelfer. Für den bestandenen Lauf wurde derselbe Installer erneut in einem frischen Gast installiert. Nach dem regulären Gastende wurden Prüf-VM und Testplatte entfernt. Der Nachweis gilt für Windows Server 2025 mit Desktop Experience und die native Kapitelansicht. Der physische Zweitrechnertest und eine Netzwerkverkehrsmessung sind davon getrennt.
+
 ## Kapitel- und Manuskriptdruck mit Prosa und Drehbuch
 
 Beim Export eines synthetischen Manuskripts entstanden zwei A4-Seiten. Beide wurden mit Poppler vollständig gerastert und visuell geprüft. Auf Seite 1 folgen auf Projekt-, Kapitel- und Szenentitel formatierte Prosa, Liste, Zitat und die erste Drehbuchszene mit ihrem Gliederungstitel. Die Handlung läuft über den Seitenwechsel. Seite 2 enthält die restlichen Handlungszeilen, Figur, Klammeranweisung, typografisch ausgezeichneten Dialog und rechtsbündigen Übergang. Anschließend folgen das nächste Kapitel, der nächste Szenentitel und der abschließende Prosatext. Das PDF wurde zusätzlich maschinell rückgelesen.

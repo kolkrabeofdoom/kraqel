@@ -6,7 +6,9 @@ Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt 
 
 Der Windows-Kandidat vom 25. November stammt aus `5eaadf32b236` auf `feat/kq-069-live-file-selection`. Kapitel und Gesamtmanuskripte lassen sich einschließlich gemischter Prosa- und Drehbuchszenen als PDF ausgeben. Die zweitseitige Probe wurde visuell geprüft und maschinell rückgelesen. Auswahlgrenzen und Dateierhalt bei Fehlern sind in der [Abnahmematrix](testing/F08_M3_ACCEPTANCE_MATRIX.md) dokumentiert.
 
-Als Nächstes steht die Installationsprobe dieses Kandidaten auf einer sauberen Windows-VM an. Den unsignierten Installer findest du vom Repository-Stamm aus unter `artifacts/release/0.1.0/windows-x64/5eaadf32b236/KRAQEL_0.1.0_windows-x64-setup.exe`. SHA-256: `c282818e445dc69fdc702922716015142e4c3558575dd028fc79485645dd5cf9`. Für die Probe ein synthetisches Projekt verwenden, das installierte Programm regulär starten und ein gemischtes Kapitel über die native Gliederung exportieren.
+Am 27. November bestand dieser Installer die frische Offline-Installationsprobe auf Windows Server 2025 mit Desktop Experience. Der regulär gestartete Desktop exportierte ein gemischtes Kapitel über die native Gliederung und endete regulär. Das unabhängige PDF-Rücklesen bestätigte Inhalt, Reihenfolge und Ausschluss des zweiten Kapitels. [Prüfumfang und Nachweis](testing/F08_M3_ACCEPTANCE_MATRIX.md#installationsprobe-im-netzlosen-windows-gast-am-27-november-2026)
+
+Der Installer liegt unter `artifacts/release/0.1.0/windows-x64/5eaadf32b236/KRAQEL_0.1.0_windows-x64-setup.exe` (SHA-256 `c282818e445dc69fdc702922716015142e4c3558575dd028fc79485645dd5cf9`). Der physische Zweitrechnertest ist weiterhin offen.
 
 ## Windows-Entwicklungsstand vom 25. November
 
