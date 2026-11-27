@@ -3,7 +3,9 @@
 **DOCX-Manuskriptaustausch · 27. November 2026:** Der Entwicklungszweig kann gemischte Manuskripte
 im Austauschprofil v2 schreiben und als neue lokale Projektkopie einlesen. Der native Rundlauf
 bestätigte Rollen, leere Absätze, Schriftschnitte, harte Umbrüche und Suchbarkeit nach Wiederöffnen.
-Reine Prosa verwendet weiter v1. [Profilvertrag](data-format/DOCX_ROUNDTRIP_V2.md) ·
+Die in Word und LibreOffice tatsächlich bearbeiteten Testdateien wurden jeweils als neue lokale
+Projektkopie importiert und erneut geöffnet. Reine Prosa verwendet weiter v1.
+[Profilvertrag](data-format/DOCX_ROUNDTRIP_V2.md) ·
 [Abnahme und Grenzen](testing/F08_M3_ACCEPTANCE_MATRIX.md#stand-der-drehbuchkriterien)
 
 **Entwicklungswerkzeuge · 27. November 2026:** Ein versionierter Push-Hook startet lokal

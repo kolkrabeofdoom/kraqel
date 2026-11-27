@@ -43,8 +43,18 @@ enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-fo
   allen 27 sichtbaren Inhaltssteuerelementen. Der native Reader las den geänderten Text und
   sämtliche erwarteten Rollen und Formatierungen zurück. Nach Import derselben Word-Datei und
   erneutem Öffnen entsprach der SQLite-Inhalt dem zurückgelesenen Manuskript. Die FTS-Suche nach dem
-  geänderten Wort fand einen Treffer. Die Word-Datei blieb bytegleich. Für LibreOffice steht der
-  eigenständige v2-Lauf aus. Die ältere LibreOffice-Probe betrifft die gewöhnliche DOCX-Ausgabe.
+  geänderten Wort fand einen Treffer. Die Word-Datei blieb bytegleich.
+
+  LibreOffice 26.8.3 öffnete anschließend ein erweitertes synthetisches v2-Manuskript mit allen
+  sechs Rollen und einem leeren Handlungsabsatz. Über die lokale UNO-Schnittstelle wurde „Original“
+  im bestehenden Prosaabsatz durch „LibreFassung“ ersetzt. LibreOffice speicherte die bearbeitete
+  DOCX als neue Datei. Der native Reader las den geänderten Text und das vollständige erwartete
+  Manuskript einschließlich Fett/Kursiv und hartem Umbruch zurück. Für die Probe wurde das signierte
+  Windows-x64-Paket der Document Foundation separat entpackt. LibreOffice verwendete ein frisches
+  Profil mit deaktivierten Makros. Nach Import derselben Datei und erneutem Öffnen der Projektkopie
+  stimmten das gesamte Manuskript und beide Editorversionen. Die Datenbank verwendete Schema 7, die
+  Volltextsuche fand „LibreFassung“ genau einmal. Die Quelle blieb bytegleich.
+
 - **DB-08 · Desktop-Export.** Szenen- und Kapitelauswahl sind im gebauten Desktop belegt. Ein Fehler
   im produktiven Studio-Export lässt die vorhandene PDF bytegleich. Beim Gesamt-PDF kommen Rollen-
   und Seitenhöhenfehler als feste Hinweise an. Der Studio-Adapter verwirft abweichende Meldungen

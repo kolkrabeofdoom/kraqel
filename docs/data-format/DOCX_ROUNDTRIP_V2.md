@@ -77,6 +77,8 @@ neue Projektkopie mit eigener Kennung erst nach erfolgreichem SQLite-Rücklesen 
 Prosaszenen erhalten Editor v1, Drehbuchszenen Editor v2. Eine v2-Kopie mit Drehbuchdaten benötigt
 Schema 7. Ablehnung oder Abbruch bewahren die Quelldatei und veröffentlichen keine Teilkopie.
 
-Die Implementierungsabnahme umfasst einen gemischten synthetischen Office-Rundlauf mit editiertem
-Text und leerem Rollenabsatz, eine verweigerte widersprüchliche Rollenbindung und das Wiederöffnen
-der atomar importierten Projektkopie. Für v1 gelten die vorhandenen Kompatibilitätsnachweise.
+Word 16.0.17932 und LibreOffice 26.8.3 konnten Änderungen innerhalb markierter Textabsätze
+speichern. Beim Rücklesen blieben auch leere Rollenabsätze sowie Fett/Kursiv und harte Umbrüche
+erhalten. Die LibreOffice-Probe umfasste alle sechs Drehbuchrollen. Für v1 gelten die vorhandenen
+Kompatibilitätsnachweise.
+[Abnahme und Prüfumgebungen](../testing/F08_M3_ACCEPTANCE_MATRIX.md#stand-der-drehbuchkriterien)

@@ -169,7 +169,7 @@ export function App() {
       if (imported) setWorkspace(imported);
     } catch {
       setError(
-        "Das DOCX-Manuskript konnte nicht importiert werden. Verwende einen KRAQEL-Export zum Wiederimport (v1 oder v2, höchstens 8 MiB).",
+        "Das DOCX-Manuskript konnte nicht importiert werden. Prüfe, ob die Datei aus „DOCX zum Wiederimport erzeugen“ stammt und höchstens 8 MiB groß ist. Falls du in Office Absätze oder deren Markierungen entfernt hast, übertrage deine Textänderungen in die vorhandenen Absätze einer frischen Austauschkopie.",
       );
     } finally {
       setBusy(false);

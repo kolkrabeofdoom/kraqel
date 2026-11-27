@@ -117,7 +117,9 @@ fn unpack(bytes: &[u8]) -> BTreeMap<String, Vec<u8>> {
 }
 
 fn mixed_sample() -> Manuscript {
-    use kraqel_domain::ScreenplayRole::{Action, Dialogue};
+    use kraqel_domain::ScreenplayRole::{
+        Action, Character, Dialogue, Parenthetical, SceneHeading, Transition,
+    };
     let mut model = sample();
     model.chapters[0].scenes.push(Scene {
         title: "Drehbuchentwurf".to_owned(),
@@ -136,6 +138,20 @@ fn mixed_sample() -> Manuscript {
                 ],
             ),
         ],
+    });
+    model.chapters[0].scenes.push(Scene {
+        title: "Abfahrt".to_owned(),
+        blocks: [
+            (SceneHeading, "INT. STELLWERK – MORGEN"),
+            (Action, "Ein Licht blinkt."),
+            (Character, "Mira"),
+            (Parenthetical, "(leise)"),
+            (Dialogue, "Der Zug wartet."),
+            (Transition, "Schnitt auf:"),
+        ]
+        .into_iter()
+        .map(|(role, value)| Block::Screenplay(role, vec![text(value)]))
+        .collect(),
     });
     model
 }

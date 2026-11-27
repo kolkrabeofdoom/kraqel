@@ -16,7 +16,10 @@ test("DOCX-Austausch erklärt Umfang, importiert neue Kopien und behandelt Abbru
   await expect(page.getByRole("alert")).toHaveCount(0);
   await page.evaluate(() => localStorage.setItem("kraqel-e2e-roundtrip-import", "error"));
   await select.click();
-  await expect(page.getByRole("alert")).toContainText("nicht importiert");
+  await expect(page.getByRole("alert")).toContainText("DOCX zum Wiederimport erzeugen");
+  await expect(page.getByRole("alert")).toContainText(
+    "in die vorhandenen Absätze einer frischen Austauschkopie",
+  );
   await expect(page.getByRole("alert")).not.toContainText("private DOCX");
   await expect(page.locator(".project-list li")).toHaveCount(0);
 

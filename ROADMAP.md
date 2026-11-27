@@ -273,6 +273,10 @@ Datenschutzziel bleibt unverändert.
              ADR 0027)
        - [x] Getrennten Austauschmodus in die App einbinden und neue Projektkopie atomar importieren
              (KQ-061 / ADR 0028)
+       - [x] Manuskripte mit Prosa und Drehbuchrollen über DOCX v2 austauschen und die Rollen in der
+             wiedergeöffneten Projektkopie prüfen.
+             [Profil v2](docs/data-format/DOCX_ROUNDTRIP_V2.md) ·
+             [Office-Nachweise](docs/testing/F08_M3_ACCEPTANCE_MATRIX.md#stand-der-drehbuchkriterien)
        - Importvertrag: `docs/data-format/DOCX_IMPORT.md`; nativer Austauschvertrag:
          `docs/data-format/DOCX_ROUNDTRIP.md`; ursprünglicher Roundtrip-Vorschlag:
          `docs/specifications/DOCX_ROUNDTRIP_CONTRACT_DRAFT.md`
