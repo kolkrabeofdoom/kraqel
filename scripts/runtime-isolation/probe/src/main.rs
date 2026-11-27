@@ -12,6 +12,10 @@ mod product_start_p2c;
 #[cfg(any(windows, test))]
 mod transfer;
 #[cfg(windows)]
+#[allow(
+    dead_code,
+    reason = "The probe consumes only the research subset of the shared window protocol"
+)]
 #[path = "../../native-window/src/window_receipt.rs"]
 mod window_receipt;
 #[cfg(windows)]

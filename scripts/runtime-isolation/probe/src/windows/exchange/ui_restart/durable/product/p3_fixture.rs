@@ -189,7 +189,9 @@ pub(super) fn serve(
                 binding,
                 &row,
                 interactive,
+                #[cfg(feature = "desktop-review")]
                 None,
+                #[cfg(feature = "desktop-review")]
                 None,
                 || {
                     io("p3-visible", output.write_all(b"VISIBLE\n"))?;
@@ -356,7 +358,9 @@ fn derived_profile(begin: [u8; 32], data: bool) -> Result<Profile> {
     })
 }
 
-pub(super) fn packages_folder() -> Result<(PathBuf, (u64, [u8; 16]), Vec<fs::File>)> {
+type PinnedPackagesFolder = (PathBuf, (u64, [u8; 16]), Vec<fs::File>);
+
+pub(super) fn packages_folder() -> Result<PinnedPackagesFolder> {
     use std::os::windows::ffi::OsStringExt;
     use windows_sys::Win32::System::Environment::ExpandEnvironmentStringsForUserW;
     // AppContainer profiles belong to the Windows account. A redirected desktop

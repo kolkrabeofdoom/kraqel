@@ -42,6 +42,10 @@ pub(super) fn install(process: HANDLE, file: fs::File, rights: u32) -> Result<[u
     Ok((remote as usize as u64).to_le_bytes())
 }
 
+#[allow(
+    clippy::too_many_arguments,
+    reason = "Explicitly bind the already verified role resources and operation for this session"
+)]
 pub(in super::super) fn read_scene(
     store: &mut Store,
     root: &Path,

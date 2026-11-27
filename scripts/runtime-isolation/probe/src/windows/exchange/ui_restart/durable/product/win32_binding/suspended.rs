@@ -1,6 +1,7 @@
 //! Native window identity gate and optional receipt-only resume.
 use super::*;
 mod bootstrap;
+#[cfg(feature = "desktop-review")]
 mod edit;
 mod scene;
 pub(super) use scene::read_scene;
@@ -52,6 +53,10 @@ pub(super) fn check_window(
     )
 }
 
+#[allow(
+    clippy::too_many_arguments,
+    reason = "Explicitly bind the already verified role resources and operation for this session"
+)]
 pub(in super::super) fn deliver_p3(
     store: &mut Store,
     root: &Path,
@@ -60,13 +65,15 @@ pub(in super::super) fn deliver_p3(
     binding: [u8; 32],
     row: &[u8],
     interactive: bool,
-    product_argument: Option<&'static str>,
-    save: Option<manuscript::SceneWriter<'_>>,
+    #[cfg(feature = "desktop-review")] product_argument: Option<&'static str>,
+    #[cfg(feature = "desktop-review")] save: Option<manuscript::SceneWriter<'_>>,
     visible: impl FnOnce() -> Result<()>,
 ) -> Result<u8> {
     use crate::window_receipt as protocol;
     let mut choice = 0;
     use windows_sys::Win32::Storage::FileSystem::{FILE_READ_DATA, FILE_WRITE_DATA, SYNCHRONIZE};
+    #[cfg(not(feature = "desktop-review"))]
+    let product_argument: Option<&str> = None;
     let argument = if let Some(argument) = product_argument {
         argument
     } else if row.len() != protocol::P3_LEN {
@@ -101,6 +108,9 @@ pub(in super::super) fn deliver_p3(
                 to_ui.write_all(&protocol::p3_receipt(row)),
             )?;
             // Only the edit protocol consumes a commit receipt after opening the surface.
+            #[cfg(not(feature = "desktop-review"))]
+            drop(to_ui);
+            #[cfg(feature = "desktop-review")]
             let acknowledgement = (argument == protocol::PROJECT_SCENE_EDIT).then_some(to_ui);
             with_role(
                 store,
@@ -135,6 +145,7 @@ pub(in super::super) fn deliver_p3(
             if interactive {
                 visible()?;
             }
+            #[cfg(feature = "desktop-review")]
             if let Some(mut acknowledgement) = acknowledgement {
                 let save = save.ok_or(invalid("scene-edit-missing-grant"))?;
                 choice = edit::serve_edit(&mut reply, &mut acknowledgement, save)?;
