@@ -60,17 +60,19 @@ Q-01/Q-02 bleiben offen. Microsoft beschreibt die eigene Diagnosedatenerfassung 
 
 Das aktuelle öffentliche Prerelease ist
 **[KRAQEL 0.1.0 Alpha 7](https://github.com/kolkrabeofdoom/kraqel/releases/tag/v0.1.0-alpha.7)**. Es
-richtet sich an testende Personen auf Windows x64 und bietet für die Installation drei gemeinsam zu prüfende Dateien:
+richtet sich an testende Personen auf Windows x64. Über **Projektordner auswählen** lässt sich ein
+geschlossenes lokales Projekt auf der Startseite prüfen und nach ausdrücklicher Bestätigung als
+Arbeitskopie übernehmen. Für ausgewählte Zusatzdateien steht ein separates, passphrasengeschütztes
+Archiv zur Verfügung. Der portable Archivhelfer für die spätere Wiederherstellung liegt im
+optionalen Rechnerwechsel-ZIP.
+[Anleitung zum Ordnerimport in Alpha 7](https://github.com/kolkrabeofdoom/kraqel/blob/v0.1.0-alpha.7/docs/WORKSTATION_HANDOFF.md#einen-vorhandenen-windows-projektordner-übernehmen)
 
-Neu in Alpha 7: Auf der Startseite lässt sich ein geschlossener KRAQEL-Projektordner auswählen. Die Vorschau zählt Dokumente und Bilder. Nach Bestätigung legt KRAQEL eine separate Arbeitskopie an. Ausgewählte Sicherungen, Exporte oder weitere Dateien lassen sich in einem eigenen passphrasengeschützten Archiv mitnehmen. [Projektordner übernehmen](docs/WORKSTATION_HANDOFF.md#einen-vorhandenen-windows-projektordner-übernehmen)
-
-| Datei                                                                                                                                                          | Zweck                                                             |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| [`KRAQEL_0.1.0_windows-x64-setup.exe`](https://github.com/kolkrabeofdoom/kraqel/releases/download/v0.1.0-alpha.7/KRAQEL_0.1.0_windows-x64-setup.exe)           | Unsigniertes NSIS-Setup für das aktuelle Benutzer*innenkonto      |
-| [`KRAQEL_0.1.0_windows-x64-SHA256SUMS.txt`](https://github.com/kolkrabeofdoom/kraqel/releases/download/v0.1.0-alpha.7/KRAQEL_0.1.0_windows-x64-SHA256SUMS.txt) | Veröffentlichte SHA-256-Prüfsumme                                 |
-| [`KRAQEL_0.1.0_windows-x64-build.json`](https://github.com/kolkrabeofdoom/kraqel/releases/download/v0.1.0-alpha.7/KRAQEL_0.1.0_windows-x64-build.json)         | Maschinenlesbares Buildmanifest mit Quellcommit und Werkzeugdaten |
-
-Für die Wiederherstellung eines Zusatzarchivs auf einem anderen Windows-PC enthält das [Rechnerwechsel-Paket](https://github.com/kolkrabeofdoom/kraqel/releases/download/v0.1.0-alpha.7/KRAQEL_0.1.0_windows-x64-rechnerwechsel.zip) den portablen Archivhelfer, seine Prüfsumme und die Anleitung.
+| Datei                                                                                                                                                                  | Zweck                                                             |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| [`KRAQEL_0.1.0_windows-x64-setup.exe`](https://github.com/kolkrabeofdoom/kraqel/releases/download/v0.1.0-alpha.7/KRAQEL_0.1.0_windows-x64-setup.exe)                   | Unsigniertes NSIS-Setup für das aktuelle Benutzer*innenkonto      |
+| [`KRAQEL_0.1.0_windows-x64-SHA256SUMS.txt`](https://github.com/kolkrabeofdoom/kraqel/releases/download/v0.1.0-alpha.7/KRAQEL_0.1.0_windows-x64-SHA256SUMS.txt)         | Veröffentlichte SHA-256-Prüfsumme                                 |
+| [`KRAQEL_0.1.0_windows-x64-build.json`](https://github.com/kolkrabeofdoom/kraqel/releases/download/v0.1.0-alpha.7/KRAQEL_0.1.0_windows-x64-build.json)                 | Maschinenlesbares Buildmanifest mit Quellcommit und Werkzeugdaten |
+| [`KRAQEL_0.1.0_windows-x64-rechnerwechsel.zip`](https://github.com/kolkrabeofdoom/kraqel/releases/download/v0.1.0-alpha.7/KRAQEL_0.1.0_windows-x64-rechnerwechsel.zip) | Optionaler portabler Archivhelfer mit Anleitung und Prüfsumme     |
 
 Das Setup ist 319.439.741 Byte beziehungsweise rund 304,64 MiB groß. Es enthält den
 WebView2-Offlineinstaller, damit die Installation nicht erst zur Laufzeit eine Browserkomponente aus
@@ -82,6 +84,9 @@ Erwartete SHA-256-Prüfsumme des Setups:
 ```text
 85c4f09e8e24ae4f82946a69d8d67f4f540f7af087ea2fe2ef90c2e07c905bdd
 ```
+
+Das optionale Rechnerwechsel-ZIP umfasst 411.678 Byte. Sein SHA-256 lautet
+`20e53fa2d040005ded009697f0a566398905ad2858f8744e058988ddb787404c`.
 
 Unter PowerShell lässt sich der Download so prüfen:
 
@@ -111,14 +116,12 @@ Veröffentlichungskanal. Das ausführliche Verfahren steht unter
 
 ### Was beim Release bereits geprüft wurde
 
-- Build aus einem sauberen, dokumentierten Git-Commit.
-- Genau ein unsigniertes Windows-x64-NSIS-Setup; kein MSI, Updater oder ARM64-Paket.
-- Buildmanifest und Prüfsummendatei stimmen mit dem Setup überein.
-- Entwurfsassets wurden von GitHub zurückgeladen und in einem isolierten Ziel installiert,
-  registriert und wieder deinstalliert.
-- Die später öffentlich heruntergeladenen drei Dateien sind bytegenau identisch mit dem lokalen
-  Build und dem geprüften Entwurf.
-- Windows- und Ubuntu-CI bestanden die Qualitätskette und jeweils 16 Browser-E2E-Abläufe.
+- Nach dem Update von Alpha 6 öffnete die vorhandene Startmenüverknüpfung im isolierten
+  Windows-Profil das Demoprojekt mit derselben Kennung.
+- Die per Ordnerauswahl übernommene Beispielkopie ließ sich nach einem Neustart öffnen. Alle 22
+  SQLite-Tabellen und 42 Bild- und Vorschaudateien stimmten mit der Quelle überein.
+- Der portable Archivhelfer stellte die ausgewählte Zusatzdatei mit der zugehörigen Passphrase
+  wieder her.
 
 Noch offen ist die vollständige manuelle Abnahme von SmartScreen, interaktivem Erststart,
 Projektpersistenz und Deinstallation auf einem unabhängigen Zweitrechner oder einer Clean-VM.
