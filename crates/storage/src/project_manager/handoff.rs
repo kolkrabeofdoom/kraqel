@@ -284,6 +284,7 @@ fn inspect_asset(
     Ok((digest_file(&dest)?, copied))
 }
 
+#[cfg(windows)]
 pub(super) fn media_inventory(
     source: &Connection,
     dir: &Path,
