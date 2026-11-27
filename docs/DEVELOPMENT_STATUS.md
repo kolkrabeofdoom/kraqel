@@ -2,8 +2,11 @@
 
 **Drehbuchbearbeitung · 27. November 2026.** In der installierten Windows-Fassung aus `df2ee4ca165f`
 behielt eine leere synthetische Szene bei Umwandlung, Rückgängig, Wiederholen und Neustart ihre
-Kennung und Zuordnung. Gespeichert wurde ein einzelner leerer Szenenkopf. Die drehbuchspezifische
-Sprachausgabeprüfung ist auf Wunsch zurückgestellt.
+Kennung und Zuordnung. Gespeichert wurde ein einzelner leerer Szenenkopf. Bei zwei ungültigen
+Speicherversuchen blieben im nativen Test Inhalt und Revision erhalten. Für Dialog und
+Klammeranweisung bestätigte eine unabhängige PDF-Messung den Umbruch an der vereinbarten
+160-mm-Grenze mit der Auflösung einer Zeichenzelle. Die drehbuchspezifische Sprachausgabeprüfung ist
+auf Wunsch zurückgestellt.
 [Abnahmestand DB-01 bis DB-08](testing/F08_M3_ACCEPTANCE_MATRIX.md#stand-der-drehbuchkriterien)
 
 **DOCX-Manuskriptaustausch · 27. November 2026:** Der Entwicklungszweig kann gemischte Manuskripte

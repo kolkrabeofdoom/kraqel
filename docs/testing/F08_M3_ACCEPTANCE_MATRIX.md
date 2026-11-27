@@ -21,7 +21,9 @@ enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-fo
 - **DB-02 · Validieren.** Ein Dialog ohne Figur und ein zweiter Szenenkopf bleiben als Entwurf
   speicherbar. Der Druck weist beide Folgen vor der Dateianlage ab. Der Studio-Druckhinweis und der
   Vorschlag für den ersten Szenenkopf behandeln U+0085 wie die native Druckprüfung als
-  Unicode-Leerraum. Damit zählt ein alleinstehendes U+0085 bei der Rollenprüfung als leer.
+  Unicode-Leerraum. Damit zählt ein alleinstehendes U+0085 bei der Rollenprüfung als leer. Der
+  native Speichertest wies eine falsche Vertragsversion und ein zusätzliches Attribut neben `role`
+  ab. Nach Wiederöffnen entsprachen Inhalt und Revision 1 dem letzten gültigen Stand.
 - **DB-03 · Wiederherstellen.** SQLite-Backup und v4-Archiv erhalten Rollen, Umbruch, Formatierung,
   Revision und FTS-Suchbarkeit. Der Archivimport erzeugt eine eigene Projektkennung.
 - **DB-04 · Schrift.** Vier gebündelte Schriftschnitte, lateinische, griechische und kyrillische
@@ -33,8 +35,13 @@ enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-fo
   Rollen, rechter Übergangsrand und Grundlinienabstände unabhängig vermessen. Bei den beiden
   Wortumbruchproben lagen die sichtbaren Zeichen auf allen sechs gerasterten Seiten horizontal
   zwischen 29,99 und 184,86 mm. Die unterste Pixelkante der kritischen Seite lag bei 288 dpi bei
-  277,019 mm ab Blattoberkante, innerhalb eines Rasterpixels der 20-mm-Randvorgabe. Für die rechten
-  Umbruchgrenzen von Dialog und Klammeranweisung fehlt hier eine unabhängige Einzelmessung.
+  277,019 mm ab Blattoberkante, innerhalb eines Rasterpixels der 20-mm-Randvorgabe. In einer
+  weiteren einseitigen Ausgabe des produktiven Renderers maß pdfplumber eine Zeichenbreite von 2,54
+  mm. Von 36 Zeichen in der Klammeranweisung passten 35 zwischen 70,00 und 158,90 mm, von 42
+  Dialogzeichen passten 41 zwischen 55,00 und 159,14 mm. Das jeweils nächste Zeichen erschien am
+  eigenen linken Einzug auf der Folgezeile. Es hätte auf der ersten Zeile bei 161,44 bzw. 161,68 mm
+  geendet. Damit stimmt der beobachtete Umbruch für beide Rollen mit der vereinbarten Grenze von 160
+  mm überein. Die vollständige Seite wurde mit Poppler gerastert und gesichtet.
 - **DB-06 · Seitenwechsel.** Figurenzeile und die ersten zwei Dialogzeilen bleiben auch bei
   getrennten Dialogabsätzen zusammen. Eine unteilbare Gruppe von 52 Figurenzeilen scheitert vor der
   Veröffentlichung. Zwei rückgelesene PDFs belegen den Seitenwechsel am Szenenkopf. Die beiden

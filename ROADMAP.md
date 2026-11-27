@@ -290,6 +290,8 @@ Datenschutzziel bleibt unverändert.
            [Einzelnachweise und offene Grenzen](docs/testing/F08_M3_ACCEPTANCE_MATRIX.md#stand-der-drehbuchkriterien)
        - [x] Leere Szene im installierten Studio umwandeln, die Umwandlung rückgängig machen und
              wiederholen. Drehbuchmodus und stabile Kennungen nach Prozessneustart prüfen.
+       - [x] Rechte Umbruchgrenzen für Dialog und Klammeranweisung im gerenderten PDF unabhängig
+             anhand der letzten passenden und der ersten umgebrochenen Zeichenzelle prüfen.
        - [x] A4-Rollenmaße einer vollständigen synthetischen Szene unabhängig vermessen,
              Dialogumbruch über zwei kurze Absätze korrigieren und den Erhalt einer vorhandenen
              Ausgabe bei Auswahl- und Grammatikfehlern im Desktop prüfen.
