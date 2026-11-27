@@ -281,8 +281,9 @@ Datenschutzziel bleibt unverändert.
            / fachlich angenommene ADR 0033; keine Funktionsabnahme)
      - [x] Drehbuchrollen, A4-Profil, Schriftauswahlprüfung und Format-/Importrichtungen fachlich
            entscheiden
-     - [ ] Nach Freigabe Modell-/Versionsprototyp und Schriftprüfung, danach Renderer und
-           DB-01–DB-08
+     - [x] Versioniertes Drehbuchmodell, lokale Schriftprüfung und A4-Renderer umsetzen.
+     - [ ] Drehbuchkriterien DB-01 bis DB-08 vollständig abnehmen.
+           [Einzelnachweise und offene Grenzen](docs/testing/F08_M3_ACCEPTANCE_MATRIX.md#stand-der-drehbuchkriterien)
        - [x] A4-Rollenmaße einer vollständigen synthetischen Szene unabhängig vermessen,
              Dialogumbruch über zwei kurze Absätze korrigieren und den Erhalt einer vorhandenen
              Ausgabe bei Auswahl- und Grammatikfehlern im Desktop prüfen.

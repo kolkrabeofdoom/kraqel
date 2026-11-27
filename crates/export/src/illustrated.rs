@@ -74,6 +74,7 @@ pub struct ImagePlacement {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IllustratedError {
     Invalid,
+    ScreenplayLayout(&'static str),
     Conflict,
     Internal,
 }
@@ -83,6 +84,7 @@ impl std::fmt::Display for IllustratedError {
             Self::Invalid => {
                 "Die Auswahl oder eine Bilddatei ist ungültig oder überschreitet die Exportgrenzen."
             }
+            Self::ScreenplayLayout(_) => "Das Drehbuchlayout ist für den PDF-Export ungültig.",
             Self::Conflict => "Projekt oder Bildauswahl wurden zwischenzeitlich verändert.",
             Self::Internal => "Das Bildpaket konnte nicht veröffentlicht werden.",
         })

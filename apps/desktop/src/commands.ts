@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+import exportHintsText from "../../../crates/export/src/export-hints.txt?raw";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import type {
   AiContextPreview,
@@ -61,14 +63,23 @@ export interface CommandErrorContract {
   readonly retryable: boolean;
 }
 
+const exportHints = exportHintsText.trim().split(/\r?\n/u);
+
 export class KraqelCommandError extends Error {
+  readonly exportHint?: string;
   readonly code: CommandErrorCode;
   readonly requestId: Uuid;
   readonly retryable: boolean;
 
-  constructor(error: CommandErrorContract) {
+  constructor(error: CommandErrorContract, command?: string) {
     super(safeMessageFor(error.code));
     this.name = "KraqelCommandError";
+    if (
+      error.code === "INVALID_REQUEST" &&
+      (command === "export_manuscript" || command === "export_screenplay_pdf")
+    ) {
+      this.exportHint = exportHints.find((hint) => hint === error.message);
+    }
     this.code = error.code;
     this.requestId = error.requestId;
     this.retryable = error.retryable;
@@ -1330,7 +1341,7 @@ async function callCommand<TPayload, TData>(
       throw error;
     }
     if (isCommandErrorContract(error, requestId, contractVersion)) {
-      throw new KraqelCommandError(error);
+      throw new KraqelCommandError(error, command);
     }
     throw internalContractError(requestId);
   }

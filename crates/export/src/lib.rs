@@ -86,6 +86,19 @@ pub enum ExportError {
     UnsafeDestination,
     Internal(Box<dyn Error + Send + Sync>),
 }
+impl ExportError {
+    /// Liefert bei einem bekannten Dokumentfehler ausschließlich einen Hinweis aus dem lokalen Katalog.
+    #[must_use]
+    pub fn document_hint(&self) -> Option<&'static str> {
+        let Self::InvalidDocument(message) = self else {
+            return None;
+        };
+        include_str!("export-hints.txt")
+            .lines()
+            .find(|hint| hint == message)
+    }
+}
+
 impl fmt::Display for ExportError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -149,11 +162,7 @@ pub fn export_project(
     documents: &[ExportSourceDocument],
     format: ExportFormat,
 ) -> Result<ExportResult, ExportError> {
-    let manuscript = Manuscript::from_export_documents(project, documents).map_err(|_| {
-        ExportError::InvalidDocument(
-            "Das Manuskript enthält eine ungültige oder nicht unterstützte Struktur.",
-        )
-    })?;
+    let manuscript = Manuscript::from_export_documents(project, documents)?;
     let bytes = render::render(&manuscript, format)?;
     let directory = prepare_export_directory(project_directory)?;
     let file_name = format!("manuskript.{}", format.extension());

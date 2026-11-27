@@ -4170,7 +4170,9 @@ fn map_export_error(request_id: uuid::Uuid, error: &ExportError) -> CommandError
     match error {
         ExportError::InvalidDocument(_) => CommandError::invalid_request(
             request_id,
-            "Das Manuskript enthält eine noch nicht exportierbare Formatierung.",
+            error
+                .document_hint()
+                .unwrap_or("Das Manuskript enthält eine noch nicht exportierbare Formatierung."),
         ),
         ExportError::UnsafeDestination | ExportError::Internal(_) => {
             CommandError::internal(request_id)

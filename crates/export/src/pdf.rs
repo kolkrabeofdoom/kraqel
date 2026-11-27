@@ -19,6 +19,13 @@ const WIDTH: f32 = 481.8;
 const MAX_LINES: usize = 100_000;
 type Result<T> = std::result::Result<T, IllustratedError>;
 
+fn screenplay_layout_error(error: &crate::ExportError) -> IllustratedError {
+    error.document_hint().map_or(
+        IllustratedError::Invalid,
+        IllustratedError::ScreenplayLayout,
+    )
+}
+
 // Adjacent editor text nodes can split a single composed glyph. Normalize the
 // whole printable run, retaining hard breaks and changes of font face as boundaries.
 fn styled_text_runs(
@@ -232,14 +239,14 @@ impl Layout {
             .collect::<Result<Vec<_>>>()?;
         let layout = match &mut self.screenplay {
             Some(layout) => layout,
-            slot @ None => {
-                slot.insert(screenplay::Layout::new().map_err(|_| IllustratedError::Invalid)?)
-            }
+            slot @ None => slot.insert(
+                screenplay::Layout::new().map_err(|error| screenplay_layout_error(&error))?,
+            ),
         };
         let previous_bytes = layout.text_bytes();
         let rows = layout
             .scene(&roles)
-            .map_err(|_| IllustratedError::Invalid)?;
+            .map_err(|error| screenplay_layout_error(&error))?;
         self.lines += rows.len();
         self.text_bytes += layout.text_bytes() - previous_bytes;
         if self.lines > MAX_LINES || self.text_bytes > 8 * 1024 * 1024 {
@@ -486,7 +493,7 @@ fn render(
                         rows.clone(),
                         script_fonts.ok_or(IllustratedError::Invalid)?,
                     )
-                    .map_err(|_| IllustratedError::Invalid)?;
+                    .map_err(|error| screenplay_layout_error(&error))?;
             }
             Item::Image { key, width, height } => {
                 // The figure plan keeps its image and following description on one page.

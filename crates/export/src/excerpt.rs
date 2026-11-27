@@ -110,11 +110,7 @@ fn render_selection(
     {
         return crate::pdf::screenplay::render_selected(project, documents, &[id]);
     }
-    let manuscript = Manuscript::from_export_documents(project, documents).map_err(|_| {
-        ExportError::InvalidDocument(
-            "Das Manuskript enthält eine ungültige oder nicht unterstützte Struktur.",
-        )
-    })?;
+    let manuscript = Manuscript::from_export_documents(project, documents)?;
     render::render(&manuscript, format)
 }
 

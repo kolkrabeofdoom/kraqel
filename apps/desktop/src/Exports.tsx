@@ -3,6 +3,7 @@ import type { DocumentNode, EntityId, ProjectId } from "@kraqel/domain";
 import { buildDocumentTree } from "@kraqel/editor";
 import { useState } from "react";
 import {
+  KraqelCommandError,
   exportManuscript,
   exportRoundtripManuscript,
   exportScreenplayPdf,
@@ -43,11 +44,13 @@ export function Exports({
             ? exportRoundtripManuscript(projectId)
             : exportManuscript(projectId, format)),
       );
-    } catch {
+    } catch (cause) {
+      const hint = cause instanceof KraqelCommandError ? cause.exportHint : undefined;
       setError(
-        format === "screenplay"
-          ? "Drehbuch-PDF konnte nicht erzeugt werden. Wähle ausschließlich Drehbuchszenen. Prüfe Szenenkopf, Dialogfolge, Zeichen und Seitenlayout."
-          : "Der Export ist gescheitert. Prüfe Formatierungen und bei PDF auch den unterstützten Zeichenumfang und die Layoutgrenzen.",
+        hint ??
+          (format === "screenplay"
+            ? "Drehbuch-PDF konnte nicht erzeugt werden. Wähle ausschließlich Drehbuchszenen. Prüfe Szenenkopf, Dialogfolge, Zeichen und Seitenlayout."
+            : "Der Export ist gescheitert. Prüfe Formatierungen und bei PDF auch den unterstützten Zeichenumfang und die Layoutgrenzen."),
       );
     } finally {
       setBusy(null);

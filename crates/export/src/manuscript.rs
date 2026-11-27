@@ -83,19 +83,30 @@ impl Manuscript {
         project: &Project,
         documents: &[ExportSourceDocument],
     ) -> Result<Self, DocxRoundtripError> {
-        Self::from_documents_for(project, documents, false)
+        Self::validate_sources(project, documents, false)?;
+        crate::build_manuscript(project, documents)
+            .map_err(|_| DocxRoundtripError)?
+            .canonicalized_for(false)
     }
     pub(crate) fn from_export_documents(
         project: &Project,
         documents: &[ExportSourceDocument],
-    ) -> Result<Self, DocxRoundtripError> {
-        Self::from_documents_for(project, documents, true)
+    ) -> Result<Self, crate::ExportError> {
+        let invalid = |_| {
+            crate::ExportError::InvalidDocument(
+                "Das Manuskript enthält eine ungültige oder nicht unterstützte Struktur.",
+            )
+        };
+        Self::validate_sources(project, documents, true).map_err(invalid)?;
+        crate::build_manuscript(project, documents)?
+            .canonicalized_for(true)
+            .map_err(invalid)
     }
-    fn from_documents_for(
+    fn validate_sources(
         project: &Project,
         documents: &[ExportSourceDocument],
         ordinary_export: bool,
-    ) -> Result<Self, DocxRoundtripError> {
+    ) -> Result<(), DocxRoundtripError> {
         if !ordinary_export && documents.len() > 4096 {
             return Err(DocxRoundtripError);
         }
@@ -134,9 +145,7 @@ impl Manuscript {
                 }
             }
         }
-        crate::build_manuscript(project, documents)
-            .map_err(|_| DocxRoundtripError)?
-            .canonicalized_for(ordinary_export)
+        Ok(())
     }
 }
 

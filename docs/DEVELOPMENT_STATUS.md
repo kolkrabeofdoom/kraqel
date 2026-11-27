@@ -5,7 +5,13 @@
 `pnpm hooks:install` aktiviert ihn in bestehenden Checkouts. Fremde Hooks bleiben erhalten.
 [Einrichtung, Prüfumfang und Grenzen](../CONTRIBUTING.md#automatische-prüfung-vor-dem-push)
 
-Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit
+**Drehbuchdruck · 27. November 2026:** Studio und native Oberfläche verwenden bei bekannten
+Exportfehlern einen gemeinsamen lokalen Hinweiskatalog. Eine fehlende Figurenzeile oder eine zu hohe
+Druckgruppe lässt sich damit gezielt korrigieren. Rollenbearbeitung, Umbruch an der Seitengrenze und
+mehrseitiger Dialog sind mit synthetischen Szenen geprüft.
+[Nachweise je Drehbuchkriterium](testing/F08_M3_ACCEPTANCE_MATRIX.md#stand-der-drehbuchkriterien)
+
+Stand vom 27. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit
 sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte
 Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7
 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](data-format/screenplay-v2.md)

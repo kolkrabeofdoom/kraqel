@@ -62,7 +62,9 @@ fn selected<'a>(
         if !wanted.remove(&doc.node.id) {
             continue;
         }
-        if doc.node.kind != DocumentKind::Scene {
+        if doc.node.kind != DocumentKind::Scene
+            || doc.content.version != kraqel_domain::SCREENPLAY_DOCUMENT_VERSION
+        {
             return Err(INVALID_SELECTION);
         }
         let parent = doc.node.parent_id.ok_or(INVALID_SELECTION)?;
@@ -400,6 +402,54 @@ mod tests {
     }
 
     #[test]
+    fn scene_heading_keeps_two_lines_and_long_dialogue_continues_in_order() {
+        let (project, mut docs) = crate::tests::fixture();
+        let block = |role: &str, text: &str| json!({"type":"screenplayBlock","attrs":{"role":role},"content":[{"type":"text","text":text}]});
+        docs[1].content.version = kraqel_domain::SCREENPLAY_DOCUMENT_VERSION;
+        let mut next = docs[1].clone();
+        next.node.id = EntityId::new();
+        next.node.position = 1;
+        let dialogue: Vec<_> = (1..=65).map(|n| format!("Replik {n:02}.")).collect();
+        next.content.document = json!({"type":"doc","content":[
+            block("sceneHeading", "INT. WERKSTATT"),
+            block("action", "Die Uhr tickt.\nEin Hammer faellt."),
+            block("character", "LEA"),
+            block("dialogue", &dialogue.join("\n"))
+        ]});
+        let selection = [docs[1].node.id, next.node.id];
+        docs.push(next);
+        // With 43 action lines the next heading and both opening lines fit. With
+        // 46 lines only the heading would fit, so the whole group must move.
+        for (filler_lines, opening_page) in [(43, 1), (46, 2)] {
+            docs[1].content.document = json!({"type":"doc","content":[
+                block("sceneHeading", "INT. ARCHIV"),
+                block("action", &vec!["Schritte."; filler_lines].join("\n"))
+            ]});
+            let bytes = render_selected(&project, &docs, &selection).unwrap();
+            let pdf = lopdf::Document::load_mem(&bytes).unwrap();
+            assert_eq!(pdf.get_pages().len(), 3);
+            let opening = pdf.extract_text(&[opening_page]).unwrap();
+            for expected in ["INT. WERKSTATT", "Die Uhr tickt.", "Ein Hammer faellt."] {
+                assert!(
+                    opening.contains(expected),
+                    "missing {expected} on page {opening_page}"
+                );
+            }
+            let second = pdf.extract_text(&[2]).unwrap();
+            let third = pdf.extract_text(&[3]).unwrap();
+            assert!(second.contains("LEA") && second.contains(&dialogue[0]));
+            assert!(third.contains(dialogue.last().unwrap()));
+            let actual: Vec<_> = second
+                .lines()
+                .chain(third.lines())
+                .map(str::trim)
+                .filter(|line| line.starts_with("Replik "))
+                .collect();
+            assert_eq!(actual, dialogue);
+        }
+    }
+
+    #[test]
     fn selected_screenplay_preserves_unicode_styles_and_dialogue_across_pages() {
         let root = tempfile::tempdir().unwrap();
         let (project, mut docs) = crate::tests::fixture();
@@ -491,6 +541,19 @@ mod tests {
                 "Eine zusammengehörige Drehbuchgruppe ist höher als die Druckseite."
             ))
         ));
+        let export_full = |docs: &[ExportSourceDocument]| {
+            crate::export_project(root.path(), &project, docs, ExportFormat::Pdf)
+                .unwrap_err()
+                .document_hint()
+        };
+        assert_eq!(
+            export_full(&docs),
+            Some("Eine zusammengehörige Drehbuchgruppe ist höher als die Druckseite.")
+        );
+        docs[1].content.document = json!({"type":"doc","content":[
+            block("sceneHeading", "INT. ARCHIV"), block("dialogue", "Vertraulich"),
+        ]});
+        assert_eq!(export_full(&docs), Some("Dialog benötigt eine Figur."));
         assert_eq!(std::fs::read(path).unwrap(), bytes);
     }
 }

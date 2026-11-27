@@ -260,8 +260,9 @@ fn report_export_error(error: &(dyn Error + 'static)) {
         notify(
             "Der bestätigte Manuskriptstand hat sich geändert. Bitte den Export aus der aktuellen Gliederung erneut wählen.",
         );
-    } else if let Some(kraqel_export::ExportError::InvalidDocument(message)) =
-        error.downcast_ref::<kraqel_export::ExportError>()
+    } else if let Some(message) = error
+        .downcast_ref::<kraqel_export::ExportError>()
+        .and_then(kraqel_export::ExportError::document_hint)
     {
         notify(message);
     } else {

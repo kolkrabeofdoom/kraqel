@@ -12,10 +12,29 @@ test("Drehbuchrollen bleiben nach Autosave und Wiederöffnen über die Tastatur 
   await page.getByRole("button", { name: "Projekt anlegen" }).click();
   const editor = page.getByRole("textbox", { name: "Text von Szene 1" });
   await editor.fill("Am frühen Abend");
-  await page.getByRole("button", { name: "In Drehbuch umwandeln …" }).click();
-  await expect(page.getByLabel("Rolle für Absatz 1")).toHaveValue("sceneHeading");
+  await editor.press("Control+End");
+  await editor.press("Shift+Enter");
+  await editor.press("Control+b");
+  await editor.press("Control+i");
+  await page.keyboard.insertText("Am Hafen");
+  const firstBlock = editor.locator("p").first();
+  await expect(firstBlock.locator("strong em, em strong")).toHaveText("Am Hafen");
+  await expect(firstBlock.locator("br")).toHaveCount(1);
+  const opening = await firstBlock.innerHTML();
+  const toScript = page.getByRole("button", { name: "In Drehbuch umwandeln …" });
+  const firstRole = page.getByLabel("Rolle für Absatz 1");
+  await toScript.click();
+  await firstRole.selectOption("dialogue");
+  await page
+    .getByRole("region", { name: "Zuordnungsvorschau" })
+    .getByRole("button", { name: "Abbrechen" })
+    .click();
+  await expect(editor.locator("[data-kraqel-role]")).toHaveCount(0);
+  await toScript.click();
+  await expect(firstRole).toHaveValue("sceneHeading");
   await page.getByRole("button", { name: "Umwandlung bestätigen" }).click();
-  await expect(editor.locator("[data-kraqel-role=sceneHeading]")).toHaveText("Am frühen Abend");
+  await expect(firstBlock).toHaveAttribute("data-kraqel-role", "sceneHeading");
+  expect(await firstBlock.innerHTML()).toBe(opening);
   await editor.press("Control+End");
   const roles = [
     ["action", "Es klopft."],
@@ -43,9 +62,14 @@ test("Drehbuchrollen bleiben nach Autosave und Wiederöffnen über die Tastatur 
   await expect(editor.locator("[data-kraqel-role=action]")).toHaveCount(6);
   await page.getByRole("button", { name: "Rückgängig" }).click();
   await expect(editor.locator("[data-kraqel-role=dialogue]")).toHaveText("Wer ist da?");
+  await page.getByRole("button", { name: "Wiederholen" }).click();
+  await expect(editor.locator("[data-kraqel-role=action]")).toHaveCount(6);
+  expect(await firstBlock.innerHTML()).toBe(opening);
+  await page.getByRole("button", { name: "Rückgängig" }).click();
   await page.getByRole("button", { name: "In Prosa umwandeln …" }).click();
   await page.getByRole("button", { name: "Umwandlung bestätigen" }).click();
   await expect(editor.locator("[data-kraqel-role]")).toHaveCount(0);
+  expect(await firstBlock.innerHTML()).toBe(opening);
   await page.getByRole("button", { name: "Rückgängig" }).click();
   await expect(editor.locator("[data-kraqel-role]")).toHaveCount(6);
   await page.getByRole("button", { name: "Export", exact: true }).click();
@@ -65,7 +89,9 @@ test("Drehbuchrollen bleiben nach Autosave und Wiederöffnen über die Tastatur 
   const otherEditor = other.getByRole("textbox", { name: "Text von Szene 1" });
   const storedText = "Schwarzblende am Hafen.";
   await otherEditor.press("Control+End");
-  await other.getByRole("combobox", { name: "Absatzrolle", exact: true }).selectOption("action");
+  const otherRole = other.getByRole("combobox", { name: "Absatzrolle", exact: true });
+  await expect(otherRole).toHaveValue("transition");
+  await otherRole.selectOption("action");
   await other.getByRole("button", { name: "Rolle anwenden" }).click();
   await otherEditor.press("Control+End");
   await other.keyboard.insertText(" am Hafen.");

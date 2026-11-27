@@ -431,7 +431,10 @@ fn package_docx(document: &str, screenplay: bool) -> Result<Vec<u8>, ExportError
 }
 
 fn pdf(manuscript: &Manuscript) -> Result<Vec<u8>, ExportError> {
-    crate::pdf::text(manuscript).map_err(|_| ExportError::InvalidDocument(
-        "Der PDF-Auftrag enthält nicht unterstützte Zeichen oder überschreitet die Layoutgrenzen."
-    ))
+    crate::pdf::text(manuscript).map_err(|error| match error {
+        crate::illustrated::IllustratedError::ScreenplayLayout(hint) => ExportError::InvalidDocument(hint),
+        _ => ExportError::InvalidDocument(
+            "Der PDF-Auftrag enthält nicht unterstützte Zeichen oder überschreitet die Layoutgrenzen."
+        ),
+    })
 }

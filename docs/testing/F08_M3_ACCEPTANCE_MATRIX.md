@@ -1,9 +1,38 @@
 # F08-/M3-Abnahmematrix
 
-Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit
+Stand vom 27. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit
 sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte
 Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7
 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-format/screenplay-v2.md)
+
+## Stand der Drehbuchkriterien
+
+- **DB-01 · Bearbeiten.** Der Studio-Bedienlauf deckt sechs Rollen und konkurrierendes Autosave ab.
+  Abbrechen verwirft die Rollenauswahl. Umwandlung, Rollenwechsel mit Undo/Redo und Rückwandlung
+  erhalten Fettdruck, Kursivschrift und harten Umbruch im synthetischen Manuskript. Der installierte
+  Desktop belegt den Neustart mit Szenenkopf und Handlung. Die Bedienläufe mit simuliertem IPC und
+  die installierten Kandidaten sind unten einzeln ausgewiesen.
+- **DB-02 · Validieren.** Ein Dialog ohne Figur und ein zweiter Szenenkopf bleiben als Entwurf
+  speicherbar. Der Druck weist beide Folgen vor der Dateianlage ab.
+- **DB-03 · Wiederherstellen.** SQLite-Backup und v4-Archiv erhalten Rollen, Umbruch, Formatierung,
+  Revision und FTS-Suchbarkeit. Der Archivimport erzeugt eine eigene Projektkennung.
+- **DB-04 · Schrift.** Vier gebündelte Schriftschnitte, lateinische, griechische und kyrillische
+  Stichproben sowie kombinierende Zeichen über Textknotengrenzen sind geprüft. Ein fehlendes Emoji
+  führt zur Ablehnung und die vorhandene PDF bleibt bytegleich.
+- **DB-05 · Satzmaße.** Für die vollständige synthetische A4-Szene sind Schriftgröße, Einzüge aller
+  Rollen, rechter Übergangsrand und Grundlinienabstände unabhängig vermessen.
+- **DB-06 · Seitenwechsel.** Figurenzeile und die ersten zwei Dialogzeilen bleiben auch bei
+  getrennten Dialogabsätzen zusammen. Eine unteilbare Gruppe von 52 Figurenzeilen scheitert vor der
+  Veröffentlichung. Zwei rückgelesene PDFs belegen den Seitenwechsel am Szenenkopf. Die beiden
+  folgenden Handlungszeilen stehen jeweils auf derselben Seite wie der Kopf. Alle 65 Dialogzeilen
+  folgen über zwei Seiten genau einmal in der richtigen Reihenfolge.
+- **DB-07 · Austausch.** Word und LibreOffice erhielten beim Speichern alle sechs Rollen und den
+  Dialogumbruch. Der kanonische Rückimport von DOCX mit v2-Rollenmarkern ist offen.
+- **DB-08 · Desktop-Export.** Szenen- und Kapitelauswahl sind im gebauten Desktop belegt. Ein Fehler
+  im produktiven Studio-Export lässt die vorhandene PDF bytegleich. Beim Gesamt-PDF kommen Rollen-
+  und Seitenhöhenfehler als feste Hinweise an. Der Studio-Adapter verwirft abweichende Meldungen
+  einschließlich angehängter Fremdtexte. Die jeweilige Prüfumgebung und der verwendete Kandidat
+  stehen bei den nachfolgenden Nachweisen.
 
 ## Windows-Kandidat und Drehbuch-Rundlauf vom 27. November
 
