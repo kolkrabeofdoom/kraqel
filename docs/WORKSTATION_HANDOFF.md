@@ -1,9 +1,19 @@
 # Rechnerwechsel und Arbeitsübergabe
 
-Stand vom 25. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit
+Stand vom 27. November 2026 auf dem Entwicklungszweig. Der Desktop unterstützt Drehbuchszenen mit
 sechs Absatzrollen und einen eigenen A4-PDF-Export für ausgewählte Szenen. Die erste gespeicherte
 Drehbuchszene hebt das Projektschema auf 7 an. Reine Prosaprojekte behalten Schema 6. Alpha 7
 enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](data-format/screenplay-v2.md)
+
+## Windows-Testinstaller für den DOCX-v2-Austausch
+
+Der unsignierte x64-Kandidat aus `df2ee4ca165f` liegt im Build-Checkout unter
+`artifacts/release/0.1.0/windows-x64/df2ee4ca165f/KRAQEL_0.1.0_windows-x64-setup.exe` (320.154.697
+Byte, SHA-256 `5b37094fd784a86adceb91eec86dce7613305e68c7d84987e96c2c45c73ff3ae`). Auf einer
+frischen Installation führt **Projektverwaltung öffnen** von der nativen Projektübersicht zur
+Studio-Startseite. Unter **KRAQEL-Manuskript aus DOCX** die Schaltfläche **Manuskript-DOCX
+auswählen** verwenden. Der Import legt eine neue lokale Projektkopie an.
+[Neuinstallation, Wiederöffnen und Datenabgleich im Offline-Gast](testing/F08_M3_ACCEPTANCE_MATRIX.md#docx-v2-import-nach-frischer-offlineinstallation)
 
 ## Windows-Kandidat mit korrigiertem Unicode-Druck
 

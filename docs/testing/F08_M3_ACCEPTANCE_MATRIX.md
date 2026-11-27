@@ -65,6 +65,30 @@ enthält diese Funktion noch nicht. [Datenformat und Kompatibilität](../data-fo
 
 ## Windows-Kandidat und Drehbuch-Rundlauf vom 27. November
 
+### DOCX-v2-Import nach frischer Offlineinstallation
+
+Der unsignierte x64-Installer aus `df2ee4ca165f` (SHA-256
+`5b37094fd784a86adceb91eec86dce7613305e68c7d84987e96c2c45c73ff3ae`) installierte den Desktop auf
+einem frisch eingerichteten Windows Server 2025 Standard mit Desktop Experience. Vor dem Gaststart
+meldete Hyper-V null virtuelle Netzadapter und null aktive Integrationsdienste. Die Installation
+endete mit Exitcode 0. Der Projektkatalog war beim ersten Programmstart leer.
+
+**Projektverwaltung öffnen → Manuskript-DOCX auswählen** führte von der nativen Projektübersicht
+über die Studio-Startseite zum Windows-Dateidialog. Der Import der synthetischen v2-Datei zeigte den
+erwarteten Projekttitel. Nach Schließen und erneutem Start enthielt die native Projektliste genau
+eine Kopie. Diese ließ sich erneut öffnen. Beide Programmstarts endeten regulär.
+
+Nach dem Gastlauf wurde die geschlossene SQLite-Datenbank unabhängig mit der DOCX-Quelle verglichen.
+Die Integritätsprüfung bestand. Schema 7 enthielt drei Kapitel und fünf Szenen sowie neun eindeutige
+UUIDs für Projekt, Kapitel und Szenen. Prosa lag in Editorformat v1, Drehbuch in v2 vor. Alle sechs
+Rollen und sämtliche Drehbuch-Textläufe stimmten mit der Quelle überein, einschließlich Leerabsatz,
+Fett/Kursiv und hartem Umbruch. Die Volltextsuche nach „STELLWERK“ fand genau die Szene „Abfahrt“.
+Die Prüfsumme der DOCX blieb beim Import unverändert. Der Netzbeleg dieses Laufs ist die fehlende
+Netzanbindung des Gasts. Das Verhalten an einem angeschlossenen Netzwerk wird gesondert bewertet.
+Nach der Auswertung wurden Prüf-VM und Testplatte entfernt.
+
+### Druckproben
+
 In einem separaten Windows-Bedienlauf mit der lokal gebauten Debug-EXE entstand in einem
 synthetischen Projekt zunächst eine gültige gemischte Kapitel-PDF mit 704.878 Byte. Nach dem
 Neustart enthielt die Drehbuchszene einen Dialog ohne Figurenzeile. Nach **Nein** bei der

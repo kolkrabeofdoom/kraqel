@@ -695,10 +695,12 @@ Projekt den neuen Desktop. Die öffentliche Alpha 7 verwendet für Prosa weiterh
 **Export** den DOCX-Export zum Wiederimport. Enthält das Manuskript eine Drehbuchszene, schreibt
 KRAQEL das gesamte Manuskript im Austauschprofil v2. Reine Prosa verwendet weiterhin v1. Bearbeite
 in Office den Text innerhalb der vorhandenen Absätze und speichere als DOCX. Über
-**KRAQEL-Manuskript aus DOCX** auf der Startseite öffnest du die Datei als neues lokales Projekt.
-Dadurch kannst du die überarbeitete Fassung neben dem Original prüfen. Auch leere Rollenabsätze und
-unfertige Dialoge bleiben als Entwürfe erhalten. Für Medien, Story-Bibel und weitere Projektdaten
-verwende das Projektarchiv. [Austauschprofil und Grenzen](docs/data-format/DOCX_ROUNDTRIP_V2.md)
+**Projektverwaltung öffnen** kommst du von der nativen Windows-Projektübersicht zur
+Studio-Startseite. Dort öffnest du die Datei unter **KRAQEL-Manuskript aus DOCX → Manuskript-DOCX
+auswählen** als neues lokales Projekt. Dadurch kannst du die überarbeitete Fassung neben dem
+Original prüfen. Auch leere Rollenabsätze und unfertige Dialoge bleiben als Entwürfe erhalten. Für
+Medien, Story-Bibel und weitere Projektdaten verwende das Projektarchiv.
+[Austauschprofil und Grenzen](docs/data-format/DOCX_ROUNDTRIP_V2.md)
 
 ## Repositorystruktur
 

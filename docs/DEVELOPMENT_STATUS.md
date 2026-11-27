@@ -4,7 +4,9 @@
 im Austauschprofil v2 schreiben und als neue lokale Projektkopie einlesen. Der native Rundlauf
 bestätigte Rollen, leere Absätze, Schriftschnitte, harte Umbrüche und Suchbarkeit nach Wiederöffnen.
 Die in Word und LibreOffice tatsächlich bearbeiteten Testdateien wurden jeweils als neue lokale
-Projektkopie importiert und erneut geöffnet. Reine Prosa verwendet weiter v1.
+Projektkopie importiert und erneut geöffnet. Auch die frische Windows-Offlineinstallation aus
+`df2ee4ca165f` bestand den Import vom Dateidialog bis zum Wiederöffnen. Der Abgleich der
+gespeicherten Testszene bestätigte alle sechs Rollen. Reine Prosa verwendet weiter v1.
 [Profilvertrag](data-format/DOCX_ROUNDTRIP_V2.md) ·
 [Abnahme und Grenzen](testing/F08_M3_ACCEPTANCE_MATRIX.md#stand-der-drehbuchkriterien)
 
